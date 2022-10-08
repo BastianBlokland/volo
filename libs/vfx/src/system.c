@@ -25,7 +25,7 @@ typedef struct {
   u32 spawnCount;
 } VfxEmitterState;
 
-ecs_comp_define(VfxSystemComp) {
+ecs_comp_define(VfxStateComp) {
   TimeDuration    age;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        particles; // VfxParticleState[].
@@ -38,8 +38,8 @@ typedef enum {
 
 ecs_comp_define(VfxAssetRequestComp) { VfxAssetRequestFlags flags; };
 
-static void ecs_destruct_system_comp(void* data) {
-  VfxSystemComp* comp = data;
+static void ecs_destruct_vfx_state_comp(void* data) {
+  VfxStateComp* comp = data;
   dynarray_destroy(&comp->particles);
 }
 
@@ -68,28 +68,28 @@ static bool vfx_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
 
 ecs_view_define(InitView) {
   ecs_access_read(SceneVfxComp);
-  ecs_access_without(VfxSystemComp);
+  ecs_access_without(VfxStateComp);
 }
 
-ecs_system_define(VfxSystemInitSys) {
+ecs_system_define(VfxStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
-        world, e, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticleState, 4));
+        world, e, VfxStateComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticleState, 4));
   }
 }
 
 ecs_view_define(DeinitView) {
-  ecs_access_with(VfxSystemComp);
+  ecs_access_with(VfxStateComp);
   ecs_access_without(SceneVfxComp);
 }
 
-ecs_system_define(VfxSystemDeinitSys) {
+ecs_system_define(VfxStateDeinitSys) {
   EcsView* deinitView = ecs_world_view_t(world, DeinitView);
   for (EcsIterator* itr = ecs_view_itr(deinitView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, VfxSystemComp);
+    ecs_world_remove_t(world, entity, VfxStateComp);
   }
 }
 
@@ -128,7 +128,7 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxComp);
-  ecs_access_write(VfxSystemComp);
+  ecs_access_write(VfxStateComp);
 }
 
 static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, f32* outOpacity) {
@@ -154,7 +154,7 @@ static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, 
 }
 
 static void vfx_system_spawn(
-    VfxSystemComp* sys, const u8 emitter, const AssetVfxComp* asset, const AssetAtlasComp* atlas) {
+    VfxStateComp* state, const AssetVfxComp* asset, const AssetAtlasComp* atlas, const u8 emitter) {
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
@@ -164,58 +164,58 @@ static void vfx_system_spawn(
     return;
   }
 
-  *dynarray_push_t(&sys->particles, VfxParticleState) = (VfxParticleState){
+  *dynarray_push_t(&state->particles, VfxParticleState) = (VfxParticleState){
       .emitter    = emitter,
       .atlasIndex = atlasEntry->atlasIndex,
   };
 }
 
 static void vfx_system_simulate(
-    VfxSystemComp*        sys,
+    VfxStateComp*         state,
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time) {
 
-  sys->age += time->delta;
+  state->age += time->delta;
 
   // Update emitters.
   for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
-    VfxEmitterState*       emitterState  = &sys->emitters[emitter];
+    VfxEmitterState*       emitterState  = &state->emitters[emitter];
     const AssetVfxEmitter* emitterAsset  = &asset->emitters[emitter];
     const TimeDuration     interval      = emitterAsset->interval;
-    const u32              newSpawnCount = 1 + (interval ? (u32)(sys->age / interval) : 0);
+    const u32              newSpawnCount = 1 + (interval ? (u32)(state->age / interval) : 0);
     for (; emitterState->spawnCount != newSpawnCount; ++emitterState->spawnCount) {
-      vfx_system_spawn(sys, emitter, asset, atlas);
+      vfx_system_spawn(state, asset, atlas, emitter);
     }
   }
 
   // Update particles.
-  VfxParticleState* statesBegin = dynarray_begin_t(&sys->particles, VfxParticleState);
-  for (u32 i = (u32)sys->particles.size; i-- != 0;) {
-    VfxParticleState*      state        = statesBegin + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[state->emitter];
+  VfxParticleState* statesBegin = dynarray_begin_t(&state->particles, VfxParticleState);
+  for (u32 i = (u32)state->particles.size; i-- != 0;) {
+    VfxParticleState*      particleState = statesBegin + i;
+    const AssetVfxEmitter* emitterAsset  = &asset->emitters[particleState->emitter];
 
     // Update age and destruct if too old.
-    if ((state->age += time->delta) > emitterAsset->lifetime) {
+    if ((particleState->age += time->delta) > emitterAsset->lifetime) {
       goto Destruct;
     }
     continue;
 
   Destruct:
-    dynarray_remove_unordered(&sys->particles, i, 1);
+    dynarray_remove_unordered(&state->particles, i, 1);
   }
 }
 
 static void vfx_system_output(
-    VfxSystemComp*      sys,
+    VfxStateComp*       state,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
     const GeoVector     basePos,
     const GeoQuat       baseRot,
     const f32           baseScale) {
 
-  dynarray_for_t(&sys->particles, VfxParticleState, state) {
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[state->emitter];
+  dynarray_for_t(&state->particles, VfxParticleState, particleState) {
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[particleState->emitter];
 
     const GeoVector emitterPos = emitterAsset->position;
     const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, baseScale));
@@ -231,7 +231,7 @@ static void vfx_system_output(
         &(VfxParticle){
             .position   = pos,
             .rotation   = rot,
-            .atlasIndex = state->atlasIndex,
+            .atlasIndex = particleState->atlasIndex,
             .sizeX      = baseScale * emitterAsset->sizeX,
             .sizeY      = baseScale * emitterAsset->sizeY,
             .color      = color,
@@ -264,36 +264,36 @@ ecs_system_define(VfxSystemUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneVfxComp*       vfxComp   = ecs_view_read_t(itr, SceneVfxComp);
-    VfxSystemComp*            sys       = ecs_view_write_t(itr, VfxSystemComp);
+    const SceneVfxComp*       vfx       = ecs_view_read_t(itr, SceneVfxComp);
+    VfxStateComp*             state     = ecs_view_write_t(itr, VfxStateComp);
 
     const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
     const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
     const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
 
-    if (!ecs_view_maybe_jump(assetItr, vfxComp->asset)) {
+    if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
       if (++numAssetRequests < vfx_max_asset_requests) {
-        vfx_asset_request(world, vfxComp->asset);
+        vfx_asset_request(world, vfx->asset);
       }
       continue;
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    vfx_system_simulate(sys, asset, atlas, time);
-    vfx_system_output(sys, draw, asset, basePos, baseRot, baseScale);
+    vfx_system_simulate(state, asset, atlas, time);
+    vfx_system_output(state, draw, asset, basePos, baseRot, baseScale);
   }
 }
 
 ecs_module_init(vfx_system_module) {
-  ecs_register_comp(VfxSystemComp, .destructor = ecs_destruct_system_comp);
+  ecs_register_comp(VfxStateComp, .destructor = ecs_destruct_vfx_state_comp);
   ecs_register_comp(VfxAssetRequestComp, .combinator = ecs_combine_asset_request);
 
   ecs_register_view(DrawView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
 
-  ecs_register_system(VfxSystemInitSys, ecs_register_view(InitView));
-  ecs_register_system(VfxSystemDeinitSys, ecs_register_view(DeinitView));
+  ecs_register_system(VfxStateInitSys, ecs_register_view(InitView));
+  ecs_register_system(VfxStateDeinitSys, ecs_register_view(DeinitView));
 
   ecs_register_system(VfxAssetLoadSys, ecs_register_view(LoadView));
 
