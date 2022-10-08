@@ -19,7 +19,7 @@ typedef struct {
   u8           emitter;
   u32          atlasIndex;
   TimeDuration age;
-} VfxParticleState;
+} VfxInstance;
 
 typedef struct {
   u32 spawnCount;
@@ -28,7 +28,7 @@ typedef struct {
 ecs_comp_define(VfxStateComp) {
   TimeDuration    age;
   VfxEmitterState emitters[asset_vfx_max_emitters];
-  DynArray        particles; // VfxParticleState[].
+  DynArray        instances; // VfxInstance[].
 };
 
 typedef enum {
@@ -40,7 +40,7 @@ ecs_comp_define(VfxAssetRequestComp) { VfxAssetRequestFlags flags; };
 
 static void ecs_destruct_vfx_state_comp(void* data) {
   VfxStateComp* comp = data;
-  dynarray_destroy(&comp->particles);
+  dynarray_destroy(&comp->instances);
 }
 
 static void ecs_combine_asset_request(void* dataA, void* dataB) {
@@ -76,7 +76,7 @@ ecs_system_define(VfxStateInitSys) {
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
-        world, e, VfxStateComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticleState, 4));
+        world, e, VfxStateComp, .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
   }
 }
 
@@ -164,7 +164,7 @@ static void vfx_system_spawn(
     return;
   }
 
-  *dynarray_push_t(&state->particles, VfxParticleState) = (VfxParticleState){
+  *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter    = emitter,
       .atlasIndex = atlasEntry->atlasIndex,
   };
@@ -189,20 +189,20 @@ static void vfx_system_simulate(
     }
   }
 
-  // Update particles.
-  VfxParticleState* statesBegin = dynarray_begin_t(&state->particles, VfxParticleState);
-  for (u32 i = (u32)state->particles.size; i-- != 0;) {
-    VfxParticleState*      particleState = statesBegin + i;
-    const AssetVfxEmitter* emitterAsset  = &asset->emitters[particleState->emitter];
+  // Update instances.
+  VfxInstance* instances = dynarray_begin_t(&state->instances, VfxInstance);
+  for (u32 i = (u32)state->instances.size; i-- != 0;) {
+    VfxInstance*           instance     = instances + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
 
     // Update age and destruct if too old.
-    if ((particleState->age += time->delta) > emitterAsset->lifetime) {
+    if ((instance->age += time->delta) > emitterAsset->lifetime) {
       goto Destruct;
     }
     continue;
 
   Destruct:
-    dynarray_remove_unordered(&state->particles, i, 1);
+    dynarray_remove_unordered(&state->instances, i, 1);
   }
 }
 
@@ -214,8 +214,8 @@ static void vfx_system_output(
     const GeoQuat       baseRot,
     const f32           baseScale) {
 
-  dynarray_for_t(&state->particles, VfxParticleState, particleState) {
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[particleState->emitter];
+  dynarray_for_t(&state->instances, VfxInstance, instance) {
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
 
     const GeoVector emitterPos = emitterAsset->position;
     const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, baseScale));
@@ -231,7 +231,7 @@ static void vfx_system_output(
         &(VfxParticle){
             .position   = pos,
             .rotation   = rot,
-            .atlasIndex = particleState->atlasIndex,
+            .atlasIndex = instance->atlasIndex,
             .sizeX      = baseScale * emitterAsset->sizeX,
             .sizeY      = baseScale * emitterAsset->sizeY,
             .color      = color,
