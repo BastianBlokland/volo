@@ -56,7 +56,8 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneScaleComp*     scale        = ecs_view_read_t(targetItr, SceneScaleComp);
   const GeoBox              targetBounds = scene_collision_world_bounds(collision, trans, scale);
-  return geo_box_center(&targetBounds);
+  // TODO: Instead of hardcoding an offset we should add a preferred height and clamp to bounds.
+  return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
 static void attack_muzzleflash_spawn(
@@ -92,7 +93,7 @@ static void attack_projectile_spawn(
       e,
       SceneProjectileComp,
       .delay      = time_milliseconds(25),
-      .speed      = 25,
+      .speed      = 40,
       .damage     = 10,
       .instigator = instigator);
 }
