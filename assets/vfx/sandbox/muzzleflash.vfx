@@ -12,9 +12,10 @@
         "x": 0.8,
         "y": 0.3
       },
-      "growTime": 0.1,
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
       "blend": "Additive",
-      "lifetime": 0.1
+      "lifetime": 0.125
     },
     {
       "atlasEntry": "flash",
@@ -29,9 +30,10 @@
         "x": 0.8,
         "y": 0.3
       },
-      "growTime": 0.1,
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
       "blend": "Additive",
-      "lifetime": 0.1
+      "lifetime": 0.125
     },
     {
       "atlasEntry": "flash-star",
@@ -42,9 +44,10 @@
         "x": 0.6,
         "y": 0.6
       },
-      "growTime": 0.1,
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
       "blend": "Additive",
-      "lifetime": 0.1
+      "lifetime": 0.125
     }
   ]
 }
