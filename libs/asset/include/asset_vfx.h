@@ -19,6 +19,7 @@ typedef struct {
   GeoColor      color;
   StringHash    atlasEntry;
   f32           sizeX, sizeY;
+  TimeDuration  growTime;
   AssetVfxBlend blend;
   u32           count;
   TimeDuration  interval, lifetime;

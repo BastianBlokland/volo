@@ -225,8 +225,9 @@ static void vfx_system_output(
   dynarray_for_t(&state->instances, VfxInstance, instance) {
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
 
+    const f32       scale = baseScale * math_min(instance->age / (f32)emitterAsset->growTime, 1.0f);
     const GeoVector emitterPos = emitterAsset->position;
-    const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, baseScale));
+    const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, scale));
     const GeoVector pos        = geo_vector_add(basePos, tmpPos);
     const GeoQuat   rot        = geo_quat_mul(baseRot, emitterAsset->rotation);
 
@@ -240,8 +241,8 @@ static void vfx_system_output(
             .position   = pos,
             .rotation   = rot,
             .atlasIndex = instance->atlasIndex,
-            .sizeX      = baseScale * emitterAsset->sizeX,
-            .sizeY      = baseScale * emitterAsset->sizeY,
+            .sizeX      = scale * emitterAsset->sizeX,
+            .sizeY      = scale * emitterAsset->sizeY,
             .color      = color,
             .opacity    = opacity,
         });

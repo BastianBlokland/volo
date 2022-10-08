@@ -36,6 +36,7 @@ typedef struct {
   VfxVec3Def    position;
   VfxRotDef     rotation;
   VfxVec2Def    size;
+  f32           growTime;
   VfxColorDef*  color;
   AssetVfxBlend blend;
   u32           count;
@@ -90,6 +91,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, growTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
@@ -158,6 +160,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->rotation   = vfx_build_rot(&def->rotation);
   out->sizeX      = def->size.x;
   out->sizeY      = def->size.y;
+  out->growTime   = (TimeDuration)time_seconds(def->growTime);
   out->color      = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend      = def->blend;
   out->count      = math_max(1, def->count);
