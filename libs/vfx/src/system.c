@@ -3,6 +3,7 @@
 #include "asset_vfx.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -170,6 +171,13 @@ static void vfx_system_spawn(
   };
 }
 
+static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
+  if (emitterAsset->interval) {
+    return math_min(1 + (u32)(age / emitterAsset->interval), emitterAsset->count);
+  }
+  return emitterAsset->count;
+}
+
 static void vfx_system_simulate(
     VfxStateComp*         state,
     const AssetVfxComp*   asset,
@@ -180,11 +188,11 @@ static void vfx_system_simulate(
 
   // Update emitters.
   for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
-    VfxEmitterState*       emitterState  = &state->emitters[emitter];
-    const AssetVfxEmitter* emitterAsset  = &asset->emitters[emitter];
-    const TimeDuration     interval      = emitterAsset->interval;
-    const u32              newSpawnCount = 1 + (interval ? (u32)(state->age / interval) : 0);
-    for (; emitterState->spawnCount != newSpawnCount; ++emitterState->spawnCount) {
+    VfxEmitterState*       emitterState = &state->emitters[emitter];
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
+
+    const u32 count = vfx_emitter_count(emitterAsset, state->age);
+    for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
       vfx_system_spawn(state, asset, atlas, emitter);
     }
   }

@@ -20,6 +20,7 @@ typedef struct {
   StringHash    atlasEntry;
   f32           sizeX, sizeY;
   AssetVfxBlend blend;
+  u32           count;
   TimeDuration  interval, lifetime;
 } AssetVfxEmitter;
 

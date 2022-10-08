@@ -38,6 +38,7 @@ typedef struct {
   VfxVec2Def    size;
   VfxColorDef*  color;
   AssetVfxBlend blend;
+  u32           count;
   f32           interval, lifetime;
 } VfxEmitterDef;
 
@@ -91,6 +92,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
     data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32));
 
@@ -158,6 +160,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->sizeY      = def->size.y;
   out->color      = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend      = def->blend;
+  out->count      = math_max(1, def->count);
   out->interval   = (TimeDuration)time_seconds(def->interval);
   out->lifetime   = (TimeDuration)time_seconds(def->lifetime);
 }
