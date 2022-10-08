@@ -17,9 +17,10 @@ typedef struct {
   GeoVector     position;
   GeoQuat       rotation;
   GeoColor      color;
+  TimeDuration  fadeInTime, fadeOutTime;
   StringHash    atlasEntry;
   f32           sizeX, sizeY;
-  TimeDuration  growTime;
+  TimeDuration  scaleInTime;
   AssetVfxBlend blend;
   u32           count;
   TimeDuration  interval, lifetime;

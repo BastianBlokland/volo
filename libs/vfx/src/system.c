@@ -132,23 +132,23 @@ ecs_view_define(UpdateView) {
   ecs_access_write(VfxStateComp);
 }
 
-static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, f32* outOpacity) {
-  switch (e->blend) {
+static void vfx_blend_mode_apply(
+    const GeoColor color, const AssetVfxBlend mode, GeoColor* outColor, f32* outOpacity) {
+  switch (mode) {
   case AssetVfxBlend_None:
-    *outColor   = geo_color(e->color.r, e->color.g, e->color.b, 1.0f);
+    *outColor   = geo_color(color.r, color.g, color.b, 1.0f);
     *outOpacity = 1.0f;
     return;
   case AssetVfxBlend_Alpha:
-    *outColor   = e->color;
-    *outOpacity = e->color.a;
+    *outColor   = color;
+    *outOpacity = color.a;
     return;
   case AssetVfxBlend_Additive:
-    *outColor   = e->color;
+    *outColor   = color;
     *outOpacity = 0.0f;
     return;
   case AssetVfxBlend_AdditiveDouble:
-    *outColor   = geo_color(e->color.r * 2, e->color.g * 2, e->color.b * 2, e->color.a * 2),
-    *outOpacity = 0.0f;
+    *outColor = geo_color(color.r * 2, color.g * 2, color.b * 2, color.a * 2), *outOpacity = 0.0f;
     return;
   }
   UNREACHABLE
@@ -224,17 +224,20 @@ static void vfx_system_output(
 
   dynarray_for_t(&state->instances, VfxInstance, instance) {
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+    const TimeDuration     lifetimeRem  = emitterAsset->lifetime - instance->age;
 
-    const f32       scale = baseScale * math_min(instance->age / (f32)emitterAsset->growTime, 1.0f);
+    const f32 scale = baseScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
     const GeoVector emitterPos = emitterAsset->position;
     const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, scale));
     const GeoVector pos        = geo_vector_add(basePos, tmpPos);
     const GeoQuat   rot        = geo_quat_mul(baseRot, emitterAsset->rotation);
 
-    GeoColor color;
-    f32      opacity;
-    vfx_color_and_opacity(emitterAsset, &color, &opacity);
+    GeoColor color = emitterAsset->color;
+    color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
+    color.a *= math_min(lifetimeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
 
+    f32 opacity;
+    vfx_blend_mode_apply(color, emitterAsset->blend, &color, &opacity);
     vfx_particle_output(
         draw,
         &(VfxParticle){
