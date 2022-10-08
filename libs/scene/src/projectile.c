@@ -1,6 +1,7 @@
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_projectile.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -43,6 +44,7 @@ ecs_system_define(SceneProjectileSys) {
 
   EcsView* projectileView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr(projectileView); ecs_view_walk(itr);) {
+    const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneProjectileComp* projectile = ecs_view_read_t(itr, SceneProjectileComp);
     SceneTransformComp*        trans      = ecs_view_write_t(itr, SceneTransformComp);
 
@@ -57,7 +59,8 @@ ecs_system_define(SceneProjectileSys) {
 
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, &filter, &hit) && hit.time <= deltaDist) {
-      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+      ecs_world_remove_t(world, entity, SceneProjectileComp);
+      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(100));
 
       if (ecs_view_maybe_jump(targetItr, hit.entity)) {
         projectile_damage(projectile, targetItr);
