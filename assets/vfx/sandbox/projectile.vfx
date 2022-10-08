@@ -1,37 +1,39 @@
 {
   "emitters": [
     {
-      "atlasEntry": "glow",
-      "size": {
-        "x": 0.5,
-        "y": 0.5
+      "atlasEntry": "trail",
+      "position": {
+        "x": -1.5
       },
-      "blend": "Additive",
-      "lifetime": 10
+      "rotation": {
+        "y": -90
+      },
+      "size": {
+        "x": 3,
+        "y": 0.1
+      },
+      "scaleInTime": 0.15,
+      "scaleOutTime": 0.15,
+      "fadeOutTime": 0.15,
+      "blend": "Additive"
     },
     {
-      "atlasEntry": "glow",
+      "atlasEntry": "trail",
+      "position": {
+        "x": -1.5
+      },
       "rotation": {
-        "x": 90
+        "x": 90,
+        "y": -90
       },
       "size": {
-        "x": 0.5,
-        "y": 0.5
+        "x": 3,
+        "y": 0.1
       },
-      "blend": "Additive",
-      "lifetime": 10
-    },
-    {
-      "atlasEntry": "glow",
-      "rotation": {
-        "y": 90
-      },
-      "size": {
-        "x": 0.5,
-        "y": 0.5
-      },
-      "blend": "Additive",
-      "lifetime": 10
+      "scaleInTime": 0.15,
+      "scaleOutTime": 0.15,
+      "fadeOutTime": 0.15,
+      "blend": "Additive"
     }
   ]
 }

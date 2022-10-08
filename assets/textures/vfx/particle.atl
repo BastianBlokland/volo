@@ -15,6 +15,10 @@
     {
       "name": "flash-star",
       "texture": "external/vfx/flash_star.tga"
+    },
+    {
+      "name": "trail",
+      "texture": "external/vfx/trail.tga"
     }
   ]
 }

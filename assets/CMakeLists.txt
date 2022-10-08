@@ -48,6 +48,7 @@ if(${EXTERNAL_ASSETS})
       swat/swat_3.gltf
       vfx/flash.tga
       vfx/flash_star.tga
+      vfx/trail.tga
     )
 endif()
 
