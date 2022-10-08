@@ -3,7 +3,7 @@
     {
       "atlasEntry": "flash",
       "position": {
-        "y": 0.35
+        "x": 0.35
       },
       "rotation": {
         "z": 90
@@ -20,7 +20,7 @@
     {
       "atlasEntry": "flash",
       "position": {
-        "y": 0.35
+        "x": 0.35
       },
       "rotation": {
         "x": 90,

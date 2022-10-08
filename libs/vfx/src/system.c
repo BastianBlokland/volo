@@ -236,10 +236,10 @@ static void vfx_system_output(
     const TimeDuration     lifetimeRem  = emitterAsset->lifetime - instance->age;
 
     const f32 scale = sysScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
-    const GeoVector emitterPos = emitterAsset->position;
-    const GeoVector tmpPos     = geo_quat_rotate(sysRot, geo_vector_mul(emitterPos, scale));
-    const GeoVector pos        = geo_vector_add(sysPos, tmpPos);
-    const GeoQuat   rot        = geo_quat_mul(sysRot, emitterAsset->rotation);
+
+    const GeoQuat   rot    = geo_quat_mul(sysRot, emitterAsset->rotation);
+    const GeoVector tmpPos = geo_quat_rotate(rot, geo_vector_mul(emitterAsset->position, scale));
+    const GeoVector pos    = geo_vector_add(sysPos, tmpPos);
 
     GeoColor color = emitterAsset->color;
     color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
