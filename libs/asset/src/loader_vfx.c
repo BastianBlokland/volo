@@ -174,7 +174,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
-  diag_assert(def->emitters.count < asset_vfx_max_emitters);
+  diag_assert(def->emitters.count <= asset_vfx_max_emitters);
 
   out->emitterCount = (u32)def->emitters.count;
   for (u32 i = 0; i != out->emitterCount; ++i) {
