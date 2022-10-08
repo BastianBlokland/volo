@@ -74,17 +74,17 @@ static void attack_muzzleflash_spawn(
 static void attack_projectile_spawn(
     EcsWorld*         world,
     const EcsEntityId instigator,
-    const EcsEntityId graphicAsset,
+    const EcsEntityId vfxAsset,
     const GeoMatrix*  muzzleMatrix,
     const GeoVector   targetPos) {
-  diag_assert_msg(graphicAsset, "Projectile graphic missing");
+  diag_assert_msg(vfxAsset, "Projectile vfx missing");
 
   const EcsEntityId e         = ecs_world_entity_create(world);
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
   const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
 
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphicAsset);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
@@ -170,7 +170,7 @@ ecs_system_define(SceneAttackSys) {
       attack->flags |= SceneAttackFlags_Firing;
 
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, entity, attack->projectileGraphic, &muz, targetPos);
+      attack_projectile_spawn(world, entity, attack->projectileVfx, &muz, targetPos);
 
       if (attack->muzzleFlashVfx) {
         attack_muzzleflash_spawn(world, entity, attackAnim->muzzleJoint, attack->muzzleFlashVfx);

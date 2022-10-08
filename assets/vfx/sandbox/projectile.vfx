@@ -1,0 +1,37 @@
+{
+  "emitters": [
+    {
+      "atlasEntry": "glow",
+      "size": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "blend": "Additive",
+      "lifetime": 10
+    },
+    {
+      "atlasEntry": "glow",
+      "rotation": {
+        "x": 90
+      },
+      "size": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "blend": "Additive",
+      "lifetime": 10
+    },
+    {
+      "atlasEntry": "glow",
+      "rotation": {
+        "y": 90
+      },
+      "size": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "blend": "Additive",
+      "lifetime": 10
+    }
+  ]
+}
