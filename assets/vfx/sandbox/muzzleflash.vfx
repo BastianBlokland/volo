@@ -12,7 +12,8 @@
         "x": 0.8,
         "y": 0.3
       },
-      "blend": "Additive"
+      "blend": "Additive",
+      "lifetime": 0.075
     },
     {
       "atlasEntry": "flash",
@@ -27,7 +28,8 @@
         "x": 0.8,
         "y": 0.3
       },
-      "blend": "Additive"
+      "blend": "Additive",
+      "lifetime": 0.075
     },
     {
       "atlasEntry": "flash-star",
@@ -38,7 +40,8 @@
         "x": 0.6,
         "y": 0.6
       },
-      "blend": "Additive"
+      "blend": "Additive",
+      "lifetime": 0.075
     }
   ]
 }
