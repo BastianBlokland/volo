@@ -79,7 +79,7 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
       world,
       e,
       SceneAttackComp,
-      .interval       = time_milliseconds(500),
+      .interval       = time_milliseconds(200),
       .muzzleFlashVfx = db->muzzleFlashVfx,
       .projectileVfx  = db->projectileVfx);
   scene_collision_add_capsule(world, e, g_capsule);
