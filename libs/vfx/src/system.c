@@ -7,6 +7,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_lifetime.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -135,6 +136,7 @@ ecs_view_define(UpdateGlobalView) {
 }
 
 ecs_view_define(UpdateView) {
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxComp);
@@ -229,11 +231,12 @@ static void vfx_system_output(
     const AssetVfxComp* asset,
     const GeoVector     sysPos,
     const GeoQuat       sysRot,
-    const f32           sysScale) {
+    const f32           sysScale,
+    const TimeDuration  sysTimeRem) {
 
   dynarray_for_t(&state->instances, VfxInstance, instance) {
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
-    const TimeDuration     lifetimeRem  = emitterAsset->lifetime - instance->age;
+    const TimeDuration     timeRem = math_min(emitterAsset->lifetime - instance->age, sysTimeRem);
 
     const f32 scale = sysScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
 
@@ -243,7 +246,7 @@ static void vfx_system_output(
 
     GeoColor color = emitterAsset->color;
     color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
-    color.a *= math_min(lifetimeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
+    color.a *= math_min(timeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
 
     f32 opacity;
     vfx_blend_mode_apply(color, emitterAsset->blend, &color, &opacity);
@@ -283,15 +286,17 @@ ecs_system_define(VfxSystemUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneVfxComp*       vfx       = ecs_view_read_t(itr, SceneVfxComp);
-    VfxStateComp*             state     = ecs_view_write_t(itr, VfxStateComp);
+    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+    const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
+    VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const GeoVector pos      = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoVector posDelta = geo_vector_sub(pos, state->prevPos);
-    const GeoQuat   rot      = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector    pos      = LIKELY(trans) ? trans->position : geo_vector(0);
+    const GeoVector    posDelta = geo_vector_sub(pos, state->prevPos);
+    const GeoQuat      rot      = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+    const f32          scale    = scaleComp ? scaleComp->scale : 1.0f;
+    const TimeDuration timeRem  = lifetime ? lifetime->duration : i64_max;
 
     const f32 speed = geo_vector_mag(posDelta);
     (void)speed;
@@ -305,7 +310,7 @@ ecs_system_define(VfxSystemUpdateSys) {
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
     vfx_system_simulate(state, asset, atlas, time);
-    vfx_system_output(state, draw, asset, pos, rot, scale);
+    vfx_system_output(state, draw, asset, pos, rot, scale, timeRem);
 
     state->prevPos = pos;
   }
