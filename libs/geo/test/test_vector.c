@@ -188,6 +188,23 @@ spec(vector) {
     check_eq_vector(geo_vector_lerp(v1, v2, .5), v3);
   }
 
+  it("can bilinearly interpolate vectors") {
+    const GeoVector v1 = {.x = 1, .y = 2, .z = 3, .w = 4};
+    const GeoVector v2 = {.x = 5, .y = 6, .z = 7, .w = 8};
+    const GeoVector v3 = {.x = 9, .y = 10, .z = 11, .w = 12};
+    const GeoVector v4 = {.x = 13, .y = 14, .z = 15, .w = 16};
+
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0, 0), v1);
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 1, 0), v2);
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0, 1), v3);
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 1, 1), v4);
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0.5, 0.5), geo_vector(7, 8, 9, 10));
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0.5, 0), geo_vector(3, 4, 5, 6));
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0.5, 1), geo_vector(11, 12, 13, 14));
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 0, 0.5), geo_vector(5, 6, 7, 8));
+    check_eq_vector(geo_vector_bilerp(v1, v2, v3, v4, 1, 0.5), geo_vector(9, 10, 11, 12));
+  }
+
   it("can compute the minimum value of each component") {
     const GeoVector v1 = {.x = 2, .y = 6, .z = -5, .w = 5};
     const GeoVector v2 = {.x = 4, .y = -2, .z = 6, .w = 5};

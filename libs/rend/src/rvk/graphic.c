@@ -94,6 +94,7 @@ static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
       string_static("Alpha"),
       string_static("Additive"),
       string_static("AlphaAdditive"),
+      string_static("PreMultiplied"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
   return g_names[blend];
@@ -101,10 +102,12 @@ static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
 
 static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
   static const String g_names[] = {
-      string_static("None"),
       string_static("Less"),
       string_static("LessOrEqual"),
       string_static("Always"),
+      string_static("LessNoWrite"),
+      string_static("LessOrEqualNoWrite"),
+      string_static("AlwaysNoWrite"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
   return g_names[depth];
@@ -289,14 +292,31 @@ static VkCullModeFlags rvk_pipeline_cullmode(RvkGraphic* graphic) {
 static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   switch (graphic->depth) {
   case AssetGraphicDepth_Less:
+  case AssetGraphicDepth_LessNoWrite:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_GREATER;
   case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_LessOrEqualNoWrite:
     return VK_COMPARE_OP_GREATER_OR_EQUAL;
   case AssetGraphicDepth_Always:
+  case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
-  case AssetGraphicDepth_None:
-    return VK_COMPARE_OP_NEVER;
+  case AssetGraphicDepth_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
+  switch (graphic->depth) {
+  case AssetGraphicDepth_Less:
+  case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_Always:
+    return true;
+  case AssetGraphicDepth_LessNoWrite:
+  case AssetGraphicDepth_LessOrEqualNoWrite:
+  case AssetGraphicDepth_AlwaysNoWrite:
+    return false;
   case AssetGraphicDepth_Count:
     break;
   }
@@ -334,6 +354,17 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
         .blendEnable         = true,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .colorBlendOp        = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp        = VK_BLEND_OP_ADD,
+        .colorWriteMask      = colorMask,
+    };
+  case AssetGraphicBlend_PreMultiplied:
+    return (VkPipelineColorBlendAttachmentState){
+        .blendEnable         = true,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .colorBlendOp        = VK_BLEND_OP_ADD,
         .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
         .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -390,9 +421,10 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
   };
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .depthWriteEnable = true,
-      .depthTestEnable  = graphic->depth != AssetGraphicDepth_None,
-      .depthCompareOp   = rvk_pipeline_depth_compare(graphic),
+      .depthWriteEnable = rvk_pipeline_depth_write(graphic),
+      .depthTestEnable  = graphic->depth != AssetGraphicDepth_Always &&
+                         graphic->depth != AssetGraphicDepth_AlwaysNoWrite,
+      .depthCompareOp = rvk_pipeline_depth_compare(graphic),
   };
   const VkPipelineColorBlendAttachmentState colorBlendAttach =
       rvk_pipeline_colorblend_attach(graphic);
@@ -521,16 +553,16 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-                 .device      = dev,
-                 .dbgName     = string_dup(g_alloc_heap, dbgName),
-                 .topology    = asset->topology,
-                 .rasterizer  = asset->rasterizer,
-                 .lineWidth   = asset->lineWidth,
-                 .renderOrder = asset->renderOrder,
-                 .blend       = asset->blend,
-                 .depth       = asset->depth,
-                 .cull        = asset->cull,
-                 .vertexCount = asset->vertexCount,
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(

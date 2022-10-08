@@ -120,12 +120,14 @@ static f32 ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
 
 static f32 ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
   const f32 size         = def->size / def->frequency;
-  const f32 halfSize     = size * 0.5f;
-  const f32 toCenterX    = halfSize - math_mod_f32(x + 0.5f, size),
-            toCenterY    = halfSize - math_mod_f32(y + 0.5f, size);
+  const f32 radius       = size * 0.5f;
+  const f32 toCenterX    = radius - math_mod_f32(x + 0.5f, size),
+            toCenterY    = radius - math_mod_f32(y + 0.5f, size);
   const f32 toCenterDist = math_sqrt_f32(toCenterX * toCenterX + toCenterY * toCenterY);
-  const f32 toCircle     = halfSize - toCenterDist;
-  return math_clamp_f32(toCircle * def->power, 0.0f, 1.0f);
+  if (toCenterDist > radius) {
+    return 0.0f; // Outside the circle.
+  }
+  return math_pow_f32(1.0f - toCenterDist / radius, def->power);
 }
 
 static f32 ptx_sample_noise_white(const PtxDef* def, Rng* rng) {

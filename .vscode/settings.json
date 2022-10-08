@@ -14,14 +14,16 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
+    "*.atl": "json",
     "*.atx": "json",
+    "*.bt": "json",
+    "*.btscheme": "json",
     "*.ftx": "json",
     "*.gra": "json",
     "*.imp": "json",
     "*.pme": "json",
     "*.ptx": "json",
-    "*.bt": "json",
-    "*.btscheme": "json",
+    "*.vfx": "json",
   },
   "files.exclude": {
     ".cache": true,

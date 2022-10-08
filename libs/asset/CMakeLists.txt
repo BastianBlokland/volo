@@ -19,12 +19,14 @@ add_library(lib_asset STATIC
   src/loader_raw.c
   src/loader_shader_spv.c
   src/loader_shader.c
+  src/loader_texture_atlas.c
   src/loader_texture_atx.c
   src/loader_texture_ppm.c
   src/loader_texture_ptx.c
   src/loader_texture_r32.c
   src/loader_texture_tga.c
   src/loader_texture.c
+  src/loader_vfx.c
   src/loader.c
   src/manager.c
   src/mesh_utils.c
@@ -48,6 +50,7 @@ add_executable(test_lib_asset
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c
+  test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
   test/test_manager.c

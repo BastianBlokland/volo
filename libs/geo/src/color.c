@@ -31,3 +31,10 @@ GeoColor geo_color_lerp(const GeoColor x, const GeoColor y, const f32 t) {
       .a = math_lerp(x.a, y.a, t),
   };
 }
+
+void geo_color_pack_f16(const GeoColor color, f16 out[4]) {
+  out[0] = float_f32_to_f16(color.r);
+  out[1] = float_f32_to_f16(color.g);
+  out[2] = float_f32_to_f16(color.b);
+  out[3] = float_f32_to_f16(color.a);
+}

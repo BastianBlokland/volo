@@ -16,6 +16,7 @@
 ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId unitGraphic;
   EcsEntityId projGraphic;
+  EcsEntityId muzzleFlashVfx;
   EcsEntityId unitBehavior;
   EcsEntityId wallGraphic;
 };
@@ -38,10 +39,11 @@ ecs_system_define(ObjectDatabaseInitSys) {
       world,
       ecs_world_global(world),
       ObjectDatabaseComp,
-      .unitGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/swat.gra")),
-      .projGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/projectile.gra")),
-      .unitBehavior = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
-      .wallGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
+      .unitGraphic    = asset_lookup(world, assets, string_lit("graphics/sandbox/swat.gra")),
+      .projGraphic    = asset_lookup(world, assets, string_lit("graphics/sandbox/projectile.gra")),
+      .muzzleFlashVfx = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
+      .unitBehavior   = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
+      .wallGraphic    = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
 }
 
 ecs_module_init(sandbox_object_module) {
@@ -78,7 +80,8 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
       e,
       SceneAttackComp,
       .interval          = time_milliseconds(500),
-      .projectileGraphic = db->projGraphic);
+      .projectileGraphic = db->projGraphic,
+      .muzzleFlashVfx    = db->muzzleFlashVfx);
   scene_collision_add_capsule(world, e, g_capsule);
   scene_brain_add(world, e, db->unitBehavior);
   return e;

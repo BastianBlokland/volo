@@ -21,6 +21,7 @@ target_link_libraries(app_sandbox PRIVATE
   lib_rend
   lib_scene
   lib_ui
+  lib_vfx
   )
 add_dependencies(app_sandbox volo_assets)
 configure_debuggable(app_sandbox)

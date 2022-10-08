@@ -5,6 +5,7 @@
 
 String asset_format_str(const AssetFormat fmt) {
   static const String g_names[] = {
+      string_static("atl"),
       string_static("atx"),
       string_static("bin"),
       string_static("bt"),
@@ -21,6 +22,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("spv"),
       string_static("tga"),
       string_static("ttf"),
+      string_static("vfx"),
   };
   ASSERT(array_elems(g_names) == AssetFormat_Count, "Incorrect number of asset-format names");
   return g_names[fmt];

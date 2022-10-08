@@ -242,3 +242,10 @@ GeoVector geo_quat_to_euler(const GeoQuat q) {
       .z = yaw,
   };
 }
+
+void geo_quat_pack_f16(const GeoQuat quat, f16 out[4]) {
+  out[0] = float_f32_to_f16(quat.x);
+  out[1] = float_f32_to_f16(quat.y);
+  out[2] = float_f32_to_f16(quat.z);
+  out[3] = float_f32_to_f16(quat.w);
+}

@@ -3,6 +3,7 @@
 #include "ecs_def.h"
 
 void asset_register(EcsDef* def) {
+  ecs_register_module(def, asset_atlas_module);
   ecs_register_module(def, asset_atx_module);
   ecs_register_module(def, asset_behavior_module);
   ecs_register_module(def, asset_font_module);
@@ -15,4 +16,5 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_raw_module);
   ecs_register_module(def, asset_shader_module);
   ecs_register_module(def, asset_texture_module);
+  ecs_register_module(def, asset_vfx_module);
 }

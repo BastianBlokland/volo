@@ -1,0 +1,53 @@
+{
+  "emitters": [
+    {
+      "atlasEntry": "flash",
+      "position": {
+        "y": 0.35
+      },
+      "rotation": {
+        "z": 90
+      },
+      "size": {
+        "x": 0.8,
+        "y": 0.3
+      },
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
+      "blend": "Additive",
+      "lifetime": 0.125
+    },
+    {
+      "atlasEntry": "flash",
+      "position": {
+        "y": 0.35
+      },
+      "rotation": {
+        "x": 90,
+        "z": 90
+      },
+      "size": {
+        "x": 0.8,
+        "y": 0.3
+      },
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
+      "blend": "Additive",
+      "lifetime": 0.125
+    },
+    {
+      "atlasEntry": "flash-star",
+      "rotation": {
+        "x": 90
+      },
+      "size": {
+        "x": 0.6,
+        "y": 0.6
+      },
+      "scaleInTime": 0.125,
+      "fadeOutTime": 0.05,
+      "blend": "Additive",
+      "lifetime": 0.125
+    }
+  ]
+}

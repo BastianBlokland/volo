@@ -10,6 +10,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   return &asset_loader_name(_NAME_)
 
   switch (format) {
+  case AssetFormat_Atl: {
+    RET_LOADER(atl);
+  }
   case AssetFormat_Atx: {
     RET_LOADER(atx);
   }
@@ -57,6 +60,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   }
   case AssetFormat_Ttf: {
     RET_LOADER(ttf);
+  }
+  case AssetFormat_Vfx: {
+    RET_LOADER(vfx);
   }
   case AssetFormat_Count:
     break;

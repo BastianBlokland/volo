@@ -24,6 +24,8 @@ configure_shaders(volo_shaders
     shaders/standard.vert
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
+    shaders/vfx/particle.frag
+    shaders/vfx/particle.vert
     shaders/wireframe_skinned.vert
     shaders/wireframe.frag
     shaders/wireframe.vert
@@ -44,6 +46,8 @@ if(${EXTERNAL_ASSETS})
       swat/swat_nrm.tga
       swat/swat_3.bin
       swat/swat_3.gltf
+      vfx/flash.tga
+      vfx/flash_star.tga
     )
 endif()
 

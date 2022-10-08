@@ -26,6 +26,7 @@ typedef enum {
   AssetGraphicBlend_Alpha,         // Blend between rgb and the framebuffer based on the alpha.
   AssetGraphicBlend_Additive,      // Add rgb to the framebuffer (ignores alpha).
   AssetGraphicBlend_AlphaAdditive, // Multiply rgb by alpha and add them to the framebuffer.
+  AssetGraphicBlend_PreMultiplied, // Multiply the framebuffer by the alpha and add the color's rgb.
 
   AssetGraphicBlend_Count,
 } AssetGraphicBlend;
@@ -49,10 +50,12 @@ typedef enum {
 } AssetGraphicAniso;
 
 typedef enum {
-  AssetGraphicDepth_None,        // No depth-testing.
-  AssetGraphicDepth_Less,        // Pass the depth-test if the fragment is closer.
-  AssetGraphicDepth_LessOrEqual, // Pass the depth-test if the fragment is closer or equal.
-  AssetGraphicDepth_Always,      // Always pass the depth-test.
+  AssetGraphicDepth_Less,               // Pass the depth-test if the fragment is closer.
+  AssetGraphicDepth_LessOrEqual,        // Pass the depth-test if the fragment is closer or equal.
+  AssetGraphicDepth_Always,             // Always pass the depth-test.
+  AssetGraphicDepth_LessNoWrite,        // 'Less' without depth writing.
+  AssetGraphicDepth_LessOrEqualNoWrite, // 'LessOrEqual' without depth writing.
+  AssetGraphicDepth_AlwaysNoWrite,      // 'Always' without depth writing.
 
   AssetGraphicDepth_Count,
 } AssetGraphicDepth;

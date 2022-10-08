@@ -26,6 +26,6 @@
   "topology": "TriangleFan",
   "rasterizer": "Fill",
   "blend": "None",
-  "depth": "None",
+  "depth": "AlwaysNoWrite",
   "cull": "None"
 }
