@@ -66,6 +66,7 @@ ecs_system_define(SceneProjectileSys) {
     if (scene_query_ray(collisionEnv, &ray, &filter, &hit) && hit.time <= deltaDist) {
       ecs_world_remove_t(world, entity, SceneProjectileComp);
       ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(150));
+      trans->position = hit.position;
 
       if (ecs_view_maybe_jump(targetItr, hit.entity)) {
         projectile_damage(projectile, targetItr);
