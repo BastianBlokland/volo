@@ -2,8 +2,18 @@
 
 #if defined(VOLO_MSVC)
 
-float  roundf(float);
-double round(double);
+float  acosf(float);
+float  asinf(float);
+float  atan2f(float, float);
+float  atanf(float);
+double ceil(double);
+float  ceilf(float);
+float  cosf(float);
+double floor(double);
+float  floorf(float);
+float  sinf(float);
+float  sqrtf(float);
+float  tanf(float);
 
 #pragma intrinsic(acosf)
 #pragma intrinsic(asinf)
