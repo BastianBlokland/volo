@@ -66,7 +66,7 @@ static void attack_muzzleflash_spawn(
     const EcsEntityId vfxAsset) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(150));
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
   ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
