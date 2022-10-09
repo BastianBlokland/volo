@@ -79,7 +79,8 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
       world,
       e,
       SceneAttackComp,
-      .interval       = time_milliseconds(200),
+      .minInterval    = time_milliseconds(150),
+      .maxInterval    = time_milliseconds(300),
       .muzzleFlashVfx = db->muzzleFlashVfx,
       .projectileVfx  = db->projectileVfx,
       .impactVfx      = db->impactVfx);

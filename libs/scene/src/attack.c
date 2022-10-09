@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
@@ -108,6 +109,12 @@ static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector tar
   return geo_vector_dot(forward, delta) > attack_in_sight_threshold;
 }
 
+static TimeDuration attack_next_time(const SceneAttackComp* attack, const TimeDuration timeNow) {
+  TimeDuration next = timeNow;
+  next += (TimeDuration)rng_sample_range(g_rng, attack->minInterval, attack->maxInterval);
+  return next;
+}
+
 ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneLocomotionComp);
@@ -170,7 +177,7 @@ ecs_system_define(SceneAttackSys) {
     fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
 
     const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
-    const bool isCoolingDown = (time->time - attack->lastFireTime) <= attack->interval;
+    const bool isCoolingDown = time->time < attack->nextFireTime;
 
     if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
       // Start firing the shot.
@@ -188,7 +195,7 @@ ecs_system_define(SceneAttackSys) {
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
       // Finished firing the shot.
       attack->flags &= ~SceneAttackFlags_Firing;
-      attack->lastFireTime = time->time;
+      attack->nextFireTime = attack_next_time(attack, time->time);
     }
   }
 }
