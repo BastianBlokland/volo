@@ -21,9 +21,16 @@ ecs_view_define(ProjectileView) {
 
 ecs_view_define(TargetView) { ecs_access_write(SceneHealthComp); }
 
+typedef struct {
+  EcsEntityId instigator;
+} QueryFilterCtx;
+
 static bool projectile_query_filter(const void* context, const EcsEntityId entity) {
-  const SceneProjectileComp* projectile = context;
-  return entity != projectile->instigator;
+  const QueryFilterCtx* ctx = context;
+  if (entity == ctx->instigator) {
+    return false;
+  }
+  return true;
 }
 
 static void projectile_damage(const SceneProjectileComp* projectile, const EcsIterator* targetItr) {
@@ -70,8 +77,9 @@ ecs_system_define(SceneProjectileSys) {
     const f32       deltaDist = projectile->speed * deltaSeconds;
     const GeoRay    ray       = {.point = trans->position, .dir = dir};
 
-    const SceneQueryFilter filter = {
-        .context   = projectile,
+    const QueryFilterCtx   filterCtx = {.instigator = entity};
+    const SceneQueryFilter filter    = {
+        .context   = &filterCtx,
         .callback  = &projectile_query_filter,
         .layerMask = SceneLayer_All,
     };
