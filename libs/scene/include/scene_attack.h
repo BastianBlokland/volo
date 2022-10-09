@@ -14,6 +14,5 @@ ecs_comp_extern_public(SceneAttackComp) {
 
   TimeDuration interval;
   EcsEntityId  targetEntity;
-  EcsEntityId  muzzleFlashVfx;
-  EcsEntityId  projectileVfx;
+  EcsEntityId  muzzleFlashVfx, projectileVfx, impactVfx;
 };
