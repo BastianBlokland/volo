@@ -16,9 +16,11 @@ ecs_comp_extern(SceneScaleComp);
 #define scene_query_max_hits 128
 
 typedef enum {
-  SceneLayer_Debug       = 1 << 0,
-  SceneLayer_Environment = 1 << 1,
-  SceneLayer_Unit        = 1 << 2,
+  SceneLayer_Debug        = 1 << 0,
+  SceneLayer_Environment  = 1 << 1,
+  SceneLayer_UnitFactionA = 1 << 2,
+  SceneLayer_UnitFactionB = 1 << 3,
+  SceneLayer_Unit         = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB,
 
   SceneLayer_None = 0,
   SceneLayer_All  = ~0,

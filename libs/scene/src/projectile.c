@@ -1,5 +1,7 @@
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_projectile.h"
@@ -15,6 +17,7 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(ProjectileView) {
+  ecs_access_maybe_read(SceneFactionComp);
   ecs_access_write(SceneProjectileComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -31,6 +34,18 @@ static bool projectile_query_filter(const void* context, const EcsEntityId entit
     return false;
   }
   return true;
+}
+
+static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
+  SceneLayer layer = SceneLayer_Environment;
+  if (!faction) {
+    layer |= SceneLayer_Unit;
+  } else {
+    // TODO: Redo hacky handling of faction 0 and 1.
+    diag_assert(faction->id == 0 || faction->id == 1);
+    layer |= faction->id ? SceneLayer_UnitFactionB : SceneLayer_UnitFactionA;
+  }
+  return layer;
 }
 
 static void projectile_damage(const SceneProjectileComp* projectile, const EcsIterator* targetItr) {
@@ -64,9 +79,10 @@ ecs_system_define(SceneProjectileSys) {
 
   EcsView* projectileView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr(projectileView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity     = ecs_view_entity(itr);
-    SceneProjectileComp* projectile = ecs_view_write_t(itr, SceneProjectileComp);
-    SceneTransformComp*  trans      = ecs_view_write_t(itr, SceneTransformComp);
+    const EcsEntityId       entity     = ecs_view_entity(itr);
+    SceneProjectileComp*    projectile = ecs_view_write_t(itr, SceneProjectileComp);
+    SceneTransformComp*     trans      = ecs_view_write_t(itr, SceneTransformComp);
+    const SceneFactionComp* faction    = ecs_view_read_t(itr, SceneFactionComp);
 
     if (projectile->delay > 0) {
       projectile->delay -= time->delta;
@@ -81,7 +97,7 @@ ecs_system_define(SceneProjectileSys) {
     const SceneQueryFilter filter    = {
         .context   = &filterCtx,
         .callback  = &projectile_query_filter,
-        .layerMask = SceneLayer_All,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     SceneRayHit hit;
