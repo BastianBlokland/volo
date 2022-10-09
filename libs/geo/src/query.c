@@ -25,6 +25,7 @@ typedef struct {
   GeoQueryPrimType type;
   u32              count, capacity;
   u64*             ids;
+  GeoQueryLayer*   layers;
   void*            shapes; // GeoSphere[] / GeoCapsule[] / GeoBoxRotated[]
 } GeoQueryPrim;
 
@@ -53,12 +54,14 @@ static GeoQueryPrim geo_prim_create(const GeoQueryPrimType type, const u32 capac
       .type     = type,
       .capacity = capacity,
       .ids      = alloc_array_t(g_alloc_heap, u64, capacity),
+      .layers   = alloc_array_t(g_alloc_heap, GeoQueryLayer, capacity),
       .shapes   = alloc_alloc(g_alloc_heap, shapeDataSize, geo_query_shape_align).ptr,
   };
 }
 
 static void geo_prim_destroy(GeoQueryPrim* prim) {
   alloc_free_array_t(g_alloc_heap, prim->ids, prim->capacity);
+  alloc_free_array_t(g_alloc_heap, prim->layers, prim->capacity);
   const Mem shapesMem = mem_create(prim->shapes, geo_prim_entry_size(prim->type) * prim->capacity);
   alloc_free(g_alloc_heap, shapesMem);
 }
@@ -70,6 +73,10 @@ static void geo_prim_copy(GeoQueryPrim* dst, const GeoQueryPrim* src) {
   mem_cpy(
       mem_create(dst->ids, sizeof(u64) * dst->capacity),
       mem_create(src->ids, sizeof(u64) * src->count));
+
+  mem_cpy(
+      mem_create(dst->layers, sizeof(GeoQueryLayer) * dst->capacity),
+      mem_create(src->layers, sizeof(GeoQueryLayer) * src->count));
 
   const usize shapeEntrySize = geo_prim_entry_size(dst->type);
   mem_cpy(
@@ -105,7 +112,11 @@ static void geo_query_validate_dir(const GeoVector vec) {
   return;
 }
 
-static bool geo_query_filter(const GeoQueryFilter* filter, const u64 shapeId) {
+static bool
+geo_query_filter(const GeoQueryFilter* filter, const u64 shapeId, const GeoQueryLayer shapeLayer) {
+  if ((filter->layerMask & shapeLayer) == 0) {
+    return false;
+  }
   if (filter->callback) {
     return filter->callback(filter->context, shapeId);
   }
@@ -133,34 +144,43 @@ void geo_query_env_clear(GeoQueryEnv* env) {
   array_for_t(env->prims, GeoQueryPrim, prim) { prim->count = 0; }
 }
 
-void geo_query_insert_sphere(GeoQueryEnv* env, const GeoSphere sphere, const u64 id) {
+void geo_query_insert_sphere(
+    GeoQueryEnv* env, const GeoSphere sphere, const u64 id, const GeoQueryLayer layer) {
   geo_query_validate_pos(sphere.point);
+  diag_assert_msg(layer, "Shape needs at least one layer");
 
   GeoQueryPrim* prim = &env->prims[GeoQueryPrim_Sphere];
   geo_prim_ensure_next(prim);
   prim->ids[prim->count]                  = id;
+  prim->layers[prim->count]               = layer;
   ((GeoSphere*)prim->shapes)[prim->count] = sphere;
   ++prim->count;
 }
 
-void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const u64 id) {
+void geo_query_insert_capsule(
+    GeoQueryEnv* env, const GeoCapsule capsule, const u64 id, const GeoQueryLayer layer) {
   geo_query_validate_pos(capsule.line.a);
   geo_query_validate_pos(capsule.line.b);
+  diag_assert_msg(layer, "Shape needs at least one layer");
 
   GeoQueryPrim* prim = &env->prims[GeoQueryPrim_Capsule];
   geo_prim_ensure_next(prim);
   prim->ids[prim->count]                   = id;
+  prim->layers[prim->count]                = layer;
   ((GeoCapsule*)prim->shapes)[prim->count] = capsule;
   ++prim->count;
 }
 
-void geo_query_insert_box_rotated(GeoQueryEnv* env, const GeoBoxRotated box, const u64 id) {
+void geo_query_insert_box_rotated(
+    GeoQueryEnv* env, const GeoBoxRotated box, const u64 id, const GeoQueryLayer layer) {
   geo_query_validate_pos(box.box.min);
   geo_query_validate_pos(box.box.max);
+  diag_assert_msg(layer, "Shape needs at least one layer");
 
   GeoQueryPrim* prim = &env->prims[GeoQueryPrim_BoxRotated];
   geo_prim_ensure_next(prim);
   prim->ids[prim->count]                      = id;
+  prim->layers[prim->count]                   = layer;
   ((GeoBoxRotated*)prim->shapes)[prim->count] = box;
   ++prim->count;
 }
@@ -171,6 +191,7 @@ bool geo_query_ray(
     const GeoQueryFilter* filter,
     GeoQueryRayHit*       outHit) {
   diag_assert(filter);
+  diag_assert_msg(filter->layerMask, "Queries without any layers in the mask won't hit anything");
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
@@ -188,8 +209,9 @@ bool geo_query_ray(
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = spheres->ids[itr - spheresBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
+    const u64           shapeId    = spheres->ids[itr - spheresBegin];
+    const GeoQueryLayer shapeLayer = spheres->layers[itr - spheresBegin];
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
       const GeoVector hitPos = geo_ray_position(ray, hitT);
       bestHit.time           = hitT;
       bestHit.shapeId        = shapeId;
@@ -210,8 +232,9 @@ bool geo_query_ray(
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = capsules->ids[itr - capsulesBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
+    const u64           shapeId    = capsules->ids[itr - capsulesBegin];
+    const GeoQueryLayer shapeLayer = capsules->layers[itr - capsulesBegin];
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
       bestHit.time    = hitT;
       bestHit.shapeId = shapeId;
       bestHit.normal  = normal;
@@ -231,8 +254,9 @@ bool geo_query_ray(
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = rotatedBoxes->ids[itr - rotatedBoxesBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
+    const u64           shapeId    = rotatedBoxes->ids[itr - rotatedBoxesBegin];
+    const GeoQueryLayer shapeLayer = rotatedBoxes->layers[itr - rotatedBoxesBegin];
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
       bestHit.time    = hitT;
       bestHit.shapeId = shapeId;
       bestHit.normal  = normal;

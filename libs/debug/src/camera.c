@@ -265,7 +265,7 @@ static void debug_camera_draw_input_ray(
   debug_line(shape, start, end, geo_color_fuchsia);
 
   SceneRayHit            hit;
-  const SceneQueryFilter filter = {0};
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_All};
   if (scene_query_ray(collisionEnv, &ray, &filter, &hit)) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));

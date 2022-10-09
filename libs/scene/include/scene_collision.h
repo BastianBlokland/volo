@@ -15,6 +15,15 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 128
 
+typedef enum {
+  SceneLayer_Debug       = 1 << 0,
+  SceneLayer_Environment = 1 << 1,
+  SceneLayer_Unit        = 1 << 2,
+
+  SceneLayer_None = 0,
+  SceneLayer_All  = ~0,
+} SceneLayer;
+
 /**
  * Callback for filtering query hits.
  * Return 'true' to keep the hit or 'false' to discard the hit.
@@ -22,6 +31,7 @@ ecs_comp_extern(SceneScaleComp);
 typedef struct {
   const void* context;                                       // Optional.
   bool (*callback)(const void* context, EcsEntityId entity); // Optional.
+  SceneLayer layerMask;
 } SceneQueryFilter;
 
 /**
@@ -60,6 +70,7 @@ typedef struct {
 
 ecs_comp_extern_public(SceneCollisionComp) {
   SceneCollisionType type;
+  SceneLayer         layer;
   union {
     SceneCollisionSphere  sphere;
     SceneCollisionCapsule capsule;
@@ -71,9 +82,9 @@ ecs_comp_extern_public(SceneCollisionComp) {
  * Add a collision shape to the given entity.
  */
 
-void scene_collision_add_sphere(EcsWorld*, EcsEntityId, SceneCollisionSphere);
-void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule);
-void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox);
+void scene_collision_add_sphere(EcsWorld*, EcsEntityId, SceneCollisionSphere, SceneLayer);
+void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, SceneLayer);
+void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLayer);
 
 /**
  * Query apis.

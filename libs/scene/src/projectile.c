@@ -71,8 +71,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay    ray       = {.point = trans->position, .dir = dir};
 
     const SceneQueryFilter filter = {
-        .context  = projectile,
-        .callback = &projectile_query_filter,
+        .context   = projectile,
+        .callback  = &projectile_query_filter,
+        .layerMask = SceneLayer_All,
     };
 
     SceneRayHit hit;

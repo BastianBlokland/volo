@@ -44,9 +44,13 @@ static bool line_of_sight_test(
   if (UNLIKELY(dist <= f32_epsilon)) {
     return true;
   }
-  const SceneQueryFilter filter = {.context = &finderEntity, .callback = &line_of_sight_filter};
-  const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-  SceneRayHit            hit;
+  const SceneQueryFilter filter = {
+      .context   = &finderEntity,
+      .callback  = &line_of_sight_filter,
+      .layerMask = SceneLayer_All,
+  };
+  const GeoRay ray = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
+  SceneRayHit  hit;
   if (scene_query_ray(collisionEnv, &ray, &filter, &hit)) {
     return hit.time >= dist || hit.entity == targetEntity;
   }

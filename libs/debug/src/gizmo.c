@@ -18,8 +18,9 @@
 
 #define gizmo_ring_segments 32
 
-static const f32 g_gizmoCollisionScale = 1.5f;
-static const f32 g_gizmoSnapAngleDeg   = 45.0f;
+static const f32           g_gizmoCollisionScale = 1.5f;
+static const f32           g_gizmoSnapAngleDeg   = 45.0f;
+static const GeoQueryLayer g_gizmoLayer          = 1;
 
 static const struct {
   GeoVector normal;
@@ -270,7 +271,8 @@ static void gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmoEnt
             .line   = {.a = lineStart, .b = lineEnd},
             .radius = g_gizmoTranslationArrows[i].radius * g_gizmoCollisionScale,
         },
-        shapeId);
+        shapeId,
+        g_gizmoLayer);
   }
 }
 
@@ -289,7 +291,7 @@ static void gizmo_register_rotation(DebugGizmoComp* comp, const DebugGizmoEntry*
 
     gizmo_ring_capsules(entry->pos, ringRot, radius, thickness, capsules);
     for (u32 segment = 0; segment != gizmo_ring_segments; ++segment) {
-      geo_query_insert_capsule(comp->queryEnv, capsules[segment], shapeId);
+      geo_query_insert_capsule(comp->queryEnv, capsules[segment], shapeId, g_gizmoLayer);
     }
   }
 }
@@ -306,7 +308,8 @@ static void gizmo_register_scale_uniform(DebugGizmoComp* comp, const DebugGizmoE
           .line   = {.a = entry->pos, .b = geo_vector_add(entry->pos, handleDelta)},
           .radius = g_gizmoScaleUniformHandle.radius * g_gizmoCollisionScale,
       },
-      shapeId);
+      shapeId,
+      g_gizmoLayer);
 }
 
 static void gizmo_register(DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
@@ -541,7 +544,7 @@ static void gizmo_update_interaction(
   const DebugGizmoEntry* hoverEntry   = null;
   DebugGizmoSection      hoverSection = 0;
   GeoQueryRayHit         hit;
-  const GeoQueryFilter   filter = {0};
+  const GeoQueryFilter   filter = {.layerMask = g_gizmoLayer};
   if (!isBlocked && geo_query_ray(comp->queryEnv, &inputRay, &filter, &hit) && hit.time < 1e3f) {
     hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
     hoverSection = gizmo_shape_section(hit.shapeId);

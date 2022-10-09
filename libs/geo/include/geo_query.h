@@ -13,12 +13,18 @@ typedef struct sAllocator Allocator;
 #define geo_query_max_hits 128
 
 /**
+ * Geometry layer mask.
+ */
+typedef u32 GeoQueryLayer;
+
+/**
  * Callback for filtering query hits.
  * Return 'true' to keep the hit or 'false' to discard the hit.
  */
 typedef struct {
   const void* context;                                // Optional.
   bool (*callback)(const void* context, u64 shapeId); // Optional.
+  GeoQueryLayer layerMask;
 } GeoQueryFilter;
 
 /**
@@ -45,9 +51,9 @@ void geo_query_env_clear(GeoQueryEnv*);
 /**
  * Insert geometric shapes into the environment.
  */
-void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id);
-void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id);
-void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id);
+void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id, GeoQueryLayer);
+void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id, GeoQueryLayer);
+void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id, GeoQueryLayer);
 
 typedef struct {
   f32       time;

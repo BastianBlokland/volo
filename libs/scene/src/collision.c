@@ -55,25 +55,28 @@ ecs_system_define(SceneCollisionUpdateSys) {
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
 
-    const u64 id = (u64)ecs_view_entity(itr);
+    diag_assert_msg(collision->layer, "SceneCollision needs at least one layer");
+
+    const u64           id         = (u64)ecs_view_entity(itr);
+    const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
 
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      geo_query_insert_sphere(env->queryEnv, sphere, id);
+      geo_query_insert_sphere(env->queryEnv, sphere, id, queryLayer);
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
       if (collision->capsule.height <= f32_epsilon) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
-        geo_query_insert_sphere(env->queryEnv, sphere, id);
+        geo_query_insert_sphere(env->queryEnv, sphere, id, queryLayer);
       } else {
-        geo_query_insert_capsule(env->queryEnv, capsule, id);
+        geo_query_insert_capsule(env->queryEnv, capsule, id, queryLayer);
       }
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
-      geo_query_insert_box_rotated(env->queryEnv, boxRotated, id);
+      geo_query_insert_box_rotated(env->queryEnv, boxRotated, id, queryLayer);
     } break;
     default:
       diag_crash();
@@ -95,20 +98,48 @@ ecs_module_init(scene_collision_module) {
 }
 
 void scene_collision_add_sphere(
-    EcsWorld* world, const EcsEntityId entity, const SceneCollisionSphere sphere) {
+    EcsWorld*                  world,
+    const EcsEntityId          entity,
+    const SceneCollisionSphere sphere,
+    const SceneLayer           layer) {
+
   ecs_world_add_t(
-      world, entity, SceneCollisionComp, .type = SceneCollisionType_Sphere, .sphere = sphere);
+      world,
+      entity,
+      SceneCollisionComp,
+      .type   = SceneCollisionType_Sphere,
+      .layer  = layer,
+      .sphere = sphere);
 }
 
 void scene_collision_add_capsule(
-    EcsWorld* world, const EcsEntityId entity, const SceneCollisionCapsule capsule) {
+    EcsWorld*                   world,
+    const EcsEntityId           entity,
+    const SceneCollisionCapsule capsule,
+    const SceneLayer            layer) {
+
   ecs_world_add_t(
-      world, entity, SceneCollisionComp, .type = SceneCollisionType_Capsule, .capsule = capsule);
+      world,
+      entity,
+      SceneCollisionComp,
+      .type    = SceneCollisionType_Capsule,
+      .layer   = layer,
+      .capsule = capsule);
 }
 
 void scene_collision_add_box(
-    EcsWorld* world, const EcsEntityId entity, const SceneCollisionBox box) {
-  ecs_world_add_t(world, entity, SceneCollisionComp, .type = SceneCollisionType_Box, .box = box);
+    EcsWorld*               world,
+    const EcsEntityId       entity,
+    const SceneCollisionBox box,
+    const SceneLayer        layer) {
+
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneCollisionComp,
+      .type  = SceneCollisionType_Box,
+      .layer = layer,
+      .box   = box);
 }
 
 bool scene_query_ray(
@@ -119,7 +150,11 @@ bool scene_query_ray(
   diag_assert(filter);
 
   GeoQueryRayHit       hit;
-  const GeoQueryFilter geoFilter = {.context = filter->context, .callback = filter->callback};
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
   if (geo_query_ray(env->queryEnv, ray, &geoFilter, &hit)) {
     *out = (SceneRayHit){
         .entity   = (EcsEntityId)hit.shapeId,
