@@ -95,7 +95,7 @@ bool ecs_world_exists(const EcsWorld*, EcsEntityId);
 #define ecs_world_has_t(_WORLD_, _ENTITY_, _TYPE_)                                                 \
   ecs_world_has((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
 
-bool ecs_world_has(EcsWorld*, EcsEntityId, EcsCompId);
+bool ecs_world_has(const EcsWorld*, EcsEntityId, EcsCompId);
 
 /**
  * Schedule a component to be added at the next flush.

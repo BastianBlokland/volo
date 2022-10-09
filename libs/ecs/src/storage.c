@@ -158,8 +158,8 @@ u32 ecs_storage_entity_count_with_comp(const EcsStorage* storage, const EcsCompI
   return count;
 }
 
-BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
-  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+BitSet ecs_storage_entity_mask(const EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr((EcsStorage*)storage, id);
   if (!info) {
     return mem_empty;
   }

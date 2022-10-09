@@ -256,7 +256,7 @@ bool ecs_world_exists(const EcsWorld* world, const EcsEntityId entity) {
   return ecs_storage_entity_exists(&world->storage, entity);
 }
 
-bool ecs_world_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
+bool ecs_world_has(const EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity, .base = 16));
 
