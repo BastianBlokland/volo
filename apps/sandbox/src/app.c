@@ -1,5 +1,6 @@
 #include "app_ecs.h"
 #include "asset.h"
+#include "core_alloc.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "debug.h"
@@ -25,6 +26,7 @@ typedef struct {
 } AppFactionConfig;
 
 static const GapVector        g_windowSize      = {1920, 1080};
+static const u32              g_wallCount       = 32;
 static const AppFactionConfig g_factionConfig[] = {
     {
         .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
@@ -76,6 +78,20 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
+static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb) {
+  static const u64 g_rngSeed = 42;
+  Rng*             rng       = rng_create_xorwow(g_alloc_heap, g_rngSeed);
+  for (u32 i = 0; i != g_wallCount; ++i) {
+    const f32     posX  = rng_sample_range(rng, -15.0f, 15.0f);
+    const f32     posY  = rng_sample_range(rng, -0.1f, 0.1f);
+    const f32     posZ  = rng_sample_range(rng, -40.0f, 40.0f);
+    const f32     angle = rng_sample_f32(rng) * math_pi_f32 * 2;
+    const GeoQuat rot   = geo_quat_angle_axis(geo_up, angle);
+    object_spawn_wall(world, objDb, geo_vector(posX, posY, posZ), rot);
+  }
+  rng_destroy(rng);
+}
+
 static TimeDuration app_next_spawn_time(const u8 faction, const TimeDuration now) {
   TimeDuration       next        = now;
   const TimeDuration intervalMin = g_factionConfig[faction].spawnIntervalMin;
@@ -125,6 +141,7 @@ ecs_system_define(AppUpdateSys) {
   // Create the inital scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
+    app_scene_create_walls(world, objDb);
     app->sceneCreated = true;
   }
 

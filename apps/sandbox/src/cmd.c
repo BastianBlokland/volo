@@ -110,7 +110,7 @@ static void cmd_execute(
     object_spawn_unit(world, objectDb, cmd->spawnUnit.position, g_cmdPlayerFaction);
     break;
   case Cmd_SpawnWall:
-    object_spawn_wall(world, objectDb, cmd->spawnWall.position);
+    object_spawn_wall(world, objectDb, cmd->spawnWall.position, geo_quat_ident);
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_entity_valid(cmd->destroy.object), "Destroying invalid entity");

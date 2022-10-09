@@ -57,7 +57,7 @@ ecs_module_init(sandbox_object_module) {
 }
 
 EcsEntityId object_spawn_unit(
-    EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector position, const u8 faction) {
+    EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos, const u8 faction) {
   static const f32                   g_speed   = 4.0f;
   static const SceneCollisionCapsule g_capsule = {
       .offset = {0, 0.3f, 0},
@@ -71,7 +71,7 @@ EcsEntityId object_spawn_unit(
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
   scene_nav_add_agent(world, e);
   ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = g_speed, .radius = 0.4f);
   ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
@@ -91,19 +91,18 @@ EcsEntityId object_spawn_unit(
   return e;
 }
 
-EcsEntityId
-object_spawn_wall(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector position) {
+EcsEntityId object_spawn_wall(
+    EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos, const GeoQuat rot) {
   static const SceneCollisionBox g_box = {
       .min = {-1, 0, -2},
       .max = {1, 2, 2},
   };
 
-  const EcsEntityId e        = ecs_world_entity_create(world);
-  const GeoQuat     rotation = geo_quat_ident;
+  const EcsEntityId e = ecs_world_entity_create(world);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->wallGraphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
   scene_collision_add_box(world, e, g_box);
   scene_nav_add_blocker(world, e);
