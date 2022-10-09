@@ -105,12 +105,18 @@ ecs_comp_extern(SceneAttackComp);
 ecs_comp_extern(SceneBrainComp);
 ecs_comp_extern(SceneCollisionComp);
 ecs_comp_extern(SceneLocomotionComp);
+ecs_comp_extern(SceneNavAgentComp);
+ecs_comp_extern(SceneNavPathComp);
+ecs_comp_extern(SceneTargetFinderComp);
 
 static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
   ecs_utils_maybe_remove_t(world, entity, SceneAttackComp);
   ecs_utils_maybe_remove_t(world, entity, SceneBrainComp);
   ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
   ecs_utils_maybe_remove_t(world, entity, SceneLocomotionComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneNavAgentComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneNavPathComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneTargetFinderComp);
 }
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
