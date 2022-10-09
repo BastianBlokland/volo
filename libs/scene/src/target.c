@@ -1,6 +1,7 @@
 #include "core_float.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_target.h"
 #include "scene_transform.h"
@@ -10,11 +11,13 @@ ecs_comp_define_public(SceneTargetFinderComp);
 ecs_view_define(GlobalView) { ecs_access_read(SceneCollisionEnvComp); }
 
 ecs_view_define(TargetFinderView) {
+  ecs_access_maybe_read(SceneFactionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneTargetFinderComp);
 }
 
 ecs_view_define(TargetView) {
+  ecs_access_maybe_read(SceneFactionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneCollisionComp);
   ecs_access_with(SceneHealthComp);
@@ -63,9 +66,10 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
   for (EcsIterator* finderItr = ecs_view_itr(finderView); ecs_view_walk(finderItr);) {
-    const EcsEntityId         entity = ecs_view_entity(finderItr);
-    const SceneTransformComp* trans  = ecs_view_read_t(finderItr, SceneTransformComp);
-    SceneTargetFinderComp*    finder = ecs_view_write_t(finderItr, SceneTargetFinderComp);
+    const EcsEntityId         entity  = ecs_view_entity(finderItr);
+    const SceneTransformComp* trans   = ecs_view_read_t(finderItr, SceneTransformComp);
+    const SceneFactionComp*   faction = ecs_view_read_t(finderItr, SceneFactionComp);
+    SceneTargetFinderComp*    finder  = ecs_view_write_t(finderItr, SceneTargetFinderComp);
 
     /**
      * Find the closest target.
@@ -76,6 +80,10 @@ ecs_system_define(SceneTargetUpdateSys) {
       const EcsEntityId targetEntity = ecs_view_entity(targetItr);
       if (entity == targetEntity) {
         continue; // Do not target ourselves.
+      }
+      const SceneFactionComp* targetFaction = ecs_view_read_t(targetItr, SceneFactionComp);
+      if (scene_is_friendly(faction, targetFaction)) {
+        continue; // Do not target friendlies.
       }
       const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
       const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
