@@ -16,5 +16,5 @@ ecs_comp_extern(ObjectComp);
 /**
  * Spawn new objects.
  */
-EcsEntityId object_spawn_unit(EcsWorld*, const ObjectDatabaseComp*, GeoVector position);
+EcsEntityId object_spawn_unit(EcsWorld*, const ObjectDatabaseComp*, GeoVector position, u8 faction);
 EcsEntityId object_spawn_wall(EcsWorld*, const ObjectDatabaseComp*, GeoVector position);

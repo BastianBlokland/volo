@@ -11,6 +11,7 @@
 #include "object_internal.h"
 
 static StringHash g_blackboardKeyMoveTarget;
+static const u8   g_cmdPlayerFaction = 0;
 
 typedef enum {
   Cmd_Select,
@@ -106,7 +107,7 @@ static void cmd_execute(
     cmd_execute_move(world, &cmd->move);
     break;
   case Cmd_SpawnUnit:
-    object_spawn_unit(world, objectDb, cmd->spawnUnit.position);
+    object_spawn_unit(world, objectDb, cmd->spawnUnit.position, g_cmdPlayerFaction);
     break;
   case Cmd_SpawnWall:
     object_spawn_wall(world, objectDb, cmd->spawnWall.position);
