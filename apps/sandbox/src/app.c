@@ -20,21 +20,21 @@
 #include "object_internal.h"
 
 typedef struct {
-  GeoVector    spawnPoint;
+  GeoBox       spawnArea;
   TimeDuration spawnIntervalMin, spawnIntervalMax;
 } AppFactionConfig;
 
 static const GapVector        g_windowSize      = {1920, 1080};
 static const AppFactionConfig g_factionConfig[] = {
     {
-        .spawnPoint       = {.x = -30},
-        .spawnIntervalMin = time_seconds(1),
-        .spawnIntervalMax = time_seconds(2),
+        .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
+        .spawnIntervalMin = time_milliseconds(500),
+        .spawnIntervalMax = time_milliseconds(1000),
     },
     {
-        .spawnPoint       = {.x = 30},
-        .spawnIntervalMin = time_seconds(1),
-        .spawnIntervalMax = time_seconds(2),
+        .spawnArea        = {.min = {.x = -30, .z = -30}, .max = {.x = -35, .z = 30}},
+        .spawnIntervalMin = time_milliseconds(500),
+        .spawnIntervalMax = time_milliseconds(1000),
     },
 };
 
@@ -84,6 +84,13 @@ static TimeDuration app_next_spawn_time(const u8 faction, const TimeDuration now
   return next;
 }
 
+static GeoVector app_next_spawn_pos(const u8 faction) {
+  const GeoBox* b = &g_factionConfig[faction].spawnArea;
+  return geo_vector(
+          .x = rng_sample_range(g_rng, b->min.x, b->max.x),
+          .z = rng_sample_range(g_rng, b->min.z, b->max.z));
+}
+
 typedef struct {
   TimeDuration nextSpawnTime;
 } AppFactionData;
@@ -123,11 +130,10 @@ ecs_system_define(AppUpdateSys) {
 
   // Spawn new units.
   for (u8 faction = 0; faction != array_elems(g_factionConfig); ++faction) {
-    const AppFactionConfig* factionConfig = &g_factionConfig[faction];
-    AppFactionData*         factionData   = &app->factionData[faction];
+    AppFactionData* factionData = &app->factionData[faction];
 
     if (time->time > factionData->nextSpawnTime) {
-      object_spawn_unit(world, objDb, factionConfig->spawnPoint, faction);
+      object_spawn_unit(world, objDb, app_next_spawn_pos(faction), faction);
       factionData->nextSpawnTime = app_next_spawn_time(faction, time->time);
     }
   }
