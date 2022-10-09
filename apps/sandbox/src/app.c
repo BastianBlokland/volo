@@ -10,11 +10,13 @@
 #include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
 #include "cmd_internal.h"
+#include "object_internal.h"
 
 static const GapVector g_windowSize = {1920, 1080};
 
@@ -34,8 +36,8 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       SceneTransformComp,
-      .position = {0, 20.0f, 0},
-      .rotation = geo_quat_angle_axis(geo_right, 45 * math_deg_to_rad));
+      .position = {0, 35.0f, -17.5f},
+      .rotation = geo_quat_angle_axis(geo_right, 60 * math_deg_to_rad));
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
@@ -56,12 +58,22 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
-ecs_comp_define(AppComp) { bool sceneCreated; };
+typedef struct {
+  GeoVector    spawnPoint;
+  TimeDuration nextSpawnTime;
+} AppFaction;
+
+ecs_comp_define(AppComp) {
+  bool       sceneCreated;
+  AppFaction factions[2];
+};
 
 ecs_view_define(AppUpdateGlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_read(ObjectDatabaseComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_write(AppComp);
   ecs_access_write(AssetManagerComp);
-  ecs_access_read(InputManagerComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
@@ -72,13 +84,27 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
-  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  AppComp*                  app    = ecs_view_write_t(globalItr, AppComp);
+  AssetManagerComp*         assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp*   input  = ecs_view_read_t(globalItr, InputManagerComp);
+  const ObjectDatabaseComp* objDb  = ecs_view_read_t(globalItr, ObjectDatabaseComp);
+  const SceneTimeComp*      time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
+  // Create the inital scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
+    app->factions[0]  = (AppFaction){.spawnPoint = geo_vector(-40, 0, 0)};
+    app->factions[1]  = (AppFaction){.spawnPoint = geo_vector(40, 0, 0)};
     app->sceneCreated = true;
+  }
+
+  // Spawn new units.
+  for (u8 faction = 0; faction != array_elems(app->factions); ++faction) {
+    AppFaction* factionData = &app->factions[faction];
+    if (time->time > factionData->nextSpawnTime) {
+      object_spawn_unit(world, objDb, factionData->spawnPoint, faction);
+      factionData->nextSpawnTime = time->time + time_seconds(5);
+    }
   }
 
   if (input_triggered_lit(input, "WindowNew")) {
