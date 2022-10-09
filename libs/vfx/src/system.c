@@ -294,17 +294,14 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const GeoVector    pos      = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoVector    posDelta = geo_vector_sub(pos, state->prevPos);
-    const GeoQuat      rot      = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32          scale    = scaleComp ? scaleComp->scale : 1.0f;
-    const TimeDuration timeRem  = lifetime ? lifetime->duration : i64_max;
+    const GeoVector    pos     = LIKELY(trans) ? trans->position : geo_vector(0);
+    const GeoQuat      rot     = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+    const f32          scale   = scaleComp ? scaleComp->scale : 1.0f;
+    const TimeDuration timeRem = lifetime ? lifetime->duration : i64_max;
 
-    const f32 speed = geo_vector_mag(posDelta);
-    (void)speed;
-
+    diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
-      if (++numAssetRequests < vfx_max_asset_requests) {
+      if (vfx->asset && ++numAssetRequests < vfx_max_asset_requests) {
         vfx_asset_request(world, vfx->asset);
       }
       continue;
