@@ -25,9 +25,10 @@ typedef struct {
   TimeDuration spawnIntervalMin, spawnIntervalMax;
 } AppFactionConfig;
 
-static const GapVector        g_windowSize      = {1920, 1080};
-static const u32              g_wallCount       = 32;
-static const AppFactionConfig g_factionConfig[] = {
+static const GapVector        g_appWindowSize      = {1920, 1080};
+static const u32              g_appWallCount       = 32;
+static const u64              g_appRngSeed         = 42;
+static const AppFactionConfig g_appFactionConfig[] = {
     {
         .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
         .spawnIntervalMin = time_milliseconds(500),
@@ -41,7 +42,7 @@ static const AppFactionConfig g_factionConfig[] = {
 };
 
 static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
   debug_menu_create(world, window);
 
   ecs_world_add_t(
@@ -78,10 +79,8 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
-static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb) {
-  static const u64 g_rngSeed = 42;
-  Rng*             rng       = rng_create_xorwow(g_alloc_heap, g_rngSeed);
-  for (u32 i = 0; i != g_wallCount; ++i) {
+static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb, Rng* rng) {
+  for (u32 i = 0; i != g_appWallCount; ++i) {
     const f32     posX  = rng_sample_range(rng, -15.0f, 15.0f);
     const f32     posY  = rng_sample_range(rng, -0.1f, 0.1f);
     const f32     posZ  = rng_sample_range(rng, -40.0f, 40.0f);
@@ -89,22 +88,21 @@ static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* ob
     const GeoQuat rot   = geo_quat_angle_axis(geo_up, angle);
     object_spawn_wall(world, objDb, geo_vector(posX, posY, posZ), rot);
   }
-  rng_destroy(rng);
 }
 
-static TimeDuration app_next_spawn_time(const u8 faction, const TimeDuration now) {
+static TimeDuration app_next_spawn_time(Rng* rng, const u8 faction, const TimeDuration now) {
   TimeDuration       next        = now;
-  const TimeDuration intervalMin = g_factionConfig[faction].spawnIntervalMin;
-  const TimeDuration intervalMax = g_factionConfig[faction].spawnIntervalMax;
-  next += (TimeDuration)rng_sample_range(g_rng, intervalMin, intervalMax);
+  const TimeDuration intervalMin = g_appFactionConfig[faction].spawnIntervalMin;
+  const TimeDuration intervalMax = g_appFactionConfig[faction].spawnIntervalMax;
+  next += (TimeDuration)rng_sample_range(rng, intervalMin, intervalMax);
   return next;
 }
 
-static GeoVector app_next_spawn_pos(const u8 faction) {
-  const GeoBox* b = &g_factionConfig[faction].spawnArea;
+static GeoVector app_next_spawn_pos(Rng* rng, const u8 faction) {
+  const GeoBox* b = &g_appFactionConfig[faction].spawnArea;
   return geo_vector(
-          .x = rng_sample_range(g_rng, b->min.x, b->max.x),
-          .z = rng_sample_range(g_rng, b->min.z, b->max.z));
+          .x = rng_sample_range(rng, b->min.x, b->max.x),
+          .z = rng_sample_range(rng, b->min.z, b->max.z));
 }
 
 typedef struct {
@@ -113,8 +111,14 @@ typedef struct {
 
 ecs_comp_define(AppComp) {
   bool           sceneCreated;
-  AppFactionData factionData[array_elems(g_factionConfig)];
+  Rng*           rng;
+  AppFactionData factionData[array_elems(g_appFactionConfig)];
 };
+
+static void ecs_destruct_app_comp(void* data) {
+  AppComp* comp = data;
+  rng_destroy(comp->rng);
+}
 
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
@@ -141,17 +145,17 @@ ecs_system_define(AppUpdateSys) {
   // Create the inital scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
-    app_scene_create_walls(world, objDb);
+    app_scene_create_walls(world, objDb, app->rng);
     app->sceneCreated = true;
   }
 
   // Spawn new units.
-  for (u8 faction = 0; faction != array_elems(g_factionConfig); ++faction) {
+  for (u8 faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
     AppFactionData* factionData = &app->factionData[faction];
 
     if (time->time > factionData->nextSpawnTime) {
-      object_spawn_unit(world, objDb, app_next_spawn_pos(faction), faction);
-      factionData->nextSpawnTime = app_next_spawn_time(faction, time->time);
+      object_spawn_unit(world, objDb, app_next_spawn_pos(app->rng, faction), faction);
+      factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
     }
   }
 
@@ -173,7 +177,7 @@ ecs_system_define(AppUpdateSys) {
 }
 
 ecs_module_init(sandbox_app_module) {
-  ecs_register_comp(AppComp);
+  ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
@@ -207,7 +211,11 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  ecs_world_add_t(world, ecs_world_global(world), AppComp);
+  ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      AppComp,
+      .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
 
   const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
   asset_manager_create_fs(
