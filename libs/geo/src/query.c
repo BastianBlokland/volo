@@ -1,19 +1,93 @@
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "geo_box_rotated.h"
 #include "geo_query.h"
 
+#define geo_query_shape_align 16
+
+ASSERT(alignof(GeoSphere) <= geo_query_shape_align, "Insufficient alignment")
+ASSERT(alignof(GeoCapsule) <= geo_query_shape_align, "Insufficient alignment")
+ASSERT(alignof(GeoBoxRotated) <= geo_query_shape_align, "Insufficient alignment")
+
+typedef enum {
+  GeoQueryPrim_Sphere,
+  GeoQueryPrim_Capsule,
+  GeoQueryPrim_BoxRotated,
+
+  GeoQueryPrim_Count,
+} GeoQueryPrimType;
+
+typedef struct {
+  GeoQueryPrimType type;
+  u32              count, capacity;
+  u64*             ids;
+  void*            shapes; // GeoSphere[] / GeoCapsule[] / GeoBoxRotated[]
+} GeoQueryPrim;
+
 struct sGeoQueryEnv {
-  Allocator* alloc;
-  DynArray   spheres;      // GeoSphere[].
-  DynArray   sphereIds;    // u64[].
-  DynArray   capsules;     // GeoCapsule[].
-  DynArray   capsuleIds;   // u64[].
-  DynArray   rotatedBoxes; // GeoBoxRotated[].
-  DynArray   rotateBoxIds; // u64[].
+  Allocator*   alloc;
+  GeoQueryPrim prims[GeoQueryPrim_Count];
 };
+
+static usize geo_prim_entry_size(const GeoQueryPrimType type) {
+  switch (type) {
+  case GeoQueryPrim_Sphere:
+    return sizeof(GeoSphere);
+  case GeoQueryPrim_Capsule:
+    return sizeof(GeoCapsule);
+  case GeoQueryPrim_BoxRotated:
+    return sizeof(GeoBoxRotated);
+  case GeoQueryPrim_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static GeoQueryPrim geo_prim_create(const GeoQueryPrimType type, const u32 capacity) {
+  const usize shapeDataSize = geo_prim_entry_size(type) * capacity;
+  return (GeoQueryPrim){
+      .type     = type,
+      .capacity = capacity,
+      .ids      = alloc_array_t(g_alloc_heap, u64, capacity),
+      .shapes   = alloc_alloc(g_alloc_heap, shapeDataSize, geo_query_shape_align).ptr,
+  };
+}
+
+static void geo_prim_destroy(GeoQueryPrim* prim) {
+  alloc_free_array_t(g_alloc_heap, prim->ids, prim->capacity);
+  const Mem shapesMem = mem_create(prim->shapes, geo_prim_entry_size(prim->type) * prim->capacity);
+  alloc_free(g_alloc_heap, shapesMem);
+}
+
+static void geo_prim_copy(GeoQueryPrim* dst, const GeoQueryPrim* src) {
+  diag_assert(dst->type == src->type);
+  diag_assert(dst->capacity >= src->count);
+
+  mem_cpy(
+      mem_create(dst->ids, sizeof(u64) * dst->capacity),
+      mem_create(src->ids, sizeof(u64) * src->count));
+
+  const usize shapeEntrySize = geo_prim_entry_size(dst->type);
+  mem_cpy(
+      mem_create(dst->shapes, shapeEntrySize * dst->capacity),
+      mem_create(src->shapes, shapeEntrySize * src->count));
+
+  dst->count = src->count;
+}
+
+static void geo_prim_ensure_next(GeoQueryPrim* prim) {
+  if (LIKELY(prim->capacity != prim->count)) {
+    return; // Enough space remaining.
+  }
+  GeoQueryPrim newPrim = geo_prim_create(prim->type, bits_nextpow2(prim->capacity + 1));
+  geo_prim_copy(&newPrim, prim);
+  geo_prim_destroy(prim);
+  *prim = newPrim;
+}
 
 static void geo_query_validate_pos(const GeoVector vec) {
   // Constrain the positions 1000 meters from the origin to avoid precision issues.
@@ -42,57 +116,53 @@ GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
   GeoQueryEnv* env = alloc_alloc_t(alloc, GeoQueryEnv);
 
   *env = (GeoQueryEnv){
-      .alloc        = alloc,
-      .spheres      = dynarray_create_t(alloc, GeoSphere, 512),
-      .sphereIds    = dynarray_create_t(alloc, u64, 512),
-      .capsules     = dynarray_create_t(alloc, GeoCapsule, 512),
-      .capsuleIds   = dynarray_create_t(alloc, u64, 512),
-      .rotatedBoxes = dynarray_create_t(alloc, GeoBoxRotated, 512),
-      .rotateBoxIds = dynarray_create_t(alloc, u64, 512),
+      .alloc                          = alloc,
+      .prims[GeoQueryPrim_Sphere]     = geo_prim_create(GeoQueryPrim_Sphere, 512),
+      .prims[GeoQueryPrim_Capsule]    = geo_prim_create(GeoQueryPrim_Capsule, 512),
+      .prims[GeoQueryPrim_BoxRotated] = geo_prim_create(GeoQueryPrim_BoxRotated, 512),
   };
   return env;
 }
 
 void geo_query_env_destroy(GeoQueryEnv* env) {
-  dynarray_destroy(&env->spheres);
-  dynarray_destroy(&env->sphereIds);
-  dynarray_destroy(&env->capsules);
-  dynarray_destroy(&env->capsuleIds);
-  dynarray_destroy(&env->rotatedBoxes);
-  dynarray_destroy(&env->rotateBoxIds);
+  array_for_t(env->prims, GeoQueryPrim, prim) { geo_prim_destroy(prim); }
   alloc_free_t(env->alloc, env);
 }
 
 void geo_query_env_clear(GeoQueryEnv* env) {
-  dynarray_clear(&env->spheres);
-  dynarray_clear(&env->sphereIds);
-  dynarray_clear(&env->capsules);
-  dynarray_clear(&env->capsuleIds);
-  dynarray_clear(&env->rotatedBoxes);
-  dynarray_clear(&env->rotateBoxIds);
+  array_for_t(env->prims, GeoQueryPrim, prim) { prim->count = 0; }
 }
 
 void geo_query_insert_sphere(GeoQueryEnv* env, const GeoSphere sphere, const u64 id) {
   geo_query_validate_pos(sphere.point);
 
-  *dynarray_push_t(&env->spheres, GeoSphere) = sphere;
-  *dynarray_push_t(&env->sphereIds, u64)     = id;
+  GeoQueryPrim* prim = &env->prims[GeoQueryPrim_Sphere];
+  geo_prim_ensure_next(prim);
+  prim->ids[prim->count]                  = id;
+  ((GeoSphere*)prim->shapes)[prim->count] = sphere;
+  ++prim->count;
 }
 
 void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const u64 id) {
   geo_query_validate_pos(capsule.line.a);
   geo_query_validate_pos(capsule.line.b);
 
-  *dynarray_push_t(&env->capsules, GeoCapsule) = capsule;
-  *dynarray_push_t(&env->capsuleIds, u64)      = id;
+  GeoQueryPrim* prim = &env->prims[GeoQueryPrim_Capsule];
+  geo_prim_ensure_next(prim);
+  prim->ids[prim->count]                   = id;
+  ((GeoCapsule*)prim->shapes)[prim->count] = capsule;
+  ++prim->count;
 }
 
 void geo_query_insert_box_rotated(GeoQueryEnv* env, const GeoBoxRotated box, const u64 id) {
   geo_query_validate_pos(box.box.min);
   geo_query_validate_pos(box.box.max);
 
-  *dynarray_push_t(&env->rotatedBoxes, GeoBoxRotated) = box;
-  *dynarray_push_t(&env->rotateBoxIds, u64)           = id;
+  GeoQueryPrim* prim = &env->prims[GeoQueryPrim_BoxRotated];
+  geo_prim_ensure_next(prim);
+  prim->ids[prim->count]                      = id;
+  ((GeoBoxRotated*)prim->shapes)[prim->count] = box;
+  ++prim->count;
 }
 
 bool geo_query_ray(
@@ -110,14 +180,15 @@ bool geo_query_ray(
   /**
    * Spheres.
    */
-  const GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
-  const GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
+  const GeoQueryPrim* spheres      = &env->prims[GeoQueryPrim_Sphere];
+  const GeoSphere*    spheresBegin = spheres->shapes;
+  const GeoSphere*    spheresEnd   = spheresBegin + spheres->count;
   for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
     const f32 hitT = geo_sphere_intersect_ray(itr, ray);
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+    const u64 shapeId = spheres->ids[itr - spheresBegin];
     if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       const GeoVector hitPos = geo_ray_position(ray, hitT);
       bestHit.time           = hitT;
@@ -130,15 +201,16 @@ bool geo_query_ray(
   /**
    * Capsules.
    */
-  const GeoCapsule* capsulesBegin = dynarray_begin_t(&env->capsules, GeoCapsule);
-  const GeoCapsule* capsulesEnd   = dynarray_end_t(&env->capsules, GeoCapsule);
+  const GeoQueryPrim* capsules      = &env->prims[GeoQueryPrim_Capsule];
+  const GeoCapsule*   capsulesBegin = capsules->shapes;
+  const GeoCapsule*   capsulesEnd   = capsulesBegin + capsules->count;
   for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
     GeoVector normal;
     const f32 hitT = geo_capsule_intersect_ray(itr, ray, &normal);
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+    const u64 shapeId = capsules->ids[itr - capsulesBegin];
     if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       bestHit.time    = hitT;
       bestHit.shapeId = shapeId;
@@ -150,15 +222,16 @@ bool geo_query_ray(
   /**
    * Rotated boxes.
    */
-  const GeoBoxRotated* rotatedBoxesBegin = dynarray_begin_t(&env->rotatedBoxes, GeoBoxRotated);
-  const GeoBoxRotated* rotatedBoxesEnd   = dynarray_end_t(&env->rotatedBoxes, GeoBoxRotated);
+  const GeoQueryPrim*  rotatedBoxes      = &env->prims[GeoQueryPrim_BoxRotated];
+  const GeoBoxRotated* rotatedBoxesBegin = rotatedBoxes->shapes;
+  const GeoBoxRotated* rotatedBoxesEnd   = rotatedBoxesBegin + rotatedBoxes->count;
   for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
     GeoVector normal;
     const f32 hitT = geo_box_rotated_intersect_ray(itr, ray, &normal);
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    const u64 shapeId = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
+    const u64 shapeId = rotatedBoxes->ids[itr - rotatedBoxesBegin];
     if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       bestHit.time    = hitT;
       bestHit.shapeId = shapeId;
@@ -181,15 +254,16 @@ u32 geo_query_frustum_all(
    * Spheres.
    * TODO: Implement sphere <-> frustum intersection instead of converting spheres to boxes.
    */
-  const GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
-  const GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
+  const GeoQueryPrim* spheres      = &env->prims[GeoQueryPrim_Sphere];
+  const GeoSphere*    spheresBegin = spheres->shapes;
+  const GeoSphere*    spheresEnd   = spheresBegin + spheres->count;
   for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
     const GeoBoxRotated box = {
         .box      = geo_box_from_sphere(itr->point, itr->radius),
         .rotation = geo_quat_ident,
     };
     if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
-      out[count++] = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+      out[count++] = spheres->ids[itr - spheresBegin];
     }
   }
 
@@ -197,23 +271,25 @@ u32 geo_query_frustum_all(
    * Capsules.
    * TODO: Implement capsule <-> frustum intersection instead of converting capsules to boxes.
    */
-  const GeoCapsule* capsulesBegin = dynarray_begin_t(&env->capsules, GeoCapsule);
-  const GeoCapsule* capsulesEnd   = dynarray_end_t(&env->capsules, GeoCapsule);
+  const GeoQueryPrim* capsules      = &env->prims[GeoQueryPrim_Capsule];
+  const GeoCapsule*   capsulesBegin = capsules->shapes;
+  const GeoCapsule*   capsulesEnd   = capsulesBegin + capsules->count;
   for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
     const GeoBoxRotated box = geo_box_rotated_from_capsule(itr->line.a, itr->line.b, itr->radius);
     if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
-      out[count++] = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+      out[count++] = capsules->ids[itr - capsulesBegin];
     }
   }
 
   /**
    * Rotated boxes.
    */
-  const GeoBoxRotated* rotatedBoxesBegin = dynarray_begin_t(&env->rotatedBoxes, GeoBoxRotated);
-  const GeoBoxRotated* rotatedBoxesEnd   = dynarray_end_t(&env->rotatedBoxes, GeoBoxRotated);
+  const GeoQueryPrim*  rotatedBoxes      = &env->prims[GeoQueryPrim_BoxRotated];
+  const GeoBoxRotated* rotatedBoxesBegin = rotatedBoxes->shapes;
+  const GeoBoxRotated* rotatedBoxesEnd   = rotatedBoxesBegin + rotatedBoxes->count;
   for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
     if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(itr, frustum)) {
-      out[count++] = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
+      out[count++] = rotatedBoxes->ids[itr - rotatedBoxesBegin];
     }
   }
 
