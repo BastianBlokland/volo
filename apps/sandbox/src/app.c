@@ -1,6 +1,7 @@
 #include "app_ecs.h"
 #include "asset.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
@@ -18,7 +19,24 @@
 #include "cmd_internal.h"
 #include "object_internal.h"
 
-static const GapVector g_windowSize = {1920, 1080};
+typedef struct {
+  GeoVector    spawnPoint;
+  TimeDuration spawnIntervalMin, spawnIntervalMax;
+} AppFactionConfig;
+
+static const GapVector        g_windowSize      = {1920, 1080};
+static const AppFactionConfig g_factionConfig[] = {
+    {
+        .spawnPoint       = {.x = -30},
+        .spawnIntervalMin = time_seconds(1),
+        .spawnIntervalMax = time_seconds(2),
+    },
+    {
+        .spawnPoint       = {.x = 30},
+        .spawnIntervalMin = time_seconds(1),
+        .spawnIntervalMax = time_seconds(2),
+    },
+};
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
@@ -58,14 +76,21 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
+static TimeDuration app_next_spawn_time(const u8 faction, const TimeDuration now) {
+  TimeDuration       next        = now;
+  const TimeDuration intervalMin = g_factionConfig[faction].spawnIntervalMin;
+  const TimeDuration intervalMax = g_factionConfig[faction].spawnIntervalMax;
+  next += (TimeDuration)rng_sample_range(g_rng, intervalMin, intervalMax);
+  return next;
+}
+
 typedef struct {
-  GeoVector    spawnPoint;
   TimeDuration nextSpawnTime;
-} AppFaction;
+} AppFactionData;
 
 ecs_comp_define(AppComp) {
-  bool       sceneCreated;
-  AppFaction factions[2];
+  bool           sceneCreated;
+  AppFactionData factionData[array_elems(g_factionConfig)];
 };
 
 ecs_view_define(AppUpdateGlobalView) {
@@ -93,17 +118,17 @@ ecs_system_define(AppUpdateSys) {
   // Create the inital scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
-    app->factions[0]  = (AppFaction){.spawnPoint = geo_vector(-40, 0, 0)};
-    app->factions[1]  = (AppFaction){.spawnPoint = geo_vector(40, 0, 0)};
     app->sceneCreated = true;
   }
 
   // Spawn new units.
-  for (u8 faction = 0; faction != array_elems(app->factions); ++faction) {
-    AppFaction* factionData = &app->factions[faction];
+  for (u8 faction = 0; faction != array_elems(g_factionConfig); ++faction) {
+    const AppFactionConfig* factionConfig = &g_factionConfig[faction];
+    AppFactionData*         factionData   = &app->factionData[faction];
+
     if (time->time > factionData->nextSpawnTime) {
-      object_spawn_unit(world, objDb, factionData->spawnPoint, faction);
-      factionData->nextSpawnTime = time->time + time_seconds(5);
+      object_spawn_unit(world, objDb, factionConfig->spawnPoint, faction);
+      factionData->nextSpawnTime = app_next_spawn_time(faction, time->time);
     }
   }
 
