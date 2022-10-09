@@ -26,7 +26,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/swat/swat_diff.tga",
+      "textureId": "external/swat/swat_a_diff.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"

@@ -17,7 +17,7 @@ static const String g_tooltipCellSize   = string_static("Size of the grid cells.
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
 static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
-static const f32    g_gridCellSizeMin   = 0.1f;
+static const f32    g_gridCellSizeMin   = 0.25f;
 static const f32    g_gridCellSizeMax   = 4.0f;
 
 // clang-format on
@@ -89,7 +89,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       .show              = true,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
-      .cellSize          = 0.2f,
+      .cellSize          = 1.0f,
       .highlightInterval = 5,
       .fadeFraction      = 0.5);
 }
