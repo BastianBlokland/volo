@@ -56,7 +56,7 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       SceneTransformComp,
-      .position = {0, 35.0f, -17.5f},
+      .position = {0, 60.0f, -25.0f},
       .rotation = geo_quat_angle_axis(geo_right, 60 * math_deg_to_rad));
 }
 
