@@ -75,7 +75,12 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnimComp* healthAnim) {
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer(anim, g_healthHitAnimHash))) {
-    hitAnimLayer->time = 0;
+
+    if (hitAnimLayer->weight > 0) {
+      return; // Don't restart the animation if its already playing.
+    }
+    hitAnimLayer->time  = 0;
+    hitAnimLayer->speed = 1.5f;
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
     hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
     hitAnimLayer->mask = healthAnim->hitAnimMask;
