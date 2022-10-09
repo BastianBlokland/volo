@@ -9,9 +9,10 @@
         "y": -90
       },
       "size": {
-        "x": 3,
+        "x": 3.5,
         "y": 0.1
       },
+      "fadeInTime": 0.075,
       "scaleInTime": 0.15,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,
@@ -27,9 +28,10 @@
         "y": -90
       },
       "size": {
-        "x": 3,
+        "x": 3.5,
         "y": 0.1
       },
+      "fadeInTime": 0.075,
       "scaleInTime": 0.15,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,

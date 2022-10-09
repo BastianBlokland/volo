@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
@@ -61,31 +62,31 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
 }
 
 static void attack_muzzleflash_spawn(
-    EcsWorld*         world,
-    const EcsEntityId instigator,
-    const u32         muzzleJoint,
-    const EcsEntityId vfxAsset) {
+    EcsWorld*              world,
+    const SceneAttackComp* attack,
+    const EcsEntityId      instigator,
+    const u32              muzzleJoint) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->muzzleFlashVfx);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
 static void attack_projectile_spawn(
-    EcsWorld*         world,
-    const EcsEntityId instigator,
-    const EcsEntityId vfxAsset,
-    const GeoMatrix*  muzzleMatrix,
-    const GeoVector   targetPos) {
-  diag_assert_msg(vfxAsset, "Projectile vfx missing");
-
+    EcsWorld*              world,
+    const SceneAttackComp* attack,
+    const EcsEntityId      instigator,
+    const GeoMatrix*       muzzleMatrix,
+    const GeoVector        targetPos) {
   const EcsEntityId e         = ecs_world_entity_create(world);
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
   const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
 
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
+  if (attack->projectileVfx) {
+    ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
+  }
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
@@ -93,9 +94,10 @@ static void attack_projectile_spawn(
       e,
       SceneProjectileComp,
       .delay      = time_milliseconds(25),
-      .speed      = 40,
+      .speed      = 50,
       .damage     = 10,
-      .instigator = instigator);
+      .instigator = instigator,
+      .impactVfx  = attack->impactVfx);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -105,6 +107,12 @@ static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector tar
   }
   const GeoVector forward = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
   return geo_vector_dot(forward, delta) > attack_in_sight_threshold;
+}
+
+static TimeDuration attack_next_time(const SceneAttackComp* attack, const TimeDuration timeNow) {
+  TimeDuration next = timeNow;
+  next += (TimeDuration)rng_sample_range(g_rng, attack->minInterval, attack->maxInterval);
+  return next;
 }
 
 ecs_view_define(AttackView) {
@@ -169,7 +177,7 @@ ecs_system_define(SceneAttackSys) {
     fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
 
     const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
-    const bool isCoolingDown = (time->time - attack->lastFireTime) <= attack->interval;
+    const bool isCoolingDown = time->time < attack->nextFireTime;
 
     if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
       // Start firing the shot.
@@ -177,17 +185,17 @@ ecs_system_define(SceneAttackSys) {
       attack->flags |= SceneAttackFlags_Firing;
 
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, entity, attack->projectileVfx, &muz, targetPos);
+      attack_projectile_spawn(world, attack, entity, &muz, targetPos);
 
       if (attack->muzzleFlashVfx) {
-        attack_muzzleflash_spawn(world, entity, attackAnim->muzzleJoint, attack->muzzleFlashVfx);
+        attack_muzzleflash_spawn(world, attack, entity, attackAnim->muzzleJoint);
       }
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
       // Finished firing the shot.
       attack->flags &= ~SceneAttackFlags_Firing;
-      attack->lastFireTime = time->time;
+      attack->nextFireTime = attack_next_time(attack, time->time);
     }
   }
 }

@@ -84,7 +84,7 @@
                           "key": "target-dist",
                           "value": {
                             "$type": "AssetKnowledgeSource_Number",
-                            "value": 10
+                            "value": 25
                           }
                         },
                         {

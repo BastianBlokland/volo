@@ -55,6 +55,6 @@ void main() {
     out_color += (1.0 - abs(dot(normal, viewDir))) * 2.0;
   }
   if (tag_is_set(in_tags, tag_damaged_bit)) {
-    out_color += f32v4(0.4, 0.1, 0.1, 0) * abs(dot(normal, viewDir));
+    out_color += f32v4(0.4, 0.025, 0.025, 0) * abs(dot(normal, viewDir));
   }
 }

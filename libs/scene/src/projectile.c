@@ -5,6 +5,7 @@
 #include "scene_projectile.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 
 ecs_comp_define_public(SceneProjectileComp);
 
@@ -28,6 +29,18 @@ static bool projectile_query_filter(const void* context, const EcsEntityId entit
 static void projectile_damage(const SceneProjectileComp* projectile, const EcsIterator* targetItr) {
   SceneHealthComp* health = ecs_view_write_t(targetItr, SceneHealthComp);
   scene_health_damage(health, projectile->damage);
+}
+
+static void projectile_impact_spawn(
+    EcsWorld*                  world,
+    const SceneProjectileComp* projectile,
+    const GeoVector            pos,
+    const GeoVector            norm) {
+  const EcsEntityId e   = ecs_world_entity_create(world);
+  const GeoQuat     rot = geo_quat_look(norm, geo_up);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(200));
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx);
 }
 
 ecs_system_define(SceneProjectileSys) {
@@ -68,6 +81,9 @@ ecs_system_define(SceneProjectileSys) {
       ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(150));
       trans->position = hit.position;
 
+      if (projectile->impactVfx) {
+        projectile_impact_spawn(world, projectile, hit.position, hit.normal);
+      }
       if (ecs_view_maybe_jump(targetItr, hit.entity)) {
         projectile_damage(projectile, targetItr);
       }

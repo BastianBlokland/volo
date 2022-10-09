@@ -1,0 +1,18 @@
+{
+  "emitters": [
+    {
+      "atlasEntry": "glow",
+      "position": {
+        "z": 0.1
+      },
+      "size": {
+        "x": 1,
+        "y": 1
+      },
+      "scaleInTime": 0.15,
+      "fadeOutTime": 0.15,
+      "lifetime": 0.2,
+      "blend": "Additive"
+    }
+  ]
+}
