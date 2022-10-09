@@ -85,7 +85,7 @@ INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
 /**
  * Compute the total amount of cells in the region.
  */
-INLINE_HINT static u32 nav_region_size(GeoNavRegion region) {
+MAYBE_UNUSED INLINE_HINT static u32 nav_region_size(const GeoNavRegion region) {
   return (region.max.y - region.min.y) * (region.max.x - region.min.x);
 }
 

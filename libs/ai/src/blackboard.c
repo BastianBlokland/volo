@@ -32,6 +32,8 @@ struct sAiBlackboard {
 
 MAYBE_UNUSED void
 blackboard_assert_type(const AiBlackboardSlot* slot, const AiBlackboardType type) {
+  (void)slot;
+  (void)type;
   diag_assert_msg(
       slot->type == type,
       "Mismatching knowledge type, expected: '{}', actual: '{}'.",

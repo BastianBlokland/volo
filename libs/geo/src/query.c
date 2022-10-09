@@ -96,7 +96,7 @@ static void geo_prim_ensure_next(GeoQueryPrim* prim) {
   *prim = newPrim;
 }
 
-static void geo_query_validate_pos(const GeoVector vec) {
+static void geo_query_validate_pos(MAYBE_UNUSED const GeoVector vec) {
   // Constrain the positions 1000 meters from the origin to avoid precision issues.
   diag_assert_msg(
       geo_vector_mag_sqr(vec) <= (1e4f * 1e4f),
@@ -104,7 +104,7 @@ static void geo_query_validate_pos(const GeoVector vec) {
       geo_vector_fmt(vec));
 }
 
-static void geo_query_validate_dir(const GeoVector vec) {
+static void geo_query_validate_dir(MAYBE_UNUSED const GeoVector vec) {
   diag_assert_msg(
       math_abs(geo_vector_mag_sqr(vec) - 1.0f) <= 1e-6f,
       "Direction ({}) is not normalized",
