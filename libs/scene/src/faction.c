@@ -6,6 +6,9 @@ ecs_comp_define_public(SceneFactionComp);
 ecs_module_init(scene_faction_module) { ecs_register_comp(SceneFactionComp); }
 
 bool scene_is_friendly(const SceneFactionComp* a, const SceneFactionComp* b) {
+  if (!a || !b) {
+    return false;
+  }
   return a->id == b->id;
 }
 
