@@ -93,7 +93,7 @@ static void attack_projectile_spawn(
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
   }
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
   ecs_world_add_t(
       world,
       e,
