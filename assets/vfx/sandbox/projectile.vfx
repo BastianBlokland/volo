@@ -12,6 +12,7 @@
         "x": 3,
         "y": 0.1
       },
+      "fadeInTime": 0.075,
       "scaleInTime": 0.15,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,
@@ -30,6 +31,7 @@
         "x": 3,
         "y": 0.1
       },
+      "fadeInTime": 0.075,
       "scaleInTime": 0.15,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,
