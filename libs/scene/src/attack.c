@@ -167,8 +167,11 @@ ecs_system_define(SceneAttackSys) {
 
     if (loco) {
       const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
-      const GeoVector faceDir   = geo_vector_norm(faceDelta);
-      scene_locomotion_face(loco, faceDir);
+      const f32       faceDist  = geo_vector_mag(faceDelta);
+      if (faceDist > f32_epsilon) {
+        const GeoVector faceDir = geo_vector_div(faceDelta, faceDist);
+        scene_locomotion_face(loco, faceDir);
+      }
     }
 
     SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, g_attackFireAnimHash);
