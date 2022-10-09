@@ -3,8 +3,25 @@
 
 #if defined(VOLO_MSVC)
 
-float  roundf(float);
+float  acosf(float);
+float  asinf(float);
+float  atan2f(float, float);
+float  atanf(float);
+double ceil(double);
+float  ceilf(float);
+float  cosf(float);
+float  expf(float);
+double floor(double);
+float  floorf(float);
+float  fmodf(float, float);
+float  logf(float);
+float  powf(float, float);
+float  sinf(float);
+double sqrt(double);
+float  sqrtf(float);
+float  tanf(float);
 double round(double);
+float  roundf(float);
 
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanForward64)

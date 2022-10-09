@@ -11,7 +11,9 @@
 #include "repo_internal.h"
 
 #if defined(VOLO_MSVC)
-#pragma intrinsic(sqrt)
+float sqrtf(float);
+
+#pragma intrinsic(sqrtf)
 #define intrinsic_sqrt_f32 sqrtf
 #else
 #define intrinsic_sqrt_f32 __builtin_sqrtf
