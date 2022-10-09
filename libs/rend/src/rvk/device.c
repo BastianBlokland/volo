@@ -28,6 +28,21 @@ static const String g_requiredExts[] = {
     string_static("VK_KHR_16bit_storage"),
 };
 
+#ifdef VOLO_LINUX
+/**
+ * On linux disable present-id (VK_KHR_present_id) and present-wait (VK_KHR_present_wait) even if
+ * the device supports it.
+ * Unfortunately at least the 510 NVidia driver on x11 claims to support these but then fails to
+ * create a swapchain when either is enabled.
+ * TODO: Test support on other vendors running on Linux (and on the x11 window system).
+ */
+MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = false;
+MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = false;
+#else
+MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
+MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
+#endif
+
 static VkApplicationInfo rvk_instance_app_info() {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -278,10 +293,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
   queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
-      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = dev->graphicsQueueIndex,
-      .queueCount       = 1,
-      .pQueuePriorities = &queuePriorities[0],
+          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .queueFamilyIndex = dev->graphicsQueueIndex,
+          .queueCount       = 1,
+          .pQueuePriorities = &queuePriorities[0],
   };
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
@@ -321,13 +336,13 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 
   // Add optional extensions.
 #ifdef VK_KHR_present_id
-  if (optFeaturePresentId.presentId) {
+  if (g_rend_enable_vk_present_id && optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
     dev->flags |= RvkDeviceFlags_SupportPresentId;
   }
 #endif
 #ifdef VK_KHR_present_wait
-  if (optFeaturePresentWait.presentWait) {
+  if (g_rend_enable_vk_present_wait && optFeaturePresentWait.presentWait) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
@@ -376,8 +391,8 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
-      .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
-      .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
+                .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
+                .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
   const bool validationDesired = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
