@@ -249,14 +249,14 @@ RvkPass* rvk_pass_create(
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
-              .dev            = dev,
-              .statrecorder   = rvk_statrecorder_create(dev),
-              .vkRendPass     = rvk_renderpass_create(dev, flags),
-              .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
-              .vkCmdBuf       = vkCmdBuf,
-              .uniformPool    = uniformPool,
-              .flags          = flags,
-              .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .dev            = dev,
+      .statrecorder   = rvk_statrecorder_create(dev),
+      .vkRendPass     = rvk_renderpass_create(dev, flags),
+      .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
+      .vkCmdBuf       = vkCmdBuf,
+      .uniformPool    = uniformPool,
+      .flags          = flags,
+      .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
   return pass;
 }
@@ -302,7 +302,7 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
 }
 
-bool rvk_pass_prepare_mesh(RvkPass* pass, RvkMesh* mesh) {
+bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   return rvk_mesh_prepare(mesh);
 }

@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "scene_attack.h"
 #include "scene_brain.h"
@@ -67,7 +68,11 @@ EcsEntityId object_spawn_unit(
 
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
-  const EcsEntityId graphic  = faction ? db->unitBGraphic : db->unitAGraphic;
+
+  // TODO: Redo hacky handling of faction 0 and 1.
+  diag_assert(faction == 0 || faction == 1);
+  const EcsEntityId graphic = faction ? db->unitBGraphic : db->unitAGraphic;
+  const SceneLayer  layer   = faction ? SceneLayer_UnitFactionA : SceneLayer_UnitFactionB;
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
@@ -86,7 +91,7 @@ EcsEntityId object_spawn_unit(
       .muzzleFlashVfx = db->muzzleFlashVfx,
       .projectileVfx  = db->projectileVfx,
       .impactVfx      = db->impactVfx);
-  scene_collision_add_capsule(world, e, g_capsule);
+  scene_collision_add_capsule(world, e, g_capsule, layer);
   scene_brain_add(world, e, db->unitBehavior);
   return e;
 }
@@ -104,7 +109,7 @@ EcsEntityId object_spawn_wall(
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->wallGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
-  scene_collision_add_box(world, e, g_box);
+  scene_collision_add_box(world, e, g_box, SceneLayer_Environment);
   scene_nav_add_blocker(world, e);
   return e;
 }

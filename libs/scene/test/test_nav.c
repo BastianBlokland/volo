@@ -19,7 +19,7 @@ static EcsEntityId test_create_agent(EcsWorld* world, const GeoVector pos, const
 static EcsEntityId test_create_blocker(EcsWorld* world, const GeoVector pos) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
-  scene_collision_add_sphere(world, e, (SceneCollisionSphere){.radius = .25f});
+  scene_collision_add_sphere(world, e, (SceneCollisionSphere){.radius = .25f}, SceneLayer_Debug);
   scene_nav_add_blocker(world, e);
   return e;
 }

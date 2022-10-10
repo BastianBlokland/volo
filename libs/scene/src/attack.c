@@ -5,6 +5,7 @@
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_projectile.h"
@@ -77,6 +78,7 @@ static void attack_projectile_spawn(
     EcsWorld*              world,
     const SceneAttackComp* attack,
     const EcsEntityId      instigator,
+    const u32              factionId,
     const GeoMatrix*       muzzleMatrix,
     const GeoVector        targetPos) {
   const EcsEntityId e         = ecs_world_entity_create(world);
@@ -87,8 +89,11 @@ static void attack_projectile_spawn(
   if (attack->projectileVfx) {
     ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
   }
+  if (!sentinel_check(factionId)) {
+    ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
+  }
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
   ecs_world_add_t(
       world,
       e,
@@ -116,6 +121,7 @@ static TimeDuration attack_next_time(const SceneAttackComp* attack, const TimeDu
 }
 
 ecs_view_define(AttackView) {
+  ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneAttackAnimComp);
@@ -149,6 +155,7 @@ ecs_system_define(SceneAttackSys) {
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneFactionComp*    faction    = ecs_view_read_t(itr, SceneFactionComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -187,8 +194,9 @@ ecs_system_define(SceneAttackSys) {
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
 
+      const u32       factionId = LIKELY(faction) ? faction->id : sentinel_u32;
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, attack, entity, &muz, targetPos);
+      attack_projectile_spawn(world, attack, entity, factionId, &muz, targetPos);
 
       if (attack->muzzleFlashVfx) {
         attack_muzzleflash_spawn(world, attack, entity, attackAnim->muzzleJoint);

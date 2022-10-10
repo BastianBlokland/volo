@@ -28,29 +28,22 @@ static GeoVector aim_position(EcsIterator* entityItr) {
   return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
 }
 
-static bool line_of_sight_filter(const void* context, const EcsEntityId entity) {
-  const EcsEntityId* entityPtr = context;
-  return entity != *entityPtr;
-}
-
 static bool line_of_sight_test(
     const SceneCollisionEnvComp* collisionEnv, EcsIterator* finderItr, EcsIterator* targetItr) {
-  const EcsEntityId finderEntity = ecs_view_entity(finderItr);
-  const EcsEntityId targetEntity = ecs_view_entity(targetItr);
-  const GeoVector   sourcePos    = aim_position(finderItr);
-  const GeoVector   targetPos    = aim_position(targetItr);
-  const GeoVector   toTarget     = geo_vector_sub(targetPos, sourcePos);
-  const f32         dist         = geo_vector_mag(toTarget);
+  const GeoVector sourcePos = aim_position(finderItr);
+  const GeoVector targetPos = aim_position(targetItr);
+  const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
+  const f32       dist      = geo_vector_mag(toTarget);
   if (UNLIKELY(dist <= f32_epsilon)) {
     return true;
   }
-  const SceneQueryFilter filter = {.context = &finderEntity, .callback = &line_of_sight_filter};
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
   const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
   SceneRayHit            hit;
   if (scene_query_ray(collisionEnv, &ray, &filter, &hit)) {
-    return hit.time >= dist || hit.entity == targetEntity;
+    return hit.time >= dist;
   }
-  return false;
+  return true;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
