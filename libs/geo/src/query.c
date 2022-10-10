@@ -120,6 +120,34 @@ static f32 geo_prim_intersect_ray(
   UNREACHABLE
 }
 
+static bool geo_prim_intersect_frustum(
+    const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[8]) {
+  switch (prim->type) {
+  case GeoQueryPrim_Sphere: {
+    const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
+    // * TODO: Implement sphere <-> frustum intersection instead of converting spheres to boxes.
+    const GeoBoxRotated box = {
+        .box      = geo_box_from_sphere(sphere->point, sphere->radius),
+        .rotation = geo_quat_ident,
+    };
+    return geo_box_rotated_intersect_frustum(&box, frustum);
+  }
+  case GeoQueryPrim_Capsule: {
+    const GeoCapsule* cap = &((const GeoCapsule*)prim->shapes)[entryIdx];
+    // * TODO: Implement capsule <-> frustum intersection instead of converting capsules to boxes.
+    const GeoBoxRotated box = geo_box_rotated_from_capsule(cap->line.a, cap->line.b, cap->radius);
+    return geo_box_rotated_intersect_frustum(&box, frustum);
+  }
+  case GeoQueryPrim_BoxRotated: {
+    const GeoBoxRotated* box = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
+    return geo_box_rotated_intersect_frustum(box, frustum);
+  }
+  case GeoQueryPrim_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static void geo_query_validate_pos(MAYBE_UNUSED const GeoVector vec) {
   // Constrain the positions 1000 meters from the origin to avoid precision issues.
   diag_assert_msg(
@@ -258,48 +286,18 @@ u32 geo_query_frustum_all(
     const GeoQueryEnv* env, const GeoVector frustum[8], u64 out[geo_query_max_hits]) {
   u32 count = 0;
 
-  /**
-   * Spheres.
-   * TODO: Implement sphere <-> frustum intersection instead of converting spheres to boxes.
-   */
-  const GeoQueryPrim* spheres      = &env->prims[GeoQueryPrim_Sphere];
-  const GeoSphere*    spheresBegin = spheres->shapes;
-  const GeoSphere*    spheresEnd   = spheresBegin + spheres->count;
-  for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
-    const GeoBoxRotated box = {
-        .box      = geo_box_from_sphere(itr->point, itr->radius),
-        .rotation = geo_quat_ident,
-    };
-    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
-      out[count++] = spheres->ids[itr - spheresBegin];
+  for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
+    const GeoQueryPrim* prim = &env->prims[primIdx];
+    for (u32 i = 0; i != prim->count; ++i) {
+      if (geo_prim_intersect_frustum(prim, i, frustum)) {
+        out[count++] = prim->ids[i];
+        if (UNLIKELY(count == geo_query_max_hits)) {
+          goto MaxCountReached;
+        }
+      }
     }
   }
 
-  /**
-   * Capsules.
-   * TODO: Implement capsule <-> frustum intersection instead of converting capsules to boxes.
-   */
-  const GeoQueryPrim* capsules      = &env->prims[GeoQueryPrim_Capsule];
-  const GeoCapsule*   capsulesBegin = capsules->shapes;
-  const GeoCapsule*   capsulesEnd   = capsulesBegin + capsules->count;
-  for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
-    const GeoBoxRotated box = geo_box_rotated_from_capsule(itr->line.a, itr->line.b, itr->radius);
-    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
-      out[count++] = capsules->ids[itr - capsulesBegin];
-    }
-  }
-
-  /**
-   * Rotated boxes.
-   */
-  const GeoQueryPrim*  rotatedBoxes      = &env->prims[GeoQueryPrim_BoxRotated];
-  const GeoBoxRotated* rotatedBoxesBegin = rotatedBoxes->shapes;
-  const GeoBoxRotated* rotatedBoxesEnd   = rotatedBoxesBegin + rotatedBoxes->count;
-  for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
-    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(itr, frustum)) {
-      out[count++] = rotatedBoxes->ids[itr - rotatedBoxesBegin];
-    }
-  }
-
+MaxCountReached:
   return count;
 }
