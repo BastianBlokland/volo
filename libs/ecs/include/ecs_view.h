@@ -9,12 +9,12 @@ typedef struct sEcsIterator EcsIterator;
 /**
  * Returns how many components this view reads / writes.
  */
-usize ecs_view_comp_count(EcsView*);
+usize ecs_view_comp_count(const EcsView*);
 
 /**
  * Check if this view contains the given entity.
  */
-bool ecs_view_contains(EcsView*, EcsEntityId);
+bool ecs_view_contains(const EcsView*, EcsEntityId);
 
 /**
  * Create a new iterator for the given view.
