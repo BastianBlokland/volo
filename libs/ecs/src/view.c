@@ -12,9 +12,9 @@ static bool ecs_view_matches(const EcsView* view, BitSet mask) {
          !bitset_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
-usize ecs_view_comp_count(EcsView* view) { return view->compCount; }
+usize ecs_view_comp_count(const EcsView* view) { return view->compCount; }
 
-bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
+bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
   dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
     if (*trackedArchetype == archetype) {
