@@ -20,9 +20,12 @@ typedef enum {
   SceneLayer_Environment  = 1 << 1,
   SceneLayer_UnitFactionA = 1 << 2,
   SceneLayer_UnitFactionB = 1 << 3,
-  SceneLayer_Unit         = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB,
+  SceneLayer_UnitFactionC = 1 << 4,
+  SceneLayer_UnitFactionD = 1 << 5,
+  SceneLayer_Unit = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB | SceneLayer_UnitFactionC |
+                    SceneLayer_UnitFactionD,
 
-  SceneLayer_Count = 4,
+  SceneLayer_Count = 6,
   SceneLayer_None  = 0,
   SceneLayer_All   = ~0,
 } SceneLayer;

@@ -107,6 +107,8 @@ String scene_layer_name(const SceneLayer layer) {
       string_static("Environment"),
       string_static("UnitFactionA"),
       string_static("UnitFactionB"),
+      string_static("UnitFactionC"),
+      string_static("UnitFactionD"),
   };
   ASSERT(array_elems(g_names) == SceneLayer_Count, "Incorrect number of layer names");
   return g_names[index];
