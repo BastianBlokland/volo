@@ -211,7 +211,7 @@ static bool inspector_panel_draw_editor_f32(UiCanvasComp* canvas, f32* val) {
   return false;
 }
 
-static bool inspector_panel_draw_editor_u32(UiCanvasComp* canvas, u32* val) {
+MAYBE_UNUSED static bool inspector_panel_draw_editor_u32(UiCanvasComp* canvas, u32* val) {
   f64 v = *val;
   if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = UiWidget_DirtyWhileEditing)) {
     *val = (u32)v;
@@ -376,7 +376,7 @@ static void inspector_panel_draw_faction(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Id"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_u32(canvas, &faction->id);
+      inspector_panel_draw_value_string(canvas, scene_faction_name(faction->id));
     }
   }
 }

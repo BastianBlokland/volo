@@ -4,7 +4,6 @@
 #include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
-#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
@@ -58,7 +57,10 @@ ecs_module_init(sandbox_object_module) {
 }
 
 EcsEntityId object_spawn_unit(
-    EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos, const u8 faction) {
+    EcsWorld*                 world,
+    const ObjectDatabaseComp* db,
+    const GeoVector           pos,
+    const SceneFaction        faction) {
   static const f32                   g_speed   = 4.0f;
   static const SceneCollisionCapsule g_capsule = {
       .offset = {0, 0.3f, 0},
@@ -69,8 +71,8 @@ EcsEntityId object_spawn_unit(
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
-  // TODO: Redo hacky handling of faction 0 and 1.
-  diag_assert(faction == 0 || faction == 1);
+  // TODO: Redo hacky handling of faction A and B.
+  diag_assert(faction == SceneFaction_A || faction == SceneFaction_B);
   const EcsEntityId graphic = faction ? db->unitBGraphic : db->unitAGraphic;
   const SceneLayer  layer   = faction ? SceneLayer_UnitFactionB : SceneLayer_UnitFactionA;
 

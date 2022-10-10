@@ -2,6 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_quat.h"
+#include "scene_faction.h"
 
 /**
  * Global object database.
@@ -16,5 +17,5 @@ ecs_comp_extern(ObjectComp);
 /**
  * Spawn new objects.
  */
-EcsEntityId object_spawn_unit(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos, u8 faction);
+EcsEntityId object_spawn_unit(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos, SceneFaction);
 EcsEntityId object_spawn_wall(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos, GeoQuat rot);

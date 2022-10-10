@@ -41,8 +41,8 @@ static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
   if (!faction) {
     layer |= SceneLayer_Unit;
   } else {
-    // TODO: Redo hacky handling of faction 0 and 1.
-    diag_assert(faction->id == 0 || faction->id == 1);
+    // TODO: Redo hacky handling of faction A and B.
+    diag_assert(faction->id == SceneFaction_A || faction->id == SceneFaction_B);
     layer |= faction->id ? SceneLayer_UnitFactionA : SceneLayer_UnitFactionB;
   }
   return layer;
