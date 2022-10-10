@@ -36,14 +36,27 @@ static bool projectile_query_filter(const void* context, const EcsEntityId entit
   return true;
 }
 
+static SceneLayer projectile_faction_ignore_layer(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return SceneLayer_UnitFactionA;
+  case SceneFaction_B:
+    return SceneLayer_UnitFactionB;
+  case SceneFaction_C:
+    return SceneLayer_UnitFactionC;
+  case SceneFaction_D:
+    return SceneLayer_UnitFactionD;
+  case SceneFaction_Count:
+  case SceneFaction_None:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
+}
+
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
-  SceneLayer layer = SceneLayer_Environment;
-  if (!faction) {
-    layer |= SceneLayer_Unit;
-  } else {
-    // TODO: Redo hacky handling of faction 0 and 1.
-    diag_assert(faction->id == 0 || faction->id == 1);
-    layer |= faction->id ? SceneLayer_UnitFactionB : SceneLayer_UnitFactionA;
+  SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit;
+  if (faction) {
+    layer &= ~projectile_faction_ignore_layer(faction->id);
   }
   return layer;
 }

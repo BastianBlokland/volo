@@ -20,10 +20,14 @@ typedef enum {
   SceneLayer_Environment  = 1 << 1,
   SceneLayer_UnitFactionA = 1 << 2,
   SceneLayer_UnitFactionB = 1 << 3,
-  SceneLayer_Unit         = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB,
+  SceneLayer_UnitFactionC = 1 << 4,
+  SceneLayer_UnitFactionD = 1 << 5,
+  SceneLayer_Unit = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB | SceneLayer_UnitFactionC |
+                    SceneLayer_UnitFactionD,
 
-  SceneLayer_None = 0,
-  SceneLayer_All  = ~0,
+  SceneLayer_Count = 6,
+  SceneLayer_None  = 0,
+  SceneLayer_All   = ~0,
 } SceneLayer;
 
 /**
@@ -45,6 +49,8 @@ typedef enum {
   SceneCollisionType_Sphere,
   SceneCollisionType_Capsule,
   SceneCollisionType_Box,
+
+  SceneCollisionType_Count,
 } SceneCollisionType;
 
 typedef enum {
@@ -81,6 +87,17 @@ ecs_comp_extern_public(SceneCollisionComp) {
 };
 
 /**
+ * Lookup the name of the given layer.
+ * Pre-condition: Only a single bit is set.
+ */
+String scene_layer_name(SceneLayer);
+
+/**
+ * Lookup the name of the given collision type.
+ */
+String scene_collision_type_name(SceneCollisionType);
+
+/**
  * Add a collision shape to the given entity.
  */
 
@@ -109,7 +126,8 @@ bool scene_query_ray(
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp*,
     const GeoVector frustum[8],
-    EcsEntityId     out[scene_query_max_hits]);
+    const SceneQueryFilter*,
+    EcsEntityId out[scene_query_max_hits]);
 
 /**
  * Compute geometric shapes for the given collision shapes.

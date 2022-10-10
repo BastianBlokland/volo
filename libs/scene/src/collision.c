@@ -1,4 +1,6 @@
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "geo_query.h"
@@ -97,6 +99,32 @@ ecs_module_init(scene_collision_module) {
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 }
 
+String scene_layer_name(const SceneLayer layer) {
+  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Exactly one layer should be enabled");
+  const u32           index     = bits_ctz_32(layer);
+  static const String g_names[] = {
+      string_static("Debug"),
+      string_static("Environment"),
+      string_static("UnitFactionA"),
+      string_static("UnitFactionB"),
+      string_static("UnitFactionC"),
+      string_static("UnitFactionD"),
+  };
+  ASSERT(array_elems(g_names) == SceneLayer_Count, "Incorrect number of layer names");
+  return g_names[index];
+}
+
+String scene_collision_type_name(const SceneCollisionType type) {
+  diag_assert(type < SceneCollisionType_Count);
+  static const String g_names[] = {
+      string_static("Sphere"),
+      string_static("Capsule"),
+      string_static("Box"),
+  };
+  ASSERT(array_elems(g_names) == SceneCollisionType_Count, "Incorrect number of type names");
+  return g_names[type];
+}
+
 void scene_collision_add_sphere(
     EcsWorld*                  world,
     const EcsEntityId          entity,
@@ -170,8 +198,16 @@ bool scene_query_ray(
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
     const GeoVector              frustum[8],
+    const SceneQueryFilter*      filter,
     EcsEntityId                  out[geo_query_max_hits]) {
-  return geo_query_frustum_all(env->queryEnv, frustum, (u64*)out);
+  diag_assert(filter);
+
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
+  return geo_query_frustum_all(env->queryEnv, frustum, &geoFilter, (u64*)out);
 }
 
 GeoSphere scene_collision_world_sphere(
@@ -244,6 +280,8 @@ GeoBox scene_collision_world_bounds(
     const f32       baseScale = scale ? scale->scale : 1.0f;
     return geo_box_transform3(&localBox, basePos, baseRot, baseScale);
   }
+  case SceneCollisionType_Count:
+    break;
   }
   UNREACHABLE
 }

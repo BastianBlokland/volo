@@ -58,22 +58,22 @@
           "$name": "Move into range",
           "children": [
             {
-              "$type": "AssetBehavior_Selector",
-              "$name": "Check if in range",
+              "$type": "AssetBehavior_Sequence",
               "children": [
                 {
-                  "$type": "AssetBehavior_KnowledgeCompare",
-                  "$name": "In-range cooldown",
-                  "comparison": 2,
-                  "key": "self-inrange-time",
-                  "value": {
-                    "$type": "AssetKnowledgeSource_Time",
-                    "secondsFromNow": 0
-                  }
-                },
-                {
-                  "$type": "AssetBehavior_Sequence",
+                  "$type": "AssetBehavior_Selector",
+                  "$name": "Check if in range",
                   "children": [
+                    {
+                      "$type": "AssetBehavior_KnowledgeCompare",
+                      "$name": "In-range cooldown",
+                      "comparison": 2,
+                      "key": "self-inrange-time",
+                      "value": {
+                        "$type": "AssetKnowledgeSource_Time",
+                        "secondsFromNow": 0
+                      }
+                    },
                     {
                       "$type": "AssetBehavior_Sequence",
                       "children": [
@@ -88,27 +88,27 @@
                           }
                         },
                         {
-                          "$type": "AssetBehavior_KnowledgeCompare",
-                          "$name": "Test Line-of-Sight",
-                          "comparison": 0,
-                          "key": "target-los",
+                          "$type": "AssetBehavior_KnowledgeSet",
+                          "$name": "Set in-range cooldown",
+                          "key": "self-inrange-time",
                           "value": {
-                            "$type": "AssetKnowledgeSource_Bool",
-                            "value": true
+                            "$type": "AssetKnowledgeSource_Time",
+                            "secondsFromNow": 0.5
                           }
                         }
                       ]
-                    },
-                    {
-                      "$type": "AssetBehavior_KnowledgeSet",
-                      "$name": "Set in-range cooldown",
-                      "key": "self-inrange-time",
-                      "value": {
-                        "$type": "AssetKnowledgeSource_Time",
-                        "secondsFromNow": 0.5
-                      }
                     }
                   ]
+                },
+                {
+                  "$type": "AssetBehavior_KnowledgeCompare",
+                  "$name": "Test Line-of-Sight",
+                  "comparison": 0,
+                  "key": "target-los",
+                  "value": {
+                    "$type": "AssetKnowledgeSource_Bool",
+                    "value": true
+                  }
                 }
               ]
             },

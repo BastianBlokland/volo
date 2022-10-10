@@ -74,4 +74,7 @@ bool geo_query_ray(
  * NOTE: Returns the number of hit objects.
  */
 u32 geo_query_frustum_all(
-    const GeoQueryEnv*, const GeoVector frustum[8], u64 out[geo_query_max_hits]);
+    const GeoQueryEnv*,
+    const GeoVector frustum[8],
+    const GeoQueryFilter*,
+    u64 out[geo_query_max_hits]);

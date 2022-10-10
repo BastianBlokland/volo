@@ -78,7 +78,7 @@ static void attack_projectile_spawn(
     EcsWorld*              world,
     const SceneAttackComp* attack,
     const EcsEntityId      instigator,
-    const u32              factionId,
+    const SceneFaction     factionId,
     const GeoMatrix*       muzzleMatrix,
     const GeoVector        targetPos) {
   const EcsEntityId e         = ecs_world_entity_create(world);
@@ -89,7 +89,7 @@ static void attack_projectile_spawn(
   if (attack->projectileVfx) {
     ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
   }
-  if (!sentinel_check(factionId)) {
+  if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
   }
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
@@ -194,7 +194,7 @@ ecs_system_define(SceneAttackSys) {
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
 
-      const u32       factionId = LIKELY(faction) ? faction->id : sentinel_u32;
+      const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
       attack_projectile_spawn(world, attack, entity, factionId, &muz, targetPos);
 

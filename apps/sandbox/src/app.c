@@ -29,17 +29,20 @@ static const GapVector        g_appWindowSize      = {1920, 1080};
 static const u32              g_appWallCount       = 32;
 static const u64              g_appRngSeed         = 42;
 static const AppFactionConfig g_appFactionConfig[] = {
-    {
-        .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
-        .spawnIntervalMin = time_milliseconds(500),
-        .spawnIntervalMax = time_milliseconds(1000),
-    },
-    {
-        .spawnArea        = {.min = {.x = -30, .z = -30}, .max = {.x = -35, .z = 30}},
-        .spawnIntervalMin = time_milliseconds(500),
-        .spawnIntervalMax = time_milliseconds(1000),
-    },
+    [SceneFaction_A] =
+        {
+            .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
+            .spawnIntervalMin = time_milliseconds(500),
+            .spawnIntervalMax = time_milliseconds(1000),
+        },
+    [SceneFaction_B] =
+        {
+            .spawnArea        = {.min = {.x = -30, .z = -30}, .max = {.x = -35, .z = 30}},
+            .spawnIntervalMin = time_milliseconds(500),
+            .spawnIntervalMax = time_milliseconds(1000),
+        },
 };
+ASSERT(array_elems(g_appFactionConfig) <= SceneFaction_Count, "More factions then supported");
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -90,7 +93,8 @@ static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* ob
   }
 }
 
-static TimeDuration app_next_spawn_time(Rng* rng, const u8 faction, const TimeDuration now) {
+static TimeDuration
+app_next_spawn_time(Rng* rng, const SceneFaction faction, const TimeDuration now) {
   TimeDuration       next        = now;
   const TimeDuration intervalMin = g_appFactionConfig[faction].spawnIntervalMin;
   const TimeDuration intervalMax = g_appFactionConfig[faction].spawnIntervalMax;
@@ -98,7 +102,7 @@ static TimeDuration app_next_spawn_time(Rng* rng, const u8 faction, const TimeDu
   return next;
 }
 
-static GeoVector app_next_spawn_pos(Rng* rng, const u8 faction) {
+static GeoVector app_next_spawn_pos(Rng* rng, const SceneFaction faction) {
   const GeoBox* b = &g_appFactionConfig[faction].spawnArea;
   return geo_vector(
           .x = rng_sample_range(rng, b->min.x, b->max.x),
@@ -150,7 +154,7 @@ ecs_system_define(AppUpdateSys) {
   }
 
   // Spawn new units.
-  for (u8 faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
+  for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
     AppFactionData* factionData = &app->factionData[faction];
 
     if (time->time > factionData->nextSpawnTime) {

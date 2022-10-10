@@ -4,7 +4,6 @@
 #include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
-#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
@@ -21,6 +20,23 @@ ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId wallGraphic;
 };
 ecs_comp_define(ObjectComp);
+
+static SceneLayer object_unit_layer(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return SceneLayer_UnitFactionA;
+  case SceneFaction_B:
+    return SceneLayer_UnitFactionB;
+  case SceneFaction_C:
+    return SceneLayer_UnitFactionC;
+  case SceneFaction_D:
+    return SceneLayer_UnitFactionD;
+  case SceneFaction_Count:
+  case SceneFaction_None:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
+}
 
 ecs_view_define(GlobalInitView) {
   ecs_access_write(AssetManagerComp);
@@ -58,7 +74,10 @@ ecs_module_init(sandbox_object_module) {
 }
 
 EcsEntityId object_spawn_unit(
-    EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos, const u8 faction) {
+    EcsWorld*                 world,
+    const ObjectDatabaseComp* db,
+    const GeoVector           pos,
+    const SceneFaction        faction) {
   static const f32                   g_speed   = 4.0f;
   static const SceneCollisionCapsule g_capsule = {
       .offset = {0, 0.3f, 0},
@@ -69,10 +88,8 @@ EcsEntityId object_spawn_unit(
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
-  // TODO: Redo hacky handling of faction 0 and 1.
-  diag_assert(faction == 0 || faction == 1);
-  const EcsEntityId graphic = faction ? db->unitBGraphic : db->unitAGraphic;
-  const SceneLayer  layer   = faction ? SceneLayer_UnitFactionA : SceneLayer_UnitFactionB;
+  const EcsEntityId graphic = faction == SceneFaction_A ? db->unitAGraphic : db->unitBGraphic;
+  const SceneLayer  layer   = object_unit_layer(faction);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
