@@ -21,6 +21,22 @@ ecs_comp_define(ObjectDatabaseComp) {
 };
 ecs_comp_define(ObjectComp);
 
+static SceneLayer object_unit_layer(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return SceneLayer_UnitFactionA;
+  case SceneFaction_B:
+    return SceneLayer_UnitFactionB;
+  case SceneFaction_C:
+    return SceneLayer_UnitFactionC;
+  case SceneFaction_D:
+    return SceneLayer_UnitFactionD;
+  case SceneFaction_Count:
+  case SceneFaction_None:
+    diag_crash_msg("Unsupported faction");
+  }
+}
+
 ecs_view_define(GlobalInitView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_without(ObjectDatabaseComp);
@@ -71,10 +87,8 @@ EcsEntityId object_spawn_unit(
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
-  // TODO: Redo hacky handling of faction A and B.
-  diag_assert(faction == SceneFaction_A || faction == SceneFaction_B);
-  const EcsEntityId graphic = faction ? db->unitBGraphic : db->unitAGraphic;
-  const SceneLayer  layer   = faction ? SceneLayer_UnitFactionB : SceneLayer_UnitFactionA;
+  const EcsEntityId graphic = faction == SceneFaction_A ? db->unitAGraphic : db->unitBGraphic;
+  const SceneLayer  layer   = object_unit_layer(faction);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
