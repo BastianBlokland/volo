@@ -121,7 +121,8 @@ static void select_update_drag(
   GeoVector frustumCorners[8];
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_All};
+  // Only allow box-selecting your own units.
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionA};
 
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
