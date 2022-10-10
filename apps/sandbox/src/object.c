@@ -72,7 +72,7 @@ EcsEntityId object_spawn_unit(
   // TODO: Redo hacky handling of faction 0 and 1.
   diag_assert(faction == 0 || faction == 1);
   const EcsEntityId graphic = faction ? db->unitBGraphic : db->unitAGraphic;
-  const SceneLayer  layer   = faction ? SceneLayer_UnitFactionA : SceneLayer_UnitFactionB;
+  const SceneLayer  layer   = faction ? SceneLayer_UnitFactionB : SceneLayer_UnitFactionA;
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
