@@ -96,6 +96,30 @@ static void geo_prim_ensure_next(GeoQueryPrim* prim) {
   *prim = newPrim;
 }
 
+static f32 geo_prim_intersect_ray(
+    const GeoQueryPrim* prim, const u32 entryIdx, const GeoRay* ray, GeoVector* outNormal) {
+  switch (prim->type) {
+  case GeoQueryPrim_Sphere: {
+    const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
+    const f32        hitT   = geo_sphere_intersect_ray(sphere, ray);
+    if (hitT >= 0) {
+      *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
+    }
+  }
+  case GeoQueryPrim_Capsule: {
+    const GeoCapsule* capsule = &((const GeoCapsule*)prim->shapes)[entryIdx];
+    return geo_capsule_intersect_ray(capsule, ray, outNormal);
+  }
+  case GeoQueryPrim_BoxRotated: {
+    const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
+    return geo_box_rotated_intersect_ray(boxRotated, ray, outNormal);
+  }
+  case GeoQueryPrim_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static void geo_query_validate_pos(MAYBE_UNUSED const GeoVector vec) {
   // Constrain the positions 1000 meters from the origin to avoid precision issues.
   diag_assert_msg(
@@ -112,11 +136,11 @@ static void geo_query_validate_dir(MAYBE_UNUSED const GeoVector vec) {
   return;
 }
 
-static bool
-geo_query_filter(const GeoQueryFilter* filter, const u64 shapeId, const GeoQueryLayer shapeLayer) {
-  if ((filter->layerMask & shapeLayer) == 0) {
-    return false;
-  }
+static bool geo_query_filter_layer(const GeoQueryFilter* filter, const GeoQueryLayer shapeLayer) {
+  return (filter->layerMask & shapeLayer) != 0;
+}
+
+static bool geo_query_filter_callback(const GeoQueryFilter* filter, const u64 shapeId) {
   if (filter->callback) {
     return filter->callback(filter->context, shapeId);
   }
@@ -198,67 +222,27 @@ bool geo_query_ray(
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
-  /**
-   * Spheres.
-   */
-  const GeoQueryPrim* spheres      = &env->prims[GeoQueryPrim_Sphere];
-  const GeoSphere*    spheresBegin = spheres->shapes;
-  const GeoSphere*    spheresEnd   = spheresBegin + spheres->count;
-  for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
-    const f32 hitT = geo_sphere_intersect_ray(itr, ray);
-    if (hitT < 0.0) {
-      continue; // Miss.
-    }
-    const u64           shapeId    = spheres->ids[itr - spheresBegin];
-    const GeoQueryLayer shapeLayer = spheres->layers[itr - spheresBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
-      const GeoVector hitPos = geo_ray_position(ray, hitT);
-      bestHit.time           = hitT;
-      bestHit.shapeId        = shapeId;
-      bestHit.normal         = geo_vector_norm(geo_vector_sub(hitPos, itr->point));
-      foundHit               = true;
-    }
-  }
+  for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
+    const GeoQueryPrim* prim = &env->prims[primIdx];
+    for (u32 i = 0; i != prim->count; ++i) {
+      if (!geo_query_filter_layer(filter, prim->layers[i])) {
+        continue; // Layer not included in filter.
+      }
+      GeoVector normal;
+      const f32 hitT = geo_prim_intersect_ray(prim, i, ray, &normal);
+      if (hitT < 0.0) {
+        continue; // Miss.
+      }
+      if (hitT >= bestHit.time) {
+        continue; // Better hit already found.
+      }
+      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+        continue; // Filtered out by the filter's callback.
+      }
 
-  /**
-   * Capsules.
-   */
-  const GeoQueryPrim* capsules      = &env->prims[GeoQueryPrim_Capsule];
-  const GeoCapsule*   capsulesBegin = capsules->shapes;
-  const GeoCapsule*   capsulesEnd   = capsulesBegin + capsules->count;
-  for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
-    GeoVector normal;
-    const f32 hitT = geo_capsule_intersect_ray(itr, ray, &normal);
-    if (hitT < 0.0) {
-      continue; // Miss.
-    }
-    const u64           shapeId    = capsules->ids[itr - capsulesBegin];
-    const GeoQueryLayer shapeLayer = capsules->layers[itr - capsulesBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
+      // New best hit.
       bestHit.time    = hitT;
-      bestHit.shapeId = shapeId;
-      bestHit.normal  = normal;
-      foundHit        = true;
-    }
-  }
-
-  /**
-   * Rotated boxes.
-   */
-  const GeoQueryPrim*  rotatedBoxes      = &env->prims[GeoQueryPrim_BoxRotated];
-  const GeoBoxRotated* rotatedBoxesBegin = rotatedBoxes->shapes;
-  const GeoBoxRotated* rotatedBoxesEnd   = rotatedBoxesBegin + rotatedBoxes->count;
-  for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
-    GeoVector normal;
-    const f32 hitT = geo_box_rotated_intersect_ray(itr, ray, &normal);
-    if (hitT < 0.0) {
-      continue; // Miss.
-    }
-    const u64           shapeId    = rotatedBoxes->ids[itr - rotatedBoxesBegin];
-    const GeoQueryLayer shapeLayer = rotatedBoxes->layers[itr - rotatedBoxesBegin];
-    if (hitT < bestHit.time && geo_query_filter(filter, shapeId, shapeLayer)) {
-      bestHit.time    = hitT;
-      bestHit.shapeId = shapeId;
+      bestHit.shapeId = prim->ids[i];
       bestHit.normal  = normal;
       foundHit        = true;
     }
