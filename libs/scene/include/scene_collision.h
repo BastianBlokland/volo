@@ -22,8 +22,9 @@ typedef enum {
   SceneLayer_UnitFactionB = 1 << 3,
   SceneLayer_Unit         = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB,
 
-  SceneLayer_None = 0,
-  SceneLayer_All  = ~0,
+  SceneLayer_Count = 4,
+  SceneLayer_None  = 0,
+  SceneLayer_All   = ~0,
 } SceneLayer;
 
 /**
@@ -45,6 +46,8 @@ typedef enum {
   SceneCollisionType_Sphere,
   SceneCollisionType_Capsule,
   SceneCollisionType_Box,
+
+  SceneCollisionType_Count,
 } SceneCollisionType;
 
 typedef enum {
@@ -79,6 +82,17 @@ ecs_comp_extern_public(SceneCollisionComp) {
     SceneCollisionBox     box;
   };
 };
+
+/**
+ * Lookup the name of the given layer.
+ * Pre-condition: Only a single bit is set.
+ */
+String scene_layer_name(SceneLayer);
+
+/**
+ * Lookup the name of the given collision type.
+ */
+String scene_collision_type_name(SceneCollisionType);
 
 /**
  * Add a collision shape to the given entity.

@@ -80,6 +80,8 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
       const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
       scene_nav_add_blocker_box_rotated(env, &b);
     } break;
+    case SceneCollisionType_Count:
+      UNREACHABLE
     }
   }
 }

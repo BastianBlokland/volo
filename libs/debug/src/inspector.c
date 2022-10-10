@@ -452,13 +452,23 @@ static void inspector_panel_draw_collision(
   if (collision) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Collision"))) {
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Type"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, scene_collision_type_name(collision->type));
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Layer"));
+      ui_table_next_column(canvas, table);
+      if (bits_popcnt((u32)collision->layer) == 1) {
+        inspector_panel_draw_value_string(canvas, scene_layer_name(collision->layer));
+      } else {
+        inspector_panel_draw_value_string(canvas, string_lit("< Multiple >"));
+      }
+
       switch (collision->type) {
       case SceneCollisionType_Sphere: {
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Type"));
-        ui_table_next_column(canvas, table);
-        inspector_panel_draw_value_string(canvas, string_lit("Sphere"));
-
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
@@ -470,11 +480,6 @@ static void inspector_panel_draw_collision(
         inspector_panel_draw_editor_f32(canvas, &collision->sphere.radius);
       } break;
       case SceneCollisionType_Capsule: {
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Type"));
-        ui_table_next_column(canvas, table);
-        inspector_panel_draw_value_string(canvas, string_lit("Capsule"));
-
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
@@ -499,11 +504,6 @@ static void inspector_panel_draw_collision(
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Type"));
-        ui_table_next_column(canvas, table);
-        inspector_panel_draw_value_string(canvas, string_lit("Box"));
-
-        inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Min"));
         ui_table_next_column(canvas, table);
         inspector_panel_draw_editor_vec(canvas, &collision->box.min, 3);
@@ -513,6 +513,8 @@ static void inspector_panel_draw_collision(
         ui_table_next_column(canvas, table);
         inspector_panel_draw_editor_vec(canvas, &collision->box.max, 3);
       } break;
+      case SceneCollisionType_Count:
+        UNREACHABLE
       }
     }
   }
@@ -812,6 +814,8 @@ static void inspector_vis_draw_collision(
     debug_box(shape, center, b.rotation, size, g_colorFill, DebugShape_Fill);
     debug_box(shape, center, b.rotation, size, g_colorWire, DebugShape_Wire);
   } break;
+  case SceneCollisionType_Count:
+    UNREACHABLE
   }
 }
 
