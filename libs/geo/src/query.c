@@ -283,17 +283,29 @@ bool geo_query_ray(
 }
 
 u32 geo_query_frustum_all(
-    const GeoQueryEnv* env, const GeoVector frustum[8], u64 out[geo_query_max_hits]) {
+    const GeoQueryEnv*    env,
+    const GeoVector       frustum[8],
+    const GeoQueryFilter* filter,
+    u64                   out[geo_query_max_hits]) {
   u32 count = 0;
 
   for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
     const GeoQueryPrim* prim = &env->prims[primIdx];
     for (u32 i = 0; i != prim->count; ++i) {
-      if (geo_prim_intersect_frustum(prim, i, frustum)) {
-        out[count++] = prim->ids[i];
-        if (UNLIKELY(count == geo_query_max_hits)) {
-          goto MaxCountReached;
-        }
+      if (!geo_query_filter_layer(filter, prim->layers[i])) {
+        continue; // Layer not included in filter.
+      }
+      if (!geo_prim_intersect_frustum(prim, i, frustum)) {
+        continue; // Miss.
+      }
+      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+        continue; // Filtered out by the filter's callback.
+      }
+
+      // Output hit.
+      out[count++] = prim->ids[i];
+      if (UNLIKELY(count == geo_query_max_hits)) {
+        goto MaxCountReached;
       }
     }
   }

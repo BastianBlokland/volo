@@ -121,8 +121,10 @@ static void select_update_drag(
   GeoVector frustumCorners[8];
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_All};
+
   EcsEntityId results[scene_query_max_hits];
-  const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, results);
+  const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
   for (u32 i = 0; i != resultCount; ++i) {
     cmd_push_select(cmdController, results[i]);
   }

@@ -170,8 +170,16 @@ bool scene_query_ray(
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
     const GeoVector              frustum[8],
+    const SceneQueryFilter*      filter,
     EcsEntityId                  out[geo_query_max_hits]) {
-  return geo_query_frustum_all(env->queryEnv, frustum, (u64*)out);
+  diag_assert(filter);
+
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
+  return geo_query_frustum_all(env->queryEnv, frustum, &geoFilter, (u64*)out);
 }
 
 GeoSphere scene_collision_world_sphere(

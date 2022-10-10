@@ -109,7 +109,8 @@ bool scene_query_ray(
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp*,
     const GeoVector frustum[8],
-    EcsEntityId     out[scene_query_max_hits]);
+    const SceneQueryFilter*,
+    EcsEntityId out[scene_query_max_hits]);
 
 /**
  * Compute geometric shapes for the given collision shapes.
