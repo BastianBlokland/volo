@@ -1,14 +1,23 @@
 #include "core_float.h"
+#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_target.h"
+#include "scene_time.h"
 #include "scene_transform.h"
+
+#define target_max_refresh 100
+#define target_refresh_time_min time_seconds(1)
+#define target_refresh_time_max time_seconds(4)
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneCollisionEnvComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneTimeComp);
+}
 
 ecs_view_define(TargetFinderView) {
   ecs_access_maybe_read(SceneFactionComp);
@@ -23,15 +32,15 @@ ecs_view_define(TargetView) {
   ecs_access_with(SceneHealthComp);
 }
 
-static GeoVector aim_position(EcsIterator* entityItr) {
+static GeoVector target_aim_position(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
   return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
 }
 
-static bool line_of_sight_test(
+static bool target_line_of_sight_test(
     const SceneCollisionEnvComp* collisionEnv, EcsIterator* finderItr, EcsIterator* targetItr) {
-  const GeoVector sourcePos = aim_position(finderItr);
-  const GeoVector targetPos = aim_position(targetItr);
+  const GeoVector sourcePos = target_aim_position(finderItr);
+  const GeoVector targetPos = target_aim_position(targetItr);
   const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
   const f32       dist      = geo_vector_mag(toTarget);
   if (UNLIKELY(dist <= f32_epsilon)) {
@@ -46,6 +55,23 @@ static bool line_of_sight_test(
   return true;
 }
 
+static bool target_finder_needs_refresh(
+    const SceneTargetFinderComp* finder, const EcsView* targetView, const SceneTimeComp* time) {
+  if (time->time >= finder->nextRefreshTime) {
+    return true; // Enough time has elapsed.
+  }
+  if (ecs_entity_valid(finder->target) && !ecs_view_contains(targetView, finder->target)) {
+    return true; // Our last target became unavailable.
+  }
+  return false;
+}
+
+static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
+  TimeDuration next = time->time;
+  next += (TimeDuration)rng_sample_range(g_rng, target_refresh_time_min, target_refresh_time_max);
+  return next;
+}
+
 ecs_system_define(SceneTargetUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -53,9 +79,14 @@ ecs_system_define(SceneTargetUpdateSys) {
     return;
   }
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* finderView = ecs_world_view_t(world, TargetFinderView);
   EcsView* targetView = ecs_world_view_t(world, TargetView);
+
+  // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
+  // refresh simultaneously.
+  u32 refreshesRemaining = target_max_refresh;
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
   for (EcsIterator* finderItr = ecs_view_itr(finderView); ecs_view_walk(finderItr);) {
@@ -65,36 +96,45 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetFinderComp*    finder  = ecs_view_write_t(finderItr, SceneTargetFinderComp);
 
     /**
-     * Find the closest target.
+     * Refresh our target.
      */
-    finder->targetDistSqr = f32_max;
-    finder->target        = 0;
-    for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
-      const EcsEntityId targetEntity = ecs_view_entity(targetItr);
-      if (entity == targetEntity) {
-        continue; // Do not target ourselves.
+    if (refreshesRemaining && target_finder_needs_refresh(finder, targetView, time)) {
+      finder->targetDistSqr = f32_max;
+      finder->target        = 0;
+      for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
+        const EcsEntityId targetEntity = ecs_view_entity(targetItr);
+        if (entity == targetEntity) {
+          continue; // Do not target ourselves.
+        }
+        const SceneFactionComp* targetFaction = ecs_view_read_t(targetItr, SceneFactionComp);
+        if (scene_is_friendly(faction, targetFaction)) {
+          continue; // Do not target friendlies.
+        }
+        const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+        const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
+        const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
+        if (distSqr < finder->targetDistSqr) {
+          finder->target        = targetEntity;
+          finder->targetDistSqr = distSqr;
+        }
       }
-      const SceneFactionComp* targetFaction = ecs_view_read_t(targetItr, SceneFactionComp);
-      if (scene_is_friendly(faction, targetFaction)) {
-        continue; // Do not target friendlies.
-      }
-      const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-      const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
-      const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
-      if (distSqr < finder->targetDistSqr) {
-        finder->target         = targetEntity;
-        finder->targetPosition = targetTrans->position;
-        finder->targetDistSqr  = distSqr;
-      }
+      finder->nextRefreshTime = target_next_refresh_time(time);
+      --refreshesRemaining;
     }
 
     /**
-     * Test Line-Of-Sight to the closest target.
+     * Update information about our target.
      */
     finder->targetFlags &= ~SceneTarget_LineOfSight;
-    if (finder->target) {
+    if (ecs_view_contains(targetView, finder->target)) {
       ecs_view_jump(targetItr, finder->target);
-      if (line_of_sight_test(collisionEnv, finderItr, targetItr)) {
+
+      const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+      const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
+      finder->targetPosition             = targetTrans->position;
+      finder->targetDistSqr              = geo_vector_mag_sqr(posDelta);
+
+      if (target_line_of_sight_test(collisionEnv, finderItr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     }
