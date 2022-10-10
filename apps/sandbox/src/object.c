@@ -33,8 +33,9 @@ static SceneLayer object_unit_layer(const SceneFaction faction) {
     return SceneLayer_UnitFactionD;
   case SceneFaction_Count:
   case SceneFaction_None:
-    diag_crash_msg("Unsupported faction");
+    break;
   }
+  diag_crash_msg("Unsupported faction");
 }
 
 ecs_view_define(GlobalInitView) {

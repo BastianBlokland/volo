@@ -89,7 +89,7 @@ static void attack_projectile_spawn(
   if (attack->projectileVfx) {
     ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
   }
-  if (!sentinel_check(factionId)) {
+  if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
   }
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);

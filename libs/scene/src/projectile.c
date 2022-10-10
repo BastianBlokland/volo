@@ -48,8 +48,9 @@ static SceneLayer projectile_faction_ignore_layer(const SceneFaction faction) {
     return SceneLayer_UnitFactionD;
   case SceneFaction_Count:
   case SceneFaction_None:
-    diag_crash_msg("Unsupported faction");
+    break;
   }
+  diag_crash_msg("Unsupported faction");
 }
 
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
