@@ -105,6 +105,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
+    if (loco->flags & SceneLocomotion_Stop) {
+      loco->targetPos = trans->position;
+      loco->flags &= ~(SceneLocomotion_Moving | SceneLocomotion_Stop);
+    }
+
     scene_loco_move(loco, trans, scale, deltaSeconds);
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
       if (scene_loco_face(trans, loco->targetDir, deltaSeconds)) {
@@ -152,3 +157,5 @@ void scene_locomotion_face(SceneLocomotionComp* comp, const GeoVector direction)
 
   comp->targetDir = direction;
 }
+
+void scene_locomotion_stop(SceneLocomotionComp* comp) { comp->flags |= SceneLocomotion_Stop; }
