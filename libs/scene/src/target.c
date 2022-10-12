@@ -139,6 +139,8 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (target_line_of_sight_test(collisionEnv, finderItr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
+    } else {
+      finder->target = 0;
     }
   }
 }
