@@ -29,8 +29,10 @@ ecs_comp_extern_public(SceneNavAgentComp) {
   GeoVector          target;
 };
 ecs_comp_extern_public(SceneNavPathComp) {
-  GeoNavCell* cells;
-  u32         cellCount;
+  GeoNavCell*  cells;
+  u32          cellCount;
+  GeoVector    destination;
+  TimeDuration nextRefreshTime;
 };
 
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);

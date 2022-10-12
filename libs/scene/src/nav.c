@@ -1,11 +1,13 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_register.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
@@ -13,8 +15,12 @@ static const f32       g_sceneNavSize    = 100.0f;
 static const f32       g_sceneNavDensity = 1.0f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
-#define scene_nav_path_max_cells 64
-#define scene_nav_arrive_threshold 0.25f
+#define path_max_cells 64
+#define path_max_queries 100
+#define path_refresh_time_min time_seconds(3)
+#define path_refresh_time_max time_seconds(5)
+#define path_refresh_max_dist 2.0f
+#define nav_arrive_threshold 0.25f
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
 ecs_comp_define_public(SceneNavStatsComp);
@@ -30,7 +36,7 @@ static void ecs_destruct_nav_env_comp(void* data) {
 
 static void ecs_destruct_nav_path_comp(void* data) {
   SceneNavPathComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->cells, scene_nav_path_max_cells);
+  alloc_free_array_t(g_alloc_heap, comp->cells, path_max_cells);
 }
 
 static void scene_nav_env_create(EcsWorld* world) {
@@ -146,7 +152,10 @@ ecs_system_define(SceneNavInitSys) {
   scene_nav_add_occupants(env, occupantEntities);
 }
 
-ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }
+ecs_view_define(UpdateAgentGlobalView) {
+  ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneTimeComp);
+}
 
 ecs_view_define(AgentEntityView) {
   ecs_access_read(SceneTransformComp);
@@ -155,13 +164,35 @@ ecs_view_define(AgentEntityView) {
   ecs_access_write(SceneNavPathComp);
 }
 
+static bool path_needs_refresh(
+    const SceneNavPathComp* path, const GeoVector targetPos, const SceneTimeComp* time) {
+  if (time->time >= path->nextRefreshTime) {
+    return true; // Enough time has elapsed.
+  }
+  const f32 distToDestSqr = geo_vector_mag_sqr(geo_vector_sub(path->destination, targetPos));
+  if (distToDestSqr > (path_refresh_max_dist * path_refresh_max_dist)) {
+    return true; // New destination is too far from the old destination.
+  }
+  return false;
+}
+
+static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
+  TimeDuration next = time->time;
+  next += (TimeDuration)rng_sample_range(g_rng, path_refresh_time_min, path_refresh_time_max);
+  return next;
+}
+
 ecs_system_define(SceneNavUpdateAgentsSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateAgentGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const SceneNavEnvComp* env = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneNavEnvComp* env  = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTimeComp*   time = ecs_view_read_t(globalItr, SceneTimeComp);
+
+  // Limit the amount of path queries per-frame.
+  u32 pathQueriesRemaining = path_max_queries;
 
   EcsView* agentEntities = ecs_world_view_t(world, AgentEntityView);
   for (EcsIterator* itr = ecs_view_itr(agentEntities); ecs_view_walk(itr);) {
@@ -185,14 +216,12 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     const f32 distToTarget = geo_vector_mag(geo_vector_sub(toPos, trans->position));
-    if (distToTarget <= (loco->radius + scene_nav_arrive_threshold)) {
+    if (distToTarget <= (loco->radius + nav_arrive_threshold)) {
       agent->flags |= SceneNavAgent_Stop; // Arrived at destination.
     }
 
     if (agent->flags & SceneNavAgent_Stop) {
       agent->flags &= ~(SceneNavAgent_Stop | SceneNavAgent_Traveling);
-      agent->target   = trans->position; // Clear the target.
-      path->cellCount = 0;               // Clear the path.
       scene_locomotion_stop(loco);
       goto Done;
     }
@@ -205,8 +234,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // Compute a new path.
-    const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
-    path->cellCount                 = geo_nav_path(env->navGrid, fromCell, toCell, storage);
+    if (pathQueriesRemaining && path_needs_refresh(path, toPos, time)) {
+      const GeoNavPathStorage storage = {.cells = path->cells, .capacity = path_max_cells};
+      path->cellCount                 = geo_nav_path(env->navGrid, fromCell, toCell, storage);
+      path->nextRefreshTime           = path_next_refresh_time(time);
+      path->destination               = toPos;
+      --pathQueriesRemaining;
+    }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
     for (u32 i = (path->cellCount); i-- > 1;) {
@@ -290,7 +324,7 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity
       world,
       entity,
       SceneNavPathComp,
-      .cells = alloc_array_t(g_alloc_heap, GeoNavCell, scene_nav_path_max_cells));
+      .cells = alloc_array_t(g_alloc_heap, GeoNavCell, path_max_cells));
   return ecs_world_add_t(world, entity, SceneNavAgentComp);
 }
 
