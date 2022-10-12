@@ -97,6 +97,8 @@ ecs_system_define(SceneTargetUpdateSys) {
 
     /**
      * Refresh our target.
+     * NOTE: Involves an expensive walk of all potential targets. In the future we should consider
+     * using an acceleration structure, for example the collision environment.
      */
     if (refreshesRemaining && target_finder_needs_refresh(finder, targetView, time)) {
       finder->targetDistSqr = f32_max;
