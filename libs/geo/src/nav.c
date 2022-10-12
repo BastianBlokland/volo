@@ -868,16 +868,17 @@ GeoVector geo_nav_separate(
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
   }
+  if (nav_cell_predicate_blocked(grid, mapRes.cell)) {
+    // Position is currently in a blocked cell; push it into the closest unblocked cell.
+    const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, mapRes.cell);
+    return geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
+  }
+
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
   GeoVector          result = {0};
 
-  // Separate from blockers.
-  if (!nav_cell_predicate_blocked(grid, mapRes.cell)) {
-    result = geo_vector_add(result, nav_separate_from_blockers(grid, region, pos, radius, flags));
-  }
-
-  // Separate from other occupants.
+  result = geo_vector_add(result, nav_separate_from_blockers(grid, region, pos, radius, flags));
   result = geo_vector_add(result, nav_separate_from_occupied(grid, region, id, pos, radius, flags));
   return result;
 }
