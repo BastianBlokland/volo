@@ -167,21 +167,21 @@ static void scene_nav_update_agent(
     agent->flags &= ~(SceneNavAgent_Stop | SceneLocomotion_Moving);
   }
 
-  if (!(agent->flags & SceneNavAgent_Moving)) {
+  if (!(agent->flags & SceneNavAgent_Traveling)) {
     if (fromOnGrid) {
       if (LIKELY(loco)) {
         scene_locomotion_move(loco, trans->position);
       }
       return; // Not moving and still on the grid; Nothing to do.
     }
-    agent->flags |= SceneNavAgent_Moving;
+    agent->flags |= SceneNavAgent_Traveling;
     agent->target = geo_nav_position(env->navGrid, from);
   }
 
   const f32 radius = LIKELY(loco) ? loco->radius : 0.5f;
   const f32 dist   = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
   if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
-    agent->flags &= ~SceneNavAgent_Moving;
+    agent->flags &= ~SceneNavAgent_Traveling;
     if (LIKELY(loco)) {
       scene_locomotion_move(loco, trans->position);
     }
@@ -309,7 +309,7 @@ ecs_module_init(scene_nav_module) {
 }
 
 void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
-  agent->flags |= SceneNavAgent_Moving;
+  agent->flags |= SceneNavAgent_Traveling;
   agent->flags &= ~SceneNavAgent_Stop;
   agent->target = target;
 }

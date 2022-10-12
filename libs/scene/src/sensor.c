@@ -73,7 +73,7 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
-      if (navAgent->flags & SceneNavAgent_Moving) {
+      if (navAgent->flags & SceneNavAgent_Traveling) {
         ai_blackboard_unset(bb, g_blackboardKeyNavArrived);
       } else {
         ai_blackboard_set_vector(bb, g_blackboardKeyNavArrived, navAgent->target);

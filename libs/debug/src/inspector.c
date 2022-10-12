@@ -865,7 +865,7 @@ static void inspector_vis_draw_navigation_path(
     const GeoVector posB = scene_nav_position(nav, path->cells[i]);
     debug_line(shape, posA, posB, geo_color_white);
   }
-  if (agent->flags & SceneNavAgent_Moving) {
+  if (agent->flags & SceneNavAgent_Traveling) {
     debug_sphere(shape, agent->target, 0.1f, geo_color_blue, DebugShape_Overlay);
   }
 }
