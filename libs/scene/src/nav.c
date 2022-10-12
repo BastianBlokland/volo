@@ -91,16 +91,12 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
 
-    const u64           occupantId     = (u64)ecs_view_entity(itr);
-    f32                 occupantRadius = 0.5f;
-    GeoNavOccupantFlags occupantFlags  = 0;
-    if (loco) {
-      occupantRadius = loco->radius;
-      if (loco->flags & SceneLocomotion_Moving) {
-        occupantFlags |= GeoNavOccupantFlags_Moving;
-      }
+    const u64           occupantId    = (u64)ecs_view_entity(itr);
+    GeoNavOccupantFlags occupantFlags = 0;
+    if (loco->flags & SceneLocomotion_Moving) {
+      occupantFlags |= GeoNavOccupantFlags_Moving;
     }
-    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, occupantRadius, occupantFlags);
+    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, loco->radius, occupantFlags);
   }
 }
 
@@ -123,7 +119,7 @@ ecs_view_define(BlockerEntityView) {
 }
 
 ecs_view_define(OccupantEntityView) {
-  ecs_access_maybe_read(SceneLocomotionComp);
+  ecs_access_read(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneNavAgentComp);
 }
@@ -150,97 +146,11 @@ ecs_system_define(SceneNavInitSys) {
   scene_nav_add_occupants(env, occupantEntities);
 }
 
-static void scene_nav_update_agent(
-    const SceneNavEnvComp*    env,
-    const SceneTransformComp* trans,
-    SceneNavAgentComp*        agent,
-    SceneLocomotionComp*      loco,
-    SceneNavPathComp*         path) {
-  GeoNavCell from       = geo_nav_at_position(env->navGrid, trans->position);
-  const bool fromOnGrid = !geo_nav_blocked(env->navGrid, from);
-  if (!fromOnGrid) {
-    from = geo_nav_closest_unblocked(env->navGrid, from);
-  }
-
-  if (agent->flags & SceneNavAgent_Stop) {
-    agent->target = trans->position;
-    agent->flags &= ~(SceneNavAgent_Stop | SceneLocomotion_Moving);
-  }
-
-  if (!(agent->flags & SceneNavAgent_Traveling)) {
-    if (fromOnGrid) {
-      if (LIKELY(loco)) {
-        scene_locomotion_move(loco, trans->position);
-      }
-      return; // Not moving and still on the grid; Nothing to do.
-    }
-    agent->flags |= SceneNavAgent_Traveling;
-    agent->target = geo_nav_position(env->navGrid, from);
-  }
-
-  const f32 radius = LIKELY(loco) ? loco->radius : 0.5f;
-  const f32 dist   = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
-  if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
-    agent->flags &= ~SceneNavAgent_Traveling;
-    if (LIKELY(loco)) {
-      scene_locomotion_move(loco, trans->position);
-    }
-    return; // Arrived at destination.
-  }
-
-  GeoNavCell to       = geo_nav_at_position(env->navGrid, agent->target);
-  const bool toOnGrid = !geo_nav_blocked(env->navGrid, to);
-  if (!toOnGrid) {
-    to = geo_nav_closest_unblocked(env->navGrid, to);
-  }
-
-  if (from.data == to.data) {
-    path->cellCount = 0;
-    if (LIKELY(loco)) {
-      // On the correct cell; move to the final position on the cell.
-      scene_locomotion_move(loco, toOnGrid ? agent->target : geo_nav_position(env->navGrid, to));
-    }
-    return;
-  }
-
-  const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
-  path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
-
-  if (UNLIKELY(!loco)) {
-    return; // Agent has no locomotion so unable to move.
-  }
-
-  // Attempt to take a shortcut to further into the path.
-  for (u32 i = path->cellCount; i-- > 1;) {
-    if (!geo_nav_line_blocked(env->navGrid, from, path->cells[i])) {
-      if (path->cells[i].data == to.data && toOnGrid) {
-        scene_locomotion_move(loco, agent->target);
-      } else {
-        scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[i]));
-      }
-      return; // Agent is walking towards shortcut.
-    }
-  }
-
-  // No shortcut available; Move to the next cell in the path.
-  if (path->cellCount > 1) {
-    scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[1]));
-    return;
-  }
-
-  // No path available.
-  if (!fromOnGrid) {
-    // Move to the closest position on the grid.
-    scene_locomotion_move(loco, geo_nav_position(env->navGrid, from));
-  }
-  path->cellCount = 0;
-}
-
 ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }
 
 ecs_view_define(AgentEntityView) {
-  ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneLocomotionComp);
   ecs_access_write(SceneNavAgentComp);
   ecs_access_write(SceneNavPathComp);
 }
@@ -255,12 +165,68 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
   EcsView* agentEntities = ecs_world_view_t(world, AgentEntityView);
   for (EcsIterator* itr = ecs_view_itr(agentEntities); ecs_view_walk(itr);) {
-    const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
-    SceneLocomotionComp*      locomotion = ecs_view_write_t(itr, SceneLocomotionComp);
-    SceneNavAgentComp*        agent      = ecs_view_write_t(itr, SceneNavAgentComp);
-    SceneNavPathComp*         path       = ecs_view_write_t(itr, SceneNavPathComp);
+    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
+    SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneNavAgentComp*        agent = ecs_view_write_t(itr, SceneNavAgentComp);
+    SceneNavPathComp*         path  = ecs_view_write_t(itr, SceneNavPathComp);
 
-    scene_nav_update_agent(env, trans, agent, locomotion, path);
+    if (!(agent->flags & SceneNavAgent_Traveling)) {
+      agent->flags &= ~SceneNavAgent_Stop;
+      goto Done;
+    }
+
+    GeoVector  toPos     = agent->target;
+    GeoNavCell toCell    = geo_nav_at_position(env->navGrid, toPos);
+    const bool toBlocked = geo_nav_blocked(env->navGrid, toCell);
+    if (toBlocked) {
+      // Target is not reachable; pick the closest reachable point.
+      toCell = geo_nav_closest_unblocked(env->navGrid, toCell);
+      toPos  = geo_nav_position(env->navGrid, toCell);
+    }
+
+    const f32 distToTarget = geo_vector_mag(geo_vector_sub(toPos, trans->position));
+    if (distToTarget <= (loco->radius + scene_nav_arrive_threshold)) {
+      agent->flags |= SceneNavAgent_Stop; // Arrived at destination.
+    }
+
+    if (agent->flags & SceneNavAgent_Stop) {
+      agent->flags &= ~(SceneNavAgent_Stop | SceneNavAgent_Traveling);
+      agent->target   = trans->position; // Clear the target.
+      path->cellCount = 0;               // Clear the path.
+      scene_locomotion_stop(loco);
+      goto Done;
+    }
+
+    const GeoNavCell fromCell = geo_nav_at_position(env->navGrid, trans->position);
+    if (!geo_nav_line_blocked(env->navGrid, fromCell, toCell)) {
+      // No obstacles between us and the target; move straight to the target
+      scene_locomotion_move(loco, toPos);
+      goto Done;
+    }
+
+    // Compute a new path.
+    const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
+    path->cellCount                 = geo_nav_path(env->navGrid, fromCell, toCell, storage);
+
+    // Attempt to take a shortcut as far up the path as possible without being obstructed.
+    for (u32 i = (path->cellCount); i-- > 1;) {
+      if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
+        scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[i]));
+        goto Done;
+      }
+    }
+
+    // No shortcut available; move to the next cell in the path.
+    if (path->cellCount > 1) {
+      scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[1]));
+      goto Done;
+    }
+
+    // No path possible.
+    agent->flags |= SceneNavAgent_Stop;
+
+  Done:
+    continue;
   }
 }
 
@@ -310,7 +276,6 @@ ecs_module_init(scene_nav_module) {
 
 void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
   agent->flags |= SceneNavAgent_Traveling;
-  agent->flags &= ~SceneNavAgent_Stop;
   agent->target = target;
 }
 
