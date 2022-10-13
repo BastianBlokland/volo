@@ -240,10 +240,13 @@ void geo_query_insert_box_rotated(
 bool geo_query_ray(
     const GeoQueryEnv*    env,
     const GeoRay*         ray,
+    const f32             maxDist,
     const GeoQueryFilter* filter,
     GeoQueryRayHit*       outHit) {
   diag_assert(filter);
   diag_assert_msg(filter->layerMask, "Queries without any layers in the mask won't hit anything");
+  diag_assert_msg(maxDist >= 0.0f, "Maximum raycast distance has to be positive");
+  diag_assert_msg(maxDist <= 1e5f, "Maximum raycast distance ({}) exceeded", fmt_float(1e5f));
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
@@ -258,7 +261,7 @@ bool geo_query_ray(
       }
       GeoVector normal;
       const f32 hitT = geo_prim_intersect_ray(prim, i, ray, &normal);
-      if (hitT < 0.0) {
+      if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }
       if (hitT >= bestHit.time) {

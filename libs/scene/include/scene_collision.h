@@ -117,7 +117,11 @@ typedef struct {
 } SceneRayHit;
 
 bool scene_query_ray(
-    const SceneCollisionEnvComp*, const GeoRay* ray, const SceneQueryFilter*, SceneRayHit* out);
+    const SceneCollisionEnvComp*,
+    const GeoRay* ray,
+    f32           maxDist,
+    const SceneQueryFilter*,
+    SceneRayHit* out);
 
 /**
  * Query for all entities that are contained in the frustum formed by the given 8 corner points.

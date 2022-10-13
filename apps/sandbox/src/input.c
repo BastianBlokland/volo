@@ -91,8 +91,9 @@ static void select_end_click(
   state->selectState = InputSelectState_None;
 
   SceneRayHit            hit;
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_All};
-  const bool             hasHit = scene_query_ray(collisionEnv, inputRay, &filter, &hit);
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_All};
+  const f32              maxDist = 1e4f;
+  const bool             hasHit  = scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit);
 
   if (hasHit && !scene_selection_contains(sel, hit.entity)) {
     cmd_push_deselect(cmdController);

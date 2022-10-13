@@ -49,10 +49,7 @@ static bool target_line_of_sight_test(
   const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
   const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
   SceneRayHit            hit;
-  if (scene_query_ray(collisionEnv, &ray, &filter, &hit)) {
-    return hit.time >= dist;
-  }
-  return true;
+  return !scene_query_ray(collisionEnv, &ray, dist, &filter, &hit);
 }
 
 static bool target_finder_needs_refresh(

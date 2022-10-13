@@ -173,6 +173,7 @@ void scene_collision_add_box(
 bool scene_query_ray(
     const SceneCollisionEnvComp* env,
     const GeoRay*                ray,
+    const f32                    maxDist,
     const SceneQueryFilter*      filter,
     SceneRayHit*                 out) {
   diag_assert(filter);
@@ -183,7 +184,7 @@ bool scene_query_ray(
       .callback  = filter->callback,
       .layerMask = (GeoQueryLayer)filter->layerMask,
   };
-  if (geo_query_ray(env->queryEnv, ray, &geoFilter, &hit)) {
+  if (geo_query_ray(env->queryEnv, ray, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
         .entity   = (EcsEntityId)hit.shapeId,
         .position = geo_ray_position(ray, hit.time),
