@@ -172,6 +172,29 @@ spec(box) {
     check_eq_vector(box.max, geo_vector(6, 1, 0));
   }
 
+  it("can test if two boxes overlap") {
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      check(geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(3, 0, 0), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 3, 0), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 3), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+  }
+
   it("can test for approximate intersection with 4 frustum planes") {
     const GeoPlane frustum[4] = {
         {.normal = geo_right, .distance = -1.0f},
