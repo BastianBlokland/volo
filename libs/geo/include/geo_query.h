@@ -67,7 +67,7 @@ typedef struct {
  * NOTE: Hit information is written to the out pointer if true was returned.
  */
 bool geo_query_ray(
-    const GeoQueryEnv*, const GeoRay*, const GeoQueryFilter*, GeoQueryRayHit* outHit);
+    const GeoQueryEnv*, const GeoRay*, f32 maxDist, const GeoQueryFilter*, GeoQueryRayHit* outHit);
 
 /**
  * Query for all objects that are contained in the frustum formed by the given 8 corner points.

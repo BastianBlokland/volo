@@ -53,6 +53,11 @@ INLINE_HINT static SimdVec simd_vec_w_one(const SimdVec vec) {
   return _mm_blend_ps(vec, simd_vec_broadcast(1.0f), 0b1000);
 }
 
+INLINE_HINT static SimdVec simd_vec_w_all_ones(const SimdVec vec) {
+  static const u32 g_mask[4] = {0, 0, 0, ~u32_lit(0)};
+  return _mm_blend_ps(vec, simd_vec_load((f32*)g_mask), 0b1000);
+}
+
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
   return _mm_add_ps(a, b);
 }
@@ -85,10 +90,14 @@ INLINE_HINT static SimdVec simd_vec_greater(const SimdVec a, const SimdVec b) {
   return _mm_cmpgt_ps(a, b);
 }
 
-INLINE_HINT static bool simd_vec_any_true(const SimdVec a) { return _mm_movemask_ps(a) != 0x0000; }
-INLINE_HINT static bool simd_vec_any_false(const SimdVec a) { return _mm_movemask_ps(a) != 0xffff; }
-INLINE_HINT static bool simd_vec_all_true(const SimdVec a) { return _mm_movemask_ps(a) == 0xffff; }
-INLINE_HINT static bool simd_vec_all_false(const SimdVec a) { return _mm_movemask_ps(a) == 0x0000; }
+INLINE_HINT static SimdVec simd_vec_and(const SimdVec a, const SimdVec b) {
+  return _mm_and_ps(a, b);
+}
+
+INLINE_HINT static bool simd_vec_any_true(const SimdVec a) { return _mm_movemask_ps(a) != 0b0000; }
+INLINE_HINT static bool simd_vec_any_false(const SimdVec a) { return _mm_movemask_ps(a) != 0b1111; }
+INLINE_HINT static bool simd_vec_all_true(const SimdVec a) { return _mm_movemask_ps(a) == 0b1111; }
+INLINE_HINT static bool simd_vec_all_false(const SimdVec a) { return _mm_movemask_ps(a) == 0b0000; }
 
 INLINE_HINT static SimdVec simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
   return _mm_blendv_ps(a, b, mask);

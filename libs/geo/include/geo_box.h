@@ -98,6 +98,11 @@ GeoBox geo_box_from_line(GeoVector from, GeoVector to);
 GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotation);
 
 /**
+ * Test if two boxes are overlapping.
+ */
+bool geo_box_overlap(const GeoBox* x, const GeoBox* y);
+
+/**
  * Test if the box intersects the given four frustum planes.
  * Conservative approximation, false positives are possible but false negatives are not.
  * NOTE: If the given box is inverted its considered to always be intersecting.
