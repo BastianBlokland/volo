@@ -4,6 +4,7 @@
 #include "ecs.h"
 #include "ecs_utils.h"
 #include "scene_collision.h"
+#include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_register.h"
 #include "scene_transform.h"
@@ -11,6 +12,7 @@
 static EcsEntityId test_create_agent(EcsWorld* world, const GeoVector pos, const GeoVector target) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 0.0f, .radius = 0.5f);
   SceneNavAgentComp* agent = scene_nav_add_agent(world, e);
   scene_nav_move_to(agent, target);
   return e;
@@ -37,10 +39,12 @@ static void test_check_path(
   }
 }
 
+ecs_view_define(LocomotionView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(PathView) { ecs_access_read(SceneNavPathComp); }
 ecs_view_define(StatsView) { ecs_access_read(SceneNavStatsComp); }
 
 ecs_module_init(nav_test_module) {
+  ecs_register_view(LocomotionView);
   ecs_register_view(PathView);
   ecs_register_view(StatsView);
 }
@@ -63,48 +67,35 @@ spec(nav) {
     ecs_run_sync(runner);
   }
 
-  it("can compute a straight line path") {
+  it("sets the locomotion target to the destination") {
     const EcsEntityId global = ecs_world_global(world);
     const EcsEntityId agent  = test_create_agent(world, geo_vector(-2, 0, 0), geo_vector(2, 0, 0));
     ecs_run_sync(runner); // Tick to create the agent.
-    ecs_run_sync(runner); // Tick to query the path.
+    ecs_run_sync(runner); // Tick to execute the navigation.
 
-    /**
-     * Verify the path.
-     * Expected: (1 is an output cell, 0 is an enqueued neighbor).
-     *
-     *  0000
-     * 011111
-     *  0000
-     */
-
+    // No need to compute a path in case there's no obstacle.
     const SceneNavPathComp* path = ecs_utils_read_t(world, PathView, agent, SceneNavPathComp);
-    test_check_path(
-        _testCtx,
-        path,
-        (GeoNavCell[]){
-            {.x = halfGridSize - 2, .y = halfGridSize},
-            {.x = halfGridSize - 1, .y = halfGridSize},
-            {.x = halfGridSize + 0, .y = halfGridSize},
-            {.x = halfGridSize + 1, .y = halfGridSize},
-            {.x = halfGridSize + 2, .y = halfGridSize},
-        },
-        5);
+    check_eq_int(path->cellCount, 0);
+
+    const SceneLocomotionComp* loco =
+        ecs_utils_read_t(world, LocomotionView, agent, SceneLocomotionComp);
+    check(loco->flags & SceneLocomotion_Moving);
+    check_eq_float(loco->targetPos.x, 2, 1e-6f);
+    check_eq_float(loco->targetPos.y, 0, 1e-6f);
+    check_eq_float(loco->targetPos.z, 0, 1e-6f);
 
     const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
-    check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 5);
-    check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 5);
-    check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 14);
+    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 0);
+    check_eq_int(stats->gridStats[GeoNavStat_LineQueryCount], 1);
   }
 
-  it("can compute a path around an obstacle") {
+  it("can computes a path around an obstacle") {
     const EcsEntityId global = ecs_world_global(world);
     const EcsEntityId agent  = test_create_agent(world, geo_vector(-2, 0, 0), geo_vector(2, 0, 0));
     test_create_blocker(world, geo_vector(0, 0, 0));
     ecs_run_sync(runner); // Tick to create the agent and the blocker.
     ecs_run_sync(runner); // Tick to register the blocker.
-    ecs_run_sync(runner); // Tick to query the path.
+    ecs_run_sync(runner); // Tick to execute the navigation.
 
     /**
      * Verify the path.
@@ -132,10 +123,12 @@ spec(nav) {
         7);
 
     const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
-    check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 7);
-    check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 7);
-    check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 16);
+    (void)stats;
+    // TODO: The exact frame the path is queried is not deterministic atm so we cannot assert this.
+    // check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
+    // check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 7);
+    // check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 7);
+    // check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 16);
   }
 
   teardown() {

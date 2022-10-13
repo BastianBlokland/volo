@@ -20,8 +20,8 @@ ecs_comp_extern(SceneNavBlockerComp);
  */
 
 typedef enum {
-  SceneNavAgent_Moving = 1 << 0,
-  SceneNavAgent_Stop   = 1 << 1,
+  SceneNavAgent_Traveling = 1 << 0,
+  SceneNavAgent_Stop      = 1 << 1,
 } SceneNavAgentFlags;
 
 ecs_comp_extern_public(SceneNavAgentComp) {
@@ -29,8 +29,10 @@ ecs_comp_extern_public(SceneNavAgentComp) {
   GeoVector          target;
 };
 ecs_comp_extern_public(SceneNavPathComp) {
-  GeoNavCell* cells;
-  u32         cellCount;
+  GeoNavCell*  cells;
+  u32          cellCount;
+  GeoVector    destination;
+  TimeDuration nextRefreshTime;
 };
 
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);

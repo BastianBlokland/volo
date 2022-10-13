@@ -4,6 +4,7 @@
 
 typedef enum {
   SceneLocomotion_Moving = 1 << 0,
+  SceneLocomotion_Stop   = 1 << 1,
 } SceneLocomotionFlags;
 
 ecs_comp_extern_public(SceneLocomotionComp) {
@@ -17,3 +18,4 @@ ecs_comp_extern_public(SceneLocomotionComp) {
 
 void scene_locomotion_move(SceneLocomotionComp*, GeoVector position);
 void scene_locomotion_face(SceneLocomotionComp*, GeoVector direction);
+void scene_locomotion_stop(SceneLocomotionComp*);
