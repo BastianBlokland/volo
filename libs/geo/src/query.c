@@ -256,6 +256,12 @@ bool geo_query_ray(
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
+  const GeoLine queryLine = {
+      .a = ray->point,
+      .b = geo_vector_add(ray->point, geo_vector_mul(ray->dir, maxDist)),
+  };
+  const GeoBox queryBounds = geo_box_from_line(queryLine.a, queryLine.b);
+
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
@@ -264,6 +270,9 @@ bool geo_query_ray(
     for (u32 i = 0; i != prim->count; ++i) {
       if (!geo_query_filter_layer(filter, prim->layers[i])) {
         continue; // Layer not included in filter.
+      }
+      if (!geo_box_overlap(&prim->bounds[i], &queryBounds)) {
+        continue; // Bounds do not intersect; no need to test against the shape.
       }
       GeoVector normal;
       const f32 hitT = geo_prim_intersect_ray(prim, i, ray, &normal);
