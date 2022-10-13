@@ -26,6 +26,7 @@ typedef struct {
   u32              count, capacity;
   u64*             ids;
   GeoQueryLayer*   layers;
+  GeoBox*          bounds;
   void*            shapes; // GeoSphere[] / GeoCapsule[] / GeoBoxRotated[]
 } GeoQueryPrim;
 
@@ -55,6 +56,7 @@ static GeoQueryPrim geo_prim_create(const GeoQueryPrimType type, const u32 capac
       .capacity = capacity,
       .ids      = alloc_array_t(g_alloc_heap, u64, capacity),
       .layers   = alloc_array_t(g_alloc_heap, GeoQueryLayer, capacity),
+      .bounds   = alloc_array_t(g_alloc_heap, GeoBox, capacity),
       .shapes   = alloc_alloc(g_alloc_heap, shapeDataSize, geo_query_shape_align).ptr,
   };
 }
@@ -62,6 +64,8 @@ static GeoQueryPrim geo_prim_create(const GeoQueryPrimType type, const u32 capac
 static void geo_prim_destroy(GeoQueryPrim* prim) {
   alloc_free_array_t(g_alloc_heap, prim->ids, prim->capacity);
   alloc_free_array_t(g_alloc_heap, prim->layers, prim->capacity);
+  alloc_free_array_t(g_alloc_heap, prim->bounds, prim->capacity);
+
   const Mem shapesMem = mem_create(prim->shapes, geo_prim_entry_size(prim->type) * prim->capacity);
   alloc_free(g_alloc_heap, shapesMem);
 }
@@ -70,20 +74,19 @@ static void geo_prim_copy(GeoQueryPrim* dst, const GeoQueryPrim* src) {
   diag_assert(dst->type == src->type);
   diag_assert(dst->capacity >= src->count);
 
-  mem_cpy(
-      mem_create(dst->ids, sizeof(u64) * dst->capacity),
-      mem_create(src->ids, sizeof(u64) * src->count));
+#define cpy_entry_field(_FIELD_, _SIZE_)                                                           \
+  mem_cpy(                                                                                         \
+      mem_create(dst->_FIELD_, (_SIZE_)*dst->capacity),                                            \
+      mem_create(src->_FIELD_, (_SIZE_)*src->count))
 
-  mem_cpy(
-      mem_create(dst->layers, sizeof(GeoQueryLayer) * dst->capacity),
-      mem_create(src->layers, sizeof(GeoQueryLayer) * src->count));
-
-  const usize shapeEntrySize = geo_prim_entry_size(dst->type);
-  mem_cpy(
-      mem_create(dst->shapes, shapeEntrySize * dst->capacity),
-      mem_create(src->shapes, shapeEntrySize * src->count));
+  cpy_entry_field(ids, sizeof(u64));
+  cpy_entry_field(layers, sizeof(GeoQueryLayer));
+  cpy_entry_field(bounds, sizeof(GeoBox));
+  cpy_entry_field(shapes, geo_prim_entry_size(dst->type));
 
   dst->count = src->count;
+
+#undef cpy_entry_field
 }
 
 static void geo_prim_ensure_next(GeoQueryPrim* prim) {
@@ -205,6 +208,7 @@ void geo_query_insert_sphere(
   geo_prim_ensure_next(prim);
   prim->ids[prim->count]                  = id;
   prim->layers[prim->count]               = layer;
+  prim->bounds[prim->count]               = geo_box_from_sphere(sphere.point, sphere.radius);
   ((GeoSphere*)prim->shapes)[prim->count] = sphere;
   ++prim->count;
 }
@@ -217,8 +221,9 @@ void geo_query_insert_capsule(
 
   GeoQueryPrim* prim = &env->prims[GeoQueryPrim_Capsule];
   geo_prim_ensure_next(prim);
-  prim->ids[prim->count]                   = id;
-  prim->layers[prim->count]                = layer;
+  prim->ids[prim->count]    = id;
+  prim->layers[prim->count] = layer;
+  prim->bounds[prim->count] = geo_box_from_capsule(capsule.line.a, capsule.line.b, capsule.radius);
   ((GeoCapsule*)prim->shapes)[prim->count] = capsule;
   ++prim->count;
 }
@@ -233,6 +238,7 @@ void geo_query_insert_box_rotated(
   geo_prim_ensure_next(prim);
   prim->ids[prim->count]                      = id;
   prim->layers[prim->count]                   = layer;
+  prim->bounds[prim->count]                   = geo_box_from_rotated(&box.box, box.rotation);
   ((GeoBoxRotated*)prim->shapes)[prim->count] = box;
   ++prim->count;
 }
