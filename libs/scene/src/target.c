@@ -11,6 +11,7 @@
 #define target_max_refresh 100
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(4)
+#define target_distance_deviation 15.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -63,6 +64,13 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
+static f32 target_score_sqr(const SceneTransformComp* transA, const SceneTransformComp* transB) {
+  const GeoVector posDelta        = geo_vector_sub(transA->position, transB->position);
+  const f32       distSqr         = geo_vector_mag_sqr(posDelta);
+  const f32       maxDeviationSqr = target_distance_deviation * target_distance_deviation;
+  return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
+}
+
 ecs_system_define(SceneTargetUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -92,8 +100,8 @@ ecs_system_define(SceneTargetUpdateSys) {
      * using an acceleration structure, for example the collision environment.
      */
     if (refreshesRemaining && target_finder_needs_refresh(finder, time)) {
-      finder->targetDistSqr = f32_max;
-      finder->target        = 0;
+      finder->targetScoreSqr = f32_max;
+      finder->target         = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
         if (entity == targetEntity) {
@@ -104,11 +112,10 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-        const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
-        const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
-        if (distSqr < finder->targetDistSqr) {
-          finder->target        = targetEntity;
-          finder->targetDistSqr = distSqr;
+        const f32                 scoreSqr    = target_score_sqr(trans, targetTrans);
+        if (scoreSqr < finder->targetScoreSqr) {
+          finder->target         = targetEntity;
+          finder->targetScoreSqr = scoreSqr;
         }
       }
       finder->nextRefreshTime = target_next_refresh_time(time);
