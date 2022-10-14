@@ -98,14 +98,21 @@ GeoBox geo_box_from_line(GeoVector from, GeoVector to);
 GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotation);
 
 /**
+ * Calculate the bounding box of the frustum formed by the given 8 corners.
+ * NOTE: Defines the frustum by its corner points.
+ */
+GeoBox geo_box_from_frustum(const GeoVector frustum[8]);
+
+/**
  * Test if two boxes are overlapping.
  */
 bool geo_box_overlap(const GeoBox* x, const GeoBox* y);
 
 /**
- * Test if the box intersects the given four frustum planes.
+ * Test if the box intersects a partial frustum given by four side planes.
  * Conservative approximation, false positives are possible but false negatives are not.
  * NOTE: If the given box is inverted its considered to always be intersecting.
+ * NOTE: Defines a partial frustum by its four side planes.
  */
 bool geo_box_intersect_frustum4_approx(const GeoBox*, const GeoPlane frustum[4]);
 
