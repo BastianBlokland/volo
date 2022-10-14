@@ -354,6 +354,14 @@ geo_box_from_quad(const GeoVector center, const f32 sizeX, const f32 sizeY, cons
 #endif
 }
 
+GeoBox geo_box_from_frustum(const GeoVector frustum[8]) {
+  GeoBox result = geo_box_inverted3();
+  for (u32 i = 0; i != 8; ++i) {
+    result = geo_box_encapsulate(&result, frustum[i]);
+  }
+  return result;
+}
+
 bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
 #if geo_box_simd_enable
   const SimdVec xMin = simd_vec_load(x->min.comps);
