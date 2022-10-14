@@ -452,7 +452,7 @@ static bool nav_find(
 /**
  * Check if any cell in a rasterized line 'from' 'to' matches the given predicate.
  */
-static bool nav_any_in_line(
+INLINE_HINT static bool nav_any_in_line(
     const GeoNavGrid*  grid,
     GeoNavWorkerState* s,
     GeoNavCell         a,
