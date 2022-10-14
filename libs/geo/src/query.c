@@ -161,7 +161,7 @@ static void geo_query_validate_pos(MAYBE_UNUSED const GeoVector vec) {
 
 static void geo_query_validate_dir(MAYBE_UNUSED const GeoVector vec) {
   diag_assert_msg(
-      math_abs(geo_vector_mag_sqr(vec) - 1.0f) <= 1e-6f,
+      math_abs(geo_vector_mag_sqr(vec) - 1.0f) <= 1e-5f,
       "Direction ({}) is not normalized",
       geo_vector_fmt(vec));
   return;
