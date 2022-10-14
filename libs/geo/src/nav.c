@@ -82,6 +82,14 @@ INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
   *b             = temp;
 }
 
+INLINE_HINT static void nav_bit_set(const BitSet bits, const u32 idx) {
+  *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
+}
+
+INLINE_HINT static bool nav_bit_test(const BitSet bits, const u32 idx) {
+  return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
+}
+
 /**
  * Compute the total amount of cells in the region.
  */
@@ -315,7 +323,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
     for (u32 i = 0; i != neighborCount; ++i) {
       const GeoNavCell neighbor      = neighbors[i];
       const u32        neighborIndex = nav_cell_index(grid, neighbor);
-      if (bitset_test(grid->blockedCells, neighborIndex)) {
+      if (nav_bit_test(grid->blockedCells, neighborIndex)) {
         continue; // Ignore blocked cells;
       }
       const u16 tentativeGScore = s->gScores[cellIndex] + nav_path_cost(grid, neighborIndex);
@@ -327,9 +335,9 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
         s->cameFrom[neighborIndex] = cell;
         s->gScores[neighborIndex]  = tentativeGScore;
         s->fScores[neighborIndex]  = tentativeGScore + nav_path_heuristic(neighbor, to);
-        if (!bitset_test(s->markedCells, neighborIndex)) {
+        if (!nav_bit_test(s->markedCells, neighborIndex)) {
           nav_path_enqueue(grid, s, neighbor);
-          bitset_set(s->markedCells, neighborIndex);
+          nav_bit_set(s->markedCells, neighborIndex);
         }
       }
     }
@@ -411,7 +419,7 @@ static bool nav_find(
   u32        queueEnd   = 1;
 
   mem_set(s->markedCells, 0);
-  bitset_set(s->markedCells, nav_cell_index(grid, from));
+  nav_bit_set(s->markedCells, nav_cell_index(grid, from));
 
   while (queueStart != queueEnd) {
     ++s->stats[GeoNavStat_FindItrCells]; // Track total amount of find iterations.
@@ -427,7 +435,7 @@ static bool nav_find(
     for (u32 i = 0; i != neighborCount; ++i) {
       const GeoNavCell neighbor      = neighbors[i];
       const u32        neighborIndex = nav_cell_index(grid, neighbor);
-      if (bitset_test(s->markedCells, neighborIndex)) {
+      if (nav_bit_test(s->markedCells, neighborIndex)) {
         continue;
       }
       if (queueEnd == array_elems(queue)) {
@@ -435,7 +443,7 @@ static bool nav_find(
       }
       ++s->stats[GeoNavStat_FindItrEnqueues]; // Track total amount of find cell enqueues.
       queue[queueEnd++] = neighbor;
-      bitset_set(s->markedCells, neighborIndex);
+      nav_bit_set(s->markedCells, neighborIndex);
     }
   }
   return NavFindResult_NotFound;
@@ -524,11 +532,11 @@ static bool nav_any_in_line(
 }
 
 static bool nav_cell_predicate_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return bitset_test(grid->blockedCells, nav_cell_index(grid, cell));
+  return nav_bit_test(grid->blockedCells, nav_cell_index(grid, cell));
 }
 
 static bool nav_cell_predicate_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return !bitset_test(grid->blockedCells, nav_cell_index(grid, cell));
+  return !nav_bit_test(grid->blockedCells, nav_cell_index(grid, cell));
 }
 
 static bool nav_cell_predicate_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -805,7 +813,7 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
       // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      bitset_set(grid->blockedCells, nav_cell_index(grid, cell));
+      nav_bit_set(grid->blockedCells, nav_cell_index(grid, cell));
     }
   }
 }
@@ -821,7 +829,7 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
-        bitset_set(grid->blockedCells, nav_cell_index(grid, cell));
+        nav_bit_set(grid->blockedCells, nav_cell_index(grid, cell));
       }
     }
   }
