@@ -109,7 +109,7 @@ static void attack_projectile_spawn(
       SceneProjectileComp,
       .delay      = time_milliseconds(25),
       .speed      = 50,
-      .damage     = 10,
+      .damage     = 5,
       .instigator = instigator,
       .impactVfx  = attack->impactVfx);
 }
