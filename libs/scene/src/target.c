@@ -11,6 +11,7 @@
 #define target_max_refresh 100
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(4)
+#define target_distance_deviation 15.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -52,21 +53,22 @@ static bool target_line_of_sight_test(
   return !scene_query_ray(collisionEnv, &ray, dist, &filter, &hit);
 }
 
-static bool target_finder_needs_refresh(
-    const SceneTargetFinderComp* finder, const EcsView* targetView, const SceneTimeComp* time) {
-  if (time->time >= finder->nextRefreshTime) {
-    return true; // Enough time has elapsed.
-  }
-  if (ecs_entity_valid(finder->target) && !ecs_view_contains(targetView, finder->target)) {
-    return true; // Our last target became unavailable.
-  }
-  return false;
+static bool
+target_finder_needs_refresh(const SceneTargetFinderComp* finder, const SceneTimeComp* time) {
+  return time->time >= finder->nextRefreshTime;
 }
 
 static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   TimeDuration next = time->time;
   next += (TimeDuration)rng_sample_range(g_rng, target_refresh_time_min, target_refresh_time_max);
   return next;
+}
+
+static f32 target_score_sqr(const SceneTransformComp* transA, const SceneTransformComp* transB) {
+  const GeoVector posDelta        = geo_vector_sub(transA->position, transB->position);
+  const f32       distSqr         = geo_vector_mag_sqr(posDelta);
+  const f32       maxDeviationSqr = target_distance_deviation * target_distance_deviation;
+  return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
@@ -97,9 +99,9 @@ ecs_system_define(SceneTargetUpdateSys) {
      * NOTE: Involves an expensive walk of all potential targets. In the future we should consider
      * using an acceleration structure, for example the collision environment.
      */
-    if (refreshesRemaining && target_finder_needs_refresh(finder, targetView, time)) {
-      finder->targetDistSqr = f32_max;
-      finder->target        = 0;
+    if (refreshesRemaining && target_finder_needs_refresh(finder, time)) {
+      finder->targetScoreSqr = f32_max;
+      finder->target         = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
         if (entity == targetEntity) {
@@ -110,11 +112,10 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-        const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
-        const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
-        if (distSqr < finder->targetDistSqr) {
-          finder->target        = targetEntity;
-          finder->targetDistSqr = distSqr;
+        const f32                 scoreSqr    = target_score_sqr(trans, targetTrans);
+        if (scoreSqr < finder->targetScoreSqr) {
+          finder->target         = targetEntity;
+          finder->targetScoreSqr = scoreSqr;
         }
       }
       finder->nextRefreshTime = target_next_refresh_time(time);
@@ -137,6 +138,10 @@ ecs_system_define(SceneTargetUpdateSys) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
+      if (finder->target) {
+        // Our previous target has become unavailable; request to be refreshed earlier.
+        finder->nextRefreshTime = 0;
+      }
       finder->target = 0;
     }
   }

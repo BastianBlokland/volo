@@ -16,8 +16,9 @@
 #include "scene_vfx.h"
 
 #define attack_aim_speed 3.5f
-#define attack_in_sight_threshold 0.95f
+#define attack_in_sight_threshold 0.975f
 #define attack_in_sight_min_dist 2.0f
+#define attack_max_deviation_angle 2.5f
 
 static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
@@ -74,6 +75,13 @@ static void attack_muzzleflash_spawn(
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
+static GeoQuat attack_projectile_random_deviation() {
+  const f32 minAngle = -attack_max_deviation_angle * 0.5f * math_deg_to_rad;
+  const f32 maxAngle = attack_max_deviation_angle * 0.5f * math_deg_to_rad;
+  const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
+  return geo_quat_angle_axis(geo_up, angle);
+}
+
 static void attack_projectile_spawn(
     EcsWorld*              world,
     const SceneAttackComp* attack,
@@ -84,7 +92,8 @@ static void attack_projectile_spawn(
   const EcsEntityId e         = ecs_world_entity_create(world);
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
-  const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
+  const GeoQuat     rotation =
+      geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation());
 
   if (attack->projectileVfx) {
     ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
@@ -100,18 +109,20 @@ static void attack_projectile_spawn(
       SceneProjectileComp,
       .delay      = time_milliseconds(25),
       .speed      = 50,
-      .damage     = 10,
+      .damage     = 5,
       .instigator = instigator,
       .impactVfx  = attack->impactVfx);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
-  const GeoVector delta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
-  if (geo_vector_mag_sqr(delta) < (attack_in_sight_min_dist * attack_in_sight_min_dist)) {
+  const GeoVector delta   = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+  const f32       sqrDist = geo_vector_mag_sqr(delta);
+  if (sqrDist < (attack_in_sight_min_dist * attack_in_sight_min_dist)) {
     return true; // Target is very close, consider it always in-sight.
   }
-  const GeoVector forward = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
-  return geo_vector_dot(forward, delta) > attack_in_sight_threshold;
+  const GeoVector forward     = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
+  const GeoVector dirToTarget = geo_vector_div(delta, math_sqrt_f32(sqrDist));
+  return geo_vector_dot(forward, dirToTarget) > attack_in_sight_threshold;
 }
 
 static TimeDuration attack_next_time(const SceneAttackComp* attack, const TimeDuration timeNow) {

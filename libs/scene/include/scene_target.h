@@ -10,7 +10,8 @@ typedef enum {
 ecs_comp_extern_public(SceneTargetFinderComp) {
   EcsEntityId      target;
   SceneTargetFlags targetFlags;
-  f32              targetDistSqr;
   GeoVector        targetPosition;
+  f32              targetDistSqr;
+  f32              targetScoreSqr;
   TimeDuration     nextRefreshTime;
 };
