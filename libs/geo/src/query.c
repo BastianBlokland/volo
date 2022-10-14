@@ -307,11 +307,16 @@ u32 geo_query_frustum_all(
     u64                   out[geo_query_max_hits]) {
   u32 count = 0;
 
+  const GeoBox queryBounds = geo_box_from_frustum(frustum);
+
   for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
     const GeoQueryPrim* prim = &env->prims[primIdx];
     for (u32 i = 0; i != prim->count; ++i) {
       if (!geo_query_filter_layer(filter, prim->layers[i])) {
         continue; // Layer not included in filter.
+      }
+      if (!geo_box_overlap(&prim->bounds[i], &queryBounds)) {
+        continue; // Bounds do not intersect; no need to test against the shape.
       }
       if (!geo_prim_intersect_frustum(prim, i, frustum)) {
         continue; // Miss.
