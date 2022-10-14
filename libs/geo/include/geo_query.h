@@ -10,7 +10,7 @@ typedef struct sAllocator Allocator;
 /**
  * Maximum number of objects that can be hit using a single query, additional objects are ignored.
  */
-#define geo_query_max_hits 128
+#define geo_query_max_hits 512
 
 /**
  * Geometry layer mask.
