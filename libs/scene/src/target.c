@@ -52,15 +52,9 @@ static bool target_line_of_sight_test(
   return !scene_query_ray(collisionEnv, &ray, dist, &filter, &hit);
 }
 
-static bool target_finder_needs_refresh(
-    const SceneTargetFinderComp* finder, const EcsView* targetView, const SceneTimeComp* time) {
-  if (time->time >= finder->nextRefreshTime) {
-    return true; // Enough time has elapsed.
-  }
-  if (ecs_entity_valid(finder->target) && !ecs_view_contains(targetView, finder->target)) {
-    return true; // Our last target became unavailable.
-  }
-  return false;
+static bool
+target_finder_needs_refresh(const SceneTargetFinderComp* finder, const SceneTimeComp* time) {
+  return time->time >= finder->nextRefreshTime;
 }
 
 static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
@@ -97,7 +91,7 @@ ecs_system_define(SceneTargetUpdateSys) {
      * NOTE: Involves an expensive walk of all potential targets. In the future we should consider
      * using an acceleration structure, for example the collision environment.
      */
-    if (refreshesRemaining && target_finder_needs_refresh(finder, targetView, time)) {
+    if (refreshesRemaining && target_finder_needs_refresh(finder, time)) {
       finder->targetDistSqr = f32_max;
       finder->target        = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
@@ -137,6 +131,10 @@ ecs_system_define(SceneTargetUpdateSys) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
+      if (finder->target) {
+        // Our previous target has become unavailable; request to be refreshed earlier.
+        finder->nextRefreshTime = 0;
+      }
       finder->target = 0;
     }
   }
