@@ -52,7 +52,6 @@ struct sGeoNavGrid {
 
   GeoNavBlocker* blockers;           // GeoNavBlocker[geo_nav_blockers_max]
   BitSet         blockerFreeIndices; // bit[geo_nav_blockers_max]
-  u32            blockerCount;
 
   GeoNavOccupant* occupants; // GeoNavOccupant[geo_nav_occupants_max]
   u32             occupantCount;
@@ -678,6 +677,29 @@ static GeoVector nav_separate_from_occupied(
   return result;
 }
 
+static u32 nav_blocker_count(GeoNavGrid* grid) {
+  return (u32)(geo_nav_blockers_max - bitset_count(grid->blockerFreeIndices));
+}
+
+static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
+  const usize index = bitset_next(grid->blockerFreeIndices, 0);
+  if (UNLIKELY(sentinel_check(index))) {
+    log_w("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
+    return (GeoNavBlockerId)sentinel_u16;
+  }
+  bitset_clear(grid->blockerFreeIndices, index);
+  return (GeoNavBlockerId)index;
+}
+
+static void nav_blocker_release_all(GeoNavGrid* grid) {
+  bitset_set_all(grid->blockerFreeIndices, geo_nav_blockers_max - 1); // All blockers free again.
+  bitset_clear_all(grid->blockedCells); // None of the cells blocked anymore.
+}
+
+static GeoNavBlocker* nav_blocker_data(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
+  return &grid->blockers[blockerId];
+}
+
 GeoNavGrid* geo_nav_grid_create(
     Allocator* alloc, const GeoVector center, const f32 size, const f32 density, const f32 height) {
   diag_assert(geo_vector_mag_sqr(center) <= (1e4f * 1e4f));
@@ -704,7 +726,7 @@ GeoNavGrid* geo_nav_grid_create(
   };
 
   bitset_clear_all(grid->blockedCells);
-  bitset_set_all(grid->blockerFreeIndices, geo_nav_blockers_max - 1); // All blockers start as free.
+  nav_blocker_release_all(grid);
   return grid;
 }
 
@@ -816,16 +838,16 @@ u32 geo_nav_path(
 }
 
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, const GeoBox* box) {
-  if (UNLIKELY(grid->blockerCount == geo_nav_blockers_max)) {
-    log_w("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
-    return (GeoNavBlockerId)sentinel_u16;
-  }
   if (box->max.y < grid->cellOffset.y || box->min.y > (grid->cellOffset.y + grid->cellHeight)) {
     // Outside of the y band of the grid.
     return (GeoNavBlockerId)sentinel_u16;
   }
-
-  (void)userId;
+  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
+  if (UNLIKELY(sentinel_check(blockerId))) {
+    return (GeoNavBlockerId)sentinel_u16;
+  }
+  GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
+  blocker->userId        = userId;
 
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
@@ -836,18 +858,17 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
     }
   }
 
-  ++grid->blockerCount;
-  return (GeoNavBlockerId)0;
+  return blockerId;
 }
 
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(
     GeoNavGrid* grid, const u64 userId, const GeoBoxRotated* boxRotated) {
-  if (UNLIKELY(grid->blockerCount == geo_nav_blockers_max)) {
-    log_w("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
+  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
+  if (UNLIKELY(sentinel_check(blockerId))) {
     return (GeoNavBlockerId)sentinel_u16;
   }
-
-  (void)userId;
+  GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
+  blocker->userId        = userId;
 
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
@@ -860,27 +881,20 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
       }
     }
   }
-
-  ++grid->blockerCount;
-  return (GeoNavBlockerId)0;
+  return blockerId;
 }
 
 void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   if (sentinel_check(blockerId)) {
     return; // Blocker as never actually added so no need to remove it.
   }
-  --grid->blockerCount;
 
   (void)grid;
   (void)blockerId;
   diag_crash_msg("Not implemented");
 }
 
-void geo_nav_blocker_remove_all(GeoNavGrid* grid) {
-  bitset_clear_all(grid->blockedCells);
-  bitset_set_all(grid->blockerFreeIndices, geo_nav_blockers_max - 1); // All blockers free again.
-  grid->blockerCount = 0;
-}
+void geo_nav_blocker_remove_all(GeoNavGrid* grid) { nav_blocker_release_all(grid); }
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
@@ -965,7 +979,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
 
   grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
   grid->stats[GeoNavStat_CellCountAxis]  = grid->cellCountAxis;
-  grid->stats[GeoNavStat_BlockerCount]   = grid->blockerCount;
+  grid->stats[GeoNavStat_BlockerCount]   = nav_blocker_count(grid);
   grid->stats[GeoNavStat_OccupantCount]  = grid->occupantCount;
   grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
   grid->stats[GeoNavStat_WorkerDataSize] = 0;
