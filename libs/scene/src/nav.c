@@ -66,7 +66,14 @@ scene_nav_add_blocker_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoB
   }
 }
 
+static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 id) {
+  const EcsView* blockerEntities = ctx;
+  return !ecs_view_contains(blockerEntities, (EcsEntityId)id);
+}
+
 static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+  geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities);
+
   for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision   = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
