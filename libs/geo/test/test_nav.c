@@ -68,7 +68,7 @@ spec(nav) {
     check(!geo_nav_blocked(grid, cell));
 
     const GeoBox box = geo_box_from_sphere(geo_nav_position(grid, cell), 0.25f);
-    geo_nav_blocker_add_box(grid, &box);
+    geo_nav_blocker_add_box(grid, 42, &box);
 
     check(geo_nav_blocked(grid, cell));
     check(!geo_nav_blocked(grid, (GeoNavCell){.x = 3, .y = 2}));
@@ -83,7 +83,7 @@ spec(nav) {
 
     const GeoVector pos = geo_vector_sub(geo_nav_position(grid, cell), geo_vector(0, -1, 0));
     const GeoBox    box = geo_box_from_sphere(pos, 0.25f);
-    geo_nav_blocker_add_box(grid, &box);
+    geo_nav_blocker_add_box(grid, 42, &box);
 
     check(!geo_nav_blocked(grid, cell));
   }
@@ -94,7 +94,7 @@ spec(nav) {
 
     const GeoVector pos = geo_vector_add(geo_nav_position(grid, cell), geo_vector(0, 1, 0));
     const GeoBox    box = geo_box_from_sphere(pos, 0.25f);
-    geo_nav_blocker_add_box(grid, &box);
+    geo_nav_blocker_add_box(grid, 42, &box);
 
     check(!geo_nav_blocked(grid, cell));
   }
@@ -103,7 +103,7 @@ spec(nav) {
     const GeoNavCell cell = {.x = 2, .y = 2};
 
     const GeoBox box = geo_box_from_sphere(geo_nav_position(grid, cell), 2.0f);
-    geo_nav_blocker_add_box(grid, &box);
+    geo_nav_blocker_add_box(grid, 42, &box);
 
     check(geo_nav_blocked(grid, cell));
     check(geo_nav_blocked(grid, (GeoNavCell){.x = 3, .y = 2}));

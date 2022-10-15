@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
@@ -9,6 +10,8 @@
 #include "scene_register.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+
+ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
 static const f32       g_sceneNavSize    = 100.0f;
@@ -47,44 +50,82 @@ static void scene_nav_env_create(EcsWorld* world) {
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
-static void scene_nav_add_blocker_box(SceneNavEnvComp* env, const GeoBox* box) {
-  geo_nav_blocker_add_box(env->navGrid, box);
+static GeoNavBlockerId scene_nav_block_box(SceneNavEnvComp* env, const u64 id, const GeoBox* box) {
+  return geo_nav_blocker_add_box(env->navGrid, id, box);
 }
 
-static void scene_nav_add_blocker_box_rotated(SceneNavEnvComp* env, const GeoBoxRotated* boxRot) {
+static GeoNavBlockerId
+scene_nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
      * much faster to insert.
      */
-    geo_nav_blocker_add_box(env->navGrid, &boxRot->box);
-  } else {
-    geo_nav_blocker_add_box_rotated(env->navGrid, boxRot);
+    return geo_nav_blocker_add_box(env->navGrid, id, &boxRot->box);
   }
+  return geo_nav_blocker_add_box_rotated(env->navGrid, id, boxRot);
 }
 
-static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
-  for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
-    const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 userId) {
+  const EcsView* blockerEntities = ctx;
+  return !ecs_view_contains(blockerEntities, (EcsEntityId)userId);
+}
 
+static u32 scene_nav_blocker_hash(
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale) {
+  u32 hash = bits_hash_32(mem_create(collision, sizeof(SceneCollisionComp)));
+  if (trans) {
+    const u32 transHash = bits_hash_32(mem_create(trans, sizeof(SceneTransformComp)));
+    hash                = bits_hash_32_combine(hash, transHash);
+  }
+  if (scale) {
+    const u32 scaleHash = bits_hash_32(mem_create(scale, sizeof(SceneScaleComp)));
+    hash                = bits_hash_32_combine(hash, scaleHash);
+  }
+  return hash;
+}
+
+static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+  geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities);
+
+  for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
+    const SceneCollisionComp* collision   = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
+    SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
+
+    const u32  newHash = scene_nav_blocker_hash(collision, trans, scale);
+    const bool dirty   = newHash != blockerComp->hash;
+
+    if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
+      if (dirty) {
+        geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
+      } else {
+        continue; // Not dirty and already registered; nothing to do.
+      }
+    }
+    blockerComp->hash = newHash;
+    blockerComp->flags |= SceneNavBlockerFlags_RegisteredBlocker;
+
+    const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       // NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
       // then sphere support should be added to GeoNavGrid.
       const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
       const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
-      scene_nav_add_blocker_box(env, &sBounds);
+      blockerComp->blockerId  = scene_nav_block_box(env, userId, &sBounds);
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      scene_nav_add_blocker_box_rotated(env, &cBounds);
+      blockerComp->blockerId      = scene_nav_block_box_rotated(env, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      scene_nav_add_blocker_box_rotated(env, &b);
+      const GeoBoxRotated b  = scene_collision_world_box(&collision->box, trans, scale);
+      blockerComp->blockerId = scene_nav_block_box_rotated(env, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -121,7 +162,7 @@ ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneCollisionComp);
-  ecs_access_with(SceneNavBlockerComp);
+  ecs_access_write(SceneNavBlockerComp);
 }
 
 ecs_view_define(OccupantEntityView) {
@@ -143,11 +184,10 @@ ecs_system_define(SceneNavInitSys) {
   }
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  geo_nav_blocker_clear_all(env->navGrid);
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  scene_nav_add_blockers(env, blockerEntities);
+  scene_nav_refresh_blockers(env, blockerEntities);
 
-  geo_nav_occupant_clear_all(env->navGrid);
+  geo_nav_occupant_remove_all(env->navGrid);
   EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
   scene_nav_add_occupants(env, occupantEntities);
 }
@@ -284,7 +324,7 @@ ecs_system_define(SceneNavUpdateStatsSys) {
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
   ecs_register_comp(SceneNavStatsComp);
-  ecs_register_comp_empty(SceneNavBlockerComp);
+  ecs_register_comp(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 

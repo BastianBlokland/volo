@@ -76,9 +76,14 @@ u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathSt
 /**
  * Register grid blockers.
  */
-void geo_nav_blocker_clear_all(GeoNavGrid*);
-void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
-void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
+typedef u16 GeoNavBlockerId;
+typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
+
+GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
+GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
+void            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
+void            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
+void            geo_nav_blocker_remove_all(GeoNavGrid*);
 
 /**
  * Register occupants.
@@ -87,15 +92,15 @@ typedef enum {
   GeoNavOccupantFlags_Moving = 1 << 0,
 } GeoNavOccupantFlags;
 
-void geo_nav_occupant_clear_all(GeoNavGrid*);
-void geo_nav_occupant_add(GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+void geo_nav_occupant_add(GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+void geo_nav_occupant_remove_all(GeoNavGrid*);
 
 /**
  * Compute a vector to separate the given position from blockers and other occupants.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  */
 GeoVector
-geo_nav_separate(const GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
 
 /**
  * Navigation statistics.
@@ -104,8 +109,8 @@ geo_nav_separate(const GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOcc
 typedef enum {
   GeoNavStat_CellCountTotal,
   GeoNavStat_CellCountAxis,
-  GeoNavStat_BlockerBoxCount,
-  GeoNavStat_BlockerBoxRotatedCount,
+  GeoNavStat_BlockerCount,
+  GeoNavStat_BlockerAddCount,
   GeoNavStat_OccupantCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,

@@ -22,8 +22,8 @@ static const f32           g_gizmoCollisionScale  = 1.5f;
 static const f32           g_gizmoSnapAngleDeg    = 45.0f;
 static const GeoQueryLayer g_gizmoLayer           = 1;
 static const f32           g_gizmoSizeMin         = 0.1f;
-static const f32           g_gizmoSizeMax         = 25.0f;
-static const f32           g_gizmoSizePerDistance = 0.075f;
+static const f32           g_gizmoSizeMax         = 15.0f;
+static const f32           g_gizmoSizePerDistance = 0.05f;
 
 static const struct {
   GeoVector normal;

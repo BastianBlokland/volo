@@ -88,6 +88,10 @@ u32 bits_hash_32(const Mem mem) {
   return hash;
 }
 
+u32 bits_hash_32_combine(const u32 x, const u32 y) {
+  return x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+}
+
 u32 bits_padding_32(const u32 val, const u32 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_32(align));

@@ -57,7 +57,7 @@ usize dynbitset_next(const DynBitSet*, usize idx);
 void dynbitset_set(DynBitSet*, usize idx);
 
 /**
- * Set all the bits up to (and including) the given index.
+ * Set all the bits up to (excluding) the given index.
  */
 void dynbitset_set_all(DynBitSet*, usize idx);
 

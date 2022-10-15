@@ -383,7 +383,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats->gridStats[GeoNavStat_CellCountTotal]), fmt_int(navStats->gridStats[GeoNavStat_CellCountAxis])));
     stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_GridDataSize])));
     stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_WorkerDataSize])));
-    stats_draw_val_entry(canvas, string_lit("Blocker boxes"), fmt_write_scratch("normal: {<4} rotated: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxCount]), fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxRotatedCount])));
+    stats_draw_val_entry(canvas, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerCount]), fmt_int(navStats->gridStats[GeoNavStat_BlockerAddCount])));
     stats_draw_val_entry(canvas, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_OccupantCount])));
     stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_PathCount])));
     stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats->gridStats[GeoNavStat_PathOutputCells])));
