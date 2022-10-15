@@ -150,21 +150,24 @@ static i8 comp_compare_info_entities(const void* a, const void* b) {
 }
 
 static i8 arch_compare_info_components(const void* a, const void* b) {
-  return compare_u32_reverse(
-      field_ptr(a, DebugEcsArchetypeInfo, compCount),
-      field_ptr(b, DebugEcsArchetypeInfo, compCount));
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c     = compare_u32_reverse(&archA->compCount, &archB->compCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 arch_compare_info_entities(const void* a, const void* b) {
-  return compare_u32_reverse(
-      field_ptr(a, DebugEcsArchetypeInfo, entityCount),
-      field_ptr(b, DebugEcsArchetypeInfo, entityCount));
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c = compare_u32_reverse(&archA->entityCount, &archB->entityCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 arch_compare_info_chunks(const void* a, const void* b) {
-  return compare_u32_reverse(
-      field_ptr(a, DebugEcsArchetypeInfo, chunkCount),
-      field_ptr(b, DebugEcsArchetypeInfo, chunkCount));
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c     = compare_u32_reverse(&archA->chunkCount, &archB->chunkCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 sys_compare_info_id(const void* a, const void* b) {
@@ -672,14 +675,14 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugEcsPanelComp,
-      .panel               = ui_panel(.size = ui_vector(800, 500)),
-      .scrollview          = ui_scrollview(),
-      .nameFilter          = dynstring_create(g_alloc_heap, 32),
-      .compSortMode        = DebugCompSortMode_Entities,
-      .sysSortMode         = DebugSysSortMode_Task,
-      .hideEmptyArchetypes = true,
-      .components          = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
-      .archetypes          = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
-      .systems             = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
+      .panel        = ui_panel(.size = ui_vector(800, 500)),
+      .scrollview   = ui_scrollview(),
+      .nameFilter   = dynstring_create(g_alloc_heap, 32),
+      .compSortMode = DebugCompSortMode_Archetypes,
+      .archSortMode = DebugArchSortMode_ChunkCount,
+      .sysSortMode  = DebugSysSortMode_Duration,
+      .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
+      .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
+      .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
   return panelEntity;
 }
