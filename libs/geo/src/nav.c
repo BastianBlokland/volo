@@ -28,7 +28,8 @@ typedef struct {
 } GeoNavOccupant;
 
 typedef struct {
-  u64 userId;
+  u64          userId;
+  GeoNavRegion region;
 } GeoNavBlocker;
 
 typedef struct {
@@ -842,14 +843,16 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
     // Outside of the y band of the grid.
     return (GeoNavBlockerId)sentinel_u16;
   }
+  const GeoNavRegion region = nav_cell_map_box(grid, box);
+
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
     return (GeoNavBlockerId)sentinel_u16;
   }
   GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
   blocker->userId        = userId;
+  blocker->region;
 
-  const GeoNavRegion region = nav_cell_map_box(grid, box);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
@@ -863,15 +866,17 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
 
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(
     GeoNavGrid* grid, const u64 userId, const GeoBoxRotated* boxRotated) {
+  const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
+  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
+
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
   if (UNLIKELY(sentinel_check(blockerId))) {
     return (GeoNavBlockerId)sentinel_u16;
   }
   GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
   blocker->userId        = userId;
+  blocker->region        = region;
 
-  const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
-  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell    = {.x = x, .y = y};
