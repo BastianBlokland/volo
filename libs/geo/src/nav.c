@@ -899,6 +899,7 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
     }
   }
 
+  ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
   return blockerId;
 }
 
@@ -937,6 +938,8 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
       ++indexInRegion;
     }
   }
+
+  ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
   return blockerId;
 }
 

@@ -107,6 +107,7 @@ typedef enum {
   GeoNavStat_CellCountTotal,
   GeoNavStat_CellCountAxis,
   GeoNavStat_BlockerCount,
+  GeoNavStat_BlockerAddCount,
   GeoNavStat_OccupantCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
