@@ -106,8 +106,7 @@ geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNa
 typedef enum {
   GeoNavStat_CellCountTotal,
   GeoNavStat_CellCountAxis,
-  GeoNavStat_BlockerBoxCount,
-  GeoNavStat_BlockerBoxRotatedCount,
+  GeoNavStat_BlockerCount,
   GeoNavStat_OccupantCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
