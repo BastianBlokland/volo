@@ -22,13 +22,13 @@ bind_internal(4) out flat u32 out_tags;
 void main() {
   const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
 
-  const f32v3 instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
-  const f32   instanceScale = u_instances[in_instanceIndex].posAndScale.w;
-  const f32v4 instanceQuat  = u_instances[in_instanceIndex].rot;
-  const f32m4 instanceSkinMat =
+  const f32v3   instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
+  const f32     instanceScale = u_instances[in_instanceIndex].posAndScale.w;
+  const f32v4   instanceQuat  = u_instances[in_instanceIndex].rot;
+  const f32m4x3 instanceSkinMat =
       instance_skin_mat(u_instances[in_instanceIndex], vert.jointIndices, vert.jointWeights);
 
-  const f32v3 skinnedVertPos = (instanceSkinMat * f32v4(vert.position, 1)).xyz;
+  const f32v3 skinnedVertPos = instanceSkinMat * f32v4(vert.position, 1);
   const f32v3 skinnedNormal  = f32m3(instanceSkinMat) * vert.normal;
   const f32v4 skinnedTangent = f32v4(f32m3(instanceSkinMat) * vert.tangent.xyz, vert.tangent.w);
 

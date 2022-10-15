@@ -23,14 +23,37 @@ ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in 
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector posAndScale; // xyz: position, w: scale.
-  GeoQuat   rot;
-  u32       tags;
-  u32       padding[3];
-  GeoMatrix jointDelta[scene_skeleton_joints_max];
+  f32 comps[12];
+} RendMat3x4;
+
+ASSERT(sizeof(RendMat3x4) == 48, "RendMat3x4 has to be 384 bits");
+ASSERT(alignof(RendMat3x4) == 16, "RendMat3x4 has to be aligned to 128 bits");
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector  posAndScale; // xyz: position, w: scale.
+  GeoQuat    rot;
+  u32        tags;
+  u32        padding[3];
+  RendMat3x4 jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
-ASSERT(sizeof(RendInstanceSkinnedData) == 4848, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendInstanceSkinnedData) == 3648, "Size needs to match the size defined in glsl");
+
+/**
+ * Convert the given 4x4 matrix to a 4x3 matrix (dropping the last row) and then transpose to a 3x4.
+ * Reason for transposing is that it avoids needing padding between the columns.
+ */
+static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
+  RendMat3x4 res;
+  for (u32 i = 0; i != 3; ++i) {
+    res.comps[i * 4 + 0] = m->comps[0 * 4 + i];
+    res.comps[i * 4 + 1] = m->comps[1 * 4 + i];
+    res.comps[i * 4 + 2] = m->comps[2 * 4 + i];
+    res.comps[i * 4 + 3] = m->comps[3 * 4 + i];
+  }
+  return res;
+}
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
@@ -90,12 +113,17 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     if (isSkinned) {
       const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
       if (LIKELY(templ)) {
+        GeoMatrix jointDeltas[scene_skeleton_joints_max];
+        scene_skeleton_delta(skeletonComp, templ, jointDeltas);
+
         RendInstanceSkinnedData data = {
             .posAndScale = geo_vector(position.x, position.y, position.z, scale),
             .rot         = rotation,
             .tags        = (u32)tags,
         };
-        scene_skeleton_delta(skeletonComp, templ, data.jointDelta);
+        for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
+          data.jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
+        }
         rend_draw_add_instance(draw, mem_var(data), tags, aabb);
       }
     } else /* !isSkinned */ {
