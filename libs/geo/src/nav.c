@@ -726,7 +726,7 @@ static void nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
 }
 
 static void nav_blocker_release_all(GeoNavGrid* grid) {
-  bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max - 1); // All blockers free again.
+  bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max); // All blockers free again.
   mem_set(mem_create(grid->cellBlockerCount, sizeof(u16) * grid->cellCountTotal), 0);
 }
 
