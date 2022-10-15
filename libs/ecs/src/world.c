@@ -431,6 +431,10 @@ u32 ecs_world_archetype_entities_per_chunk(
   return ecs_storage_archetype_entities_per_chunk(&world->storage, archetypeId);
 }
 
+usize ecs_world_archetype_size(const EcsWorld* world, const EcsArchetypeId archetypeId) {
+  return ecs_storage_archetype_size(&world->storage, archetypeId);
+}
+
 u32 ecs_world_archetype_chunks(const EcsWorld* world, const EcsArchetypeId archetypeId) {
   return ecs_storage_archetype_chunks(&world->storage, archetypeId);
 }

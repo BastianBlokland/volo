@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
   EcsArchetypeId id;
   u32            entityCount, chunkCount, entitiesPerChunk;
+  usize          size;
   BitSet         compMask;
   u32            compCount;
 } DebugEcsArchetypeInfo;
@@ -336,6 +337,7 @@ static void arch_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
           .entityCount      = ecs_world_archetype_entities(world, id),
           .chunkCount       = ecs_world_archetype_chunks(world, id),
           .entitiesPerChunk = ecs_world_archetype_entities_per_chunk(world, id),
+          .size             = ecs_world_archetype_size(world, id),
           .compMask         = compMask,
           .compCount        = (u32)bitset_count(compMask),
       };
@@ -407,6 +409,7 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -417,6 +420,7 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
           {string_lit("Components"), string_lit("Archetype components.")},
           {string_lit("Entities"), string_lit("Amount of entities in this archetype.")},
           {string_lit("Chunks"), string_lit("Amount of chunks in this archetype.")},
+          {string_lit("Size"), string_lit("Total size of this archetype.")},
           {string_lit("Entities per chunk"), string_lit("Amount of entities per chunk.")},
       });
 
@@ -440,6 +444,8 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->entityCount)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->chunkCount)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_size(archInfo->size)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->entitiesPerChunk)));
   }
