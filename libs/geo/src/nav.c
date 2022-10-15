@@ -13,7 +13,7 @@
 #define geo_nav_workers_max 64
 #define geo_nav_occupants_max 2048
 #define geo_nav_occupants_per_cell 4
-#define geo_nav_blockers_max 1024
+#define geo_nav_blockers_max 512
 #define geo_nav_blocker_max_cells 128
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
@@ -949,6 +949,8 @@ void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   }
   nav_blocker_release(grid, blockerId);
 }
+
+void geo_nav_blocker_remove_pred(GeoNavGrid* grid, const GeoNavBlockerPredicate predicate) {}
 
 void geo_nav_blocker_remove_all(GeoNavGrid* grid) { nav_blocker_release_all(grid); }
 
