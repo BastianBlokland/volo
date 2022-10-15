@@ -34,6 +34,8 @@
 #define f32v4 vec4
 #define f32m3 mat3
 #define f32m4 mat4
+#define f32m4x3 mat4x3
+#define f32m3x4 mat3x4
 
 #define f64 double
 #define f64v2 dvec2
