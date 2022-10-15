@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
@@ -70,6 +71,22 @@ static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   return !ecs_view_contains(blockerEntities, (EcsEntityId)userId);
 }
 
+static u32 scene_nav_blocker_hash(
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale) {
+  u32 hash = bits_hash_32(mem_create(collision, sizeof(SceneCollisionComp)));
+  if (trans) {
+    const u32 transHash = bits_hash_32(mem_create(trans, sizeof(SceneTransformComp)));
+    hash                = bits_hash_32_combine(hash, transHash);
+  }
+  if (scale) {
+    const u32 scaleHash = bits_hash_32(mem_create(scale, sizeof(SceneScaleComp)));
+    hash                = bits_hash_32_combine(hash, scaleHash);
+  }
+  return hash;
+}
+
 static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
   geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities);
 
@@ -79,9 +96,17 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
+    const u32  newHash = scene_nav_blocker_hash(collision, trans, scale);
+    const bool dirty   = newHash != blockerComp->hash;
+
     if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
-      continue;
+      if (dirty) {
+        geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
+      } else {
+        continue; // Not dirty and already registered; nothing to do.
+      }
     }
+    blockerComp->hash = newHash;
     blockerComp->flags |= SceneNavBlockerFlags_RegisteredBlocker;
 
     const u64 userId = (u64)ecs_view_entity(itr);
