@@ -74,6 +74,9 @@ void alloc_free(Allocator* allocator, Mem mem) {
 
 Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
   Mem newMem = alloc_alloc(alloc, mem.size, align);
+  if (UNLIKELY(!mem_valid(newMem))) {
+    return newMem; // Allocation failed.
+  }
   mem_cpy(newMem, mem);
   return newMem;
 }
