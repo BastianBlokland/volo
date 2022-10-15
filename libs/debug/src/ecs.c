@@ -389,7 +389,9 @@ static String arch_comp_mask_tooltip_scratch(const EcsDef* ecsDef, const BitSet 
   DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1));
   dynstring_append(&str, string_lit("Components:\n"));
   bitset_for(compMask, compId) {
-    fmt_write(&str, "  [{}]\n", fmt_text(ecs_def_comp_name(ecsDef, (EcsCompId)compId)));
+    const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
+    const usize  compSize = ecs_def_comp_size(ecsDef, (EcsCompId)compId);
+    fmt_write(&str, "- {} ({})\n", fmt_text(compName), fmt_size(compSize));
   }
   return dynstring_view(&str);
 }
