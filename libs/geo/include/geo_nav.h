@@ -76,9 +76,11 @@ u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathSt
 /**
  * Register grid blockers.
  */
-void geo_nav_blocker_clear_all(GeoNavGrid*);
-void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
-void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
+typedef u16     GeoNavBlockerId;
+GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 id, const GeoBox*);
+GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 id, const GeoBoxRotated*);
+void            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
+void            geo_nav_blocker_remove_all(GeoNavGrid*);
 
 /**
  * Register occupants.
@@ -87,8 +89,8 @@ typedef enum {
   GeoNavOccupantFlags_Moving = 1 << 0,
 } GeoNavOccupantFlags;
 
-void geo_nav_occupant_clear_all(GeoNavGrid*);
 void geo_nav_occupant_add(GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+void geo_nav_occupant_remove_all(GeoNavGrid*);
 
 /**
  * Compute a vector to separate the given position from blockers and other occupants.

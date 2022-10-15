@@ -799,30 +799,31 @@ u32 geo_nav_path(
   return 0;
 }
 
-void geo_nav_blocker_clear_all(GeoNavGrid* grid) { bitset_clear_all(grid->blockedCells); }
-
-void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
-  if (box->max.y < grid->cellOffset.y || box->min.y > (grid->cellOffset.y + grid->cellHeight)) {
-    return; // Outside of the y band of the grid.
-  }
+GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 id, const GeoBox* box) {
+  (void)id;
 
   ++grid->stats[GeoNavStat_BlockerBoxCount]; // Track the amount of box blockers.
 
-  const GeoNavRegion region = nav_cell_map_box(grid, box);
-  for (u32 y = region.min.y; y != region.max.y; ++y) {
-    for (u32 x = region.min.x; x != region.max.x; ++x) {
-      const GeoNavCell cell = {.x = x, .y = y};
-      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      nav_bit_set(grid->blockedCells, nav_cell_index(grid, cell));
+  if (box->max.y >= grid->cellOffset.y && box->min.y <= (grid->cellOffset.y + grid->cellHeight)) {
+    const GeoNavRegion region = nav_cell_map_box(grid, box);
+    for (u32 y = region.min.y; y != region.max.y; ++y) {
+      for (u32 x = region.min.x; x != region.max.x; ++x) {
+        const GeoNavCell cell = {.x = x, .y = y};
+        // TODO: Optimizable as horizontal neighbors are consecutive in memory.
+        nav_bit_set(grid->blockedCells, nav_cell_index(grid, cell));
+      }
     }
   }
+  return (GeoNavBlockerId)0;
 }
 
-void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
-  const GeoBox bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
+GeoNavBlockerId
+geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRotated) {
+  (void)id;
 
   ++grid->stats[GeoNavStat_BlockerBoxRotatedCount]; // Track the amount of rotated box blockers.
 
+  const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
@@ -833,12 +834,17 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
       }
     }
   }
+
+  return (GeoNavBlockerId)0;
 }
 
-void geo_nav_occupant_clear_all(GeoNavGrid* grid) {
-  mem_set(nav_occupancy_mem(grid), 255);
-  grid->occupantCount = 0;
+void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
+  (void)grid;
+  (void)blockerId;
+  diag_crash_msg("Not implemented");
 }
+
+void geo_nav_blocker_remove_all(GeoNavGrid* grid) { bitset_clear_all(grid->blockedCells); }
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
@@ -863,6 +869,11 @@ void geo_nav_occupant_add(
       .pos    = pos,
   };
   nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
+}
+
+void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
+  mem_set(nav_occupancy_mem(grid), 255);
+  grid->occupantCount = 0;
 }
 
 GeoVector geo_nav_separate(
