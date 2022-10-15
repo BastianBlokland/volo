@@ -82,7 +82,7 @@ static EcsEntityId debug_ftx_draw_create(
   rend_draw_set_graphic(
       draw, asset_lookup(world, assets, string_lit("graphics/debug/interface_ftx.gra")));
   rend_draw_set_camera_filter(draw, windowEntity);
-  rend_draw_add_instance(draw, mem_empty, SceneTags_Debug, geo_box_inverted3());
+  rend_draw_add_instance(draw, 0, SceneTags_Debug, geo_box_inverted3());
 
   return drawEntity;
 }

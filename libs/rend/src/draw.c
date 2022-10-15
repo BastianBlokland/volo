@@ -17,12 +17,6 @@
 #define intrinsic_memcpy __builtin_memcpy
 #endif
 
-#define rend_draw_simd_enable 1
-
-#if rend_draw_simd_enable
-#include <immintrin.h>
-#endif
-
 #define rend_min_align 16
 #define rend_max_res_requests 16
 
@@ -81,7 +75,9 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
     const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
     const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
     const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
-    rend_draw_add_instance(drawA, data, tags, aabb);
+
+    const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
+    intrinsic_memcpy(newData.ptr, data.ptr, data.size);
   }
 
   ecs_destruct_draw(drawB);
@@ -104,21 +100,6 @@ INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
   return val + (rem ? align - rem : 0);
 }
 
-/**
- * Pre-condition: bits_is_aligned(size, 16)
- */
-INLINE_HINT static void
-rend_draw_memcpy(u8* restrict dst, const u8* restrict src, const usize size) {
-#if rend_draw_simd_enable
-  const void* end = bits_ptr_offset(src, size);
-  for (; src != end; src += 16, dst += 16) {
-    _mm_stream_si128((__m128i* restrict)dst, _mm_stream_load_si128((__m128i* restrict)src));
-  }
-#else
-  intrinsic_memcpy(dst, src, size);
-#endif
-}
-
 static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
   const usize offset = instance * draw->instDataSize;
   return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
@@ -133,7 +114,7 @@ static void
 rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u32 outputIndex) {
   const Mem outputMem   = rend_draw_inst_output_data(draw, outputIndex);
   const Mem instDataMem = rend_draw_inst_data(draw, instIndex);
-  rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
+  intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
 }
 
 /**
@@ -343,28 +324,26 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
-  rend_draw_ensure_storage(&draw->dataMem, data.size, rend_min_align);
-  rend_draw_memcpy(draw->dataMem.ptr, data.ptr, data.size);
-  draw->dataSize = (u32)data.size;
+Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
+  rend_draw_ensure_storage(&draw->dataMem, size, rend_min_align);
+  draw->dataSize = (u32)size;
+  return draw->dataMem;
 }
 
-void rend_draw_add_instance(
-    RendDrawComp* draw, const Mem data, const SceneTags tags, const GeoBox aabb) {
+Mem rend_draw_add_instance(
+    RendDrawComp* draw, const usize dataSize, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(rend_draw_align(data.size, rend_min_align) != draw->instDataSize)) {
+  if (UNLIKELY(rend_draw_align(dataSize, rend_min_align) != draw->instDataSize)) {
     /**
      * Instance data-size changed; Clear any previously added instances.
      */
     draw->instCount    = 0;
-    draw->instDataSize = (u32)rend_draw_align(data.size, rend_min_align);
+    draw->instDataSize = (u32)rend_draw_align(dataSize, rend_min_align);
   }
 
   ++draw->instCount;
   rend_draw_ensure_storage(
       &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
-
-  rend_draw_memcpy(rend_draw_inst_data(draw, draw->instCount - 1).ptr, data.ptr, data.size);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
     rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
@@ -373,4 +352,6 @@ void rend_draw_add_instance(
     ((SceneTags*)draw->instTagsMem.ptr)[draw->instCount - 1] = tags;
     ((GeoBox*)draw->instAabbMem.ptr)[draw->instCount - 1]    = aabb;
   }
+
+  return rend_draw_inst_data(draw, draw->instCount - 1);
 }
