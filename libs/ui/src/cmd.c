@@ -180,12 +180,16 @@ void ui_cmd_push_draw_text(
         log_param("limit", fmt_size(ui_cmdbuffer_max_text_size)));
     return;
   }
-  // TODO: Report error when the transient allocator runs out of space.
+  const String textCopy = string_maybe_dup(buffer->allocTransient, text);
+  if (UNLIKELY(text.size && !mem_valid(textCopy))) {
+    // TODO: Report error.
+    return; // Transient allocator ran out of space.
+  }
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_DrawText,
       .drawText = {
           .id       = id,
-          .text     = string_maybe_dup(buffer->allocTransient, text),
+          .text     = textCopy,
           .fontSize = fontSize,
           .align    = align,
           .flags    = flags,
