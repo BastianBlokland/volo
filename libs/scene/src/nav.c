@@ -49,26 +49,25 @@ static void scene_nav_env_create(EcsWorld* world) {
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
-static void scene_nav_add_blocker_box(SceneNavEnvComp* env, const u64 id, const GeoBox* box) {
-  geo_nav_blocker_add_box(env->navGrid, id, box);
+static GeoNavBlockerId scene_nav_block_box(SceneNavEnvComp* env, const u64 id, const GeoBox* box) {
+  return geo_nav_blocker_add_box(env->navGrid, id, box);
 }
 
-static void
-scene_nav_add_blocker_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
+static GeoNavBlockerId
+scene_nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
      * much faster to insert.
      */
-    geo_nav_blocker_add_box(env->navGrid, id, &boxRot->box);
-  } else {
-    geo_nav_blocker_add_box_rotated(env->navGrid, id, boxRot);
+    return geo_nav_blocker_add_box(env->navGrid, id, &boxRot->box);
   }
+  return geo_nav_blocker_add_box_rotated(env->navGrid, id, boxRot);
 }
 
-static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 id) {
+static bool scene_nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   const EcsView* blockerEntities = ctx;
-  return !ecs_view_contains(blockerEntities, (EcsEntityId)id);
+  return !ecs_view_contains(blockerEntities, (EcsEntityId)userId);
 }
 
 static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
@@ -80,29 +79,28 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
-    if (blockerComp->flags & SceneNavBlockerFlags_Registered) {
+    if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
       continue;
     }
-    blockerComp->flags |= SceneNavBlockerFlags_Registered;
+    blockerComp->flags |= SceneNavBlockerFlags_RegisteredBlocker;
 
-    const u64 id = (u64)ecs_view_entity(itr);
-
+    const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
       // NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
       // then sphere support should be added to GeoNavGrid.
       const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
       const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
-      scene_nav_add_blocker_box(env, id, &sBounds);
+      blockerComp->blockerId  = scene_nav_block_box(env, userId, &sBounds);
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      scene_nav_add_blocker_box_rotated(env, id, &cBounds);
+      blockerComp->blockerId      = scene_nav_block_box_rotated(env, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      scene_nav_add_blocker_box_rotated(env, id, &b);
+      const GeoBoxRotated b  = scene_collision_world_box(&collision->box, trans, scale);
+      blockerComp->blockerId = scene_nav_block_box_rotated(env, userId, &b);
     } break;
     case SceneCollisionType_Count:
       UNREACHABLE
