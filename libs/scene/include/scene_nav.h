@@ -13,7 +13,14 @@ ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
  * Navigation blocker.
  */
 
-ecs_comp_extern(SceneNavBlockerComp);
+typedef enum {
+  SceneNavBlockerFlags_Registered = 1 << 0,
+} SceneNavBlockerFlags;
+
+ecs_comp_extern_public(SceneNavBlockerComp) {
+  SceneNavBlockerFlags flags;
+  GeoNavBlockerId      registeredId;
+};
 
 /**
  * Navigation agent.

@@ -66,11 +66,17 @@ scene_nav_add_blocker_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoB
   }
 }
 
-static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
   for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
-    const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneCollisionComp* collision   = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
+    SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
+
+    if (blockerComp->flags & SceneNavBlockerFlags_Registered) {
+      continue;
+    }
+    blockerComp->flags |= SceneNavBlockerFlags_Registered;
 
     const u64 id = (u64)ecs_view_entity(itr);
 
@@ -126,7 +132,7 @@ ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneCollisionComp);
-  ecs_access_with(SceneNavBlockerComp);
+  ecs_access_write(SceneNavBlockerComp);
 }
 
 ecs_view_define(OccupantEntityView) {
@@ -148,9 +154,8 @@ ecs_system_define(SceneNavInitSys) {
   }
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  geo_nav_blocker_remove_all(env->navGrid);
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  scene_nav_add_blockers(env, blockerEntities);
+  scene_nav_refresh_blockers(env, blockerEntities);
 
   geo_nav_occupant_remove_all(env->navGrid);
   EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
@@ -289,7 +294,7 @@ ecs_system_define(SceneNavUpdateStatsSys) {
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
   ecs_register_comp(SceneNavStatsComp);
-  ecs_register_comp_empty(SceneNavBlockerComp);
+  ecs_register_comp(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 
