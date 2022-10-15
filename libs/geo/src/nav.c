@@ -108,7 +108,7 @@ INLINE_HINT static bool nav_bit_test(const BitSet bits, const u32 idx) {
 /**
  * Compute the total amount of cells in the region.
  */
-MAYBE_UNUSED INLINE_HINT static u32 nav_region_size(const GeoNavRegion region) {
+INLINE_HINT static u32 nav_region_size(const GeoNavRegion region) {
   return (region.max.y - region.min.y) * (region.max.x - region.min.x);
 }
 
@@ -682,6 +682,16 @@ static GeoVector nav_separate_from_occupied(
   return result;
 }
 
+static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
+  ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
+}
+
+static void nav_cell_unblock(GeoNavGrid* grid, const GeoNavCell cell) {
+  const u32 index = nav_cell_index(grid, cell);
+  diag_assert_msg(grid->cellBlockerCount[index], "Cell not currently blocked");
+  --grid->cellBlockerCount[index];
+}
+
 static u32 nav_blocker_count(GeoNavGrid* grid) {
   return (u32)(geo_nav_blockers_max - bitset_count(grid->blockerFreeSet));
 }
@@ -696,17 +706,28 @@ static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
   return (GeoNavBlockerId)index;
 }
 
+static void nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
+  diag_assert_msg(!nav_bit_test(grid->blockerFreeSet, blockerId), "Blocker double free");
+
+  const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
+  const GeoNavRegion   region          = blocker->region;
+  const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
+
+  u32 regionIndex = 0;
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      if (nav_bit_test(blockedInRegion, regionIndex)) {
+        nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
+      }
+    }
+    ++regionIndex;
+  }
+  nav_bit_set(grid->blockerFreeSet, blockerId);
+}
+
 static void nav_blocker_release_all(GeoNavGrid* grid) {
   bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max - 1); // All blockers free again.
   mem_set(mem_create(grid->cellBlockerCount, sizeof(u16) * grid->cellCountTotal), 0);
-}
-
-static GeoNavBlocker* nav_blocker_data(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
-  return &grid->blockers[blockerId];
-}
-
-static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
-  ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -863,7 +884,7 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   if (UNLIKELY(sentinel_check(blockerId))) {
     return (GeoNavBlockerId)sentinel_u16;
   }
-  GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
+  GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
   blocker->region;
 
@@ -897,7 +918,7 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   if (UNLIKELY(sentinel_check(blockerId))) {
     return (GeoNavBlockerId)sentinel_u16;
   }
-  GeoNavBlocker* blocker = nav_blocker_data(grid, blockerId);
+  GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
   blocker->region        = region;
 
@@ -923,10 +944,7 @@ void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   if (sentinel_check(blockerId)) {
     return; // Blocker as never actually added so no need to remove it.
   }
-
-  (void)grid;
-  (void)blockerId;
-  diag_crash_msg("Not implemented");
+  nav_blocker_release(grid, blockerId);
 }
 
 void geo_nav_blocker_remove_all(GeoNavGrid* grid) { nav_blocker_release_all(grid); }
