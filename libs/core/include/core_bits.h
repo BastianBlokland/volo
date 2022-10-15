@@ -138,6 +138,7 @@ u64 bits_nextpow2_64(u64);
  * Create a (non cryptographic) hash of the input data.
  */
 u32 bits_hash_32(Mem);
+u32 bits_hash_32_combine(u32 x, u32 y);
 
 /**
  * Calculate the amount of padding required to reach the requested alignment.
