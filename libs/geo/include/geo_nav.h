@@ -77,8 +77,8 @@ u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathSt
  * Register grid blockers.
  */
 typedef u16     GeoNavBlockerId;
-GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 id, const GeoBox*);
-GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 id, const GeoBoxRotated*);
+GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
+GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
 void            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
 void            geo_nav_blocker_remove_all(GeoNavGrid*);
 
@@ -89,7 +89,7 @@ typedef enum {
   GeoNavOccupantFlags_Moving = 1 << 0,
 } GeoNavOccupantFlags;
 
-void geo_nav_occupant_add(GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+void geo_nav_occupant_add(GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
 void geo_nav_occupant_remove_all(GeoNavGrid*);
 
 /**
@@ -97,7 +97,7 @@ void geo_nav_occupant_remove_all(GeoNavGrid*);
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  */
 GeoVector
-geo_nav_separate(const GeoNavGrid*, u64 id, GeoVector pos, f32 radius, GeoNavOccupantFlags);
+geo_nav_separate(const GeoNavGrid*, u64 userId, GeoVector pos, f32 radius, GeoNavOccupantFlags);
 
 /**
  * Navigation statistics.

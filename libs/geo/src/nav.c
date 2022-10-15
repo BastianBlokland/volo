@@ -19,7 +19,7 @@ ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u
 typedef bool (*NavCellPredicate)(const GeoNavGrid*, GeoNavCell);
 
 typedef struct {
-  u64                 id;
+  u64                 userId;
   f32                 radius;
   GeoNavOccupantFlags flags;
   GeoVector           pos;
@@ -627,7 +627,7 @@ static GeoVector nav_separate_from_blockers(
 static GeoVector nav_separate_from_occupied(
     const GeoNavGrid*         grid,
     const GeoNavRegion        region,
-    const u64                 id,
+    const u64                 userId,
     const GeoVector           pos,
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
@@ -639,8 +639,8 @@ static GeoVector nav_separate_from_occupied(
 
   GeoVector result = {0};
   for (u32 i = 0; i != occupantCount; ++i) {
-    if (occupants[i]->id == id) {
-      continue; // Ignore occupants with the same id.
+    if (occupants[i]->userId == userId) {
+      continue; // Ignore occupants with the same userId.
     }
     const GeoVector toOccupant = geo_vector_sub(occupants[i]->pos, pos);
     const f32       distSqr    = geo_vector_mag_sqr(toOccupant);
@@ -799,8 +799,8 @@ u32 geo_nav_path(
   return 0;
 }
 
-GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 id, const GeoBox* box) {
-  (void)id;
+GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, const GeoBox* box) {
+  (void)userId;
 
   ++grid->stats[GeoNavStat_BlockerBoxCount]; // Track the amount of box blockers.
 
@@ -817,9 +817,9 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 id, const Ge
   return (GeoNavBlockerId)0;
 }
 
-GeoNavBlockerId
-geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRotated) {
-  (void)id;
+GeoNavBlockerId geo_nav_blocker_add_box_rotated(
+    GeoNavGrid* grid, const u64 userId, const GeoBoxRotated* boxRotated) {
+  (void)userId;
 
   ++grid->stats[GeoNavStat_BlockerBoxRotatedCount]; // Track the amount of rotated box blockers.
 
@@ -848,7 +848,7 @@ void geo_nav_blocker_remove_all(GeoNavGrid* grid) { bitset_clear_all(grid->block
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
-    const u64                 id,
+    const u64                 userId,
     const GeoVector           pos,
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
@@ -863,7 +863,7 @@ void geo_nav_occupant_add(
   }
   const u16 occupantIndex        = grid->occupantCount++;
   grid->occupants[occupantIndex] = (GeoNavOccupant){
-      .id     = id,
+      .userId = userId,
       .radius = radius,
       .flags  = flags,
       .pos    = pos,
@@ -878,7 +878,7 @@ void geo_nav_occupant_remove_all(GeoNavGrid* grid) {
 
 GeoVector geo_nav_separate(
     const GeoNavGrid*         grid,
-    const u64                 id,
+    const u64                 userId,
     const GeoVector           pos,
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
@@ -895,11 +895,11 @@ GeoVector geo_nav_separate(
 
   // Compute the local region to use, retrieves 3x3 cells around the position.
   const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
-  GeoVector          result = {0};
+  GeoVector          vec    = {0};
 
-  result = geo_vector_add(result, nav_separate_from_blockers(grid, region, pos, radius, flags));
-  result = geo_vector_add(result, nav_separate_from_occupied(grid, region, id, pos, radius, flags));
-  return result;
+  vec = geo_vector_add(vec, nav_separate_from_blockers(grid, region, pos, radius, flags));
+  vec = geo_vector_add(vec, nav_separate_from_occupied(grid, region, userId, pos, radius, flags));
+  return vec;
 }
 
 void geo_nav_stats_reset(GeoNavGrid* grid) {
