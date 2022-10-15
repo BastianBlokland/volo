@@ -50,7 +50,8 @@ struct sGeoNavGrid {
   BitSet    blockedCells;  // bit[cellCountTotal]
   u16*      cellOccupancy; // u16[cellCountTotal][geo_nav_occupants_per_cell]
 
-  GeoNavBlocker* blockers; // GeoNavBlocker[geo_nav_blockers_max]
+  GeoNavBlocker* blockers;           // GeoNavBlocker[geo_nav_blockers_max]
+  BitSet         blockerFreeIndices; // bit[geo_nav_blockers_max]
   u32            blockerCount;
 
   GeoNavOccupant* occupants; // GeoNavOccupant[geo_nav_occupants_max]
@@ -688,20 +689,22 @@ GeoNavGrid* geo_nav_grid_create(
   const u32   cellCountTotal = cellCountAxis * cellCountAxis;
 
   *grid = (GeoNavGrid){
-      .cellCountAxis  = cellCountAxis,
-      .cellCountTotal = cellCountTotal,
-      .cellDensity    = density,
-      .cellSize       = 1.0f / density,
-      .cellHeight     = height,
-      .cellOffset     = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
-      .blockedCells   = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1),
-      .cellOccupancy  = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
-      .blockers       = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
-      .occupants      = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
-      .alloc          = alloc,
+      .cellCountAxis      = cellCountAxis,
+      .cellCountTotal     = cellCountTotal,
+      .cellDensity        = density,
+      .cellSize           = 1.0f / density,
+      .cellHeight         = height,
+      .cellOffset         = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
+      .blockedCells       = alloc_alloc(alloc, bits_to_bytes(cellCountTotal) + 1, 1),
+      .cellOccupancy      = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
+      .blockers           = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
+      .blockerFreeIndices = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max) + 1, 1),
+      .occupants          = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
+      .alloc              = alloc,
   };
 
   bitset_clear_all(grid->blockedCells);
+  bitset_set_all(grid->blockerFreeIndices, geo_nav_blockers_max - 1); // All blockers start as free.
   return grid;
 }
 
@@ -709,6 +712,7 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free(grid->alloc, grid->blockedCells);
   alloc_free(grid->alloc, nav_occupancy_mem(grid));
   alloc_free_array_t(grid->alloc, grid->blockers, geo_nav_blockers_max);
+  alloc_free(grid->alloc, grid->blockerFreeIndices);
   alloc_free_array_t(grid->alloc, grid->occupants, geo_nav_occupants_max);
 
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
@@ -874,6 +878,7 @@ void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
 
 void geo_nav_blocker_remove_all(GeoNavGrid* grid) {
   bitset_clear_all(grid->blockedCells);
+  bitset_set_all(grid->blockerFreeIndices, geo_nav_blockers_max - 1); // All blockers free again.
   grid->blockerCount = 0;
 }
 
@@ -944,10 +949,11 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                              // Structure
-                           (bits_to_bytes(grid->cellCountTotal) + 1) +       // grid.blockedCells
-                           ((u32)nav_occupancy_mem(grid).size) +             // grid.cellOccupancy
-                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) +  // grid.blockers
+  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                             // Structure
+                           (bits_to_bytes(grid->cellCountTotal) + 1) +      // grid.blockedCells
+                           ((u32)nav_occupancy_mem(grid).size) +            // grid.cellOccupancy
+                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) + // grid.blockers
+                           (bits_to_bytes(geo_nav_blockers_max) + 1) + // grid.blockerFreeIndices
                            (sizeof(GeoNavOccupant) * geo_nav_occupants_max); // grid.occupants
 
   const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                   // Structure
