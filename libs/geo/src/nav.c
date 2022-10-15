@@ -950,7 +950,17 @@ void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   nav_blocker_release(grid, blockerId);
 }
 
-void geo_nav_blocker_remove_pred(GeoNavGrid* grid, const GeoNavBlockerPredicate predicate) {}
+void geo_nav_blocker_remove_pred(
+    GeoNavGrid* grid, const GeoNavBlockerPredicate predicate, void* ctx) {
+  for (GeoNavBlockerId blockerId = 0; blockerId != geo_nav_blockers_max; ++blockerId) {
+    if (nav_bit_test(grid->blockerFreeSet, blockerId)) {
+      continue; // Blocker is unused.
+    }
+    if (predicate(ctx, grid->blockers[blockerId].userId)) {
+      nav_blocker_release(grid, blockerId);
+    }
+  }
+}
 
 void geo_nav_blocker_remove_all(GeoNavGrid* grid) { nav_blocker_release_all(grid); }
 
