@@ -116,23 +116,20 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         GeoMatrix jointDeltas[scene_skeleton_joints_max];
         scene_skeleton_delta(skeletonComp, templ, jointDeltas);
 
-        RendInstanceSkinnedData data = {
-            .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-            .rot         = rotation,
-            .tags        = (u32)tags,
-        };
+        RendInstanceSkinnedData* data =
+            rend_draw_add_instance_t(draw, RendInstanceSkinnedData, tags, aabb);
+        data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
+        data->rot         = rotation;
+        data->tags        = (u32)tags;
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
-          data.jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
+          data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
         }
-        rend_draw_add_instance(draw, mem_var(data), tags, aabb);
       }
     } else /* !isSkinned */ {
-      const RendInstanceData data = {
-          .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-          .rot         = rotation,
-          .tags        = (u32)tags,
-      };
-      rend_draw_add_instance(draw, mem_var(data), tags, aabb);
+      RendInstanceData* data = rend_draw_add_instance_t(draw, RendInstanceData, tags, aabb);
+      data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
+      data->rot              = rotation;
+      data->tags             = (u32)tags;
     }
   }
 }

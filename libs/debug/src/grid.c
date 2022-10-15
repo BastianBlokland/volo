@@ -119,14 +119,14 @@ ecs_system_define(DebugGridDrawSys) {
     ecs_view_jump(drawItr, grid->drawEntity);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    const DebugGridData data = {
-        .cellSize          = grid->cellSize,
-        .segmentCount      = (u32)grid->segmentCount,
-        .highlightInterval = (u32)grid->highlightInterval,
-        .fadeFraction      = grid->fadeFraction,
-    };
     rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
-    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, geo_box_inverted3());
+    *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
+        (DebugGridData){
+            .cellSize          = grid->cellSize,
+            .segmentCount      = (u32)grid->segmentCount,
+            .highlightInterval = (u32)grid->highlightInterval,
+            .fadeFraction      = grid->fadeFraction,
+        };
   }
 }
 
