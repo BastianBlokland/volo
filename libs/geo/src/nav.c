@@ -886,7 +886,7 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   }
   GeoNavBlocker* blocker = &grid->blockers[blockerId];
   blocker->userId        = userId;
-  blocker->region;
+  blocker->region        = region;
 
   const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
   mem_set(blockedInRegion, 0xFF);
