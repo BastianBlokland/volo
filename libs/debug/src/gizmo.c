@@ -18,9 +18,12 @@
 
 #define gizmo_ring_segments 32
 
-static const f32           g_gizmoCollisionScale = 1.5f;
-static const f32           g_gizmoSnapAngleDeg   = 45.0f;
-static const GeoQueryLayer g_gizmoLayer          = 1;
+static const f32           g_gizmoCollisionScale  = 1.5f;
+static const f32           g_gizmoSnapAngleDeg    = 45.0f;
+static const GeoQueryLayer g_gizmoLayer           = 1;
+static const f32           g_gizmoSizeMin         = 0.1f;
+static const f32           g_gizmoSizeMax         = 25.0f;
+static const f32           g_gizmoSizePerDistance = 0.075f;
 
 static const struct {
   GeoVector normal;
@@ -144,8 +147,9 @@ typedef struct {
 } DebugGizmoEditorScaleUniform;
 
 ecs_comp_define(DebugGizmoComp) {
-  DynArray     entries; // DebugGizmo[]
+  DynArray     entries; // DebugGizmoEntry[]
   GeoQueryEnv* queryEnv;
+  f32          size;
 
   DebugGizmoStatus  status;
   DebugGizmoType    activeType;
@@ -260,7 +264,7 @@ static void gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmoEnt
   // Register collision shapes for the translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].normal);
-    const f32       length    = g_gizmoTranslationArrows[i].length;
+    const f32       length    = g_gizmoTranslationArrows[i].length * comp->size;
     const GeoVector lineStart = entry->pos;
     const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
 
@@ -269,7 +273,7 @@ static void gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmoEnt
         comp->queryEnv,
         (GeoCapsule){
             .line   = {.a = lineStart, .b = lineEnd},
-            .radius = g_gizmoTranslationArrows[i].radius * g_gizmoCollisionScale,
+            .radius = g_gizmoTranslationArrows[i].radius * comp->size * g_gizmoCollisionScale,
         },
         shapeId,
         g_gizmoLayer);
@@ -282,12 +286,12 @@ static void gizmo_register_rotation(DebugGizmoComp* comp, const DebugGizmoEntry*
   // Register collision shapes for the rotation rings.
   GeoCapsule capsules[gizmo_ring_segments];
   for (u32 i = 0; i != array_elems(g_gizmoRotationRings); ++i) {
-    const GeoVector normal    = g_gizmoRotationRings[i].normal;
-    const GeoVector tangent   = g_gizmoRotationRings[i].tangent;
-    const GeoQuat   ringRot   = geo_quat_mul(entry->rot, geo_quat_look(normal, tangent));
-    const f32       radius    = g_gizmoRotationRings[i].radius;
-    const f32       thickness = g_gizmoRotationRings[i].thickness * g_gizmoCollisionScale;
-    const u64       shapeId = gizmo_shape_id(gizmo_entry_index(comp, entry), (DebugGizmoSection)i);
+    const GeoVector normal  = g_gizmoRotationRings[i].normal;
+    const GeoVector tangent = g_gizmoRotationRings[i].tangent;
+    const GeoQuat   ringRot = geo_quat_mul(entry->rot, geo_quat_look(normal, tangent));
+    const f32       radius  = g_gizmoRotationRings[i].radius * comp->size;
+    const f32 thickness = g_gizmoRotationRings[i].thickness * comp->size * g_gizmoCollisionScale;
+    const u64 shapeId   = gizmo_shape_id(gizmo_entry_index(comp, entry), (DebugGizmoSection)i);
 
     gizmo_ring_capsules(entry->pos, ringRot, radius, thickness, capsules);
     for (u32 segment = 0; segment != gizmo_ring_segments; ++segment) {
@@ -301,12 +305,13 @@ static void gizmo_register_scale_uniform(DebugGizmoComp* comp, const DebugGizmoE
 
   // Register collision shapes for the handle.
   const u64       shapeId     = gizmo_shape_id(gizmo_entry_index(comp, entry), DebugGizmoSection_X);
-  const GeoVector handleDelta = geo_vector_mul(geo_up, g_gizmoScaleUniformHandle.length);
+  const f32       length      = g_gizmoScaleUniformHandle.length * comp->size;
+  const GeoVector handleDelta = geo_vector_mul(geo_up, length);
   geo_query_insert_capsule(
       comp->queryEnv,
       (GeoCapsule){
           .line   = {.a = entry->pos, .b = geo_vector_add(entry->pos, handleDelta)},
-          .radius = g_gizmoScaleUniformHandle.radius * g_gizmoCollisionScale,
+          .radius = g_gizmoScaleUniformHandle.radius * comp->size * g_gizmoCollisionScale,
       },
       shapeId,
       g_gizmoLayer);
@@ -597,6 +602,7 @@ static void debug_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       DebugGizmoComp,
+      .size     = 1.0f,
       .entries  = dynarray_create_t(g_alloc_heap, DebugGizmoEntry, 16),
       .queryEnv = geo_query_env_create(g_alloc_heap));
 }
@@ -619,10 +625,14 @@ ecs_system_define(DebugGizmoUpdateSys) {
   InputManagerComp*     input = ecs_view_write_t(globalItr, InputManagerComp);
 
   // Register all gizmos that where active in the last frame.
+  GeoVector center = {0};
   geo_query_env_clear(gizmo->queryEnv);
   for (u32 i = 0; i != gizmo->entries.size; ++i) {
-    gizmo_register(gizmo, gizmo_entry(gizmo, i));
+    const DebugGizmoEntry* entry = gizmo_entry(gizmo, i);
+    gizmo_register(gizmo, entry);
+    center = geo_vector_add(center, entry->pos);
   }
+  center = geo_vector_div(center, gizmo->entries.size ? gizmo->entries.size : 1.0f);
 
   // Update the editor.
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -634,6 +644,12 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
     gizmo_update_interaction(gizmo, stats, input, window, grid, camera, cameraTrans);
+
+    // Determine the gizmo size based on the distance from the camera to the gizmo center.
+    const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));
+    gizmo->size    = math_clamp_f32(dist * g_gizmoSizePerDistance, g_gizmoSizeMin, g_gizmoSizeMax);
+  } else {
+    gizmo->size = 1.0f;
   }
 
   // Update input blockers.
@@ -660,7 +676,7 @@ static f32
 gizmo_translation_arrow_radius(const DebugGizmoComp* comp, const DebugGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
-  const f32 base = g_gizmoTranslationArrows[index].radius;
+  const f32 base = g_gizmoTranslationArrows[index].radius * comp->size;
   if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
     return base * 1.1f;
   }
@@ -678,12 +694,12 @@ static void gizmo_draw_translation(
   const GeoVector pos           = isInteracting ? comp->editor.translation.result : entry->pos;
 
   // Draw center point.
-  debug_sphere(shape, pos, 0.025f, geo_color_white, DebugShape_Overlay);
+  debug_sphere(shape, pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const GeoVector dir     = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].normal);
-    const f32       length  = g_gizmoTranslationArrows[i].length;
+    const f32       length  = g_gizmoTranslationArrows[i].length * comp->size;
     const f32       radius  = gizmo_translation_arrow_radius(comp, entry->id, i);
     const GeoVector lineEnd = geo_vector_add(pos, geo_vector_mul(dir, length));
     const GeoColor  color   = gizmo_translation_arrow_color(comp, entry->id, i);
@@ -709,7 +725,7 @@ static f32
 gizmo_rotation_ring_thickness(const DebugGizmoComp* comp, const DebugGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
-  const f32 base = g_gizmoRotationRings[index].thickness;
+  const f32 base = g_gizmoRotationRings[index].thickness * comp->size;
   if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
     return base * 1.1f;
   }
@@ -727,7 +743,7 @@ static void gizmo_draw_rotation(
   const GeoQuat rot           = isInteracting ? comp->editor.rotation.result : entry->rot;
 
   // Draw center point.
-  debug_sphere(shape, entry->pos, 0.025f, geo_color_white, DebugShape_Overlay);
+  debug_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw rings.
   GeoCapsule capsules[gizmo_ring_segments];
@@ -735,7 +751,7 @@ static void gizmo_draw_rotation(
     const GeoVector normal    = g_gizmoRotationRings[i].normal;
     const GeoVector tangent   = g_gizmoRotationRings[i].tangent;
     const GeoQuat   ringRot   = geo_quat_mul(rot, geo_quat_look(normal, tangent));
-    const f32       radius    = g_gizmoRotationRings[i].radius;
+    const f32       radius    = g_gizmoRotationRings[i].radius * comp->size;
     const f32       thickness = gizmo_rotation_ring_thickness(comp, entry->id, i);
 
     gizmo_ring_capsules(entry->pos, ringRot, radius, thickness, capsules);
@@ -759,7 +775,7 @@ static GeoColor gizmo_scale_uniform_color(const DebugGizmoComp* comp, const Debu
 }
 
 static f32 gizmo_scale_uniform_radius(const DebugGizmoComp* comp, const DebugGizmoId id) {
-  const f32 base = g_gizmoScaleUniformHandle.radius;
+  const f32 base = g_gizmoScaleUniformHandle.radius * comp->size;
   if (gizmo_is_hovered_section(comp, id, DebugGizmoSection_X)) {
     return base * 1.1f;
   }
@@ -778,10 +794,10 @@ static void gizmo_draw_scale_uniform(
   const f32  scaleDelta    = isInteracting ? comp->editor.scaleUniform.resultDelta : 1.0f;
 
   // Draw center point.
-  debug_sphere(shape, entry->pos, 0.025f, geo_color_white, DebugShape_Overlay);
+  debug_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw scale handle.
-  const f32       handleLength = g_gizmoScaleUniformHandle.length * scaleDelta;
+  const f32       handleLength = g_gizmoScaleUniformHandle.length * comp->size * scaleDelta;
   const GeoVector handleDelta  = geo_vector_mul(geo_up, handleLength);
   const GeoVector handleEnd    = geo_vector_add(entry->pos, handleDelta);
   const GeoColor  handleColor  = gizmo_scale_uniform_color(comp, entry->id);
