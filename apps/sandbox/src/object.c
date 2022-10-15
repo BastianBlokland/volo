@@ -8,6 +8,7 @@
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_renderable.h"
+#include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_transform.h"
 
@@ -108,6 +109,7 @@ EcsEntityId object_spawn_unit(
       .muzzleFlashVfx = db->muzzleFlashVfx,
       .projectileVfx  = db->projectileVfx,
       .impactVfx      = db->impactVfx);
+  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);
   scene_brain_add(world, e, db->unitBehavior);
   return e;
@@ -126,6 +128,7 @@ EcsEntityId object_spawn_wall(
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->wallGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
+  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default);
   scene_collision_add_box(world, e, g_box, SceneLayer_Environment);
   scene_nav_add_blocker(world, e);
   return e;

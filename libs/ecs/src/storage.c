@@ -259,7 +259,19 @@ u32 ecs_storage_archetype_total_chunks(const EcsStorage* storage) {
   return result;
 }
 
-usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
+usize ecs_storage_archetype_size(const EcsStorage* storage, const EcsArchetypeId id) {
+  return ecs_archetype_total_size(ecs_storage_archetype_ptr(storage, id));
+}
+
+u32 ecs_storage_archetype_chunks(const EcsStorage* storage, const EcsArchetypeId id) {
+  return ecs_storage_archetype_ptr(storage, id)->chunkCount;
+}
+
+u32 ecs_storage_archetype_entities(const EcsStorage* storage, const EcsArchetypeId id) {
+  return ecs_storage_archetype_ptr(storage, id)->entityCount;
+}
+
+u32 ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
 }
 

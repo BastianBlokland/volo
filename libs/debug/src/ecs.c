@@ -21,6 +21,14 @@ typedef struct {
 } DebugEcsCompInfo;
 
 typedef struct {
+  EcsArchetypeId id;
+  u32            entityCount, chunkCount, entitiesPerChunk;
+  usize          size;
+  BitSet         compMask;
+  u32            compCount;
+} DebugEcsArchetypeInfo;
+
+typedef struct {
   EcsSystemId  id;
   String       name;
   i32          definedOrder; // Configured ordering constraint.
@@ -33,6 +41,7 @@ typedef struct {
 
 typedef enum {
   DebugEcsTab_Components,
+  DebugEcsTab_Archetypes,
   DebugEcsTab_Systems,
 
   DebugEcsTab_Count,
@@ -40,6 +49,7 @@ typedef enum {
 
 static const String g_ecsTabNames[] = {
     string_static("Components"),
+    string_static("Archetypes"),
     string_static("Systems"),
 };
 ASSERT(array_elems(g_ecsTabNames) == DebugEcsTab_Count, "Incorrect number of names");
@@ -62,6 +72,23 @@ static const String g_compSortModeNames[] = {
     string_static("Entities"),
 };
 ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect number of names");
+
+typedef enum {
+  DebugArchSortMode_Id,
+  DebugArchSortMode_ComponentCount,
+  DebugArchSortMode_EntityCount,
+  DebugArchSortMode_ChunkCount,
+
+  DebugArchSortMode_Count,
+} DebugArchSortMode;
+
+static const String g_archSortModeNames[] = {
+    string_static("Id"),
+    string_static("Components"),
+    string_static("Entities"),
+    string_static("Chunks"),
+};
+ASSERT(array_elems(g_archSortModeNames) == DebugArchSortMode_Count, "Incorrect number of names");
 
 typedef enum {
   DebugSysSortMode_Id,
@@ -87,9 +114,11 @@ ecs_comp_define(DebugEcsPanelComp) {
   UiScrollview      scrollview;
   DynString         nameFilter;
   DebugCompSortMode compSortMode;
+  DebugArchSortMode archSortMode;
   DebugSysSortMode  sysSortMode;
-  bool              freeze;
+  bool              freeze, hideEmptyArchetypes;
   DynArray          components; // DebugEcsCompInfo[]
+  DynArray          archetypes; // DebugEcsArchetypeInfo[]
   DynArray          systems;    // DebugEcsSysInfo[]
 };
 
@@ -97,6 +126,7 @@ static void ecs_destruct_ecs_panel(void* data) {
   DebugEcsPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->components);
+  dynarray_destroy(&comp->archetypes);
   dynarray_destroy(&comp->systems);
 }
 
@@ -117,6 +147,27 @@ static i8 comp_compare_info_archetypes(const void* a, const void* b) {
 static i8 comp_compare_info_entities(const void* a, const void* b) {
   return compare_u32_reverse(
       field_ptr(a, DebugEcsCompInfo, numEntities), field_ptr(b, DebugEcsCompInfo, numEntities));
+}
+
+static i8 arch_compare_info_components(const void* a, const void* b) {
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c     = compare_u32_reverse(&archA->compCount, &archB->compCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
+}
+
+static i8 arch_compare_info_entities(const void* a, const void* b) {
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c = compare_u32_reverse(&archA->entityCount, &archB->entityCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
+}
+
+static i8 arch_compare_info_chunks(const void* a, const void* b) {
+  const DebugEcsArchetypeInfo* archA = a;
+  const DebugEcsArchetypeInfo* archB = b;
+  const i8                     c     = compare_u32_reverse(&archA->chunkCount, &archB->chunkCount);
+  return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 sys_compare_info_id(const void* a, const void* b) {
@@ -269,6 +320,137 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->numEntities)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_size(compInfo->numEntities * compInfo->size)));
+  }
+  ui_canvas_id_block_next(canvas);
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
+
+static void arch_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+  if (!panelComp->freeze) {
+    dynarray_clear(&panelComp->archetypes);
+    for (EcsArchetypeId id = 0; id != ecs_world_archetype_count(world); ++id) {
+      if (panelComp->hideEmptyArchetypes && !ecs_world_archetype_entities(world, id)) {
+        continue;
+      }
+      const BitSet compMask = ecs_world_component_mask(world, id);
+      *dynarray_push_t(&panelComp->archetypes, DebugEcsArchetypeInfo) = (DebugEcsArchetypeInfo){
+          .id               = id,
+          .entityCount      = ecs_world_archetype_entities(world, id),
+          .chunkCount       = ecs_world_archetype_chunks(world, id),
+          .entitiesPerChunk = ecs_world_archetype_entities_per_chunk(world, id),
+          .size             = ecs_world_archetype_size(world, id),
+          .compMask         = compMask,
+          .compCount        = (u32)bitset_count(compMask),
+      };
+    }
+  }
+
+  switch (panelComp->archSortMode) {
+  case DebugArchSortMode_ComponentCount:
+    dynarray_sort(&panelComp->archetypes, arch_compare_info_components);
+    break;
+  case DebugArchSortMode_EntityCount:
+    dynarray_sort(&panelComp->archetypes, arch_compare_info_entities);
+    break;
+  case DebugArchSortMode_ChunkCount:
+    dynarray_sort(&panelComp->archetypes, arch_compare_info_chunks);
+    break;
+  case DebugArchSortMode_Id:
+  case DebugArchSortMode_Count:
+    break;
+  }
+}
+
+static void arch_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sort:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->archSortMode, g_archSortModeNames, DebugArchSortMode_Count);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Hide empty:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->hideEmptyArchetypes);
+
+  ui_layout_pop(canvas);
+}
+
+static String arch_comp_mask_tooltip_scratch(const EcsDef* ecsDef, const BitSet compMask) {
+  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1));
+  dynstring_append(&str, string_lit("Components:\n"));
+  bitset_for(compMask, compId) {
+    const String compName = ecs_def_comp_name(ecsDef, (EcsCompId)compId);
+    const usize  compSize = ecs_def_comp_size(ecsDef, (EcsCompId)compId);
+    fmt_write(&str, "- {} ({})\n", fmt_text(compName), fmt_size(compSize));
+  }
+  return dynstring_view(&str);
+}
+
+static void
+arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
+  arch_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Id"), string_lit("Archetype identifier.")},
+          {string_lit("Components"), string_lit("Archetype components.")},
+          {string_lit("Entities"), string_lit("Amount of entities in this archetype.")},
+          {string_lit("Chunks"), string_lit("Amount of chunks in this archetype.")},
+          {string_lit("Size"), string_lit("Total size of this archetype.")},
+          {string_lit("Entities per chunk"), string_lit("Amount of entities per chunk.")},
+      });
+
+  const u32 numArchetypes = (u32)panelComp->archetypes.size;
+  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numArchetypes));
+
+  ui_canvas_id_block_next(canvas); // Start the list of archetypes on its own id block.
+  dynarray_for_t(&panelComp->archetypes, DebugEcsArchetypeInfo, archInfo) {
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+
+    ui_canvas_id_block_index(canvas, archInfo->id * 10); // Set a stable id based on the arch id.
+
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->id)));
+    ui_table_next_column(canvas, &table);
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}", fmt_int(archInfo->compCount)),
+        .tooltip = arch_comp_mask_tooltip_scratch(ecsDef, archInfo->compMask));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->entityCount)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->chunkCount)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_size(archInfo->size)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(archInfo->entitiesPerChunk)));
   }
   ui_canvas_id_block_next(canvas);
 
@@ -442,6 +624,10 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
     comp_info_query(panelComp, world);
     comp_panel_tab_draw(canvas, panelComp);
     break;
+  case DebugEcsTab_Archetypes:
+    arch_info_query(panelComp, world);
+    arch_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
+    break;
   case DebugEcsTab_Systems:
     sys_info_query(panelComp, world);
     sys_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
@@ -492,9 +678,11 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       .panel        = ui_panel(.size = ui_vector(800, 500)),
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_alloc_heap, 32),
-      .compSortMode = DebugCompSortMode_Entities,
-      .sysSortMode  = DebugSysSortMode_Task,
+      .compSortMode = DebugCompSortMode_Archetypes,
+      .archSortMode = DebugArchSortMode_ChunkCount,
+      .sysSortMode  = DebugSysSortMode_Duration,
       .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
+      .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
   return panelEntity;
 }

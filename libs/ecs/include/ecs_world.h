@@ -168,5 +168,10 @@ typedef struct {
  * Query statistics for the given world.
  */
 EcsWorldStats ecs_world_stats_query(const EcsWorld*);
+u32           ecs_world_archetype_count(const EcsWorld*);
 u32           ecs_world_archetype_count_with_comp(const EcsWorld*, EcsCompId);
+u32           ecs_world_archetype_entities(const EcsWorld*, EcsArchetypeId);
+u32           ecs_world_archetype_entities_per_chunk(const EcsWorld*, EcsArchetypeId);
+usize         ecs_world_archetype_size(const EcsWorld*, EcsArchetypeId);
+u32           ecs_world_archetype_chunks(const EcsWorld*, EcsArchetypeId);
 u32           ecs_world_entity_count_with_comp(const EcsWorld*, EcsCompId);
