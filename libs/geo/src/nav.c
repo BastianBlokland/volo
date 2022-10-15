@@ -713,14 +713,14 @@ static void nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerI
   const GeoNavRegion   region          = blocker->region;
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
 
-  u32 regionIndex = 0;
+  u32 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
-      if (nav_bit_test(blockedInRegion, regionIndex)) {
+      if (nav_bit_test(blockedInRegion, indexInRegion)) {
         nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
       }
+      ++indexInRegion;
     }
-    ++regionIndex;
   }
   nav_bit_set(grid->blockerFreeSet, blockerId);
 }
