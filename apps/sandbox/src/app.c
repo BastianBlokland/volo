@@ -26,20 +26,20 @@ typedef struct {
 } AppFactionConfig;
 
 static const GapVector        g_appWindowSize      = {1920, 1080};
-static const u32              g_appWallCount       = 32;
+static const u32              g_appWallCount       = 150;
 static const u64              g_appRngSeed         = 42;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
         {
-            .spawnArea        = {.min = {.x = 30, .z = -30}, .max = {.x = 35, .z = 30}},
-            .spawnIntervalMin = time_milliseconds(500),
-            .spawnIntervalMax = time_milliseconds(1000),
+            .spawnArea        = {.min = {.x = 40, .z = -40}, .max = {.x = 45, .z = 40}},
+            .spawnIntervalMin = time_milliseconds(100),
+            .spawnIntervalMax = time_milliseconds(250),
         },
     [SceneFaction_B] =
         {
-            .spawnArea        = {.min = {.x = -30, .z = -30}, .max = {.x = -35, .z = 30}},
-            .spawnIntervalMin = time_milliseconds(500),
-            .spawnIntervalMax = time_milliseconds(1000),
+            .spawnArea        = {.min = {.x = -45, .z = -40}, .max = {.x = -40, .z = 40}},
+            .spawnIntervalMin = time_milliseconds(100),
+            .spawnIntervalMax = time_milliseconds(250),
         },
 };
 ASSERT(array_elems(g_appFactionConfig) <= SceneFaction_Count, "More factions then supported");
@@ -84,9 +84,9 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
 
 static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb, Rng* rng) {
   for (u32 i = 0; i != g_appWallCount; ++i) {
-    const f32     posX  = rng_sample_range(rng, -15.0f, 15.0f);
+    const f32     posX  = rng_sample_range(rng, -50.0f, 50.0f);
     const f32     posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32     posZ  = rng_sample_range(rng, -40.0f, 40.0f);
+    const f32     posZ  = rng_sample_range(rng, -50.0f, 50.0f);
     const f32     angle = rng_sample_f32(rng) * math_pi_f32 * 2;
     const GeoQuat rot   = geo_quat_angle_axis(geo_up, angle);
     object_spawn_wall(world, objDb, geo_vector(posX, posY, posZ), rot);
