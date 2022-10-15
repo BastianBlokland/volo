@@ -129,18 +129,15 @@ void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
   };
 }
 
-void vfx_particle_output(RendDrawComp* draw, const VfxParticle* particle) {
-  VfxParticleData instData;
-  instData.data1   = particle->position;
-  instData.data1.w = (f32)particle->atlasIndex;
-  geo_quat_pack_f16(particle->rotation, instData.data2);
-  instData.data3[0] = float_f32_to_f16(particle->sizeX);
-  instData.data3[1] = float_f32_to_f16(particle->sizeY);
-  instData.data3[2] = float_f32_to_f16(particle->opacity);
-  geo_color_pack_f16(particle->color, instData.data4);
+void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
+  const GeoBox bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
 
-  const GeoBox bounds =
-      geo_box_from_quad(particle->position, particle->sizeX, particle->sizeY, particle->rotation);
-
-  rend_draw_add_instance(draw, mem_var(instData), SceneTags_Vfx, bounds);
+  VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, SceneTags_Vfx, bounds);
+  data->data1           = p->position;
+  data->data1.w         = (f32)p->atlasIndex;
+  geo_quat_pack_f16(p->rotation, data->data2);
+  data->data3[0] = float_f32_to_f16(p->sizeX);
+  data->data3[1] = float_f32_to_f16(p->sizeY);
+  data->data3[2] = float_f32_to_f16(p->opacity);
+  geo_color_pack_f16(p->color, data->data4);
 }

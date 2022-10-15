@@ -75,7 +75,9 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
     const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
     const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
     const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
-    rend_draw_add_instance(drawA, data, tags, aabb);
+
+    const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
+    intrinsic_memcpy(newData.ptr, data.ptr, data.size);
   }
 
   ecs_destruct_draw(drawB);
@@ -328,22 +330,20 @@ Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
   return draw->dataMem;
 }
 
-void rend_draw_add_instance(
-    RendDrawComp* draw, const Mem data, const SceneTags tags, const GeoBox aabb) {
+Mem rend_draw_add_instance(
+    RendDrawComp* draw, const usize dataSize, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(rend_draw_align(data.size, rend_min_align) != draw->instDataSize)) {
+  if (UNLIKELY(rend_draw_align(dataSize, rend_min_align) != draw->instDataSize)) {
     /**
      * Instance data-size changed; Clear any previously added instances.
      */
     draw->instCount    = 0;
-    draw->instDataSize = (u32)rend_draw_align(data.size, rend_min_align);
+    draw->instDataSize = (u32)rend_draw_align(dataSize, rend_min_align);
   }
 
   ++draw->instCount;
   rend_draw_ensure_storage(
       &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
-
-  intrinsic_memcpy(rend_draw_inst_data(draw, draw->instCount - 1).ptr, data.ptr, data.size);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
     rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
@@ -352,4 +352,6 @@ void rend_draw_add_instance(
     ((SceneTags*)draw->instTagsMem.ptr)[draw->instCount - 1] = tags;
     ((GeoBox*)draw->instAabbMem.ptr)[draw->instCount - 1]    = aabb;
   }
+
+  return rend_draw_inst_data(draw, draw->instCount - 1);
 }

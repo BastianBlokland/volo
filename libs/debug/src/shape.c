@@ -234,36 +234,34 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
       case DebugShapeType_BoxOverlay: {
-        const DrawMeshData data = {
-            .pos   = entry->data_box.pos,
-            .rot   = entry->data_box.rot,
-            .scale = entry->data_box.size,
-            .color = entry->data_box.color,
-        };
         const GeoBox boundsLocal = (GeoBox){
             .min = geo_vector_mul(entry->data_box.size, -0.5f),
             .max = geo_vector_mul(entry->data_box.size, 0.5f),
         };
         const GeoBox bounds =
             geo_box_transform3(&boundsLocal, entry->data_box.pos, entry->data_box.rot, 1);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+            .pos   = entry->data_box.pos,
+            .rot   = entry->data_box.rot,
+            .scale = entry->data_box.size,
+            .color = entry->data_box.color,
+        };
         continue;
       }
       case DebugShapeType_QuadFill:
       case DebugShapeType_QuadWire:
       case DebugShapeType_QuadOverlay: {
-        const DrawMeshData data = {
-            .pos   = entry->data_quad.pos,
-            .rot   = entry->data_quad.rot,
-            .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
-            .color = entry->data_quad.color,
-        };
         const GeoBox bounds = geo_box_from_quad(
             entry->data_quad.pos,
             entry->data_quad.sizeX,
             entry->data_quad.sizeY,
             entry->data_quad.rot);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+            .pos   = entry->data_quad.pos,
+            .rot   = entry->data_quad.rot,
+            .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
+            .color = entry->data_quad.color,
+        };
         continue;
       }
       case DebugShapeType_SphereFill:
@@ -277,14 +275,13 @@ ecs_system_define(DebugShapeRenderSys) {
         if (UNLIKELY(radius < f32_epsilon)) {
           continue;
         }
-        const DrawMeshData data = {
+        const GeoBox bounds = geo_box_from_sphere(pos, radius);
+        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = pos,
             .rot   = entry->data_sphere.rot,
             .scale = geo_vector(radius, radius, radius),
             .color = entry->data_sphere.color,
         };
-        const GeoBox bounds = geo_box_from_sphere(pos, radius);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_CylinderFill:
@@ -300,14 +297,13 @@ ecs_system_define(DebugShapeRenderSys) {
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
         }
-        const DrawMeshData data = {
+        const GeoBox bounds = geo_box_from_cylinder(bottom, top, entry->data_cylinder.radius);
+        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
             .color = entry->data_cylinder.color,
         };
-        const GeoBox bounds = geo_box_from_cylinder(bottom, top, entry->data_cylinder.radius);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_ConeFill:
@@ -320,25 +316,23 @@ ecs_system_define(DebugShapeRenderSys) {
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
         }
-        const DrawMeshData data = {
+        const GeoBox bounds = geo_box_from_cone(bottom, top, entry->data_cone.radius);
+        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cone.radius, entry->data_cone.radius, dist},
             .color = entry->data_cone.color,
         };
-        const GeoBox bounds = geo_box_from_cone(bottom, top, entry->data_cone.radius);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_Line:
       case DebugShapeType_LineOverlay: {
-        const DrawLineData data = {
+        const GeoBox bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
+        *rend_draw_add_instance_t(draw, DrawLineData, SceneTags_Debug, bounds) = (DrawLineData){
             .positions[0] = entry->data_line.start,
             .positions[1] = entry->data_line.end,
             .color        = entry->data_line.color,
         };
-        const GeoBox bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_Count:

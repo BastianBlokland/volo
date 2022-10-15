@@ -180,7 +180,7 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
   UiRenderState* state = userCtx;
   switch (layer) {
   case UiLayer_Normal:
-    rend_draw_add_instance(state->draw, mem_var(data), SceneTags_None, (GeoBox){0});
+    *rend_draw_add_instance_t(state->draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = data;
     break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
@@ -502,7 +502,7 @@ ecs_system_define(UiRenderSys) {
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
     dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
-      rend_draw_add_instance(draw, mem_var(*glyph), SceneTags_None, (GeoBox){0});
+      *rend_draw_add_instance_t(draw, UiGlyphData, SceneTags_None, (GeoBox){0}) = *glyph;
     }
     dynarray_clear(&renderer->overlayGlyphs);
 
