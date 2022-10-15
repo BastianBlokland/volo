@@ -23,6 +23,7 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Background"),
       string_static("Geometry"),
       string_static("Vfx"),
+      string_static("Ui"),
       string_static("Debug"),
       string_static("Unit"),
       string_static("Selected"),

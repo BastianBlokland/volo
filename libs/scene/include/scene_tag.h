@@ -7,12 +7,13 @@ typedef enum {
   SceneTags_Background = 1 << 0,
   SceneTags_Geometry   = 1 << 1,
   SceneTags_Vfx        = 1 << 2,
-  SceneTags_Debug      = 1 << 3,
-  SceneTags_Unit       = 1 << 4,
-  SceneTags_Selected   = 1 << 5,
-  SceneTags_Damaged    = 1 << 6,
+  SceneTags_Ui         = 1 << 3,
+  SceneTags_Debug      = 1 << 4,
+  SceneTags_Unit       = 1 << 5,
+  SceneTags_Selected   = 1 << 6,
+  SceneTags_Damaged    = 1 << 7,
 
-  SceneTags_Count   = 7,
+  SceneTags_Count   = 8,
   SceneTags_Default = SceneTags_Geometry,
 } SceneTags;
 
