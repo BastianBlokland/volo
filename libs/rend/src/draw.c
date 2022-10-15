@@ -322,10 +322,10 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
-  rend_draw_ensure_storage(&draw->dataMem, data.size, rend_min_align);
-  intrinsic_memcpy(draw->dataMem.ptr, data.ptr, data.size);
-  draw->dataSize = (u32)data.size;
+Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
+  rend_draw_ensure_storage(&draw->dataMem, size, rend_min_align);
+  draw->dataSize = (u32)size;
+  return draw->dataMem;
 }
 
 void rend_draw_add_instance(

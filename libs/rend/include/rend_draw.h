@@ -56,7 +56,10 @@ void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
 /**
  * Set the 'per draw' data.
  */
-void rend_draw_set_data(RendDrawComp*, Mem data);
+#define rend_draw_set_data_t(_DRAW_, _TYPE_)                                                       \
+  ((_TYPE_*)rend_draw_set_data((_DRAW_), sizeof(_TYPE_)).ptr)
+
+Mem rend_draw_set_data(RendDrawComp*, const usize size);
 
 /**
  * Add a new instance to the given draw.

@@ -123,11 +123,10 @@ EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer) {
 }
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
-  const VfxParticleMetaData metaData = {
+  *rend_draw_set_data_t(draw, VfxParticleMetaData) = (VfxParticleMetaData){
       .atlasEntriesPerDim    = atlas->entriesPerDim,
       .invAtlasEntriesPerDim = 1.0f / atlas->entriesPerDim,
   };
-  rend_draw_set_data(draw, mem_var(metaData));
 }
 
 void vfx_particle_output(RendDrawComp* draw, const VfxParticle* particle) {

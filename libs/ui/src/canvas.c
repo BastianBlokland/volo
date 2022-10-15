@@ -507,8 +507,7 @@ ecs_system_define(UiRenderSys) {
     dynarray_clear(&renderer->overlayGlyphs);
 
     // Set the metadata.
-    const UiDrawMetaData meta = ui_draw_metadata(&renderState, font);
-    rend_draw_set_data(draw, mem_var(meta));
+    *rend_draw_set_data_t(draw, UiDrawMetaData) = ui_draw_metadata(&renderState, font);
   }
 }
 
