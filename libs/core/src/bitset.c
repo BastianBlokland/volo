@@ -91,7 +91,7 @@ void bitset_set(const BitSet bits, const usize idx) {
 }
 
 void bitset_set_all(const BitSet bits, const usize idx) {
-  diag_assert(idx < bitset_size(bits));
+  diag_assert(idx <= bitset_size(bits));
   const usize byteIdx = bits_to_bytes(idx);
 
   // Set all bytes before the last byte to all ones.
