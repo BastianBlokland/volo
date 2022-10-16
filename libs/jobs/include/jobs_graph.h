@@ -72,6 +72,12 @@ JobGraph* jobs_graph_create(Allocator*, String name, usize taskCapacity);
 void jobs_graph_destroy(JobGraph*);
 
 /**
+ * Clear all registered tasks from a JobGraph.
+ * Pre-condition: JobGraph is not running at the moment.
+ */
+void jobs_graph_clear(JobGraph*);
+
+/**
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.

@@ -292,6 +292,17 @@ void jobs_graph_destroy(JobGraph* graph) {
   alloc_free_t(graph->alloc, graph);
 }
 
+void jobs_graph_clear(JobGraph* graph) {
+  for (usize i = 0; i != graph->tasks.size; ++i) {
+    JobTask* task = dynarray_at_t(&graph->tasks, i, JobTask);
+    string_free(graph->alloc, task->name);
+  }
+  dynarray_clear(&graph->tasks);
+  dynarray_clear(&graph->parentCounts);
+  dynarray_clear(&graph->childSetHeads);
+  dynarray_clear(&graph->childLinks);
+}
+
 JobTaskId jobs_graph_add_task(
     JobGraph*            graph,
     const String         name,
