@@ -179,7 +179,7 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
  * Calculate the job span (longest serial path through the graph).
  * aka 'Critical-Path Length' / 'Computational Depth'.
  */
-usize jobs_graph_task_span(const JobGraph*);
+u32 jobs_graph_task_span(const JobGraph*);
 
 /**
  * Maximum theoretical speedup when using an infinite number of processors.

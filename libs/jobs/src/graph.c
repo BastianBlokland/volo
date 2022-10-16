@@ -206,7 +206,7 @@ static void jobs_graph_topologically_insert(
 /**
  * Calculate the longest (aka 'Critical') graph the graph.
  */
-static usize jobs_graph_longestpath(const JobGraph* graph) {
+static u32 jobs_graph_longestpath(const JobGraph* graph) {
   /**
    * First flatten the graph into a topologically sorted set of tasks, then starting from the leaves
    * start summing all the distances.
@@ -232,25 +232,25 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
 
   /**
    * Keep a distance per task in the graph.
-   * Initialize to 'sentinel_usize' when the task has a parent or 1 when its a root task.
+   * Initialize to 'sentinel_u32' when the task has a parent or 1 when its a root task.
    */
 
   // Note: Unfortunate heap memory usage, but current scratch memory budgets would be too limiting.
-  DynArray distances = dynarray_create_t(g_alloc_heap, usize, graph->tasks.size);
+  DynArray distances = dynarray_create_t(g_alloc_heap, u32, graph->tasks.size);
   dynarray_resize(&distances, graph->tasks.size);
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    usize* dist = dynarray_at_t(&distances, taskId, usize);
-    *dist       = jobs_graph_task_has_parent(graph, taskId) ? sentinel_usize : 1;
+    u32* dist = dynarray_at_t(&distances, taskId, u32);
+    *dist     = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u32 : 1;
   }
 
-  usize maxDist = 1;
+  u32 maxDist = 1;
   for (usize i = sortedTasks.size; i-- != 0;) {
     const JobTaskId taskId      = *dynarray_at_t(&sortedTasks, i, JobTaskId);
-    const usize     currentDist = *dynarray_at_t(&distances, taskId, usize);
+    const u32       currentDist = *dynarray_at_t(&distances, taskId, u32);
 
     if (!sentinel_check(currentDist)) {
       jobs_graph_for_task_child(graph, taskId, child) {
-        usize* childDist = dynarray_at_t(&distances, child.task, usize);
+        u32* childDist = dynarray_at_t(&distances, child.task, u32);
         if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
           *childDist = currentDist + 1;
         }
@@ -267,12 +267,12 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize taskCapacity) {
   JobGraph* graph = alloc_alloc_t(alloc, JobGraph);
   *graph          = (JobGraph){
-      .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
-      .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
-      .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
-      .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
-      .name          = string_dup(alloc, name),
-      .alloc         = alloc,
+               .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
+               .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
+               .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
+               .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
+               .name          = string_dup(alloc, name),
+               .alloc         = alloc,
   };
   return graph;
 }
@@ -406,7 +406,7 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph* graph, const JobTaskC
   return (JobTaskChildItr){.task = link.task, .next = link.next};
 }
 
-usize jobs_graph_task_span(const JobGraph* graph) { return jobs_graph_longestpath(graph); }
+u32 jobs_graph_task_span(const JobGraph* graph) { return jobs_graph_longestpath(graph); }
 
 f32 jobs_graph_task_parallelism(const JobGraph* graph) {
   return (f32)jobs_graph_task_count(graph) / (f32)jobs_graph_task_span(graph);
