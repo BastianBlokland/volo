@@ -79,7 +79,7 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
   itr->entity   = ((EcsEntityId*)chunkData) + loc.indexInChunk;
 
   EcsCompId compId = 0;
-  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+  for (u16 i = 0; i != itr->compCount; ++i, ++compId) {
     compId = ecs_comp_next(itr->mask, compId);
 
     if (UNLIKELY(!ecs_comp_has(archetype->mask, compId))) {
@@ -111,7 +111,7 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
   *dstEntity = *srcEntity;
 
   // Copy the component data.
-  for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
+  for (u16 compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
     const usize compSize = compSizes[compIdx];
 
     u8* dstChunkData = bits_ptr_offset(archetype->chunks[dstLoc.chunkIdx], compOffsets[compIdx]);
@@ -127,7 +127,7 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
-  const u32 compCount        = ecs_comp_mask_count(mask);
+  const u16 compCount        = ecs_comp_mask_count(mask);
   const u32 entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 

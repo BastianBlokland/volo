@@ -80,8 +80,8 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
  * Count the number of components in the mask.
  * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
-INLINE_HINT static u32 ecs_comp_mask_count(const BitSet mask) {
-  u32        result    = 0;
+INLINE_HINT static u16 ecs_comp_mask_count(const BitSet mask) {
+  u16        result    = 0;
   const u64* dwordsEnd = bits_ptr_offset(mask.ptr, mask.size);
   for (const u64* dword = mask.ptr; dword != dwordsEnd; ++dword) {
     result += intrinsic_popcnt_64(*dword);

@@ -12,7 +12,7 @@ static bool ecs_view_matches(const EcsView* view, BitSet mask) {
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
-usize ecs_view_comp_count(const EcsView* view) { return view->compCount; }
+u16 ecs_view_comp_count(const EcsView* view) { return view->compCount; }
 
 bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
@@ -46,7 +46,7 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
     return null;
   }
 
-  const u32            archIdx = itr->archetypeIdx;
+  const u16            archIdx = itr->archetypeIdx;
   const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
     return itr;
