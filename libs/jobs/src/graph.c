@@ -8,7 +8,7 @@
 #include "graph_internal.h"
 
 static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
-  return dynarray_at_t(&graph->childLinks, id, JobTaskLink);
+  return &dynarray_begin_t(&graph->childLinks, JobTaskLink)[id];
 }
 
 /**
@@ -239,18 +239,18 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
   DynArray distances = dynarray_create_t(g_alloc_heap, u32, graph->tasks.size);
   dynarray_resize(&distances, graph->tasks.size);
   for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
-    u32* dist = dynarray_at_t(&distances, taskId, u32);
+    u32* dist = &dynarray_begin_t(&distances, u32)[taskId];
     *dist     = jobs_graph_task_has_parent(graph, taskId) ? sentinel_u32 : 1;
   }
 
   u32 maxDist = 1;
   for (usize i = sortedTasks.size; i-- != 0;) {
-    const JobTaskId taskId      = *dynarray_at_t(&sortedTasks, i, JobTaskId);
-    const u32       currentDist = *dynarray_at_t(&distances, taskId, u32);
+    const JobTaskId taskId      = dynarray_begin_t(&sortedTasks, JobTaskId)[i];
+    const u32       currentDist = dynarray_begin_t(&distances, u32)[taskId];
 
     if (!sentinel_check(currentDist)) {
       jobs_graph_for_task_child(graph, taskId, child) {
-        u32* childDist = dynarray_at_t(&distances, child.task, u32);
+        u32* childDist = &dynarray_begin_t(&distances, u32)[child.task];
         if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
           *childDist = currentDist + 1;
         }
@@ -326,24 +326,31 @@ JobTaskId jobs_graph_add_task(
 
 void jobs_graph_task_depend(JobGraph* graph, const JobTaskId parent, const JobTaskId child) {
   diag_assert(parent != child);
+  diag_assert(parent < graph->tasks.size);
+  diag_assert(child < graph->tasks.size);
 
   // Increment the parent count of the child.
-  ++(*dynarray_at_t(&graph->parentCounts, child, u32));
+  ++dynarray_begin_t(&graph->parentCounts, u32)[child];
 
   // Add the child to the 'childSet' of the parent.
-  JobTaskLinkId* parentChildSetHead = dynarray_at_t(&graph->childSetHeads, parent, JobTaskLinkId);
+  JobTaskLinkId* parentChildSetHead =
+      &dynarray_begin_t(&graph->childSetHeads, JobTaskLinkId)[parent];
+
   jobs_graph_add_task_child_link(graph, child, parentChildSetHead);
 }
 
 bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child) {
   diag_assert(parent != child);
+  diag_assert(parent < graph->tasks.size);
+  diag_assert(child < graph->tasks.size);
 
   // Try to remove the child from the 'childSet' of the parent.
-  JobTaskLinkId* parentChildSetHead = dynarray_at_t(&graph->childSetHeads, parent, JobTaskLinkId);
+  JobTaskLinkId* parentChildSetHead =
+      &dynarray_begin_t(&graph->childSetHeads, JobTaskLinkId)[parent];
   if (jobs_graph_remove_task_child_link(graph, child, parentChildSetHead)) {
 
     // Decrement the parent count of the child.
-    --(*dynarray_at_t(&graph->parentCounts, child, u32));
+    --dynarray_begin_t(&graph->parentCounts, u32)[child];
 
     return true;
   }
