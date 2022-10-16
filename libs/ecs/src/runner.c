@@ -23,7 +23,7 @@
 #define graph_meta_task_count 1
 
 /**
- * Amount of iterations to use to find the 'optimal' system order  (with shortest span).
+ * Amount of iterations to use to find the 'optimal' system order (with shortest span).
  */
 #define graph_optimization_itrs 100
 
@@ -140,11 +140,13 @@ static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const 
   /**
    * Check if two systems have conflicting views meaning they cannot be run in parallel.
    */
+  const EcsView* viewStorage = ecs_world_view_storage_internal(world);
   dynarray_for_t((DynArray*)&a->viewIds, EcsViewId, aViewId) {
-    EcsView* aView = ecs_world_view(world, *aViewId);
+    const EcsView* aView = &viewStorage[*aViewId];
 
     dynarray_for_t((DynArray*)&b->viewIds, EcsViewId, bViewId) {
-      if (ecs_view_conflict(aView, ecs_world_view(world, *bViewId))) {
+      const EcsView* bView = &viewStorage[*bViewId];
+      if (ecs_view_conflict(aView, bView)) {
         return true;
       }
     }
