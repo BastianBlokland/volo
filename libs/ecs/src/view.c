@@ -118,7 +118,7 @@ void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
 u32 ecs_view_chunks(const EcsView* view) {
   u32 totalChunks = 0;
   dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
-    totalChunks += ecs_storage_archetype_chunks(view->storage, *trackedArchetype);
+    totalChunks += ecs_storage_archetype_chunks_non_empty(view->storage, *trackedArchetype);
   }
   return totalChunks;
 }
