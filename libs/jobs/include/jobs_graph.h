@@ -72,6 +72,12 @@ JobGraph* jobs_graph_create(Allocator*, String name, usize taskCapacity);
 void jobs_graph_destroy(JobGraph*);
 
 /**
+ * Clear all registered tasks from a JobGraph.
+ * Pre-condition: JobGraph is not running at the moment.
+ */
+void jobs_graph_clear(JobGraph*);
+
+/**
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
@@ -173,7 +179,7 @@ JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
  * Calculate the job span (longest serial path through the graph).
  * aka 'Critical-Path Length' / 'Computational Depth'.
  */
-usize jobs_graph_task_span(const JobGraph*);
+u32 jobs_graph_task_span(const JobGraph*);
 
 /**
  * Maximum theoretical speedup when using an infinite number of processors.

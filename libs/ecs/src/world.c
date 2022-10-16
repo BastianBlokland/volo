@@ -225,8 +225,9 @@ EcsView* ecs_world_view(EcsWorld* world, const EcsViewId view) {
       "System {} has not declared access to view {}",
       fmt_text(ecs_def_system_name(world->def, g_ecsRunningSystemId)),
       fmt_text(ecs_def_view_name(world->def, view)));
+  diag_assert_msg(view < world->views.size, "Invalid view id");
 
-  return dynarray_at_t(&world->views, view, EcsView);
+  return &dynarray_begin_t(&world->views, EcsView)[view];
 }
 
 EcsEntityId ecs_world_entity_create(EcsWorld* world) {
@@ -330,6 +331,10 @@ void ecs_world_flush(EcsWorld* world) {
   diag_assert(!ecs_world_busy(world));
 
   ecs_world_flush_internal(world);
+}
+
+const EcsView* ecs_world_view_storage_internal(const EcsWorld* world) {
+  return dynarray_begin_t(&world->views, EcsView);
 }
 
 void ecs_world_busy_set(EcsWorld* world) {
