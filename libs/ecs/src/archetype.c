@@ -44,7 +44,7 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
-static usize ecs_archetype_chunks_non_empty(EcsArchetype* archetype) {
+static u32 ecs_archetype_chunks_non_empty(EcsArchetype* archetype) {
   return (archetype->entityCount + archetype->entitiesPerChunk - 1) / archetype->entitiesPerChunk;
 }
 
@@ -215,7 +215,7 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
   }
 
   // No more entries in the current chunk; jump to the next chunk.
-  const usize chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
+  const u32 chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
   if (++itr->chunkIdx >= chunksWithEntities) {
     itr->chunkIdx = u32_max;
     return false; // Reached the end of the chunks with entities in them.
