@@ -12,8 +12,8 @@ typedef struct sEcsIterator EcsIterator;
 struct sEcsIterator {
   u16                compCount;
   u16                archetypeIdx;
-  u16                chunksToSkip;         // Skip this amount of chunks, used for partial iter.
-  u16                chunksLimitRemaining; // Max chunks to process, used for partial iter.
+  u16                chunksToSkip;         // Skip this amount of chunks, used for stepped iter.
+  u16                chunksLimitRemaining; // Max chunks to process, used for stepped iter.
   u32                chunkIdx, chunkRemaining;
   BitSet             mask;
   void*              context;

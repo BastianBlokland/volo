@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_def.h"
 
 #include "storage_internal.h"
@@ -31,6 +32,30 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   const BitSet mask = ecs_view_mask(view, EcsViewMask_AccessRead);
   EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
   itr->context      = view;
+  return itr;
+}
+
+EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u32 steps, const u32 index) {
+  diag_assert_msg(steps, "Stepped iterator needs at least 1 step");
+  diag_assert_msg(
+      index < steps,
+      "Index {} is invalid for stepped iterator with {} steps",
+      fmt_int(index),
+      fmt_int(steps));
+
+  EcsIterator* itr           = ecs_view_itr_create(mem, view);
+  const u32    totalChunks   = ecs_view_chunks(view);
+  const u32    chunksPerStep = math_max(1, totalChunks / steps);
+  const u32    chunksToSkip  = index * chunksPerStep;
+
+  diag_assert(chunksPerStep <= u16_max);
+  diag_assert(chunksToSkip <= u16_max);
+
+  itr->chunksToSkip = (u16)chunksToSkip;
+  if (index != (steps - 1)) {
+    // Not the last step; limit the amount of chunks. On the last step process all remaining chunks.
+    itr->chunksLimitRemaining = (u16)chunksPerStep;
+  }
   return itr;
 }
 
