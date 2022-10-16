@@ -122,3 +122,20 @@ INLINE_HINT static bool ecs_comp_mask_any_of(const BitSet mask, const BitSet oth
   }
   return false;
 }
+
+/**
+ * Test if all of the components in the other mask also included in this mask.
+ * Pre-condition: mask.size == other.size
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
+ */
+INLINE_HINT static bool ecs_comp_mask_all_of(const BitSet mask, const BitSet other) {
+  const u64* dwordsMask    = mask.ptr;
+  const u64* dwordsMaskEnd = bits_ptr_offset(mask.ptr, mask.size);
+  const u64* dwordsOther   = other.ptr;
+  for (; dwordsMask != dwordsMaskEnd; ++dwordsMask, ++dwordsOther) {
+    if ((*dwordsMask & *dwordsOther) != *dwordsOther) {
+      return false;
+    }
+  }
+  return true;
+}

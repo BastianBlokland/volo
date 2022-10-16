@@ -8,7 +8,7 @@
 #include "view_internal.h"
 
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
-  return bitset_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
+  return ecs_comp_mask_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
