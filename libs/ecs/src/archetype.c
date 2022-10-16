@@ -225,7 +225,7 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
       itr->chunkIdx = u32_max;
       return false; // Skipped all remaining (non empty) chunks.
     }
-    itr->chunkIdx += itr->chunksToSkip;
+    itr->chunkIdx += itr->chunksToSkip + 1;
     itr->chunksToSkip = 0;
   } else {
     // Test if there's any chunks remaining.
