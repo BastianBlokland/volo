@@ -208,7 +208,7 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
   if (LIKELY(itr->chunkRemaining)) {
     ++itr->entity;
     --itr->chunkRemaining;
-    for (usize i = 0; i != itr->compCount; ++i) {
+    for (u16 i = 0; i != itr->compCount; ++i) {
       itr->comps[i].ptr = bits_ptr_offset(itr->comps[i].ptr, itr->comps[i].size);
     }
     return true;
