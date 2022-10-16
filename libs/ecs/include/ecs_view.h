@@ -95,3 +95,8 @@ const void* ecs_view_read(const EcsIterator*, EcsCompId);
 #define ecs_view_write_t(_ITR_, _TYPE_) ((_TYPE_*)ecs_view_write((_ITR_), ecs_comp_id(_TYPE_)))
 
 void* ecs_view_write(const EcsIterator*, EcsCompId);
+
+/**
+ * Amount of archetype chunks in this view.
+ */
+u32 ecs_view_chunks(const EcsView*);

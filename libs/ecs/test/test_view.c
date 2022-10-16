@@ -59,6 +59,8 @@ spec(view) {
 
     view = ecs_world_view_t(world, ReadAMaybeC);
     check_eq_int(ecs_view_comp_count(view), 2);
+
+    check_eq_int(ecs_view_chunks(view), 0);
   }
 
   it("can check if an entity is contained in the view") {
@@ -82,6 +84,7 @@ spec(view) {
     check(ecs_view_contains(view, entity1));
     check(!ecs_view_contains(view, entity2));
     check(ecs_view_contains(view, entity3));
+    check_eq_int(ecs_view_chunks(view), 2);
   }
 
   it("can read component values on entities") {
@@ -313,6 +316,8 @@ spec(view) {
 
     EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
     check(!ecs_view_walk(itr));
+
+    check_eq_int(ecs_view_chunks(ecs_world_view_t(world, ReadAB)), 1); // Archetype has 1 chunk.
 
     dynarray_destroy(&entities);
   }

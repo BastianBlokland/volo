@@ -111,6 +111,14 @@ void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
   return ecs_iterator_access(itr, comp).ptr;
 }
 
+u32 ecs_view_chunks(const EcsView* view) {
+  u32 totalChunks = 0;
+  dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
+    totalChunks += ecs_storage_archetype_chunks(view->storage, *trackedArchetype);
+  }
+  return totalChunks;
+}
+
 EcsView ecs_view_create(
     Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
