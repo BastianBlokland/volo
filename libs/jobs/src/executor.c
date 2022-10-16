@@ -16,7 +16,7 @@
 // Note: the main-thread is also a worker, so worker count of 1 won't start any additional threads.
 #define worker_reserved_core_count 1
 #define worker_min_count 1
-#define worker_max_count 64
+#define worker_max_count 4
 
 // Maximum amount of tasks that can depend on a single task.
 #define job_max_task_children 512
