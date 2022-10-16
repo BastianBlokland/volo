@@ -12,6 +12,7 @@ typedef struct sEcsIterator EcsIterator;
 struct sEcsIterator {
   u16                compCount;
   u16                archetypeIdx;
+  u16                chunksLimitRemaining; // Limit on the amount of chunks to process.
   u32                chunkIdx, chunkRemaining;
   BitSet             mask;
   void*              context;

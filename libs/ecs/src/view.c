@@ -52,6 +52,10 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
     return itr;
   }
 
+  if (!itr->chunksLimitRemaining) {
+    return null; // No more chunks allowed to process.
+  }
+
   ++itr->archetypeIdx;
   return ecs_view_walk(itr);
 }
