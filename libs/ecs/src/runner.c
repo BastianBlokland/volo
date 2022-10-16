@@ -23,10 +23,9 @@
 #define graph_meta_task_count 1
 
 /**
- * Use a random relative-order for systems that have specified the same order (or have not specified
- * an order at all). This aids in finding bugs where we implicitly rely on system order.
+ * Amount of iterations to use to find the 'optimal' system order  (with shortest span).
  */
-#define graph_system_shuffle
+#define graph_optimization_itrs 100
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -58,8 +57,8 @@ struct sEcsRunner {
   Mem        jobMem;
 };
 
-THREAD_LOCAL bool        g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool             g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
@@ -153,18 +152,6 @@ static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const 
   return false;
 }
 
-static void graph_reduce(const EcsRunner* runner) {
-  MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
-
-  const usize depsRemoved = jobs_graph_reduce_dependencies(runner->graph);
-
-  MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
-  log_d(
-      "Ecs system-graph reduced",
-      log_param("deps-removed", fmt_int(depsRemoved)),
-      log_param("duration", fmt_duration(duration)));
-}
-
 static void graph_dump_dot(const EcsRunner* runner) {
   const String fileName =
       fmt_write_scratch("{}_ecs_graph.dot", fmt_text(path_stem(g_path_executable)));
@@ -181,26 +168,15 @@ static void graph_dump_dot(const EcsRunner* runner) {
 }
 
 static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
-  const EcsDef* def         = ecs_world_def(runner->world);
-  const usize   systemCount = def->systems.size;
-
-  // Add all systems.
-  for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
+  const EcsDef* def = ecs_world_def(runner->world);
+  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
     output[sysId]        = (RunnerSystemEntry){
-        .id    = sysId,
-        .order = sysDef->order,
-        .def   = sysDef,
+               .id    = sysId,
+               .order = sysDef->order,
+               .def   = sysDef,
     };
   }
-
-#if defined(graph_system_shuffle)
-  // Shuffle the systems to detect bugs where we are implicitly relying on the system order.
-  shuffle_fisheryates_t(g_rng, output, output + systemCount, RunnerSystemEntry);
-#endif
-
-  // Sort the systems according to the requested order.
-  sort_quicksort_t(output, output + systemCount, RunnerSystemEntry, compare_system_entry);
 }
 
 static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {
@@ -225,13 +201,69 @@ static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems)
   }
 }
 
+static void runner_sys_cpy(RunnerSystemEntry* dst, RunnerSystemEntry* src, const usize count) {
+  const usize memSize = sizeof(RunnerSystemEntry) * count;
+  mem_cpy(mem_create(dst, memSize), mem_create(src, memSize));
+}
+
+static void runner_compute_graph(EcsRunner* runner, const u32 systemCount) {
+  const u32          taskCount   = systemCount + graph_meta_task_count;
+  RunnerSystemEntry* systems     = alloc_array_t(runner->alloc, RunnerSystemEntry, systemCount * 2);
+  RunnerSystemEntry* bestSystems = systems + systemCount;
+  u32                bestSpan    = u32_max; // Lower is better.
+
+  const TimeSteady startTime = time_steady_clock();
+  log_d("Ecs computing system-graph", log_param("iterations", fmt_int(graph_optimization_itrs)));
+
+  /**
+   * Finding an 'optimal' system order (with shortest span) by brute force creating a random system
+   * orders and computing their span.
+   * TODO: Think of a clever analytical solution :-)
+   */
+  runner_collect_systems(runner, systems);
+  for (u32 i = 0; i != graph_optimization_itrs; ++i) {
+    // Compute a new system order by shuffling and then sorting to respect the constraints.
+    shuffle_fisheryates_t(g_rng, systems, systems + systemCount, RunnerSystemEntry);
+    sort_bubblesort_t(systems, systems + systemCount, RunnerSystemEntry, compare_system_entry);
+
+    // Fill the graph with tasks for each system.
+    jobs_graph_clear(runner->graph);
+    runner_populate_graph(runner, systems);
+
+    // Check if the new order is better then our previous best.
+    const u32 span = jobs_graph_task_span(runner->graph);
+    if (span < bestSpan) {
+      runner_sys_cpy(bestSystems, systems, systemCount);
+      bestSpan = span;
+    }
+  }
+
+  // Fill the graph one more time with the best system order we found.
+  jobs_graph_clear(runner->graph);
+  runner_populate_graph(runner, bestSystems);
+
+  // Remove unecessary dependencies in the graph.
+  jobs_graph_reduce_dependencies(runner->graph);
+
+  const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
+  log_i(
+      "Ecs system-graph computed",
+      log_param("tasks", fmt_int(taskCount)),
+      log_param("task-span", fmt_int(bestSpan)),
+      log_param("parallelism", fmt_float((f32)taskCount / (f32)bestSpan)),
+      log_param("duration", fmt_duration(duration)));
+
+  alloc_free_array_t(runner->alloc, systems, systemCount * 2);
+}
+
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def         = ecs_world_def(world);
-  const usize   systemCount = def->systems.size;
-  const usize   taskCount   = systemCount + graph_meta_task_count;
+  const u32     systemCount = (u32)def->systems.size;
+  const u32     taskCount   = systemCount + graph_meta_task_count;
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
-  *runner           = (EcsRunner){
+
+  *runner = (EcsRunner){
       .world            = world,
       .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
       .flags            = flags,
@@ -239,21 +271,10 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .alloc            = alloc,
   };
 
-  RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);
-  runner_collect_systems(runner, systems);
-  runner_populate_graph(runner, systems);
-  alloc_free_array_t(alloc, systems, systemCount);
-
+  runner_compute_graph(runner, systemCount);
   diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
 
-  log_i(
-      "Ecs system-graph created",
-      log_param("tasks", fmt_int(taskCount)),
-      log_param("span", fmt_int(jobs_graph_task_span(runner->graph))),
-      log_param("parallelism", fmt_float(jobs_graph_task_parallelism(runner->graph))));
-
-  graph_reduce(runner);
-
+  // Dump a 'Graph Description Language' aka GraphViz file of the graph to disk if requested.
   if (flags & EcsRunnerFlags_DumpGraphDot) {
     graph_dump_dot(runner);
   }
