@@ -214,11 +214,26 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
     return true;
   }
 
-  // No more entries in the current chunk; jump to the next chunk.
   const u32 chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
-  if (++itr->chunkIdx >= chunksWithEntities) {
-    itr->chunkIdx = u32_max;
-    return false; // Reached the end of the chunks with entities in them.
+  const u32 chunksRemaining    = chunksWithEntities ? (chunksWithEntities - 1 - itr->chunkIdx) : 0;
+
+  // Advance the chunk index, potentially skipping chunks if requested.
+  if (itr->chunksToSkip) {
+    // Test if all the remaining chunks would be skipped.
+    if (itr->chunksToSkip >= chunksRemaining) {
+      itr->chunksToSkip -= chunksRemaining;
+      itr->chunkIdx = u32_max;
+      return false; // Skipped all remaining (non empty) chunks.
+    }
+    itr->chunkIdx += itr->chunksToSkip;
+    itr->chunksToSkip = 0;
+  } else {
+    // Test if there's any chunks remaining.
+    if (!chunksRemaining) {
+      itr->chunkIdx = u32_max;
+      return false; // Reached the end of the (non empty) chunks.
+    }
+    ++itr->chunkIdx;
   }
 
   // Test if we're still allowed to process more chunks.
@@ -227,10 +242,12 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
     return false; // No more chunks allowed to process.
   }
 
+  // Set 'chunkRemaining' to the amount of entities in the current chunk.
   const bool isLastChunk = itr->chunkIdx == (chunksWithEntities - 1);
   itr->chunkRemaining = isLastChunk ? ((archetype->entityCount - 1) % archetype->entitiesPerChunk)
                                     : (archetype->entitiesPerChunk - 1);
 
+  // Initialize the component pointers of the iterator.
   ecs_archetype_itr_init_pointers(archetype, itr, (EcsArchetypeLoc){.chunkIdx = itr->chunkIdx});
   return true;
 }
