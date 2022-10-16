@@ -58,6 +58,7 @@ INLINE_HINT static u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
  * Compute the next component identifier in the given mask.
  * Pre-condition: ecs_comp_has(mask, id)
  * Pre-condition: id is not the last component in the mask.
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
 INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id) {
   const u64* dwords   = mask.ptr;
@@ -76,7 +77,22 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
 }
 
 /**
+ * Count the number of components in the mask.
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
+ */
+INLINE_HINT static u32 ecs_comp_mask_count(const BitSet mask) {
+  u32        result    = 0;
+  const u64* dwordsEnd = bits_ptr_offset(mask.ptr, mask.size);
+  for (const u64* dword = mask.ptr; dword != dwordsEnd; ++dword) {
+    result += intrinsic_popcnt_64(*dword);
+  }
+  return result;
+}
+
+/**
  * Test if two component masks are equal.
+ * Pre-condition: mask.size == other.size
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
 INLINE_HINT static EcsCompId ecs_comp_mask_eq(const BitSet a, const BitSet b) {
   const u64* dwordsA    = a.ptr;
@@ -91,13 +107,18 @@ INLINE_HINT static EcsCompId ecs_comp_mask_eq(const BitSet a, const BitSet b) {
 }
 
 /**
- * Count the number of components in the mask.
+ * Test if any of the components in the other mask also included in this mask.
+ * Pre-condition: mask.size == other.size
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
-INLINE_HINT static u32 ecs_comp_mask_count(const BitSet mask) {
-  u32        result    = 0;
-  const u64* dwordsEnd = bits_ptr_offset(mask.ptr, mask.size);
-  for (const u64* dword = mask.ptr; dword != dwordsEnd; ++dword) {
-    result += intrinsic_popcnt_64(*dword);
+INLINE_HINT static bool ecs_comp_mask_any_of(const BitSet mask, const BitSet other) {
+  const u64* dwordsMask    = mask.ptr;
+  const u64* dwordsMaskEnd = bits_ptr_offset(mask.ptr, mask.size);
+  const u64* dwordsOther   = other.ptr;
+  for (; dwordsMask != dwordsMaskEnd; ++dwordsMask, ++dwordsOther) {
+    if (*dwordsMask & *dwordsOther) {
+      return true;
+    }
   }
-  return result;
+  return false;
 }

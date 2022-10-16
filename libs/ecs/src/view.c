@@ -9,7 +9,7 @@
 
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return bitset_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
-         !bitset_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
+         !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
 usize ecs_view_comp_count(const EcsView* view) { return view->compCount; }
@@ -158,20 +158,20 @@ bool ecs_view_conflict(const EcsView* a, const EcsView* b) {
   const BitSet aRequired = ecs_view_mask(a, EcsViewMask_FilterWith);
   const BitSet bRequired = ecs_view_mask(b, EcsViewMask_FilterWith);
 
-  if (bitset_any_of(aRequired, ecs_view_mask(b, EcsViewMask_FilterWithout))) {
+  if (ecs_comp_mask_any_of(aRequired, ecs_view_mask(b, EcsViewMask_FilterWithout))) {
     return false; // 'A' requires something that 'B' excludes; no conflict.
   }
-  if (bitset_any_of(bRequired, ecs_view_mask(a, EcsViewMask_FilterWithout))) {
+  if (ecs_comp_mask_any_of(bRequired, ecs_view_mask(a, EcsViewMask_FilterWithout))) {
     return false; // 'B' requires something that 'A' excludes; no conflict.
   }
 
   const BitSet aReads  = ecs_view_mask(a, EcsViewMask_AccessRead);
   const BitSet aWrites = ecs_view_mask(a, EcsViewMask_AccessWrite);
 
-  if (bitset_any_of(aReads, ecs_view_mask(b, EcsViewMask_AccessWrite))) {
+  if (ecs_comp_mask_any_of(aReads, ecs_view_mask(b, EcsViewMask_AccessWrite))) {
     return true; // 'A' reads something that 'B' writes; conflict.
   }
-  if (bitset_any_of(aWrites, ecs_view_mask(b, EcsViewMask_AccessRead))) {
+  if (ecs_comp_mask_any_of(aWrites, ecs_view_mask(b, EcsViewMask_AccessRead))) {
     return true; // 'A' writes something the 'B' reads; conflict.
   }
 
