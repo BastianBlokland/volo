@@ -16,7 +16,7 @@ EcsIterator* ecs_iterator_create_with_count(const Mem mem, const BitSet mask, co
       .compCount            = compCount,
       .archetypeIdx         = 0,
       .chunksToSkip         = 0,
-      .chunksLimitRemaining = u16_max,
+      .chunksLimitRemaining = sentinel_u16,
       .chunkIdx             = u32_max,
       .chunkRemaining       = 0,
       .mask                 = mask,
