@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "ecs_def.h"
 #include "ecs_world.h"
 
@@ -229,6 +230,10 @@ spec(view) {
 
     ecs_world_flush(world);
 
+    // TODO: This test expects (and asserts) a specific order of iteration over archetypes which is
+    // true for the current implementation but not a constraint we want to put on the
+    // implementation.
+
     EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
@@ -323,9 +328,8 @@ spec(view) {
     dynarray_destroy(&entities);
   }
 
-  it("can iterate over entities in multiple steps") {
+  it("can iterate over all entities in a single archetype using a stepped iterator") {
     static const usize g_entitiesToCreate = 2000;
-    static const usize g_steps            = 42;
     DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
@@ -340,44 +344,19 @@ spec(view) {
     EcsView* view = ecs_world_view_t(world, ReadAB);
     check(ecs_view_chunks(view) > 1);
 
-    usize count = 0;
-    for (u32 step = 0; step != g_steps; ++step) {
-      for (EcsIterator* itr = ecs_view_itr_step(view, g_steps, step); ecs_view_walk(itr); ++count) {
-        check(ecs_view_entity(itr) == *dynarray_at_t(&entities, count, EcsEntityId));
-        check(ecs_view_contains(view, ecs_view_entity(itr)));
-        check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, count);
-        check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
+    static const u32 g_steps[] = {1, 2, 3, 4, 5, 642, 1337};
+    array_for_t(g_steps, u32, stepCount) {
+      usize cnt = 0;
+      for (u32 i = 0; i != *stepCount; ++i) {
+        for (EcsIterator* itr = ecs_view_itr_step(view, *stepCount, i); ecs_view_walk(itr); ++cnt) {
+          check(ecs_view_entity(itr) == *dynarray_at_t(&entities, cnt, EcsEntityId));
+          check(ecs_view_contains(view, ecs_view_entity(itr)));
+          check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, cnt);
+          check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
+        }
       }
+      check_eq_int(cnt, g_entitiesToCreate);
     }
-    check_eq_int(count, g_entitiesToCreate);
-
-    dynarray_destroy(&entities);
-  }
-
-  it("can iterate over all entities with a 1 step stepped iterator") {
-    static const usize g_entitiesToCreate = 2000;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
-
-    for (usize i = 0; i != g_entitiesToCreate; ++i) {
-      const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
-      ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
-      *dynarray_push_t(&entities, EcsEntityId) = newEntity;
-    }
-
-    ecs_world_flush(world);
-
-    EcsView* view = ecs_world_view_t(world, ReadAB);
-    check(ecs_view_chunks(view) > 1);
-
-    usize count = 0;
-    for (EcsIterator* itr = ecs_view_itr_step(view, 1, 0); ecs_view_walk(itr); ++count) {
-      check(ecs_view_entity(itr) == *dynarray_at_t(&entities, count, EcsEntityId));
-      check(ecs_view_contains(view, ecs_view_entity(itr)));
-      check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, count);
-      check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
-    }
-    check_eq_int(count, g_entitiesToCreate);
 
     dynarray_destroy(&entities);
   }
