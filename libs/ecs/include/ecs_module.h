@@ -242,6 +242,34 @@ typedef struct {
 #define ecs_order(_SYSTEM_, _ORDER_)                                                               \
   ecs_module_update_order(_builder, ecs_system_id(_SYSTEM_), (_ORDER_))
 
+/**
+ * Specify the parallel count for the given system.
+ * The given system will be executed '_PARALLEL_COUNT_' times each tick.
+ *
+ * NOTE: 'parCount' and 'parIndex' will be provided as arguments to the system, and can be used to
+ * execute different work for each invocation.
+ *
+ * NOTE: Care must be taken that the system supports running in parallel. This means different
+ * invocations of the same system should not write to the same component on the same entity, or read
+ * a component that is written by another invocation.
+ * TODO: This invariant should be enforced with diagnostic tracking in debug builds.
+ *
+ * Example of using 'parCount' and 'parIndex' with a stepped iterator, each invocation will execute
+ * on a different subset of the entities in the 'ReadVeloWritePosView' view.
+ * ```
+ * ecs_system_define(ApplyVelocitySys) {
+ *   EcsView* view = ecs_world_view_t(world, ReadVeloWritePosView);
+ *   for (EcsIterator* itr = ecs_view_itr_step(view, parCount, parIndex); ecs_view_walk(itr);) {
+ *     const Velocity* velo = ecs_view_read_t(itr, Velocity);
+ *     Position*       pos  = ecs_view_write_t(itr, Position);
+ *     ...
+ *   }
+ * }
+ * ```
+ */
+#define ecs_parallel(_SYSTEM_, _PARALLEL_COUNT_)                                                   \
+  ecs_module_update_parallel(_builder, ecs_system_id(_SYSTEM_), (_PARALLEL_COUNT_))
+
 // clang-format on
 
 /**
@@ -260,6 +288,7 @@ EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, EcsCompId*, const EcsCom
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, EcsViewId*, const EcsViewConfig*);
 EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const EcsSystemConfig*);
 void        ecs_module_update_order(EcsModuleBuilder*, EcsSystemId, i32 order);
+void        ecs_module_update_parallel(EcsModuleBuilder*, EcsSystemId, u32 parallelCount);
 
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);

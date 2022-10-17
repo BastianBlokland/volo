@@ -82,6 +82,13 @@ String ecs_def_system_name(const EcsDef*, EcsSystemId);
  */
 i32 ecs_def_system_order(const EcsDef*, EcsSystemId);
 
+/**
+ * Retrieve the configured parallel count of a system.
+ *
+ * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
+ */
+u32 ecs_def_system_parallel(const EcsDef*, EcsSystemId);
+
 typedef struct {
   EcsViewId* values;
   usize      count;

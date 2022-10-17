@@ -50,6 +50,8 @@ ecs_module_init(def_test_module) {
   ecs_register_system(EmptySys);
   ecs_register_system(UpdateSys, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
   ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
+
+  ecs_parallel(UpdateSys, 42);
 }
 
 spec(def) {
@@ -92,6 +94,15 @@ spec(def) {
   it("can retrieve the name of registered systems") {
     check_eq_string(ecs_def_system_name(def, ecs_system_id(UpdateSys)), string_lit("UpdateSys"));
     check_eq_string(ecs_def_system_name(def, ecs_system_id(CleanupSys)), string_lit("CleanupSys"));
+  }
+
+  it("can retrieve the default parallel count of a system") {
+    check_eq_int(ecs_def_system_parallel(def, ecs_system_id(EmptySys)), 1);
+    check_eq_int(ecs_def_system_parallel(def, ecs_system_id(CleanupSys)), 1);
+  }
+
+  it("can retrieve the overriden parallel count of a system") {
+    check_eq_int(ecs_def_system_parallel(def, ecs_system_id(UpdateSys)), 42);
   }
 
   it("can retrieve the views of a registered system") {
