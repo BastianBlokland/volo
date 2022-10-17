@@ -237,10 +237,11 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
   }
 
   // Test if we're still allowed to process more chunks.
-  if (!itr->chunksLimitRemaining--) {
+  if (!itr->chunksLimitRemaining) {
     itr->chunkIdx = u32_max;
     return false; // No more chunks allowed to process.
   }
+  --itr->chunksLimitRemaining; // 'Consume' one chunk.
 
   // Set 'chunkRemaining' to the amount of entities in the current chunk.
   const bool isLastChunk = itr->chunkIdx == (chunksWithEntities - 1);
