@@ -463,7 +463,7 @@ ecs_system_define(DebugAnimationDrawSys) {
   for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
     const DebugAnimSubject subject = debug_anim_subject(world, *e);
     if (!subject.valid) {
-      return;
+      continue;
     }
 
     GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
