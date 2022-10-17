@@ -8,6 +8,10 @@
 #include "storage_internal.h"
 #include "view_internal.h"
 
+MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
+  return iterator->chunksToSkip || !sentinel_check(iterator->chunksLimitRemaining);
+}
+
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return ecs_comp_mask_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
@@ -60,6 +64,8 @@ EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u32 steps, c
 }
 
 EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be reset");
+
   ecs_iterator_reset(itr);
   return itr;
 }
@@ -86,6 +92,8 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
 }
 
 EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
+
   EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -99,6 +107,8 @@ EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
 }
 
 EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
+
   EcsView* view = itr->context;
   if (!ecs_view_contains(view, entity)) {
     return null;

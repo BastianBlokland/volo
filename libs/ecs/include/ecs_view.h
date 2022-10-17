@@ -27,6 +27,7 @@ bool ecs_view_contains(const EcsView*, EcsEntityId);
 /**
  * Create a new stepped iterator for the given view.
  * '_STEPS_' is the amount of steps a full iteration should take and '_INDEX_' is the current step.
+ * NOTE: Stepped iterators cannot be reset or jumped to a specific entity, only be walked.
  * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
  * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
  */
@@ -58,7 +59,7 @@ bool ecs_view_contains(const EcsView*, EcsEntityId);
 
 EcsIterator* ecs_view_itr_create(Mem, EcsView*);
 EcsIterator* ecs_view_itr_step_create(Mem, EcsView*, u32 steps, u32 index);
-EcsIterator* ecs_view_itr_reset(EcsIterator*);
+EcsIterator* ecs_view_itr_reset(EcsIterator*); // Cannot be used with stepped iterators.
 
 /**
  * Advance the iterator to the next entity in the view.
@@ -71,12 +72,15 @@ EcsIterator* ecs_view_walk(EcsIterator*);
  * NOTE: Returns the same iterator pointer.
  *
  * Pre-condition: ecs_view_contains(view, entity)
+ * Pre-condition: iterator is not a stepped iterator.
  */
 EcsIterator* ecs_view_jump(EcsIterator*, EcsEntityId);
 
 /**
  * Jump to a specific entity in the view if the view contains the entity.
  * NOTE: Returns the same iterator pointer if the entity is contained in the view, otherwise null.
+ *
+ * Pre-condition: iterator is not a stepped iterator.
  */
 EcsIterator* ecs_view_maybe_jump(EcsIterator*, EcsEntityId);
 
