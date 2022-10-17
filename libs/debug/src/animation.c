@@ -1,3 +1,4 @@
+#include "core_bits.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_animation.h"
@@ -17,6 +18,7 @@ typedef enum {
   DebugAnimationFlags_DrawJointTransforms = 1 << 1,
   DebugAnimationFlags_DrawJointNames      = 1 << 2,
   DebugAnimationFlags_DrawSkinCounts      = 1 << 3,
+  DebugAnimationFlags_DrawAny             = bit_range_32(0, 4),
 } DebugAnimationFlags;
 
 ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
@@ -459,6 +461,10 @@ ecs_system_define(DebugAnimationDrawSys) {
   const DebugAnimationSettingsComp* set   = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
   DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
+
+  if (!(set->flags & DebugAnimationFlags_DrawAny)) {
+    return; // Nothing requested to be drawn.
+  }
 
   GeoMatrix jointMatrices[scene_skeleton_joints_max];
 
