@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynbitset.h"
 #include "ecs_def.h"
 #include "ecs_world.h"
 
@@ -359,6 +360,44 @@ spec(view) {
     }
 
     dynarray_destroy(&entities);
+  }
+
+  it("can iterate over entities from multiple archetypes using a stepped iterator") {
+    static const usize g_entitiesToCreate = 2000;
+    static const usize g_steps            = 42;
+
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      // NOTE: Add different components split the entities into three archetypes.
+      switch (i % 3) {
+      case 1:
+        ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+        break;
+      case 2:
+        ecs_world_add_t(world, newEntity, ViewCompC, .f1 = 42);
+        break;
+      }
+    }
+
+    ecs_world_flush(world);
+
+    EcsView* view = ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC);
+    check(ecs_view_chunks(view) > 1);
+
+    DynBitSet seenEntities = dynbitset_create(g_alloc_heap, g_entitiesToCreate);
+
+    usize count = 0;
+    for (u32 step = 0; step != g_steps; ++step) {
+      for (EcsIterator* itr = ecs_view_itr_step(view, g_steps, step); ecs_view_walk(itr); ++count) {
+        const EcsEntityId entity = ecs_view_entity(itr);
+        // Verify that we don't find the same entity twice.
+        check(!dynbitset_test(&seenEntities, ecs_entity_id_index(entity)));
+        dynbitset_set(&seenEntities, ecs_entity_id_index(entity));
+      }
+    }
+    check_eq_int(count, g_entitiesToCreate);
+    dynbitset_destroy(&seenEntities);
   }
 
   teardown() {
