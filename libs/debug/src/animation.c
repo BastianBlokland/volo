@@ -460,13 +460,14 @@ ecs_system_define(DebugAnimationDrawSys) {
   DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
 
+  GeoMatrix jointMatrices[scene_skeleton_joints_max];
+
   for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
     const DebugAnimSubject subject = debug_anim_subject(world, *e);
     if (!subject.valid) {
       continue;
     }
 
-    GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
     for (u32 i = 0; i != subject.skeleton->jointCount; ++i) {
       jointMatrices[i] = geo_matrix_mul(&subject.worldMat, &subject.skeleton->jointTransforms[i]);
     }
