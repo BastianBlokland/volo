@@ -238,7 +238,6 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
 
   // Test if we're still allowed to process more chunks.
   if (!itr->chunksLimitRemaining) {
-    itr->chunkIdx = u32_max;
     return false; // No more chunks allowed to process.
   }
   --itr->chunksLimitRemaining; // 'Consume' one chunk.
