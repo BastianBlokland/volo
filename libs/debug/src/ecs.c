@@ -455,7 +455,7 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
           .views         = ecs_def_system_views(def, id).values,
           .viewCount     = (u32)ecs_def_system_views(def, id).count,
           .parallelCount = ecs_def_system_parallel(def, id),
-          .duration      = stats.sysStats[id].avgDur,
+          .duration      = stats.sysStats[id].avgTotalDur,
       };
     }
   }
