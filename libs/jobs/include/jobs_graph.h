@@ -12,6 +12,15 @@ typedef struct sAllocator Allocator;
  */
 typedef u32 JobTaskId;
 
+/**
+ * Range of tasks, useful to refer to set of sequentially added tasks.
+ * NOTE: Does not say anything about the dependencies or execution order of the tasks, just that
+ * they've been added to the graph sequentially.
+ */
+typedef struct {
+  JobTaskId begin, end; // NOTE: End is exclusive.
+} JobTaskRange;
+
 typedef enum {
   JobTaskFlags_None = 0,
 
@@ -81,6 +90,7 @@ void jobs_graph_clear(JobGraph*);
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
+ * NOTE: Task id's are allocated linearly, sequential calls to add_task get sequential ids.
  *
  * Pre-condition: JobGraph is not running at the moment.
  * Pre-condition: ctx.size <= 32.
