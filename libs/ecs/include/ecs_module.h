@@ -288,7 +288,7 @@ EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, EcsCompId*, const EcsCom
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, EcsViewId*, const EcsViewConfig*);
 EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const EcsSystemConfig*);
 void        ecs_module_update_order(EcsModuleBuilder*, EcsSystemId, i32 order);
-void        ecs_module_update_parallel(EcsModuleBuilder*, EcsSystemId, u32 parallelCount);
+void        ecs_module_update_parallel(EcsModuleBuilder*, EcsSystemId, u16 parallelCount);
 
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);
