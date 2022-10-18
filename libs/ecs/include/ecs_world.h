@@ -152,7 +152,6 @@ typedef struct {
   ALIGNAS(64) // Align to 64 bytes to avoid false-sharing of cachelines.
   TimeDuration lastDur;
   TimeDuration avgDur;
-  JobWorkerId  workerId; // Worker that executed this system last.
 } EcsWorldSysStats;
 
 typedef struct {

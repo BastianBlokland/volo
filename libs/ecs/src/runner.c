@@ -98,7 +98,7 @@ static void graph_system_task(void* context) {
   g_ecsRunningRunner   = null;
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  ecs_world_stats_update_sys(data->world, data->id, g_jobsWorkerId, dur);
+  ecs_world_stats_update_sys(data->world, data->id, dur);
 }
 
 static JobTaskId graph_insert_flush(EcsRunner* runner) {
