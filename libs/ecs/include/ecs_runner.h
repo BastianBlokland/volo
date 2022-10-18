@@ -20,6 +20,10 @@ typedef u32              JobTaskId;
 
 typedef struct sEcsRunner EcsRunner;
 
+typedef struct {
+  JobTaskId begin, end; // NOTE: End is exclusive.
+} EcsTaskSet;
+
 typedef enum {
   EcsRunnerFlags_None         = 0,
   EcsRunnerFlags_DumpGraphDot = 1 << 0,
@@ -30,8 +34,8 @@ typedef enum {
 /**
  * True while the current thread is running an ecs system.
  */
-extern THREAD_LOCAL bool        g_ecsRunningSystem;
-extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
+extern THREAD_LOCAL bool             g_ecsRunningSystem;
+extern THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId;
 extern THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 /**
@@ -52,7 +56,7 @@ void ecs_runner_destroy(EcsRunner*);
  * Get the JobGraph created by this runner for debugging purposes.
  */
 const JobGraph* ecs_runner_graph(const EcsRunner*);
-JobTaskId       ecs_runner_graph_task(const EcsRunner*, EcsSystemId);
+EcsTaskSet      ecs_runner_task_set(const EcsRunner*, EcsSystemId);
 
 /**
  * Check if the given runner is currently running.

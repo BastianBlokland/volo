@@ -12,15 +12,6 @@ typedef struct sAllocator Allocator;
  */
 typedef u32 JobTaskId;
 
-/**
- * Range of tasks, useful to refer to set of sequentially added tasks.
- * NOTE: Does not say anything about the dependencies or execution order of the tasks, just that
- * they've been added to the graph sequentially.
- */
-typedef struct {
-  JobTaskId begin, end; // NOTE: End is exclusive.
-} JobTaskRange;
-
 typedef enum {
   JobTaskFlags_None = 0,
 

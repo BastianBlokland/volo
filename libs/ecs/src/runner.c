@@ -49,12 +49,12 @@ typedef struct {
 } RunnerSystemEntry;
 
 struct sEcsRunner {
-  EcsWorld*  world;
-  JobGraph*  graph;
-  u32        flags;
-  JobTaskId* systemTaskLookup;
-  Allocator* alloc;
-  Mem        jobMem;
+  EcsWorld*   world;
+  JobGraph*   graph;
+  u32         flags;
+  EcsTaskSet* systemTaskSets;
+  Allocator*  alloc;
+  Mem         jobMem;
 };
 
 THREAD_LOCAL bool             g_ecsRunningSystem;
@@ -117,9 +117,10 @@ static JobTaskId graph_insert_flush(EcsRunner* runner) {
       JobTaskFlags_ThreadAffinity);
 }
 
-static JobTaskId
+static EcsTaskSet
 graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSystemDef* systemDef) {
-  return jobs_graph_add_task(
+
+  const JobTaskId taskId = jobs_graph_add_task(
       runner->graph,
       systemDef->name,
       graph_system_task,
@@ -130,7 +131,9 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
           .id      = systemId,
           .routine = systemDef->routine),
       graph_system_task_flags(systemDef));
-};
+
+  return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
+}
 
 static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
   if ((a->flags & EcsSystemFlags_Exclusive) || (b->flags & EcsSystemFlags_Exclusive)) {
@@ -173,10 +176,11 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
   const EcsDef* def = ecs_world_def(runner->world);
   for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
-    output[sysId]        = (RunnerSystemEntry){
-               .id    = sysId,
-               .order = sysDef->order,
-               .def   = sysDef,
+
+    output[sysId] = (RunnerSystemEntry){
+        .id    = sysId,
+        .order = sysDef->order,
+        .def   = sysDef,
     };
   }
 }
@@ -187,17 +191,17 @@ static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems)
   const JobTaskId flushTask   = graph_insert_flush(runner);
 
   for (RunnerSystemEntry* entry = systems; entry != systems + systemCount; ++entry) {
-    const JobTaskId sysTaskId           = graph_insert_system(runner, entry->id, entry->def);
-    runner->systemTaskLookup[entry->id] = sysTaskId;
+    const EcsTaskSet sysTaskSet       = graph_insert_system(runner, entry->id, entry->def);
+    runner->systemTaskSets[entry->id] = sysTaskSet;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
+    jobs_graph_task_depend(runner->graph, sysTaskSet.begin, flushTask);
 
     // Insert required dependencies on the earlier systems.
     for (RunnerSystemEntry* earlierEntry = systems; earlierEntry != entry; ++earlierEntry) {
       if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
         jobs_graph_task_depend(
-            runner->graph, ecs_runner_graph_task(runner, earlierEntry->id), sysTaskId);
+            runner->graph, ecs_runner_task_set(runner, earlierEntry->id).begin, sysTaskSet.begin);
       }
     }
   }
@@ -266,11 +270,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
 
   *runner = (EcsRunner){
-      .world            = world,
-      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .flags            = flags,
-      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
-      .alloc            = alloc,
+      .world          = world,
+      .graph          = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .flags          = flags,
+      .systemTaskSets = alloc_array_t(alloc, EcsTaskSet, systemCount),
+      .alloc          = alloc,
   };
 
   runner_compute_graph(runner, systemCount);
@@ -292,7 +296,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
   const EcsDef* def = ecs_world_def(runner->world);
-  alloc_free_array_t(runner->alloc, runner->systemTaskLookup, def->systems.size);
+  alloc_free_array_t(runner->alloc, runner->systemTaskSets, def->systems.size);
   jobs_graph_destroy(runner->graph);
   alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
@@ -300,8 +304,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
 const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
 
-JobTaskId ecs_runner_graph_task(const EcsRunner* runner, const EcsSystemId systemId) {
-  return runner->systemTaskLookup[systemId];
+EcsTaskSet ecs_runner_task_set(const EcsRunner* runner, const EcsSystemId systemId) {
+  return runner->systemTaskSets[systemId];
 }
 
 bool ecs_running(const EcsRunner* runner) {
