@@ -96,7 +96,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
   const f32              deltaSeconds = scene_delta_seconds(time);
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
-  for (EcsIterator* itr = ecs_view_itr(moveView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(moveView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId    entity = ecs_view_entity(itr);
     SceneAnimationComp*  anim   = ecs_view_write_t(itr, SceneAnimationComp);
     SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -142,6 +142,8 @@ ecs_module_init(scene_locomotion_module) {
   ecs_register_system(SceneLocomotionMoveSys, ecs_view_id(GlobalView), ecs_view_id(MoveView));
 
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
+
+  ecs_parallel(SceneLocomotionMoveSys, 4); // Split locomotion update in multiple tasks.
 }
 
 void scene_locomotion_move(SceneLocomotionComp* comp, const GeoVector target) {
