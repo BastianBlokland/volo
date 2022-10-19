@@ -48,6 +48,13 @@
 #define bit_in_dword(_BIT_) ((_BIT_)&0b111111)
 
 /**
+ * Create a 32 bit mask with a range of bits set.
+ * NOTE: Cannot be used to set the top bit.
+ * Pre-condition: _TO_ < 32
+ */
+#define bit_range_32(_FROM_, _TO_) (u32_lit(1) << _TO_) - (u32_lit(1) << _FROM_)
+
+/**
  * Count how many bits are set in a mask.
  */
 u8 bits_popcnt_32(u32);
