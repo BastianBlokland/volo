@@ -36,9 +36,10 @@ typedef struct {
 } MetaTaskData;
 
 typedef struct {
+  EcsSystemId      id;
+  u16              parCount, parIndex;
   const EcsRunner* runner;
   EcsWorld*        world;
-  EcsSystemId      id;
   EcsSystemRoutine routine;
 } SystemTaskData;
 
@@ -103,7 +104,7 @@ static void graph_system_task(void* context) {
   g_ecsRunningSystemId = data->id;
   g_ecsRunningRunner   = data->runner;
 
-  data->routine(data->world);
+  data->routine(data->world, data->parCount, data->parIndex);
 
   g_ecsRunningSystem   = false;
   g_ecsRunningSystemId = sentinel_u16;
@@ -133,20 +134,27 @@ static EcsTaskSet graph_insert_flush(EcsRunner* runner) {
 
 static EcsTaskSet
 graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSystemDef* systemDef) {
+  JobTaskId firstTaskId;
+  for (u16 parIndex = 0; parIndex != systemDef->parallelCount; ++parIndex) {
+    const JobTaskId taskId = jobs_graph_add_task(
+        runner->graph,
+        systemDef->name,
+        graph_system_task,
+        mem_struct(
+            SystemTaskData,
+            .id       = systemId,
+            .parCount = systemDef->parallelCount,
+            .parIndex = parIndex,
+            .runner   = runner,
+            .world    = runner->world,
+            .routine  = systemDef->routine),
+        graph_system_task_flags(systemDef));
 
-  const JobTaskId taskId = jobs_graph_add_task(
-      runner->graph,
-      systemDef->name,
-      graph_system_task,
-      mem_struct(
-          SystemTaskData,
-          .runner  = runner,
-          .world   = runner->world,
-          .id      = systemId,
-          .routine = systemDef->routine),
-      graph_system_task_flags(systemDef));
-
-  return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
+    if (parIndex == 0) {
+      firstTaskId = taskId;
+    }
+  }
+  return (EcsTaskSet){.begin = firstTaskId, .end = firstTaskId + systemDef->parallelCount};
 }
 
 static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {

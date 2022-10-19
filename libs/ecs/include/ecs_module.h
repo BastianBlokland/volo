@@ -15,7 +15,7 @@ typedef struct sEcsViewBuilder   EcsViewBuilder;
 
 typedef void (*EcsModuleInit)(EcsModuleBuilder*);
 typedef void (*EcsViewInit)(EcsViewBuilder*);
-typedef void (*EcsSystemRoutine)(EcsWorld*);
+typedef void (*EcsSystemRoutine)(EcsWorld*, u16 parCount, u16 parIndex);
 typedef void (*EcsCompDestructor)(void*);
 typedef void (*EcsCompCombinator)(void*, void*);
 
@@ -174,6 +174,9 @@ typedef struct {
  * Define a system routine.
  * Should only be used inside compilation-units.
  *
+ * 'parCount' and 'parIndex' are provided to the system for parallel systems to execute different
+ * work on each parallel invocation.
+ *
  * Example usage:
  * ```
  * ecs_system_define(ApplyVelocitySys) {
@@ -188,7 +191,10 @@ typedef struct {
  */
 #define ecs_system_define(_NAME_)                                                                  \
   static EcsSystemId ecs_system_id(_NAME_);                                                        \
-  static void _ecs_system_##_NAME_(MAYBE_UNUSED EcsWorld* world)
+  static void _ecs_system_##_NAME_(                                                                \
+    MAYBE_UNUSED EcsWorld* world,                                                                  \
+    MAYBE_UNUSED const u16 parCount,                                                               \
+    MAYBE_UNUSED const u16 parIndex)
 
 /**
  * Register a new component type.
