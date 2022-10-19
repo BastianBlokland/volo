@@ -3,6 +3,18 @@
 
 spec(bits) {
 
+  it("can create a mask with a range of set bits") {
+    check_eq_int(bit_range_32(0, 0), 0b0);
+    check_eq_int(bit_range_32(0, 1), 0b1);
+    check_eq_int(bit_range_32(0, 2), 0b11);
+    check_eq_int(bit_range_32(4, 7), 0b1110000);
+    check_eq_int(bit_range_32(1, 2), 0b10);
+    check_eq_int(bit_range_32(1, 1), 0b0);
+    check_eq_int(bit_range_32(30, 31), u32_lit(1) << 30);
+    check_eq_int(bit_range_32(0, 31), ~u32_lit(0) >> 1 /* All but the last bit set. */);
+    // Invalid and should fail to compile: bit_range_32(0, 32);
+  }
+
   it("can compute the population count of a 32 bit mask") {
     check_eq_int(bits_popcnt_32(0b00000000000000000000000000000000), 0);
     check_eq_int(bits_popcnt_32(0b00000000000000000000000000000001), 1);
