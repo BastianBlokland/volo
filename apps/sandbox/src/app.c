@@ -26,7 +26,7 @@ typedef struct {
 } AppFactionConfig;
 
 static const GapVector        g_appWindowSize      = {1920, 1080};
-static const u32              g_appWallCount       = 150;
+static const u32              g_appWallCount       = 200;
 static const u64              g_appRngSeed         = 1337;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
@@ -84,9 +84,9 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
 
 static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb, Rng* rng) {
   for (u32 i = 0; i != g_appWallCount; ++i) {
-    const f32     posX  = rng_sample_range(rng, -50.0f, 50.0f);
+    const f32     posX  = rng_sample_range(rng, -75.0f, 75.0f);
     const f32     posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32     posZ  = rng_sample_range(rng, -50.0f, 50.0f);
+    const f32     posZ  = rng_sample_range(rng, -75.0f, 75.0f);
     const f32     angle = rng_sample_f32(rng) * math_pi_f32 * 2;
     const GeoQuat rot   = geo_quat_angle_axis(geo_up, angle);
     object_spawn_wall(world, objDb, geo_vector(posX, posY, posZ), rot);
