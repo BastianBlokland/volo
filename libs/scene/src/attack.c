@@ -160,7 +160,7 @@ ecs_system_define(SceneAttackSys) {
   EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
 
   EcsView* attackView = ecs_world_view_t(world, AttackView);
-  for (EcsIterator* itr = ecs_view_itr(attackView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(attackView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneAttackAnimComp* attackAnim = ecs_view_read_t(itr, SceneAttackAnimComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
@@ -239,4 +239,6 @@ ecs_module_init(scene_attack_module) {
       ecs_view_id(GlobalView),
       ecs_register_view(AttackView),
       ecs_register_view(TargetView));
+
+  ecs_parallel(SceneAttackSys, 4);
 }
