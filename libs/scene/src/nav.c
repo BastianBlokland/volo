@@ -234,8 +234,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   // Limit the amount of path queries per-frame.
   u32 pathQueriesRemaining = path_max_queries;
 
-  EcsView* agentEntities = ecs_world_view_t(world, AgentEntityView);
-  for (EcsIterator* itr = ecs_view_itr(agentEntities); ecs_view_walk(itr);) {
+  EcsView* agentsView = ecs_world_view_t(world, AgentEntityView);
+  for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
     SceneNavAgentComp*        agent = ecs_view_write_t(itr, SceneNavAgentComp);
@@ -338,6 +338,8 @@ ecs_module_init(scene_nav_module) {
       SceneNavUpdateAgentsSys,
       ecs_register_view(UpdateAgentGlobalView),
       ecs_register_view(AgentEntityView));
+
+  ecs_parallel(SceneNavUpdateAgentsSys, 4); // Split navigation update in multiple tasks.
 
   ecs_register_system(SceneNavUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
 
