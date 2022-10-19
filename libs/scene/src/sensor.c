@@ -45,7 +45,7 @@ ecs_system_define(SceneSensorUpdateSys) {
   const SceneTimeComp* timeComp = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* view = ecs_world_view_t(world, BrainView);
-  for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(view, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
     if (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) {
@@ -114,4 +114,6 @@ ecs_module_init(scene_sensor_module) {
   ecs_register_view(BrainView);
 
   ecs_register_system(SceneSensorUpdateSys, ecs_view_id(SensorGlobalView), ecs_view_id(BrainView));
+
+  ecs_parallel(SceneSensorUpdateSys, 2);
 }
