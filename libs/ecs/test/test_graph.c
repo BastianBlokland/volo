@@ -40,6 +40,7 @@ ecs_system_define(GraphSys2) {}
 ecs_system_define(GraphSys3) {}
 ecs_system_define(GraphSys4) {}
 ecs_system_define(GraphSys5) {}
+ecs_system_define(GraphSys6) {}
 
 ecs_module_init(graph_test_module) {
   ecs_register_comp(GraphCompA);
@@ -67,6 +68,10 @@ ecs_module_init(graph_test_module) {
 
   ecs_register_system(GraphSys3, ecs_view_id(ReadABWithoutC));
   ecs_order(GraphSys3, 3);
+
+  ecs_register_system(GraphSys6, ecs_view_id(ReadABC));
+  ecs_order(GraphSys6, 6);
+  ecs_parallel(GraphSys6, 4);
 }
 
 spec(graph) {
@@ -128,6 +133,13 @@ spec(graph) {
 
     // System 5 depends on system 2.
     check_eq_int(jobs_graph_task_child_begin(graph, sys2Task).task, sys5Task);
+  }
+
+  it("creates multiple tasks for parallel systems") {
+    const EcsTaskSet sys6Tasks     = ecs_runner_task_set(runner, ecs_system_id(GraphSys6));
+    const u32        sys6TaskCount = sys6Tasks.end - sys6Tasks.begin;
+
+    check_eq_int(sys6TaskCount, 4);
   }
 
   teardown() {
