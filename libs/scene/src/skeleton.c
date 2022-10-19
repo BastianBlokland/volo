@@ -537,7 +537,7 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
 
-  ecs_parallel(SceneSkeletonUpdateSys, 4);
+  ecs_parallel(SceneSkeletonUpdateSys, 8); // Split skeleton update in multiple tasks.
 
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
