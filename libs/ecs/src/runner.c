@@ -299,7 +299,6 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   };
 
   runner_compute_graph(runner, systemCount);
-  diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
 
   // Dump a 'Graph Description Language' aka GraphViz file of the graph to disk if requested.
   if (flags & EcsRunnerFlags_DumpGraphDot) {
