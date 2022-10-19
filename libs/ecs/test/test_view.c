@@ -364,7 +364,7 @@ spec(view) {
 
   it("can iterate over entities from multiple archetypes using a stepped iterator") {
     static const usize g_entitiesToCreate = 2000;
-    static const usize g_steps            = 42;
+    static const u16   g_steps            = 42;
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -388,7 +388,7 @@ spec(view) {
     DynBitSet seenEntities = dynbitset_create(g_alloc_heap, g_entitiesToCreate);
 
     usize count = 0;
-    for (u32 step = 0; step != g_steps; ++step) {
+    for (u16 step = 0; step != g_steps; ++step) {
       for (EcsIterator* itr = ecs_view_itr_step(view, g_steps, step); ecs_view_walk(itr); ++count) {
         const EcsEntityId entity = ecs_view_entity(itr);
         // Verify that we don't find the same entity twice.

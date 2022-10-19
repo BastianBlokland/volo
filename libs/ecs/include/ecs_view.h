@@ -58,7 +58,7 @@ bool ecs_view_contains(const EcsView*, EcsEntityId);
 #define ecs_view_first(_VIEW_) ecs_view_walk(ecs_view_itr(_VIEW_))
 
 EcsIterator* ecs_view_itr_create(Mem, EcsView*);
-EcsIterator* ecs_view_itr_step_create(Mem, EcsView*, u32 steps, u32 index);
+EcsIterator* ecs_view_itr_step_create(Mem, EcsView*, u16 steps, u16 index);
 EcsIterator* ecs_view_itr_reset(EcsIterator*); // Cannot be used with stepped iterators.
 
 /**

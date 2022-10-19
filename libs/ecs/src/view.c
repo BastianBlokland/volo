@@ -39,7 +39,7 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   return itr;
 }
 
-EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u32 steps, const u32 index) {
+EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, const u16 index) {
   diag_assert_msg(steps, "Stepped iterator needs at least 1 step");
   diag_assert_msg(
       index < steps,
