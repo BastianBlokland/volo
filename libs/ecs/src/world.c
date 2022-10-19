@@ -167,6 +167,29 @@ static void ecs_world_stats_sys_flush(EcsWorld* world) {
   }
 }
 
+static void ecs_world_validate_sys_parallel(const EcsWorld* world, const EcsSystemDef* sysDef) {
+  MAYBE_UNUSED u32 writeViews = 0;
+  dynarray_for_t(&sysDef->viewIds, EcsViewId, viewId) {
+    const EcsView* view = dynarray_at_t(&world->views, *viewId, EcsView);
+    if (bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
+      ++writeViews;
+    }
+  }
+  diag_assert_msg(
+      writeViews <= 1,
+      "Parallel system '{}' has multiple ({}) write-views, this is potentially unsafe",
+      fmt_text(sysDef->name),
+      fmt_int(writeViews));
+}
+
+static void ecs_world_validate(const EcsWorld* world) {
+  dynarray_for_t(&world->def->systems, EcsSystemDef, sysDef) {
+    if (sysDef->parallelCount > 1) {
+      ecs_world_validate_sys_parallel(world, sysDef);
+    }
+  }
+}
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -187,6 +210,8 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
     *dynarray_push_t(&world->views, EcsView) =
         ecs_view_create(alloc, &world->storage, def, viewDef);
   }
+
+  ecs_world_validate(world);
 
   log_d(
       "Ecs world created",
