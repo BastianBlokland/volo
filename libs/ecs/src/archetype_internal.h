@@ -29,6 +29,7 @@ ASSERT(sizeof(EcsArchetype) == ecs_archetype_size, "Invalid archetype size");
 
 EcsArchetype ecs_archetype_create(const EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
+u32          ecs_archetype_chunks_non_empty(const EcsArchetype*);
 usize        ecs_archetype_total_size(const EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
 EcsEntityId  ecs_archetype_remove(EcsArchetype*, u32 index);

@@ -154,6 +154,19 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
   bitset_or(out, ecs_buffer_entity_added(buffer, idx));
 }
 
+/**
+ * Integrate system stats that accumulated during the frame.
+ */
+static void ecs_world_stats_sys_flush(EcsWorld* world) {
+  static const f64 g_invAvgWindow = 1.0 / 15.0;
+
+  for (EcsSystemId sysId = 0; sysId != world->def->systems.size; ++sysId) {
+    EcsWorldSysStats* s = &world->sysStats[sysId];
+    s->avgTotalDur += (TimeDuration)((s->lastTotalDur - s->avgTotalDur) * g_invAvgWindow);
+    s->lastTotalDur = 0;
+  }
+}
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -347,13 +360,8 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
-void ecs_world_stats_update_sys(
-    EcsWorld* world, const EcsSystemId id, const JobWorkerId workerId, const TimeDuration dur) {
-  static const f64 g_invAvgWindow = 1.0 / 15.0;
-
-  world->sysStats[id].avgDur += (TimeDuration)((dur - world->sysStats[id].avgDur) * g_invAvgWindow);
-  world->sysStats[id].lastDur  = dur;
-  world->sysStats[id].workerId = workerId;
+void ecs_world_stats_sys_add(EcsWorld* world, const EcsSystemId id, const TimeDuration dur) {
+  thread_atomic_add_i64(&world->sysStats[id].lastTotalDur, dur);
 }
 
 void ecs_world_flush_internal(EcsWorld* world) {
@@ -402,6 +410,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
   }
   ecs_buffer_clear(&world->buffer);
 
+  // Update stats.
+  ecs_world_stats_sys_flush(world);
   world->lastFlushDur      = time_steady_duration(startTime, time_steady_clock());
   world->lastFlushEntities = (u32)bufferCount;
 }

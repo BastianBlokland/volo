@@ -1,5 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_dynbitset.h"
 #include "ecs_def.h"
 #include "ecs_world.h"
 
@@ -59,6 +61,8 @@ spec(view) {
 
     view = ecs_world_view_t(world, ReadAMaybeC);
     check_eq_int(ecs_view_comp_count(view), 2);
+
+    check_eq_int(ecs_view_chunks(view), 0);
   }
 
   it("can check if an entity is contained in the view") {
@@ -82,6 +86,7 @@ spec(view) {
     check(ecs_view_contains(view, entity1));
     check(!ecs_view_contains(view, entity2));
     check(ecs_view_contains(view, entity3));
+    check_eq_int(ecs_view_chunks(view), 2);
   }
 
   it("can read component values on entities") {
@@ -226,6 +231,10 @@ spec(view) {
 
     ecs_world_flush(world);
 
+    // TODO: This test expects (and asserts) a specific order of iteration over archetypes which is
+    // true for the current implementation but not a constraint we want to put on the
+    // implementation.
+
     EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
@@ -235,7 +244,7 @@ spec(view) {
   }
 
   it("can iterate over entities from multiple chunks in an archetype") {
-    static const usize g_entitiesToCreate = 999;
+    static const usize g_entitiesToCreate = 2000;
     DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
     for (usize i = 0; i != g_entitiesToCreate; ++i) {
@@ -247,8 +256,10 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsView* view  = ecs_world_view_t(world, ReadAB);
-    usize    count = 0;
+    EcsView* view = ecs_world_view_t(world, ReadAB);
+    check(ecs_view_chunks(view) > 1);
+
+    usize count = 0;
     for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr); ++count) {
       check(ecs_view_entity(itr) == *dynarray_at_t(&entities, count, EcsEntityId));
       check(ecs_view_contains(view, ecs_view_entity(itr)));
@@ -312,9 +323,81 @@ spec(view) {
     ecs_world_flush(world);
 
     EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
+    check_eq_int(ecs_view_chunks(ecs_world_view_t(world, ReadAB)), 0);
     check(!ecs_view_walk(itr));
 
     dynarray_destroy(&entities);
+  }
+
+  it("can iterate over all entities in a single archetype using a stepped iterator") {
+    static const usize g_entitiesToCreate = 2000;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
+
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+      *dynarray_push_t(&entities, EcsEntityId) = newEntity;
+    }
+
+    ecs_world_flush(world);
+
+    EcsView* view = ecs_world_view_t(world, ReadAB);
+    check(ecs_view_chunks(view) > 1);
+
+    static const u32 g_steps[] = {1, 2, 3, 4, 5, 642, 1337};
+    array_for_t(g_steps, u32, stepCount) {
+      usize cnt = 0;
+      for (u32 i = 0; i != *stepCount; ++i) {
+        for (EcsIterator* itr = ecs_view_itr_step(view, *stepCount, i); ecs_view_walk(itr); ++cnt) {
+          check(ecs_view_entity(itr) == *dynarray_at_t(&entities, cnt, EcsEntityId));
+          check(ecs_view_contains(view, ecs_view_entity(itr)));
+          check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, cnt);
+          check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
+        }
+      }
+      check_eq_int(cnt, g_entitiesToCreate);
+    }
+
+    dynarray_destroy(&entities);
+  }
+
+  it("can iterate over entities from multiple archetypes using a stepped iterator") {
+    static const usize g_entitiesToCreate = 2000;
+    static const u16   g_steps            = 42;
+
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      // NOTE: Add different components split the entities into three archetypes.
+      switch (i % 3) {
+      case 1:
+        ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+        break;
+      case 2:
+        ecs_world_add_t(world, newEntity, ViewCompC, .f1 = 42);
+        break;
+      }
+    }
+
+    ecs_world_flush(world);
+
+    EcsView* view = ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC);
+    check(ecs_view_chunks(view) > 1);
+
+    DynBitSet seenEntities = dynbitset_create(g_alloc_heap, g_entitiesToCreate);
+
+    usize count = 0;
+    for (u16 step = 0; step != g_steps; ++step) {
+      for (EcsIterator* itr = ecs_view_itr_step(view, g_steps, step); ecs_view_walk(itr); ++count) {
+        const EcsEntityId entity = ecs_view_entity(itr);
+        // Verify that we don't find the same entity twice.
+        check(!dynbitset_test(&seenEntities, ecs_entity_id_index(entity)));
+        dynbitset_set(&seenEntities, ecs_entity_id_index(entity));
+      }
+    }
+    check_eq_int(count, g_entitiesToCreate);
+    dynbitset_destroy(&seenEntities);
   }
 
   teardown() {

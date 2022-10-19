@@ -48,11 +48,11 @@ MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, co
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
-             .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
-             .components = dynarray_create_t(alloc, EcsCompDef, 128),
-             .views      = dynarray_create_t(alloc, EcsViewDef, 128),
-             .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
-             .alloc      = alloc,
+      .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
+      .components = dynarray_create_t(alloc, EcsCompDef, 128),
+      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
+      .alloc      = alloc,
   };
   return def;
 }
@@ -111,6 +111,10 @@ String ecs_def_system_name(const EcsDef* def, const EcsSystemId id) {
 
 i32 ecs_def_system_order(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->order;
+}
+
+u32 ecs_def_system_parallel(const EcsDef* def, const EcsSystemId id) {
+  return ecs_def_system(def, id)->parallelCount;
 }
 
 EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) {
@@ -180,11 +184,13 @@ EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) 
 
   EcsSystemId   id        = (EcsSystemId)def->systems.size;
   EcsSystemDef* systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
-  *systemDef              = (EcsSystemDef){
-                   .name    = string_dup(def->alloc, config->name),
-                   .routine = config->routine,
-                   .flags   = config->flags,
-                   .viewIds = dynarray_create_t(def->alloc, EcsViewId, config->viewCount),
+
+  *systemDef = (EcsSystemDef){
+      .name          = string_dup(def->alloc, config->name),
+      .routine       = config->routine,
+      .flags         = config->flags,
+      .parallelCount = 1,
+      .viewIds       = dynarray_create_t(def->alloc, EcsViewId, config->viewCount),
   };
 
   for (usize i = 0; i != config->viewCount; ++i) {
@@ -197,6 +203,11 @@ EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) 
 
 void ecs_def_update_order(EcsDef* def, const EcsSystemId system, const i32 order) {
   ecs_def_system_mutable(def, system)->order = order;
+}
+
+void ecs_def_update_parallel(EcsDef* def, const EcsSystemId system, const u16 parallelCount) {
+  diag_assert_msg(parallelCount, "Parallel count of 0 is not supported");
+  ecs_def_system_mutable(def, system)->parallelCount = parallelCount;
 }
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef* def, const EcsCompId id) {

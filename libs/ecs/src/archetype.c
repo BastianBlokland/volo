@@ -44,10 +44,6 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
-static usize ecs_archetype_chunks_non_empty(EcsArchetype* archetype) {
-  return (archetype->entityCount + archetype->entitiesPerChunk - 1) / archetype->entitiesPerChunk;
-}
-
 static void* ecs_archetype_chunk_create() {
   const usize align = 512; // Note: In practice the page allocator will align to the page size.
   return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
@@ -79,7 +75,7 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
   itr->entity   = ((EcsEntityId*)chunkData) + loc.indexInChunk;
 
   EcsCompId compId = 0;
-  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+  for (u16 i = 0; i != itr->compCount; ++i, ++compId) {
     compId = ecs_comp_next(itr->mask, compId);
 
     if (UNLIKELY(!ecs_comp_has(archetype->mask, compId))) {
@@ -111,7 +107,7 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
   *dstEntity = *srcEntity;
 
   // Copy the component data.
-  for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
+  for (u16 compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
     const usize compSize = compSizes[compIdx];
 
     u8* dstChunkData = bits_ptr_offset(archetype->chunks[dstLoc.chunkIdx], compOffsets[compIdx]);
@@ -127,7 +123,7 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
-  const u32 compCount        = ecs_comp_mask_count(mask);
+  const u16 compCount        = ecs_comp_mask_count(mask);
   const u32 entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 
@@ -169,6 +165,10 @@ void ecs_archetype_destroy(EcsArchetype* archetype) {
   alloc_free(g_alloc_heap, mem_create(archetype->chunks, sizeof(void*) * ecs_archetype_max_chunks));
 }
 
+u32 ecs_archetype_chunks_non_empty(const EcsArchetype* archetype) {
+  return (archetype->entityCount + archetype->entitiesPerChunk - 1) / archetype->entitiesPerChunk;
+}
+
 usize ecs_archetype_total_size(const EcsArchetype* archetype) {
   return archetype->chunkCount * ecs_archetype_chunk_size;
 }
@@ -208,23 +208,50 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
   if (LIKELY(itr->chunkRemaining)) {
     ++itr->entity;
     --itr->chunkRemaining;
-    for (usize i = 0; i != itr->compCount; ++i) {
+    for (u16 i = 0; i != itr->compCount; ++i) {
       itr->comps[i].ptr = bits_ptr_offset(itr->comps[i].ptr, itr->comps[i].size);
     }
     return true;
   }
 
-  // No more entries in the current chunk; jump to the next chunk.
-  const usize chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
-  if (++itr->chunkIdx >= chunksWithEntities) {
-    itr->chunkIdx = u32_max;
-    return false; // Reached the end of the chunks with entities in them.
+  const u32 chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
+  const u32 chunksRemaining    = chunksWithEntities ? (chunksWithEntities - 1 - itr->chunkIdx) : 0;
+
+  // Advance the chunk index, potentially skipping chunks if requested.
+  if (itr->chunksToSkip) {
+    // Test if all the remaining chunks would be skipped.
+    if (itr->chunksToSkip >= chunksRemaining) {
+      itr->chunksToSkip -= chunksRemaining;
+      itr->chunkIdx = u32_max;
+      return false; // Skipped all remaining (non empty) chunks.
+    }
+    itr->chunkIdx += itr->chunksToSkip + 1;
+    itr->chunksToSkip = 0;
+  } else {
+    // Test if there's any chunks remaining.
+    if (!chunksRemaining) {
+      itr->chunkIdx = u32_max;
+      return false; // Reached the end of the (non empty) chunks.
+    }
+    ++itr->chunkIdx;
   }
 
+  // Test if we're still allowed to process more chunks.
+  if (!itr->chunksLimitRemaining) {
+    return false; // No more chunks allowed to process.
+  }
+  if (!sentinel_check(itr->chunksLimitRemaining)) {
+    // This iterator has a chunk limit set; consume one chunk.
+    // TODO: Can we get rid of this branch?
+    --itr->chunksLimitRemaining;
+  }
+
+  // Set 'chunkRemaining' to the amount of entities in the current chunk.
   const bool isLastChunk = itr->chunkIdx == (chunksWithEntities - 1);
   itr->chunkRemaining = isLastChunk ? ((archetype->entityCount - 1) % archetype->entitiesPerChunk)
                                     : (archetype->entitiesPerChunk - 1);
 
+  // Initialize the component pointers of the iterator.
   ecs_archetype_itr_init_pointers(archetype, itr, (EcsArchetypeLoc){.chunkIdx = itr->chunkIdx});
   return true;
 }

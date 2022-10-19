@@ -267,12 +267,12 @@ static u32 jobs_graph_longestpath(const JobGraph* graph) {
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize taskCapacity) {
   JobGraph* graph = alloc_alloc_t(alloc, JobGraph);
   *graph          = (JobGraph){
-               .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
-               .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
-               .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
-               .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
-               .name          = string_dup(alloc, name),
-               .alloc         = alloc,
+      .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
+      .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
+      .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
+      .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
+      .name          = string_dup(alloc, name),
+      .alloc         = alloc,
   };
   return graph;
 }
@@ -309,6 +309,7 @@ JobTaskId jobs_graph_add_task(
     const JobTaskRoutine routine,
     Mem                  ctx,
     const JobTaskFlags   flags) {
+  // NOTE: Api promises sequential task-ids for sequential calls to jobs_graph_add_task.
   const JobTaskId id = (JobTaskId)graph->tasks.size;
 
   Mem taskStorage              = dynarray_push(&graph->tasks, 1);

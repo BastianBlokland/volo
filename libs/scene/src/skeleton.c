@@ -449,7 +449,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   SceneJointPose poses[scene_skeleton_joints_max];       // Per joint.
   f32            weights[scene_skeleton_joints_max * 3]; // Per joint per channel.
 
-  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+  /**
+   * Sample the animation layers.
+   * NOTE: System runs in multiple parallel steps.
+   */
+  for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
@@ -532,6 +536,8 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
+
+  ecs_parallel(SceneSkeletonUpdateSys, 4);
 
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }

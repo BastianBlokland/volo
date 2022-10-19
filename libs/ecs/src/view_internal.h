@@ -17,7 +17,7 @@ struct sEcsView {
   const EcsViewDef* viewDef;
   EcsStorage*       storage;
   Mem               masks;
-  usize             compCount;
+  u16               compCount;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
 };
 

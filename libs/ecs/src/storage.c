@@ -59,7 +59,7 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
 
 static void ecs_storage_queue_finalize_itr(EcsFinalizer* finalizer, EcsIterator* itr) {
   EcsCompId compId = 0;
-  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+  for (u16 i = 0; i != itr->compCount; ++i, ++compId) {
     compId = ecs_comp_next(itr->mask, compId);
     ecs_finalizer_push(finalizer, compId, itr->comps[i].ptr);
   }
@@ -265,6 +265,10 @@ usize ecs_storage_archetype_size(const EcsStorage* storage, const EcsArchetypeId
 
 u32 ecs_storage_archetype_chunks(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->chunkCount;
+}
+
+u32 ecs_storage_archetype_chunks_non_empty(const EcsStorage* storage, const EcsArchetypeId id) {
+  return ecs_archetype_chunks_non_empty(ecs_storage_archetype_ptr(storage, id));
 }
 
 u32 ecs_storage_archetype_entities(const EcsStorage* storage, const EcsArchetypeId id) {

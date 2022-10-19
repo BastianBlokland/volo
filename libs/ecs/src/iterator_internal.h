@@ -10,11 +10,13 @@
 typedef struct sEcsIterator EcsIterator;
 
 struct sEcsIterator {
-  BitSet             mask;
-  usize              compCount;
-  void*              context;
-  u32                archetypeIdx;
+  u16                compCount;
+  u16                archetypeIdx;
+  u16                chunksToSkip;         // Skip this amount of chunks, used for stepped iter.
+  u16                chunksLimitRemaining; // Max chunks to process, used for stepped iter.
   u32                chunkIdx, chunkRemaining;
+  BitSet             mask;
+  void*              context;
   const EcsEntityId* entity;
   Mem                comps[];
 };
@@ -26,7 +28,7 @@ ASSERT(sizeof(EcsIterator) < ecs_iterator_size_max, "EcsIterator size exceeds th
       mem_stack(sizeof(EcsIterator) + ecs_comp_mask_count(_MASK_) * sizeof(Mem)), (_MASK_))
 
 EcsIterator* ecs_iterator_create(Mem mem, BitSet mask);
-EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount);
+EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, u16 compCount);
 void         ecs_iterator_reset(EcsIterator*);
 
 INLINE_HINT static Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {

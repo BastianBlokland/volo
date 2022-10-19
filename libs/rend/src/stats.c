@@ -122,8 +122,16 @@ ecs_module_init(rend_stats_module) {
   ecs_register_view(UpdateStatsView);
   ecs_register_view(LoadedResourceView);
 
-  ecs_register_system(
+  /**
+   * NOTE: The update-camera-stats has to be run with the 'Exclusive' flag as we want to force it to
+   * run near the end of the frame even though it has minimal dependency conflicts with other
+   * systems. Reason is the renderer stat collection will block if the last frame is still in-flight
+   * on the gpu, and its wasteful to block an executor while it could do other meaningful work.
+   * TODO: Rethink the stat collection so it never needs to block.
+   */
+  ecs_register_system_with_flags(
       RendUpdateCamStatsSys,
+      EcsSystemFlags_Exclusive,
       ecs_view_id(GlobalView),
       ecs_view_id(UpdateStatsView),
       ecs_view_id(LoadedResourceView));

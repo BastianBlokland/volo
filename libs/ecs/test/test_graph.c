@@ -40,6 +40,7 @@ ecs_system_define(GraphSys2) {}
 ecs_system_define(GraphSys3) {}
 ecs_system_define(GraphSys4) {}
 ecs_system_define(GraphSys5) {}
+ecs_system_define(GraphSys6) {}
 
 ecs_module_init(graph_test_module) {
   ecs_register_comp(GraphCompA);
@@ -67,6 +68,10 @@ ecs_module_init(graph_test_module) {
 
   ecs_register_system(GraphSys3, ecs_view_id(ReadABWithoutC));
   ecs_order(GraphSys3, 3);
+
+  ecs_register_system(GraphSys6, ecs_view_id(ReadABC));
+  ecs_order(GraphSys6, 6);
+  ecs_parallel(GraphSys6, 4);
 }
 
 spec(graph) {
@@ -86,23 +91,23 @@ spec(graph) {
   it("inserts job-graph tasks for all systems") {
     const JobGraph* graph = ecs_runner_graph(runner);
 
-    const JobTaskId sys1Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys1));
+    const JobTaskId sys1Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys1)).begin;
     check_eq_string(
         jobs_graph_task_name(graph, sys1Task), ecs_def_system_name(def, ecs_system_id(GraphSys1)));
 
-    const JobTaskId sys2Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys2));
+    const JobTaskId sys2Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys2)).begin;
     check_eq_string(
         jobs_graph_task_name(graph, sys2Task), ecs_def_system_name(def, ecs_system_id(GraphSys2)));
 
-    const JobTaskId sys3Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys3));
+    const JobTaskId sys3Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys3)).begin;
     check_eq_string(
         jobs_graph_task_name(graph, sys3Task), ecs_def_system_name(def, ecs_system_id(GraphSys3)));
 
-    const JobTaskId sys4Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys4));
+    const JobTaskId sys4Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys4)).begin;
     check_eq_string(
         jobs_graph_task_name(graph, sys4Task), ecs_def_system_name(def, ecs_system_id(GraphSys4)));
 
-    const JobTaskId sys5Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys5));
+    const JobTaskId sys5Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys5)).begin;
     check_eq_string(
         jobs_graph_task_name(graph, sys5Task), ecs_def_system_name(def, ecs_system_id(GraphSys5)));
   }
@@ -110,11 +115,11 @@ spec(graph) {
   it("creates task dependencies based on the system views") {
     const JobGraph* graph = ecs_runner_graph(runner);
 
-    const JobTaskId sys1Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys1));
-    const JobTaskId sys2Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys2));
-    const JobTaskId sys3Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys3));
-    const JobTaskId sys4Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys4));
-    const JobTaskId sys5Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys5));
+    const JobTaskId sys1Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys1)).begin;
+    const JobTaskId sys2Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys2)).begin;
+    const JobTaskId sys3Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys3)).begin;
+    const JobTaskId sys4Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys4)).begin;
+    const JobTaskId sys5Task = ecs_runner_task_set(runner, ecs_system_id(GraphSys5)).begin;
 
     check(!jobs_graph_task_has_parent(graph, sys1Task));
 
@@ -128,6 +133,13 @@ spec(graph) {
 
     // System 5 depends on system 2.
     check_eq_int(jobs_graph_task_child_begin(graph, sys2Task).task, sys5Task);
+  }
+
+  it("creates multiple tasks for parallel systems") {
+    const EcsTaskSet sys6Tasks     = ecs_runner_task_set(runner, ecs_system_id(GraphSys6));
+    const u32        sys6TaskCount = sys6Tasks.end - sys6Tasks.begin;
+
+    check_eq_int(sys6TaskCount, 4);
   }
 
   teardown() {

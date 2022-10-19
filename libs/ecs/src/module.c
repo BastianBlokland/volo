@@ -130,3 +130,8 @@ EcsSystemId ecs_module_register_system(
 void ecs_module_update_order(EcsModuleBuilder* builder, const EcsSystemId system, const i32 order) {
   ecs_def_update_order(builder->def, system, order);
 }
+
+void ecs_module_update_parallel(
+    EcsModuleBuilder* builder, const EcsSystemId system, const u16 parallelCount) {
+  ecs_def_update_parallel(builder->def, system, parallelCount);
+}

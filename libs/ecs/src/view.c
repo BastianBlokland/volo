@@ -2,17 +2,22 @@
 #include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_def.h"
 
 #include "storage_internal.h"
 #include "view_internal.h"
+
+MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
+  return iterator->chunksToSkip || !sentinel_check(iterator->chunksLimitRemaining);
+}
 
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return ecs_comp_mask_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
-usize ecs_view_comp_count(const EcsView* view) { return view->compCount; }
+u16 ecs_view_comp_count(const EcsView* view) { return view->compCount; }
 
 bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
@@ -34,7 +39,33 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   return itr;
 }
 
+EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, const u16 index) {
+  diag_assert_msg(steps, "Stepped iterator needs at least 1 step");
+  diag_assert_msg(
+      index < steps,
+      "Index {} is invalid for stepped iterator with {} steps",
+      fmt_int(index),
+      fmt_int(steps));
+
+  EcsIterator* itr           = ecs_view_itr_create(mem, view);
+  const u32    totalChunks   = ecs_view_chunks(view);
+  const u32    chunksPerStep = math_max(1, totalChunks / steps);
+  const u32    chunksToSkip  = index * chunksPerStep;
+
+  diag_assert(chunksPerStep <= u16_max);
+  diag_assert(chunksToSkip <= u16_max);
+
+  itr->chunksToSkip = (u16)chunksToSkip;
+  if (index != (steps - 1)) {
+    // Not the last step; limit the amount of chunks. On the last step process all remaining chunks.
+    itr->chunksLimitRemaining = (u16)chunksPerStep;
+  }
+  return itr;
+}
+
 EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be reset");
+
   ecs_iterator_reset(itr);
   return itr;
 }
@@ -46,10 +77,14 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
     return null;
   }
 
-  const u32            archIdx = itr->archetypeIdx;
+  const u16            archIdx = itr->archetypeIdx;
   const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
     return itr;
+  }
+
+  if (!itr->chunksLimitRemaining) {
+    return null; // No more chunks allowed to process.
   }
 
   ++itr->archetypeIdx;
@@ -57,6 +92,8 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
 }
 
 EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
+
   EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -70,6 +107,8 @@ EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
 }
 
 EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
+  diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
+
   EcsView* view = itr->context;
   if (!ecs_view_contains(view, entity)) {
     return null;
@@ -109,6 +148,14 @@ void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
       fmt_text(ecs_def_comp_name(view->def, comp)));
 
   return ecs_iterator_access(itr, comp).ptr;
+}
+
+u32 ecs_view_chunks(const EcsView* view) {
+  u32 totalChunks = 0;
+  dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
+    totalChunks += ecs_storage_archetype_chunks_non_empty(view->storage, *trackedArchetype);
+  }
+  return totalChunks;
 }
 
 EcsView ecs_view_create(

@@ -81,6 +81,7 @@ void jobs_graph_clear(JobGraph*);
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
+ * NOTE: Task id's are allocated linearly, sequential calls to add_task get sequential ids.
  *
  * Pre-condition: JobGraph is not running at the moment.
  * Pre-condition: ctx.size <= 32.
