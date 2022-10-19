@@ -57,13 +57,25 @@ struct sEcsRunner {
   Mem         jobMem;
 };
 
-THREAD_LOCAL bool             g_ecsRunningSystem;
-THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
   return compare_i32(
       field_ptr(a, RunnerSystemEntry, order), field_ptr(b, RunnerSystemEntry, order));
+}
+
+/**
+ * Add a dependency between the parent and child tasks. The child tasks are only allowed to start
+ * once all parent tasks have finished.
+ */
+static void graph_add_dep(EcsRunner* runner, const EcsTaskSet parent, const EcsTaskSet child) {
+  for (JobTaskId parentTaskId = parent.begin; parentTaskId != parent.end; ++parentTaskId) {
+    for (JobTaskId childTaskId = child.begin; childTaskId != child.end; ++childTaskId) {
+      jobs_graph_task_depend(runner->graph, parentTaskId, childTaskId);
+    }
+  }
 }
 
 static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
@@ -101,7 +113,7 @@ static void graph_system_task(void* context) {
   ecs_world_stats_sys_add(data->world, data->id, dur);
 }
 
-static JobTaskId graph_insert_flush(EcsRunner* runner) {
+static EcsTaskSet graph_insert_flush(EcsRunner* runner) {
   /**
    * Insert a task to flush the world (applies entity layout modifications).
    *
@@ -109,12 +121,14 @@ static JobTaskId graph_insert_flush(EcsRunner* runner) {
    * ran on the same thread as its systems (because they need to cleanup thread-local data).
    * This is unfortunately hard to avoid with some of the win32 apis that use thread-local queues.
    */
-  return jobs_graph_add_task(
+  const JobTaskId taskId = jobs_graph_add_task(
       runner->graph,
       string_lit("Flush"),
       graph_runner_flush_task,
       mem_struct(MetaTaskData, .runner = runner),
       JobTaskFlags_ThreadAffinity);
+
+  return (EcsTaskSet){.begin = taskId, .end = taskId + 1};
 }
 
 static EcsTaskSet
@@ -186,22 +200,21 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
 }
 
 static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {
-  const EcsDef*   def         = ecs_world_def(runner->world);
-  const usize     systemCount = def->systems.size;
-  const JobTaskId flushTask   = graph_insert_flush(runner);
+  const EcsDef*    def         = ecs_world_def(runner->world);
+  const usize      systemCount = def->systems.size;
+  const EcsTaskSet flushTask   = graph_insert_flush(runner);
 
   for (RunnerSystemEntry* entry = systems; entry != systems + systemCount; ++entry) {
-    const EcsTaskSet sysTaskSet       = graph_insert_system(runner, entry->id, entry->def);
-    runner->systemTaskSets[entry->id] = sysTaskSet;
+    const EcsTaskSet entryTasks       = graph_insert_system(runner, entry->id, entry->def);
+    runner->systemTaskSets[entry->id] = entryTasks;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
-    jobs_graph_task_depend(runner->graph, sysTaskSet.begin, flushTask);
+    graph_add_dep(runner, entryTasks, flushTask);
 
     // Insert required dependencies on the earlier systems.
     for (RunnerSystemEntry* earlierEntry = systems; earlierEntry != entry; ++earlierEntry) {
       if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
-        jobs_graph_task_depend(
-            runner->graph, ecs_runner_task_set(runner, earlierEntry->id).begin, sysTaskSet.begin);
+        graph_add_dep(runner, runner->systemTaskSets[earlierEntry->id], entryTasks);
       }
     }
   }
@@ -222,8 +235,8 @@ static void runner_compute_graph(EcsRunner* runner, const u32 systemCount) {
   log_d("Ecs computing system-graph", log_param("iterations", fmt_int(graph_optimization_itrs)));
 
   /**
-   * Finding an 'optimal' system order (with shortest span) by brute force creating a random system
-   * orders and computing their span.
+   * Finding an 'optimal' system order (with shortest span) by brute force creating a random
+   * system orders and computing their span.
    * TODO: Think of a clever analytical solution :-)
    */
   runner_collect_systems(runner, systems);
