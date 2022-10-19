@@ -49,7 +49,7 @@ EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, c
 
   EcsIterator* itr           = ecs_view_itr_create(mem, view);
   const u32    totalChunks   = ecs_view_chunks(view);
-  const u32    chunksPerStep = math_max(1, totalChunks / steps);
+  const u32    chunksPerStep = math_max(1, (u32)math_round_nearest_f32(totalChunks / (f32)steps));
   const u32    chunksToSkip  = index * chunksPerStep;
 
   diag_assert(chunksPerStep <= u16_max);
