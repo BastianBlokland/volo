@@ -22,8 +22,6 @@ ecs_view_define(ProjectileView) {
   ecs_access_write(SceneTransformComp);
 }
 
-ecs_view_define(TargetView) { ecs_access_write(SceneHealthComp); }
-
 typedef struct {
   EcsEntityId instigator;
 } QueryFilterCtx;
@@ -61,11 +59,6 @@ static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
   return layer;
 }
 
-static void projectile_damage(const SceneProjectileComp* projectile, const EcsIterator* targetItr) {
-  SceneHealthComp* health = ecs_view_write_t(targetItr, SceneHealthComp);
-  scene_health_damage(health, projectile->damage);
-}
-
 static void projectile_impact_spawn(
     EcsWorld*                  world,
     const SceneProjectileComp* projectile,
@@ -87,8 +80,6 @@ ecs_system_define(SceneProjectileSys) {
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSeconds = scene_delta_seconds(time);
-
-  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
 
   EcsView* projectileView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr(projectileView); ecs_view_walk(itr);) {
@@ -122,8 +113,8 @@ ecs_system_define(SceneProjectileSys) {
       if (projectile->impactVfx) {
         projectile_impact_spawn(world, projectile, hit.position, hit.normal);
       }
-      if (ecs_view_maybe_jump(targetItr, hit.entity)) {
-        projectile_damage(projectile, targetItr);
+      if (ecs_world_has_t(world, hit.entity, SceneHealthComp)) {
+        scene_health_damage(world, hit.entity, projectile->damage);
       }
       continue;
     }
@@ -138,11 +129,6 @@ ecs_module_init(scene_projectile_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(ProjectileView);
-  ecs_register_view(TargetView);
 
-  ecs_register_system(
-      SceneProjectileSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(ProjectileView),
-      ecs_view_id(TargetView));
+  ecs_register_system(SceneProjectileSys, ecs_view_id(GlobalView), ecs_view_id(ProjectileView));
 }

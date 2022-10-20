@@ -12,7 +12,14 @@
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
+ecs_comp_define_public(SceneDamageComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
+
+static void ecs_combine_damage(void* dataA, void* dataB) {
+  SceneDamageComp* dmgA = dataA;
+  SceneDamageComp* dmgB = dataB;
+  dmgA->amount += dmgB->amount;
+}
 
 ecs_view_define(HealthAnimInitView) {
   ecs_access_read(SceneRenderableComp);
@@ -122,6 +129,7 @@ static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(HealthView) {
+  ecs_access_write(SceneDamageComp);
   ecs_access_maybe_read(SceneHealthAnimComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -140,20 +148,21 @@ ecs_system_define(SceneHealthUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
+    SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
     SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     const SceneHealthAnimComp* healthAnim = ecs_view_read_t(itr, SceneHealthAnimComp);
 
-    const f32 damageNorm = health_normalize(health, health->damage);
-    health->damage       = 0;
+    const f32 damageNorm = health_normalize(health, damage->amount);
+    damage->amount       = 0;
 
     if (damageNorm > 0.0f) {
-      health->lastDamagedTime = time->time;
+      damage->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
       if (anim && healthAnim) {
         health_anim_play_hit(anim, healthAnim);
       }
-    } else if ((time->time - health->lastDamagedTime) > time_milliseconds(100)) {
+    } else if ((time->time - damage->lastDamagedTime) > time_milliseconds(100)) {
       health_clear_damaged(world, entity, tag);
     }
 
@@ -182,6 +191,7 @@ ecs_module_init(scene_health_module) {
   g_healthDeathAnimHash = string_hash_lit("death");
 
   ecs_register_comp(SceneHealthComp);
+  ecs_register_comp(SceneDamageComp, .combinator = ecs_combine_damage);
   ecs_register_comp(SceneHealthAnimComp);
 
   ecs_register_view(GlobalView);
@@ -194,7 +204,7 @@ ecs_module_init(scene_health_module) {
   ecs_register_system(SceneHealthUpdateSys, ecs_view_id(GlobalView), ecs_register_view(HealthView));
 }
 
-void scene_health_damage(SceneHealthComp* health, const f32 amount) {
+void scene_health_damage(EcsWorld* world, const EcsEntityId target, const f32 amount) {
   diag_assert(amount >= 0.0f);
-  health->damage += amount;
+  ecs_world_add_t(world, target, SceneDamageComp, .amount = amount);
 }
