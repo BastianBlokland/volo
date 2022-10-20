@@ -69,19 +69,40 @@ void thread_pal_set_name(const String str) {
 }
 #endif // !defined(__MINGW32__)
 
+i32 thread_pal_atomic_load_i32(i32* ptr) {
+  return InterlockedCompareExchange32((volatile i32*)ptr, 0, 0);
+}
+
 i64 thread_pal_atomic_load_i64(i64* ptr) {
   return InterlockedCompareExchange64((volatile i64*)ptr, 0, 0);
 }
 
-void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
+void thread_pal_atomic_store_i32(i32* ptr, const i32 value) {
+  InterlockedExchange32((volatile i32*)ptr, value);
+}
+
+void thread_pal_atomic_store_i64(i64* ptr, const i64 value) {
   InterlockedExchange64((volatile i64*)ptr, value);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
+i32 thread_pal_atomic_exchange_i32(i32* ptr, const i32 value) {
+  return InterlockedExchange32((volatile i32*)ptr, value);
+}
+
+i64 thread_pal_atomic_exchange_i64(i64* ptr, const i64 value) {
   return InterlockedExchange64((volatile i64*)ptr, value);
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
+  const i32 read = (i32)InterlockedCompareExchange32((volatile i32*)ptr, value, *expected);
+  if (read == *expected) {
+    return true;
+  }
+  *expected = read;
+  return false;
+}
+
+bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
   const i64 read = (i64)InterlockedCompareExchange64((volatile i64*)ptr, value, *expected);
   if (read == *expected) {
     return true;
@@ -90,13 +111,33 @@ bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) 
   return false;
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+i32 thread_pal_atomic_add_i32(i32* ptr, const i32 value) {
+  i32 current;
+  i32 add;
+  do {
+    current = *ptr;
+    add     = current + value;
+  } while (InterlockedCompareExchange32(ptr, add, current) != current);
+  return current;
+}
+
+i64 thread_pal_atomic_add_i64(i64* ptr, const i64 value) {
   i64 current;
   i64 add;
   do {
     current = *ptr;
     add     = current + value;
   } while (InterlockedCompareExchange64(ptr, add, current) != current);
+  return current;
+}
+
+i32 thread_pal_atomic_sub_i32(i32* ptr, const i32 value) {
+  i32 current;
+  i32 sub;
+  do {
+    current = *ptr;
+    sub     = current - value;
+  } while (InterlockedCompareExchange32(ptr, sub, current) != current);
   return current;
 }
 

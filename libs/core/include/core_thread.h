@@ -71,18 +71,21 @@ typedef i64 ThreadSpinLock;
  * Atomically reads the value at the given pointer.
  * This includes a general memory barrier.
  */
+i32 thread_atomic_load_i32(i32*);
 i64 thread_atomic_load_i64(i64*);
 
 /**
  * Atomically stores the value at the given pointer.
  * This includes a general memory barrier.
  */
+void thread_atomic_store_i32(i32*, i32 value);
 void thread_atomic_store_i64(i64*, i64 value);
 
 /**
  * Atomically stores the value at the given pointer and returns the old value.
  * This includes a general memory barrier.
  */
+i32 thread_atomic_exchange_i32(i32*, i32 value);
 i64 thread_atomic_exchange_i64(i64*, i64 value);
 
 /**
@@ -91,6 +94,7 @@ i64 thread_atomic_exchange_i64(i64*, i64 value);
  * 'false' is returned.
  * This includes a general memory barrier.
  */
+bool thread_atomic_compare_exchange_i32(i32* ptr, i32* expected, i32 value);
 bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value);
 
 /**
@@ -98,6 +102,7 @@ bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value);
  * pointer address and returns the old value.
  * This includes a general memory barrier.
  */
+i32 thread_atomic_add_i32(i32*, i32 value);
 i64 thread_atomic_add_i64(i64*, i64 value);
 
 /**
@@ -105,6 +110,7 @@ i64 thread_atomic_add_i64(i64*, i64 value);
  * pointer address and returns the old value.
  * This includes a general memory barrier.
  */
+i32 thread_atomic_sub_i32(i32*, i32 value);
 i64 thread_atomic_sub_i64(i64*, i64 value);
 
 /**
