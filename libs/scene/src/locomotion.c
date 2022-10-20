@@ -143,7 +143,7 @@ ecs_module_init(scene_locomotion_module) {
 
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
 
-  ecs_parallel(SceneLocomotionMoveSys, 4); // Split locomotion update in multiple tasks.
+  ecs_parallel(SceneLocomotionMoveSys, 4);
 }
 
 void scene_locomotion_move(SceneLocomotionComp* comp, const GeoVector target) {

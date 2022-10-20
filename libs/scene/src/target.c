@@ -8,7 +8,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define target_max_refresh 100
+#define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(4)
 #define target_distance_deviation 15.0f
@@ -85,7 +85,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
   // refresh simultaneously.
-  u32 refreshesRemaining = target_max_refresh;
+  u32 refreshesRemaining = target_max_refresh_per_task;
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
   for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
@@ -160,5 +160,5 @@ ecs_module_init(scene_target_module) {
       ecs_view_id(TargetFinderView),
       ecs_view_id(TargetView));
 
-  ecs_parallel(SceneTargetUpdateSys, 4); // Split target update in multiple tasks.
+  ecs_parallel(SceneTargetUpdateSys, 4);
 }

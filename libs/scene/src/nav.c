@@ -19,7 +19,7 @@ static const f32       g_sceneNavDensity = 1.0f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
 #define path_max_cells 64
-#define path_max_queries 100
+#define path_max_queries_per_task 25
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 2.0f
@@ -232,9 +232,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   const SceneTimeComp*   time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   // Limit the amount of path queries per-frame.
-  u32 pathQueriesRemaining = path_max_queries;
-
-  EcsView* agentsView = ecs_world_view_t(world, AgentEntityView);
+  u32      pathQueriesRemaining = path_max_queries_per_task;
+  EcsView* agentsView           = ecs_world_view_t(world, AgentEntityView);
   for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -339,7 +338,7 @@ ecs_module_init(scene_nav_module) {
       ecs_register_view(UpdateAgentGlobalView),
       ecs_register_view(AgentEntityView));
 
-  ecs_parallel(SceneNavUpdateAgentsSys, 4); // Split navigation update in multiple tasks.
+  ecs_parallel(SceneNavUpdateAgentsSys, 4);
 
   ecs_register_system(SceneNavUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
 
