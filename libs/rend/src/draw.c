@@ -83,10 +83,9 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   ecs_destruct_draw(drawB);
 }
 
-INLINE_HINT static void
-rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
-  if (UNLIKELY(mem->size < neededSize)) {
-    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(neededSize), align);
+INLINE_HINT static void draw_ensure_storage(Mem* mem, const usize size, const usize align) {
+  if (UNLIKELY(mem->size < size)) {
+    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(size), align);
     if (mem_valid(*mem)) {
       mem_cpy(newMem, *mem);
       alloc_free(g_alloc_heap, *mem);
@@ -251,11 +250,10 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
    * pass the filter to separate output memory.
    */
 
-  rend_draw_ensure_storage(
-      &draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
+  draw_ensure_storage(&draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
 
   if (draw->flags & RendDrawFlags_Sorted) {
-    rend_draw_ensure_storage(
+    draw_ensure_storage(
         &draw->sortKeyMem, draw->instCount * sizeof(RendDrawSortKey), alignof(RendDrawSortKey));
   }
 
@@ -325,7 +323,7 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 }
 
 Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
-  rend_draw_ensure_storage(&draw->dataMem, size, rend_min_align);
+  draw_ensure_storage(&draw->dataMem, size, rend_min_align);
   draw->dataSize = (u32)size;
   return draw->dataMem;
 }
@@ -338,17 +336,16 @@ Mem rend_draw_add_instance(
   }
   diag_assert_msg(size <= draw->instDataSize, "Draw instance-data size mismatch");
 
-  ++draw->instCount;
-  rend_draw_ensure_storage(
-      &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
+  const u32 drawIndex = draw->instCount++;
+  draw_ensure_storage(&draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
-    rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
-    rend_draw_ensure_storage(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
+    draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
+    draw_ensure_storage(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
 
-    ((SceneTags*)draw->instTagsMem.ptr)[draw->instCount - 1] = tags;
-    ((GeoBox*)draw->instAabbMem.ptr)[draw->instCount - 1]    = aabb;
+    ((SceneTags*)draw->instTagsMem.ptr)[drawIndex] = tags;
+    ((GeoBox*)draw->instAabbMem.ptr)[drawIndex]    = aabb;
   }
 
-  return rend_draw_inst_data(draw, draw->instCount - 1);
+  return rend_draw_inst_data(draw, drawIndex);
 }
