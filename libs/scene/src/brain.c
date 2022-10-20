@@ -93,13 +93,13 @@ static void scene_brain_eval(
 }
 
 ecs_system_define(SceneBrainUpdateSys) {
-  EcsView* brainEntities  = ecs_world_view_t(world, BrainEntityView);
+  EcsView* brainView      = ecs_world_view_t(world, BrainEntityView);
   EcsView* behaviorAssets = ecs_world_view_t(world, BehaviorView);
 
   EcsIterator* behaviorItr = ecs_view_itr(behaviorAssets);
 
   u32 startedBehaviorLoads = 0;
-  for (EcsIterator* itr = ecs_view_itr(brainEntities); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(brainView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId     entity = ecs_view_entity(itr);
     const SceneBrainComp* brain  = ecs_view_write_t(itr, SceneBrainComp);
 
@@ -131,6 +131,8 @@ ecs_module_init(scene_brain_module) {
   ecs_register_system(SceneBehaviorUnloadChangedSys, ecs_view_id(BehaviorLoadView));
 
   ecs_register_system(SceneBrainUpdateSys, ecs_view_id(BrainEntityView), ecs_view_id(BehaviorView));
+
+  ecs_parallel(SceneBrainUpdateSys, 4);
 }
 
 const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
