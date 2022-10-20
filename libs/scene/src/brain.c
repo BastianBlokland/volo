@@ -27,7 +27,9 @@ ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
 static void ecs_destruct_brain_comp(void* data) {
   SceneBrainComp* brain = data;
   ai_blackboard_destroy(brain->blackboard);
-  ai_tracer_record_destroy(brain->tracer);
+  if (brain->tracer) {
+    ai_tracer_record_destroy(brain->tracer);
+  }
 }
 
 static void ecs_combine_behavior_resource(void* dataA, void* dataB) {
@@ -76,14 +78,20 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 }
 
 static void scene_brain_eval(
-    const EcsEntityId entity, const SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
+    const EcsEntityId entity, SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
 
   if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
     return;
   }
 
-  ai_tracer_record_reset(brain->tracer);
-  AiTracer* tracerApi = ai_tracer_record_api(brain->tracer);
+  AiTracer* tracerApi = null;
+  if (brain->flags & SceneBrainFlags_Trace) {
+    if (!brain->tracer) {
+      brain->tracer = ai_tracer_record_create(g_alloc_heap);
+    }
+    ai_tracer_record_reset(brain->tracer);
+    tracerApi = ai_tracer_record_api(brain->tracer);
+  }
 
   const AiResult res = ai_eval(&behavior->root, brain->blackboard, tracerApi);
   if (res == AiResult_Failure) {
@@ -93,15 +101,15 @@ static void scene_brain_eval(
 }
 
 ecs_system_define(SceneBrainUpdateSys) {
-  EcsView* brainEntities  = ecs_world_view_t(world, BrainEntityView);
+  EcsView* brainView      = ecs_world_view_t(world, BrainEntityView);
   EcsView* behaviorAssets = ecs_world_view_t(world, BehaviorView);
 
   EcsIterator* behaviorItr = ecs_view_itr(behaviorAssets);
 
   u32 startedBehaviorLoads = 0;
-  for (EcsIterator* itr = ecs_view_itr(brainEntities); ecs_view_walk(itr);) {
-    const EcsEntityId     entity = ecs_view_entity(itr);
-    const SceneBrainComp* brain  = ecs_view_write_t(itr, SceneBrainComp);
+  for (EcsIterator* itr = ecs_view_itr_step(brainView, parCount, parIndex); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
 
     // Evaluate the brain if the behavior asset is loaded.
     if (ecs_view_maybe_jump(behaviorItr, brain->behaviorAsset)) {
@@ -131,6 +139,8 @@ ecs_module_init(scene_brain_module) {
   ecs_register_system(SceneBehaviorUnloadChangedSys, ecs_view_id(BehaviorLoadView));
 
   ecs_register_system(SceneBrainUpdateSys, ecs_view_id(BrainEntityView), ecs_view_id(BehaviorView));
+
+  ecs_parallel(SceneBrainUpdateSys, 4);
 }
 
 const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
@@ -164,6 +174,5 @@ scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId beh
       entity,
       SceneBrainComp,
       .blackboard    = ai_blackboard_create(g_alloc_heap),
-      .tracer        = ai_tracer_record_create(g_alloc_heap),
       .behaviorAsset = behaviorAsset);
 }

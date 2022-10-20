@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "ecs_entity.h"
 #include "ecs_module.h"
 
 typedef enum {
@@ -11,8 +12,11 @@ ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
   f32              norm;
   f32              max;
-  f32              damage;
-  TimeDuration     lastDamagedTime;
 };
 
-void scene_health_damage(SceneHealthComp*, f32 amount);
+ecs_comp_extern_public(SceneDamageComp) {
+  f32          amount;
+  TimeDuration lastDamagedTime;
+};
+
+void scene_health_damage(EcsWorld*, EcsEntityId, f32 amount);

@@ -98,6 +98,7 @@ EcsEntityId object_spawn_unit(
   scene_nav_add_agent(world, e);
   ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = g_speed, .radius = 0.4f);
   ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
+  ecs_world_add_t(world, e, SceneDamageComp);
   ecs_world_add_t(world, e, SceneFactionComp, .id = faction);
   ecs_world_add_t(world, e, SceneTargetFinderComp);
   ecs_world_add_t(

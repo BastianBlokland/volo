@@ -78,6 +78,10 @@ static void evaluation_panel_tab_draw(
 
   SceneBrainComp*       brain  = ecs_view_write_t(subject, SceneBrainComp);
   const AiTracerRecord* tracer = scene_brain_tracer(brain);
+  if (!tracer) {
+    scene_brain_flags_set(brain, SceneBrainFlags_Trace);
+    return;
+  }
 
   evaluation_options_draw(canvas, brain);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);

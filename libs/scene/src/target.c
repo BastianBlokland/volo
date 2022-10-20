@@ -8,7 +8,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define target_max_refresh 100
+#define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(4)
 #define target_distance_deviation 15.0f
@@ -85,14 +85,14 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   // Limit the amount of refreshes per-frame, to avoid spikes when a large amount of units want to
   // refresh simultaneously.
-  u32 refreshesRemaining = target_max_refresh;
+  u32 refreshesRemaining = target_max_refresh_per_task;
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
-  for (EcsIterator* finderItr = ecs_view_itr(finderView); ecs_view_walk(finderItr);) {
-    const EcsEntityId         entity  = ecs_view_entity(finderItr);
-    const SceneTransformComp* trans   = ecs_view_read_t(finderItr, SceneTransformComp);
-    const SceneFactionComp*   faction = ecs_view_read_t(finderItr, SceneFactionComp);
-    SceneTargetFinderComp*    finder  = ecs_view_write_t(finderItr, SceneTargetFinderComp);
+  for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
+    const EcsEntityId         entity  = ecs_view_entity(itr);
+    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
+    SceneTargetFinderComp*    finder  = ecs_view_write_t(itr, SceneTargetFinderComp);
 
     /**
      * Refresh our target.
@@ -134,7 +134,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       finder->targetPosition             = targetTrans->position;
       finder->targetDistSqr              = geo_vector_mag_sqr(posDelta);
 
-      if (target_line_of_sight_test(collisionEnv, finderItr, targetItr)) {
+      if (target_line_of_sight_test(collisionEnv, itr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
@@ -159,4 +159,6 @@ ecs_module_init(scene_target_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(TargetFinderView),
       ecs_view_id(TargetView));
+
+  ecs_parallel(SceneTargetUpdateSys, 4);
 }
