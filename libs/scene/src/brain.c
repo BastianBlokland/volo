@@ -27,7 +27,9 @@ ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
 static void ecs_destruct_brain_comp(void* data) {
   SceneBrainComp* brain = data;
   ai_blackboard_destroy(brain->blackboard);
-  ai_tracer_record_destroy(brain->tracer);
+  if (brain->tracer) {
+    ai_tracer_record_destroy(brain->tracer);
+  }
 }
 
 static void ecs_combine_behavior_resource(void* dataA, void* dataB) {
@@ -76,14 +78,20 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 }
 
 static void scene_brain_eval(
-    const EcsEntityId entity, const SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
+    const EcsEntityId entity, SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
 
   if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
     return;
   }
 
-  ai_tracer_record_reset(brain->tracer);
-  AiTracer* tracerApi = ai_tracer_record_api(brain->tracer);
+  AiTracer* tracerApi = null;
+  if (brain->flags & SceneBrainFlags_Trace) {
+    if (!brain->tracer) {
+      brain->tracer = ai_tracer_record_create(g_alloc_heap);
+    }
+    ai_tracer_record_reset(brain->tracer);
+    tracerApi = ai_tracer_record_api(brain->tracer);
+  }
 
   const AiResult res = ai_eval(&behavior->root, brain->blackboard, tracerApi);
   if (res == AiResult_Failure) {
@@ -100,8 +108,8 @@ ecs_system_define(SceneBrainUpdateSys) {
 
   u32 startedBehaviorLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(brainView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId     entity = ecs_view_entity(itr);
-    const SceneBrainComp* brain  = ecs_view_write_t(itr, SceneBrainComp);
+    const EcsEntityId entity = ecs_view_entity(itr);
+    SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
 
     // Evaluate the brain if the behavior asset is loaded.
     if (ecs_view_maybe_jump(behaviorItr, brain->behaviorAsset)) {
@@ -166,6 +174,5 @@ scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId beh
       entity,
       SceneBrainComp,
       .blackboard    = ai_blackboard_create(g_alloc_heap),
-      .tracer        = ai_tracer_record_create(g_alloc_heap),
       .behaviorAsset = behaviorAsset);
 }
