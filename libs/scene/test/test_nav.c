@@ -51,7 +51,7 @@ ecs_module_init(nav_test_module) {
 
 spec(nav) {
 
-  const u16  halfGridSize = 50;
+  const u16  halfGridSize = 75;
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
@@ -89,7 +89,7 @@ spec(nav) {
     check_eq_int(stats->gridStats[GeoNavStat_LineQueryCount], 1);
   }
 
-  it("can computes a path around an obstacle") {
+  it("can compute a path around an obstacle") {
     const EcsEntityId global = ecs_world_global(world);
     const EcsEntityId agent  = test_create_agent(world, geo_vector(-2, 0, 0), geo_vector(2, 0, 0));
     test_create_blocker(world, geo_vector(0, 0, 0));
