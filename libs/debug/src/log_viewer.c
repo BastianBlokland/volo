@@ -29,7 +29,7 @@ typedef struct {
  */
 typedef struct {
   LogSink        api;
-  i64            refCounter;
+  i32            refCounter;
   ThreadSpinLock messagesLock;
   DynArray       messages; // DebugLogMessage[], sorted on timestamp.
 } DebugLogSink;
@@ -60,7 +60,7 @@ static void debug_log_sink_write(
 
 static void debug_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
-  if (thread_atomic_sub_i64(&debugSink->refCounter, 1) == 1) {
+  if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
     dynarray_destroy(&debugSink->messages);
     alloc_free_t(g_alloc_heap, debugSink);
   }
@@ -114,7 +114,7 @@ static DebugLogTrackerComp* debug_log_tracker_global(EcsWorld* world) {
 static DebugLogTrackerComp*
 debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger) {
   DebugLogSink* sink = debug_log_sink_create();
-  thread_atomic_store_i64(&sink->refCounter, 2); // Referenced by the logger and the viewer.
+  thread_atomic_store_i32(&sink->refCounter, 2); // Referenced by the logger and the viewer.
   log_add_sink(logger, (LogSink*)sink);
   return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
 }

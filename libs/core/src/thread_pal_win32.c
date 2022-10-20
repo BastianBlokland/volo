@@ -8,6 +8,9 @@
 #include <Windows.h>
 #include <mmsystem.h> // Part of the Windows Multimedia API (winmm.lib).
 
+ASSERT(sizeof(LONG) == sizeof(i32), "Expected LONG to be 32 bit");
+ASSERT(sizeof(LONG64) == sizeof(i64), "Expected LONG64 to be 64 bit");
+
 /**
  * Requested minimum OS scheduling interval in milliseconds.
  * This is a tradeoff between overhead due to many context switches if set too low and taking a long
@@ -69,20 +72,32 @@ void thread_pal_set_name(const String str) {
 }
 #endif // !defined(__MINGW32__)
 
+i32 thread_pal_atomic_load_i32(i32* ptr) {
+  return InterlockedCompareExchange((volatile LONG*)ptr, 0, 0);
+}
+
 i64 thread_pal_atomic_load_i64(i64* ptr) {
-  return InterlockedCompareExchange64((volatile i64*)ptr, 0, 0);
+  return InterlockedCompareExchange64((volatile LONG64*)ptr, 0, 0);
 }
 
-void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
-  InterlockedExchange64((volatile i64*)ptr, value);
+void thread_pal_atomic_store_i32(i32* ptr, const i32 value) {
+  InterlockedExchange((volatile LONG*)ptr, value);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
-  return InterlockedExchange64((volatile i64*)ptr, value);
+void thread_pal_atomic_store_i64(i64* ptr, const i64 value) {
+  InterlockedExchange64((volatile LONG64*)ptr, value);
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
-  const i64 read = (i64)InterlockedCompareExchange64((volatile i64*)ptr, value, *expected);
+i32 thread_pal_atomic_exchange_i32(i32* ptr, const i32 value) {
+  return InterlockedExchange((volatile LONG*)ptr, value);
+}
+
+i64 thread_pal_atomic_exchange_i64(i64* ptr, const i64 value) {
+  return InterlockedExchange64((volatile LONG64*)ptr, value);
+}
+
+bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
+  const i32 read = (i32)InterlockedCompareExchange((volatile LONG*)ptr, value, *expected);
   if (read == *expected) {
     return true;
   }
@@ -90,13 +105,42 @@ bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) 
   return false;
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
+  const i64 read = (i64)InterlockedCompareExchange64((volatile LONG64*)ptr, value, *expected);
+  if (read == *expected) {
+    return true;
+  }
+  *expected = read;
+  return false;
+}
+
+i32 thread_pal_atomic_add_i32(i32* ptr, const i32 value) {
+  i32 current;
+  i32 add;
+  do {
+    current = *ptr;
+    add     = current + value;
+  } while (InterlockedCompareExchange((volatile LONG*)ptr, add, current) != current);
+  return current;
+}
+
+i64 thread_pal_atomic_add_i64(i64* ptr, const i64 value) {
   i64 current;
   i64 add;
   do {
     current = *ptr;
     add     = current + value;
-  } while (InterlockedCompareExchange64(ptr, add, current) != current);
+  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, add, current) != current);
+  return current;
+}
+
+i32 thread_pal_atomic_sub_i32(i32* ptr, const i32 value) {
+  i32 current;
+  i32 sub;
+  do {
+    current = *ptr;
+    sub     = current - value;
+  } while (InterlockedCompareExchange((volatile LONG*)ptr, sub, current) != current);
   return current;
 }
 
@@ -106,7 +150,7 @@ i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
   do {
     current = *ptr;
     sub     = current - value;
-  } while (InterlockedCompareExchange64(ptr, sub, current) != current);
+  } while (InterlockedCompareExchange64((volatile LONG64*)ptr, sub, current) != current);
   return current;
 }
 

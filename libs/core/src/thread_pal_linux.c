@@ -45,26 +45,48 @@ void thread_pal_set_name(const String str) {
   }
 }
 
+i32 thread_pal_atomic_load_i32(i32* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
 i64 thread_pal_atomic_load_i64(i64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+
+void thread_pal_atomic_store_i32(i32* ptr, i32 value) {
+  __atomic_store(ptr, &value, __ATOMIC_SEQ_CST);
+}
 
 void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
   __atomic_store(ptr, &value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
+i32 thread_pal_atomic_exchange_i32(i32* ptr, const i32 value) {
   return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+i64 thread_pal_atomic_exchange_i64(i64* ptr, const i64 value) {
+  return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
+}
+
+bool thread_pal_atomic_compare_exchange_i32(i32* ptr, i32* expected, const i32 value) {
   return __atomic_compare_exchange_n(
       ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, const i64 value) {
+  return __atomic_compare_exchange_n(
+      ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+}
+
+i32 thread_pal_atomic_add_i32(i32* ptr, const i32 value) {
   return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
+i64 thread_pal_atomic_add_i64(i64* ptr, const i64 value) {
+  return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
+}
+
+i32 thread_pal_atomic_sub_i32(i32* ptr, const i32 value) {
+  return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
+}
+
+i64 thread_pal_atomic_sub_i64(i64* ptr, const i64 value) {
   return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
 }
 
