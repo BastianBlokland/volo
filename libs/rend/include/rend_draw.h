@@ -59,12 +59,13 @@ void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
 #define rend_draw_set_data_t(_DRAW_, _TYPE_)                                                       \
   ((_TYPE_*)rend_draw_set_data((_DRAW_), sizeof(_TYPE_)).ptr)
 
-Mem rend_draw_set_data(RendDrawComp*, const usize size);
+Mem rend_draw_set_data(RendDrawComp*, usize size);
 
 /**
  * Add a new instance to the given draw.
  * NOTE: All instances need to use the same data-size.
  * NOTE: Tags and bounds are used to filter the draws per camera.
+ * NOTE: Data size has to be consistent between all instances and across frames.
  */
 #define rend_draw_add_instance_t(_DRAW_, _TYPE_, _TAGS_, _AABB_)                                   \
   ((_TYPE_*)rend_draw_add_instance((_DRAW_), sizeof(_TYPE_), (_TAGS_), (_AABB_)).ptr)

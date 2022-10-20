@@ -95,8 +95,8 @@ rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
   }
 }
 
-INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
-  const usize rem = val & (align - 1);
+INLINE_HINT static u32 rend_draw_align(const u32 val, const u32 align) {
+  const u32 rem = val & (align - 1);
   return val + (rem ? align - rem : 0);
 }
 
@@ -331,15 +331,12 @@ Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
 }
 
 Mem rend_draw_add_instance(
-    RendDrawComp* draw, const usize dataSize, const SceneTags tags, const GeoBox aabb) {
+    RendDrawComp* draw, const usize size, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(rend_draw_align(dataSize, rend_min_align) != draw->instDataSize)) {
-    /**
-     * Instance data-size changed; Clear any previously added instances.
-     */
-    draw->instCount    = 0;
-    draw->instDataSize = (u32)rend_draw_align(dataSize, rend_min_align);
+  if (UNLIKELY(!draw->instDataSize)) {
+    draw->instDataSize = rend_draw_align((u32)size, rend_min_align);
   }
+  diag_assert_msg(size <= draw->instDataSize, "Draw instance-data size mismatch");
 
   ++draw->instCount;
   rend_draw_ensure_storage(
