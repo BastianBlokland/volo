@@ -61,11 +61,11 @@ typedef uptr ThreadCondition;
 
 /**
  * SpinLock semaphore.
- * Usefull for very short locks where the cost of context switching would be too high.
+ * Useful for very short locks where the cost of context switching would be too high.
  * Lock using 'thread_spinlock_lock()', and unlock using 'thread_spinlock_unlock()'.
  * NOTE: Should be zero initialized.
  */
-typedef i64 ThreadSpinLock;
+typedef i32 ThreadSpinLock;
 
 /**
  * Atomically reads the value at the given pointer.

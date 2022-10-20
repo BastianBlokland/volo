@@ -137,8 +137,8 @@ void thread_spinlock_lock(ThreadSpinLock* lock) {
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_unlock' because both
    * write to the same memory with sequentially-consistent ordering semantics.
    */
-  i64 expected = 0;
-  while (!thread_atomic_compare_exchange_i64(lock, &expected, 1)) {
+  i32 expected = 0;
+  while (!thread_atomic_compare_exchange_i32(lock, &expected, 1)) {
     _mm_pause();
     expected = 0;
   }
@@ -149,5 +149,5 @@ void thread_spinlock_unlock(ThreadSpinLock* lock) {
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_lock' because both
    * write to the same memory with sequentially-consistent ordering semantics.
    */
-  thread_atomic_store_i64(lock, 0);
+  thread_atomic_store_i32(lock, 0);
 }
