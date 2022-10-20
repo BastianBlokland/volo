@@ -27,19 +27,19 @@ typedef struct {
 
 static const GapVector        g_appWindowSize      = {1920, 1080};
 static const u32              g_appWallCount       = 200;
-static const u64              g_appRngSeed         = 1337;
+static const u64              g_appRngSeed         = 42;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
         {
-            .spawnArea        = {.min = {.x = 40, .z = -40}, .max = {.x = 45, .z = 40}},
-            .spawnIntervalMin = time_milliseconds(100),
-            .spawnIntervalMax = time_milliseconds(250),
+            .spawnArea        = {.min = {.x = 50, .z = -50}, .max = {.x = 65, .z = 50}},
+            .spawnIntervalMin = time_milliseconds(50),
+            .spawnIntervalMax = time_milliseconds(100),
         },
     [SceneFaction_B] =
         {
-            .spawnArea        = {.min = {.x = -45, .z = -40}, .max = {.x = -40, .z = 40}},
-            .spawnIntervalMin = time_milliseconds(100),
-            .spawnIntervalMax = time_milliseconds(250),
+            .spawnArea        = {.min = {.x = -65, .z = -50}, .max = {.x = -50, .z = 50}},
+            .spawnIntervalMin = time_milliseconds(50),
+            .spawnIntervalMax = time_milliseconds(100),
         },
 };
 ASSERT(array_elems(g_appFactionConfig) <= SceneFaction_Count, "More factions then supported");
