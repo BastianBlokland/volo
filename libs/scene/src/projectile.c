@@ -81,8 +81,8 @@ ecs_system_define(SceneProjectileSys) {
   const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSeconds = scene_delta_seconds(time);
 
-  EcsView* projectileView = ecs_world_view_t(world, ProjectileView);
-  for (EcsIterator* itr = ecs_view_itr(projectileView); ecs_view_walk(itr);) {
+  EcsView* projView = ecs_world_view_t(world, ProjectileView);
+  for (EcsIterator* itr = ecs_view_itr_step(projView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId       entity     = ecs_view_entity(itr);
     SceneProjectileComp*    projectile = ecs_view_write_t(itr, SceneProjectileComp);
     SceneTransformComp*     trans      = ecs_view_write_t(itr, SceneTransformComp);
@@ -131,4 +131,6 @@ ecs_module_init(scene_projectile_module) {
   ecs_register_view(ProjectileView);
 
   ecs_register_system(SceneProjectileSys, ecs_view_id(GlobalView), ecs_view_id(ProjectileView));
+
+  ecs_parallel(SceneProjectileSys, 4);
 }

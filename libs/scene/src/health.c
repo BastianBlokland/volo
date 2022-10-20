@@ -145,7 +145,7 @@ ecs_system_define(SceneHealthUpdateSys) {
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* healthView = ecs_world_view_t(world, HealthView);
-  for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(healthView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
     SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
@@ -202,6 +202,8 @@ ecs_module_init(scene_health_module) {
       ecs_register_view(HealthGraphicView));
 
   ecs_register_system(SceneHealthUpdateSys, ecs_view_id(GlobalView), ecs_register_view(HealthView));
+
+  ecs_parallel(SceneHealthUpdateSys, 2);
 }
 
 void scene_health_damage(EcsWorld* world, const EcsEntityId target, const f32 amount) {
