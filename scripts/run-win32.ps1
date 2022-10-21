@@ -13,6 +13,9 @@
 .PARAMETER Fast
   Default: Off
   Fast mode, disables various runtime validations.
+.PARAMETER Lto
+  Default: Off
+  Link time optimization.
 .PARAMETER Sanitize
   Default: Off
   Should santizer instrumentation be enabled.
@@ -23,6 +26,7 @@ param(
   [string]$BuildTarget = "run.sandbox",
   [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
   [switch]$Fast,
+  [switch]$Lto,
   [switch]$Sanitize
 )
 
@@ -71,6 +75,7 @@ function ExecuteGenerator(
     [string] $buildDirectory,
     [string] $buildSystem,
     [bool] $fast,
+    [bool] $lto,
     [bool] $sanitize) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmake.exe' not found on path, please install the CMake build-system generator"
@@ -87,6 +92,7 @@ function ExecuteGenerator(
   & cmake.exe -B $buildDirectory `
     -G "$(GetGeneratorName $buildSystem)" `
     -DFAST="$(if($fast) { "On" } else { "Off" })" `
+    -DLTO="$(if($lto) { "On" } else { "Off" })" `
     -DSANITIZE="$(if($sanitize) { "On" } else { "Off" })"
 
   $result = $LASTEXITCODE
@@ -123,7 +129,7 @@ function Execute() {
   SetupEnvironment
 
   Info "Configuring build directory '$BuildDirectory'"
-  ExecuteGenerator $BuildDirectory $BuildSystem $Fast $Sanitize
+  ExecuteGenerator $BuildDirectory $BuildSystem $Fast $Lto $Sanitize
 
   Info "Building target '$BuildTarget' using '$BuildSystem'"
   ExecuteBuild $BuildDirectory $BuildTarget

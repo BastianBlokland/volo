@@ -62,10 +62,12 @@ build() {
   local buildTarget="${2}"
   local buildSystem="${3}"
   local fastMode="${4}"
-  local sanitizeMode="${5}"
+  local ltoMode="${5}"
+  local sanitizeMode="${6}"
 
   verifyBuildSystemOption "${buildSystem}"
   verifyBoolOption "${fastMode}"
+  verifyBoolOption "${ltoMode}"
   verifyBoolOption "${sanitizeMode}"
 
   local sourceDir
@@ -83,6 +85,7 @@ build() {
   ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
     -DFAST="${fastMode}" \
+    -DLTO="${ltoMode}" \
     -DSANITIZE="${sanitizeMode}" )
 
   info "Building target '${buildTarget}' using '${buildSystem}'"
@@ -96,6 +99,7 @@ buildDir="build"
 buildTarget="run.sandbox"
 buildSystem="ninja"
 fastMode="Off"
+ltoMode="Off"
 sanitizeMode="Off"
 
 printUsage() {
@@ -105,6 +109,7 @@ printUsage() {
   echo "-t,--target   Build target, default: '${buildTarget}'"
   echo "-s,--system   Build system, default: '${buildSystem}'"
   echo "--fast        Fast mode, disables various runtime validations, default: '${fastMode}'"
+  echo "--lto         Link time optimization, default: '${ltoMode}'"
   echo "--sanitize    Santiser instrumentation, default: '${sanitizeMode}'"
 }
 
@@ -133,6 +138,10 @@ do
       fastMode="On"
       shift 1
       ;;
+    --lto)
+      ltoMode="On"
+      shift 1
+      ;;
     --sanitize)
       sanitizeMode="On"
       shift 1
@@ -151,5 +160,6 @@ build \
   "${buildTarget}" \
   "${buildSystem}" \
   "${fastMode}" \
+  "${ltoMode}" \
   "${sanitizeMode}"
 exit 0
