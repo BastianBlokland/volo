@@ -21,6 +21,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: gcc-9,
+            fast: Off,
           }
         - {
             name: linux-clang,
@@ -28,6 +29,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: clang-10,
+            fast: Off,
           }
         - {
             name: windows-msvc,
@@ -35,6 +37,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: cl,
+            fast: Off,
           }
         - {
             name: windows-clang,
@@ -42,6 +45,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: clang,
+            fast: Off,
           }
         - {
             name: windows-mingw,
@@ -49,6 +53,7 @@ jobs:
             os: windows,
             toolchain: mingw,
             cc: gcc,
+            fast: Off,
           }
         - {
             name: linux-clang-release,
