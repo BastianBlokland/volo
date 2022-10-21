@@ -76,7 +76,7 @@ jobs:
       CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DFAST=${{matrix.config.fast}}"
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -115,7 +115,7 @@ jobs:
         mingw32-make -k all test
 
     - name: archive
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: success() || failure()
       with:
         name: archive-${{matrix.config.name}}
