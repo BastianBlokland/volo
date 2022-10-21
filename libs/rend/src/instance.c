@@ -9,7 +9,7 @@
 
 #include "draw_internal.h"
 
-#define rend_instance_max_draw_create 16
+#define rend_instance_max_draw_create_per_task 4
 
 typedef struct {
   ALIGNAS(16)
@@ -66,33 +66,41 @@ ecs_view_define(RenderableView) {
 }
 
 ecs_view_define(DrawView) {
+  /**
+   * Here be dragons!
+   * To support parallel filling of draws we allow this view to random-write in parallel, this can
+   * be used safely as 'rend_draw_add_instance' is thread-safe. But care must be taken to use only
+   * thread-safe apis.
+   */
+  ecs_view_flags(EcsViewFlags_AllowParallelRandomWrite);
+
   ecs_access_write(RendDrawComp);
   ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
-  EcsView* renderableView = ecs_world_view_t(world, RenderableView);
-  EcsView* drawView       = ecs_world_view_t(world, DrawView);
+  EcsView* renderables = ecs_world_view_t(world, RenderableView);
+  EcsView* drawView    = ecs_world_view_t(world, DrawView);
 
   u32 createdDraws = 0;
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
-  for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
-    const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
+  for (EcsIterator* itr = ecs_view_itr_step(renderables, parCount, parIndex); ecs_view_walk(itr);) {
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (renderable->flags & SceneRenderable_Hide) {
       continue;
     }
 
-    const SceneTagComp*       tagComp       = ecs_view_read_t(renderableItr, SceneTagComp);
-    const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
-    const SceneScaleComp*     scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
-    const SceneBoundsComp*    boundsComp    = ecs_view_read_t(renderableItr, SceneBoundsComp);
-    const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(renderableItr, SceneSkeletonComp);
+    const SceneTagComp*       tagComp       = ecs_view_read_t(itr, SceneTagComp);
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
+    const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
     const bool                isSkinned     = skeletonComp->jointCount != 0;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
-      if (++createdDraws > rend_instance_max_draw_create) {
+      if (++createdDraws > rend_instance_max_draw_create_per_task) {
         continue; // Limit the amount of new draws to create per frame.
       }
       const RendDrawFlags flags = isSkinned ? RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned
@@ -102,6 +110,11 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       continue;
     }
 
+    /**
+     * NOTE: This is a parallel system, so by jumping the 'drawItr' multiple tasks can get a mutable
+     * pointer to a 'RendDrawComp' at the same time. This dangerous for obvious reasons, luckily
+     * 'rend_draw_add_instance' is a thread-safe api but care should be taken.
+     */
     ecs_view_jump(drawItr, renderable->graphic);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
@@ -141,4 +154,6 @@ ecs_module_init(rend_instance_module) {
   ecs_register_system(RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(DrawView));
 
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
+
+  ecs_parallel(RendInstanceFillDrawsSys, 4);
 }

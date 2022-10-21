@@ -13,6 +13,7 @@ typedef struct {
 
 struct sEcsViewBuilder {
   const EcsDef* def;
+  EcsViewFlags  flags;
   BitSet        filterWith, filterWithout;
   BitSet        accessRead, accessWrite;
 };

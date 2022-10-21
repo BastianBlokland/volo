@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_sort.h"
+#include "core_thread.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 
@@ -26,12 +27,15 @@ typedef struct {
 } RendDrawSortKey;
 
 ecs_comp_define(RendDrawComp) {
-  EcsEntityId   graphic;
-  EcsEntityId   cameraFilter;
+  EcsEntityId graphic;
+  EcsEntityId cameraFilter;
+
   RendDrawFlags flags;
   u32           vertexCountOverride;
-  u32           instCount;
+  i32           instCount;
   u32           outputInstCount;
+
+  ThreadSpinLock lock; // Used for parallel instance insertion.
 
   u32 dataSize;     // Size of the 'per draw' data.
   u32 instDataSize; // Size of the 'per instance' data.
@@ -71,7 +75,7 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
       drawA->instDataSize == drawB->instDataSize,
       "Only draws with the same instance-data stride can be combined");
 
-  for (u32 i = 0; i != drawB->instCount; ++i) {
+  for (u32 i = 0; i != (u32)drawB->instCount; ++i) {
     const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
     const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
     const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
@@ -83,10 +87,9 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   ecs_destruct_draw(drawB);
 }
 
-INLINE_HINT static void
-rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
-  if (UNLIKELY(mem->size < neededSize)) {
-    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(neededSize), align);
+INLINE_HINT static void buf_ensure(Mem* mem, const usize size, const usize align) {
+  if (UNLIKELY(mem->size < size)) {
+    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(size), align);
     if (mem_valid(*mem)) {
       mem_cpy(newMem, *mem);
       alloc_free(g_alloc_heap, *mem);
@@ -95,8 +98,17 @@ rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
   }
 }
 
-INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
-  const usize rem = val & (align - 1);
+INLINE_HINT static void
+buf_ensure_locked(Mem* mem, const usize size, const usize align, ThreadSpinLock* lock) {
+  if (UNLIKELY(mem->size < size)) {
+    thread_spinlock_lock(lock);
+    buf_ensure(mem, size, align);
+    thread_spinlock_unlock(lock);
+  }
+}
+
+INLINE_HINT static u32 rend_draw_align(const u32 val, const u32 align) {
+  const u32 rem = val & (align - 1);
   return val + (rem ? align - rem : 0);
 }
 
@@ -196,7 +208,9 @@ RendDrawFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
 
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
-u32 rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
+u32 rend_draw_instance_count(const RendDrawComp* draw) {
+  return (u32)thread_atomic_load_i64((i64*)&draw->instCount);
+}
 
 u32 rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
 
@@ -251,16 +265,15 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
    * pass the filter to separate output memory.
    */
 
-  rend_draw_ensure_storage(
-      &draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
+  buf_ensure(&draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
 
   if (draw->flags & RendDrawFlags_Sorted) {
-    rend_draw_ensure_storage(
+    buf_ensure(
         &draw->sortKeyMem, draw->instCount * sizeof(RendDrawSortKey), alignof(RendDrawSortKey));
   }
 
   draw->outputInstCount = 0;
-  for (u32 i = 0; i != draw->instCount; ++i) {
+  for (u32 i = 0; i != (u32)draw->instCount; ++i) {
     const SceneTags instTags = ((SceneTags*)draw->instTagsMem.ptr)[i];
     const GeoBox*   instAabb = &((GeoBox*)draw->instAabbMem.ptr)[i];
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
@@ -295,7 +308,7 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkM
   u32 instCount;
   Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
-    instCount = draw->instCount;
+    instCount = (u32)draw->instCount;
     instData  = mem_slice(draw->instDataMem, 0, instCount * draw->instDataSize);
   } else {
     instCount = draw->outputInstCount;
@@ -325,33 +338,36 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 }
 
 Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
-  rend_draw_ensure_storage(&draw->dataMem, size, rend_min_align);
+  buf_ensure(&draw->dataMem, size, rend_min_align);
   draw->dataSize = (u32)size;
   return draw->dataMem;
 }
 
 Mem rend_draw_add_instance(
-    RendDrawComp* draw, const usize dataSize, const SceneTags tags, const GeoBox aabb) {
+    RendDrawComp* draw, const usize size, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(rend_draw_align(dataSize, rend_min_align) != draw->instDataSize)) {
-    /**
-     * Instance data-size changed; Clear any previously added instances.
-     */
-    draw->instCount    = 0;
-    draw->instDataSize = (u32)rend_draw_align(dataSize, rend_min_align);
+  if (UNLIKELY(!draw->instDataSize)) {
+    draw->instDataSize = rend_draw_align((u32)size, rend_min_align);
   }
+  diag_assert_msg(size <= (u32)draw->instDataSize, "Draw instance-data size mismatch");
 
-  ++draw->instCount;
-  rend_draw_ensure_storage(
-      &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
+  /**
+   * Add a new instance and return instance memory for the caller to write into.
+   * NOTE: Can be called in parallel with itself.
+   */
+
+  ThreadSpinLock* lock = &draw->lock;
+
+  const u32 drawIndex = (u32)thread_atomic_add_i32(&draw->instCount, 1);
+  buf_ensure_locked(&draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align, lock);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
-    rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
-    rend_draw_ensure_storage(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
+    buf_ensure_locked(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1, lock);
+    buf_ensure_locked(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox), lock);
 
-    ((SceneTags*)draw->instTagsMem.ptr)[draw->instCount - 1] = tags;
-    ((GeoBox*)draw->instAabbMem.ptr)[draw->instCount - 1]    = aabb;
+    ((SceneTags*)draw->instTagsMem.ptr)[drawIndex] = tags;
+    ((GeoBox*)draw->instAabbMem.ptr)[drawIndex]    = aabb;
   }
 
-  return rend_draw_inst_data(draw, draw->instCount - 1);
+  return rend_draw_inst_data(draw, drawIndex);
 }

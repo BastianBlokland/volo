@@ -53,6 +53,10 @@ ecs_module_register_view(EcsModuleBuilder* builder, EcsViewId* var, const EcsVie
   return id;
 }
 
+void ecs_module_view_flags(EcsViewBuilder* builder, const EcsViewFlags flags) {
+  builder->flags |= flags;
+}
+
 void ecs_module_access_with(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
       !ecs_comp_has(builder->filterWithout, comp),

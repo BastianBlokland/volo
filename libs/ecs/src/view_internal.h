@@ -15,9 +15,10 @@ typedef enum {
 struct sEcsView {
   const EcsDef*     def;
   const EcsViewDef* viewDef;
+  EcsViewFlags      flags;
+  u16               compCount;
   EcsStorage*       storage;
   Mem               masks;
-  u16               compCount;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
 };
 

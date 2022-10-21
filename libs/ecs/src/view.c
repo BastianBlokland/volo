@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_def.h"
+#include "ecs_runner.h"
 
 #include "storage_internal.h"
 #include "view_internal.h"
@@ -15,6 +16,22 @@ MAYBE_UNUSED static bool ecs_iterator_is_stepped(EcsIterator* iterator) {
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return ecs_comp_mask_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
+}
+
+static void ecs_view_validate_sys_random_write(const EcsView* view, const EcsSystemId sysId) {
+  if (view->flags & EcsViewFlags_AllowParallelRandomWrite) {
+    return; // View explicitly allows random parallel writes.
+  }
+
+  const EcsSystemDef* sysDef = dynarray_at_t(&view->def->systems, sysId, EcsSystemDef);
+  (void)sysDef;
+
+  diag_assert_msg(
+      sysDef->parallelCount <= 1,
+      "Parallel system '{}' creates a random-write iterator from view '{}', "
+      "this is potentially unsafe",
+      fmt_text(sysDef->name),
+      fmt_text(view->viewDef->name));
 }
 
 u16 ecs_view_comp_count(const EcsView* view) { return view->compCount; }
@@ -36,6 +53,11 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   const BitSet mask = ecs_view_mask(view, EcsViewMask_AccessRead);
   EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
   itr->context      = view;
+
+  if (g_ecsRunningSystem && bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
+    ecs_view_validate_sys_random_write(view, g_ecsRunningSystemId);
+  }
+
   return itr;
 }
 
@@ -47,10 +69,13 @@ EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, c
       fmt_int(index),
       fmt_int(steps));
 
-  EcsIterator* itr           = ecs_view_itr_create(mem, view);
-  const u32    totalChunks   = ecs_view_chunks(view);
-  const u32    chunksPerStep = math_max(1, (u32)math_round_nearest_f32(totalChunks / (f32)steps));
-  const u32    chunksToSkip  = index * chunksPerStep;
+  const BitSet mask = ecs_view_mask(view, EcsViewMask_AccessRead);
+  EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
+  itr->context      = view;
+
+  const u32 totalChunks   = ecs_view_chunks(view);
+  const u32 chunksPerStep = math_max(1, (u32)math_round_nearest_f32(totalChunks / (f32)steps));
+  const u32 chunksToSkip  = index * chunksPerStep;
 
   diag_assert(chunksPerStep <= u16_max);
   diag_assert(chunksToSkip <= u16_max);
@@ -184,6 +209,7 @@ EcsView ecs_view_create(
   viewDef->initRoutine(&viewBuilder);
 
   view.compCount = ecs_comp_mask_count(ecs_view_mask(&view, EcsViewMask_AccessRead));
+  view.flags     = viewBuilder.flags;
   return view;
 }
 
