@@ -25,6 +25,16 @@ macro(detect_compiler)
 endmacro(detect_compiler)
 
 #
+# Set generic defines
+#
+macro(set_generic_defines)
+  if(${FAST})
+    message(STATUS "Enabling fast mode")
+    add_definitions(-DVOLO_FAST)
+  endif()
+endmacro(set_generic_defines)
+
+#
 # Set gcc specific defines
 #
 macro(set_gcc_defines)
@@ -50,6 +60,7 @@ endmacro(set_msvc_defines)
 # Requires 'VOLO_COMPILER' to be configured
 #
 macro(set_compiler_defines)
+  set_generic_defines()
   if(${VOLO_COMPILER} STREQUAL "gcc")
     set_gcc_defines()
   elseif(${VOLO_COMPILER} STREQUAL "clang")
