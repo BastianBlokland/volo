@@ -186,13 +186,19 @@ macro(set_msvc_compile_options)
   add_compile_options(/O2)
   # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
-  # add_compile_options(/GL) # Enable link-time optimization.
 
   # Debug options.
   add_compile_options(/Zi)
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(/GL)
+    add_link_options(/LTCG /O2)
+  endif()
 
 endmacro(set_msvc_compile_options)
 
