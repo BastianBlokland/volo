@@ -101,6 +101,13 @@ macro(set_gcc_compile_options)
     add_compile_options(-fno-omit-frame-pointer)
   endif()
 
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(-flto -fno-fat-lto-objects)
+    add_link_options(-flto -fwhole-program -O3 -mf16c)
+  endif()
+
 endmacro(set_gcc_compile_options)
 
 #
@@ -123,8 +130,6 @@ macro(set_clang_compile_options)
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
-  # add_compile_options(-flto=full) # Enable link-time optimization.
-  # add_link_options(-fuse-ld=lld -flto=full) # Enable link-time optimization.
 
   # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
@@ -137,6 +142,13 @@ macro(set_clang_compile_options)
     add_compile_options(-fsanitize=${SANITIZERS})
     add_link_options(-fsanitize=${SANITIZERS})
     add_definitions(-DVOLO_ASAN)
+  endif()
+
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(-flto=full)
+    add_link_options(-fuse-ld=lld -flto=full -O3 -mf16c)
   endif()
 
 endmacro(set_clang_compile_options)
@@ -174,13 +186,19 @@ macro(set_msvc_compile_options)
   add_compile_options(/O2)
   # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
-  # add_compile_options(/GL) # Enable link-time optimization.
 
   # Debug options.
   add_compile_options(/Zi)
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(/GL)
+    add_link_options(/LTCG /O2)
+  endif()
 
 endmacro(set_msvc_compile_options)
 

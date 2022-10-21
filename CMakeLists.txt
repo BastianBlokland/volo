@@ -11,9 +11,10 @@ endif()
 project(Volo VERSION 0.1.0 LANGUAGES C)
 
 # Custom options.
-set(FAST "Off" CACHE BOOL "Fast mode, disables various runtime validations")
-set(SANITIZE "Off" CACHE BOOL "Should santiser instrumentation be enabled")
-set(EXTERNAL_ASSETS "On" CACHE BOOL "Should external assets be downloaded")
+set(FAST            "Off" CACHE BOOL "Fast mode, disables various runtime validations")
+set(LTO             "Off" CACHE BOOL "Link time optimization")
+set(SANITIZE        "Off" CACHE BOOL "Should santiser instrumentation be enabled")
+set(EXTERNAL_ASSETS "On"  CACHE BOOL "Should external assets be downloaded")
 
 # Diagnostic information.
 message(STATUS "Configuring Volo")
@@ -25,6 +26,7 @@ message(STATUS "* Build path: ${PROJECT_BINARY_DIR}")
 message(STATUS "* Compiler: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "* Generator: ${CMAKE_GENERATOR}")
 message(STATUS "* Fast: ${FAST}")
+message(STATUS "* Lto: ${LTO}")
 message(STATUS "* Sanitize: ${SANITIZE}")
 message(STATUS "* External assets: ${EXTERNAL_ASSETS}")
 
