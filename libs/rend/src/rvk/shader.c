@@ -30,7 +30,7 @@ static VkShaderStageFlagBits rvk_shader_stage(const AssetShaderKind kind) {
   diag_crash();
 }
 
-static String rvk_shader_kind_str(const AssetShaderKind kind) {
+MAYBE_UNUSED static String rvk_shader_kind_str(const AssetShaderKind kind) {
   static const String g_msgs[] = {
       string_static("SpvVertex"),
       string_static("SpvFragment"),

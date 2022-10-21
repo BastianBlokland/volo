@@ -61,9 +61,11 @@ build() {
   local buildDir="${1}"
   local buildTarget="${2}"
   local buildSystem="${3}"
-  local sanitizeMode="${4}"
+  local fastMode="${4}"
+  local sanitizeMode="${5}"
 
   verifyBuildSystemOption "${buildSystem}"
+  verifyBoolOption "${fastMode}"
   verifyBoolOption "${sanitizeMode}"
 
   local sourceDir
@@ -80,6 +82,7 @@ build() {
   # Configure.
   ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
+    -DFAST="${fastMode}" \
     -DSANITIZE="${sanitizeMode}" )
 
   info "Building target '${buildTarget}' using '${buildSystem}'"
@@ -92,6 +95,7 @@ build() {
 buildDir="build"
 buildTarget="run.sandbox"
 buildSystem="ninja"
+fastMode="Off"
 sanitizeMode="Off"
 
 printUsage() {
@@ -100,6 +104,7 @@ printUsage() {
   echo "-d,--dir      Build directory, default: '${buildDir}'"
   echo "-t,--target   Build target, default: '${buildTarget}'"
   echo "-s,--system   Build system, default: '${buildSystem}'"
+  echo "--fast        Fast mode, disables various runtime validations, default: '${fastMode}'"
   echo "--sanitize    Santiser instrumentation, default: '${sanitizeMode}'"
 }
 
@@ -124,6 +129,10 @@ do
       buildSystem="${2}"
       shift 2
       ;;
+    --fast)
+      fastMode="On"
+      shift 1
+      ;;
     --sanitize)
       sanitizeMode="On"
       shift 1
@@ -141,5 +150,6 @@ build \
   "${buildDir}" \
   "${buildTarget}" \
   "${buildSystem}" \
+  "${fastMode}" \
   "${sanitizeMode}"
 exit 0

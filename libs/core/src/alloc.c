@@ -105,13 +105,21 @@ AllocStats alloc_stats_query() {
 }
 
 void alloc_tag_free(Mem mem, const AllocMemType type) {
+  (void)mem;
+  (void)type;
+#ifndef VOLO_FAST
   static const u8 g_tags[AllocMemType_Count] = {0xAA, 0xAB};
   mem_set(mem, g_tags[type]);
+#endif
 }
 
 void alloc_tag_guard(Mem mem, const AllocMemType type) {
+  (void)mem;
+  (void)type;
+#ifndef VOLO_FAST
   static const u8 g_tags[AllocMemType_Count] = {0xBA, 0xBB};
   mem_set(mem, g_tags[type]);
+#endif
 }
 
 void alloc_poison(Mem mem) {

@@ -21,6 +21,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: gcc-9,
+            fast: Off,
           }
         - {
             name: linux-clang,
@@ -28,6 +29,7 @@ jobs:
             os: linux,
             toolchain: unix,
             cc: clang-10,
+            fast: Off,
           }
         - {
             name: windows-msvc,
@@ -35,6 +37,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: cl,
+            fast: Off,
           }
         - {
             name: windows-clang,
@@ -42,6 +45,7 @@ jobs:
             os: windows,
             toolchain: msvc,
             cc: clang,
+            fast: Off,
           }
         - {
             name: windows-mingw,
@@ -49,10 +53,27 @@ jobs:
             os: windows,
             toolchain: mingw,
             cc: gcc,
+            fast: Off,
+          }
+        - {
+            name: linux-clang-release,
+            image: ubuntu-20.04,
+            os: linux,
+            toolchain: unix,
+            cc: clang-10,
+            fast: On,
+          }
+        - {
+            name: windows-msvc-release,
+            image: windows-2019,
+            os: windows,
+            toolchain: msvc,
+            cc: cl,
+            fast: On,
           }
     env:
       CC: ${{matrix.config.cc}}
-      CMAKE_OPTS: "-D EXTERNAL_ASSETS=Off"
+      CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DFAST=${{matrix.config.fast}}"
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -81,16 +102,16 @@ jobs:
     - name: test-msvc
       if: matrix.config.toolchain == 'msvc'
       run: |
-        ./scripts/env-win32.ps1                             &&
-        cmake -B build -G 'NMake Makefiles' $env:CMAKE_OPTS &&
-        cd build                                            &&
+        ./scripts/env-win32.ps1                                           &&
+        cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        cd build                                                          &&
         nmake /C /K all test
 
     - name: test-mingw
       if: matrix.config.toolchain == 'mingw'
       run: |
-        cmake -B build -G 'MinGW Makefiles' $env:CMAKE_OPTS &&
-        cd build                                            &&
+        cmake -B build -G 'MinGW Makefiles' $($env:CMAKE_OPTS -split ' ') &&
+        cd build                                                          &&
         mingw32-make -k all test
 
     - name: archive

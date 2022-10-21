@@ -65,7 +65,7 @@ static const char* rvk_to_null_term_scratch(String str) {
   return scratchMem.ptr;
 }
 
-static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
+MAYBE_UNUSED static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
   static const String g_names[] = {
       string_static("Triangles"),
       string_static("TriangleStrip"),
@@ -78,7 +78,7 @@ static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
   return g_names[topology];
 }
 
-static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
+MAYBE_UNUSED static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
   static const String g_names[] = {
       string_static("Fill"),
       string_static("Lines"),
@@ -88,7 +88,7 @@ static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer
   return g_names[rasterizer];
 }
 
-static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
+MAYBE_UNUSED static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
   static const String g_names[] = {
       string_static("None"),
       string_static("Alpha"),
@@ -100,7 +100,7 @@ static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
   return g_names[blend];
 }
 
-static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
+MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
   static const String g_names[] = {
       string_static("Less"),
       string_static("LessOrEqual"),
@@ -113,7 +113,7 @@ static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
   return g_names[depth];
 }
 
-static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
+MAYBE_UNUSED static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
   static const String g_names[] = {
       string_static("Back"),
       string_static("Front"),

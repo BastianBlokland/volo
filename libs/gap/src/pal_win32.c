@@ -374,7 +374,7 @@ static void pal_event_modal_loop_enter(GapPalWindow* window) { window->inModalLo
 static void pal_event_modal_loop_exit(GapPalWindow* window) {
   window->inModalLoop = false;
   if (window->flags & GapPalWindowFlags_Resized) {
-    const GapVector newSize = window->params[GapParam_WindowSize];
+    MAYBE_UNUSED const GapVector newSize = window->params[GapParam_WindowSize];
     log_d(
         "Window resized",
         log_param("id", fmt_int(window->id)),
@@ -649,10 +649,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
   pal_cursors_init(pal);
 
