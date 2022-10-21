@@ -101,6 +101,13 @@ macro(set_gcc_compile_options)
     add_compile_options(-fno-omit-frame-pointer)
   endif()
 
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(-flto -fno-fat-lto-objects)
+    add_link_options(-flto -fwhole-program -O3 -mf16c)
+  endif()
+
 endmacro(set_gcc_compile_options)
 
 #
