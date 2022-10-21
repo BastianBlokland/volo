@@ -18,12 +18,12 @@ static bool ecs_view_matches(const EcsView* view, BitSet mask) {
          !ecs_comp_mask_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
-static void ecs_view_validate_sys_random_write(const EcsView* view, const EcsSystemId sysId) {
+MAYBE_UNUSED static void ecs_view_validate_random_write(const EcsView* view, const EcsSystemId id) {
   if (view->flags & EcsViewFlags_AllowParallelRandomWrite) {
     return; // View explicitly allows random parallel writes.
   }
 
-  const EcsSystemDef* sysDef = dynarray_at_t(&view->def->systems, sysId, EcsSystemDef);
+  const EcsSystemDef* sysDef = dynarray_at_t(&view->def->systems, id, EcsSystemDef);
   (void)sysDef;
 
   diag_assert_msg(
@@ -54,9 +54,11 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
   itr->context      = view;
 
+#ifndef VOLO_FAST
   if (g_ecsRunningSystem && bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
     ecs_view_validate_sys_random_write(view, g_ecsRunningSystemId);
   }
+#endif
 
   return itr;
 }
