@@ -33,7 +33,7 @@ static void alloc_bump_free(Allocator* allocator, Mem mem) {
 
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
 
-  // NOTE: Tag the memory to detect UAF, could be tied to a define in the future.
+  // NOTE: Tag the memory to detect UAF.
   alloc_tag_free(mem, AllocMemType_Normal);
 
   if (mem_end(mem) == allocatorBump->head) {
