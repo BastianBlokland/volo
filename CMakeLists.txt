@@ -26,6 +26,7 @@ message(STATUS "* Build path: ${PROJECT_BINARY_DIR}")
 message(STATUS "* Compiler: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "* Generator: ${CMAKE_GENERATOR}")
 message(STATUS "* Fast: ${FAST}")
+message(STATUS "* Lto: ${LTO}")
 message(STATUS "* Sanitize: ${SANITIZE}")
 message(STATUS "* External assets: ${EXTERNAL_ASSETS}")
 
