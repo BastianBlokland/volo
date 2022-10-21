@@ -66,7 +66,12 @@ typedef struct sLogSink LogSink;
     }                                                                                              \
   } while (false)
 
+#ifndef VOLO_FAST
 #define log_d(_TXT_LIT_, ...) log(g_logger, LogLevel_Debug, _TXT_LIT_, __VA_ARGS__)
+#else
+#define log_d(_TXT_LIT_, ...)
+#endif
+
 #define log_i(_TXT_LIT_, ...) log(g_logger, LogLevel_Info, _TXT_LIT_, __VA_ARGS__)
 #define log_w(_TXT_LIT_, ...) log(g_logger, LogLevel_Warn, _TXT_LIT_, __VA_ARGS__)
 #define log_e(_TXT_LIT_, ...) log(g_logger, LogLevel_Error, _TXT_LIT_, __VA_ARGS__)

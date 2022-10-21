@@ -14,12 +14,16 @@ typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
 /**
  * Assert the given condition evaluates to true.
  */
+#ifndef VOLO_FAST
 #define diag_assert_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                        \
   do {                                                                                             \
     if (UNLIKELY(!(_CONDITION_))) {                                                                \
       diag_assert_fail(_MSG_FORMAT_LIT_, __VA_ARGS__);                                             \
     }                                                                                              \
   } while (false)
+#else
+#define diag_assert_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)
+#endif
 
 /**
  * Assert the given condition evaluates to true.
@@ -41,8 +45,12 @@ typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
 /**
  * Report that an assertion has failed.
  */
+#ifndef VOLO_FAST
 #define diag_assert_fail(_MSG_FORMAT_LIT_, ...)                                                    \
   diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
+#else
+#define diag_assert_fail(_MSG_FORMAT_LIT_, ...)
+#endif
 
 /**
  * Crash the program, will halt when running in a debugger.
