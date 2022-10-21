@@ -56,7 +56,7 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
 
 #ifndef VOLO_FAST
   if (g_ecsRunningSystem && bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
-    ecs_view_validate_sys_random_write(view, g_ecsRunningSystemId);
+    ecs_view_validate_random_write(view, g_ecsRunningSystemId);
   }
 #endif
 
