@@ -28,5 +28,14 @@ ecs_comp_extern(VfxParticleRendererComp);
 EcsEntityId vfx_particle_atlas(const VfxParticleRendererComp*);
 EcsEntityId vfx_particle_draw(const VfxParticleRendererComp*);
 
+/**
+ * Initialize a particle draw.
+ * NOTE: NOT thread-safe, should be called only once per frame.
+ */
 void vfx_particle_init(RendDrawComp*, const AssetAtlasComp*);
+
+/**
+ * Output a particle to the given draw.
+ * NOTE: Thread-safe, multiple particles can be added to the same draw in parallel.
+ */
 void vfx_particle_output(RendDrawComp*, const VfxParticle*);

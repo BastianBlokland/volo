@@ -170,8 +170,10 @@ static void ecs_world_stats_sys_flush(EcsWorld* world) {
 static void ecs_world_validate_sys_parallel(const EcsWorld* world, const EcsSystemDef* sysDef) {
   MAYBE_UNUSED u32 writeViews = 0;
   dynarray_for_t(&sysDef->viewIds, EcsViewId, viewId) {
-    const EcsView* view = dynarray_at_t(&world->views, *viewId, EcsView);
-    if (bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite))) {
+    const EcsView* view               = dynarray_at_t(&world->views, *viewId, EcsView);
+    const bool     anyWrite           = bitset_any(ecs_view_mask(view, EcsViewMask_AccessWrite));
+    const bool     allowParallelWrite = (view->flags & EcsViewFlags_AllowParallelRandomWrite) != 0;
+    if (anyWrite && !allowParallelWrite) {
       ++writeViews;
     }
   }
@@ -196,13 +198,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-                    .def       = def,
-                    .finalizer = ecs_finalizer_create(alloc, def),
-                    .storage   = ecs_storage_create(alloc, def),
-                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-                    .buffer    = ecs_buffer_create(alloc, def),
-                    .alloc     = alloc,
-                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
+      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
