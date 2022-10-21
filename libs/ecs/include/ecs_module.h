@@ -48,6 +48,18 @@ typedef enum {
 
 } EcsSystemFlags;
 
+typedef enum {
+  EcsViewFlags_None = 0,
+
+  /**
+   * Allow parallel systems to construct random-write iterators over this view.
+   * By default the Ecs will disallow this because its unsafe, only disable this if you can
+   * guarantee the access is synchronized through some external mechanism.
+   */
+  EcsViewFlags_AllowParallelRandomWrite = 1 << 0,
+
+} EcsViewFlags;
+
 typedef struct {
   String           name;
   EcsSystemRoutine routine;
@@ -163,6 +175,7 @@ typedef struct {
   static EcsViewId ecs_view_id(_NAME_);                                                            \
   static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
 
+#define ecs_view_flags(_FLAGS_)         ecs_module_view_flags(_builder, (_FLAGS_))
 #define ecs_access_with(_COMP_)         ecs_module_access_with(_builder, ecs_comp_id(_COMP_))
 #define ecs_access_without(_COMP_)      ecs_module_access_without(_builder, ecs_comp_id(_COMP_))
 #define ecs_access_read(_COMP_)         ecs_module_access_read(_builder, ecs_comp_id(_COMP_))
@@ -258,7 +271,6 @@ typedef struct {
  * NOTE: Care must be taken that the system supports running in parallel. This means different
  * invocations of the same system should not write to the same component on the same entity, or read
  * a component that is written by another invocation.
- * TODO: This invariant should be enforced with diagnostic tracking in debug builds.
  *
  * Example of using 'parCount' and 'parIndex' with a stepped iterator, each invocation will execute
  * on a different subset of the entities in the 'ReadVeloWritePosView' view.
@@ -296,6 +308,7 @@ EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const Ec
 void        ecs_module_update_order(EcsModuleBuilder*, EcsSystemId, i32 order);
 void        ecs_module_update_parallel(EcsModuleBuilder*, EcsSystemId, u16 parallelCount);
 
+void ecs_module_view_flags(EcsViewBuilder*, EcsViewFlags);
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_read(EcsViewBuilder*, EcsCompId);

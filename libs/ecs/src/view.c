@@ -19,6 +19,10 @@ static bool ecs_view_matches(const EcsView* view, BitSet mask) {
 }
 
 static void ecs_view_validate_sys_random_write(const EcsView* view, const EcsSystemId sysId) {
+  if (view->flags & EcsViewFlags_AllowParallelRandomWrite) {
+    return; // View explicitly allows random parallel writes.
+  }
+
   const EcsSystemDef* sysDef = dynarray_at_t(&view->def->systems, sysId, EcsSystemDef);
   (void)sysDef;
 
@@ -205,6 +209,7 @@ EcsView ecs_view_create(
   viewDef->initRoutine(&viewBuilder);
 
   view.compCount = ecs_comp_mask_count(ecs_view_mask(&view, EcsViewMask_AccessRead));
+  view.flags     = viewBuilder.flags;
   return view;
 }
 
