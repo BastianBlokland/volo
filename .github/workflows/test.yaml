@@ -22,6 +22,7 @@ jobs:
             toolchain: unix,
             cc: gcc-9,
             fast: Off,
+            lto: Off,
           }
         - {
             name: linux-clang,
@@ -30,6 +31,7 @@ jobs:
             toolchain: unix,
             cc: clang-10,
             fast: Off,
+            lto: Off,
           }
         - {
             name: windows-msvc,
@@ -38,6 +40,7 @@ jobs:
             toolchain: msvc,
             cc: cl,
             fast: Off,
+            lto: Off,
           }
         - {
             name: windows-clang,
@@ -46,6 +49,7 @@ jobs:
             toolchain: msvc,
             cc: clang,
             fast: Off,
+            lto: Off,
           }
         - {
             name: windows-mingw,
@@ -54,6 +58,7 @@ jobs:
             toolchain: mingw,
             cc: gcc,
             fast: Off,
+            lto: Off,
           }
         - {
             name: linux-clang-release,
@@ -62,6 +67,7 @@ jobs:
             toolchain: unix,
             cc: clang-10,
             fast: On,
+            lto: On,
           }
         - {
             name: windows-msvc-release,
@@ -70,10 +76,11 @@ jobs:
             toolchain: msvc,
             cc: cl,
             fast: On,
+            lto: On,
           }
     env:
       CC: ${{matrix.config.cc}}
-      CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DFAST=${{matrix.config.fast}}"
+      CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DFAST=${{matrix.config.fast}} -DLTO=${{matrix.config.lto}}"
     steps:
     - name: checkout
       uses: actions/checkout@v3
