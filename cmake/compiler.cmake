@@ -131,12 +131,6 @@ macro(set_clang_compile_options)
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
-  if(${LTO})
-    message(STATUS "Enabling link-time-optimization")
-    add_compile_options(-flto=full)
-    add_link_options(-fuse-ld=lld -flto=full)
-  endif()
-
   # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
 
@@ -148,6 +142,13 @@ macro(set_clang_compile_options)
     add_compile_options(-fsanitize=${SANITIZERS})
     add_link_options(-fsanitize=${SANITIZERS})
     add_definitions(-DVOLO_ASAN)
+  endif()
+
+  # Link time optimization.
+  if(${LTO})
+    message(STATUS "Enabling link-time-optimization")
+    add_compile_options(-flto=full)
+    add_link_options(-fuse-ld=lld -flto=full -O3 -mf16c)
   endif()
 
 endmacro(set_clang_compile_options)
