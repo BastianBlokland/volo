@@ -31,7 +31,7 @@ function(configure_shaders target)
       DEPFILE ${source}.d
       COMMAND
         ${Vulkan_GLSLC_EXECUTABLE}
-        -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
+        -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O -g
         -MD -MF ${source}.d
         -I ${CMAKE_CURRENT_SOURCE_DIR}/${ARG_INCLUDE_DIR}
         -o ${CMAKE_CURRENT_SOURCE_DIR}/${source}.spv

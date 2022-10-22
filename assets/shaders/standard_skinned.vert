@@ -22,6 +22,7 @@ bind_internal(4) out flat u32 out_tags;
 void main() {
   const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
 
+  const u32     instanceTags  = u_instances[in_instanceIndex].tagsAndPadding.x;
   const f32v3   instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
   const f32     instanceScale = u_instances[in_instanceIndex].posAndScale.w;
   const f32v4   instanceQuat  = u_instances[in_instanceIndex].rot;
@@ -39,5 +40,5 @@ void main() {
   out_worldNormal    = quat_rotate(instanceQuat, skinnedNormal);
   out_worldTangent   = f32v4(quat_rotate(instanceQuat, skinnedTangent.xyz), skinnedTangent.w);
   out_texcoord       = vert.texcoord;
-  out_tags           = u_instances[in_instanceIndex].tagsAndPadding.x;
+  out_tags           = instanceTags;
 }
