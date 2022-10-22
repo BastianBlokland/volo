@@ -324,6 +324,10 @@ static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
 
     const EcsDef* def = ecs_world_def(world);
     for (EcsViewId id = 0; id != ecs_def_view_count(def); ++id) {
+      if (!ecs_panel_filter(panelComp, ecs_def_view_name(def, id))) {
+        continue;
+      }
+
       *dynarray_push_t(&panelComp->views, DebugEcsViewInfo) = (DebugEcsViewInfo){
           .id         = id,
           .name       = ecs_def_view_name(def, id),
@@ -337,10 +341,17 @@ static void view_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas, &panelComp->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+  ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
