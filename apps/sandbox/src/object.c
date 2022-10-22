@@ -21,6 +21,7 @@ ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId wallGraphic;
 };
 ecs_comp_define(ObjectComp);
+ecs_comp_define(ObjectUnitComp);
 
 static SceneLayer object_unit_layer(const SceneFaction faction) {
   switch (faction) {
@@ -68,6 +69,7 @@ ecs_system_define(ObjectDatabaseInitSys) {
 ecs_module_init(sandbox_object_module) {
   ecs_register_comp(ObjectDatabaseComp);
   ecs_register_comp_empty(ObjectComp);
+  ecs_register_comp_empty(ObjectUnitComp);
 
   ecs_register_view(GlobalInitView);
 
@@ -93,6 +95,7 @@ EcsEntityId object_spawn_unit(
   const SceneLayer  layer   = object_unit_layer(faction);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
+  ecs_world_add_empty_t(world, e, ObjectUnitComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
   scene_nav_add_agent(world, e);

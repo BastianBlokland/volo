@@ -13,6 +13,7 @@ ecs_comp_extern(ObjectDatabaseComp);
  * An individual object.
  */
 ecs_comp_extern(ObjectComp);
+ecs_comp_extern(ObjectUnitComp);
 
 /**
  * Spawn new objects.
