@@ -7,6 +7,7 @@
 // Forward declare from 'ecs_world.h'.
 typedef struct sEcsWorld EcsWorld;
 
+typedef u16 EcsModuleId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;
 

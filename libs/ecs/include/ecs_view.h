@@ -112,6 +112,11 @@ const void* ecs_view_read(const EcsIterator*, EcsCompId);
 void* ecs_view_write(const EcsIterator*, EcsCompId);
 
 /**
+ * Amount of entities in this view.
+ */
+u32 ecs_view_entities(const EcsView*);
+
+/**
  * Amount of archetype chunks in this view.
  */
 u32 ecs_view_chunks(const EcsView*);

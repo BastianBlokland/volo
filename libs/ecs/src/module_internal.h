@@ -18,5 +18,5 @@ struct sEcsViewBuilder {
   BitSet        accessRead, accessWrite;
 };
 
-EcsModuleDef ecs_module_create(EcsDef*, String name, EcsModuleInit);
+EcsModuleDef ecs_module_create(EcsDef*, EcsModuleId, String name, EcsModuleInit);
 void         ecs_module_destroy(EcsDef*, EcsModuleDef*);

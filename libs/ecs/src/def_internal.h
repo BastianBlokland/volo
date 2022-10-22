@@ -5,6 +5,7 @@
 #include "module_internal.h"
 
 typedef struct {
+  EcsModuleId       moduleId;
   String            name;
   usize             size, align;
   EcsCompDestructor destructor;
@@ -13,11 +14,13 @@ typedef struct {
 } EcsCompDef;
 
 typedef struct {
+  EcsModuleId moduleId;
   String      name;
   EcsViewInit initRoutine;
 } EcsViewDef;
 
 typedef struct {
+  EcsModuleId      moduleId;
   String           name;
   EcsSystemRoutine routine;
   EcsSystemFlags   flags;
@@ -40,9 +43,9 @@ struct sEcsDef {
   Allocator*  alloc;
 };
 
-EcsCompId   ecs_def_register_comp(EcsDef*, const EcsCompConfig*);
-EcsViewId   ecs_def_register_view(EcsDef*, const EcsViewConfig*);
-EcsSystemId ecs_def_register_system(EcsDef*, const EcsSystemConfig*);
+EcsCompId   ecs_def_register_comp(EcsDef*, EcsModuleId, const EcsCompConfig*);
+EcsViewId   ecs_def_register_view(EcsDef*, EcsModuleId, const EcsViewConfig*);
+EcsSystemId ecs_def_register_system(EcsDef*, EcsModuleId, const EcsSystemConfig*);
 void        ecs_def_update_order(EcsDef*, EcsSystemId, i32 order);
 void        ecs_def_update_parallel(EcsDef*, EcsSystemId, u16 parallelCount);
 
@@ -51,11 +54,11 @@ i32               ecs_def_comp_destruct_order(const EcsDef*, EcsCompId);
 EcsCompCombinator ecs_def_comp_combinator(const EcsDef*, EcsCompId);
 
 /**
- * Dissallow any further modications to this definition.
+ * Disallow any further modifications to this definition.
  */
 void ecs_def_freeze(EcsDef*);
 
 /**
- * Reallow further modications to this definition.
+ * Re-allow further modifications to this definition.
  */
 void ecs_def_unfreeze(EcsDef*);

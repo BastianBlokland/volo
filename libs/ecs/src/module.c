@@ -5,20 +5,22 @@
 
 struct sEcsModuleBuilder {
   EcsDef*       def;
+  EcsModuleId   id;
   EcsModuleDef* module;
 };
 
 i8 ecs_compare_view(const void* a, const void* b) { return compare_u16(a, b); }
 i8 ecs_compare_system(const void* a, const void* b) { return compare_u16(a, b); }
 
-EcsModuleDef ecs_module_create(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
+EcsModuleDef ecs_module_create(
+    EcsDef* def, const EcsModuleId id, const String name, const EcsModuleInit initRoutine) {
   EcsModuleDef module = {
       .name         = string_dup(def->alloc, name),
       .componentIds = dynarray_create_t(def->alloc, EcsCompId, 8),
       .viewIds      = dynarray_create_t(def->alloc, EcsViewId, 8),
       .systemIds    = dynarray_create_t(def->alloc, EcsSystemId, 8),
   };
-  EcsModuleBuilder builder = {.def = def, .module = &module};
+  EcsModuleBuilder builder = {.def = def, .id = id, .module = &module};
   initRoutine(&builder);
   return module;
 }
@@ -32,7 +34,7 @@ void ecs_module_destroy(EcsDef* def, EcsModuleDef* module) {
 
 EcsCompId
 ecs_module_register_comp(EcsModuleBuilder* builder, EcsCompId* var, const EcsCompConfig* config) {
-  const EcsCompId id = ecs_def_register_comp(builder->def, config);
+  const EcsCompId id = ecs_def_register_comp(builder->def, builder->id, config);
 
   *dynarray_push_t(&builder->module->componentIds, EcsCompId) = id;
 
@@ -44,7 +46,7 @@ ecs_module_register_comp(EcsModuleBuilder* builder, EcsCompId* var, const EcsCom
 
 EcsViewId
 ecs_module_register_view(EcsModuleBuilder* builder, EcsViewId* var, const EcsViewConfig* config) {
-  const EcsViewId id = ecs_def_register_view(builder->def, config);
+  const EcsViewId id = ecs_def_register_view(builder->def, builder->id, config);
   *dynarray_push_t(&builder->module->viewIds, EcsViewId) = id;
 
   if (var) {
@@ -122,7 +124,7 @@ void ecs_module_access_maybe_write(EcsViewBuilder* builder, const EcsCompId comp
 EcsSystemId ecs_module_register_system(
     EcsModuleBuilder* builder, EcsSystemId* var, const EcsSystemConfig* config) {
 
-  const EcsSystemId id = ecs_def_register_system(builder->def, config);
+  const EcsSystemId id = ecs_def_register_system(builder->def, builder->id, config);
   *dynarray_push_t(&builder->module->systemIds, EcsSystemId) = id;
 
   if (var) {
