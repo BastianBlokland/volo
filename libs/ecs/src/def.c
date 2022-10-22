@@ -6,6 +6,11 @@
 #include "def_internal.h"
 #include "module_internal.h"
 
+static const EcsModuleDef* ecs_def_module(const EcsDef* def, const EcsModuleId id) {
+  diag_assert_msg(id < def->modules.size, "Invalid module id '{}'", fmt_int(id));
+  return dynarray_begin_t(&def->modules, EcsModuleDef) + id;
+}
+
 INLINE_HINT static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
   diag_assert_msg(id < def->components.size, "Invalid component id '{}'", fmt_int(id));
   return dynarray_begin_t(&def->components, EcsCompDef) + id;
@@ -48,11 +53,11 @@ MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, co
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
-      .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
-      .components = dynarray_create_t(alloc, EcsCompDef, 128),
-      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
-      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
-      .alloc      = alloc,
+             .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
+             .components = dynarray_create_t(alloc, EcsCompDef, 128),
+             .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+             .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
+             .alloc      = alloc,
   };
   return def;
 }
@@ -78,10 +83,18 @@ void ecs_def_destroy(EcsDef* def) {
   alloc_free_t(def->alloc, def);
 }
 
-void ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
+EcsModuleId
+ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(!ecs_def_module_by_name(def, name), "Duplicate module name '{}'", fmt_text(name));
-  *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, name, initRoutine);
+
+  const EcsModuleId id                          = (EcsModuleId)def->modules.size;
+  *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, id, name, initRoutine);
+  return id;
+}
+
+String ecs_def_module_name(const EcsDef* def, const EcsModuleId id) {
+  return ecs_def_module(def, id)->name;
 }
 
 u32 ecs_def_comp_count(const EcsDef* def) { return (u32)def->components.size; }
@@ -171,7 +184,7 @@ EcsCompId ecs_def_register_comp(EcsDef* def, const EcsCompConfig* config) {
 EcsViewId ecs_def_register_view(EcsDef* def, const EcsViewConfig* config) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
-  EcsViewId id                              = (EcsViewId)def->views.size;
+  const EcsViewId id                        = (EcsViewId)def->views.size;
   *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
       .name        = string_dup(def->alloc, config->name),
       .initRoutine = config->initRoutine,
@@ -182,8 +195,8 @@ EcsViewId ecs_def_register_view(EcsDef* def, const EcsViewConfig* config) {
 EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
-  EcsSystemId   id        = (EcsSystemId)def->systems.size;
-  EcsSystemDef* systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
+  const EcsSystemId id        = (EcsSystemId)def->systems.size;
+  EcsSystemDef*     systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
 
   *systemDef = (EcsSystemDef){
       .name          = string_dup(def->alloc, config->name),

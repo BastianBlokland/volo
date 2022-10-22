@@ -5,20 +5,22 @@
 
 struct sEcsModuleBuilder {
   EcsDef*       def;
+  EcsModuleId   id;
   EcsModuleDef* module;
 };
 
 i8 ecs_compare_view(const void* a, const void* b) { return compare_u16(a, b); }
 i8 ecs_compare_system(const void* a, const void* b) { return compare_u16(a, b); }
 
-EcsModuleDef ecs_module_create(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
+EcsModuleDef ecs_module_create(
+    EcsDef* def, const EcsModuleId id, const String name, const EcsModuleInit initRoutine) {
   EcsModuleDef module = {
       .name         = string_dup(def->alloc, name),
       .componentIds = dynarray_create_t(def->alloc, EcsCompId, 8),
       .viewIds      = dynarray_create_t(def->alloc, EcsViewId, 8),
       .systemIds    = dynarray_create_t(def->alloc, EcsSystemId, 8),
   };
-  EcsModuleBuilder builder = {.def = def, .module = &module};
+  EcsModuleBuilder builder = {.def = def, .id = id, .module = &module};
   initRoutine(&builder);
   return module;
 }

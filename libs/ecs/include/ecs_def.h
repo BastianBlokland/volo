@@ -27,7 +27,15 @@ void ecs_def_destroy(EcsDef*);
  *
  * Pre-condition: No other module with the same name has been registered.
  */
-void ecs_def_register_module(EcsDef*, String name, EcsModuleInit);
+EcsModuleId ecs_def_register_module(EcsDef*, String name, EcsModuleInit);
+
+/**
+ * Retrieve the name of a module.
+ * NOTE: Module names are not required to be unique.
+ *
+ * Pre-condition: EcsModuleId is a valid module-id registered to the given EcsDef.
+ */
+String ecs_def_module_name(const EcsDef*, EcsModuleId);
 
 /**
  * Retrieve the amount of registered components / views / systems / modules.
