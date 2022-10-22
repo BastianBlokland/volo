@@ -99,9 +99,9 @@ ecs_system_define(SceneProjectileSys) {
 
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     SceneRayHit hit;
@@ -113,7 +113,8 @@ ecs_system_define(SceneProjectileSys) {
       if (projectile->impactVfx) {
         projectile_impact_spawn(world, projectile, hit.position, hit.normal);
       }
-      if (ecs_world_has_t(world, hit.entity, SceneHealthComp)) {
+      const bool hitEntityExists = ecs_world_exists(world, hit.entity);
+      if (hitEntityExists && ecs_world_has_t(world, hit.entity, SceneHealthComp)) {
         scene_health_damage(world, hit.entity, projectile->damage);
       }
       continue;
