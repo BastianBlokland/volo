@@ -197,7 +197,7 @@ macro(set_msvc_compile_options)
   if(${LTO})
     message(STATUS "Enabling link-time-optimization")
     add_compile_options(/GL)
-    add_link_options(/LTCG /O2)
+    add_link_options(/LTCG)
   endif()
 
 endmacro(set_msvc_compile_options)
