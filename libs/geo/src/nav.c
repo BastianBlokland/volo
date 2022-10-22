@@ -67,19 +67,23 @@ struct sGeoNavGrid {
   u32 stats[GeoNavStat_Count];
 };
 
-static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
+NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGrid* grid) {
+  GeoNavWorkerState* state = alloc_alloc_t(grid->alloc, GeoNavWorkerState);
+
+  *state = (GeoNavWorkerState){
+      .markedCells = alloc_alloc(grid->alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
+      .fScoreQueue = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
+      .gScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
+      .fScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
+      .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
+  };
+  return state;
+}
+
+INLINE_HINT static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
   diag_assert(g_jobsWorkerId < geo_nav_workers_max);
   if (UNLIKELY(!grid->workerStates[g_jobsWorkerId])) {
-    GeoNavWorkerState* state = alloc_alloc_t(grid->alloc, GeoNavWorkerState);
-
-    *state = (GeoNavWorkerState){
-        .markedCells = alloc_alloc(grid->alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
-        .fScoreQueue = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
-        .gScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
-        .fScores     = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
-        .cameFrom    = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
-    };
-    ((GeoNavGrid*)grid)->workerStates[g_jobsWorkerId] = state;
+    ((GeoNavGrid*)grid)->workerStates[g_jobsWorkerId] = nav_worker_state_create(grid);
   }
   return grid->workerStates[g_jobsWorkerId];
 }
