@@ -21,6 +21,11 @@ typedef struct {
 } DebugEcsCompInfo;
 
 typedef struct {
+  EcsViewId id;
+  String    name;
+} DebugEcsViewInfo;
+
+typedef struct {
   EcsArchetypeId id;
   u32            entityCount, chunkCount, entitiesPerChunk;
   usize          size;
@@ -40,6 +45,7 @@ typedef struct {
 
 typedef enum {
   DebugEcsTab_Components,
+  DebugEcsTab_Views,
   DebugEcsTab_Archetypes,
   DebugEcsTab_Systems,
 
@@ -48,6 +54,7 @@ typedef enum {
 
 static const String g_ecsTabNames[] = {
     string_static("Components"),
+    string_static("Views"),
     string_static("Archetypes"),
     string_static("Systems"),
 };
@@ -113,6 +120,7 @@ ecs_comp_define(DebugEcsPanelComp) {
   DebugSysSortMode  sysSortMode;
   bool              freeze, hideEmptyArchetypes;
   DynArray          components; // DebugEcsCompInfo[]
+  DynArray          views;      // DebugEcsViewInfo[]
   DynArray          archetypes; // DebugEcsArchetypeInfo[]
   DynArray          systems;    // DebugEcsSysInfo[]
 };
@@ -121,6 +129,7 @@ static void ecs_destruct_ecs_panel(void* data) {
   DebugEcsPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->components);
+  dynarray_destroy(&comp->views);
   dynarray_destroy(&comp->archetypes);
   dynarray_destroy(&comp->systems);
 }
@@ -301,6 +310,72 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->numEntities)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_size(compInfo->numEntities * compInfo->size)));
+  }
+  ui_canvas_id_block_next(canvas);
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
+
+static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+  if (!panelComp->freeze) {
+    dynarray_clear(&panelComp->views);
+
+    const EcsDef* def = ecs_world_def(world);
+    for (EcsViewId id = 0; id != ecs_def_view_count(def); ++id) {
+      *dynarray_push_t(&panelComp->views, DebugEcsViewInfo) = (DebugEcsViewInfo){
+          .id   = id,
+          .name = ecs_def_view_name(def, id),
+      };
+    }
+  }
+}
+
+static void view_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_layout_pop(canvas);
+}
+
+static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+  view_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Id"), string_lit("View identifier.")},
+          {string_lit("Name"), string_lit("View name.")},
+      });
+
+  const u32 numViews = (u32)panelComp->views.size;
+  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numViews));
+
+  ui_canvas_id_block_next(canvas); // Start the list of views on its own id block.
+  dynarray_for_t(&panelComp->views, DebugEcsViewInfo, viewInfo) {
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+
+    ui_canvas_id_block_index(canvas, viewInfo->id * 10); // Set a stable id based on the view id.
+
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(viewInfo->id)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, viewInfo->name);
   }
   ui_canvas_id_block_next(canvas);
 
@@ -594,6 +669,10 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
     comp_info_query(panelComp, world);
     comp_panel_tab_draw(canvas, panelComp);
     break;
+  case DebugEcsTab_Views:
+    view_info_query(panelComp, world);
+    view_panel_tab_draw(canvas, panelComp);
+    break;
   case DebugEcsTab_Archetypes:
     arch_info_query(panelComp, world);
     arch_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
@@ -652,6 +731,7 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       .archSortMode = DebugArchSortMode_ChunkCount,
       .sysSortMode  = DebugSysSortMode_Duration,
       .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
+      .views        = dynarray_create_t(g_alloc_heap, DebugEcsViewInfo, 256),
       .archetypes   = dynarray_create_t(g_alloc_heap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
   return panelEntity;
