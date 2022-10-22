@@ -51,11 +51,11 @@ i32               ecs_def_comp_destruct_order(const EcsDef*, EcsCompId);
 EcsCompCombinator ecs_def_comp_combinator(const EcsDef*, EcsCompId);
 
 /**
- * Dissallow any further modications to this definition.
+ * Disallow any further modifications to this definition.
  */
 void ecs_def_freeze(EcsDef*);
 
 /**
- * Reallow further modications to this definition.
+ * Re-allow further modifications to this definition.
  */
 void ecs_def_unfreeze(EcsDef*);
