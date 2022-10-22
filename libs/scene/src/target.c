@@ -138,10 +138,6 @@ ecs_system_define(SceneTargetUpdateSys) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
-      if (finder->target) {
-        // Our previous target has become unavailable; request to be refreshed earlier.
-        finder->nextRefreshTime = 0;
-      }
       finder->target = 0;
     }
   }
