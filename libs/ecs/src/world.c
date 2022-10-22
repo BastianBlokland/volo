@@ -198,13 +198,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
-      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+                    .def       = def,
+                    .finalizer = ecs_finalizer_create(alloc, def),
+                    .storage   = ecs_storage_create(alloc, def),
+                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+                    .buffer    = ecs_buffer_create(alloc, def),
+                    .alloc     = alloc,
+                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -454,6 +454,18 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
       .lastFlushEntities    = world->lastFlushEntities,
       .sysStats             = world->sysStats,
   };
+}
+
+u32 ecs_world_view_entities(const EcsWorld* world, const EcsViewId viewId) {
+  diag_assert_msg(viewId < world->views.size, "Invalid view id: {}", fmt_int(viewId));
+  const EcsView* view = dynarray_at_t(&world->views, viewId, EcsView);
+  return ecs_view_entities(view);
+}
+
+u32 ecs_world_view_chunks(const EcsWorld* world, const EcsViewId viewId) {
+  diag_assert_msg(viewId < world->views.size, "Invalid view id: {}", fmt_int(viewId));
+  const EcsView* view = dynarray_at_t(&world->views, viewId, EcsView);
+  return ecs_view_chunks(view);
 }
 
 u32 ecs_world_archetype_count(const EcsWorld* world) {
