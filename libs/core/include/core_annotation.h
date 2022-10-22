@@ -70,6 +70,17 @@ ASSERT(false, "Unsupported compiler");
 #endif
 
 /**
+ * Hint to the compiler that this function should not be inlined.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define NO_INLINE_HINT __attribute__((noinline))
+#elif defined(VOLO_MSVC)
+#define NO_INLINE_HINT __declspec(noinline)
+#else
+#define NO_INLINE_HINT
+#endif
+
+/**
  * Mark a variable as having thread storage duration.
  * Which means it is created when the thread starts and cleaned up when the thread ends.
  */
