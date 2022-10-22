@@ -24,6 +24,7 @@ typedef struct {
   EcsViewId id;
   String    name;
   String    moduleName;
+  u32       entityCount, chunkCount;
 } DebugEcsViewInfo;
 
 typedef struct {
@@ -329,9 +330,11 @@ static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
       }
 
       *dynarray_push_t(&panelComp->views, DebugEcsViewInfo) = (DebugEcsViewInfo){
-          .id         = id,
-          .name       = ecs_def_view_name(def, id),
-          .moduleName = ecs_def_module_name(def, ecs_def_view_module(def, id)),
+          .id          = id,
+          .name        = ecs_def_view_name(def, id),
+          .moduleName  = ecs_def_module_name(def, ecs_def_view_module(def, id)),
+          .entityCount = ecs_world_view_entities(world, id),
+          .chunkCount  = ecs_world_view_chunks(world, id),
       };
     }
   }
@@ -366,7 +369,9 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 225);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -376,6 +381,8 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
           {string_lit("Id"), string_lit("View identifier.")},
           {string_lit("Name"), string_lit("View name.")},
           {string_lit("Module"), string_lit("Name of the module that this view belongs to.")},
+          {string_lit("Entities"), string_lit("Amount of entities in this view.")},
+          {string_lit("Chunks"), string_lit("Amount of archetype chunks in this view.")},
       });
 
   const u32 numViews = (u32)panelComp->views.size;
@@ -393,6 +400,10 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
     ui_label(canvas, viewInfo->name);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, viewInfo->moduleName);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(viewInfo->entityCount)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(viewInfo->chunkCount)));
   }
   ui_canvas_id_block_next(canvas);
 
