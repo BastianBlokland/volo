@@ -86,6 +86,8 @@ spec(view) {
     check(ecs_view_contains(view, entity1));
     check(!ecs_view_contains(view, entity2));
     check(ecs_view_contains(view, entity3));
+
+    check_eq_int(ecs_view_entities(view), 2);
     check_eq_int(ecs_view_chunks(view), 2);
   }
 
@@ -231,11 +233,14 @@ spec(view) {
 
     ecs_world_flush(world);
 
+    EcsView* view = ecs_world_view_t(world, ReadAB);
+    check_eq_int(ecs_view_entities(view), 4);
+
     // TODO: This test expects (and asserts) a specific order of iteration over archetypes which is
     // true for the current implementation but not a constraint we want to put on the
     // implementation.
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
+    EcsIterator* itr = ecs_view_itr(view);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityD);
@@ -257,6 +262,7 @@ spec(view) {
     ecs_world_flush(world);
 
     EcsView* view = ecs_world_view_t(world, ReadAB);
+    check_eq_int(ecs_view_entities(view), g_entitiesToCreate);
     check(ecs_view_chunks(view) > 1);
 
     usize count = 0;
@@ -289,7 +295,10 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAMaybeC));
+    EcsView* view = ecs_world_view_t(world, ReadAMaybeC);
+    check_eq_int(ecs_view_entities(view), 3);
+
+    EcsIterator* itr = ecs_view_itr(view);
     check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 1337);
     check_eq_int(ecs_view_read_t(itr, ViewCompC)->f1, 42);
@@ -322,8 +331,10 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
-    check_eq_int(ecs_view_chunks(ecs_world_view_t(world, ReadAB)), 0);
+    EcsView*     view = ecs_world_view_t(world, ReadAB);
+    EcsIterator* itr  = ecs_view_itr(view);
+    check_eq_int(ecs_view_entities(view), 0);
+    check_eq_int(ecs_view_chunks(view), 0);
     check(!ecs_view_walk(itr));
 
     dynarray_destroy(&entities);
