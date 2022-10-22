@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
   EcsViewId id;
   String    name;
+  String    moduleName;
 } DebugEcsViewInfo;
 
 typedef struct {
@@ -324,8 +325,9 @@ static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     const EcsDef* def = ecs_world_def(world);
     for (EcsViewId id = 0; id != ecs_def_view_count(def); ++id) {
       *dynarray_push_t(&panelComp->views, DebugEcsViewInfo) = (DebugEcsViewInfo){
-          .id   = id,
-          .name = ecs_def_view_name(def, id),
+          .id         = id,
+          .name       = ecs_def_view_name(def, id),
+          .moduleName = ecs_def_module_name(def, ecs_def_view_module(def, id)),
       };
     }
   }
@@ -353,6 +355,7 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 225);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -361,6 +364,7 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("View identifier.")},
           {string_lit("Name"), string_lit("View name.")},
+          {string_lit("Module"), string_lit("Name of the module that this view belongs to.")},
       });
 
   const u32 numViews = (u32)panelComp->views.size;
@@ -376,6 +380,8 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(viewInfo->id)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, viewInfo->name);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, viewInfo->moduleName);
   }
   ui_canvas_id_block_next(canvas);
 
