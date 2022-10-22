@@ -28,6 +28,7 @@ typedef struct {
 static const GapVector        g_appWindowSize      = {1920, 1080};
 static const u32              g_appWallCount       = 200;
 static const u64              g_appRngSeed         = 42;
+static const u32              g_appMaxUnits        = 1500;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
         {
@@ -160,7 +161,7 @@ ecs_system_define(AppUpdateSys) {
   for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
     AppFactionData* factionData = &app->factionData[faction];
 
-    if (time->time > factionData->nextSpawnTime) {
+    if (ecs_view_entities(unitView) < g_appMaxUnits && time->time > factionData->nextSpawnTime) {
       object_spawn_unit(world, objDb, app_next_spawn_pos(app->rng, faction), faction);
       factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
     }
