@@ -180,6 +180,18 @@
       ]
     },
     {
+      "name": "Reset",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "R"
+        }
+      ]
+    },
+    {
       "name": "WindowNew",
       "blockers": [
         "TextInput"

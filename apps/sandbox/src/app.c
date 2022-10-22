@@ -133,6 +133,7 @@ ecs_view_define(AppUpdateGlobalView) {
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
+ecs_view_define(UnitView) { ecs_access_with(ObjectUnitComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -153,6 +154,8 @@ ecs_system_define(AppUpdateSys) {
     app->sceneCreated = true;
   }
 
+  EcsView* unitView = ecs_world_view_t(world, UnitView);
+
   // Spawn new units.
   for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
     AppFactionData* factionData = &app->factionData[faction];
@@ -160,6 +163,13 @@ ecs_system_define(AppUpdateSys) {
     if (time->time > factionData->nextSpawnTime) {
       object_spawn_unit(world, objDb, app_next_spawn_pos(app->rng, faction), faction);
       factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
+    }
+  }
+
+  if (input_triggered_lit(input, "Reset")) {
+    // Destroy all units.
+    for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
+      ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
   }
 
@@ -185,8 +195,13 @@ ecs_module_init(sandbox_app_module) {
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(UnitView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(AppUpdateGlobalView), ecs_view_id(WindowView));
+  ecs_register_system(
+      AppUpdateSys,
+      ecs_view_id(AppUpdateGlobalView),
+      ecs_view_id(WindowView),
+      ecs_view_id(UnitView));
 }
 
 static CliId g_assetFlag;
