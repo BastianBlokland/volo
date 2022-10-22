@@ -137,5 +137,20 @@ spec(def) {
     check(ecs_def_system_has_access(def, ecs_system_id(CleanupSys), ecs_view_id(ReadAReadB)));
   }
 
+  it("can retrieve module name of a component") {
+    const EcsModuleId moduleId = ecs_def_comp_module(def, ecs_comp_id(DefCompA));
+    check_eq_string(ecs_def_module_name(def, moduleId), string_lit("def_test_module"));
+  }
+
+  it("can retrieve module name of a view") {
+    const EcsModuleId moduleId = ecs_def_view_module(def, ecs_view_id(ReadAWriteB));
+    check_eq_string(ecs_def_module_name(def, moduleId), string_lit("def_test_module"));
+  }
+
+  it("can retrieve module name of a system") {
+    const EcsModuleId moduleId = ecs_def_system_module(def, ecs_system_id(CleanupSys));
+    check_eq_string(ecs_def_module_name(def, moduleId), string_lit("def_test_module"));
+  }
+
   teardown() { ecs_def_destroy(def); }
 }

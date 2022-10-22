@@ -102,6 +102,18 @@ u32 ecs_def_view_count(const EcsDef* def) { return (u32)def->views.size; }
 u32 ecs_def_system_count(const EcsDef* def) { return (u32)def->systems.size; }
 u32 ecs_def_module_count(const EcsDef* def) { return (u32)def->modules.size; }
 
+EcsModuleId ecs_def_comp_module(const EcsDef* def, const EcsCompId id) {
+  return ecs_def_comp(def, id)->moduleId;
+}
+
+EcsModuleId ecs_def_view_module(const EcsDef* def, const EcsViewId id) {
+  return ecs_def_view(def, id)->moduleId;
+}
+
+EcsModuleId ecs_def_system_module(const EcsDef* def, const EcsSystemId id) {
+  return ecs_def_system(def, id)->moduleId;
+}
+
 String ecs_def_comp_name(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->name;
 }

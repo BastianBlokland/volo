@@ -46,6 +46,13 @@ u32 ecs_def_system_count(const EcsDef*);
 u32 ecs_def_module_count(const EcsDef*);
 
 /**
+ * Retrieve the owning modules for components / views / systems.
+ */
+EcsModuleId ecs_def_comp_module(const EcsDef*, EcsCompId);
+EcsModuleId ecs_def_view_module(const EcsDef*, EcsViewId);
+EcsModuleId ecs_def_system_module(const EcsDef*, EcsSystemId);
+
+/**
  * Retrieve the name of a component.
  *
  * Pre-condition: EcsCompId is a valid component-id registered to the given EcsDef.
