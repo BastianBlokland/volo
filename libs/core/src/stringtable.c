@@ -37,7 +37,7 @@ StringTable* g_stringtable;
 void         stringtable_init() { g_stringtable = stringtable_create(g_alloc_heap); }
 void         stringtable_teardown() { stringtable_destroy(g_stringtable); }
 
-static u32 stringtable_should_grow(StringTable* table) {
+INLINE_HINT static u32 stringtable_should_grow(StringTable* table) {
   return table->slotCountUsed >= (u32)(table->slotCount * stringtable_slots_loadfactor);
 }
 
@@ -48,7 +48,7 @@ static StringTableSlot* stringtable_slots_alloc(Allocator* alloc, const u32 slot
   return slotsMem.ptr;
 }
 
-static StringTableSlot*
+INLINE_HINT static StringTableSlot*
 stringtable_slot(StringTableSlot* slots, const u32 slotCount, const StringHash hash) {
   diag_assert(hash); // Hash of 0 is invalid.
 
@@ -64,7 +64,7 @@ stringtable_slot(StringTableSlot* slots, const u32 slotCount, const StringHash h
   diag_crash_msg("No available StringTable slots");
 }
 
-static void stringtable_grow(StringTable* table) {
+NO_INLINE_HINT static void stringtable_grow(StringTable* table) {
   // Allocate new slots.
   const u32        newSlotCount = bits_nextpow2_32(table->slotCount + 1);
   StringTableSlot* newSlots     = stringtable_slots_alloc(table->alloc, newSlotCount);

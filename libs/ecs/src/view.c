@@ -36,7 +36,7 @@ MAYBE_UNUSED static void ecs_view_validate_random_write(const EcsView* view, con
 
 u16 ecs_view_comp_count(const EcsView* view) { return view->compCount; }
 
-bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
+FLATTEN_HINT bool ecs_view_contains(const EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
   dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
     if (*trackedArchetype == archetype) {
@@ -90,14 +90,14 @@ EcsIterator* ecs_view_itr_step_create(Mem mem, EcsView* view, const u16 steps, c
   return itr;
 }
 
-EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
+FLATTEN_HINT EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be reset");
 
   ecs_iterator_reset(itr);
   return itr;
 }
 
-EcsIterator* ecs_view_walk(EcsIterator* itr) {
+FLATTEN_HINT EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
@@ -118,7 +118,7 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
   return ecs_view_walk(itr);
 }
 
-EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
+FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
   EcsView* view = itr->context;
@@ -133,7 +133,7 @@ EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   return itr;
 }
 
-EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
+FLATTEN_HINT EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
   diag_assert_msg(!ecs_iterator_is_stepped(itr), "Stepped iterators cannot be jumped");
 
   EcsView* view = itr->context;

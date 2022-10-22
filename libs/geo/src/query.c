@@ -89,14 +89,18 @@ static void geo_prim_copy(GeoQueryPrim* dst, const GeoQueryPrim* src) {
 #undef cpy_entry_field
 }
 
-static void geo_prim_ensure_next(GeoQueryPrim* prim) {
-  if (LIKELY(prim->capacity != prim->count)) {
-    return; // Enough space remaining.
-  }
+NO_INLINE_HINT static void geo_prim_grow(GeoQueryPrim* prim) {
   GeoQueryPrim newPrim = geo_prim_create(prim->type, bits_nextpow2(prim->capacity + 1));
   geo_prim_copy(&newPrim, prim);
   geo_prim_destroy(prim);
   *prim = newPrim;
+}
+
+INLINE_HINT static void geo_prim_ensure_next(GeoQueryPrim* prim) {
+  if (LIKELY(prim->capacity != prim->count)) {
+    return; // Enough space remaining.
+  }
+  geo_prim_grow(prim);
 }
 
 static f32 geo_prim_intersect_ray(
