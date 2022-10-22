@@ -116,6 +116,7 @@ typedef struct {
 
 ecs_comp_define(AppComp) {
   bool           sceneCreated;
+  bool           spawningEnabled;
   Rng*           rng;
   AppFactionData factionData[array_elems(g_appFactionConfig)];
 };
@@ -161,10 +162,15 @@ ecs_system_define(AppUpdateSys) {
   for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
     AppFactionData* factionData = &app->factionData[faction];
 
-    if (ecs_view_entities(unitView) < g_appMaxUnits && time->time > factionData->nextSpawnTime) {
+    const bool spawnAllowed = app->spawningEnabled && ecs_view_entities(unitView) < g_appMaxUnits;
+    if (spawnAllowed && time->time > factionData->nextSpawnTime) {
       object_spawn_unit(world, objDb, app_next_spawn_pos(app->rng, faction), faction);
       factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
     }
+  }
+
+  if (input_triggered_lit(input, "SpawningToggle")) {
+    app->spawningEnabled ^= 1;
   }
 
   if (input_triggered_lit(input, "Reset")) {
@@ -235,7 +241,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world,
       ecs_world_global(world),
       AppComp,
-      .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
+      .spawningEnabled = true,
+      .rng             = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
 
   const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
   asset_manager_create_fs(
