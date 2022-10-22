@@ -13,12 +13,13 @@ typedef struct sRvkTransferer RvkTransferer;
 
 typedef enum {
   RvkDeviceFlags_Validation               = 1 << 0,
-  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 1,
-  RvkDeviceFlags_SupportAnisotropy        = 1 << 2,
-  RvkDeviceFlags_SupportFillNonSolid      = 1 << 3,
-  RvkDeviceFlags_SupportWideLines         = 1 << 4,
-  RvkDeviceFlags_SupportPresentId         = 1 << 5,
-  RvkDeviceFlags_SupportPresentWait       = 1 << 6,
+  RvkDeviceFlags_Debug                    = 1 << 1,
+  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 2,
+  RvkDeviceFlags_SupportAnisotropy        = 1 << 3,
+  RvkDeviceFlags_SupportFillNonSolid      = 1 << 4,
+  RvkDeviceFlags_SupportWideLines         = 1 << 5,
+  RvkDeviceFlags_SupportPresentId         = 1 << 6,
+  RvkDeviceFlags_SupportPresentWait       = 1 << 7,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {
