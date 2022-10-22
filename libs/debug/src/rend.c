@@ -21,6 +21,7 @@ static const String g_tooltipScale          = string_static("Render resolution s
 static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
 static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
 static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
+static const String g_tooltipDebugGpu       = string_static("Should additional gpu debug info be emitted?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
@@ -268,6 +269,12 @@ static void rend_settings_tab_draw(
       (u32*)&globalSettings->flags,
       RendGlobalFlags_Validation,
       .tooltip = g_tooltipValidation);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Gpu debug"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_Debug, .tooltip = g_tooltipDebugGpu);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));

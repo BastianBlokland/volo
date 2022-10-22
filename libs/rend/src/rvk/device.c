@@ -12,10 +12,7 @@
 #include "repository_internal.h"
 #include "transfer_internal.h"
 
-static const String g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
-static const String g_validationExts[] = {
-    string_static("VK_EXT_debug_utils"),
-};
+static const String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
 static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
@@ -26,6 +23,9 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
 static const String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_16bit_storage"),
+};
+static const String g_debugExts[] = {
+    string_static("VK_EXT_debug_utils"),
 };
 
 #ifdef VOLO_LINUX
@@ -128,8 +128,8 @@ static u32 rvk_instance_required_extensions(const char** output, const RvkDevice
     output[i++] = "VK_KHR_win32_surface";
     break;
   }
-  if (flags & RvkDeviceFlags_Validation) {
-    array_for_t(g_validationExts, String, ext) { output[i++] = ext->ptr; }
+  if (flags & (RvkDeviceFlags_Validation | RvkDeviceFlags_Debug)) {
+    array_for_t(g_debugExts, String, ext) { output[i++] = ext->ptr; }
   }
   return i;
 }
@@ -398,9 +398,18 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   const bool validationDesired = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
+    dev->flags |= RvkDeviceFlags_Debug; // Validation will also enable debug features.
   }
-  dev->vkInst             = rvk_instance_create(&dev->vkAlloc, dev->flags);
-  dev->vkPhysDev          = rvk_device_pick_physical_device(dev->vkInst);
+  const bool debugDesired = (globalSettings->flags & RendGlobalFlags_Debug) != 0;
+  if (debugDesired) {
+    // TODO: Support enabling this optionally based on instance support, at the moment creating the
+    // instance would fail if unsupported.
+    dev->flags |= RvkDeviceFlags_Debug;
+  }
+
+  dev->vkInst    = rvk_instance_create(&dev->vkAlloc, dev->flags);
+  dev->vkPhysDev = rvk_device_pick_physical_device(dev->vkInst);
+
   dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(dev->vkPhysDev);
   dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
 
@@ -413,7 +422,7 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
 
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
-  if (dev->flags & RvkDeviceFlags_Validation) {
+  if (dev->flags & RvkDeviceFlags_Debug) {
     const bool          verbose    = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
