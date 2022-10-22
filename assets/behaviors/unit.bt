@@ -147,13 +147,8 @@
       ]
     },
     {
-      "$type": "AssetBehavior_KnowledgeSet",
-      "$name": "Idle",
-      "key": "cmd-nav-stop",
-      "value": {
-        "$type": "AssetKnowledgeSource_Bool",
-        "value": true
-      }
+      "$type": "AssetBehavior_Success",
+      "$name": "Idle"
     }
   ]
 }
