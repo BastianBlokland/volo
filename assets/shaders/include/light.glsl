@@ -3,7 +3,7 @@
 
 #include "types.glsl"
 
-const f32v3 c_lightDir       = normalize(f32v3(0.4, 0.6, -1.0));
+const f32v3 c_lightDir       = normalize(f32v3(0.2, 1.0, -0.2));
 const f32v4 c_lightColor     = f32v4(1.0, 0.9, 0.7, 1.0);
 const f32   c_lightIntensity = 0.8;
 const f32   c_lightShininess = 16;

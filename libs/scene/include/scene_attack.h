@@ -9,7 +9,7 @@ typedef enum {
 
 ecs_comp_extern_public(SceneAttackComp) {
   SceneAttackFlags flags;
-  TimeDuration     nextFireTime;
+  TimeDuration     lastFireTime, nextFireTime;
   f32              aimNorm; // Process of aiming.
 
   TimeDuration minInterval, maxInterval;

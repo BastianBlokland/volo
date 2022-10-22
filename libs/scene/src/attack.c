@@ -16,6 +16,7 @@
 #include "scene_vfx.h"
 
 #define attack_aim_speed 3.5f
+#define attack_aim_min_time time_seconds(3)
 #define attack_in_sight_threshold 0.975f
 #define attack_in_sight_min_dist 2.0f
 #define attack_max_deviation_angle 2.5f
@@ -172,8 +173,12 @@ ecs_system_define(SceneAttackSys) {
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
 
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    const bool isAiming  = math_towards_f32(
-        &attack->aimNorm, hasTarget ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
+    const bool isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
+    const bool shouldAim =
+        !isMoving && (hasTarget || (time->time - attack->lastFireTime) < attack_aim_min_time);
+
+    const bool isAiming = math_towards_f32(
+        &attack->aimNorm, shouldAim ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
 
     scene_animation_set_weight(anim, g_attackAimAnimHash, attack->aimNorm);
     if (!hasTarget) {
@@ -202,7 +207,8 @@ ecs_system_define(SceneAttackSys) {
 
     if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
       // Start firing the shot.
-      fireAnimLayer->time = 0.0f;
+      fireAnimLayer->time  = 0.0f;
+      attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
 
       const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;

@@ -180,6 +180,30 @@
       ]
     },
     {
+      "name": "Reset",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "R"
+        }
+      ]
+    },
+    {
+      "name": "SpawningToggle",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "E"
+        }
+      ]
+    },
+    {
       "name": "WindowNew",
       "blockers": [
         "TextInput"
