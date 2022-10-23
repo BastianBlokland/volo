@@ -26,6 +26,10 @@ AiValue ai_value_entity(const EcsEntityId value) {
   return (AiValue){.type = AiValueType_Entity, .data_entity = value};
 }
 
+AiValue ai_value_or(const AiValue value, const AiValue fallback) {
+  return value.type ? value : fallback;
+}
+
 String ai_value_type_str(const AiValueType type) {
   diag_assert_msg(type < AiValueType_Count, "Invalid ai value type: {}", fmt_int(type));
   static const String g_names[] = {

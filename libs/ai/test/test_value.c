@@ -24,6 +24,13 @@ spec(value) {
     check_eq_int(ai_value_entity(0x42).data_entity, 0x42);
   }
 
+  it("can return a default if the value is none") {
+    check_eq_value(ai_value_or(ai_value_f64(42), ai_value_f64(1337)), ai_value_f64(42));
+    check_eq_value(ai_value_or(ai_value_f64(42), ai_value_none()), ai_value_f64(42));
+    check_eq_value(ai_value_or(ai_value_none(), ai_value_f64(1337)), ai_value_f64(1337));
+    check_eq_value(ai_value_or(ai_value_none(), ai_value_none()), ai_value_none());
+  }
+
   it("can produce a textual representation for a type") {
     check_eq_string(ai_value_type_str(AiValueType_None), string_lit("none"));
     check_eq_string(ai_value_type_str(AiValueType_f64), string_lit("f64"));

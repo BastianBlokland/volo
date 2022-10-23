@@ -39,6 +39,11 @@ AiValue ai_value_time(TimeDuration);
 AiValue ai_value_entity(EcsEntityId);
 
 /**
+ * Value utilities.
+ */
+AiValue ai_value_or(AiValue value, AiValue fallback);
+
+/**
  * Create a textual representation of a value.
  */
 String ai_value_type_str(AiValueType);
