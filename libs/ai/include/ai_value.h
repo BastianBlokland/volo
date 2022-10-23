@@ -41,11 +41,11 @@ AiValue ai_value_entity(EcsEntityId);
  * Create a textual representation of a value.
  */
 String ai_value_type_str(AiValueType);
-String ai_value_str_scratch(const AiValue*);
+String ai_value_str_scratch(AiValue);
 
 /**
  * Compare values.
  */
-bool ai_value_equal(const AiValue*, const AiValue*);
-bool ai_value_less(const AiValue*, const AiValue*);
-bool ai_value_greater(const AiValue*, const AiValue*);
+bool ai_value_equal(AiValue, AiValue);
+bool ai_value_less(AiValue, AiValue);
+bool ai_value_greater(AiValue, AiValue);

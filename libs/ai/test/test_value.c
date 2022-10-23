@@ -44,7 +44,7 @@ spec(value) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      check_eq_string(ai_value_str_scratch(&testData[i].value), testData[i].expected);
+      check_eq_string(ai_value_str_scratch(testData[i].value), testData[i].expected);
     }
   }
 
@@ -77,16 +77,16 @@ spec(value) {
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
         check_msg(
-            ai_value_equal(&testData[i].a, &testData[i].b),
+            ai_value_equal(testData[i].a, testData[i].b),
             "{} == {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       } else {
         check_msg(
-            !ai_value_equal(&testData[i].a, &testData[i].b),
+            !ai_value_equal(testData[i].a, testData[i].b),
             "{} != {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       }
     }
   }
@@ -119,16 +119,16 @@ spec(value) {
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
         check_msg(
-            ai_value_less(&testData[i].a, &testData[i].b),
+            ai_value_less(testData[i].a, testData[i].b),
             "{} < {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       } else {
         check_msg(
-            !ai_value_less(&testData[i].a, &testData[i].b),
+            !ai_value_less(testData[i].a, testData[i].b),
             "{} >= {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       }
     }
   }
@@ -161,16 +161,16 @@ spec(value) {
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
         check_msg(
-            ai_value_greater(&testData[i].a, &testData[i].b),
+            ai_value_greater(testData[i].a, testData[i].b),
             "{} > {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       } else {
         check_msg(
-            !ai_value_greater(&testData[i].a, &testData[i].b),
+            !ai_value_greater(testData[i].a, testData[i].b),
             "{} < {}",
-            fmt_text(ai_value_str_scratch(&testData[i].a)),
-            fmt_text(ai_value_str_scratch(&testData[i].b)));
+            fmt_text(ai_value_str_scratch(testData[i].a)),
+            fmt_text(ai_value_str_scratch(testData[i].b)));
       }
     }
   }

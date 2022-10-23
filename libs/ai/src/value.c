@@ -37,18 +37,18 @@ String ai_value_type_str(const AiValueType type) {
   return g_names[type];
 }
 
-String ai_value_str_scratch(const AiValue* value) {
-  switch (value->type) {
+String ai_value_str_scratch(AiValue value) {
+  switch (value.type) {
   case AiValueType_f64:
-    return fmt_write_scratch("{}", fmt_float(value->data_f64));
+    return fmt_write_scratch("{}", fmt_float(value.data_f64));
   case AiValueType_Bool:
-    return fmt_write_scratch("{}", fmt_bool(value->data_bool));
+    return fmt_write_scratch("{}", fmt_bool(value.data_bool));
   case AiValueType_Vector:
-    return fmt_write_scratch("{}", geo_vector_fmt(value->data_vector));
+    return fmt_write_scratch("{}", geo_vector_fmt(value.data_vector));
   case AiValueType_Time:
-    return fmt_write_scratch("{}", fmt_duration(value->data_time));
+    return fmt_write_scratch("{}", fmt_duration(value.data_time));
   case AiValueType_Entity:
-    return fmt_write_scratch("{}", fmt_int(value->data_entity, .base = 16));
+    return fmt_write_scratch("{}", fmt_int(value.data_entity, .base = 16));
   case AiValueType_Count:
   case AiValueType_Sentinel:
     break;
@@ -57,23 +57,23 @@ String ai_value_str_scratch(const AiValue* value) {
   return string_empty;
 }
 
-bool ai_value_equal(const AiValue* a, const AiValue* b) {
-  if (a->type != b->type) {
+bool ai_value_equal(AiValue a, AiValue b) {
+  if (a.type != b.type) {
     return false;
   }
   static const f32 g_scalarThreshold = 1e-6f;
   static const f32 g_vectorThreshold = 1e-6f;
-  switch (a->type) {
+  switch (a.type) {
   case AiValueType_f64:
-    return math_abs(a->data_f64 - b->data_f64) < g_scalarThreshold;
+    return math_abs(a.data_f64 - b.data_f64) < g_scalarThreshold;
   case AiValueType_Bool:
-    return a->data_bool == b->data_bool;
+    return a.data_bool == b.data_bool;
   case AiValueType_Vector:
-    return geo_vector_equal(a->data_vector, b->data_vector, g_vectorThreshold);
+    return geo_vector_equal(a.data_vector, b.data_vector, g_vectorThreshold);
   case AiValueType_Time:
-    return a->data_time == b->data_time;
+    return a.data_time == b.data_time;
   case AiValueType_Entity:
-    return a->data_entity == b->data_entity;
+    return a.data_entity == b.data_entity;
   case AiValueType_Count:
   case AiValueType_Sentinel:
     break;
@@ -82,21 +82,21 @@ bool ai_value_equal(const AiValue* a, const AiValue* b) {
   return false;
 }
 
-bool ai_value_less(const AiValue* a, const AiValue* b) {
-  if (a->type != b->type) {
+bool ai_value_less(AiValue a, AiValue b) {
+  if (a.type != b.type) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
-  switch (a->type) {
+  switch (a.type) {
   case AiValueType_f64:
-    return a->data_f64 < b->data_f64;
+    return a.data_f64 < b.data_f64;
   case AiValueType_Bool:
-    return a->data_bool < b->data_bool; // NOTE: Questionable usefulness?
+    return a.data_bool < b.data_bool; // NOTE: Questionable usefulness?
   case AiValueType_Vector:
-    return geo_vector_mag(a->data_vector) < geo_vector_mag(b->data_vector);
+    return geo_vector_mag(a.data_vector) < geo_vector_mag(b.data_vector);
   case AiValueType_Time:
-    return a->data_time < b->data_time;
+    return a.data_time < b.data_time;
   case AiValueType_Entity:
-    return ecs_entity_id_serial(a->data_entity) < ecs_entity_id_serial(b->data_entity);
+    return ecs_entity_id_serial(a.data_entity) < ecs_entity_id_serial(b.data_entity);
   case AiValueType_Count:
   case AiValueType_Sentinel:
     break;
@@ -105,21 +105,21 @@ bool ai_value_less(const AiValue* a, const AiValue* b) {
   return false;
 }
 
-bool ai_value_greater(const AiValue* a, const AiValue* b) {
-  if (a->type != b->type) {
+bool ai_value_greater(AiValue a, AiValue b) {
+  if (a.type != b.type) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
-  switch (a->type) {
+  switch (a.type) {
   case AiValueType_f64:
-    return a->data_f64 > b->data_f64;
+    return a.data_f64 > b.data_f64;
   case AiValueType_Bool:
-    return a->data_bool > b->data_bool; // NOTE: Questionable usefulness?
+    return a.data_bool > b.data_bool; // NOTE: Questionable usefulness?
   case AiValueType_Vector:
-    return geo_vector_mag(a->data_vector) > geo_vector_mag(b->data_vector);
+    return geo_vector_mag(a.data_vector) > geo_vector_mag(b.data_vector);
   case AiValueType_Time:
-    return a->data_time > b->data_time;
+    return a.data_time > b.data_time;
   case AiValueType_Entity:
-    return ecs_entity_id_serial(a->data_entity) > ecs_entity_id_serial(b->data_entity);
+    return ecs_entity_id_serial(a.data_entity) > ecs_entity_id_serial(b.data_entity);
   case AiValueType_Count:
   case AiValueType_Sentinel:
     break;
