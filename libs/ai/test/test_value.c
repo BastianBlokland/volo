@@ -1,7 +1,8 @@
-#include "ai_value.h"
 #include "check_spec.h"
 #include "core_array.h"
 #include "core_time.h"
+
+#include "utils_internal.h"
 
 spec(value) {
   it("can type-erase values") {
@@ -84,17 +85,9 @@ spec(value) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
-        check_msg(
-            ai_value_equal(testData[i].a, testData[i].b),
-            "{} == {}",
-            fmt_text(ai_value_str_scratch(testData[i].a)),
-            fmt_text(ai_value_str_scratch(testData[i].b)));
+        check_eq_value(testData[i].a, testData[i].b);
       } else {
-        check_msg(
-            !ai_value_equal(testData[i].a, testData[i].b),
-            "{} != {}",
-            fmt_text(ai_value_str_scratch(testData[i].a)),
-            fmt_text(ai_value_str_scratch(testData[i].b)));
+        check_neq_value(testData[i].a, testData[i].b);
       }
     }
   }
@@ -130,11 +123,7 @@ spec(value) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
-        check_msg(
-            ai_value_less(testData[i].a, testData[i].b),
-            "{} < {}",
-            fmt_text(ai_value_str_scratch(testData[i].a)),
-            fmt_text(ai_value_str_scratch(testData[i].b)));
+        check_less_value(testData[i].a, testData[i].b);
       } else {
         check_msg(
             !ai_value_less(testData[i].a, testData[i].b),
@@ -176,15 +165,11 @@ spec(value) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
-        check_msg(
-            ai_value_greater(testData[i].a, testData[i].b),
-            "{} > {}",
-            fmt_text(ai_value_str_scratch(testData[i].a)),
-            fmt_text(ai_value_str_scratch(testData[i].b)));
+        check_greater_value(testData[i].a, testData[i].b);
       } else {
         check_msg(
             !ai_value_greater(testData[i].a, testData[i].b),
-            "{} < {}",
+            "{} <= {}",
             fmt_text(ai_value_str_scratch(testData[i].a)),
             fmt_text(ai_value_str_scratch(testData[i].b)));
       }

@@ -47,6 +47,7 @@ add_executable(test_lib_ai
   test/test_node_try.c
   test/test_tracer_record.c
   test/test_value.c
+  test/utils.c
   )
 target_link_libraries(test_lib_ai PRIVATE lib_app_check lib_ai)
 
