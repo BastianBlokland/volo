@@ -575,6 +575,23 @@ static bool nav_cell_predicate_occupied_moving(const GeoNavGrid* grid, const Geo
   return false;
 }
 
+static bool nav_cell_predicate_free(const GeoNavGrid* grid, const GeoNavCell cell) {
+  /**
+   * Test if the cell is not blocked and has no stationary occupant.
+   */
+  if (grid->cellBlockerCount[nav_cell_index(grid, cell)] > 0) {
+    return false;
+  }
+  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
+  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  for (u32 i = 0; i != occupantCount; ++i) {
+    if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Get all the occupants in the given region.
  * Returns the amount of occupants written to the out array.
@@ -798,6 +815,16 @@ GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_pos(grid, cell);
 }
 
+f32 geo_nav_distance(const GeoNavGrid* grid, const GeoNavCell a, const GeoNavCell b) {
+  diag_assert(a.x < grid->cellCountAxis && a.y < grid->cellCountAxis);
+  diag_assert(b.x < grid->cellCountAxis && b.y < grid->cellCountAxis);
+
+  const GeoVector localPosA  = {a.x, 0, a.y};
+  const GeoVector localPosB  = {b.x, 0, b.y};
+  const GeoVector localDelta = geo_vector_sub(localPosB, localPosA);
+  return geo_vector_mag(localDelta) * grid->cellSize;
+}
+
 GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_box(grid, cell);
@@ -842,6 +869,17 @@ GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell ce
     return res;
   }
   return cell; // No unblocked cell found.
+}
+
+GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  GeoNavCell         res;
+  if (nav_find(grid, s, cell, nav_cell_predicate_free, &res) == NavFindResult_Found) {
+    return res;
+  }
+  return cell; // No free cell found.
 }
 
 GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {

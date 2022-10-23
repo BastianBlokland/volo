@@ -57,6 +57,7 @@ GeoVector    geo_nav_cell_size(const GeoNavGrid*);
  * Lookup cell information.
  */
 GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
+f32          geo_nav_distance(const GeoNavGrid*, GeoNavCell a, GeoNavCell b);
 GeoBox       geo_nav_box(const GeoNavGrid*, GeoNavCell);
 GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
@@ -64,6 +65,7 @@ bool         geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
+GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 
 /**

@@ -192,15 +192,10 @@ static void update_camera_interact(
   }
 
   if (!selectActive && input_triggered_lit(input, "SpawnUnit")) {
-    const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
+    const u32 count = input_modifiers(input) & InputModifier_Shift ? 25 : 1;
+    const f32 rayT  = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT));
-    }
-  }
-  if (!selectActive && input_triggered_lit(input, "SpawnWall")) {
-    const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
-    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_spawn_wall(cmdController, geo_ray_position(&inputRay, rayT));
+      cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT), count);
     }
   }
 
