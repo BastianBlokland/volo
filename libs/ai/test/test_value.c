@@ -132,4 +132,46 @@ spec(value) {
       }
     }
   }
+
+  it("can test if values are greater") {
+    const struct {
+      AiValue a, b;
+      bool    expected;
+    } testData[] = {
+        {ai_value_f64(2), ai_value_f64(1), .expected = true},
+        {ai_value_f64(1), ai_value_f64(2), .expected = false},
+        {ai_value_f64(1), ai_value_f64(1), .expected = false},
+
+        {ai_value_bool(true), ai_value_bool(false), .expected = true},
+        {ai_value_bool(true), ai_value_bool(true), .expected = false},
+        {ai_value_bool(false), ai_value_bool(false), .expected = false},
+        {ai_value_bool(false), ai_value_bool(true), .expected = false},
+
+        {ai_value_vector(geo_vector(1, 3)), ai_value_vector(geo_vector(1, 2)), .expected = true},
+        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 2)), .expected = false},
+        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 3)), .expected = false},
+
+        {ai_value_time(time_seconds(2)), ai_value_time(time_seconds(1)), .expected = true},
+        {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(2)), .expected = false},
+        {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(1)), .expected = false},
+
+        {ai_value_f64(1), ai_value_bool(true), .expected = false},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      if (testData[i].expected) {
+        check_msg(
+            ai_value_greater(&testData[i].a, &testData[i].b),
+            "{} > {}",
+            fmt_text(ai_value_str_scratch(&testData[i].a)),
+            fmt_text(ai_value_str_scratch(&testData[i].b)));
+      } else {
+        check_msg(
+            !ai_value_greater(&testData[i].a, &testData[i].b),
+            "{} < {}",
+            fmt_text(ai_value_str_scratch(&testData[i].a)),
+            fmt_text(ai_value_str_scratch(&testData[i].b)));
+      }
+    }
+  }
 }

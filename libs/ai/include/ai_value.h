@@ -47,3 +47,4 @@ String ai_value_str_scratch(const AiValue*);
  */
 bool ai_value_equal(const AiValue*, const AiValue*);
 bool ai_value_less(const AiValue*, const AiValue*);
+bool ai_value_greater(const AiValue*, const AiValue*);
