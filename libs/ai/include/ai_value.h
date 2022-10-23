@@ -36,5 +36,13 @@ AiValue ai_value_vector(GeoVector);
 AiValue ai_value_time(TimeDuration);
 AiValue ai_value_entity(EcsEntityId);
 
+/**
+ * Create a textual representation of a value.
+ */
 String ai_value_type_str(AiValueType);
 String ai_value_str_scratch(const AiValue*);
+
+/**
+ * Compare values.
+ */
+bool ai_value_equal(const AiValue*, const AiValue*);

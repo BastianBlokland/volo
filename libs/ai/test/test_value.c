@@ -35,6 +35,7 @@ spec(value) {
       String  expected;
     } testData[] = {
         {ai_value_f64(42), string_lit("42")},
+        {ai_value_f64(42.1), string_lit("42.1")},
         {ai_value_bool(true), string_lit("true")},
         {ai_value_bool(false), string_lit("false")},
         {ai_value_vector(geo_vector(1, 2, 3)), string_lit("1, 2, 3, 0")},
@@ -44,6 +45,50 @@ spec(value) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       check_eq_string(ai_value_str_scratch(&testData[i].value), testData[i].expected);
+    }
+  }
+
+  it("can test if values are equal") {
+    const struct {
+      AiValue a, b;
+      bool    expected;
+    } testData[] = {
+        {ai_value_f64(42), ai_value_f64(42), .expected = true},
+        {ai_value_f64(42), ai_value_f64(42.1), .expected = false},
+        {ai_value_f64(42), ai_value_f64(42.000001), .expected = false},
+        {ai_value_f64(42), ai_value_f64(42.0000001), .expected = true},
+
+        {ai_value_bool(true), ai_value_bool(true), .expected = true},
+        {ai_value_bool(false), ai_value_bool(false), .expected = true},
+        {ai_value_bool(false), ai_value_bool(true), .expected = false},
+
+        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 2)), .expected = true},
+        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 3)), .expected = false},
+
+        {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(1)), .expected = true},
+        {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(2)), .expected = false},
+
+        {ai_value_entity(1), ai_value_entity(1), .expected = true},
+        {ai_value_entity(1), ai_value_entity(2), .expected = false},
+
+        {ai_value_f64(1), ai_value_bool(true), .expected = false},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const bool actual = ai_value_equal(&testData[i].a, &testData[i].b);
+      if (testData[i].expected) {
+        check_msg(
+            actual,
+            "{} == {}",
+            fmt_text(ai_value_str_scratch(&testData[i].a)),
+            fmt_text(ai_value_str_scratch(&testData[i].b)));
+      } else {
+        check_msg(
+            !actual,
+            "{} != {}",
+            fmt_text(ai_value_str_scratch(&testData[i].a)),
+            fmt_text(ai_value_str_scratch(&testData[i].b)));
+      }
     }
   }
 }
