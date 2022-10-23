@@ -26,8 +26,8 @@ typedef struct {
 } AppFactionConfig;
 
 static const GapVector        g_appWindowSize      = {1920, 1080};
-static const u32              g_appWallCount       = 200;
-static const u64              g_appRngSeed         = 42;
+static const u32              g_appWallCount       = 175;
+static const u64              g_appRngSeed         = 41;
 static const u32              g_appMaxUnits        = 1500;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
