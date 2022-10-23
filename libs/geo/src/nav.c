@@ -575,6 +575,23 @@ static bool nav_cell_predicate_occupied_moving(const GeoNavGrid* grid, const Geo
   return false;
 }
 
+static bool nav_cell_predicate_free(const GeoNavGrid* grid, const GeoNavCell cell) {
+  /**
+   * Test if the cell is not blocked and has no stationary occupant.
+   */
+  if (grid->cellBlockerCount[nav_cell_index(grid, cell)] > 0) {
+    return false;
+  }
+  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
+  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  for (u32 i = 0; i != occupantCount; ++i) {
+    if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Get all the occupants in the given region.
  * Returns the amount of occupants written to the out array.
@@ -842,6 +859,17 @@ GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell ce
     return res;
   }
   return cell; // No unblocked cell found.
+}
+
+GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  GeoNavCell         res;
+  if (nav_find(grid, s, cell, nav_cell_predicate_free, &res) == NavFindResult_Found) {
+    return res;
+  }
+  return cell; // No free cell found.
 }
 
 GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
