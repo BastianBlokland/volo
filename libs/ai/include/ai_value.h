@@ -14,6 +14,7 @@ typedef enum {
   AiValueType_Entity,
 
   AiValueType_Count,
+  AiValueType_Sentinel = sentinel_u32,
 } AiValueType;
 
 typedef struct {

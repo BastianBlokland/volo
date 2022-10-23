@@ -25,6 +25,7 @@ AiValue ai_value_entity(const EcsEntityId value) {
 }
 
 String ai_value_type_str(const AiValueType type) {
+  diag_assert_msg(type < AiValueType_Count, "Invalid ai value type: {}", fmt_int(type));
   static const String g_names[] = {
       string_static("f64"),
       string_static("bool"),
@@ -49,9 +50,11 @@ String ai_value_str_scratch(const AiValue* value) {
   case AiValueType_Entity:
     return fmt_write_scratch("{}", fmt_int(value->data_entity, .base = 16));
   case AiValueType_Count:
+  case AiValueType_Sentinel:
     break;
   }
-  UNREACHABLE
+  diag_assert_fail("Invalid ai-value");
+  return string_empty;
 }
 
 bool ai_value_equal(const AiValue* a, const AiValue* b) {
@@ -72,9 +75,11 @@ bool ai_value_equal(const AiValue* a, const AiValue* b) {
   case AiValueType_Entity:
     return a->data_entity == b->data_entity;
   case AiValueType_Count:
+  case AiValueType_Sentinel:
     break;
   }
-  UNREACHABLE
+  diag_assert_fail("Invalid ai-value");
+  return false;
 }
 
 bool ai_value_less(const AiValue* a, const AiValue* b) {
@@ -93,9 +98,11 @@ bool ai_value_less(const AiValue* a, const AiValue* b) {
   case AiValueType_Entity:
     return ecs_entity_id_serial(a->data_entity) < ecs_entity_id_serial(b->data_entity);
   case AiValueType_Count:
+  case AiValueType_Sentinel:
     break;
   }
-  UNREACHABLE
+  diag_assert_fail("Invalid ai-value");
+  return false;
 }
 
 bool ai_value_greater(const AiValue* a, const AiValue* b) {
@@ -114,7 +121,9 @@ bool ai_value_greater(const AiValue* a, const AiValue* b) {
   case AiValueType_Entity:
     return ecs_entity_id_serial(a->data_entity) > ecs_entity_id_serial(b->data_entity);
   case AiValueType_Count:
+  case AiValueType_Sentinel:
     break;
   }
-  UNREACHABLE
+  diag_assert_fail("Invalid ai-value");
+  return false;
 }
