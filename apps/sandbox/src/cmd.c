@@ -18,7 +18,6 @@ typedef enum {
   Cmd_Deselect,
   Cmd_Move,
   Cmd_SpawnUnit,
-  Cmd_SpawnWall,
   Cmd_Destroy,
 } CmdType;
 
@@ -33,11 +32,8 @@ typedef struct {
 
 typedef struct {
   GeoVector position;
+  u32       count;
 } CmdSpawnUnit;
-
-typedef struct {
-  GeoVector position;
-} CmdSpawnWall;
 
 typedef struct {
   EcsEntityId object;
@@ -49,7 +45,6 @@ typedef struct {
     CmdSelect    select;
     CmdMove      move;
     CmdSpawnUnit spawnUnit;
-    CmdSpawnWall spawnWall;
     CmdDestroy   destroy;
   };
 } Cmd;
@@ -107,10 +102,9 @@ static void cmd_execute(
     cmd_execute_move(world, &cmd->move);
     break;
   case Cmd_SpawnUnit:
-    object_spawn_unit(world, objectDb, cmd->spawnUnit.position, g_cmdPlayerFaction);
-    break;
-  case Cmd_SpawnWall:
-    object_spawn_wall(world, objectDb, cmd->spawnWall.position, geo_quat_ident);
+    for (u32 i = 0; i != cmd->spawnUnit.count; ++i) {
+      object_spawn_unit(world, objectDb, cmd->spawnUnit.position, g_cmdPlayerFaction);
+    }
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_entity_valid(cmd->destroy.object), "Destroying invalid entity");
@@ -182,17 +176,10 @@ void cmd_push_move(
   };
 }
 
-void cmd_push_spawn_unit(CmdControllerComp* controller, const GeoVector position) {
+void cmd_push_spawn_unit(CmdControllerComp* controller, const GeoVector position, const u32 count) {
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type      = Cmd_SpawnUnit,
-      .spawnUnit = {.position = position},
-  };
-}
-
-void cmd_push_spawn_wall(CmdControllerComp* controller, const GeoVector position) {
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
-      .type      = Cmd_SpawnWall,
-      .spawnWall = {.position = position},
+      .spawnUnit = {.position = position, .count = count},
   };
 }
 

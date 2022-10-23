@@ -46,27 +46,6 @@
           "key": "MouseLeft",
           "requiredModifiers": [
             "Control"
-          ],
-          "illegalModifiers": [
-            "Shift"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "SpawnWall",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "CursorLocked"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseLeft",
-          "requiredModifiers": [
-            "Shift"
           ]
         }
       ]
