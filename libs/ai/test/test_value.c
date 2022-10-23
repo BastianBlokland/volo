@@ -5,6 +5,8 @@
 
 spec(value) {
   it("can type-erase values") {
+    check_eq_int(ai_value_none().type, AiValueType_None);
+
     check_eq_int(ai_value_f64(42).type, AiValueType_f64);
     check_eq_int(ai_value_f64(42).data_f64, 42);
 
@@ -22,6 +24,7 @@ spec(value) {
   }
 
   it("can produce a textual representation for a type") {
+    check_eq_string(ai_value_type_str(AiValueType_None), string_lit("none"));
     check_eq_string(ai_value_type_str(AiValueType_f64), string_lit("f64"));
     check_eq_string(ai_value_type_str(AiValueType_Bool), string_lit("bool"));
     check_eq_string(ai_value_type_str(AiValueType_Vector), string_lit("vector"));
@@ -34,6 +37,7 @@ spec(value) {
       AiValue value;
       String  expected;
     } testData[] = {
+        {ai_value_none(), string_lit("none")},
         {ai_value_f64(42), string_lit("42")},
         {ai_value_f64(42.1), string_lit("42.1")},
         {ai_value_bool(true), string_lit("true")},
@@ -53,6 +57,10 @@ spec(value) {
       AiValue a, b;
       bool    expected;
     } testData[] = {
+        {ai_value_none(), ai_value_none(), .expected = true},
+        {ai_value_none(), ai_value_f64(42), .expected = false},
+        {ai_value_f64(42), ai_value_none(), .expected = false},
+
         {ai_value_f64(42), ai_value_f64(42), .expected = true},
         {ai_value_f64(42), ai_value_f64(42.1), .expected = false},
         {ai_value_f64(42), ai_value_f64(42.000001), .expected = false},
@@ -96,6 +104,10 @@ spec(value) {
       AiValue a, b;
       bool    expected;
     } testData[] = {
+        {ai_value_none(), ai_value_none(), .expected = false},
+        {ai_value_none(), ai_value_f64(42), .expected = false},
+        {ai_value_f64(42), ai_value_none(), .expected = false},
+
         {ai_value_f64(1), ai_value_f64(2), .expected = true},
         {ai_value_f64(2), ai_value_f64(1), .expected = false},
         {ai_value_f64(1), ai_value_f64(1), .expected = false},
@@ -138,6 +150,10 @@ spec(value) {
       AiValue a, b;
       bool    expected;
     } testData[] = {
+        {ai_value_none(), ai_value_none(), .expected = false},
+        {ai_value_none(), ai_value_f64(42), .expected = false},
+        {ai_value_f64(42), ai_value_none(), .expected = false},
+
         {ai_value_f64(2), ai_value_f64(1), .expected = true},
         {ai_value_f64(1), ai_value_f64(2), .expected = false},
         {ai_value_f64(1), ai_value_f64(1), .expected = false},

@@ -4,6 +4,8 @@
 #include "core_math.h"
 #include "core_time.h"
 
+AiValue ai_value_none() { return (AiValue){.type = AiValueType_None}; }
+
 AiValue ai_value_f64(const f64 value) {
   return (AiValue){.type = AiValueType_f64, .data_f64 = value};
 }
@@ -27,6 +29,7 @@ AiValue ai_value_entity(const EcsEntityId value) {
 String ai_value_type_str(const AiValueType type) {
   diag_assert_msg(type < AiValueType_Count, "Invalid ai value type: {}", fmt_int(type));
   static const String g_names[] = {
+      string_static("none"),
       string_static("f64"),
       string_static("bool"),
       string_static("vector"),
@@ -39,6 +42,8 @@ String ai_value_type_str(const AiValueType type) {
 
 String ai_value_str_scratch(AiValue value) {
   switch (value.type) {
+  case AiValueType_None:
+    return string_lit("none");
   case AiValueType_f64:
     return fmt_write_scratch("{}", fmt_float(value.data_f64));
   case AiValueType_Bool:
@@ -50,7 +55,6 @@ String ai_value_str_scratch(AiValue value) {
   case AiValueType_Entity:
     return fmt_write_scratch("{}", fmt_int(value.data_entity, .base = 16));
   case AiValueType_Count:
-  case AiValueType_Sentinel:
     break;
   }
   diag_assert_fail("Invalid ai-value");
@@ -64,6 +68,8 @@ bool ai_value_equal(AiValue a, AiValue b) {
   static const f32 g_scalarThreshold = 1e-6f;
   static const f32 g_vectorThreshold = 1e-6f;
   switch (a.type) {
+  case AiValueType_None:
+    return true;
   case AiValueType_f64:
     return math_abs(a.data_f64 - b.data_f64) < g_scalarThreshold;
   case AiValueType_Bool:
@@ -75,7 +81,6 @@ bool ai_value_equal(AiValue a, AiValue b) {
   case AiValueType_Entity:
     return a.data_entity == b.data_entity;
   case AiValueType_Count:
-  case AiValueType_Sentinel:
     break;
   }
   diag_assert_fail("Invalid ai-value");
@@ -87,6 +92,8 @@ bool ai_value_less(AiValue a, AiValue b) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
   switch (a.type) {
+  case AiValueType_None:
+    return false;
   case AiValueType_f64:
     return a.data_f64 < b.data_f64;
   case AiValueType_Bool:
@@ -98,7 +105,6 @@ bool ai_value_less(AiValue a, AiValue b) {
   case AiValueType_Entity:
     return ecs_entity_id_serial(a.data_entity) < ecs_entity_id_serial(b.data_entity);
   case AiValueType_Count:
-  case AiValueType_Sentinel:
     break;
   }
   diag_assert_fail("Invalid ai-value");
@@ -110,6 +116,8 @@ bool ai_value_greater(AiValue a, AiValue b) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
   switch (a.type) {
+  case AiValueType_None:
+    return false;
   case AiValueType_f64:
     return a.data_f64 > b.data_f64;
   case AiValueType_Bool:
@@ -121,7 +129,6 @@ bool ai_value_greater(AiValue a, AiValue b) {
   case AiValueType_Entity:
     return ecs_entity_id_serial(a.data_entity) > ecs_entity_id_serial(b.data_entity);
   case AiValueType_Count:
-  case AiValueType_Sentinel:
     break;
   }
   diag_assert_fail("Invalid ai-value");
