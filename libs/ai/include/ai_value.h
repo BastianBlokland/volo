@@ -39,6 +39,15 @@ AiValue ai_value_time(TimeDuration);
 AiValue ai_value_entity(EcsEntityId);
 
 /**
+ * Extract a specific type.
+ */
+f64          ai_value_get_f64(AiValue, f64 fallback);
+bool         ai_value_get_bool(AiValue, bool fallback);
+GeoVector    ai_value_get_vector(AiValue, GeoVector fallback);
+TimeDuration ai_value_get_time(AiValue, TimeDuration fallback);
+EcsEntityId  ai_value_get_entity(AiValue, EcsEntityId fallback);
+
+/**
  * Value utilities.
  */
 AiValue ai_value_or(AiValue value, AiValue fallback);

@@ -26,6 +26,26 @@ AiValue ai_value_entity(const EcsEntityId value) {
   return (AiValue){.type = AiValueType_Entity, .data_entity = value};
 }
 
+f64 ai_value_get_f64(const AiValue value, const f64 fallback) {
+  return value.type == AiValueType_f64 ? value.data_f64 : fallback;
+}
+
+bool ai_value_get_bool(const AiValue value, const bool fallback) {
+  return value.type == AiValueType_Bool ? value.data_bool : fallback;
+}
+
+GeoVector ai_value_get_vector(const AiValue value, const GeoVector fallback) {
+  return value.type == AiValueType_Vector ? value.data_vector : fallback;
+}
+
+TimeDuration ai_value_get_time(const AiValue value, const TimeDuration fallback) {
+  return value.type == AiValueType_Time ? value.data_time : fallback;
+}
+
+EcsEntityId ai_value_get_entity(const AiValue value, const EcsEntityId fallback) {
+  return value.type == AiValueType_Entity ? value.data_entity : fallback;
+}
+
 AiValue ai_value_or(const AiValue value, const AiValue fallback) {
   return value.type ? value : fallback;
 }

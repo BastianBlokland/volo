@@ -24,6 +24,28 @@ spec(value) {
     check_eq_int(ai_value_entity(0x42).data_entity, 0x42);
   }
 
+  it("can extract specific types from values") {
+    check_eq_float(ai_value_get_f64(ai_value_f64(42), 1337), 42, 1e-6);
+    check_eq_float(ai_value_get_f64(ai_value_none(), 1337), 1337, 1e-6);
+    check_eq_float(ai_value_get_f64(ai_value_bool(false), 1337), 1337, 1e-6);
+
+    check(ai_value_get_bool(ai_value_bool(true), false) == true);
+    check(ai_value_get_bool(ai_value_none(), false) == false);
+
+    check(geo_vector_equal(
+        ai_value_get_vector(ai_value_vector(geo_vector(1, 2, 3)), geo_vector(4, 5, 6)),
+        geo_vector(1, 2, 3),
+        1e-6f));
+    check(geo_vector_equal(
+        ai_value_get_vector(ai_value_none(), geo_vector(4, 5, 6)), geo_vector(4, 5, 6), 1e-6f));
+
+    check(ai_value_get_time(ai_value_time(time_seconds(1)), time_seconds(2)) == time_seconds(1));
+    check(ai_value_get_time(ai_value_none(), time_seconds(2)) == time_seconds(2));
+
+    check(ai_value_get_entity(ai_value_entity(0x1), 0x2) == 0x1);
+    check(ai_value_get_entity(ai_value_none(), 0x2) == 0x2);
+  }
+
   it("can return a default if the value is none") {
     check_eq_value(ai_value_or(ai_value_f64(42), ai_value_f64(1337)), ai_value_f64(42));
     check_eq_value(ai_value_or(ai_value_f64(42), ai_value_none()), ai_value_f64(42));
