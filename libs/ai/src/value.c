@@ -125,7 +125,7 @@ bool ai_value_greater(AiValue a, AiValue b) {
   case AiValueType_f64:
     return a.data_f64 > b.data_f64;
   case AiValueType_Bool:
-    return a.data_bool > b.data_bool; // NOTE: Questionable usefulness?
+    return a.data_bool > b.data_bool;
   case AiValueType_Vector:
     return geo_vector_mag(a.data_vector) > geo_vector_mag(b.data_vector);
   case AiValueType_Time:
@@ -137,4 +137,33 @@ bool ai_value_greater(AiValue a, AiValue b) {
   }
   diag_assert_fail("Invalid ai-value");
   return false;
+}
+
+AiValue ai_value_add(const AiValue a, const AiValue b) {
+  if (a.type == AiValueType_None) {
+    return b;
+  }
+  if (b.type == AiValueType_None) {
+    return a;
+  }
+  if (a.type != b.type) {
+    return a; // Arithmetic on mismatched types not supported atm.
+  }
+  switch (a.type) {
+  case AiValueType_f64:
+    return ai_value_f64(a.data_f64 + b.data_f64);
+  case AiValueType_Bool:
+    return a; // Arithmetic on booleans not supported.
+  case AiValueType_Vector:
+    return ai_value_vector(geo_vector_add(a.data_vector, b.data_vector));
+  case AiValueType_Time:
+    return ai_value_time(a.data_time + b.data_time);
+  case AiValueType_Entity:
+    return a; // Arithmetic on entities not supported.
+  case AiValueType_None:
+  case AiValueType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid ai-value");
+  return ai_value_none();
 }

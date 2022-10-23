@@ -55,3 +55,8 @@ String ai_value_str_scratch(AiValue);
 bool ai_value_equal(AiValue, AiValue);
 bool ai_value_less(AiValue, AiValue);
 bool ai_value_greater(AiValue, AiValue);
+
+/**
+ * Value arithmetic.
+ */
+AiValue ai_value_add(AiValue, AiValue);

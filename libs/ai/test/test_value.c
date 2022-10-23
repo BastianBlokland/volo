@@ -182,4 +182,44 @@ spec(value) {
       }
     }
   }
+
+  it("can add values") {
+    const struct {
+      AiValue a, b;
+      AiValue expected;
+    } testData[] = {
+        {ai_value_none(), ai_value_none(), .expected = ai_value_none()},
+        {ai_value_none(), ai_value_f64(42), .expected = ai_value_f64(42)},
+        {ai_value_f64(42), ai_value_none(), .expected = ai_value_f64(42)},
+        {ai_value_f64(42), ai_value_bool(false), .expected = ai_value_f64(42)},
+
+        {ai_value_f64(42), ai_value_f64(1), .expected = ai_value_f64(43)},
+        {ai_value_f64(42), ai_value_f64(1337), .expected = ai_value_f64(1379)},
+
+        {ai_value_bool(true), ai_value_bool(false), .expected = ai_value_bool(true)},
+        {ai_value_bool(true), ai_value_bool(true), .expected = ai_value_bool(true)},
+        {ai_value_bool(false), ai_value_bool(false), .expected = ai_value_bool(false)},
+        {ai_value_bool(false), ai_value_bool(true), .expected = ai_value_bool(false)},
+
+        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
+         .b        = ai_value_vector(geo_vector(4, 5, 6)),
+         .expected = ai_value_vector(geo_vector(5, 7, 9))},
+
+        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
+         .b        = ai_value_f64(42),
+         .expected = ai_value_vector(geo_vector(1, 2, 3))},
+
+        {.a        = ai_value_time(time_seconds(1)),
+         .b        = ai_value_none(),
+         .expected = ai_value_time(time_seconds(1))},
+
+        {.a = ai_value_entity(0x1), .b = ai_value_entity(0x2), .expected = ai_value_entity(0x1)},
+
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const AiValue actual = ai_value_add(testData[i].a, testData[i].b);
+      check_eq_value(actual, testData[i].expected);
+    }
+  }
 }
