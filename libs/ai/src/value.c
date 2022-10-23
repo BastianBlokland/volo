@@ -34,3 +34,21 @@ String ai_value_type_str(const AiValueType type) {
   ASSERT(array_elems(g_names) == AiValueType_Count, "Incorrect number of names");
   return g_names[type];
 }
+
+String ai_value_str_scratch(const AiValue* value) {
+  switch (value->type) {
+  case AiValueType_f64:
+    return fmt_write_scratch("{}", fmt_float(value->data_f64));
+  case AiValueType_Bool:
+    return fmt_write_scratch("{}", fmt_bool(value->data_bool));
+  case AiValueType_Vector:
+    return fmt_write_scratch("{}", geo_vector_fmt(value->data_vector));
+  case AiValueType_Time:
+    return fmt_write_scratch("{}", fmt_duration(value->data_time));
+  case AiValueType_Entity:
+    return fmt_write_scratch("{}", fmt_int(value->data_entity, .base = 16));
+  case AiValueType_Count:
+    break;
+  }
+  diag_crash_msg("Invalid ai value");
+}

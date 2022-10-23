@@ -37,3 +37,4 @@ AiValue ai_value_time(TimeDuration);
 AiValue ai_value_entity(EcsEntityId);
 
 String ai_value_type_str(AiValueType);
+String ai_value_str_scratch(const AiValue*);
