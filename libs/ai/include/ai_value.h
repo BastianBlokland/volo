@@ -27,4 +27,13 @@ typedef struct {
   };
 } AiValue;
 
+/**
+ * Type-erase a value into a AiValue.
+ */
+AiValue ai_value_f64(f64);
+AiValue ai_value_bool(bool);
+AiValue ai_value_vector(GeoVector);
+AiValue ai_value_time(TimeDuration);
+AiValue ai_value_entity(EcsEntityId);
+
 String ai_value_type_str(AiValueType);
