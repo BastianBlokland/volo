@@ -16,4 +16,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, node_success);
   register_spec(check, node_try);
   register_spec(check, tracer_record);
+  register_spec(check, value);
 }

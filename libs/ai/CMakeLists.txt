@@ -23,6 +23,7 @@ add_library(lib_ai STATIC
   src/result.c
   src/tracer_count.c
   src/tracer_record.c
+  src/value.c
   )
 target_include_directories(lib_ai PUBLIC include)
 target_link_libraries(lib_ai PUBLIC lib_core lib_asset lib_geo)
@@ -45,6 +46,7 @@ add_executable(test_lib_ai
   test/test_node_success.c
   test/test_node_try.c
   test/test_tracer_record.c
+  test/test_value.c
   )
 target_link_libraries(test_lib_ai PRIVATE lib_app_check lib_ai)
 
