@@ -815,6 +815,16 @@ GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_pos(grid, cell);
 }
 
+f32 geo_nav_distance(const GeoNavGrid* grid, const GeoNavCell a, const GeoNavCell b) {
+  diag_assert(a.x < grid->cellCountAxis && a.y < grid->cellCountAxis);
+  diag_assert(b.x < grid->cellCountAxis && b.y < grid->cellCountAxis);
+
+  const GeoVector localPosA  = {a.x, 0, a.y};
+  const GeoVector localPosB  = {b.x, 0, b.y};
+  const GeoVector localDelta = geo_vector_sub(localPosB, localPosA);
+  return geo_vector_mag(localDelta) * grid->cellSize;
+}
+
 GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_box(grid, cell);
