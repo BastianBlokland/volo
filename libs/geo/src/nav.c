@@ -669,7 +669,7 @@ static GeoVector nav_separate_from_occupied(
     }
     const f32 dist = intrinsic_sqrt_f32(distSqr);
     GeoVector sepDir;
-    if (UNLIKELY(dist < f32_epsilon)) {
+    if (UNLIKELY(dist < 1e-3f)) {
       // Occupants occupy the exact same position; pick a random direction.
       const GeoQuat rot = geo_quat_angle_axis(geo_up, rng_sample_f32(g_rng) * math_pi_f32 * 2);
       sepDir            = geo_quat_rotate(rot, geo_forward);
