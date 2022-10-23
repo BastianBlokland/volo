@@ -279,6 +279,12 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->nextRefreshTime           = path_next_refresh_time(time);
       path->destination               = toPos;
       --pathQueriesRemaining;
+
+      // Stop if no path is possible.
+      if (!path->cellCount) {
+        agent->flags |= SceneNavAgent_Stop;
+        goto Done;
+      }
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
@@ -295,8 +301,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    // No path possible.
-    agent->flags |= SceneNavAgent_Stop;
+    // Waiting for path to be computed.
 
   Done:
     continue;
