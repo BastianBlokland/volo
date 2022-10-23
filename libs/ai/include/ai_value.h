@@ -60,3 +60,4 @@ bool ai_value_greater(AiValue, AiValue);
  * Value arithmetic.
  */
 AiValue ai_value_add(AiValue, AiValue);
+AiValue ai_value_sub(AiValue, AiValue);
