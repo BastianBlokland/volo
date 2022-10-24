@@ -17,6 +17,10 @@ typedef enum {
   AiValueType_Count,
 } AiValueType;
 
+/**
+ * Type-erased knowledge value.
+ * TODO: Layout is very inefficient, with some gymnastics 16 byte size and align should be possible.
+ */
 typedef struct {
   AiValueType type;
   union {
@@ -50,6 +54,7 @@ EcsEntityId  ai_value_get_entity(AiValue, EcsEntityId fallback);
 /**
  * Value utilities.
  */
+bool    ai_value_has(AiValue);
 AiValue ai_value_or(AiValue value, AiValue fallback);
 
 /**

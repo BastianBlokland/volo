@@ -46,6 +46,8 @@ EcsEntityId ai_value_get_entity(const AiValue value, const EcsEntityId fallback)
   return value.type == AiValueType_Entity ? value.data_entity : fallback;
 }
 
+bool ai_value_has(const AiValue value) { return value.type != AiValueType_None; }
+
 AiValue ai_value_or(const AiValue value, const AiValue fallback) {
   return value.type ? value : fallback;
 }

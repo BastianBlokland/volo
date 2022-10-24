@@ -1,3 +1,4 @@
+#include "ai_value.h"
 #include "check_spec.h"
 #include "core_array.h"
 #include "core_time.h"
@@ -44,6 +45,11 @@ spec(value) {
 
     check(ai_value_get_entity(ai_value_entity(0x1), 0x2) == 0x1);
     check(ai_value_get_entity(ai_value_none(), 0x2) == 0x2);
+  }
+
+  it("can test if a value is not none") {
+    check(ai_value_has(ai_value_f64(42)));
+    check(!ai_value_has(ai_value_none()));
   }
 
   it("can return a default if the value is none") {
