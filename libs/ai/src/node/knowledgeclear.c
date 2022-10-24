@@ -15,7 +15,7 @@ ai_node_knowledgeclear_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiT
     // TODO: Keys should be pre-hashed in the behavior asset.
     const StringHash keyHash = string_hash(*key);
 
-    ai_blackboard_unset(bb, keyHash);
+    ai_blackboard_set_none(bb, keyHash);
   }
 
   return AiResult_Success;

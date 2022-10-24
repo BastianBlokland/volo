@@ -24,7 +24,7 @@ spec(node_knowledgecheck) {
   }
 
   it("evaluates to failure when knowledge for any key does not exist") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
 
     const String keysToCheck[] = {
         string_lit("test"),
@@ -39,8 +39,8 @@ spec(node_knowledgecheck) {
   }
 
   it("evaluates to success when knowledge for all the keys exists") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
-    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 1337);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
+    ai_blackboard_set(bb, string_hash_lit("test1"), ai_value_f64(1337));
 
     const String keysToCheck[] = {
         string_lit("test"),

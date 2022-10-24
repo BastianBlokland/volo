@@ -71,9 +71,9 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(!ai_blackboard_get_bool(scene_brain_blackboard(brain), knowledgeKey));
-    ai_blackboard_set_bool(scene_brain_blackboard_mutable(brain), knowledgeKey, true);
-    check(ai_blackboard_get_bool(scene_brain_blackboard(brain), knowledgeKey));
+    check(ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey).type == AiValueType_None);
+    ai_blackboard_set(scene_brain_blackboard_mutable(brain), knowledgeKey, ai_value_bool(true));
+    check(ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey).type == AiValueType_Bool);
   }
 
   it("updates its blackboard knowledge through its behavior") {
@@ -86,7 +86,8 @@ spec(brain) {
     scene_test_wait(runner);
 
     const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
-    check(ai_blackboard_get_bool(scene_brain_blackboard(brain), string_hash_lit("test")));
+    const AiValue value = ai_blackboard_get(scene_brain_blackboard(brain), string_hash_lit("test"));
+    check(ai_value_equal(value, ai_value_bool(true)));
   }
 
   teardown() {

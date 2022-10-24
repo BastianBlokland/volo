@@ -4,6 +4,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 
+#include "utils_internal.h"
+
 spec(node_repeat) {
   AiBlackboard* bb = null;
   AiTracerCount tracer;
@@ -58,7 +60,7 @@ spec(node_repeat) {
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

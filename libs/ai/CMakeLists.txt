@@ -9,6 +9,7 @@ add_library(lib_ai STATIC
   src/eval.c
   src/node/failure.c
   src/node/invert.c
+  src/node/knowledge_source.c
   src/node/knowledgecheck.c
   src/node/knowledgeclear.c
   src/node/knowledgecompare.c

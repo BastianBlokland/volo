@@ -5,6 +5,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 
+#include "utils_internal.h"
+
 spec(node_knowledgeclear) {
   AiBlackboard* bb = null;
   AiTracerCount tracer;
@@ -24,8 +26,8 @@ spec(node_knowledgeclear) {
   }
 
   it("unset's knowledge when evaluated") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42, 1e-6f);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42));
 
     const String keysToClear[] = {
         string_lit("test"),
@@ -38,7 +40,7 @@ spec(node_knowledgeclear) {
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
   }
 
   teardown() { ai_blackboard_destroy(bb); }

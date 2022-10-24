@@ -131,47 +131,79 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
-static void blackboard_draw_bool(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
-  bool val = ai_blackboard_get_bool(bb, key);
-  if (ui_toggle(canvas, &val)) {
-    ai_blackboard_set_bool(bb, key, val);
+static bool blackboard_draw_bool(UiCanvasComp* canvas, AiValue* value) {
+  bool valBool = ai_value_get_bool(*value, false);
+  if (ui_toggle(canvas, &valBool)) {
+    *value = ai_value_bool(valBool);
+    return true;
   }
+  return false;
 }
 
-static void blackboard_draw_f64(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
-  f64 val = ai_blackboard_get_f64(bb, key);
-  if (ui_numbox(canvas, &val, .min = f64_min, .max = f64_max)) {
-    ai_blackboard_set_f64(bb, key, val);
+static bool blackboard_draw_f64(UiCanvasComp* canvas, AiValue* value) {
+  f64 valNumber = ai_value_get_f64(*value, 0);
+  if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
+    *value = ai_value_f64(valNumber);
+    return true;
   }
+  return false;
 }
 
-static void blackboard_draw_vector(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+static bool blackboard_draw_vector(UiCanvasComp* canvas, AiValue* value) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
   ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
   ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
 
-  GeoVector val = ai_blackboard_get_vector(bb, key);
+  GeoVector valVector = ai_value_get_vector(*value, geo_vector(0));
+
+  bool dirty = false;
   for (u8 comp = 0; comp != 4; ++comp) {
-    f64 compVal = val.comps[comp];
+    f64 compVal = valVector.comps[comp];
     if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
-      val.comps[comp] = (f32)compVal;
-      ai_blackboard_set_vector(bb, key, val);
+      valVector.comps[comp] = (f32)compVal;
+      dirty                 = true;
     }
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
+
+  *value = ai_value_vector(valVector);
+  return dirty;
 }
 
-static void blackboard_draw_time(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
-  const TimeDuration val = ai_blackboard_get_time(bb, key);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(val)));
+static bool blackboard_draw_time(UiCanvasComp* canvas, AiValue* value) {
+  const TimeDuration valTime = ai_value_get_time(*value, time_seconds(0));
+  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(valTime)));
+  return false;
 }
 
-static void blackboard_draw_entity(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
-  const EcsEntityId val = ai_blackboard_get_entity(bb, key);
-  ui_label_entity(canvas, val);
+static bool blackboard_draw_entity(UiCanvasComp* canvas, AiValue* value) {
+  const EcsEntityId valEntity = ai_value_get_entity(*value, 0);
+  ui_label_entity(canvas, valEntity);
+  return false;
+}
+
+static bool blackboard_draw_value(UiCanvasComp* canvas, AiValue* value) {
+  switch (value->type) {
+  case AiValueType_None:
+    ui_label(canvas, string_lit("< none >"));
+    return false;
+  case AiValueType_f64:
+    return blackboard_draw_f64(canvas, value);
+  case AiValueType_Bool:
+    return blackboard_draw_bool(canvas, value);
+  case AiValueType_Vector:
+    return blackboard_draw_vector(canvas, value);
+  case AiValueType_Time:
+    return blackboard_draw_time(canvas, value);
+  case AiValueType_Entity:
+    return blackboard_draw_entity(canvas, value);
+  case AiValueType_Count:
+    break;
+  }
+  return false;
 }
 
 static void blackboard_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
@@ -246,7 +278,7 @@ static void blackboard_panel_tab_draw(
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugBlackboardEntry, entry) {
-      const AiBlackboardType type = ai_blackboard_type(bb, entry->key);
+      AiValue value = ai_blackboard_get(bb, entry->key);
 
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -254,28 +286,11 @@ static void blackboard_panel_tab_draw(
       ui_label(canvas, entry->name, .selectable = true);
       ui_table_next_column(canvas, &table);
 
-      ui_label(canvas, ai_blackboard_type_str(type));
+      ui_label(canvas, ai_value_type_str(value.type));
       ui_table_next_column(canvas, &table);
 
-      switch (type) {
-      case AiBlackboardType_f64:
-        blackboard_draw_f64(canvas, bb, entry->key);
-        break;
-      case AiBlackboardType_Bool:
-        blackboard_draw_bool(canvas, bb, entry->key);
-        break;
-      case AiBlackboardType_Vector:
-        blackboard_draw_vector(canvas, bb, entry->key);
-        break;
-      case AiBlackboardType_Time:
-        blackboard_draw_time(canvas, bb, entry->key);
-        break;
-      case AiBlackboardType_Entity:
-        blackboard_draw_entity(canvas, bb, entry->key);
-        break;
-      case AiBlackboardType_Invalid:
-      case AiBlackboardType_Count:
-        diag_crash();
+      if (blackboard_draw_value(canvas, &value)) {
+        ai_blackboard_set(bb, entry->key, value);
       }
     }
   } else {

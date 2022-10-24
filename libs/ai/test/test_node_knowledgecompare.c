@@ -14,7 +14,7 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to success when equals comparison succeeds") {
-    ai_blackboard_set_bool(bb, string_hash_lit("test"), true);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_bool(true));
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeCompare,
@@ -22,7 +22,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetKnowledgeComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -36,7 +36,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetKnowledgeComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
@@ -44,7 +44,7 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to failure when equals comparison fails") {
-    ai_blackboard_set_bool(bb, string_hash_lit("test"), false);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_bool(false));
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeCompare,
@@ -52,7 +52,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetKnowledgeComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
@@ -60,7 +60,7 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to success when less comparison succeeds") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeCompare,
@@ -76,8 +76,8 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to failure when less comparison fails") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
-    ai_blackboard_set_f64(bb, string_hash_lit("value"), 10);
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
+    ai_blackboard_set(bb, string_hash_lit("value"), ai_value_f64(10));
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeCompare,
