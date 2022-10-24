@@ -4,6 +4,12 @@
 #include "core_math.h"
 #include "core_time.h"
 
+static f64          val_as_f64(const AiValue value) { return value.data_f64; }
+static bool         val_as_bool(const AiValue value) { return value.data_bool; }
+static GeoVector    val_as_vector(const AiValue value) { return value.data_vector; }
+static TimeDuration val_as_time(const AiValue value) { return value.data_time; }
+static EcsEntityId  val_as_entity(const AiValue value) { return value.data_entity; }
+
 AiValueType ai_value_type(const AiValue value) { return value.type; }
 
 AiValue ai_value_none() { return (AiValue){.type = AiValueType_None}; }
@@ -29,23 +35,23 @@ AiValue ai_value_entity(const EcsEntityId value) {
 }
 
 f64 ai_value_get_f64(const AiValue value, const f64 fallback) {
-  return ai_value_type(value) == AiValueType_f64 ? value.data_f64 : fallback;
+  return ai_value_type(value) == AiValueType_f64 ? val_as_f64(value) : fallback;
 }
 
 bool ai_value_get_bool(const AiValue value, const bool fallback) {
-  return ai_value_type(value) == AiValueType_Bool ? value.data_bool : fallback;
+  return ai_value_type(value) == AiValueType_Bool ? val_as_bool(value) : fallback;
 }
 
 GeoVector ai_value_get_vector(const AiValue value, const GeoVector fallback) {
-  return ai_value_type(value) == AiValueType_Vector ? value.data_vector : fallback;
+  return ai_value_type(value) == AiValueType_Vector ? val_as_vector(value) : fallback;
 }
 
 TimeDuration ai_value_get_time(const AiValue value, const TimeDuration fallback) {
-  return ai_value_type(value) == AiValueType_Time ? value.data_time : fallback;
+  return ai_value_type(value) == AiValueType_Time ? val_as_time(value) : fallback;
 }
 
 EcsEntityId ai_value_get_entity(const AiValue value, const EcsEntityId fallback) {
-  return ai_value_type(value) == AiValueType_Entity ? value.data_entity : fallback;
+  return ai_value_type(value) == AiValueType_Entity ? val_as_entity(value) : fallback;
 }
 
 bool ai_value_has(const AiValue value) { return ai_value_type(value) != AiValueType_None; }
@@ -73,15 +79,15 @@ String ai_value_str_scratch(AiValue value) {
   case AiValueType_None:
     return string_lit("none");
   case AiValueType_f64:
-    return fmt_write_scratch("{}", fmt_float(value.data_f64));
+    return fmt_write_scratch("{}", fmt_float(val_as_f64(value)));
   case AiValueType_Bool:
-    return fmt_write_scratch("{}", fmt_bool(value.data_bool));
+    return fmt_write_scratch("{}", fmt_bool(val_as_bool(value)));
   case AiValueType_Vector:
-    return fmt_write_scratch("{}", geo_vector_fmt(value.data_vector));
+    return fmt_write_scratch("{}", geo_vector_fmt(val_as_vector(value)));
   case AiValueType_Time:
-    return fmt_write_scratch("{}", fmt_duration(value.data_time));
+    return fmt_write_scratch("{}", fmt_duration(val_as_time(value)));
   case AiValueType_Entity:
-    return fmt_write_scratch("{}", fmt_int(value.data_entity, .base = 16));
+    return fmt_write_scratch("{}", fmt_int(val_as_entity(value), .base = 16));
   case AiValueType_Count:
     break;
   }
@@ -99,15 +105,15 @@ bool ai_value_equal(AiValue a, AiValue b) {
   case AiValueType_None:
     return true;
   case AiValueType_f64:
-    return math_abs(a.data_f64 - b.data_f64) < g_scalarThreshold;
+    return math_abs(val_as_f64(a) - val_as_f64(b)) < g_scalarThreshold;
   case AiValueType_Bool:
-    return a.data_bool == b.data_bool;
+    return val_as_bool(a) == val_as_bool(b);
   case AiValueType_Vector:
-    return geo_vector_equal(a.data_vector, b.data_vector, g_vectorThreshold);
+    return geo_vector_equal(val_as_vector(a), val_as_vector(b), g_vectorThreshold);
   case AiValueType_Time:
-    return a.data_time == b.data_time;
+    return val_as_time(a) == val_as_time(b);
   case AiValueType_Entity:
-    return a.data_entity == b.data_entity;
+    return val_as_entity(a) == val_as_entity(b);
   case AiValueType_Count:
     break;
   }
@@ -123,15 +129,15 @@ bool ai_value_less(AiValue a, AiValue b) {
   case AiValueType_None:
     return false;
   case AiValueType_f64:
-    return a.data_f64 < b.data_f64;
+    return val_as_f64(a) < val_as_f64(b);
   case AiValueType_Bool:
-    return a.data_bool < b.data_bool; // NOTE: Questionable usefulness?
+    return val_as_bool(a) < val_as_bool(b); // NOTE: Questionable usefulness?
   case AiValueType_Vector:
-    return geo_vector_mag(a.data_vector) < geo_vector_mag(b.data_vector);
+    return geo_vector_mag(val_as_vector(a)) < geo_vector_mag(val_as_vector(b));
   case AiValueType_Time:
-    return a.data_time < b.data_time;
+    return val_as_time(a) < val_as_time(b);
   case AiValueType_Entity:
-    return ecs_entity_id_serial(a.data_entity) < ecs_entity_id_serial(b.data_entity);
+    return ecs_entity_id_serial(val_as_entity(a)) < ecs_entity_id_serial(val_as_entity(b));
   case AiValueType_Count:
     break;
   }
@@ -147,15 +153,15 @@ bool ai_value_greater(AiValue a, AiValue b) {
   case AiValueType_None:
     return false;
   case AiValueType_f64:
-    return a.data_f64 > b.data_f64;
+    return val_as_f64(a) > val_as_f64(b);
   case AiValueType_Bool:
-    return a.data_bool > b.data_bool;
+    return val_as_bool(a) > val_as_bool(b);
   case AiValueType_Vector:
-    return geo_vector_mag(a.data_vector) > geo_vector_mag(b.data_vector);
+    return geo_vector_mag(val_as_vector(a)) > geo_vector_mag(val_as_vector(b));
   case AiValueType_Time:
-    return a.data_time > b.data_time;
+    return val_as_time(a) > val_as_time(b);
   case AiValueType_Entity:
-    return ecs_entity_id_serial(a.data_entity) > ecs_entity_id_serial(b.data_entity);
+    return ecs_entity_id_serial(val_as_entity(a)) > ecs_entity_id_serial(val_as_entity(b));
   case AiValueType_Count:
     break;
   }
@@ -175,13 +181,13 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
   }
   switch (ai_value_type(a)) {
   case AiValueType_f64:
-    return ai_value_f64(a.data_f64 + b.data_f64);
+    return ai_value_f64(val_as_f64(a) + val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
   case AiValueType_Vector:
-    return ai_value_vector(geo_vector_add(a.data_vector, b.data_vector));
+    return ai_value_vector(geo_vector_add(val_as_vector(a), val_as_vector(b)));
   case AiValueType_Time:
-    return ai_value_time(a.data_time + b.data_time);
+    return ai_value_time(val_as_time(a) + val_as_time(b));
   case AiValueType_Entity:
     return a; // Arithmetic on entities not supported.
   case AiValueType_None:
@@ -204,13 +210,13 @@ AiValue ai_value_sub(const AiValue a, const AiValue b) {
   }
   switch (ai_value_type(a)) {
   case AiValueType_f64:
-    return ai_value_f64(a.data_f64 - b.data_f64);
+    return ai_value_f64(val_as_f64(a) - val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
   case AiValueType_Vector:
-    return ai_value_vector(geo_vector_sub(a.data_vector, b.data_vector));
+    return ai_value_vector(geo_vector_sub(val_as_vector(a), val_as_vector(b)));
   case AiValueType_Time:
-    return ai_value_time(a.data_time - b.data_time);
+    return ai_value_time(val_as_time(a) - val_as_time(b));
   case AiValueType_Entity:
     return a; // Arithmetic on entities not supported.
   case AiValueType_None:

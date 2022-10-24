@@ -10,19 +10,19 @@ spec(value) {
     check_eq_int(ai_value_type(ai_value_none()), AiValueType_None);
 
     check_eq_int(ai_value_type(ai_value_f64(42)), AiValueType_f64);
-    check_eq_int(ai_value_f64(42).data_f64, 42);
+    check_eq_int(ai_value_get_f64(ai_value_f64(42), 0), 42);
 
     check_eq_int(ai_value_type(ai_value_bool(true)), AiValueType_Bool);
-    check(ai_value_bool(true).data_bool == true);
+    check(ai_value_get_bool(ai_value_bool(true), false) == true);
 
     check_eq_int(ai_value_type(ai_value_vector(geo_vector(1, 2, 3))), AiValueType_Vector);
-    check_eq_int(ai_value_vector(geo_vector(1, 2, 3)).data_vector.z, 3);
+    check_eq_int(ai_value_get_vector(ai_value_vector(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
 
     check_eq_int(ai_value_type(ai_value_time(time_seconds(2))), AiValueType_Time);
-    check_eq_int(ai_value_time(time_seconds(2)).data_time, time_seconds(2));
+    check_eq_int(ai_value_get_time(ai_value_time(time_seconds(2)), 0), time_seconds(2));
 
     check_eq_int(ai_value_type(ai_value_entity(0x42)), AiValueType_Entity);
-    check_eq_int(ai_value_entity(0x42).data_entity, 0x42);
+    check_eq_int(ai_value_get_entity(ai_value_entity(0x42), 0), 0x42);
   }
 
   it("can extract specific types from values") {
