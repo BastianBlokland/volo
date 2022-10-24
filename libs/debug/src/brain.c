@@ -186,7 +186,7 @@ static bool blackboard_draw_entity(UiCanvasComp* canvas, AiValue* value) {
 }
 
 static bool blackboard_draw_value(UiCanvasComp* canvas, AiValue* value) {
-  switch (value->type) {
+  switch (ai_value_type(*value)) {
   case AiValueType_None:
     ui_label(canvas, string_lit("< none >"));
     return false;
@@ -286,7 +286,7 @@ static void blackboard_panel_tab_draw(
       ui_label(canvas, entry->name, .selectable = true);
       ui_table_next_column(canvas, &table);
 
-      ui_label(canvas, ai_value_type_str(value.type));
+      ui_label(canvas, ai_value_type_str(ai_value_type(value)));
       ui_table_next_column(canvas, &table);
 
       if (blackboard_draw_value(canvas, &value)) {

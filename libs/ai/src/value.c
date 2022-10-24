@@ -4,6 +4,8 @@
 #include "core_math.h"
 #include "core_time.h"
 
+AiValueType ai_value_type(const AiValue value) { return value.type; }
+
 AiValue ai_value_none() { return (AiValue){.type = AiValueType_None}; }
 
 AiValue ai_value_f64(const f64 value) {
@@ -27,29 +29,29 @@ AiValue ai_value_entity(const EcsEntityId value) {
 }
 
 f64 ai_value_get_f64(const AiValue value, const f64 fallback) {
-  return value.type == AiValueType_f64 ? value.data_f64 : fallback;
+  return ai_value_type(value) == AiValueType_f64 ? value.data_f64 : fallback;
 }
 
 bool ai_value_get_bool(const AiValue value, const bool fallback) {
-  return value.type == AiValueType_Bool ? value.data_bool : fallback;
+  return ai_value_type(value) == AiValueType_Bool ? value.data_bool : fallback;
 }
 
 GeoVector ai_value_get_vector(const AiValue value, const GeoVector fallback) {
-  return value.type == AiValueType_Vector ? value.data_vector : fallback;
+  return ai_value_type(value) == AiValueType_Vector ? value.data_vector : fallback;
 }
 
 TimeDuration ai_value_get_time(const AiValue value, const TimeDuration fallback) {
-  return value.type == AiValueType_Time ? value.data_time : fallback;
+  return ai_value_type(value) == AiValueType_Time ? value.data_time : fallback;
 }
 
 EcsEntityId ai_value_get_entity(const AiValue value, const EcsEntityId fallback) {
-  return value.type == AiValueType_Entity ? value.data_entity : fallback;
+  return ai_value_type(value) == AiValueType_Entity ? value.data_entity : fallback;
 }
 
-bool ai_value_has(const AiValue value) { return value.type != AiValueType_None; }
+bool ai_value_has(const AiValue value) { return ai_value_type(value) != AiValueType_None; }
 
 AiValue ai_value_or(const AiValue value, const AiValue fallback) {
-  return value.type ? value : fallback;
+  return ai_value_type(value) ? value : fallback;
 }
 
 String ai_value_type_str(const AiValueType type) {
@@ -67,7 +69,7 @@ String ai_value_type_str(const AiValueType type) {
 }
 
 String ai_value_str_scratch(AiValue value) {
-  switch (value.type) {
+  switch (ai_value_type(value)) {
   case AiValueType_None:
     return string_lit("none");
   case AiValueType_f64:
@@ -88,12 +90,12 @@ String ai_value_str_scratch(AiValue value) {
 }
 
 bool ai_value_equal(AiValue a, AiValue b) {
-  if (a.type != b.type) {
+  if (ai_value_type(a) != ai_value_type(b)) {
     return false;
   }
   static const f32 g_scalarThreshold = 1e-6f;
   static const f32 g_vectorThreshold = 1e-6f;
-  switch (a.type) {
+  switch (ai_value_type(a)) {
   case AiValueType_None:
     return true;
   case AiValueType_f64:
@@ -114,10 +116,10 @@ bool ai_value_equal(AiValue a, AiValue b) {
 }
 
 bool ai_value_less(AiValue a, AiValue b) {
-  if (a.type != b.type) {
+  if (ai_value_type(a) != ai_value_type(b)) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
-  switch (a.type) {
+  switch (ai_value_type(a)) {
   case AiValueType_None:
     return false;
   case AiValueType_f64:
@@ -138,10 +140,10 @@ bool ai_value_less(AiValue a, AiValue b) {
 }
 
 bool ai_value_greater(AiValue a, AiValue b) {
-  if (a.type != b.type) {
+  if (ai_value_type(a) != ai_value_type(b)) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
-  switch (a.type) {
+  switch (ai_value_type(a)) {
   case AiValueType_None:
     return false;
   case AiValueType_f64:
@@ -162,16 +164,16 @@ bool ai_value_greater(AiValue a, AiValue b) {
 }
 
 AiValue ai_value_add(const AiValue a, const AiValue b) {
-  if (a.type == AiValueType_None) {
+  if (ai_value_type(a) == AiValueType_None) {
     return b;
   }
-  if (b.type == AiValueType_None) {
+  if (ai_value_type(b) == AiValueType_None) {
     return a;
   }
-  if (a.type != b.type) {
+  if (ai_value_type(a) != ai_value_type(b)) {
     return a; // Arithmetic on mismatched types not supported atm.
   }
-  switch (a.type) {
+  switch (ai_value_type(a)) {
   case AiValueType_f64:
     return ai_value_f64(a.data_f64 + b.data_f64);
   case AiValueType_Bool:
@@ -191,16 +193,16 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
 }
 
 AiValue ai_value_sub(const AiValue a, const AiValue b) {
-  if (a.type == AiValueType_None) {
+  if (ai_value_type(a) == AiValueType_None) {
     return b;
   }
-  if (b.type == AiValueType_None) {
+  if (ai_value_type(b) == AiValueType_None) {
     return a;
   }
-  if (a.type != b.type) {
+  if (ai_value_type(a) != ai_value_type(b)) {
     return a; // Arithmetic on mismatched types not supported atm.
   }
-  switch (a.type) {
+  switch (ai_value_type(a)) {
   case AiValueType_f64:
     return ai_value_f64(a.data_f64 - b.data_f64);
   case AiValueType_Bool:

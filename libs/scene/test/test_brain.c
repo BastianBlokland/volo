@@ -71,9 +71,13 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey).type == AiValueType_None);
+    check(ai_value_equal(
+        ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey), ai_value_none()));
+
     ai_blackboard_set(scene_brain_blackboard_mutable(brain), knowledgeKey, ai_value_bool(true));
-    check(ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey).type == AiValueType_Bool);
+
+    check(ai_value_equal(
+        ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey), ai_value_bool(true)));
   }
 
   it("updates its blackboard knowledge through its behavior") {

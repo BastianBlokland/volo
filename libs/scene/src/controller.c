@@ -32,7 +32,7 @@ ecs_system_define(SceneControllerUpdateSys) {
     if (navAgent) {
       // Start moving when the nav-target knowledge is set.
       const AiValue navTarget = ai_blackboard_get(bb, g_blackboardKeyNavTarget);
-      if (navTarget.type == AiValueType_Vector) {
+      if (ai_value_type(navTarget) == AiValueType_Vector) {
         if (!geo_vector_equal3(navAgent->target, navTarget.data_vector, 1e-4f)) {
           scene_nav_move_to(navAgent, navTarget.data_vector);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
@@ -52,7 +52,7 @@ ecs_system_define(SceneControllerUpdateSys) {
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
       const AiValue attackTarget = ai_blackboard_get(bb, g_blackboardKeyAttackTarget);
-      attack->targetEntity = attackTarget.type == AiValueType_Entity ? attackTarget.data_entity : 0;
+      attack->targetEntity       = ai_value_get_entity(attackTarget, 0);
       ai_blackboard_set_none(bb, g_blackboardKeyAttackTarget);
     }
   }

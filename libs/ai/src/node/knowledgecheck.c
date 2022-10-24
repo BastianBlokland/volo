@@ -16,7 +16,7 @@ ai_node_knowledgecheck_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiT
     // TODO: Keys should be pre-hashed in the behavior asset.
     const StringHash keyHash = string_hash(*key);
 
-    allExist &= ai_blackboard_get(bb, keyHash).type != AiValueType_None;
+    allExist &= ai_value_type(ai_blackboard_get(bb, keyHash)) != AiValueType_None;
   }
   return allExist ? AiResult_Success : AiResult_Failure;
 }

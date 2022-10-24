@@ -7,21 +7,21 @@
 
 spec(value) {
   it("can type-erase values") {
-    check_eq_int(ai_value_none().type, AiValueType_None);
+    check_eq_int(ai_value_type(ai_value_none()), AiValueType_None);
 
-    check_eq_int(ai_value_f64(42).type, AiValueType_f64);
+    check_eq_int(ai_value_type(ai_value_f64(42)), AiValueType_f64);
     check_eq_int(ai_value_f64(42).data_f64, 42);
 
-    check_eq_int(ai_value_bool(true).type, AiValueType_Bool);
+    check_eq_int(ai_value_type(ai_value_bool(true)), AiValueType_Bool);
     check(ai_value_bool(true).data_bool == true);
 
-    check_eq_int(ai_value_vector(geo_vector(1, 2, 3)).type, AiValueType_Vector);
+    check_eq_int(ai_value_type(ai_value_vector(geo_vector(1, 2, 3))), AiValueType_Vector);
     check_eq_int(ai_value_vector(geo_vector(1, 2, 3)).data_vector.z, 3);
 
-    check_eq_int(ai_value_time(time_seconds(2)).type, AiValueType_Time);
+    check_eq_int(ai_value_type(ai_value_time(time_seconds(2))), AiValueType_Time);
     check_eq_int(ai_value_time(time_seconds(2)).data_time, time_seconds(2));
 
-    check_eq_int(ai_value_entity(0x42).type, AiValueType_Entity);
+    check_eq_int(ai_value_type(ai_value_entity(0x42)), AiValueType_Entity);
     check_eq_int(ai_value_entity(0x42).data_entity, 0x42);
   }
 

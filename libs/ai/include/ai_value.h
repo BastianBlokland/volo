@@ -33,6 +33,11 @@ typedef struct {
 } AiValue;
 
 /**
+ * Retrieve the type of the given value.
+ */
+AiValueType ai_value_type(AiValue);
+
+/**
  * Type-erase a value into a AiValue.
  */
 AiValue ai_value_none();
