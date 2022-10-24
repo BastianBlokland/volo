@@ -4,34 +4,44 @@
 #include "core_math.h"
 #include "core_time.h"
 
-static f64          val_as_f64(const AiValue value) { return value.data_f64; }
-static bool         val_as_bool(const AiValue value) { return value.data_bool; }
-static GeoVector    val_as_vector(const AiValue value) { return value.data_vector; }
-static TimeDuration val_as_time(const AiValue value) { return value.data_time; }
-static EcsEntityId  val_as_entity(const AiValue value) { return value.data_entity; }
+static f64          val_as_f64(const AiValue value) { return *((f64*)&value.data); }
+static bool         val_as_bool(const AiValue value) { return *((bool*)&value.data); }
+static GeoVector    val_as_vector(const AiValue value) { return *((GeoVector*)&value.data); }
+static TimeDuration val_as_time(const AiValue value) { return *((TimeDuration*)&value.data); }
+static EcsEntityId  val_as_entity(const AiValue value) { return *((EcsEntityId*)&value.data); }
 
 AiValueType ai_value_type(const AiValue value) { return value.type; }
 
 AiValue ai_value_none() { return (AiValue){.type = AiValueType_None}; }
 
 AiValue ai_value_f64(const f64 value) {
-  return (AiValue){.type = AiValueType_f64, .data_f64 = value};
+  AiValue result        = (AiValue){.type = AiValueType_f64};
+  *((f64*)&result.data) = value;
+  return result;
 }
 
 AiValue ai_value_bool(const bool value) {
-  return (AiValue){.type = AiValueType_Bool, .data_bool = value};
+  AiValue result         = (AiValue){.type = AiValueType_Bool};
+  *((bool*)&result.data) = value;
+  return result;
 }
 
 AiValue ai_value_vector(const GeoVector value) {
-  return (AiValue){.type = AiValueType_Vector, .data_vector = value};
+  AiValue result              = (AiValue){.type = AiValueType_Vector};
+  *((GeoVector*)&result.data) = value;
+  return result;
 }
 
 AiValue ai_value_time(const TimeDuration value) {
-  return (AiValue){.type = AiValueType_Time, .data_time = value};
+  AiValue result                 = (AiValue){.type = AiValueType_Time};
+  *((TimeDuration*)&result.data) = value;
+  return result;
 }
 
 AiValue ai_value_entity(const EcsEntityId value) {
-  return (AiValue){.type = AiValueType_Entity, .data_entity = value};
+  AiValue result                = (AiValue){.type = AiValueType_Entity};
+  *((EcsEntityId*)&result.data) = value;
+  return result;
 }
 
 f64 ai_value_get_f64(const AiValue value, const f64 fallback) {

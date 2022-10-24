@@ -23,13 +23,7 @@ typedef enum {
  */
 typedef struct {
   AiValueType type;
-  union {
-    f64          data_f64;
-    bool         data_bool;
-    GeoVector    data_vector;
-    TimeDuration data_time;
-    EcsEntityId  data_entity;
-  };
+  ALIGNAS(16) u8 data[16];
 } AiValue;
 
 /**
