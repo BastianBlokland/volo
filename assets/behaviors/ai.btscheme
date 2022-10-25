@@ -31,7 +31,7 @@
   ],
   "enums": [
     {
-      "identifier": "AssetKnowledgeComparison",
+      "identifier": "AssetAiComparison",
       "values": [
         {
           "value": 0,
@@ -223,7 +223,7 @@
       "fields": [
         {
           "name": "comparison",
-          "valueType": "AssetKnowledgeComparison"
+          "valueType": "AssetAiComparison"
         },
         {
           "name": "key",

@@ -20,7 +20,7 @@ spec(node_knowledgecompare) {
         .type = AssetBehavior_KnowledgeCompare,
         .data_knowledgecompare =
             {
-                .comparison = AssetKnowledgeComparison_Equal,
+                .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
@@ -34,7 +34,7 @@ spec(node_knowledgecompare) {
         .type = AssetBehavior_KnowledgeCompare,
         .data_knowledgecompare =
             {
-                .comparison = AssetKnowledgeComparison_Equal,
+                .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
@@ -50,7 +50,7 @@ spec(node_knowledgecompare) {
         .type = AssetBehavior_KnowledgeCompare,
         .data_knowledgecompare =
             {
-                .comparison = AssetKnowledgeComparison_Equal,
+                .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
             },
@@ -66,7 +66,7 @@ spec(node_knowledgecompare) {
         .type = AssetBehavior_KnowledgeCompare,
         .data_knowledgecompare =
             {
-                .comparison = AssetKnowledgeComparison_Less,
+                .comparison = AssetAiComparison_Less,
                 .key        = string_lit("test"),
                 .value      = {.type = AssetKnowledgeSource_Number, .data_number.value = 1337},
             },
@@ -83,7 +83,7 @@ spec(node_knowledgecompare) {
         .type = AssetBehavior_KnowledgeCompare,
         .data_knowledgecompare =
             {
-                .comparison = AssetKnowledgeComparison_Less,
+                .comparison = AssetAiComparison_Less,
                 .key        = string_lit("test"),
                 .value =
                     {

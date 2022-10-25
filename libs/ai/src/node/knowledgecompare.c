@@ -17,13 +17,13 @@ ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb, A
 
   bool result;
   switch (behavior->data_knowledgecompare.comparison) {
-  case AssetKnowledgeComparison_Equal:
+  case AssetAiComparison_Equal:
     result = ai_value_equal(value, compValue);
     break;
-  case AssetKnowledgeComparison_Less:
+  case AssetAiComparison_Less:
     result = ai_value_less(value, compValue);
     break;
-  case AssetKnowledgeComparison_Greater:
+  case AssetAiComparison_Greater:
     result = ai_value_greater(value, compValue);
     break;
   }

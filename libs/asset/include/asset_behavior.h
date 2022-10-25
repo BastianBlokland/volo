@@ -38,10 +38,10 @@ typedef enum eAssetBehaviorType {
 } AssetBehaviorType;
 
 typedef enum {
-  AssetKnowledgeComparison_Equal,
-  AssetKnowledgeComparison_Less,
-  AssetKnowledgeComparison_Greater,
-} AssetKnowledgeComparison;
+  AssetAiComparison_Equal,
+  AssetAiComparison_Less,
+  AssetAiComparison_Greater,
+} AssetAiComparison;
 
 typedef enum {
   AssetKnowledgeSource_Number,
@@ -120,9 +120,9 @@ typedef struct {
 } AssetBehaviorKnowledgeCheck;
 
 typedef struct {
-  AssetKnowledgeComparison comparison;
-  String                   key;
-  AssetKnowledgeSource     value;
+  AssetAiComparison    comparison;
+  String               key;
+  AssetKnowledgeSource value;
 } AssetBehaviorKnowledgeCompare;
 
 typedef struct sAssetBehavior {
