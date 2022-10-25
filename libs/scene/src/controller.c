@@ -33,7 +33,7 @@ ecs_system_define(SceneControllerUpdateSys) {
       // Start moving when the nav-target knowledge is set.
       const AiValue navTarget = ai_blackboard_get(bb, g_blackboardKeyNavTarget);
       if (ai_value_has(navTarget)) {
-        const GeoVector navTargetPos = ai_value_get_vector(navTarget, geo_vector(0));
+        const GeoVector navTargetPos = ai_value_get_vector3(navTarget, geo_vector(0));
         if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
           scene_nav_move_to(navAgent, navTargetPos);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {

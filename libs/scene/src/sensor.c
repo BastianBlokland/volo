@@ -58,7 +58,7 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     if (transform) {
-      ai_blackboard_set(bb, g_blackboardKeyPosition, ai_value_vector(transform->position));
+      ai_blackboard_set(bb, g_blackboardKeyPosition, ai_value_vector3(transform->position));
     }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
@@ -76,7 +76,7 @@ ecs_system_define(SceneSensorUpdateSys) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
         ai_blackboard_set_none(bb, g_blackboardKeyNavArrived);
       } else {
-        ai_blackboard_set(bb, g_blackboardKeyNavArrived, ai_value_vector(navAgent->target));
+        ai_blackboard_set(bb, g_blackboardKeyNavArrived, ai_value_vector3(navAgent->target));
       }
     }
 
@@ -87,7 +87,7 @@ ecs_system_define(SceneSensorUpdateSys) {
 
       ai_blackboard_set(bb, g_blackboardKeyTargetEntity, ai_value_entity(targetFinder->target));
       ai_blackboard_set(
-          bb, g_blackboardKeyTargetPosition, ai_value_vector(targetFinder->targetPosition));
+          bb, g_blackboardKeyTargetPosition, ai_value_vector3(targetFinder->targetPosition));
       ai_blackboard_set(bb, g_blackboardKeyTargetDist, ai_value_f64(distToTarget));
       ai_blackboard_set(bb, g_blackboardKeyTargetLos, ai_value_bool(los));
     } else {

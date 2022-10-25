@@ -57,16 +57,13 @@ spec(node_knowledgeset) {
             {
                 .key = string_lit("test"),
                 .value =
-                    {
-                        .type        = AssetKnowledgeSource_Vector,
-                        .data_vector = {.x = 1, .y = 2, .z = 3, .w = 4},
-                    },
+                    {.type = AssetKnowledgeSource_Vector, .data_vector = {.x = 1, .y = 2, .z = 3}},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(
-        ai_blackboard_get(bb, string_hash_lit("test")), ai_value_vector(geo_vector(1, 2, 3, 4)));
+        ai_blackboard_get(bb, string_hash_lit("test")), ai_value_vector3(geo_vector(1, 2, 3)));
   }
 
   it("can set time knowledge when evaluated") {

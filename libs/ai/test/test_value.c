@@ -15,8 +15,8 @@ spec(value) {
     check_eq_int(ai_value_type(ai_value_bool(true)), AiValueType_Bool);
     check(ai_value_get_bool(ai_value_bool(true), false) == true);
 
-    check_eq_int(ai_value_type(ai_value_vector(geo_vector(1, 2, 3))), AiValueType_Vector);
-    check_eq_int(ai_value_get_vector(ai_value_vector(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
+    check_eq_int(ai_value_type(ai_value_vector3(geo_vector(1, 2, 3))), AiValueType_Vector3);
+    check_eq_int(ai_value_get_vector3(ai_value_vector3(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
 
     check_eq_int(ai_value_type(ai_value_time(time_seconds(2))), AiValueType_Time);
     check_eq_int(ai_value_get_time(ai_value_time(time_seconds(2)), 0), time_seconds(2));
@@ -34,11 +34,11 @@ spec(value) {
     check(ai_value_get_bool(ai_value_none(), false) == false);
 
     check(geo_vector_equal(
-        ai_value_get_vector(ai_value_vector(geo_vector(1, 2, 3)), geo_vector(4, 5, 6)),
+        ai_value_get_vector3(ai_value_vector3(geo_vector(1, 2, 3)), geo_vector(4, 5, 6)),
         geo_vector(1, 2, 3),
         1e-6f));
     check(geo_vector_equal(
-        ai_value_get_vector(ai_value_none(), geo_vector(4, 5, 6)), geo_vector(4, 5, 6), 1e-6f));
+        ai_value_get_vector3(ai_value_none(), geo_vector(4, 5, 6)), geo_vector(4, 5, 6), 1e-6f));
 
     check(ai_value_get_time(ai_value_time(time_seconds(1)), time_seconds(2)) == time_seconds(1));
     check(ai_value_get_time(ai_value_none(), time_seconds(2)) == time_seconds(2));
@@ -63,7 +63,7 @@ spec(value) {
     check_eq_string(ai_value_type_str(AiValueType_None), string_lit("none"));
     check_eq_string(ai_value_type_str(AiValueType_f64), string_lit("f64"));
     check_eq_string(ai_value_type_str(AiValueType_Bool), string_lit("bool"));
-    check_eq_string(ai_value_type_str(AiValueType_Vector), string_lit("vector"));
+    check_eq_string(ai_value_type_str(AiValueType_Vector3), string_lit("vector"));
     check_eq_string(ai_value_type_str(AiValueType_Time), string_lit("time"));
     check_eq_string(ai_value_type_str(AiValueType_Entity), string_lit("entity"));
   }
@@ -78,7 +78,7 @@ spec(value) {
         {ai_value_f64(42.1), string_lit("42.1")},
         {ai_value_bool(true), string_lit("true")},
         {ai_value_bool(false), string_lit("false")},
-        {ai_value_vector(geo_vector(1, 2, 3)), string_lit("1, 2, 3, 0")},
+        {ai_value_vector3(geo_vector(1, 2, 3)), string_lit("1, 2, 3")},
         {ai_value_time(time_seconds(42)), string_lit("42s")},
         {ai_value_entity(0x1337), string_lit("1337")},
     };
@@ -106,8 +106,8 @@ spec(value) {
         {ai_value_bool(false), ai_value_bool(false), .expected = true},
         {ai_value_bool(false), ai_value_bool(true), .expected = false},
 
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 2)), .expected = true},
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 3)), .expected = false},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 2)), .expected = true},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 3)), .expected = false},
 
         {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(1)), .expected = true},
         {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(2)), .expected = false},
@@ -145,9 +145,9 @@ spec(value) {
         {ai_value_bool(true), ai_value_bool(false), .expected = false},
         {ai_value_bool(false), ai_value_bool(true), .expected = true},
 
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 2)), .expected = false},
-        {ai_value_vector(geo_vector(1, 3)), ai_value_vector(geo_vector(1, 2)), .expected = false},
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 3)), .expected = true},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 2)), .expected = false},
+        {ai_value_vector3(geo_vector(1, 3)), ai_value_vector3(geo_vector(1, 2)), .expected = false},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 3)), .expected = true},
 
         {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(2)), .expected = true},
         {ai_value_time(time_seconds(2)), ai_value_time(time_seconds(1)), .expected = false},
@@ -187,9 +187,9 @@ spec(value) {
         {ai_value_bool(false), ai_value_bool(false), .expected = false},
         {ai_value_bool(false), ai_value_bool(true), .expected = false},
 
-        {ai_value_vector(geo_vector(1, 3)), ai_value_vector(geo_vector(1, 2)), .expected = true},
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 2)), .expected = false},
-        {ai_value_vector(geo_vector(1, 2)), ai_value_vector(geo_vector(1, 3)), .expected = false},
+        {ai_value_vector3(geo_vector(1, 3)), ai_value_vector3(geo_vector(1, 2)), .expected = true},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 2)), .expected = false},
+        {ai_value_vector3(geo_vector(1, 2)), ai_value_vector3(geo_vector(1, 3)), .expected = false},
 
         {ai_value_time(time_seconds(2)), ai_value_time(time_seconds(1)), .expected = true},
         {ai_value_time(time_seconds(1)), ai_value_time(time_seconds(2)), .expected = false},
@@ -229,13 +229,13 @@ spec(value) {
         {ai_value_bool(false), ai_value_bool(false), .expected = ai_value_bool(false)},
         {ai_value_bool(false), ai_value_bool(true), .expected = ai_value_bool(false)},
 
-        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
-         .b        = ai_value_vector(geo_vector(4, 5, 6)),
-         .expected = ai_value_vector(geo_vector(5, 7, 9))},
+        {.a        = ai_value_vector3(geo_vector(1, 2, 3)),
+         .b        = ai_value_vector3(geo_vector(4, 5, 6)),
+         .expected = ai_value_vector3(geo_vector(5, 7, 9))},
 
-        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
+        {.a        = ai_value_vector3(geo_vector(1, 2, 3)),
          .b        = ai_value_f64(42),
-         .expected = ai_value_vector(geo_vector(1, 2, 3))},
+         .expected = ai_value_vector3(geo_vector(1, 2, 3))},
 
         {.a        = ai_value_time(time_seconds(1)),
          .b        = ai_value_none(),
@@ -269,13 +269,13 @@ spec(value) {
         {ai_value_bool(false), ai_value_bool(false), .expected = ai_value_bool(false)},
         {ai_value_bool(false), ai_value_bool(true), .expected = ai_value_bool(false)},
 
-        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
-         .b        = ai_value_vector(geo_vector(4, 5, 6)),
-         .expected = ai_value_vector(geo_vector(-3, -3, -3))},
+        {.a        = ai_value_vector3(geo_vector(1, 2, 3)),
+         .b        = ai_value_vector3(geo_vector(4, 5, 6)),
+         .expected = ai_value_vector3(geo_vector(-3, -3, -3))},
 
-        {.a        = ai_value_vector(geo_vector(1, 2, 3)),
+        {.a        = ai_value_vector3(geo_vector(1, 2, 3)),
          .b        = ai_value_f64(42),
-         .expected = ai_value_vector(geo_vector(1, 2, 3))},
+         .expected = ai_value_vector3(geo_vector(1, 2, 3))},
 
         {.a        = ai_value_time(time_seconds(1)),
          .b        = ai_value_none(),

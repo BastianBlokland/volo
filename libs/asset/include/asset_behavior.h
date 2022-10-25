@@ -60,7 +60,7 @@ typedef struct {
 } AssetKnowledgeSourceBool;
 
 typedef struct {
-  f32 x, y, z, w;
+  f32 x, y, z;
 } AssetKnowledgeSourceVector;
 
 typedef struct {

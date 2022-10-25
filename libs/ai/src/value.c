@@ -26,8 +26,8 @@ AiValue ai_value_bool(const bool value) {
   return result;
 }
 
-AiValue ai_value_vector(const GeoVector value) {
-  AiValue result              = (AiValue){.type = AiValueType_Vector};
+AiValue ai_value_vector3(const GeoVector value) {
+  AiValue result              = (AiValue){.type = AiValueType_Vector3};
   *((GeoVector*)&result.data) = value;
   return result;
 }
@@ -52,8 +52,8 @@ bool ai_value_get_bool(const AiValue value, const bool fallback) {
   return ai_value_type(value) == AiValueType_Bool ? val_as_bool(value) : fallback;
 }
 
-GeoVector ai_value_get_vector(const AiValue value, const GeoVector fallback) {
-  return ai_value_type(value) == AiValueType_Vector ? val_as_vector(value) : fallback;
+GeoVector ai_value_get_vector3(const AiValue value, const GeoVector fallback) {
+  return ai_value_type(value) == AiValueType_Vector3 ? val_as_vector(value) : fallback;
 }
 
 TimeDuration ai_value_get_time(const AiValue value, const TimeDuration fallback) {
@@ -92,8 +92,10 @@ String ai_value_str_scratch(AiValue value) {
     return fmt_write_scratch("{}", fmt_float(val_as_f64(value)));
   case AiValueType_Bool:
     return fmt_write_scratch("{}", fmt_bool(val_as_bool(value)));
-  case AiValueType_Vector:
-    return fmt_write_scratch("{}", geo_vector_fmt(val_as_vector(value)));
+  case AiValueType_Vector3: {
+    const GeoVector v = val_as_vector(value);
+    return fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
+  }
   case AiValueType_Time:
     return fmt_write_scratch("{}", fmt_duration(val_as_time(value)));
   case AiValueType_Entity:
@@ -118,8 +120,8 @@ bool ai_value_equal(AiValue a, AiValue b) {
     return math_abs(val_as_f64(a) - val_as_f64(b)) < g_scalarThreshold;
   case AiValueType_Bool:
     return val_as_bool(a) == val_as_bool(b);
-  case AiValueType_Vector:
-    return geo_vector_equal(val_as_vector(a), val_as_vector(b), g_vectorThreshold);
+  case AiValueType_Vector3:
+    return geo_vector_equal3(val_as_vector(a), val_as_vector(b), g_vectorThreshold);
   case AiValueType_Time:
     return val_as_time(a) == val_as_time(b);
   case AiValueType_Entity:
@@ -142,7 +144,7 @@ bool ai_value_less(AiValue a, AiValue b) {
     return val_as_f64(a) < val_as_f64(b);
   case AiValueType_Bool:
     return val_as_bool(a) < val_as_bool(b); // NOTE: Questionable usefulness?
-  case AiValueType_Vector:
+  case AiValueType_Vector3:
     return geo_vector_mag(val_as_vector(a)) < geo_vector_mag(val_as_vector(b));
   case AiValueType_Time:
     return val_as_time(a) < val_as_time(b);
@@ -166,7 +168,7 @@ bool ai_value_greater(AiValue a, AiValue b) {
     return val_as_f64(a) > val_as_f64(b);
   case AiValueType_Bool:
     return val_as_bool(a) > val_as_bool(b);
-  case AiValueType_Vector:
+  case AiValueType_Vector3:
     return geo_vector_mag(val_as_vector(a)) > geo_vector_mag(val_as_vector(b));
   case AiValueType_Time:
     return val_as_time(a) > val_as_time(b);
@@ -194,8 +196,8 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
     return ai_value_f64(val_as_f64(a) + val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case AiValueType_Vector:
-    return ai_value_vector(geo_vector_add(val_as_vector(a), val_as_vector(b)));
+  case AiValueType_Vector3:
+    return ai_value_vector3(geo_vector_add(val_as_vector(a), val_as_vector(b)));
   case AiValueType_Time:
     return ai_value_time(val_as_time(a) + val_as_time(b));
   case AiValueType_Entity:
@@ -223,8 +225,8 @@ AiValue ai_value_sub(const AiValue a, const AiValue b) {
     return ai_value_f64(val_as_f64(a) - val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case AiValueType_Vector:
-    return ai_value_vector(geo_vector_sub(val_as_vector(a), val_as_vector(b)));
+  case AiValueType_Vector3:
+    return ai_value_vector3(geo_vector_sub(val_as_vector(a), val_as_vector(b)));
   case AiValueType_Time:
     return ai_value_time(val_as_time(a) - val_as_time(b));
   case AiValueType_Entity:

@@ -39,7 +39,6 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, x, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, y, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, z, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, w, data_prim_t(f32));
 
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceTime);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceTime, secondsFromNow, data_prim_t(f32));

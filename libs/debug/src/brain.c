@@ -149,27 +149,27 @@ static bool blackboard_draw_f64(UiCanvasComp* canvas, AiValue* value) {
   return false;
 }
 
-static bool blackboard_draw_vector(UiCanvasComp* canvas, AiValue* value) {
+static bool blackboard_draw_vector3(UiCanvasComp* canvas, AiValue* value) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
   ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
   ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
 
-  GeoVector valVector = ai_value_get_vector(*value, geo_vector(0));
+  GeoVector vec3 = ai_value_get_vector3(*value, geo_vector(0));
 
   bool dirty = false;
-  for (u8 comp = 0; comp != 4; ++comp) {
-    f64 compVal = valVector.comps[comp];
+  for (u8 comp = 0; comp != 3; ++comp) {
+    f64 compVal = vec3.comps[comp];
     if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
-      valVector.comps[comp] = (f32)compVal;
-      dirty                 = true;
+      vec3.comps[comp] = (f32)compVal;
+      dirty            = true;
     }
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
 
-  *value = ai_value_vector(valVector);
+  *value = ai_value_vector3(vec3);
   return dirty;
 }
 
@@ -194,8 +194,8 @@ static bool blackboard_draw_value(UiCanvasComp* canvas, AiValue* value) {
     return blackboard_draw_f64(canvas, value);
   case AiValueType_Bool:
     return blackboard_draw_bool(canvas, value);
-  case AiValueType_Vector:
-    return blackboard_draw_vector(canvas, value);
+  case AiValueType_Vector3:
+    return blackboard_draw_vector3(canvas, value);
   case AiValueType_Time:
     return blackboard_draw_time(canvas, value);
   case AiValueType_Entity:

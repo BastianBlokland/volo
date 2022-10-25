@@ -12,7 +12,7 @@ AiValue ai_knowledge_source_value(const AssetKnowledgeSource* src, const AiBlack
   }
   case AssetKnowledgeSource_Vector: {
     const AssetKnowledgeSourceVector* vecSrc = &src->data_vector;
-    return ai_value_vector(geo_vector(vecSrc->x, vecSrc->y, vecSrc->z, vecSrc->w));
+    return ai_value_vector3(geo_vector(vecSrc->x, vecSrc->y, vecSrc->z));
   }
   case AssetKnowledgeSource_Time: {
     static StringHash g_timeNowHash;
