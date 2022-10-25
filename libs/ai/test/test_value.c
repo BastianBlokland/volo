@@ -25,6 +25,14 @@ spec(value) {
     check_eq_int(ai_value_get_entity(ai_value_entity(0x42), 0), 0x42);
   }
 
+  it("clears the w component of vector3's") {
+    const AiValue val = ai_value_vector3(geo_vector(1, 2, 3, 4));
+    check_eq_float(ai_value_get_vector3(val, geo_vector(0)).x, 1, 1e-6f);
+    check_eq_float(ai_value_get_vector3(val, geo_vector(0)).y, 2, 1e-6f);
+    check_eq_float(ai_value_get_vector3(val, geo_vector(0)).z, 3, 1e-6f);
+    check_eq_float(ai_value_get_vector3(val, geo_vector(0)).w, 0, 1e-6f);
+  }
+
   it("can extract specific types from values") {
     check_eq_float(ai_value_get_f64(ai_value_f64(42), 1337), 42, 1e-6);
     check_eq_float(ai_value_get_f64(ai_value_none(), 1337), 1337, 1e-6);
