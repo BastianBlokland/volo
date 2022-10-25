@@ -10,10 +10,7 @@
           "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Wait for user input",
           "comparison": 1,
-          "key": "user-move-target",
-          "value": {
-            "$type": "AssetAiSource_None"
-          }
+          "key": "user-move-target"
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
@@ -53,10 +50,7 @@
           "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Find target",
           "comparison": 1,
-          "key": "target-entity",
-          "value": {
-            "$type": "AssetAiSource_None"
-          }
+          "key": "target-entity"
         },
         {
           "$type": "AssetBehavior_Selector",

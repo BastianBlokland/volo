@@ -83,13 +83,13 @@ static void behavior_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetAiSource);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetAiSource, .flags = DataFlags_Opt);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCompare);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, comparison, t_AssetAiComparison);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetAiSource);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetAiSource, .flags = DataFlags_Opt);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);
