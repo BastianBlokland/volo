@@ -3,7 +3,7 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-#include "knowledge_source_internal.h"
+#include "source_internal.h"
 
 AiResult
 ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
@@ -11,9 +11,9 @@ ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb, A
   (void)tracer;
 
   // TODO: Keys should be pre-hashed in the behavior asset.
-  const StringHash keyHash = string_hash(behavior->data_knowledgecompare.key);
-  const AiValue    value   = ai_blackboard_get(bb, keyHash);
-  const AiValue compValue  = ai_knowledge_source_value(&behavior->data_knowledgecompare.value, bb);
+  const StringHash keyHash   = string_hash(behavior->data_knowledgecompare.key);
+  const AiValue    value     = ai_blackboard_get(bb, keyHash);
+  const AiValue    compValue = ai_source_value(&behavior->data_knowledgecompare.value, bb);
 
   bool result;
   switch (behavior->data_knowledgecompare.comparison) {

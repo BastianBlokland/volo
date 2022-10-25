@@ -9,7 +9,6 @@ add_library(lib_ai STATIC
   src/eval.c
   src/node/failure.c
   src/node/invert.c
-  src/node/knowledge_source.c
   src/node/knowledgecheck.c
   src/node/knowledgeclear.c
   src/node/knowledgecompare.c
@@ -19,6 +18,7 @@ add_library(lib_ai STATIC
   src/node/running.c
   src/node/selector.c
   src/node/sequence.c
+  src/node/source.c
   src/node/success.c
   src/node/try.c
   src/result.c

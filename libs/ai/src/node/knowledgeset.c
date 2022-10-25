@@ -4,7 +4,7 @@
 #include "core_diag.h"
 #include "core_stringtable.h"
 
-#include "knowledge_source_internal.h"
+#include "source_internal.h"
 
 AiResult
 ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
@@ -16,7 +16,7 @@ ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTra
   // TODO: Keys should be pre-hashed in the behavior asset.
   const StringHash     keyHash = stringtable_add(g_stringtable, behavior->data_knowledgeset.key);
   const AssetAiSource* valueSource = &behavior->data_knowledgeset.value;
-  ai_blackboard_set(bb, keyHash, ai_knowledge_source_value(valueSource, bb));
+  ai_blackboard_set(bb, keyHash, ai_source_value(valueSource, bb));
 
   return AiResult_Success;
 }

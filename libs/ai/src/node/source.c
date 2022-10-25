@@ -1,8 +1,8 @@
 #include "core_time.h"
 
-#include "knowledge_source_internal.h"
+#include "source_internal.h"
 
-AiValue ai_knowledge_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
+AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
   switch (src->type) {
   case AssetAiSource_Number: {
     return ai_value_f64(src->data_number.value);
