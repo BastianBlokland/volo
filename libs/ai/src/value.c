@@ -146,7 +146,7 @@ String ai_value_str_scratch(AiValue value) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return string_empty;
+  UNREACHABLE
 }
 
 bool ai_value_equal(AiValue a, AiValue b) {
@@ -175,7 +175,7 @@ bool ai_value_equal(AiValue a, AiValue b) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return false;
+  UNREACHABLE
 }
 
 bool ai_value_less(AiValue a, AiValue b) {
@@ -199,7 +199,7 @@ bool ai_value_less(AiValue a, AiValue b) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return false;
+  UNREACHABLE
 }
 
 bool ai_value_greater(AiValue a, AiValue b) {
@@ -223,7 +223,7 @@ bool ai_value_greater(AiValue a, AiValue b) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return false;
+  UNREACHABLE
 }
 
 AiValue ai_value_add(const AiValue a, const AiValue b) {
@@ -255,7 +255,7 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return ai_value_none();
+  UNREACHABLE
 }
 
 AiValue ai_value_sub(const AiValue a, const AiValue b) {
@@ -287,5 +287,5 @@ AiValue ai_value_sub(const AiValue a, const AiValue b) {
     break;
   }
   diag_assert_fail("Invalid ai-value");
-  return ai_value_none();
+  UNREACHABLE
 }

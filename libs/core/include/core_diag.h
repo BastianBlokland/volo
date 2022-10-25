@@ -49,7 +49,7 @@ typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
 #define diag_assert_fail(_MSG_FORMAT_LIT_, ...)                                                    \
   diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
 #else
-#define diag_assert_fail(_MSG_FORMAT_LIT_, ...) UNREACHABLE
+#define diag_assert_fail(_MSG_FORMAT_LIT_, ...)
 #endif
 
 /**
