@@ -10,7 +10,7 @@
  * Values are stored using a simple scheme where the type-tag is stored after the value payload.
  * In the future more compact representations can be explored.
  *
- * | Type    | Byte0         | Byte1         | Byte2      | Byte3        |
+ * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
  * |---------|---------------|---------------|------------|--------------|
  * | none    | unused        | unused        | unused     | type tag (0) |
  * | f64     | lower 32 bits | upper 32 bits | unused     | type tag (1) |
