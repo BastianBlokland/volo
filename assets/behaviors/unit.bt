@@ -7,11 +7,13 @@
       "$name": "Move to user input",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCheck",
+          "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Wait for user input",
-          "keys": [
-            "user-move-target"
-          ]
+          "comparison": 1,
+          "key": "user-move-target",
+          "value": {
+            "$type": "AssetAiSource_None"
+          }
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
@@ -48,11 +50,13 @@
       "$name": "Attack target",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCheck",
+          "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Find target",
-          "keys": [
-            "target-entity"
-          ]
+          "comparison": 1,
+          "key": "target-entity",
+          "value": {
+            "$type": "AssetAiSource_None"
+          }
         },
         {
           "$type": "AssetBehavior_Selector",

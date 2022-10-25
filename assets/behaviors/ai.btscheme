@@ -13,7 +13,6 @@
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
         "AssetBehavior_KnowledgeSet",
-        "AssetBehavior_KnowledgeCheck",
         "AssetBehavior_KnowledgeCompare"
       ]
     },
@@ -203,17 +202,6 @@
       "fields": [
         {
           "name": "key",
-          "valueType": "string"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetBehavior_KnowledgeCheck",
-      "comment": "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.",
-      "fields": [
-        {
-          "name": "keys",
-          "isArray": true,
           "valueType": "string"
         }
       ]

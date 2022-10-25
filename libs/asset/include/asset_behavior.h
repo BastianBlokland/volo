@@ -14,11 +14,6 @@ typedef struct {
   usize                count;
 } AssetBehaviorList;
 
-typedef struct {
-  const String* values;
-  usize         count;
-} AssetKnowledgeList;
-
 typedef enum eAssetBehaviorType {
   AssetBehavior_Running,
   AssetBehavior_Success,
@@ -30,7 +25,6 @@ typedef enum eAssetBehaviorType {
   AssetBehavior_Selector,
   AssetBehavior_Sequence,
   AssetBehavior_KnowledgeSet,
-  AssetBehavior_KnowledgeCheck,
   AssetBehavior_KnowledgeCompare,
 
   AssetBehavior_Count,
@@ -115,10 +109,6 @@ typedef struct {
 } AssetBehaviorKnowledgeSet;
 
 typedef struct {
-  AssetKnowledgeList keys;
-} AssetBehaviorKnowledgeCheck;
-
-typedef struct {
   AssetAiComparison comparison;
   String            key;
   AssetAiSource     value;
@@ -135,7 +125,6 @@ typedef struct sAssetBehavior {
     AssetBehaviorSelector         data_selector;
     AssetBehaviorSequence         data_sequence;
     AssetBehaviorKnowledgeSet     data_knowledgeset;
-    AssetBehaviorKnowledgeCheck   data_knowledgecheck;
     AssetBehaviorKnowledgeCompare data_knowledgecompare;
   };
 } AssetBehavior;

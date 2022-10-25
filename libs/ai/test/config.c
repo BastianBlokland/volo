@@ -4,7 +4,6 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, blackboard);
   register_spec(check, node_failure);
   register_spec(check, node_invert);
-  register_spec(check, node_knowledgecheck);
   register_spec(check, node_knowledgecompare);
   register_spec(check, node_knowledgeset);
   register_spec(check, node_parallel);
