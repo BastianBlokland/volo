@@ -19,12 +19,13 @@ typedef enum {
 
 /**
  * Type-erased knowledge value.
- * TODO: Layout is very inefficient, with some gymnastics 16 byte size and align should be possible.
  */
 typedef struct {
-  AiValueType type;
-  ALIGNAS(16) u8 data[16];
+  ALIGNAS(16) u32 data[4];
 } AiValue;
+
+ASSERT(sizeof(AiValue) == 16, "Expected AiValue's size to be 128 bits");
+ASSERT(alignof(AiValue) == 16, "Expected AiValue's alignment to be 128 bits");
 
 /**
  * Retrieve the type of the given value.
