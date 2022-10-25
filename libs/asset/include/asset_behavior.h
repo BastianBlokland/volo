@@ -47,43 +47,43 @@ typedef enum {
 } AssetAiComparison;
 
 typedef enum {
-  AssetKnowledgeSource_Number,
-  AssetKnowledgeSource_Bool,
-  AssetKnowledgeSource_Vector,
-  AssetKnowledgeSource_Time,
-  AssetKnowledgeSource_Knowledge,
-} AssetKnowledgeSourceType;
+  AssetAiSource_Number,
+  AssetAiSource_Bool,
+  AssetAiSource_Vector,
+  AssetAiSource_Time,
+  AssetAiSource_Knowledge,
+} AssetAiSourceType;
 
 typedef struct {
   f64 value;
-} AssetKnowledgeSourceNumber;
+} AssetAiSourceNumber;
 
 typedef struct {
   bool value;
-} AssetKnowledgeSourceBool;
+} AssetAiSourceBool;
 
 typedef struct {
   f32 x, y, z;
-} AssetKnowledgeSourceVector;
+} AssetAiSourceVector;
 
 typedef struct {
   f32 secondsFromNow;
-} AssetKnowledgeSourceTime;
+} AssetAiSourceTime;
 
 typedef struct {
   String key;
-} AssetKnowledgeSourceKnowledge;
+} AssetAiSourceKnowledge;
 
 typedef struct {
-  AssetKnowledgeSourceType type;
+  AssetAiSourceType type;
   union {
-    AssetKnowledgeSourceNumber    data_number;
-    AssetKnowledgeSourceBool      data_bool;
-    AssetKnowledgeSourceVector    data_vector;
-    AssetKnowledgeSourceTime      data_time;
-    AssetKnowledgeSourceKnowledge data_knowledge;
+    AssetAiSourceNumber    data_number;
+    AssetAiSourceBool      data_bool;
+    AssetAiSourceVector    data_vector;
+    AssetAiSourceTime      data_time;
+    AssetAiSourceKnowledge data_knowledge;
   };
-} AssetKnowledgeSource;
+} AssetAiSource;
 
 typedef struct {
   const AssetBehavior* child;
@@ -110,8 +110,8 @@ typedef struct {
 } AssetBehaviorSequence;
 
 typedef struct {
-  String               key;
-  AssetKnowledgeSource value;
+  String        key;
+  AssetAiSource value;
 } AssetBehaviorKnowledgeSet;
 
 typedef struct {
@@ -123,9 +123,9 @@ typedef struct {
 } AssetBehaviorKnowledgeCheck;
 
 typedef struct {
-  AssetAiComparison    comparison;
-  String               key;
-  AssetKnowledgeSource value;
+  AssetAiComparison comparison;
+  String            key;
+  AssetAiSource     value;
 } AssetBehaviorKnowledgeCompare;
 
 typedef struct sAssetBehavior {

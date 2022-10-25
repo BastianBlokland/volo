@@ -51,7 +51,7 @@ spec(node_repeat) {
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
+                .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
             },
     };
     const AssetBehavior behavior = {

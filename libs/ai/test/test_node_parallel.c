@@ -75,7 +75,7 @@ spec(node_parallel) {
             .data_knowledgeset =
                 {
                     .key   = string_lit("test1"),
-                    .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 1},
+                    .value = {.type = AssetAiSource_Number, .data_number.value = 1},
                 },
         },
         {
@@ -83,7 +83,7 @@ spec(node_parallel) {
             .data_knowledgeset =
                 {
                     .key   = string_lit("test2"),
-                    .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 2},
+                    .value = {.type = AssetAiSource_Number, .data_number.value = 2},
                 },
         },
         {
@@ -91,7 +91,7 @@ spec(node_parallel) {
             .data_knowledgeset =
                 {
                     .key   = string_lit("test3"),
-                    .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 3},
+                    .value = {.type = AssetAiSource_Number, .data_number.value = 3},
                 },
         },
     };

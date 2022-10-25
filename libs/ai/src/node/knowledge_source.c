@@ -2,19 +2,19 @@
 
 #include "knowledge_source_internal.h"
 
-AiValue ai_knowledge_source_value(const AssetKnowledgeSource* src, const AiBlackboard* bb) {
+AiValue ai_knowledge_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
   switch (src->type) {
-  case AssetKnowledgeSource_Number: {
+  case AssetAiSource_Number: {
     return ai_value_f64(src->data_number.value);
   }
-  case AssetKnowledgeSource_Bool: {
+  case AssetAiSource_Bool: {
     return ai_value_bool(src->data_bool.value);
   }
-  case AssetKnowledgeSource_Vector: {
-    const AssetKnowledgeSourceVector* vecSrc = &src->data_vector;
+  case AssetAiSource_Vector: {
+    const AssetAiSourceVector* vecSrc = &src->data_vector;
     return ai_value_vector3(geo_vector(vecSrc->x, vecSrc->y, vecSrc->z));
   }
-  case AssetKnowledgeSource_Time: {
+  case AssetAiSource_Time: {
     static StringHash g_timeNowHash;
     if (UNLIKELY(!g_timeNowHash)) {
       g_timeNowHash = string_hash_lit("global-time");
@@ -23,7 +23,7 @@ AiValue ai_knowledge_source_value(const AssetKnowledgeSource* src, const AiBlack
     const AiValue offset = ai_value_time((TimeDuration)time_seconds(src->data_time.secondsFromNow));
     return ai_value_add(now, offset);
   }
-  case AssetKnowledgeSource_Knowledge: {
+  case AssetAiSource_Knowledge: {
     // TODO: Keys should be pre-hashed in the behavior asset.
     const StringHash srcKeyHash = string_hash(src->data_knowledge.key);
     return ai_blackboard_get(bb, srcKeyHash);

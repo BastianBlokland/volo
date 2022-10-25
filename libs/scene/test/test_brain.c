@@ -20,7 +20,7 @@ static const AssetMemRecord g_testBrainAssets[] = {
                               "\"$type\": \"AssetBehavior_KnowledgeSet\",\n"
                               "\"key\": \"test\",\n"
                               "\"value\": {\n"
-                              "  \"$type\": \"AssetKnowledgeSource_Bool\",\n"
+                              "  \"$type\": \"AssetAiSource_Bool\",\n"
                               "  \"value\": true }\n"
                               "}"),
     },

@@ -32,29 +32,29 @@ static void behavior_datareg_init() {
     data_reg_const_t(g_dataReg, AssetAiComparison, Greater);
     data_reg_const_t(g_dataReg, AssetAiComparison, GreaterOrEqual);
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceNumber);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceNumber, value, data_prim_t(f64));
+    data_reg_struct_t(g_dataReg, AssetAiSourceNumber);
+    data_reg_field_t(g_dataReg, AssetAiSourceNumber, value, data_prim_t(f64));
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceBool);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceBool, value, data_prim_t(bool));
+    data_reg_struct_t(g_dataReg, AssetAiSourceBool);
+    data_reg_field_t(g_dataReg, AssetAiSourceBool, value, data_prim_t(bool));
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceVector);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, z, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, AssetAiSourceVector);
+    data_reg_field_t(g_dataReg, AssetAiSourceVector, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetAiSourceVector, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetAiSourceVector, z, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceTime);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceTime, secondsFromNow, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, AssetAiSourceTime);
+    data_reg_field_t(g_dataReg, AssetAiSourceTime, secondsFromNow, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceKnowledge);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceKnowledge, key, data_prim_t(String));
+    data_reg_struct_t(g_dataReg, AssetAiSourceKnowledge);
+    data_reg_field_t(g_dataReg, AssetAiSourceKnowledge, key, data_prim_t(String));
 
-    data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Number, data_number, t_AssetKnowledgeSourceNumber);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Bool, data_bool, t_AssetKnowledgeSourceBool);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_AssetKnowledgeSourceVector);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Time, data_time, t_AssetKnowledgeSourceTime);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, t_AssetKnowledgeSourceKnowledge);
+    data_reg_union_t(g_dataReg, AssetAiSource, type);
+    data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Number, data_number, t_AssetAiSourceNumber);
+    data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Bool, data_bool, t_AssetAiSourceBool);
+    data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Vector, data_vector, t_AssetAiSourceVector);
+    data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Time, data_time, t_AssetAiSourceTime);
+    data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Knowledge, data_knowledge, t_AssetAiSourceKnowledge);
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
@@ -82,7 +82,7 @@ static void behavior_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeSource);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetAiSource);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeClear);
@@ -96,7 +96,7 @@ static void behavior_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCompare);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, comparison, t_AssetAiComparison);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetKnowledgeSource);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetAiSource);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);

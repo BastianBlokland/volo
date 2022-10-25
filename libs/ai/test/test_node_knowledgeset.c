@@ -24,7 +24,7 @@ spec(node_knowledgeset) {
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
+                .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -40,7 +40,7 @@ spec(node_knowledgeset) {
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+                .value = {.type = AssetAiSource_Bool, .data_bool.value = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -55,9 +55,8 @@ spec(node_knowledgeset) {
         .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
-                .key = string_lit("test"),
-                .value =
-                    {.type = AssetKnowledgeSource_Vector, .data_vector = {.x = 1, .y = 2, .z = 3}},
+                .key   = string_lit("test"),
+                .value = {.type = AssetAiSource_Vector, .data_vector = {.x = 1, .y = 2, .z = 3}},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -74,7 +73,7 @@ spec(node_knowledgeset) {
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Time, .data_time.secondsFromNow = 1.75f},
+                .value = {.type = AssetAiSource_Time, .data_time.secondsFromNow = 1.75f},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -94,7 +93,7 @@ spec(node_knowledgeset) {
                 .key = string_lit("test2"),
                 .value =
                     {
-                        .type           = AssetKnowledgeSource_Knowledge,
+                        .type           = AssetAiSource_Knowledge,
                         .data_knowledge = string_lit("test1"),
                     },
             },

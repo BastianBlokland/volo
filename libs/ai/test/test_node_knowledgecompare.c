@@ -22,7 +22,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
+                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -36,7 +36,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
+                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
@@ -52,7 +52,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetAiComparison_Equal,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Bool, .data_bool = true},
+                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
@@ -68,7 +68,7 @@ spec(node_knowledgecompare) {
             {
                 .comparison = AssetAiComparison_Less,
                 .key        = string_lit("test"),
-                .value      = {.type = AssetKnowledgeSource_Number, .data_number.value = 1337},
+                .value      = {.type = AssetAiSource_Number, .data_number.value = 1337},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
@@ -87,7 +87,7 @@ spec(node_knowledgecompare) {
                 .key        = string_lit("test"),
                 .value =
                     {
-                        .type               = AssetKnowledgeSource_Knowledge,
+                        .type               = AssetAiSource_Knowledge,
                         .data_knowledge.key = string_lit("value"),
                     },
             },
