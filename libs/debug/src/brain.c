@@ -153,8 +153,8 @@ static bool blackboard_draw_vector3(UiCanvasComp* canvas, AiValue* value) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / 3, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 3, 0), UiBase_Absolute, Ui_X);
 
   GeoVector vec3 = ai_value_get_vector3(*value, geo_vector(0));
 
