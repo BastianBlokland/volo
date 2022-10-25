@@ -76,7 +76,7 @@ String ai_value_type_str(const AiValueType type) {
       string_static("none"),
       string_static("f64"),
       string_static("bool"),
-      string_static("vector"),
+      string_static("vector3"),
       string_static("time"),
       string_static("entity"),
   };

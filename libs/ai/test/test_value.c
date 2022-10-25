@@ -63,7 +63,7 @@ spec(value) {
     check_eq_string(ai_value_type_str(AiValueType_None), string_lit("none"));
     check_eq_string(ai_value_type_str(AiValueType_f64), string_lit("f64"));
     check_eq_string(ai_value_type_str(AiValueType_Bool), string_lit("bool"));
-    check_eq_string(ai_value_type_str(AiValueType_Vector3), string_lit("vector"));
+    check_eq_string(ai_value_type_str(AiValueType_Vector3), string_lit("vector3"));
     check_eq_string(ai_value_type_str(AiValueType_Time), string_lit("time"));
     check_eq_string(ai_value_type_str(AiValueType_Entity), string_lit("entity"));
   }
