@@ -39,11 +39,23 @@
         },
         {
           "value": 1,
-          "name": "Less"
+          "name": "NotEqual"
         },
         {
           "value": 2,
+          "name": "Less"
+        },
+        {
+          "value": 3,
+          "name": "LessOrEqual"
+        },
+        {
+          "value": 4,
           "name": "Greater"
+        },
+        {
+          "value": 5,
+          "name": "GreaterOrEqual"
         }
       ]
     }
@@ -169,10 +181,6 @@
         },
         {
           "name": "z",
-          "valueType": "number"
-        },
-        {
-          "name": "w",
           "valueType": "number"
         }
       ]

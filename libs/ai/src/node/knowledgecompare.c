@@ -20,11 +20,20 @@ ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb, A
   case AssetAiComparison_Equal:
     result = ai_value_equal(value, compValue);
     break;
+  case AssetAiComparison_NotEqual:
+    result = !ai_value_equal(value, compValue);
+    break;
   case AssetAiComparison_Less:
     result = ai_value_less(value, compValue);
     break;
+  case AssetAiComparison_LessOrEqual:
+    result = !ai_value_greater(value, compValue);
+    break;
   case AssetAiComparison_Greater:
     result = ai_value_greater(value, compValue);
+    break;
+  case AssetAiComparison_GreaterOrEqual:
+    result = !ai_value_less(value, compValue);
     break;
   }
   return result ? AiResult_Success : AiResult_Failure;

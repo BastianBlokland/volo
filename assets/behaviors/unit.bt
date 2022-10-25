@@ -67,7 +67,7 @@
                     {
                       "$type": "AssetBehavior_KnowledgeCompare",
                       "$name": "In-range cooldown",
-                      "comparison": 2,
+                      "comparison": 4,
                       "key": "self-inrange-time",
                       "value": {
                         "$type": "AssetKnowledgeSource_Time",
@@ -80,7 +80,7 @@
                         {
                           "$type": "AssetBehavior_KnowledgeCompare",
                           "$name": "Test if in range",
-                          "comparison": 1,
+                          "comparison": 2,
                           "key": "target-dist",
                           "value": {
                             "$type": "AssetKnowledgeSource_Number",

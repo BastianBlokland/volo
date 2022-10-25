@@ -39,8 +39,11 @@ typedef enum eAssetBehaviorType {
 
 typedef enum {
   AssetAiComparison_Equal,
+  AssetAiComparison_NotEqual,
   AssetAiComparison_Less,
+  AssetAiComparison_LessOrEqual,
   AssetAiComparison_Greater,
+  AssetAiComparison_GreaterOrEqual,
 } AssetAiComparison;
 
 typedef enum {

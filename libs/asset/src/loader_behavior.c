@@ -26,8 +26,11 @@ static void behavior_datareg_init() {
 
     data_reg_enum_t(g_dataReg, AssetAiComparison);
     data_reg_const_t(g_dataReg, AssetAiComparison, Equal);
+    data_reg_const_t(g_dataReg, AssetAiComparison, NotEqual);
     data_reg_const_t(g_dataReg, AssetAiComparison, Less);
+    data_reg_const_t(g_dataReg, AssetAiComparison, LessOrEqual);
     data_reg_const_t(g_dataReg, AssetAiComparison, Greater);
+    data_reg_const_t(g_dataReg, AssetAiComparison, GreaterOrEqual);
 
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceNumber);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceNumber, value, data_prim_t(f64));
