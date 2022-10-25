@@ -86,10 +86,6 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetAiSource);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeClear);
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeClear, keys, data_prim_t(String), .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeClear, "Clear all the given knowledge keys.\nEvaluates to 'Success'.");
-
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCheck);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCheck, keys, data_prim_t(String), .container = DataContainer_Array);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCheck, "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.");
@@ -112,7 +108,6 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Selector, data_selector, t_AssetBehaviorSelector);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Sequence, data_sequence, t_AssetBehaviorSequence);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeClear, data_knowledgeclear, t_AssetBehaviorKnowledgeClear);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeCheck, data_knowledgecheck, t_AssetBehaviorKnowledgeCheck);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeCompare, data_knowledgecompare, t_AssetBehaviorKnowledgeCompare);
     // clang-format on
@@ -193,7 +188,6 @@ String asset_behavior_type_str(const AssetBehaviorType type) {
       string_static("Selector"),
       string_static("Sequence"),
       string_static("KnowledgeSet"),
-      string_static("KnowledgeClear"),
       string_static("KnowledgeCheck"),
       string_static("KnowledgeCompare"),
   };

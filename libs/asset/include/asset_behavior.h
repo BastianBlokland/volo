@@ -30,7 +30,6 @@ typedef enum eAssetBehaviorType {
   AssetBehavior_Selector,
   AssetBehavior_Sequence,
   AssetBehavior_KnowledgeSet,
-  AssetBehavior_KnowledgeClear,
   AssetBehavior_KnowledgeCheck,
   AssetBehavior_KnowledgeCompare,
 
@@ -117,10 +116,6 @@ typedef struct {
 
 typedef struct {
   AssetKnowledgeList keys;
-} AssetBehaviorKnowledgeClear;
-
-typedef struct {
-  AssetKnowledgeList keys;
 } AssetBehaviorKnowledgeCheck;
 
 typedef struct {
@@ -140,7 +135,6 @@ typedef struct sAssetBehavior {
     AssetBehaviorSelector         data_selector;
     AssetBehaviorSequence         data_sequence;
     AssetBehaviorKnowledgeSet     data_knowledgeset;
-    AssetBehaviorKnowledgeClear   data_knowledgeclear;
     AssetBehaviorKnowledgeCheck   data_knowledgecheck;
     AssetBehaviorKnowledgeCompare data_knowledgecompare;
   };

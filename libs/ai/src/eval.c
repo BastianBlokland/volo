@@ -7,7 +7,6 @@
   X(AssetBehavior_Failure, ai_node_failure_eval)                                                   \
   X(AssetBehavior_Invert, ai_node_invert_eval)                                                     \
   X(AssetBehavior_KnowledgeCheck, ai_node_knowledgecheck_eval)                                     \
-  X(AssetBehavior_KnowledgeClear, ai_node_knowledgeclear_eval)                                     \
   X(AssetBehavior_KnowledgeCompare, ai_node_knowledgecompare_eval)                                 \
   X(AssetBehavior_KnowledgeSet, ai_node_knowledgeset_eval)                                         \
   X(AssetBehavior_Parallel, ai_node_parallel_eval)                                                 \

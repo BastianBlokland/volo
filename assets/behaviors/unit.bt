@@ -35,10 +35,11 @@
           }
         },
         {
-          "$type": "AssetBehavior_KnowledgeClear",
-          "keys": [
-            "user-move-target"
-          ]
+          "$type": "AssetBehavior_KnowledgeSet",
+          "key": "user-move-target",
+          "value": {
+            "$type": "AssetAiSource_None"
+          }
         }
       ]
     },
