@@ -47,6 +47,7 @@ typedef enum {
 } AssetAiComparison;
 
 typedef enum {
+  AssetAiSource_None,
   AssetAiSource_Number,
   AssetAiSource_Bool,
   AssetAiSource_Vector,

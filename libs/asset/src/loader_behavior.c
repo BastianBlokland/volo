@@ -50,6 +50,7 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetAiSourceKnowledge, key, data_prim_t(String));
 
     data_reg_union_t(g_dataReg, AssetAiSource, type);
+    data_reg_choice_empty(g_dataReg, AssetAiSource, AssetAiSource_None);
     data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Number, data_number, t_AssetAiSourceNumber);
     data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Bool, data_bool, t_AssetAiSourceBool);
     data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Vector, data_vector, t_AssetAiSourceVector);

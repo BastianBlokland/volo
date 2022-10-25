@@ -21,6 +21,7 @@
     {
       "identifier": "AssetAiSource",
       "values": [
+        "AssetAiSource_None",
         "AssetAiSource_Number",
         "AssetAiSource_Bool",
         "AssetAiSource_Vector",
@@ -149,6 +150,10 @@
           "valueType": "AssetAiSource"
         }
       ]
+    },
+    {
+      "nodeType": "AssetAiSource_None",
+      "fields": []
     },
     {
       "nodeType": "AssetAiSource_Number",
