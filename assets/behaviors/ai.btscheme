@@ -13,25 +13,24 @@
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
         "AssetBehavior_KnowledgeSet",
-        "AssetBehavior_KnowledgeClear",
-        "AssetBehavior_KnowledgeCheck",
         "AssetBehavior_KnowledgeCompare"
       ]
     },
     {
-      "identifier": "AssetKnowledgeSource",
+      "identifier": "AssetAiSource",
       "values": [
-        "AssetKnowledgeSource_Number",
-        "AssetKnowledgeSource_Bool",
-        "AssetKnowledgeSource_Vector",
-        "AssetKnowledgeSource_Time",
-        "AssetKnowledgeSource_Knowledge"
+        "AssetAiSource_None",
+        "AssetAiSource_Number",
+        "AssetAiSource_Bool",
+        "AssetAiSource_Vector",
+        "AssetAiSource_Time",
+        "AssetAiSource_Knowledge"
       ]
     }
   ],
   "enums": [
     {
-      "identifier": "AssetKnowledgeComparison",
+      "identifier": "AssetAiComparison",
       "values": [
         {
           "value": 0,
@@ -39,11 +38,23 @@
         },
         {
           "value": 1,
-          "name": "Less"
+          "name": "NotEqual"
         },
         {
           "value": 2,
+          "name": "Less"
+        },
+        {
+          "value": 3,
+          "name": "LessOrEqual"
+        },
+        {
+          "value": 4,
           "name": "Greater"
+        },
+        {
+          "value": 5,
+          "name": "GreaterOrEqual"
         }
       ]
     }
@@ -134,12 +145,16 @@
         },
         {
           "name": "value",
-          "valueType": "AssetKnowledgeSource"
+          "valueType": "AssetAiSource"
         }
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_Number",
+      "nodeType": "AssetAiSource_None",
+      "fields": []
+    },
+    {
+      "nodeType": "AssetAiSource_Number",
       "fields": [
         {
           "name": "value",
@@ -148,7 +163,7 @@
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_Bool",
+      "nodeType": "AssetAiSource_Bool",
       "fields": [
         {
           "name": "value",
@@ -157,7 +172,7 @@
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_Vector",
+      "nodeType": "AssetAiSource_Vector",
       "fields": [
         {
           "name": "x",
@@ -170,15 +185,11 @@
         {
           "name": "z",
           "valueType": "number"
-        },
-        {
-          "name": "w",
-          "valueType": "number"
         }
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_Time",
+      "nodeType": "AssetAiSource_Time",
       "fields": [
         {
           "name": "secondsFromNow",
@@ -187,32 +198,10 @@
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_Knowledge",
+      "nodeType": "AssetAiSource_Knowledge",
       "fields": [
         {
           "name": "key",
-          "valueType": "string"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetBehavior_KnowledgeClear",
-      "comment": "Clear all the given knowledge keys.\nEvaluates to 'Success'.",
-      "fields": [
-        {
-          "name": "keys",
-          "isArray": true,
-          "valueType": "string"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetBehavior_KnowledgeCheck",
-      "comment": "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.",
-      "fields": [
-        {
-          "name": "keys",
-          "isArray": true,
           "valueType": "string"
         }
       ]
@@ -223,7 +212,7 @@
       "fields": [
         {
           "name": "comparison",
-          "valueType": "AssetKnowledgeComparison"
+          "valueType": "AssetAiComparison"
         },
         {
           "name": "key",
@@ -231,7 +220,7 @@
         },
         {
           "name": "value",
-          "valueType": "AssetKnowledgeSource"
+          "valueType": "AssetAiSource"
         }
       ]
     }

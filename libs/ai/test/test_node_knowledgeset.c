@@ -5,6 +5,8 @@
 #include "core_alloc.h"
 #include "core_time.h"
 
+#include "utils_internal.h"
+
 spec(node_knowledgeset) {
   AiBlackboard* bb = null;
   AiTracerCount tracer;
@@ -15,82 +17,74 @@ spec(node_knowledgeset) {
   }
 
   it("can set f64 knowledge when evaluated") {
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
+                .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
   }
 
   it("can set boolean knowledge when evaluated") {
-    check(!ai_blackboard_get_bool(bb, string_hash_lit("test")));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+                .value = {.type = AssetAiSource_Bool, .data_bool.value = true},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check(ai_blackboard_get_bool(bb, string_hash_lit("test")));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_bool(true));
   }
 
   it("can set vector knowledge when evaluated") {
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).x, 0, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).y, 0, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).z, 0, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).w, 0, 1e-6f);
-
-    const AssetBehavior behavior = {
-        .type = AssetBehavior_KnowledgeSet,
-        .data_knowledgeset =
-            {
-                .key = string_lit("test"),
-                .value =
-                    {
-                        .type        = AssetKnowledgeSource_Vector,
-                        .data_vector = {.x = 1, .y = 2, .z = 3, .w = 4},
-                    },
-            },
-    };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
-    check_eq_int(tracer.count, 1);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).x, 1, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).y, 2, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).z, 3, 1e-6f);
-    check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).w, 4, 1e-6f);
-  }
-
-  it("can set time knowledge when evaluated") {
-    check_eq_int(ai_blackboard_get_time(bb, string_hash_lit("test")), 0);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_Time, .data_time.secondsFromNow = 1.75f},
+                .value = {.type = AssetAiSource_Vector, .data_vector = {.x = 1, .y = 2, .z = 3}},
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_int(
-        ai_blackboard_get_time(bb, string_hash_lit("test")), time_second + time_milliseconds(750));
+    check_eq_value(
+        ai_blackboard_get(bb, string_hash_lit("test")), ai_value_vector3(geo_vector(1, 2, 3)));
+  }
+
+  it("can set time knowledge when evaluated") {
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+
+    const AssetBehavior behavior = {
+        .type = AssetBehavior_KnowledgeSet,
+        .data_knowledgeset =
+            {
+                .key   = string_lit("test"),
+                .value = {.type = AssetAiSource_Time, .data_time.secondsFromNow = 1.75f},
+            },
+    };
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
+    check_eq_value(
+        ai_blackboard_get(bb, string_hash_lit("test")),
+        ai_value_time(time_second + time_milliseconds(750)));
   }
 
   it("can set knowledge based on other knowledge when evaluated") {
-    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 42);
+    ai_blackboard_set(bb, string_hash_lit("test1"), ai_value_f64(42));
 
     const AssetBehavior behavior = {
         .type = AssetBehavior_KnowledgeSet,
@@ -99,14 +93,14 @@ spec(node_knowledgeset) {
                 .key = string_lit("test2"),
                 .value =
                     {
-                        .type           = AssetKnowledgeSource_Knowledge,
+                        .type           = AssetAiSource_Knowledge,
                         .data_knowledge = string_lit("test1"),
                     },
             },
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 42, 1e-6f);
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_f64(42));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

@@ -79,7 +79,7 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
-    ai_blackboard_set_vector(bb, g_blackboardKeyMoveTarget, cmdMove->position);
+    ai_blackboard_set(bb, g_blackboardKeyMoveTarget, ai_value_vector3(cmdMove->position));
   }
 }
 

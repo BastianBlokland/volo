@@ -53,30 +53,30 @@ ecs_system_define(SceneSensorUpdateSys) {
     }
     AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
 
-    ai_blackboard_set_time(bb, g_blackboardKeyTime, timeComp->time);
-    ai_blackboard_set_entity(bb, g_blackboardKeyEntity, entity);
+    ai_blackboard_set(bb, g_blackboardKeyTime, ai_value_time(timeComp->time));
+    ai_blackboard_set(bb, g_blackboardKeyEntity, ai_value_entity(entity));
 
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     if (transform) {
-      ai_blackboard_set_vector(bb, g_blackboardKeyPosition, transform->position);
+      ai_blackboard_set(bb, g_blackboardKeyPosition, ai_value_vector3(transform->position));
     }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
-      ai_blackboard_set_f64(bb, g_blackboardKeyHealth, health->norm);
+      ai_blackboard_set(bb, g_blackboardKeyHealth, ai_value_f64(health->norm));
     }
 
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
-      ai_blackboard_set_f64(bb, g_blackboardKeyFaction, faction->id);
+      ai_blackboard_set(bb, g_blackboardKeyFaction, ai_value_f64(faction->id));
     }
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
-        ai_blackboard_unset(bb, g_blackboardKeyNavArrived);
+        ai_blackboard_set_none(bb, g_blackboardKeyNavArrived);
       } else {
-        ai_blackboard_set_vector(bb, g_blackboardKeyNavArrived, navAgent->target);
+        ai_blackboard_set(bb, g_blackboardKeyNavArrived, ai_value_vector3(navAgent->target));
       }
     }
 
@@ -85,15 +85,16 @@ ecs_system_define(SceneSensorUpdateSys) {
       const f64  distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       const bool los          = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
 
-      ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
-      ai_blackboard_set_vector(bb, g_blackboardKeyTargetPosition, targetFinder->targetPosition);
-      ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
-      ai_blackboard_set_bool(bb, g_blackboardKeyTargetLos, los);
+      ai_blackboard_set(bb, g_blackboardKeyTargetEntity, ai_value_entity(targetFinder->target));
+      ai_blackboard_set(
+          bb, g_blackboardKeyTargetPosition, ai_value_vector3(targetFinder->targetPosition));
+      ai_blackboard_set(bb, g_blackboardKeyTargetDist, ai_value_f64(distToTarget));
+      ai_blackboard_set(bb, g_blackboardKeyTargetLos, ai_value_bool(los));
     } else {
-      ai_blackboard_unset(bb, g_blackboardKeyTargetEntity);
-      ai_blackboard_unset(bb, g_blackboardKeyTargetPosition);
-      ai_blackboard_unset(bb, g_blackboardKeyTargetDist);
-      ai_blackboard_unset(bb, g_blackboardKeyTargetLos);
+      ai_blackboard_set_none(bb, g_blackboardKeyTargetEntity);
+      ai_blackboard_set_none(bb, g_blackboardKeyTargetPosition);
+      ai_blackboard_set_none(bb, g_blackboardKeyTargetDist);
+      ai_blackboard_set_none(bb, g_blackboardKeyTargetLos);
     }
   }
 }

@@ -31,28 +31,30 @@ ecs_system_define(SceneControllerUpdateSys) {
     SceneNavAgentComp* navAgent = ecs_view_write_t(itr, SceneNavAgentComp);
     if (navAgent) {
       // Start moving when the nav-target knowledge is set.
-      if (ai_blackboard_exists(bb, g_blackboardKeyNavTarget)) {
-        const GeoVector target = ai_blackboard_get_vector(bb, g_blackboardKeyNavTarget);
-        if (!geo_vector_equal3(navAgent->target, target, 1e-4f)) {
-          scene_nav_move_to(navAgent, target);
+      const AiValue navTarget = ai_blackboard_get(bb, g_blackboardKeyNavTarget);
+      if (ai_value_has(navTarget)) {
+        const GeoVector navTargetPos = ai_value_get_vector3(navTarget, geo_vector(0));
+        if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
+          scene_nav_move_to(navAgent, navTargetPos);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
-          ai_blackboard_unset(bb, g_blackboardKeyNavTarget);
+          ai_blackboard_set_none(bb, g_blackboardKeyNavTarget);
         }
       }
 
       // Stop moving when nav-stop knowledge is set.
-      if (ai_blackboard_exists(bb, g_blackboardKeyNavStop)) {
+      if (ai_value_has(ai_blackboard_get(bb, g_blackboardKeyNavStop))) {
         scene_nav_stop(navAgent);
-        ai_blackboard_unset(bb, g_blackboardKeyNavTarget);
-        ai_blackboard_unset(bb, g_blackboardKeyNavStop);
+        ai_blackboard_set_none(bb, g_blackboardKeyNavTarget);
+        ai_blackboard_set_none(bb, g_blackboardKeyNavStop);
       }
     }
 
     // Set attack target.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
-      attack->targetEntity = ai_blackboard_get_entity(bb, g_blackboardKeyAttackTarget);
-      ai_blackboard_unset(bb, g_blackboardKeyAttackTarget);
+      const AiValue attackTarget = ai_blackboard_get(bb, g_blackboardKeyAttackTarget);
+      attack->targetEntity       = ai_value_get_entity(attackTarget, 0);
+      ai_blackboard_set_none(bb, g_blackboardKeyAttackTarget);
     }
   }
 }

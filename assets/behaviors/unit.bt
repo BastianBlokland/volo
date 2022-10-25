@@ -7,17 +7,16 @@
       "$name": "Move to user input",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCheck",
+          "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Wait for user input",
-          "keys": [
-            "user-move-target"
-          ]
+          "comparison": 1,
+          "key": "user-move-target"
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
           "key": "cmd-nav-target",
           "value": {
-            "$type": "AssetKnowledgeSource_Knowledge",
+            "$type": "AssetAiSource_Knowledge",
             "key": "user-move-target"
           }
         },
@@ -29,16 +28,17 @@
             "comparison": 0,
             "key": "self-nav-arrived",
             "value": {
-              "$type": "AssetKnowledgeSource_Knowledge",
+              "$type": "AssetAiSource_Knowledge",
               "key": "user-move-target"
             }
           }
         },
         {
-          "$type": "AssetBehavior_KnowledgeClear",
-          "keys": [
-            "user-move-target"
-          ]
+          "$type": "AssetBehavior_KnowledgeSet",
+          "key": "user-move-target",
+          "value": {
+            "$type": "AssetAiSource_None"
+          }
         }
       ]
     },
@@ -47,11 +47,10 @@
       "$name": "Attack target",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCheck",
+          "$type": "AssetBehavior_KnowledgeCompare",
           "$name": "Find target",
-          "keys": [
-            "target-entity"
-          ]
+          "comparison": 1,
+          "key": "target-entity"
         },
         {
           "$type": "AssetBehavior_Selector",
@@ -67,10 +66,10 @@
                     {
                       "$type": "AssetBehavior_KnowledgeCompare",
                       "$name": "In-range cooldown",
-                      "comparison": 2,
+                      "comparison": 4,
                       "key": "self-inrange-time",
                       "value": {
-                        "$type": "AssetKnowledgeSource_Time",
+                        "$type": "AssetAiSource_Time",
                         "secondsFromNow": 0
                       }
                     },
@@ -80,10 +79,10 @@
                         {
                           "$type": "AssetBehavior_KnowledgeCompare",
                           "$name": "Test if in range",
-                          "comparison": 1,
+                          "comparison": 2,
                           "key": "target-dist",
                           "value": {
-                            "$type": "AssetKnowledgeSource_Number",
+                            "$type": "AssetAiSource_Number",
                             "value": 35
                           }
                         },
@@ -92,7 +91,7 @@
                           "$name": "Set in-range cooldown",
                           "key": "self-inrange-time",
                           "value": {
-                            "$type": "AssetKnowledgeSource_Time",
+                            "$type": "AssetAiSource_Time",
                             "secondsFromNow": 0.5
                           }
                         }
@@ -106,7 +105,7 @@
                   "comparison": 0,
                   "key": "target-los",
                   "value": {
-                    "$type": "AssetKnowledgeSource_Bool",
+                    "$type": "AssetAiSource_Bool",
                     "value": true
                   }
                 }
@@ -119,7 +118,7 @@
                 "$type": "AssetBehavior_KnowledgeSet",
                 "key": "cmd-nav-target",
                 "value": {
-                  "$type": "AssetKnowledgeSource_Knowledge",
+                  "$type": "AssetAiSource_Knowledge",
                   "key": "target-position"
                 }
               }
@@ -131,7 +130,7 @@
           "$name": "Stop moving",
           "key": "cmd-nav-stop",
           "value": {
-            "$type": "AssetKnowledgeSource_Bool",
+            "$type": "AssetAiSource_Bool",
             "value": true
           }
         },
@@ -140,7 +139,7 @@
           "$name": "Attack",
           "key": "cmd-attack-target",
           "value": {
-            "$type": "AssetKnowledgeSource_Knowledge",
+            "$type": "AssetAiSource_Knowledge",
             "key": "target-entity"
           }
         }

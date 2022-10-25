@@ -9,8 +9,6 @@ add_library(lib_ai STATIC
   src/eval.c
   src/node/failure.c
   src/node/invert.c
-  src/node/knowledgecheck.c
-  src/node/knowledgeclear.c
   src/node/knowledgecompare.c
   src/node/knowledgeset.c
   src/node/parallel.c
@@ -18,11 +16,13 @@ add_library(lib_ai STATIC
   src/node/running.c
   src/node/selector.c
   src/node/sequence.c
+  src/node/source.c
   src/node/success.c
   src/node/try.c
   src/result.c
   src/tracer_count.c
   src/tracer_record.c
+  src/value.c
   )
 target_include_directories(lib_ai PUBLIC include)
 target_link_libraries(lib_ai PUBLIC lib_core lib_asset lib_geo)
@@ -33,8 +33,6 @@ add_executable(test_lib_ai
   test/test_blackboard.c
   test/test_node_failure.c
   test/test_node_invert.c
-  test/test_node_knowledgecheck.c
-  test/test_node_knowledgeclear.c
   test/test_node_knowledgecompare.c
   test/test_node_knowledgeset.c
   test/test_node_parallel.c
@@ -45,6 +43,8 @@ add_executable(test_lib_ai
   test/test_node_success.c
   test/test_node_try.c
   test/test_tracer_record.c
+  test/test_value.c
+  test/utils.c
   )
 target_link_libraries(test_lib_ai PRIVATE lib_app_check lib_ai)
 

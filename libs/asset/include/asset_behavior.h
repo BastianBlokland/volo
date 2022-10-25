@@ -14,11 +14,6 @@ typedef struct {
   usize                count;
 } AssetBehaviorList;
 
-typedef struct {
-  const String* values;
-  usize         count;
-} AssetKnowledgeList;
-
 typedef enum eAssetBehaviorType {
   AssetBehavior_Running,
   AssetBehavior_Success,
@@ -30,57 +25,59 @@ typedef enum eAssetBehaviorType {
   AssetBehavior_Selector,
   AssetBehavior_Sequence,
   AssetBehavior_KnowledgeSet,
-  AssetBehavior_KnowledgeClear,
-  AssetBehavior_KnowledgeCheck,
   AssetBehavior_KnowledgeCompare,
 
   AssetBehavior_Count,
 } AssetBehaviorType;
 
 typedef enum {
-  AssetKnowledgeComparison_Equal,
-  AssetKnowledgeComparison_Less,
-  AssetKnowledgeComparison_Greater,
-} AssetKnowledgeComparison;
+  AssetAiComparison_Equal,
+  AssetAiComparison_NotEqual,
+  AssetAiComparison_Less,
+  AssetAiComparison_LessOrEqual,
+  AssetAiComparison_Greater,
+  AssetAiComparison_GreaterOrEqual,
+} AssetAiComparison;
 
 typedef enum {
-  AssetKnowledgeSource_Number,
-  AssetKnowledgeSource_Bool,
-  AssetKnowledgeSource_Vector,
-  AssetKnowledgeSource_Time,
-  AssetKnowledgeSource_Knowledge,
-} AssetKnowledgeSourceType;
+  AssetAiSource_None,
+  AssetAiSource_Number,
+  AssetAiSource_Bool,
+  AssetAiSource_Vector,
+  AssetAiSource_Time,
+  AssetAiSource_Knowledge,
+} AssetAiSourceType;
 
 typedef struct {
   f64 value;
-} AssetKnowledgeSourceNumber;
+} AssetAiSourceNumber;
 
 typedef struct {
   bool value;
-} AssetKnowledgeSourceBool;
+} AssetAiSourceBool;
 
 typedef struct {
-  f32 x, y, z, w;
-} AssetKnowledgeSourceVector;
+  f32 x, y, z;
+} AssetAiSourceVector;
 
 typedef struct {
   f32 secondsFromNow;
-} AssetKnowledgeSourceTime;
+} AssetAiSourceTime;
 
 typedef struct {
   String key;
-} AssetKnowledgeSourceKnowledge;
+} AssetAiSourceKnowledge;
 
 typedef struct {
-  AssetKnowledgeSourceType type;
+  AssetAiSourceType type;
   union {
-    AssetKnowledgeSourceNumber    data_number;
-    AssetKnowledgeSourceBool      data_bool;
-    AssetKnowledgeSourceVector    data_vector;
-    AssetKnowledgeSourceTime      data_time;
-    AssetKnowledgeSourceKnowledge data_knowledge;
+    AssetAiSourceNumber    data_number;
+    AssetAiSourceBool      data_bool;
+    AssetAiSourceVector    data_vector;
+    AssetAiSourceTime      data_time;
+    AssetAiSourceKnowledge data_knowledge;
   };
-} AssetKnowledgeSource;
+} AssetAiSource;
 
 typedef struct {
   const AssetBehavior* child;
@@ -107,22 +104,14 @@ typedef struct {
 } AssetBehaviorSequence;
 
 typedef struct {
-  String               key;
-  AssetKnowledgeSource value;
+  String        key;
+  AssetAiSource value;
 } AssetBehaviorKnowledgeSet;
 
 typedef struct {
-  AssetKnowledgeList keys;
-} AssetBehaviorKnowledgeClear;
-
-typedef struct {
-  AssetKnowledgeList keys;
-} AssetBehaviorKnowledgeCheck;
-
-typedef struct {
-  AssetKnowledgeComparison comparison;
-  String                   key;
-  AssetKnowledgeSource     value;
+  AssetAiComparison comparison;
+  String            key;
+  AssetAiSource     value;
 } AssetBehaviorKnowledgeCompare;
 
 typedef struct sAssetBehavior {
@@ -136,8 +125,6 @@ typedef struct sAssetBehavior {
     AssetBehaviorSelector         data_selector;
     AssetBehaviorSequence         data_sequence;
     AssetBehaviorKnowledgeSet     data_knowledgeset;
-    AssetBehaviorKnowledgeClear   data_knowledgeclear;
-    AssetBehaviorKnowledgeCheck   data_knowledgecheck;
     AssetBehaviorKnowledgeCompare data_knowledgecompare;
   };
 } AssetBehavior;
