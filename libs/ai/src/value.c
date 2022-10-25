@@ -26,8 +26,12 @@ INLINE_HINT static f64 val_as_f64(const AiValue value) { return *((f64*)&value.d
 
 INLINE_HINT static bool val_as_bool(const AiValue value) { return *((bool*)&value.data); }
 
+INLINE_HINT static GeoVector val_as_vector3_dirty_w(const AiValue value) {
+  return *((GeoVector*)&value.data);
+}
+
 INLINE_HINT static GeoVector val_as_vector3(const AiValue value) {
-  GeoVector result = *((GeoVector*)&value.data);
+  GeoVector result = val_as_vector3_dirty_w(value);
   result.w         = 0.0f; // W value is aliased with the type tag.
   return result;
 }
@@ -42,7 +46,10 @@ INLINE_HINT static EcsEntityId val_as_entity(const AiValue value) {
 
 AiValueType ai_value_type(const AiValue value) { return (AiValueType)value.data[3]; }
 
-AiValue ai_value_none() { return (AiValue){0}; }
+AiValue ai_value_none() {
+  ASSERT(AiValueType_None == 0, "ValueTypeNone should be initializable using zero-init");
+  return (AiValue){0};
+}
 
 AiValue ai_value_f64(const f64 value) {
   AiValue result;
@@ -128,7 +135,7 @@ String ai_value_str_scratch(AiValue value) {
   case AiValueType_Bool:
     return fmt_write_scratch("{}", fmt_bool(val_as_bool(value)));
   case AiValueType_Vector3: {
-    const GeoVector v = val_as_vector3(value);
+    const GeoVector v = val_as_vector3_dirty_w(value);
     return fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
   }
   case AiValueType_Time:
@@ -155,8 +162,11 @@ bool ai_value_equal(AiValue a, AiValue b) {
     return math_abs(val_as_f64(a) - val_as_f64(b)) < g_scalarThreshold;
   case AiValueType_Bool:
     return val_as_bool(a) == val_as_bool(b);
-  case AiValueType_Vector3:
-    return geo_vector_equal3(val_as_vector3(a), val_as_vector3(b), g_vectorThreshold);
+  case AiValueType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return geo_vector_equal3(vecA, vecB, g_vectorThreshold);
+  }
   case AiValueType_Time:
     return val_as_time(a) == val_as_time(b);
   case AiValueType_Entity:
@@ -231,8 +241,11 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
     return ai_value_f64(val_as_f64(a) + val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case AiValueType_Vector3:
-    return ai_value_vector3(geo_vector_add(val_as_vector3(a), val_as_vector3(b)));
+  case AiValueType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return ai_value_vector3(geo_vector_add(vecA, vecB));
+  }
   case AiValueType_Time:
     return ai_value_time(val_as_time(a) + val_as_time(b));
   case AiValueType_Entity:
@@ -260,8 +273,11 @@ AiValue ai_value_sub(const AiValue a, const AiValue b) {
     return ai_value_f64(val_as_f64(a) - val_as_f64(b));
   case AiValueType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case AiValueType_Vector3:
-    return ai_value_vector3(geo_vector_sub(val_as_vector3(a), val_as_vector3(b)));
+  case AiValueType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return ai_value_vector3(geo_vector_sub(vecA, vecB));
+  }
   case AiValueType_Time:
     return ai_value_time(val_as_time(a) - val_as_time(b));
   case AiValueType_Entity:
