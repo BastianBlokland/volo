@@ -1,4 +1,5 @@
 #pragma once
+#include "ai_value.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
@@ -19,10 +20,12 @@ typedef enum {
 ecs_comp_extern(SceneBrainComp);
 
 /**
- * Get access to the brain's blackboard for querying / storing knowledge.
+ * Query and update the brain's memory.
  */
-const AiBlackboard* scene_brain_blackboard(const SceneBrainComp*);
-AiBlackboard*       scene_brain_blackboard_mutable(SceneBrainComp*);
+AiValue             scene_brain_get(const SceneBrainComp*, StringHash key);
+void                scene_brain_set(const SceneBrainComp*, StringHash key, AiValue);
+void                scene_brain_set_none(const SceneBrainComp*, StringHash key);
+const AiBlackboard* scene_brain_memory(const SceneBrainComp*);
 
 /**
  * Get access to the brain's tracer for debug visualization purposes.

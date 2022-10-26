@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_attack.h"
@@ -7,9 +6,9 @@
 
 // clang-format off
 
-static StringHash g_blackboardKeyNavTarget,
-                  g_blackboardKeyNavStop,
-                  g_blackboardKeyAttackTarget;
+static StringHash g_brainKeyNavTarget,
+                  g_brainKeyNavStop,
+                  g_brainKeyAttackTarget;
 
 // clang-format on
 
@@ -26,43 +25,42 @@ ecs_system_define(SceneControllerUpdateSys) {
     if (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) {
       continue;
     }
-    AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
 
     SceneNavAgentComp* navAgent = ecs_view_write_t(itr, SceneNavAgentComp);
     if (navAgent) {
       // Start moving when the nav-target knowledge is set.
-      const AiValue navTarget = ai_blackboard_get(bb, g_blackboardKeyNavTarget);
+      const AiValue navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
       if (ai_value_has(navTarget)) {
         const GeoVector navTargetPos = ai_value_get_vector3(navTarget, geo_vector(0));
         if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
           scene_nav_move_to(navAgent, navTargetPos);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
-          ai_blackboard_set_none(bb, g_blackboardKeyNavTarget);
+          scene_brain_set_none(brain, g_brainKeyNavTarget);
         }
       }
 
       // Stop moving when nav-stop knowledge is set.
-      if (ai_value_has(ai_blackboard_get(bb, g_blackboardKeyNavStop))) {
+      if (ai_value_has(scene_brain_get(brain, g_brainKeyNavStop))) {
         scene_nav_stop(navAgent);
-        ai_blackboard_set_none(bb, g_blackboardKeyNavTarget);
-        ai_blackboard_set_none(bb, g_blackboardKeyNavStop);
+        scene_brain_set_none(brain, g_brainKeyNavTarget);
+        scene_brain_set_none(brain, g_brainKeyNavStop);
       }
     }
 
     // Set attack target.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
-      const AiValue attackTarget = ai_blackboard_get(bb, g_blackboardKeyAttackTarget);
+      const AiValue attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
       attack->targetEntity       = ai_value_get_entity(attackTarget, 0);
-      ai_blackboard_set_none(bb, g_blackboardKeyAttackTarget);
+      scene_brain_set_none(brain, g_brainKeyAttackTarget);
     }
   }
 }
 
 ecs_module_init(scene_controller_module) {
-  g_blackboardKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd-nav-target"));
-  g_blackboardKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd-nav-stop"));
-  g_blackboardKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd-attack-target"));
+  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd-nav-target"));
+  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd-nav-stop"));
+  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd-attack-target"));
 
   ecs_register_view(BrainView);
 

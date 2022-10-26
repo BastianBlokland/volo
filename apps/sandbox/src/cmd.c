@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -10,7 +9,7 @@
 #include "cmd_internal.h"
 #include "object_internal.h"
 
-static StringHash g_blackboardKeyMoveTarget;
+static StringHash g_brainKeyMoveTarget;
 static const u8   g_cmdPlayerFaction = 0;
 
 typedef enum {
@@ -78,8 +77,7 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   if (brainItr) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
-    AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
-    ai_blackboard_set(bb, g_blackboardKeyMoveTarget, ai_value_vector3(cmdMove->position));
+    scene_brain_set(brain, g_brainKeyMoveTarget, ai_value_vector3(cmdMove->position));
   }
 }
 
@@ -138,7 +136,7 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(sandbox_cmd_module) {
-  g_blackboardKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user-move-target"));
+  g_brainKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user-move-target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 

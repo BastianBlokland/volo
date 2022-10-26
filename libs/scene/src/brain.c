@@ -143,9 +143,19 @@ ecs_module_init(scene_brain_module) {
   ecs_parallel(SceneBrainUpdateSys, 4);
 }
 
-const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
-  return brain->blackboard;
+AiValue scene_brain_get(const SceneBrainComp* brain, const StringHash key) {
+  return ai_blackboard_get(brain->blackboard, key);
 }
+
+void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const AiValue value) {
+  ai_blackboard_set(brain->blackboard, key, value);
+}
+
+void scene_brain_set_none(const SceneBrainComp* brain, const StringHash key) {
+  ai_blackboard_set_none(brain->blackboard, key);
+}
+
+const AiBlackboard* scene_brain_memory(const SceneBrainComp* brain) { return brain->blackboard; }
 
 AiBlackboard* scene_brain_blackboard_mutable(SceneBrainComp* brain) { return brain->blackboard; }
 
