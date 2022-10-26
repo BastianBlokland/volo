@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
@@ -12,16 +11,16 @@
 
 // clang-format off
 
-static StringHash g_blackboardKeyTime,
-                  g_blackboardKeyEntity,
-                  g_blackboardKeyPosition,
-                  g_blackboardKeyHealth,
-                  g_blackboardKeyFaction,
-                  g_blackboardKeyNavArrived,
-                  g_blackboardKeyTargetEntity,
-                  g_blackboardKeyTargetPosition,
-                  g_blackboardKeyTargetDist,
-                  g_blackboardKeyTargetLos;
+static StringHash g_brainKeyTime,
+                  g_brainKeyEntity,
+                  g_brainKeyPosition,
+                  g_brainKeyHealth,
+                  g_brainKeyFaction,
+                  g_brainKeyNavArrived,
+                  g_brainKeyTargetEntity,
+                  g_brainKeyTargetPos,
+                  g_brainKeyTargetDist,
+                  g_brainKeyTargetLos;
 
 // clang-format on
 
@@ -51,32 +50,31 @@ ecs_system_define(SceneSensorUpdateSys) {
     if (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) {
       continue;
     }
-    AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
 
-    ai_blackboard_set(bb, g_blackboardKeyTime, ai_value_time(timeComp->time));
-    ai_blackboard_set(bb, g_blackboardKeyEntity, ai_value_entity(entity));
+    scene_brain_set(brain, g_brainKeyTime, ai_value_time(timeComp->time));
+    scene_brain_set(brain, g_brainKeyEntity, ai_value_entity(entity));
 
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     if (transform) {
-      ai_blackboard_set(bb, g_blackboardKeyPosition, ai_value_vector3(transform->position));
+      scene_brain_set(brain, g_brainKeyPosition, ai_value_vector3(transform->position));
     }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
-      ai_blackboard_set(bb, g_blackboardKeyHealth, ai_value_f64(health->norm));
+      scene_brain_set(brain, g_brainKeyHealth, ai_value_f64(health->norm));
     }
 
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
-      ai_blackboard_set(bb, g_blackboardKeyFaction, ai_value_f64(faction->id));
+      scene_brain_set(brain, g_brainKeyFaction, ai_value_f64(faction->id));
     }
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
-        ai_blackboard_set_none(bb, g_blackboardKeyNavArrived);
+        scene_brain_set_none(brain, g_brainKeyNavArrived);
       } else {
-        ai_blackboard_set(bb, g_blackboardKeyNavArrived, ai_value_vector3(navAgent->target));
+        scene_brain_set(brain, g_brainKeyNavArrived, ai_value_vector3(navAgent->target));
       }
     }
 
@@ -85,31 +83,30 @@ ecs_system_define(SceneSensorUpdateSys) {
       const f64  distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       const bool los          = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
 
-      ai_blackboard_set(bb, g_blackboardKeyTargetEntity, ai_value_entity(targetFinder->target));
-      ai_blackboard_set(
-          bb, g_blackboardKeyTargetPosition, ai_value_vector3(targetFinder->targetPosition));
-      ai_blackboard_set(bb, g_blackboardKeyTargetDist, ai_value_f64(distToTarget));
-      ai_blackboard_set(bb, g_blackboardKeyTargetLos, ai_value_bool(los));
+      scene_brain_set(brain, g_brainKeyTargetEntity, ai_value_entity(targetFinder->target));
+      scene_brain_set(brain, g_brainKeyTargetPos, ai_value_vector3(targetFinder->targetPosition));
+      scene_brain_set(brain, g_brainKeyTargetDist, ai_value_f64(distToTarget));
+      scene_brain_set(brain, g_brainKeyTargetLos, ai_value_bool(los));
     } else {
-      ai_blackboard_set_none(bb, g_blackboardKeyTargetEntity);
-      ai_blackboard_set_none(bb, g_blackboardKeyTargetPosition);
-      ai_blackboard_set_none(bb, g_blackboardKeyTargetDist);
-      ai_blackboard_set_none(bb, g_blackboardKeyTargetLos);
+      scene_brain_set_none(brain, g_brainKeyTargetEntity);
+      scene_brain_set_none(brain, g_brainKeyTargetPos);
+      scene_brain_set_none(brain, g_brainKeyTargetDist);
+      scene_brain_set_none(brain, g_brainKeyTargetLos);
     }
   }
 }
 
 ecs_module_init(scene_sensor_module) {
-  g_blackboardKeyTime           = stringtable_add(g_stringtable, string_lit("global-time"));
-  g_blackboardKeyEntity         = stringtable_add(g_stringtable, string_lit("self-entity"));
-  g_blackboardKeyPosition       = stringtable_add(g_stringtable, string_lit("self-position"));
-  g_blackboardKeyHealth         = stringtable_add(g_stringtable, string_lit("self-health"));
-  g_blackboardKeyFaction        = stringtable_add(g_stringtable, string_lit("self-faction"));
-  g_blackboardKeyNavArrived     = stringtable_add(g_stringtable, string_lit("self-nav-arrived"));
-  g_blackboardKeyTargetEntity   = stringtable_add(g_stringtable, string_lit("target-entity"));
-  g_blackboardKeyTargetPosition = stringtable_add(g_stringtable, string_lit("target-position"));
-  g_blackboardKeyTargetDist     = stringtable_add(g_stringtable, string_lit("target-dist"));
-  g_blackboardKeyTargetLos      = stringtable_add(g_stringtable, string_lit("target-los"));
+  g_brainKeyTime         = stringtable_add(g_stringtable, string_lit("global-time"));
+  g_brainKeyEntity       = stringtable_add(g_stringtable, string_lit("self-entity"));
+  g_brainKeyPosition     = stringtable_add(g_stringtable, string_lit("self-position"));
+  g_brainKeyHealth       = stringtable_add(g_stringtable, string_lit("self-health"));
+  g_brainKeyFaction      = stringtable_add(g_stringtable, string_lit("self-faction"));
+  g_brainKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self-nav-arrived"));
+  g_brainKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target-entity"));
+  g_brainKeyTargetPos    = stringtable_add(g_stringtable, string_lit("target-position"));
+  g_brainKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target-dist"));
+  g_brainKeyTargetLos    = stringtable_add(g_stringtable, string_lit("target-los"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);

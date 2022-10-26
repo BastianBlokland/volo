@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "asset_manager.h"
 #include "asset_register.h"
 #include "check_spec.h"
@@ -62,7 +61,7 @@ spec(brain) {
     ecs_run_sync(runner);
   }
 
-  it("exposes its blackboard knowledge") {
+  it("can get/set memory values") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("success.bt"));
 
@@ -71,16 +70,14 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(ai_value_equal(
-        ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey), ai_value_none()));
+    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_none()));
 
-    ai_blackboard_set(scene_brain_blackboard_mutable(brain), knowledgeKey, ai_value_bool(true));
+    scene_brain_set(brain, knowledgeKey, ai_value_bool(true));
 
-    check(ai_value_equal(
-        ai_blackboard_get(scene_brain_blackboard(brain), knowledgeKey), ai_value_bool(true)));
+    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_bool(true)));
   }
 
-  it("updates its blackboard knowledge through its behavior") {
+  it("updates its memory through its behavior") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("knowledgeset.bt"));
 
@@ -90,7 +87,7 @@ spec(brain) {
     scene_test_wait(runner);
 
     const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
-    const AiValue value = ai_blackboard_get(scene_brain_blackboard(brain), string_hash_lit("test"));
+    const AiValue         value = scene_brain_get(brain, string_hash_lit("test"));
     check(ai_value_equal(value, ai_value_bool(true)));
   }
 
