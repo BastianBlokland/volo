@@ -32,6 +32,7 @@ typedef struct {
 
 ecs_comp_define(DebugBrainPanelComp) {
   UiPanel      panel;
+  bool         hideEmptyMemory;
   UiScrollview scrollview;
 };
 
@@ -45,12 +46,12 @@ static void evaluation_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain)
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
   bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause:"));
+  ui_label(canvas, string_lit("Pause eval:"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseEval)) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
@@ -205,14 +206,17 @@ static bool memory_draw_value(UiCanvasComp* canvas, AiValue* value) {
   return false;
 }
 
-static void memory_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
+static void
+memory_options_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, SceneBrainComp* brain) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 135);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
   ui_table_add_column(&table, UiTableColumn_Fixed, 155);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 105);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
   bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
@@ -230,6 +234,11 @@ static void memory_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseControllers);
   }
 
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Hide empty:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->hideEmptyMemory);
+
   ui_layout_pop(canvas);
 }
 
@@ -239,7 +248,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
 
   SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
 
-  memory_options_draw(canvas, brain);
+  memory_options_draw(canvas, panelComp, brain);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -261,7 +270,10 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
   DynArray            entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   const AiBlackboard* bb      = scene_brain_memory(brain);
   for (AiBlackboardItr itr = ai_blackboard_begin(bb); itr.key; itr = ai_blackboard_next(bb, itr)) {
-    const String name                            = stringtable_lookup(g_stringtable, itr.key);
+    const String name = stringtable_lookup(g_stringtable, itr.key);
+    if (panelComp->hideEmptyMemory && !ai_value_has(scene_brain_get(brain, itr.key))) {
+      continue;
+    }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
         .key  = itr.key,
         .name = string_is_empty(name) ? string_lit("<unnamed>") : name,
@@ -380,6 +392,10 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(750, 500)));
+      world,
+      panelEntity,
+      DebugBrainPanelComp,
+      .panel           = ui_panel(.size = ui_vector(750, 500)),
+      .hideEmptyMemory = true);
   return panelEntity;
 }
