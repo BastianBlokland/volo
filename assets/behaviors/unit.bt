@@ -1,19 +1,19 @@
 {
-  "$type": "AssetBehavior_Selector",
+  "$type": "AssetAiNode_Selector",
   "$name": "Root",
   "children": [
     {
-      "$type": "AssetBehavior_Sequence",
+      "$type": "AssetAiNode_Sequence",
       "$name": "Move to user input",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCompare",
+          "$type": "AssetAiNode_KnowledgeCompare",
           "$name": "Wait for user input",
           "comparison": 1,
           "key": "user-move-target"
         },
         {
-          "$type": "AssetBehavior_KnowledgeSet",
+          "$type": "AssetAiNode_KnowledgeSet",
           "key": "cmd-nav-target",
           "value": {
             "$type": "AssetAiSource_Knowledge",
@@ -21,10 +21,10 @@
           }
         },
         {
-          "$type": "AssetBehavior_Try",
+          "$type": "AssetAiNode_Try",
           "$name": "Check if we arrived at the user input",
           "child": {
-            "$type": "AssetBehavior_KnowledgeCompare",
+            "$type": "AssetAiNode_KnowledgeCompare",
             "comparison": 0,
             "key": "self-nav-arrived",
             "value": {
@@ -34,7 +34,7 @@
           }
         },
         {
-          "$type": "AssetBehavior_KnowledgeSet",
+          "$type": "AssetAiNode_KnowledgeSet",
           "key": "user-move-target",
           "value": {
             "$type": "AssetAiSource_None"
@@ -43,28 +43,28 @@
       ]
     },
     {
-      "$type": "AssetBehavior_Sequence",
+      "$type": "AssetAiNode_Sequence",
       "$name": "Attack target",
       "children": [
         {
-          "$type": "AssetBehavior_KnowledgeCompare",
+          "$type": "AssetAiNode_KnowledgeCompare",
           "$name": "Find target",
           "comparison": 1,
           "key": "target-entity"
         },
         {
-          "$type": "AssetBehavior_Selector",
+          "$type": "AssetAiNode_Selector",
           "$name": "Move into range",
           "children": [
             {
-              "$type": "AssetBehavior_Sequence",
+              "$type": "AssetAiNode_Sequence",
               "children": [
                 {
-                  "$type": "AssetBehavior_Selector",
+                  "$type": "AssetAiNode_Selector",
                   "$name": "Check if in range",
                   "children": [
                     {
-                      "$type": "AssetBehavior_KnowledgeCompare",
+                      "$type": "AssetAiNode_KnowledgeCompare",
                       "$name": "In-range cooldown",
                       "comparison": 4,
                       "key": "self-inrange-time",
@@ -74,10 +74,10 @@
                       }
                     },
                     {
-                      "$type": "AssetBehavior_Sequence",
+                      "$type": "AssetAiNode_Sequence",
                       "children": [
                         {
-                          "$type": "AssetBehavior_KnowledgeCompare",
+                          "$type": "AssetAiNode_KnowledgeCompare",
                           "$name": "Test if in range",
                           "comparison": 2,
                           "key": "target-dist",
@@ -87,7 +87,7 @@
                           }
                         },
                         {
-                          "$type": "AssetBehavior_KnowledgeSet",
+                          "$type": "AssetAiNode_KnowledgeSet",
                           "$name": "Set in-range cooldown",
                           "key": "self-inrange-time",
                           "value": {
@@ -100,7 +100,7 @@
                   ]
                 },
                 {
-                  "$type": "AssetBehavior_KnowledgeCompare",
+                  "$type": "AssetAiNode_KnowledgeCompare",
                   "$name": "Test Line-of-Sight",
                   "comparison": 0,
                   "key": "target-los",
@@ -112,10 +112,10 @@
               ]
             },
             {
-              "$type": "AssetBehavior_Repeat",
+              "$type": "AssetAiNode_Repeat",
               "$name": "Move",
               "child": {
-                "$type": "AssetBehavior_KnowledgeSet",
+                "$type": "AssetAiNode_KnowledgeSet",
                 "key": "cmd-nav-target",
                 "value": {
                   "$type": "AssetAiSource_Knowledge",
@@ -126,7 +126,7 @@
           ]
         },
         {
-          "$type": "AssetBehavior_KnowledgeSet",
+          "$type": "AssetAiNode_KnowledgeSet",
           "$name": "Stop moving",
           "key": "cmd-nav-stop",
           "value": {
@@ -135,7 +135,7 @@
           }
         },
         {
-          "$type": "AssetBehavior_KnowledgeSet",
+          "$type": "AssetAiNode_KnowledgeSet",
           "$name": "Attack",
           "key": "cmd-attack-target",
           "value": {
@@ -146,7 +146,7 @@
       ]
     },
     {
-      "$type": "AssetBehavior_Success",
+      "$type": "AssetAiNode_Success",
       "$name": "Idle"
     }
   ]

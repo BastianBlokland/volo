@@ -10,7 +10,7 @@
 #include "repo_internal.h"
 
 static DataReg* g_dataReg;
-static DataMeta g_dataBehaviorMeta;
+static DataMeta g_dataNodeMeta;
 
 static void behavior_datareg_init() {
   static ThreadSpinLock g_initLock;
@@ -22,7 +22,7 @@ static void behavior_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
+    const DataType nodeType = data_declare_t(g_dataReg, AssetAiNode);
 
     data_reg_enum_t(g_dataReg, AssetAiComparison);
     data_reg_const_t(g_dataReg, AssetAiComparison, Equal);
@@ -57,57 +57,57 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Time, data_time, t_AssetAiSourceTime);
     data_reg_choice_t(g_dataReg, AssetAiSource, AssetAiSource_Knowledge, data_knowledge, t_AssetAiSourceKnowledge);
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
-    data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetBehaviorInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeInvert);
+    data_reg_field_t(g_dataReg, AssetAiNodeInvert, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(g_dataReg, AssetAiNodeInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorTry);
-    data_reg_field_t(g_dataReg, AssetBehaviorTry, child, behaviorType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetBehaviorTry, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeTry);
+    data_reg_field_t(g_dataReg, AssetAiNodeTry, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(g_dataReg, AssetAiNodeTry, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorRepeat);
-    data_reg_field_t(g_dataReg, AssetBehaviorRepeat, child, behaviorType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetBehaviorRepeat, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Success' or 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeRepeat);
+    data_reg_field_t(g_dataReg, AssetAiNodeRepeat, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(g_dataReg, AssetAiNodeRepeat, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Success' or 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorParallel);
-    data_reg_field_t(g_dataReg, AssetBehaviorParallel, children, behaviorType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetBehaviorParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeParallel);
+    data_reg_field_t(g_dataReg, AssetAiNodeParallel, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetAiNodeParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorSelector);
-    data_reg_field_t(g_dataReg, AssetBehaviorSelector, children, behaviorType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetBehaviorSelector, "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeSelector);
+    data_reg_field_t(g_dataReg, AssetAiNodeSelector, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetAiNodeSelector, "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorSequence);
-    data_reg_field_t(g_dataReg, AssetBehaviorSequence, children, behaviorType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetBehaviorSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeSequence);
+    data_reg_field_t(g_dataReg, AssetAiNodeSequence, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetAiNodeSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetAiSource, .flags = DataFlags_Opt);
-    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeKnowledgeSet);
+    data_reg_field_t(g_dataReg, AssetAiNodeKnowledgeSet, key, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetAiNodeKnowledgeSet, value, t_AssetAiSource, .flags = DataFlags_Opt);
+    data_reg_comment_t(g_dataReg, AssetAiNodeKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
-    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCompare);
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, comparison, t_AssetAiComparison);
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetAiSource, .flags = DataFlags_Opt);
-    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
+    data_reg_struct_t(g_dataReg, AssetAiNodeKnowledgeCompare);
+    data_reg_field_t(g_dataReg, AssetAiNodeKnowledgeCompare, comparison, t_AssetAiComparison);
+    data_reg_field_t(g_dataReg, AssetAiNodeKnowledgeCompare, key, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetAiNodeKnowledgeCompare, value, t_AssetAiSource, .flags = DataFlags_Opt);
+    data_reg_comment_t(g_dataReg, AssetAiNodeKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
 
-    data_reg_union_t(g_dataReg, AssetBehavior, type);
-    data_reg_union_name_t(g_dataReg, AssetBehavior, name);
-    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Running);
-    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
-    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Invert, data_invert, t_AssetBehaviorInvert);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Try, data_try, t_AssetBehaviorTry);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Repeat, data_repeat, t_AssetBehaviorRepeat);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Parallel, data_parallel, t_AssetBehaviorParallel);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Selector, data_selector, t_AssetBehaviorSelector);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Sequence, data_sequence, t_AssetBehaviorSequence);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeCompare, data_knowledgecompare, t_AssetBehaviorKnowledgeCompare);
+    data_reg_union_t(g_dataReg, AssetAiNode, type);
+    data_reg_union_name_t(g_dataReg, AssetAiNode, name);
+    data_reg_choice_empty(g_dataReg, AssetAiNode, AssetAiNode_Running);
+    data_reg_choice_empty(g_dataReg, AssetAiNode, AssetAiNode_Success);
+    data_reg_choice_empty(g_dataReg, AssetAiNode, AssetAiNode_Failure);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Invert, data_invert, t_AssetAiNodeInvert);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Try, data_try, t_AssetAiNodeTry);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Repeat, data_repeat, t_AssetAiNodeRepeat);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Parallel, data_parallel, t_AssetAiNodeParallel);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Selector, data_selector, t_AssetAiNodeSelector);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeSequence);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_KnowledgeSet, data_knowledgeset, t_AssetAiNodeKnowledgeSet);
+    data_reg_choice_t(g_dataReg, AssetAiNode, AssetAiNode_KnowledgeCompare, data_knowledgecompare, t_AssetAiNodeKnowledgeCompare);
     // clang-format on
 
-    g_dataBehaviorMeta = data_meta_t(behaviorType);
+    g_dataNodeMeta = data_meta_t(nodeType);
   }
   thread_spinlock_unlock(&g_initLock);
 }
@@ -115,9 +115,9 @@ static void behavior_datareg_init() {
 ecs_comp_define_public(AssetBehaviorComp);
 
 static void ecs_destruct_behavior_comp(void* data) {
-  AssetBehaviorComp* comp            = data;
-  const Mem          rootBehaviorMem = mem_create(&comp->root, sizeof(AssetBehavior));
-  data_destroy(g_dataReg, g_alloc_heap, g_dataBehaviorMeta, rootBehaviorMem);
+  AssetBehaviorComp* comp        = data;
+  const Mem          rootNodeMem = mem_create(&comp->root, sizeof(AssetAiNode));
+  data_destroy(g_dataReg, g_alloc_heap, g_dataNodeMeta, rootNodeMem);
 }
 
 ecs_view_define(BehaviorUnloadView) {
@@ -149,10 +149,10 @@ ecs_module_init(asset_behavior_module) {
 void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  AssetBehavior  root;
+  AssetAiNode    root;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataBehaviorMeta, mem_var(root), &readRes);
+  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataNodeMeta, mem_var(root), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -171,7 +171,7 @@ Cleanup:
   asset_repo_source_close(src);
 }
 
-String asset_behavior_type_str(const AssetBehaviorType type) {
+String asset_behavior_type_str(const AssetAiNodeType type) {
   static const String g_names[] = {
       string_static("Running"),
       string_static("Success"),
@@ -185,11 +185,11 @@ String asset_behavior_type_str(const AssetBehaviorType type) {
       string_static("KnowledgeSet"),
       string_static("KnowledgeCompare"),
   };
-  ASSERT(array_elems(g_names) == AssetBehavior_Count, "Incorrect number of names");
+  ASSERT(array_elems(g_names) == AssetAiNode_Count, "Incorrect number of names");
   return g_names[type];
 }
 
 void asset_behavior_scheme_write(DynString* str) {
   behavior_datareg_init();
-  data_treescheme_write(g_dataReg, str, g_dataBehaviorMeta.type);
+  data_treescheme_write(g_dataReg, str, g_dataNodeMeta.type);
 }

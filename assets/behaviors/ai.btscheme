@@ -1,19 +1,19 @@
 {
   "aliases": [
     {
-      "identifier": "AssetBehavior",
+      "identifier": "AssetAiNode",
       "values": [
-        "AssetBehavior_Running",
-        "AssetBehavior_Success",
-        "AssetBehavior_Failure",
-        "AssetBehavior_Invert",
-        "AssetBehavior_Try",
-        "AssetBehavior_Repeat",
-        "AssetBehavior_Parallel",
-        "AssetBehavior_Selector",
-        "AssetBehavior_Sequence",
-        "AssetBehavior_KnowledgeSet",
-        "AssetBehavior_KnowledgeCompare"
+        "AssetAiNode_Running",
+        "AssetAiNode_Success",
+        "AssetAiNode_Failure",
+        "AssetAiNode_Invert",
+        "AssetAiNode_Try",
+        "AssetAiNode_Repeat",
+        "AssetAiNode_Parallel",
+        "AssetAiNode_Selector",
+        "AssetAiNode_Sequence",
+        "AssetAiNode_KnowledgeSet",
+        "AssetAiNode_KnowledgeCompare"
       ]
     },
     {
@@ -61,82 +61,82 @@
   ],
   "nodes": [
     {
-      "nodeType": "AssetBehavior_Running",
+      "nodeType": "AssetAiNode_Running",
       "fields": []
     },
     {
-      "nodeType": "AssetBehavior_Success",
+      "nodeType": "AssetAiNode_Success",
       "fields": []
     },
     {
-      "nodeType": "AssetBehavior_Failure",
+      "nodeType": "AssetAiNode_Failure",
       "fields": []
     },
     {
-      "nodeType": "AssetBehavior_Invert",
+      "nodeType": "AssetAiNode_Invert",
       "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_Try",
+      "nodeType": "AssetAiNode_Try",
       "comment": "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.",
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_Repeat",
+      "nodeType": "AssetAiNode_Repeat",
       "comment": "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Success' or 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_Parallel",
+      "nodeType": "AssetAiNode_Parallel",
       "comment": "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_Selector",
+      "nodeType": "AssetAiNode_Selector",
       "comment": "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_Sequence",
+      "nodeType": "AssetAiNode_Sequence",
       "comment": "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetBehavior"
+          "valueType": "AssetAiNode"
         }
       ]
     },
     {
-      "nodeType": "AssetBehavior_KnowledgeSet",
+      "nodeType": "AssetAiNode_KnowledgeSet",
       "comment": "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.",
       "fields": [
         {
@@ -207,7 +207,7 @@
       ]
     },
     {
-      "nodeType": "AssetBehavior_KnowledgeCompare",
+      "nodeType": "AssetAiNode_KnowledgeCompare",
       "comment": "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.",
       "fields": [
         {
@@ -225,6 +225,6 @@
       ]
     }
   ],
-  "rootAlias": "AssetBehavior",
+  "rootAlias": "AssetAiNode",
   "featureNodeNames": true
 }

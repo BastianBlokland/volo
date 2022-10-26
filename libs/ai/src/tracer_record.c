@@ -14,7 +14,7 @@ typedef struct {
   AiResult          result : 8; // Uninitialized if the node is still running.
   u8                depth;
   AiTracerNodeFlags flags : 8;
-  AssetBehaviorType type;
+  AssetAiNodeType   type;
   String            name;
 } AiTracerNode;
 
@@ -34,17 +34,17 @@ static AiTracerNode* tracer_observe(const AiTracerRecord* tracer, const u32 node
   return node;
 }
 
-static void tracer_begin(AiTracer* tracer, const AssetBehavior* behavior) {
+static void tracer_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
   AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
 
   const u32     nodeIndex = (u32)tracerRecord->nodes.size;
   AiTracerNode* node      = dynarray_push_t(&tracerRecord->nodes, AiTracerNode);
   node->depth             = tracerRecord->depth;
   node->flags             = AiTracerNode_Running;
-  node->type              = behavior->type;
+  node->type              = nodeDef->type;
 
   // TODO: Add error handling when the transient allocator runs out of space.
-  node->name = string_maybe_dup(tracerRecord->allocTransient, behavior->name);
+  node->name = string_maybe_dup(tracerRecord->allocTransient, nodeDef->name);
 
   if (UNLIKELY(tracerRecord->depth == ai_tracer_max_depth)) {
     diag_crash_msg("Ai node depth limit ({}) exceeded", fmt_int(ai_tracer_max_depth));
@@ -52,13 +52,13 @@ static void tracer_begin(AiTracer* tracer, const AssetBehavior* behavior) {
   tracerRecord->stack[tracerRecord->depth++] = nodeIndex;
 }
 
-static void tracer_end(AiTracer* tracer, const AssetBehavior* behavior, const AiResult result) {
+static void tracer_end(AiTracer* tracer, const AssetAiNode* nodeDef, const AiResult result) {
   AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
-  (void)behavior;
+  (void)nodeDef;
 
   const u32     activeNodeIdx = tracerRecord->stack[--tracerRecord->depth];
   AiTracerNode* activeNode    = dynarray_at_t(&tracerRecord->nodes, activeNodeIdx, AiTracerNode);
-  diag_assert(activeNode->type == behavior->type);
+  diag_assert(activeNode->type == nodeDef->type);
   diag_assert(activeNode->flags & AiTracerNode_Running);
 
   activeNode->result = result;
@@ -102,7 +102,7 @@ u32 ai_tracer_record_count(const AiTracerRecord* tracer) {
   return (u32)tracer->nodes.size;
 }
 
-AssetBehaviorType ai_tracer_record_type(const AiTracerRecord* tracer, const u32 nodeIndex) {
+AssetAiNodeType ai_tracer_record_type(const AiTracerRecord* tracer, const u32 nodeIndex) {
   return tracer_observe(tracer, nodeIndex)->type;
 }
 

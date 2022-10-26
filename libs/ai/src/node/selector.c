@@ -3,10 +3,10 @@
 #include "core_array.h"
 #include "core_diag.h"
 
-AiResult ai_node_selector_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(behavior->type == AssetBehavior_Selector);
+AiResult ai_node_selector_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
+  diag_assert(nodeDef->type == AssetAiNode_Selector);
 
-  array_ptr_for_t(behavior->data_selector.children, AssetBehavior, child) {
+  array_ptr_for_t(nodeDef->data_selector.children, AssetAiNode, child) {
     switch (ai_eval(child, bb, tracer)) {
     case AiResult_Running:
       return AiResult_Running;

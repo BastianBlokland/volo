@@ -2,12 +2,12 @@
 #include "ai_result.h"
 
 // Forward declare from 'asset_behavior.h'.
-typedef struct sAssetBehavior AssetBehavior;
+typedef struct sAssetAiNode AssetAiNode;
 
 /**
  * Interface for tracing node evaluation.
  */
 typedef struct sAiTracer {
-  void (*begin)(struct sAiTracer*, const AssetBehavior*);
-  void (*end)(struct sAiTracer*, const AssetBehavior*, AiResult);
+  void (*begin)(struct sAiTracer*, const AssetAiNode*);
+  void (*end)(struct sAiTracer*, const AssetAiNode*, AiResult);
 } AiTracer;

@@ -7,28 +7,28 @@
  * Behavior tree definition.
  */
 
-typedef struct sAssetBehavior AssetBehavior;
+typedef struct sAssetAiNode AssetAiNode;
 
 typedef struct {
-  const AssetBehavior* values;
-  usize                count;
-} AssetBehaviorList;
+  const AssetAiNode* values;
+  usize              count;
+} AssetAiNodeList;
 
-typedef enum eAssetBehaviorType {
-  AssetBehavior_Running,
-  AssetBehavior_Success,
-  AssetBehavior_Failure,
-  AssetBehavior_Invert,
-  AssetBehavior_Try,
-  AssetBehavior_Repeat,
-  AssetBehavior_Parallel,
-  AssetBehavior_Selector,
-  AssetBehavior_Sequence,
-  AssetBehavior_KnowledgeSet,
-  AssetBehavior_KnowledgeCompare,
+typedef enum eAssetAiNodeType {
+  AssetAiNode_Running,
+  AssetAiNode_Success,
+  AssetAiNode_Failure,
+  AssetAiNode_Invert,
+  AssetAiNode_Try,
+  AssetAiNode_Repeat,
+  AssetAiNode_Parallel,
+  AssetAiNode_Selector,
+  AssetAiNode_Sequence,
+  AssetAiNode_KnowledgeSet,
+  AssetAiNode_KnowledgeCompare,
 
-  AssetBehavior_Count,
-} AssetBehaviorType;
+  AssetAiNode_Count,
+} AssetAiNodeType;
 
 typedef enum {
   AssetAiComparison_Equal,
@@ -80,62 +80,62 @@ typedef struct {
 } AssetAiSource;
 
 typedef struct {
-  const AssetBehavior* child;
-} AssetBehaviorInvert;
+  const AssetAiNode* child;
+} AssetAiNodeInvert;
 
 typedef struct {
-  const AssetBehavior* child;
-} AssetBehaviorTry;
+  const AssetAiNode* child;
+} AssetAiNodeTry;
 
 typedef struct {
-  const AssetBehavior* child;
-} AssetBehaviorRepeat;
+  const AssetAiNode* child;
+} AssetAiNodeRepeat;
 
 typedef struct {
-  AssetBehaviorList children;
-} AssetBehaviorParallel;
+  AssetAiNodeList children;
+} AssetAiNodeParallel;
 
 typedef struct {
-  AssetBehaviorList children;
-} AssetBehaviorSelector;
+  AssetAiNodeList children;
+} AssetAiNodeSelector;
 
 typedef struct {
-  AssetBehaviorList children;
-} AssetBehaviorSequence;
+  AssetAiNodeList children;
+} AssetAiNodeSequence;
 
 typedef struct {
   String        key;
   AssetAiSource value;
-} AssetBehaviorKnowledgeSet;
+} AssetAiNodeKnowledgeSet;
 
 typedef struct {
   AssetAiComparison comparison;
   String            key;
   AssetAiSource     value;
-} AssetBehaviorKnowledgeCompare;
+} AssetAiNodeKnowledgeCompare;
 
-typedef struct sAssetBehavior {
-  AssetBehaviorType type;
-  String            name;
+typedef struct sAssetAiNode {
+  AssetAiNodeType type;
+  String          name;
   union {
-    AssetBehaviorInvert           data_invert;
-    AssetBehaviorTry              data_try;
-    AssetBehaviorRepeat           data_repeat;
-    AssetBehaviorParallel         data_parallel;
-    AssetBehaviorSelector         data_selector;
-    AssetBehaviorSequence         data_sequence;
-    AssetBehaviorKnowledgeSet     data_knowledgeset;
-    AssetBehaviorKnowledgeCompare data_knowledgecompare;
+    AssetAiNodeInvert           data_invert;
+    AssetAiNodeTry              data_try;
+    AssetAiNodeRepeat           data_repeat;
+    AssetAiNodeParallel         data_parallel;
+    AssetAiNodeSelector         data_selector;
+    AssetAiNodeSequence         data_sequence;
+    AssetAiNodeKnowledgeSet     data_knowledgeset;
+    AssetAiNodeKnowledgeCompare data_knowledgecompare;
   };
-} AssetBehavior;
+} AssetAiNode;
 
-ecs_comp_extern_public(AssetBehaviorComp) { AssetBehavior root; };
+ecs_comp_extern_public(AssetBehaviorComp) { AssetAiNode root; };
 
 /**
  * Get a textual representation of the given type enumeration.
- * Pre-condition: type >= 0 && type < AssetBehavior_Count.
+ * Pre-condition: type >= 0 && type < AssetAiNode_Count.
  */
-String asset_behavior_type_str(AssetBehaviorType);
+String asset_behavior_type_str(AssetAiNodeType);
 
 /**
  * Write a scheme file for the behavior file format.

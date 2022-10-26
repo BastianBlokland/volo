@@ -1,13 +1,13 @@
 #include "ai_tracer_count.h"
 
-static void tracer_count_begin(AiTracer* tracer, const AssetBehavior* behavior) {
+static void tracer_count_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
   (void)tracer;
-  (void)behavior;
+  (void)nodeDef;
 }
 
-static void tracer_count_end(AiTracer* tracer, const AssetBehavior* behavior, const AiResult res) {
+static void tracer_count_end(AiTracer* tracer, const AssetAiNode* nodeDef, const AiResult res) {
   (void)tracer;
-  (void)behavior;
+  (void)nodeDef;
   (void)res;
   ++((AiTracerCount*)tracer)->count;
 }

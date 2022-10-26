@@ -16,49 +16,49 @@ spec(node_repeat) {
   }
 
   it("evaluates to running when child evaluates to running") {
-    const AssetBehavior child    = {.type = AssetBehavior_Running};
-    const AssetBehavior behavior = {
-        .type        = AssetBehavior_Repeat,
+    const AssetAiNode child   = {.type = AssetAiNode_Running};
+    const AssetAiNode nodeDef = {
+        .type        = AssetAiNode_Repeat,
         .data_repeat = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
   }
 
   it("evaluates to running when child evaluates to success") {
-    const AssetBehavior child    = {.type = AssetBehavior_Success};
-    const AssetBehavior behavior = {
-        .type        = AssetBehavior_Repeat,
+    const AssetAiNode child   = {.type = AssetAiNode_Success};
+    const AssetAiNode nodeDef = {
+        .type        = AssetAiNode_Repeat,
         .data_repeat = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
   }
 
   it("evaluates to failure when child evaluates to failure") {
-    const AssetBehavior child    = {.type = AssetBehavior_Failure};
-    const AssetBehavior behavior = {
-        .type        = AssetBehavior_Repeat,
+    const AssetAiNode child   = {.type = AssetAiNode_Failure};
+    const AssetAiNode nodeDef = {
+        .type        = AssetAiNode_Repeat,
         .data_repeat = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
     check_eq_int(tracer.count, 2);
   }
 
   it("always evaluates the child node") {
-    const AssetBehavior child = {
-        .type = AssetBehavior_KnowledgeSet,
+    const AssetAiNode child = {
+        .type = AssetAiNode_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
                 .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
             },
     };
-    const AssetBehavior behavior = {
-        .type        = AssetBehavior_Repeat,
+    const AssetAiNode nodeDef = {
+        .type        = AssetAiNode_Repeat,
         .data_repeat = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
   }

@@ -14,8 +14,8 @@ spec(node_running) {
   }
 
   it("evaluates to running") {
-    const AssetBehavior behavior = {.type = AssetBehavior_Running};
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    const AssetAiNode nodeDef = {.type = AssetAiNode_Running};
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 1);
   }
 
