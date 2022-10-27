@@ -173,12 +173,6 @@ static bool memory_draw_vector3(UiCanvasComp* canvas, AiValue* value) {
   return dirty;
 }
 
-static bool memory_draw_time(UiCanvasComp* canvas, AiValue* value) {
-  const TimeDuration valTime = ai_value_get_time(*value, time_seconds(0));
-  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(valTime)));
-  return false;
-}
-
 static bool memory_draw_entity(UiCanvasComp* canvas, AiValue* value) {
   const EcsEntityId valEntity = ai_value_get_entity(*value, 0);
   ui_label_entity(canvas, valEntity);
@@ -196,8 +190,6 @@ static bool memory_draw_value(UiCanvasComp* canvas, AiValue* value) {
     return memory_draw_bool(canvas, value);
   case AiValueType_Vector3:
     return memory_draw_vector3(canvas, value);
-  case AiValueType_Time:
-    return memory_draw_time(canvas, value);
   case AiValueType_Entity:
     return memory_draw_entity(canvas, value);
   case AiValueType_Count:
