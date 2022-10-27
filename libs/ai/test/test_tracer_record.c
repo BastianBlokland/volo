@@ -21,8 +21,12 @@ spec(tracer_record) {
   }
 
   it("can record information for a single node") {
-    const AssetAiNode nodeDef = {.type = AssetAiNode_Success};
-    check(ai_eval(&nodeDef, bb, ai_tracer_record_api(tracer)) == AiResult_Success);
+    const AssetAiNode   nodeDef = {.type = AssetAiNode_Success};
+    const AiEvalContext ctx     = {
+        .memory = bb,
+        .tracer = ai_tracer_record_api(tracer),
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
 
     check_eq_int(ai_tracer_record_count(tracer), 1);
     check_eq_int(ai_tracer_record_type(tracer, 0), AssetAiNode_Success);
@@ -36,7 +40,11 @@ spec(tracer_record) {
         .type = AssetAiNode_Success,
         .name = string_lit("Hello World"),
     };
-    check(ai_eval(&nodeDef, bb, ai_tracer_record_api(tracer)) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = ai_tracer_record_api(tracer),
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
 
     check_eq_int(ai_tracer_record_count(tracer), 1);
     check_eq_string(ai_tracer_record_name(tracer, 0), string_lit("Hello World"));
@@ -52,7 +60,11 @@ spec(tracer_record) {
         .type          = AssetAiNode_Selector,
         .data_selector = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, ai_tracer_record_api(tracer)) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = ai_tracer_record_api(tracer),
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(ai_tracer_record_count(tracer), 3);
 
     // Selector node.

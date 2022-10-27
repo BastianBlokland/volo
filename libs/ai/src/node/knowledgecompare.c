@@ -5,15 +5,13 @@
 
 #include "source_internal.h"
 
-AiResult
-ai_node_knowledgecompare_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
+AiResult ai_node_knowledgecompare_eval(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
   diag_assert(nodeDef->type == AssetAiNode_KnowledgeCompare);
-  (void)tracer;
 
   // TODO: Keys should be pre-hashed in the behavior asset.
   const StringHash keyHash   = string_hash(nodeDef->data_knowledgecompare.key);
-  const AiValue    value     = ai_blackboard_get(bb, keyHash);
-  const AiValue    compValue = ai_source_value(&nodeDef->data_knowledgecompare.value, bb);
+  const AiValue    value     = ai_blackboard_get(ctx->memory, keyHash);
+  const AiValue    compValue = ai_source_value(&nodeDef->data_knowledgecompare.value, ctx->memory);
 
   bool result;
   switch (nodeDef->data_knowledgecompare.comparison) {

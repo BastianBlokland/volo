@@ -84,16 +84,19 @@ static void scene_brain_eval(
     return;
   }
 
-  AiTracer* tracerApi = null;
+  AiEvalContext ctx = {
+      .memory = brain->blackboard,
+  };
+
   if (brain->flags & SceneBrainFlags_Trace) {
     if (!brain->tracer) {
       brain->tracer = ai_tracer_record_create(g_alloc_heap);
     }
     ai_tracer_record_reset(brain->tracer);
-    tracerApi = ai_tracer_record_api(brain->tracer);
+    ctx.tracer = ai_tracer_record_api(brain->tracer);
   }
 
-  const AiResult res = ai_eval(&behavior->root, brain->blackboard, tracerApi);
+  const AiResult res = ai_eval(&ctx, &behavior->root);
   if (res == AiResult_Failure) {
     log_w(
         "Brain behavior evaluated to 'failure'", log_param("entity", fmt_int(entity, .base = 16)));

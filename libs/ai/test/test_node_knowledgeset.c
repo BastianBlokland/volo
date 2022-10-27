@@ -27,7 +27,11 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
   }
@@ -43,7 +47,11 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetAiSource_Bool, .data_bool.value = true},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_bool(true));
   }
@@ -59,7 +67,11 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetAiSource_Vector, .data_vector = {.x = 1, .y = 2, .z = 3}},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(
         ai_blackboard_get(bb, string_hash_lit("test")), ai_value_vector3(geo_vector(1, 2, 3)));
@@ -76,7 +88,11 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetAiSource_Time, .data_time.secondsFromNow = 1.75f},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(
         ai_blackboard_get(bb, string_hash_lit("test")),
@@ -98,7 +114,11 @@ spec(node_knowledgeset) {
                     },
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_f64(42));
   }

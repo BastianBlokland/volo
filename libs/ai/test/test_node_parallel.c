@@ -21,7 +21,11 @@ spec(node_parallel) {
         .type          = AssetAiNode_Parallel,
         .data_parallel = {.children = {0}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
@@ -36,7 +40,11 @@ spec(node_parallel) {
         .type          = AssetAiNode_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 5);
   }
 
@@ -50,7 +58,11 @@ spec(node_parallel) {
         .type          = AssetAiNode_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Running);
     check_eq_int(tracer.count, 4);
   }
 
@@ -64,7 +76,11 @@ spec(node_parallel) {
         .type          = AssetAiNode_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 4);
   }
 
@@ -99,7 +115,11 @@ spec(node_parallel) {
         .type          = AssetAiNode_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 4);
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_f64(1));
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_f64(2));

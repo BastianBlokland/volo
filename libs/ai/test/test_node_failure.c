@@ -14,8 +14,12 @@ spec(node_failure) {
   }
 
   it("evaluates to failure") {
-    const AssetAiNode nodeDef = {.type = AssetAiNode_Failure};
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AssetAiNode   nodeDef = {.type = AssetAiNode_Failure};
+    const AiEvalContext ctx     = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 

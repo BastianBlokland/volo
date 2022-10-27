@@ -10,9 +10,9 @@ typedef struct sAiTracer AiTracer;
 // Forward declare from 'asset_behavior.h'.
 typedef struct sAssetAiNode AssetAiNode;
 
-/**
- * Evaluate the node against the given blackboard.
- * Existing knowledge is read from the blackboard and new knowledge is stored on the blackboard.
- * NOTE: Tracer is optional, pass null if no tracing is desired.
- */
-AiResult ai_eval(const AssetAiNode*, AiBlackboard*, AiTracer* tracer);
+typedef struct {
+  AiBlackboard* memory;
+  AiTracer*     tracer; // [Optional].
+} AiEvalContext;
+
+AiResult ai_eval(const AiEvalContext*, const AssetAiNode*);

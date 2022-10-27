@@ -19,7 +19,11 @@ spec(node_selector) {
         .type          = AssetAiNode_Selector,
         .data_selector = {.children = {0}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
@@ -34,7 +38,11 @@ spec(node_selector) {
         .type          = AssetAiNode_Selector,
         .data_selector = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 3);
   }
 
@@ -49,7 +57,11 @@ spec(node_selector) {
         .type          = AssetAiNode_Selector,
         .data_selector = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Running);
     check_eq_int(tracer.count, 4);
   }
 
@@ -63,7 +75,11 @@ spec(node_selector) {
         .type          = AssetAiNode_Selector,
         .data_selector = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 4);
   }
 

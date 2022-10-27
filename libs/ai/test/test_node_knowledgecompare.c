@@ -25,7 +25,11 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
@@ -39,7 +43,11 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
@@ -55,7 +63,11 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetAiSource_Bool, .data_bool = true},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
@@ -71,7 +83,11 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetAiSource_Number, .data_number.value = 1337},
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
@@ -92,7 +108,11 @@ spec(node_knowledgecompare) {
                     },
             },
     };
-    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
+    const AiEvalContext ctx = {
+        .memory = bb,
+        .tracer = &tracer.api,
+    };
+    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
