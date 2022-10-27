@@ -10,7 +10,7 @@ typedef struct sAiTracer AiTracer;
 // Forward declare from 'asset_behavior.h'.
 typedef struct sAssetAiNode AssetAiNode;
 
-typedef struct {
+typedef struct sAiEvalContext {
   AiBlackboard* memory;
   AiTracer*     tracer; // [Optional].
 } AiEvalContext;

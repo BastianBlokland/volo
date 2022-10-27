@@ -1,3 +1,4 @@
+#include "ai_eval.h"
 #include "ai_tracer_record.h"
 #include "core_alloc.h"
 #include "core_diag.h"
@@ -34,8 +35,8 @@ static AiTracerNode* tracer_observe(const AiTracerRecord* tracer, const u32 node
   return node;
 }
 
-static void tracer_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
-  AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
+static void tracer_begin(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
+  AiTracerRecord* tracerRecord = (AiTracerRecord*)ctx->tracer;
 
   const u32     nodeIndex = (u32)tracerRecord->nodes.size;
   AiTracerNode* node      = dynarray_push_t(&tracerRecord->nodes, AiTracerNode);
@@ -52,8 +53,9 @@ static void tracer_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
   tracerRecord->stack[tracerRecord->depth++] = nodeIndex;
 }
 
-static void tracer_end(AiTracer* tracer, const AssetAiNode* nodeDef, const AiResult result) {
-  AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
+static void
+tracer_end(const AiEvalContext* ctx, const AssetAiNode* nodeDef, const AiResult result) {
+  AiTracerRecord* tracerRecord = (AiTracerRecord*)ctx->tracer;
   (void)nodeDef;
 
   const u32     activeNodeIdx = tracerRecord->stack[--tracerRecord->depth];

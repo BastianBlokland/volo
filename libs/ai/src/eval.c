@@ -31,11 +31,11 @@ ASSERT(array_elems(g_node_eval_funcs) == AssetAiNode_Count, "Missing node eval f
 
 AiResult ai_eval(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
   if (ctx->tracer) {
-    ctx->tracer->begin(ctx->tracer, nodeDef);
+    ctx->tracer->begin(ctx, nodeDef);
   }
   const AiResult result = g_node_eval_funcs[nodeDef->type](ctx, nodeDef);
   if (ctx->tracer) {
-    ctx->tracer->end(ctx->tracer, nodeDef, result);
+    ctx->tracer->end(ctx, nodeDef, result);
   }
   return result;
 }
