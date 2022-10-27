@@ -2,9 +2,9 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-AiResult ai_node_failure_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(behavior->type == AssetBehavior_Failure);
-  (void)behavior;
+AiResult ai_node_failure_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
+  diag_assert(nodeDef->type == AssetAiNode_Failure);
+  (void)nodeDef;
   (void)bb;
   (void)tracer;
 

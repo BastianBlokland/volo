@@ -106,10 +106,10 @@ static void evaluation_panel_tab_draw(
   ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
 
   for (u32 nodeIndex = 0; nodeIndex != nodeCount; ++nodeIndex) {
-    const AssetBehaviorType type   = ai_tracer_record_type(tracer, nodeIndex);
-    const AiResult          result = ai_tracer_record_result(tracer, nodeIndex);
-    const u32               depth  = ai_tracer_record_depth(tracer, nodeIndex);
-    String                  name   = ai_tracer_record_name(tracer, nodeIndex);
+    const AssetAiNodeType type   = ai_tracer_record_type(tracer, nodeIndex);
+    const AiResult        result = ai_tracer_record_result(tracer, nodeIndex);
+    const u32             depth  = ai_tracer_record_depth(tracer, nodeIndex);
+    String                name   = ai_tracer_record_name(tracer, nodeIndex);
     if (string_is_empty(name)) {
       name = fmt_write_scratch("[{}]", fmt_text(asset_behavior_type_str(type)));
     }

@@ -11,12 +11,12 @@
 static const AssetMemRecord g_testBrainAssets[] = {
     {
         .id   = string_static("success.bt"),
-        .data = string_static("{ \"$type\": \"AssetBehavior_Success\" }"),
+        .data = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
     },
     {
         .id   = string_static("knowledgeset.bt"),
         .data = string_static("{\n"
-                              "\"$type\": \"AssetBehavior_KnowledgeSet\",\n"
+                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
                               "\"key\": \"test\",\n"
                               "\"value\": {\n"
                               "  \"$type\": \"AssetAiSource_Bool\",\n"

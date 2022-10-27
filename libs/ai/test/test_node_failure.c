@@ -14,8 +14,8 @@ spec(node_failure) {
   }
 
   it("evaluates to failure") {
-    const AssetBehavior behavior = {.type = AssetBehavior_Failure};
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    const AssetAiNode nodeDef = {.type = AssetAiNode_Failure};
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 

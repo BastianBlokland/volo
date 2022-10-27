@@ -3,11 +3,11 @@
 #include "core_array.h"
 #include "core_diag.h"
 
-AiResult ai_node_parallel_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(behavior->type == AssetBehavior_Parallel);
+AiResult ai_node_parallel_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
+  diag_assert(nodeDef->type == AssetAiNode_Parallel);
 
   AiResult result = AiResult_Failure;
-  array_ptr_for_t(behavior->data_parallel.children, AssetBehavior, child) {
+  array_ptr_for_t(nodeDef->data_parallel.children, AssetAiNode, child) {
     switch (ai_eval(child, bb, tracer)) {
     case AiResult_Running:
       if (result == AiResult_Failure) {

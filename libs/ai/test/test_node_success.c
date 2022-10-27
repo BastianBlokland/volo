@@ -14,8 +14,8 @@ spec(node_success) {
   }
 
   it("evaluates to success") {
-    const AssetBehavior behavior = {.type = AssetBehavior_Success};
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    const AssetAiNode nodeDef = {.type = AssetAiNode_Success};
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 

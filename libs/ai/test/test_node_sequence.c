@@ -15,54 +15,54 @@ spec(node_sequence) {
   }
 
   it("evaluates to success when it doesn't have any children") {
-    const AssetBehavior behavior = {
-        .type          = AssetBehavior_Sequence,
+    const AssetAiNode nodeDef = {
+        .type          = AssetAiNode_Sequence,
         .data_sequence = {.children = {0}},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to success when all children evaluate to success") {
-    const AssetBehavior children[] = {
-        {.type = AssetBehavior_Success},
-        {.type = AssetBehavior_Success},
-        {.type = AssetBehavior_Success},
+    const AssetAiNode children[] = {
+        {.type = AssetAiNode_Success},
+        {.type = AssetAiNode_Success},
+        {.type = AssetAiNode_Success},
     };
-    const AssetBehavior behavior = {
-        .type          = AssetBehavior_Sequence,
+    const AssetAiNode nodeDef = {
+        .type          = AssetAiNode_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 4);
   }
 
   it("evaluates to running when any child evaluates to running") {
-    const AssetBehavior children[] = {
-        {.type = AssetBehavior_Success},
-        {.type = AssetBehavior_Running},
-        {.type = AssetBehavior_Success},
+    const AssetAiNode children[] = {
+        {.type = AssetAiNode_Success},
+        {.type = AssetAiNode_Running},
+        {.type = AssetAiNode_Success},
     };
-    const AssetBehavior behavior = {
-        .type          = AssetBehavior_Sequence,
+    const AssetAiNode nodeDef = {
+        .type          = AssetAiNode_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 3);
   }
 
   it("evaluates to failure when any child evaluates to failure") {
-    const AssetBehavior children[] = {
-        {.type = AssetBehavior_Success},
-        {.type = AssetBehavior_Failure},
-        {.type = AssetBehavior_Running},
-        {.type = AssetBehavior_Success},
+    const AssetAiNode children[] = {
+        {.type = AssetAiNode_Success},
+        {.type = AssetAiNode_Failure},
+        {.type = AssetAiNode_Running},
+        {.type = AssetAiNode_Success},
     };
-    const AssetBehavior behavior = {
-        .type          = AssetBehavior_Sequence,
+    const AssetAiNode nodeDef = {
+        .type          = AssetAiNode_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    check(ai_eval(&nodeDef, bb, &tracer.api) == AiResult_Failure);
     check_eq_int(tracer.count, 3);
   }
 
