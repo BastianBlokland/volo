@@ -1,9 +1,6 @@
 #pragma once
 #include "ai_result.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 // Forward declare from 'ai_blackboard.h'.
 typedef struct sAiBlackboard AiBlackboard;
 
