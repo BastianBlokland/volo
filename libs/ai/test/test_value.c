@@ -18,11 +18,11 @@ spec(value) {
     check_eq_int(ai_value_type(ai_value_vector3(geo_vector(1, 2, 3))), AiValueType_Vector3);
     check_eq_int(ai_value_get_vector3(ai_value_vector3(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
 
-    check_eq_int(ai_value_type(ai_value_time(time_seconds(2))), AiValueType_Time);
-    check_eq_int(ai_value_get_time(ai_value_time(time_seconds(2)), 0), time_seconds(2));
-
     check_eq_int(ai_value_type(ai_value_entity(0x42)), AiValueType_Entity);
     check_eq_int(ai_value_get_entity(ai_value_entity(0x42), 0), 0x42);
+
+    check_eq_int(ai_value_type(ai_value_time(time_seconds(2))), AiValueType_f64);
+    check_eq_int(ai_value_get_time(ai_value_time(time_seconds(2)), 0), time_seconds(2));
   }
 
   it("clears the w component of vector3's") {
@@ -72,7 +72,6 @@ spec(value) {
     check_eq_string(ai_value_type_str(AiValueType_f64), string_lit("f64"));
     check_eq_string(ai_value_type_str(AiValueType_Bool), string_lit("bool"));
     check_eq_string(ai_value_type_str(AiValueType_Vector3), string_lit("vector3"));
-    check_eq_string(ai_value_type_str(AiValueType_Time), string_lit("time"));
     check_eq_string(ai_value_type_str(AiValueType_Entity), string_lit("entity"));
   }
 
@@ -87,8 +86,11 @@ spec(value) {
         {ai_value_bool(true), string_lit("true")},
         {ai_value_bool(false), string_lit("false")},
         {ai_value_vector3(geo_vector(1, 2, 3)), string_lit("1, 2, 3")},
-        {ai_value_time(time_seconds(42)), string_lit("42s")},
         {ai_value_entity(0x1337), string_lit("1337")},
+        {ai_value_time(time_seconds(42)), string_lit("42")},
+        {ai_value_time(time_hour), string_lit("3600")},
+        {ai_value_time(time_milliseconds(500)), string_lit("0.5")},
+        {ai_value_time(time_milliseconds(42)), string_lit("0.042")},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

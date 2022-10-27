@@ -11,7 +11,6 @@ typedef enum {
   AiValueType_f64,
   AiValueType_Bool,
   AiValueType_Vector3,
-  AiValueType_Time,
   AiValueType_Entity,
 
   AiValueType_Count,
@@ -39,8 +38,8 @@ AiValue ai_value_none();
 AiValue ai_value_f64(f64);
 AiValue ai_value_bool(bool);
 AiValue ai_value_vector3(GeoVector);
-AiValue ai_value_time(TimeDuration);
 AiValue ai_value_entity(EcsEntityId);
+AiValue ai_value_time(TimeDuration); // Stored as seconds in a f64 value.
 
 /**
  * Extract a specific type.
@@ -48,8 +47,8 @@ AiValue ai_value_entity(EcsEntityId);
 f64          ai_value_get_f64(AiValue, f64 fallback);
 bool         ai_value_get_bool(AiValue, bool fallback);
 GeoVector    ai_value_get_vector3(AiValue, GeoVector fallback);
-TimeDuration ai_value_get_time(AiValue, TimeDuration fallback);
 EcsEntityId  ai_value_get_entity(AiValue, EcsEntityId fallback);
+TimeDuration ai_value_get_time(AiValue, TimeDuration fallback);
 
 /**
  * Value utilities.
