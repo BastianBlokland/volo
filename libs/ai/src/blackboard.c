@@ -30,7 +30,7 @@ static AiValue* blackboard_slot_values_alloc(Allocator* alloc, const u32 slotCou
 }
 
 static u32 blackboard_slot_index(StringHash* slotKeys, const u32 slotCount, const StringHash key) {
-  diag_assert(key); // Key of 0 is invalid.
+  diag_assert_msg(key, "Empty blackboard key is not valid");
 
   u32 slotIndex = key & (slotCount - 1);
   for (u32 i = 0; i != slotCount; ++i) {
