@@ -67,6 +67,22 @@ spec(read) {
                           "    [value: 42]\n"
                           "    [value: 2]"),
         },
+        {
+            string_static("1 != (42 > 2)"),
+            string_static("[compare: not-equal]\n"
+                          "  [value: 1]\n"
+                          "  [compare: greater]\n"
+                          "    [value: 42]\n"
+                          "    [value: 2]"),
+        },
+        {
+            string_static("(1 != 42) > 2"),
+            string_static("[compare: greater]\n"
+                          "  [compare: not-equal]\n"
+                          "    [value: 1]\n"
+                          "    [value: 42]\n"
+                          "  [value: 2]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -77,6 +93,21 @@ spec(read) {
       check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
       check_expr_str(doc, res.expr, g_testData[i].expect);
     }
+  }
+
+  it("fails when recursing too deep") {
+    DynString str = dynstring_create(g_alloc_heap, 2048);
+    for (u32 i = 0; i != 200; ++i) {
+      fmt_write(&str, "(");
+    }
+
+    ScriptReadResult res;
+    script_read_expr(doc, dynstring_view(&str), &res);
+
+    check_require(res.type == ScriptResult_Fail);
+    check_eq_int(res.error, ScriptError_RecursionLimitExceeded);
+
+    dynstring_destroy(&str);
   }
 
   teardown() { script_destroy(doc); }

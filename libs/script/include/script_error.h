@@ -11,6 +11,7 @@ typedef enum {
   ScriptError_RecursionLimitExceeded,
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,
+  ScriptError_UnclosedParenthesizedExpression,
 
   ScriptError_Count,
 } ScriptError;

@@ -12,6 +12,7 @@ static const String g_errorStrs[] = {
     string_static("RecursionLimitExceeded"),
     string_static("MissingPrimaryExpression"),
     string_static("InvalidPrimaryExpression"),
+    string_static("UnclosedParenthesizedExpression"),
 };
 
 ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");

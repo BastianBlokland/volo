@@ -63,11 +63,28 @@ static void read_token_skip(ScriptReadContext* ctx) {
   ctx->input = script_lex(ctx->input, null, &discardedToken);
 }
 
+static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
+
+static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
+  const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(res.type == ScriptResult_Fail)) {
+    return res;
+  }
+  ScriptToken closeToken;
+  ctx->input = script_lex(ctx->input, null, &closeToken);
+  if (UNLIKELY(closeToken.type != ScriptTokenType_SepParenClose)) {
+    return script_err(ScriptError_UnclosedParenthesizedExpression);
+  }
+  return res;
+}
+
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
 
   switch (token.type) {
+  case ScriptTokenType_SepParenOpen:
+    return read_expr_paren(ctx);
   case ScriptTokenType_LitNull:
     return script_expr(script_add_value(ctx->doc, script_null()));
   case ScriptTokenType_LitNumber:
