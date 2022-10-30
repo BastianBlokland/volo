@@ -15,6 +15,7 @@ target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
 
 add_executable(test_lib_script
   test/config.c
+  test/test_doc.c
   test/test_lex.c
   test/test_val.c
   test/utils.c

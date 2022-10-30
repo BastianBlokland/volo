@@ -53,3 +53,17 @@ void check_greater_val_impl(
     check_report_error(ctx, msg, src);
   }
 }
+
+void check_expr_str_impl(
+    CheckTestContext* ctx,
+    const ScriptDoc*  doc,
+    const ScriptExpr  expr,
+    const String      expect,
+    const SourceLoc   src) {
+
+  const String exprStr = script_expr_str_scratch(doc, expr);
+  if (UNLIKELY(!string_eq(exprStr, expect))) {
+    const String msg = fmt_write_scratch("{} == {}", fmt_text(exprStr), fmt_text(expect));
+    check_report_error(ctx, msg, src);
+  }
+}

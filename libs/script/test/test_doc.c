@@ -1,0 +1,21 @@
+#include "check_spec.h"
+#include "core_alloc.h"
+#include "script_doc.h"
+
+#include "utils_internal.h"
+
+spec(doc) {
+
+  ScriptDoc* doc = null;
+
+  setup() { doc = script_create(g_alloc_heap); }
+
+  it("can create literal expressions") {
+    check_expr_str(doc, script_add_lit(doc, script_val_null()), "[lit: null]");
+    check_expr_str(doc, script_add_lit(doc, script_val_number(42)), "[lit: 42]");
+    check_expr_str(
+        doc, script_add_lit(doc, script_val_vector3(geo_vector(1, 2, 3))), "[lit: 1, 2, 3]");
+  }
+
+  teardown() { script_destroy(doc); }
+}

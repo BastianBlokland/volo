@@ -47,7 +47,7 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprs  = dynarray_create_t(alloc, ScriptExpr, 64),
+      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
       .values = dynarray_create_t(alloc, ScriptVal, 32),
       .alloc  = alloc,
   };
