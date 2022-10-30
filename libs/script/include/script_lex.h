@@ -35,3 +35,9 @@ typedef struct {
  * NOTE: StringTable can optionally provided to store the text representations of keys.
  */
 String script_lex(String, StringTable*, ScriptToken*);
+
+/**
+ * Create a textual representation of the given token.
+ * NOTE: Returned string is allocated in scratch memory.
+ */
+String script_token_str(const ScriptToken*);

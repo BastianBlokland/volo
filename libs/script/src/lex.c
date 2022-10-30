@@ -178,3 +178,33 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   out->type = ScriptTokenType_End;
   return string_empty;
 }
+
+String script_token_str(const ScriptToken* token) {
+  switch (token->type) {
+  case ScriptTokenType_OpEqEq:
+    return string_lit("==");
+  case ScriptTokenType_OpBangEq:
+    return string_lit("!=");
+  case ScriptTokenType_OpLe:
+    return string_lit("<");
+  case ScriptTokenType_OpLeEq:
+    return string_lit("<=");
+  case ScriptTokenType_OpGt:
+    return string_lit(">");
+  case ScriptTokenType_OpGtEq:
+    return string_lit(">=");
+  case ScriptTokenType_LitNull:
+    return string_lit("null");
+  case ScriptTokenType_LitNumber:
+    return fmt_write_scratch("{}", fmt_float(token->val_number));
+  case ScriptTokenType_LitBool:
+    return fmt_write_scratch("{}", fmt_bool(token->val_bool));
+  case ScriptTokenType_LitKey:
+    return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
+  case ScriptTokenType_Error:
+    return script_error_str(token->val_error);
+  case ScriptTokenType_End:
+    return string_lit("\0");
+  }
+  diag_crash_msg("Unknown token-type");
+}
