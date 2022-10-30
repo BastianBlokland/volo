@@ -93,7 +93,7 @@ spec(node_try) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 2);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_number(42.42));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

@@ -140,7 +140,7 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetAiSourceDefKnowledge, key, data_prim_t(String));
 
     data_reg_union_t(g_dataReg, AssetAiSourceDef, type);
-    data_reg_choice_empty(g_dataReg, AssetAiSourceDef, AssetAiSource_None);
+    data_reg_choice_empty(g_dataReg, AssetAiSourceDef, AssetAiSource_Null);
     data_reg_choice_t(g_dataReg, AssetAiSourceDef, AssetAiSource_Number, data_number, t_AssetAiSourceDefNumber);
     data_reg_choice_t(g_dataReg, AssetAiSourceDef, AssetAiSource_Bool, data_bool, t_AssetAiSourceDefBool);
     data_reg_choice_t(g_dataReg, AssetAiSourceDef, AssetAiSource_Vector, data_vector, t_AssetAiSourceDefVector);
@@ -211,7 +211,7 @@ typedef struct {
 AssetAiSource build_source(const BuildContext* ctx, const AssetAiSourceDef* def) {
   AssetAiSource res = {.type = def->type};
   switch (def->type) {
-  case AssetAiSource_None:
+  case AssetAiSource_Null:
     break;
   case AssetAiSource_Number:
     res.data_number.value = def->data_number.value;

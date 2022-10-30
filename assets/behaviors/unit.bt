@@ -37,7 +37,7 @@
           "$type": "AssetAiNode_KnowledgeSet",
           "key": "user-move-target",
           "value": {
-            "$type": "AssetAiSource_None"
+            "$type": "AssetAiSource_Null"
           }
         }
       ]

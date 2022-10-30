@@ -17,7 +17,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set f64 knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -37,11 +37,11 @@ spec(node_knowledgeset) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42.42));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_number(42.42));
   }
 
   it("can set boolean knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -65,7 +65,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set vector knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -91,7 +91,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set time knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -117,7 +117,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set knowledge based on other knowledge when evaluated") {
-    ai_blackboard_set(bb, string_hash_lit("test1"), ai_value_f64(42));
+    ai_blackboard_set(bb, string_hash_lit("test1"), ai_value_number(42));
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -141,7 +141,7 @@ spec(node_knowledgeset) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_f64(42));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_number(42));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

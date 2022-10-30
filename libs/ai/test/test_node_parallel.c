@@ -136,9 +136,9 @@ spec(node_parallel) {
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 4);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_f64(1));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_f64(2));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test3")), ai_value_f64(3));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_number(1));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_number(2));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test3")), ai_value_number(3));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

@@ -4,11 +4,11 @@
 
 AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
   switch (src->type) {
-  case AssetAiSource_None: {
-    return ai_value_none();
+  case AssetAiSource_Null: {
+    return ai_value_null();
   }
   case AssetAiSource_Number: {
-    return ai_value_f64(src->data_number.value);
+    return ai_value_number(src->data_number.value);
   }
   case AssetAiSource_Bool: {
     return ai_value_bool(src->data_bool.value);
@@ -30,5 +30,5 @@ AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
     return ai_blackboard_get(bb, src->data_knowledge.key);
   }
   }
-  return ai_value_none();
+  return ai_value_null();
 }

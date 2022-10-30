@@ -84,7 +84,7 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to success when less comparison succeeds") {
-    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_number(42));
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -108,8 +108,8 @@ spec(node_knowledgecompare) {
   }
 
   it("evaluates to failure when less comparison fails") {
-    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
-    ai_blackboard_set(bb, string_hash_lit("value"), ai_value_f64(10));
+    ai_blackboard_set(bb, string_hash_lit("test"), ai_value_number(42));
+    ai_blackboard_set(bb, string_hash_lit("value"), ai_value_number(10));
 
     const AssetAiNode nodeDefs[] = {
         {

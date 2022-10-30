@@ -70,7 +70,7 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_none()));
+    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_null()));
 
     scene_brain_set(brain, knowledgeKey, ai_value_bool(true));
 

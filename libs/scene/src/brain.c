@@ -157,7 +157,7 @@ void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const Ai
 }
 
 void scene_brain_set_none(const SceneBrainComp* brain, const StringHash key) {
-  ai_blackboard_set_none(brain->blackboard, key);
+  ai_blackboard_set_null(brain->blackboard, key);
 }
 
 const AiBlackboard* scene_brain_memory(const SceneBrainComp* brain) { return brain->blackboard; }
