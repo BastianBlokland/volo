@@ -40,38 +40,38 @@ INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
   return *((EcsEntityId*)&value.data);
 }
 
-ScriptValType script_val_type(const ScriptVal value) { return (ScriptValType)value.data[3]; }
+ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
 
 ScriptVal script_val_null() {
-  ASSERT(ScriptValType_Null == 0, "ScriptValType_Null should be initializable using zero-init");
+  ASSERT(ScriptType_Null == 0, "ScriptType_Null should be initializable using zero-init");
   return (ScriptVal){0};
 }
 
 ScriptVal script_val_number(const f64 value) {
   ScriptVal result;
   *((f64*)&result.data) = value;
-  result.data[3]        = ScriptValType_Number;
+  result.data[3]        = ScriptType_Number;
   return result;
 }
 
 ScriptVal script_val_bool(const bool value) {
   ScriptVal result;
   *((bool*)&result.data) = value;
-  result.data[3]         = ScriptValType_Bool;
+  result.data[3]         = ScriptType_Bool;
   return result;
 }
 
 ScriptVal script_val_vector3(const GeoVector value) {
   ScriptVal result;
   *((GeoVector*)&result.data) = value;
-  result.data[3]              = ScriptValType_Vector3;
+  result.data[3]              = ScriptType_Vector3;
   return result;
 }
 
 ScriptVal script_val_entity(const EcsEntityId value) {
   ScriptVal result;
   *((EcsEntityId*)&result.data) = value;
-  result.data[3]                = ScriptValType_Entity;
+  result.data[3]                = ScriptType_Entity;
   return result;
 }
 
@@ -80,35 +80,34 @@ ScriptVal script_val_time(const TimeDuration value) {
 }
 
 f64 script_val_get_number(const ScriptVal value, const f64 fallback) {
-  return script_val_type(value) == ScriptValType_Number ? val_as_number(value) : fallback;
+  return script_type(value) == ScriptType_Number ? val_as_number(value) : fallback;
 }
 
 bool script_val_get_bool(const ScriptVal value, const bool fallback) {
-  return script_val_type(value) == ScriptValType_Bool ? val_as_bool(value) : fallback;
+  return script_type(value) == ScriptType_Bool ? val_as_bool(value) : fallback;
 }
 
 GeoVector script_val_get_vector3(const ScriptVal value, const GeoVector fallback) {
-  return script_val_type(value) == ScriptValType_Vector3 ? val_as_vector3(value) : fallback;
+  return script_type(value) == ScriptType_Vector3 ? val_as_vector3(value) : fallback;
 }
 
 EcsEntityId script_val_get_entity(const ScriptVal value, const EcsEntityId fallback) {
-  return script_val_type(value) == ScriptValType_Entity ? val_as_entity(value) : fallback;
+  return script_type(value) == ScriptType_Entity ? val_as_entity(value) : fallback;
 }
 
 TimeDuration script_val_get_time(const ScriptVal value, const TimeDuration fallback) {
-  return script_val_type(value) == ScriptValType_Number
-             ? (TimeDuration)time_seconds(val_as_number(value))
-             : fallback;
+  return script_type(value) == ScriptType_Number ? (TimeDuration)time_seconds(val_as_number(value))
+                                                 : fallback;
 }
 
-bool script_val_has(const ScriptVal value) { return script_val_type(value) != ScriptValType_Null; }
+bool script_val_has(const ScriptVal value) { return script_type(value) != ScriptType_Null; }
 
 ScriptVal script_val_or(const ScriptVal value, const ScriptVal fallback) {
-  return script_val_type(value) ? value : fallback;
+  return script_type(value) ? value : fallback;
 }
 
-String script_val_type_str(const ScriptValType type) {
-  diag_assert_msg(type < ScriptValType_Count, "Invalid script value type: {}", fmt_int(type));
+String script_val_type_str(const ScriptType type) {
+  diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
   static const String g_names[] = {
       string_static("null"),
       string_static("number"),
@@ -116,30 +115,30 @@ String script_val_type_str(const ScriptValType type) {
       string_static("vector3"),
       string_static("entity"),
   };
-  ASSERT(array_elems(g_names) == ScriptValType_Count, "Incorrect number of names");
+  ASSERT(array_elems(g_names) == ScriptType_Count, "Incorrect number of names");
   return g_names[type];
 }
 
 void script_val_str_write(const ScriptVal value, DynString* str) {
-  switch (script_val_type(value)) {
-  case ScriptValType_Null:
+  switch (script_type(value)) {
+  case ScriptType_Null:
     dynstring_append(str, string_lit("null"));
     return;
-  case ScriptValType_Number:
+  case ScriptType_Number:
     format_write_f64(str, val_as_number(value), &format_opts_float());
     return;
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     format_write_bool(str, val_as_bool(value));
     return;
-  case ScriptValType_Vector3: {
+  case ScriptType_Vector3: {
     const GeoVector v = val_as_vector3_dirty_w(value);
     format_write_arg(str, &fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
     return;
   }
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
     return;
-  case ScriptValType_Count:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");
@@ -158,26 +157,26 @@ String script_val_str_scratch(const ScriptVal value) {
 }
 
 bool script_val_equal(const ScriptVal a, const ScriptVal b) {
-  if (script_val_type(a) != script_val_type(b)) {
+  if (script_type(a) != script_type(b)) {
     return false;
   }
   static const f32 g_scalarThreshold = 1e-6f;
   static const f32 g_vectorThreshold = 1e-6f;
-  switch (script_val_type(a)) {
-  case ScriptValType_Null:
+  switch (script_type(a)) {
+  case ScriptType_Null:
     return true;
-  case ScriptValType_Number:
+  case ScriptType_Number:
     return math_abs(val_as_number(a) - val_as_number(b)) < g_scalarThreshold;
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     return val_as_bool(a) == val_as_bool(b);
-  case ScriptValType_Vector3: {
+  case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return geo_vector_equal3(vecA, vecB, g_vectorThreshold);
   }
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     return val_as_entity(a) == val_as_entity(b);
-  case ScriptValType_Count:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");
@@ -185,21 +184,21 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
 }
 
 bool script_val_less(const ScriptVal a, const ScriptVal b) {
-  if (script_val_type(a) != script_val_type(b)) {
+  if (script_type(a) != script_type(b)) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
-  switch (script_val_type(a)) {
-  case ScriptValType_Null:
+  switch (script_type(a)) {
+  case ScriptType_Null:
     return false;
-  case ScriptValType_Number:
+  case ScriptType_Number:
     return val_as_number(a) < val_as_number(b);
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     return val_as_bool(a) < val_as_bool(b); // NOTE: Questionable usefulness?
-  case ScriptValType_Vector3:
+  case ScriptType_Vector3:
     return geo_vector_mag(val_as_vector3(a)) < geo_vector_mag(val_as_vector3(b));
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     return ecs_entity_id_serial(val_as_entity(a)) < ecs_entity_id_serial(val_as_entity(b));
-  case ScriptValType_Count:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");
@@ -207,21 +206,21 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
 }
 
 bool script_val_greater(const ScriptVal a, const ScriptVal b) {
-  if (script_val_type(a) != script_val_type(b)) {
+  if (script_type(a) != script_type(b)) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
-  switch (script_val_type(a)) {
-  case ScriptValType_Null:
+  switch (script_type(a)) {
+  case ScriptType_Null:
     return false;
-  case ScriptValType_Number:
+  case ScriptType_Number:
     return val_as_number(a) > val_as_number(b);
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     return val_as_bool(a) > val_as_bool(b);
-  case ScriptValType_Vector3:
+  case ScriptType_Vector3:
     return geo_vector_mag(val_as_vector3(a)) > geo_vector_mag(val_as_vector3(b));
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     return ecs_entity_id_serial(val_as_entity(a)) > ecs_entity_id_serial(val_as_entity(b));
-  case ScriptValType_Count:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");
@@ -229,29 +228,29 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
 }
 
 ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
-  if (script_val_type(a) == ScriptValType_Null) {
+  if (script_type(a) == ScriptType_Null) {
     return b;
   }
-  if (script_val_type(b) == ScriptValType_Null) {
+  if (script_type(b) == ScriptType_Null) {
     return a;
   }
-  if (script_val_type(a) != script_val_type(b)) {
+  if (script_type(a) != script_type(b)) {
     return a; // Arithmetic on mismatched types not supported atm.
   }
-  switch (script_val_type(a)) {
-  case ScriptValType_Number:
+  switch (script_type(a)) {
+  case ScriptType_Number:
     return script_val_number(val_as_number(a) + val_as_number(b));
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case ScriptValType_Vector3: {
+  case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_val_vector3(geo_vector_add(vecA, vecB));
   }
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     return a; // Arithmetic on entities not supported.
-  case ScriptValType_Null:
-  case ScriptValType_Count:
+  case ScriptType_Null:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");
@@ -259,29 +258,29 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
 }
 
 ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
-  if (script_val_type(a) == ScriptValType_Null) {
+  if (script_type(a) == ScriptType_Null) {
     return b;
   }
-  if (script_val_type(b) == ScriptValType_Null) {
+  if (script_type(b) == ScriptType_Null) {
     return a;
   }
-  if (script_val_type(a) != script_val_type(b)) {
+  if (script_type(a) != script_type(b)) {
     return a; // Arithmetic on mismatched types not supported atm.
   }
-  switch (script_val_type(a)) {
-  case ScriptValType_Number:
+  switch (script_type(a)) {
+  case ScriptType_Number:
     return script_val_number(val_as_number(a) - val_as_number(b));
-  case ScriptValType_Bool:
+  case ScriptType_Bool:
     return a; // Arithmetic on booleans not supported.
-  case ScriptValType_Vector3: {
+  case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_val_vector3(geo_vector_sub(vecA, vecB));
   }
-  case ScriptValType_Entity:
+  case ScriptType_Entity:
     return a; // Arithmetic on entities not supported.
-  case ScriptValType_Null:
-  case ScriptValType_Count:
+  case ScriptType_Null:
+  case ScriptType_Count:
     break;
   }
   diag_assert_fail("Invalid script value");

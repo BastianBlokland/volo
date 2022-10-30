@@ -7,14 +7,14 @@
 typedef i64 TimeDuration;
 
 typedef enum {
-  ScriptValType_Null,
-  ScriptValType_Number,
-  ScriptValType_Bool,
-  ScriptValType_Vector3,
-  ScriptValType_Entity,
+  ScriptType_Null,
+  ScriptType_Number,
+  ScriptType_Bool,
+  ScriptType_Vector3,
+  ScriptType_Entity,
 
-  ScriptValType_Count,
-} ScriptValType;
+  ScriptType_Count,
+} ScriptType;
 
 /**
  * Type-erased knowledge value.
@@ -29,7 +29,7 @@ ASSERT(alignof(ScriptVal) == 16, "Expected ScriptVal's alignment to be 128 bits"
 /**
  * Retrieve the type of the given value.
  */
-ScriptValType script_val_type(ScriptVal);
+ScriptType script_type(ScriptVal);
 
 /**
  * Type-erase a value into a ScriptVal.
@@ -59,7 +59,7 @@ ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 /**
  * Create a textual representation of a value.
  */
-String script_val_type_str(ScriptValType);
+String script_val_type_str(ScriptType);
 void   script_val_str_write(ScriptVal, DynString*);
 String script_val_str_scratch(ScriptVal);
 

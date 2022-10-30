@@ -7,22 +7,22 @@
 
 spec(val) {
   it("can type-erase values") {
-    check_eq_int(script_val_type(script_val_null()), ScriptValType_Null);
+    check_eq_int(script_type(script_val_null()), ScriptType_Null);
 
-    check_eq_int(script_val_type(script_val_number(42)), ScriptValType_Number);
+    check_eq_int(script_type(script_val_number(42)), ScriptType_Number);
     check_eq_int(script_val_get_number(script_val_number(42), 0), 42);
 
-    check_eq_int(script_val_type(script_val_bool(true)), ScriptValType_Bool);
+    check_eq_int(script_type(script_val_bool(true)), ScriptType_Bool);
     check(script_val_get_bool(script_val_bool(true), false) == true);
 
-    check_eq_int(script_val_type(script_val_vector3(geo_vector(1, 2, 3))), ScriptValType_Vector3);
+    check_eq_int(script_type(script_val_vector3(geo_vector(1, 2, 3))), ScriptType_Vector3);
     check_eq_int(
         script_val_get_vector3(script_val_vector3(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
 
-    check_eq_int(script_val_type(script_val_entity(0x42)), ScriptValType_Entity);
+    check_eq_int(script_type(script_val_entity(0x42)), ScriptType_Entity);
     check_eq_int(script_val_get_entity(script_val_entity(0x42), 0), 0x42);
 
-    check_eq_int(script_val_type(script_val_time(time_seconds(2))), ScriptValType_Number);
+    check_eq_int(script_type(script_val_time(time_seconds(2))), ScriptType_Number);
     check_eq_int(script_val_get_time(script_val_time(time_seconds(2)), 0), time_seconds(2));
   }
 
@@ -74,11 +74,11 @@ spec(val) {
   }
 
   it("can produce a textual representation for a type") {
-    check_eq_string(script_val_type_str(ScriptValType_Null), string_lit("null"));
-    check_eq_string(script_val_type_str(ScriptValType_Number), string_lit("number"));
-    check_eq_string(script_val_type_str(ScriptValType_Bool), string_lit("bool"));
-    check_eq_string(script_val_type_str(ScriptValType_Vector3), string_lit("vector3"));
-    check_eq_string(script_val_type_str(ScriptValType_Entity), string_lit("entity"));
+    check_eq_string(script_val_type_str(ScriptType_Null), string_lit("null"));
+    check_eq_string(script_val_type_str(ScriptType_Number), string_lit("number"));
+    check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
+    check_eq_string(script_val_type_str(ScriptType_Vector3), string_lit("vector3"));
+    check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
   }
 
   it("can create a textual representation of a value") {
