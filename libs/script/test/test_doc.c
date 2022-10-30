@@ -11,17 +11,17 @@ spec(doc) {
   setup() { doc = script_create(g_alloc_heap); }
 
   it("can create value expressions") {
-    check_expr_str(doc, script_add_value(doc, script_null()), "[value: null]");
-    check_expr_str(doc, script_add_value(doc, script_number(42)), "[value: 42]");
-    check_expr_str(doc, script_add_value(doc, script_vector3_lit(1, 2, 3)), "[value: 1, 2, 3]");
+    check_expr_str_lit(doc, script_add_value(doc, script_null()), "[value: null]");
+    check_expr_str_lit(doc, script_add_value(doc, script_number(42)), "[value: 42]");
+    check_expr_str_lit(doc, script_add_value(doc, script_vector3_lit(1, 2, 3)), "[value: 1, 2, 3]");
   }
 
   it("can create load expressions") {
-    check_expr_str(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
+    check_expr_str_lit(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
   }
 
   it("can create basic compare expressions") {
-    check_expr_str(
+    check_expr_str_lit(
         doc,
         script_add_compare(
             doc,
@@ -34,7 +34,7 @@ spec(doc) {
   }
 
   it("can create nested compare expressions") {
-    check_expr_str(
+    check_expr_str_lit(
         doc,
         script_add_compare(
             doc,

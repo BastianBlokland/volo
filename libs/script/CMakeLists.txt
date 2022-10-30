@@ -9,6 +9,7 @@ add_library(lib_script STATIC
   src/doc.c
   src/error.c
   src/lex.c
+  src/read.c
   src/result.c
   src/val.c
   )
@@ -20,6 +21,7 @@ add_executable(test_lib_script
   test/test_compare.c
   test/test_doc.c
   test/test_lex.c
+  test/test_read.c
   test/test_val.c
   test/utils.c
   )

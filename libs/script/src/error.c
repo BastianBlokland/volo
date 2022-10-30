@@ -9,6 +9,9 @@ static const String g_errorStrs[] = {
     string_static("InvalidCharInFalse"),
     string_static("KeyIdentifierEmpty"),
     string_static("KeyIdentifierInvalidUtf8"),
+    string_static("RecursionLimitExceeded"),
+    string_static("MissingPrimaryExpression"),
+    string_static("InvalidPrimaryExpression"),
 };
 
 ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");

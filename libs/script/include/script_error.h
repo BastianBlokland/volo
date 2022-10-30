@@ -8,6 +8,9 @@ typedef enum {
   ScriptError_InvalidCharInFalse,
   ScriptError_KeyIdentifierEmpty,
   ScriptError_KeyIdentifierInvalidUtf8,
+  ScriptError_RecursionLimitExceeded,
+  ScriptError_MissingPrimaryExpression,
+  ScriptError_InvalidPrimaryExpression,
 
   ScriptError_Count,
 } ScriptError;
