@@ -1,7 +1,8 @@
 #include "check_spec.h"
 #include "core_array.h"
-#include "script_error.h"
 #include "script_lex.h"
+
+#include "utils_internal.h"
 
 spec(lex) {
   it("can equate token") {
@@ -10,46 +11,14 @@ spec(lex) {
       ScriptToken b;
       bool        expected;
     } testData[] = {
-        {
-            .a        = {.type = ScriptTokenType_OpEqEq},
-            .b        = {.type = ScriptTokenType_OpEqEq},
-            .expected = true,
-        },
-        {
-            .a        = {.type = ScriptTokenType_OpEqEq},
-            .b        = {.type = ScriptTokenType_OpBangEq},
-            .expected = false,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitNumber, .val_number = 42},
-            .b        = {.type = ScriptTokenType_LitNumber, .val_number = 42},
-            .expected = true,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitNumber, .val_number = 42},
-            .b        = {.type = ScriptTokenType_LitNumber, .val_number = 41},
-            .expected = false,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitBool, .val_bool = true},
-            .b        = {.type = ScriptTokenType_LitBool, .val_bool = true},
-            .expected = true,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitBool, .val_bool = true},
-            .b        = {.type = ScriptTokenType_LitBool, .val_bool = false},
-            .expected = false,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitKey, .val_key = string_hash_lit("HelloWorld")},
-            .b        = {.type = ScriptTokenType_LitKey, .val_key = string_hash_lit("HelloWorld")},
-            .expected = true,
-        },
-        {
-            .a        = {.type = ScriptTokenType_LitKey, .val_key = string_hash_lit("Hello")},
-            .b        = {.type = ScriptTokenType_LitKey, .val_key = string_hash_lit("HelloWorld")},
-            .expected = false,
-        },
+        {.a = tok_simple(OpEqEq), .b = tok_simple(OpEqEq), .expected = true},
+        {.a = tok_simple(OpEqEq), .b = tok_simple(OpBangEq), .expected = false},
+        {.a = tok_number(42), .b = tok_number(42), .expected = true},
+        {.a = tok_number(42), .b = tok_number(41), .expected = false},
+        {.a = tok_bool(true), .b = tok_bool(true), .expected = true},
+        {.a = tok_bool(true), .b = tok_bool(false), .expected = false},
+        {.a = tok_key_lit("HelloWorld"), .b = tok_key_lit("HelloWorld"), .expected = true},
+        {.a = tok_key_lit("Hello"), .b = tok_key_lit("HelloWorld"), .expected = false},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -74,22 +43,19 @@ spec(lex) {
       String      input;
       ScriptToken expected;
     } testData[] = {
-        {string_static("=="), {.type = ScriptTokenType_OpEqEq}},
-        {string_static("!="), {.type = ScriptTokenType_OpBangEq}},
-        {string_static("<"), {.type = ScriptTokenType_OpLe}},
-        {string_static("<="), {.type = ScriptTokenType_OpLeEq}},
-        {string_static(">"), {.type = ScriptTokenType_OpGt}},
-        {string_static(">="), {.type = ScriptTokenType_OpGtEq}},
-        {string_static("null"), {.type = ScriptTokenType_LitNull}},
-        {string_static("42"), {.type = ScriptTokenType_LitNumber, .val_number = 42}},
-        {string_static("true"), {.type = ScriptTokenType_LitBool, .val_bool = true}},
-        {string_static("false"), {.type = ScriptTokenType_LitBool, .val_bool = false}},
-        {
-            string_static("$hello"),
-            {.type = ScriptTokenType_LitKey, .val_key = string_hash_lit("hello")},
-        },
-        {string_static("|"), {.type = ScriptTokenType_Error, .val_error = ScriptError_InvalidChar}},
-        {string_static(""), {.type = ScriptTokenType_End}},
+        {string_static("=="), tok_simple(OpEqEq)},
+        {string_static("!="), tok_simple(OpBangEq)},
+        {string_static("<"), tok_simple(OpLe)},
+        {string_static("<="), tok_simple(OpLeEq)},
+        {string_static(">"), tok_simple(OpGt)},
+        {string_static(">="), tok_simple(OpGtEq)},
+        {string_static("null"), tok_null()},
+        {string_static("42"), tok_number(42)},
+        {string_static("true"), tok_bool(true)},
+        {string_static("false"), tok_bool(false)},
+        {string_static("$hello"), tok_key_lit("hello")},
+        {string_static("|"), tok_err(ScriptError_InvalidChar)},
+        {string_static(""), tok_end()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
