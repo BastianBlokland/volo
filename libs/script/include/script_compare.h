@@ -21,3 +21,8 @@ bool script_compare(ScriptVal, ScriptVal, ScriptComparison);
  * Get a textual representation of the given comparision type.
  */
 String script_comparision_str(ScriptComparison);
+
+/**
+ * Create a formatting argument for a comparision type.
+ */
+#define script_comparision_fmt(_VAL_) fmt_text(script_comparision_str(_VAL_))
