@@ -5,6 +5,7 @@
 message(STATUS "> library: script")
 
 add_library(lib_script STATIC
+  src/doc.c
   src/error.c
   src/lex.c
   )
