@@ -4,6 +4,11 @@
 
 static const String g_errorStrs[] = {
     string_static("InvalidChar"),
+    string_static("InvalidCharInNull"),
+    string_static("InvalidCharInTrue"),
+    string_static("InvalidCharInFalse"),
+    string_static("KeyIdentifierEmpty"),
+    string_static("KeyIdentifierInvalidUtf8"),
 };
 
 ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");

@@ -3,6 +3,11 @@
 
 typedef enum {
   ScriptError_InvalidChar,
+  ScriptError_InvalidCharInNull,
+  ScriptError_InvalidCharInTrue,
+  ScriptError_InvalidCharInFalse,
+  ScriptError_KeyIdentifierEmpty,
+  ScriptError_KeyIdentifierInvalidUtf8,
 
   ScriptError_Count,
 } ScriptError;
