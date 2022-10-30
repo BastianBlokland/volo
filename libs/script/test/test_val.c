@@ -15,8 +15,8 @@ spec(val) {
     check_eq_int(script_type(script_bool(true)), ScriptType_Bool);
     check(script_get_bool(script_bool(true), false) == true);
 
-    check_eq_int(script_type(script_vector3(geo_vector(1, 2, 3))), ScriptType_Vector3);
-    check_eq_int(script_get_vector3(script_vector3(geo_vector(1, 2, 3)), geo_vector(0)).z, 3);
+    check_eq_int(script_type(script_vector3_lit(1, 2, 3)), ScriptType_Vector3);
+    check_eq_int(script_get_vector3(script_vector3_lit(1, 2, 3), geo_vector(0)).z, 3);
 
     check_eq_int(script_type(script_entity(0x42)), ScriptType_Entity);
     check_eq_int(script_get_entity(script_entity(0x42), 0), 0x42);
@@ -42,7 +42,7 @@ spec(val) {
     check(script_get_bool(script_null(), false) == false);
 
     check(geo_vector_equal(
-        script_get_vector3(script_vector3(geo_vector(1, 2, 3)), geo_vector(4, 5, 6)),
+        script_get_vector3(script_vector3_lit(1, 2, 3), geo_vector(4, 5, 6)),
         geo_vector(1, 2, 3),
         1e-6f));
     check(geo_vector_equal(
@@ -85,7 +85,7 @@ spec(val) {
         {script_number(42.1), string_lit("42.1")},
         {script_bool(true), string_lit("true")},
         {script_bool(false), string_lit("false")},
-        {script_vector3(geo_vector(1, 2, 3)), string_lit("1, 2, 3")},
+        {script_vector3_lit(1, 2, 3), string_lit("1, 2, 3")},
         {script_entity(0x1337), string_lit("1337")},
         {script_time(time_seconds(42)), string_lit("42")},
         {script_time(time_hour), string_lit("3600")},
@@ -116,8 +116,8 @@ spec(val) {
         {script_bool(false), script_bool(false), .expected = true},
         {script_bool(false), script_bool(true), .expected = false},
 
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 2)), .expected = true},
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 3)), .expected = false},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = true},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = false},
 
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = true},
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
@@ -155,9 +155,9 @@ spec(val) {
         {script_bool(true), script_bool(false), .expected = false},
         {script_bool(false), script_bool(true), .expected = true},
 
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 2)), .expected = false},
-        {script_vector3(geo_vector(1, 3)), script_vector3(geo_vector(1, 2)), .expected = false},
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 3)), .expected = true},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = false},
+        {script_vector3_lit(1, 3, 0), script_vector3_lit(1, 2, 0), .expected = false},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = true},
 
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = true},
         {script_time(time_seconds(2)), script_time(time_seconds(1)), .expected = false},
@@ -197,9 +197,9 @@ spec(val) {
         {script_bool(false), script_bool(false), .expected = false},
         {script_bool(false), script_bool(true), .expected = false},
 
-        {script_vector3(geo_vector(1, 3)), script_vector3(geo_vector(1, 2)), .expected = true},
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 2)), .expected = false},
-        {script_vector3(geo_vector(1, 2)), script_vector3(geo_vector(1, 3)), .expected = false},
+        {script_vector3_lit(1, 3, 0), script_vector3_lit(1, 2, 0), .expected = true},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 2, 0), .expected = false},
+        {script_vector3_lit(1, 2, 0), script_vector3_lit(1, 3, 0), .expected = false},
 
         {script_time(time_seconds(2)), script_time(time_seconds(1)), .expected = true},
         {script_time(time_seconds(1)), script_time(time_seconds(2)), .expected = false},
@@ -239,13 +239,13 @@ spec(val) {
         {script_bool(false), script_bool(false), .expected = script_bool(false)},
         {script_bool(false), script_bool(true), .expected = script_bool(false)},
 
-        {.a        = script_vector3(geo_vector(1, 2, 3)),
-         .b        = script_vector3(geo_vector(4, 5, 6)),
-         .expected = script_vector3(geo_vector(5, 7, 9))},
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_vector3_lit(4, 5, 6),
+         .expected = script_vector3_lit(5, 7, 9)},
 
-        {.a        = script_vector3(geo_vector(1, 2, 3)),
+        {.a        = script_vector3_lit(1, 2, 3),
          .b        = script_number(42),
-         .expected = script_vector3(geo_vector(1, 2, 3))},
+         .expected = script_vector3_lit(1, 2, 3)},
 
         {.a        = script_time(time_seconds(1)),
          .b        = script_null(),
@@ -279,13 +279,13 @@ spec(val) {
         {script_bool(false), script_bool(false), .expected = script_bool(false)},
         {script_bool(false), script_bool(true), .expected = script_bool(false)},
 
-        {.a        = script_vector3(geo_vector(1, 2, 3)),
-         .b        = script_vector3(geo_vector(4, 5, 6)),
-         .expected = script_vector3(geo_vector(-3, -3, -3))},
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_vector3_lit(4, 5, 6),
+         .expected = script_vector3_lit(-3, -3, -3)},
 
-        {.a        = script_vector3(geo_vector(1, 2, 3)),
+        {.a        = script_vector3_lit(1, 2, 3),
          .b        = script_number(42),
-         .expected = script_vector3(geo_vector(1, 2, 3))},
+         .expected = script_vector3_lit(1, 2, 3)},
 
         {.a        = script_time(time_seconds(1)),
          .b        = script_null(),

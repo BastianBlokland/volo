@@ -68,6 +68,15 @@ ScriptVal script_vector3(const GeoVector value) {
   return result;
 }
 
+ScriptVal script_vector3_lit(const f32 x, const f32 y, const f32 z) {
+  ScriptVal result;
+  ((f32*)&result.data)[0] = x;
+  ((f32*)&result.data)[1] = y;
+  ((f32*)&result.data)[2] = z;
+  result.data[3]          = ScriptType_Vector3;
+  return result;
+}
+
 ScriptVal script_entity(const EcsEntityId value) {
   ScriptVal result;
   *((EcsEntityId*)&result.data) = value;
