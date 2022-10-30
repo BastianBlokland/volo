@@ -1,3 +1,4 @@
+#include "ai_eval.h"
 #include "ai_tracer_record.h"
 #include "core_alloc.h"
 #include "core_diag.h"
@@ -14,7 +15,7 @@ typedef struct {
   AiResult          result : 8; // Uninitialized if the node is still running.
   u8                depth;
   AiTracerNodeFlags flags : 8;
-  AssetAiNodeType   type;
+  AssetAiNodeType   type : 8;
   String            name;
 } AiTracerNode;
 
@@ -34,17 +35,22 @@ static AiTracerNode* tracer_observe(const AiTracerRecord* tracer, const u32 node
   return node;
 }
 
-static void tracer_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
-  AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
+static void tracer_begin(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
+  const AssetAiNode* def          = &ctx->nodeDefs[nodeId];
+  AiTracerRecord*    tracerRecord = (AiTracerRecord*)ctx->tracer;
 
   const u32     nodeIndex = (u32)tracerRecord->nodes.size;
   AiTracerNode* node      = dynarray_push_t(&tracerRecord->nodes, AiTracerNode);
   node->depth             = tracerRecord->depth;
   node->flags             = AiTracerNode_Running;
-  node->type              = nodeDef->type;
+  node->type              = def->type;
 
-  // TODO: Add error handling when the transient allocator runs out of space.
-  node->name = string_maybe_dup(tracerRecord->allocTransient, nodeDef->name);
+  if (ctx->nodeNames) {
+    // TODO: Add error handling when the transient allocator runs out of space.
+    node->name = string_maybe_dup(tracerRecord->allocTransient, ctx->nodeNames[nodeId]);
+  } else {
+    node->name = string_empty;
+  }
 
   if (UNLIKELY(tracerRecord->depth == ai_tracer_max_depth)) {
     diag_crash_msg("Ai node depth limit ({}) exceeded", fmt_int(ai_tracer_max_depth));
@@ -52,13 +58,14 @@ static void tracer_begin(AiTracer* tracer, const AssetAiNode* nodeDef) {
   tracerRecord->stack[tracerRecord->depth++] = nodeIndex;
 }
 
-static void tracer_end(AiTracer* tracer, const AssetAiNode* nodeDef, const AiResult result) {
-  AiTracerRecord* tracerRecord = (AiTracerRecord*)tracer;
-  (void)nodeDef;
+static void
+tracer_end(const AiEvalContext* ctx, const AssetAiNodeId nodeId, const AiResult result) {
+  MAYBE_UNUSED const AssetAiNode* def          = &ctx->nodeDefs[nodeId];
+  AiTracerRecord*                 tracerRecord = (AiTracerRecord*)ctx->tracer;
 
   const u32     activeNodeIdx = tracerRecord->stack[--tracerRecord->depth];
   AiTracerNode* activeNode    = dynarray_at_t(&tracerRecord->nodes, activeNodeIdx, AiTracerNode);
-  diag_assert(activeNode->type == nodeDef->type);
+  diag_assert(activeNode->type == def->type);
   diag_assert(activeNode->flags & AiTracerNode_Running);
 
   activeNode->result = result;

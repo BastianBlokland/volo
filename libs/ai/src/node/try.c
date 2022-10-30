@@ -2,10 +2,11 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-AiResult ai_node_try_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(nodeDef->type == AssetAiNode_Try);
+AiResult ai_node_try_eval(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
+  const AssetAiNode* def = &ctx->nodeDefs[nodeId];
+  diag_assert(def->type == AssetAiNode_Try);
 
-  switch (ai_eval(nodeDef->data_try.child, bb, tracer)) {
+  switch (ai_eval(ctx, def->data_try.child)) {
   case AiResult_Running:
     return AiResult_Running;
   case AiResult_Success:

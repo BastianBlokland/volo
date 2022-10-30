@@ -2,10 +2,11 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-AiResult ai_node_invert_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(nodeDef->type == AssetAiNode_Invert);
+AiResult ai_node_invert_eval(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
+  const AssetAiNode* def = &ctx->nodeDefs[nodeId];
+  diag_assert(def->type == AssetAiNode_Invert);
 
-  switch (ai_eval(nodeDef->data_invert.child, bb, tracer)) {
+  switch (ai_eval(ctx, def->data_invert.child)) {
   case AiResult_Running:
     return AiResult_Running;
   case AiResult_Success:

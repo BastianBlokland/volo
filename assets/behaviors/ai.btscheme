@@ -1,7 +1,7 @@
 {
   "aliases": [
     {
-      "identifier": "AssetAiNode",
+      "identifier": "AssetAiNodeDef",
       "values": [
         "AssetAiNode_Running",
         "AssetAiNode_Success",
@@ -17,7 +17,7 @@
       ]
     },
     {
-      "identifier": "AssetAiSource",
+      "identifier": "AssetAiSourceDef",
       "values": [
         "AssetAiSource_None",
         "AssetAiSource_Number",
@@ -78,7 +78,7 @@
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -88,7 +88,7 @@
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -98,7 +98,7 @@
       "fields": [
         {
           "name": "child",
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -109,7 +109,7 @@
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -120,7 +120,7 @@
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -131,7 +131,7 @@
         {
           "name": "children",
           "isArray": true,
-          "valueType": "AssetAiNode"
+          "valueType": "AssetAiNodeDef"
         }
       ]
     },
@@ -145,7 +145,7 @@
         },
         {
           "name": "value",
-          "valueType": "AssetAiSource"
+          "valueType": "AssetAiSourceDef"
         }
       ]
     },
@@ -220,11 +220,11 @@
         },
         {
           "name": "value",
-          "valueType": "AssetAiSource"
+          "valueType": "AssetAiSourceDef"
         }
       ]
     }
   ],
-  "rootAlias": "AssetAiNode",
+  "rootAlias": "AssetAiNodeDef",
   "featureNodeNames": true
 }

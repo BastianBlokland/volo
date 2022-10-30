@@ -2,11 +2,12 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-AiResult ai_node_running_eval(const AssetAiNode* nodeDef, AiBlackboard* bb, AiTracer* tracer) {
-  diag_assert(nodeDef->type == AssetAiNode_Running);
-  (void)nodeDef;
-  (void)bb;
-  (void)tracer;
+AiResult ai_node_running_eval(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
+  const AssetAiNode* def = &ctx->nodeDefs[nodeId];
+  diag_assert(def->type == AssetAiNode_Running);
+
+  (void)ctx;
+  (void)def;
 
   return AiResult_Running;
 }
