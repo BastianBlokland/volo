@@ -3,7 +3,7 @@
 #include "script_lex.h"
 #include "script_read.h"
 
-#define script_depth_max 100
+#define script_depth_max 25
 
 #define script_err(_ERR_)                                                                          \
   (ScriptReadResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
@@ -105,7 +105,6 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
 static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    --ctx->recursionDepth;
     read_token_skip(ctx); // NOTE: Important to consume a token to make progress.
     return script_err(ScriptError_RecursionLimitExceeded);
   }
