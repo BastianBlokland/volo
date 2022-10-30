@@ -5,6 +5,7 @@
 message(STATUS "> library: script")
 
 add_library(lib_script STATIC
+  src/error.c
   src/lex.c
   )
 target_include_directories(lib_script PUBLIC include)
