@@ -10,9 +10,16 @@ typedef struct {
 } ScriptExprLit;
 
 typedef struct {
+  ScriptExpr       lhs;
+  ScriptExpr       rhs;
+  ScriptComparison comparison;
+} ScriptExprCompare;
+
+typedef struct {
   ScriptExprType type;
   union {
-    ScriptExprLit data_lit;
+    ScriptExprLit     data_lit;
+    ScriptExprCompare data_compare;
   };
 } ScriptExprData;
 
@@ -70,6 +77,16 @@ ScriptExpr script_add_lit(ScriptDoc* doc, const ScriptVal val) {
       });
 }
 
+ScriptExpr script_add_compare(
+    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptComparison comparison) {
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type         = ScriptExprType_Compare,
+          .data_compare = {.lhs = lhs, .rhs = rhs, .comparison = comparison},
+      });
+}
+
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
 }
@@ -81,6 +98,13 @@ void script_expr_str_write(const ScriptDoc* doc, const ScriptExpr expr, DynStrin
     fmt_write(str, "[lit: ");
     script_val_str_write(script_doc_val_data(doc, data->data_lit.valId), str);
     fmt_write(str, "]");
+    return;
+  case ScriptExprType_Compare:
+    fmt_write(str, "[compare: {}]", script_comparision_fmt(data->data_compare.comparison));
+    fmt_write(str, "\n");
+    script_expr_str_write(doc, data->data_compare.lhs, str);
+    fmt_write(str, "\n");
+    script_expr_str_write(doc, data->data_compare.rhs, str);
     return;
   case ScriptExprType_Count:
     break;
