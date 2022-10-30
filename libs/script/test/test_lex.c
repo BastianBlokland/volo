@@ -35,6 +35,9 @@ spec(lex) {
       String      input;
       ScriptToken expected;
     } testData[] = {
+        {string_static("("), tok_simple(SepParenOpen)},
+        {string_static(")"), tok_simple(SepParenClose)},
+
         {string_static("=="), tok_simple(OpEqEq)},
         {string_static("="), tok_err(ScriptError_InvalidChar)},
 

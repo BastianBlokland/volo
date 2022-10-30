@@ -3,18 +3,20 @@
 #include "script_error.h"
 
 typedef enum {
-  ScriptTokenType_OpEqEq,    // ==
-  ScriptTokenType_OpBangEq,  // !=
-  ScriptTokenType_OpLe,      // <
-  ScriptTokenType_OpLeEq,    // <=
-  ScriptTokenType_OpGt,      // >
-  ScriptTokenType_OpGtEq,    // >=
-  ScriptTokenType_LitNull,   // null
-  ScriptTokenType_LitNumber, // 42.1337
-  ScriptTokenType_LitBool,   // true
-  ScriptTokenType_LitKey,    // $foo
-  ScriptTokenType_Error,     //
-  ScriptTokenType_End,       // \0
+  ScriptTokenType_SepParenOpen,  // (
+  ScriptTokenType_SepParenClose, // )
+  ScriptTokenType_OpEqEq,        // ==
+  ScriptTokenType_OpBangEq,      // !=
+  ScriptTokenType_OpLe,          // <
+  ScriptTokenType_OpLeEq,        // <=
+  ScriptTokenType_OpGt,          // >
+  ScriptTokenType_OpGtEq,        // >=
+  ScriptTokenType_LitNull,       // null
+  ScriptTokenType_LitNumber,     // 42.1337
+  ScriptTokenType_LitBool,       // true
+  ScriptTokenType_LitKey,        // $foo
+  ScriptTokenType_Error,         //
+  ScriptTokenType_End,           // \0
 } ScriptTokenType;
 
 typedef struct {

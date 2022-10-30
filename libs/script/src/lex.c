@@ -125,6 +125,12 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   while (!string_is_empty(str)) {
     switch (*string_begin(str)) {
+    case '(':
+      out->type = ScriptTokenType_SepParenOpen;
+      return string_consume(str, 1);
+    case ')':
+      out->type = ScriptTokenType_SepParenClose;
+      return string_consume(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
         out->type = ScriptTokenType_OpEqEq;
@@ -211,6 +217,10 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
 
 String script_token_str_scratch(const ScriptToken* token) {
   switch (token->type) {
+  case ScriptTokenType_SepParenOpen:
+    return string_lit("(");
+  case ScriptTokenType_SepParenClose:
+    return string_lit(")");
   case ScriptTokenType_OpEqEq:
     return string_lit("==");
   case ScriptTokenType_OpBangEq:
