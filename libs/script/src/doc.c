@@ -91,7 +91,19 @@ ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
 }
 
-void script_expr_str_write(const ScriptDoc* doc, const ScriptExpr expr, DynString* str) {
+static void script_expr_str_write_sep(const u32 indent, DynString* str) {
+  dynstring_append_char(str, '\n');
+  dynstring_append_chars(str, ' ', indent * 2);
+}
+
+static void script_expr_str_write_child(
+    const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
+  script_expr_str_write_sep(indent, str);
+  script_expr_str_write(doc, expr, indent, str);
+}
+
+void script_expr_str_write(
+    const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
   switch (data->type) {
   case ScriptExprType_Lit:
@@ -101,10 +113,8 @@ void script_expr_str_write(const ScriptDoc* doc, const ScriptExpr expr, DynStrin
     return;
   case ScriptExprType_Compare:
     fmt_write(str, "[compare: {}]", script_comparision_fmt(data->data_compare.comparison));
-    fmt_write(str, "\n");
-    script_expr_str_write(doc, data->data_compare.lhs, str);
-    fmt_write(str, "\n");
-    script_expr_str_write(doc, data->data_compare.rhs, str);
+    script_expr_str_write_child(doc, data->data_compare.lhs, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_compare.rhs, indent + 1, str);
     return;
   case ScriptExprType_Count:
     break;
@@ -117,7 +127,8 @@ String script_expr_str_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 8, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
-  script_expr_str_write(doc, expr, &str);
+  const u32 indent = 0;
+  script_expr_str_write(doc, expr, indent, &str);
 
   const String res = dynstring_view(&str);
   dynstring_destroy(&str);

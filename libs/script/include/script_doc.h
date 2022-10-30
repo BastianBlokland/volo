@@ -53,7 +53,7 @@ ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
 /**
  * Create a textual representation of the given expression.
  */
-void   script_expr_str_write(const ScriptDoc*, ScriptExpr, DynString*);
+void   script_expr_str_write(const ScriptDoc*, ScriptExpr, u32 indent, DynString*);
 String script_expr_str_scratch(const ScriptDoc*, ScriptExpr);
 
 /**
