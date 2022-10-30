@@ -15,7 +15,7 @@ typedef struct {
   AiResult          result : 8; // Uninitialized if the node is still running.
   u8                depth;
   AiTracerNodeFlags flags : 8;
-  AssetAiNodeType   type;
+  AssetAiNodeType   type : 8;
   String            name;
 } AiTracerNode;
 
@@ -60,8 +60,8 @@ static void tracer_begin(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
 
 static void
 tracer_end(const AiEvalContext* ctx, const AssetAiNodeId nodeId, const AiResult result) {
-  const AssetAiNode* def          = &ctx->nodeDefs[nodeId];
-  AiTracerRecord*    tracerRecord = (AiTracerRecord*)ctx->tracer;
+  MAYBE_UNUSED const AssetAiNode* def          = &ctx->nodeDefs[nodeId];
+  AiTracerRecord*                 tracerRecord = (AiTracerRecord*)ctx->tracer;
 
   const u32     activeNodeIdx = tracerRecord->stack[--tracerRecord->depth];
   AiTracerNode* activeNode    = dynarray_at_t(&tracerRecord->nodes, activeNodeIdx, AiTracerNode);

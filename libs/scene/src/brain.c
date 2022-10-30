@@ -83,7 +83,6 @@ static void scene_brain_eval(
   if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
     return;
   }
-  diag_assert(behavior->nodeCount);
 
   AiEvalContext ctx = {
       .memory    = brain->blackboard,

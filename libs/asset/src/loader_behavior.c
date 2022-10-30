@@ -1,6 +1,7 @@
 #include "asset_behavior.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "data.h"
@@ -236,6 +237,7 @@ AssetAiSource build_source(const BuildContext* ctx, const AssetAiSourceDef* def)
 static AssetAiNodeId build_node(BuildContext*, const AssetAiNodeDef*);
 
 static AssetAiNodeId build_node_id_peek(const BuildContext* ctx) {
+  diag_assert(dynarray_size(ctx->nodes) < u16_max);
   return (AssetAiNodeId)dynarray_size(ctx->nodes);
 }
 
@@ -404,7 +406,7 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
       AssetBehaviorComp,
       .nodes     = dynarray_copy_as_new(&nodes, g_alloc_heap),
       .nodeNames = dynarray_copy_as_new(&nodeNames, g_alloc_heap),
-      .nodeCount = nodes.size);
+      .nodeCount = (u16)nodes.size);
 
   dynarray_destroy(&nodes);
   dynarray_destroy(&nodeNames);

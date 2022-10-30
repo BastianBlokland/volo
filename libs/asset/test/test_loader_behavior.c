@@ -27,31 +27,31 @@ static const struct {
     {
         .id        = string_static("invert.bt"),
         .text      = string_static("{\n"
-                                   "\"$type\": \"AssetAiNode_Invert\",\n"
-                                   "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
-                                   "}"),
+                              "\"$type\": \"AssetAiNode_Invert\",\n"
+                              "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
+                              "}"),
         .type      = AssetAiNode_Invert,
         .nodeCount = 2,
     },
     {
         .id        = string_static("invert-with-name.bt"),
         .text      = string_static("{\n"
-                                   "\"$type\": \"AssetAiNode_Invert\",\n"
-                                   "\"$name\": \"Hello\",\n"
-                                   "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
-                                   "}"),
+                              "\"$type\": \"AssetAiNode_Invert\",\n"
+                              "\"$name\": \"Hello\",\n"
+                              "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
+                              "}"),
         .type      = AssetAiNode_Invert,
         .nodeCount = 2,
     },
     {
         .id        = string_static("knowledgeset.bt"),
         .text      = string_static("{\n"
-                                   "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                                   "\"key\": \"test\",\n"
-                                   "\"value\": {\n"
-                                   "  \"$type\": \"AssetAiSource_Vector\",\n"
-                                   "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
-                                   "}"),
+                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
+                              "\"key\": \"test\",\n"
+                              "\"value\": {\n"
+                              "  \"$type\": \"AssetAiSource_Vector\",\n"
+                              "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
+                              "}"),
         .type      = AssetAiNode_KnowledgeSet,
         .nodeCount = 1,
     },
@@ -63,8 +63,16 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid.bt"),
+        .id   = string_static("invalid-json.bt"),
         .text = string_static("Hello World"),
+    },
+    {
+        .id   = string_static("empty-object.bt"),
+        .text = string_static("{}"),
+    },
+    {
+        .id   = string_static("empty-array.bt"),
+        .text = string_static("[]"),
     },
 };
 
