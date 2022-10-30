@@ -14,6 +14,7 @@ target_link_libraries(lib_script PUBLIC lib_core)
 add_executable(test_lib_script
   test/config.c
   test/test_lex.c
+  test/utils.c
   )
 target_link_libraries(test_lib_script PRIVATE lib_app_check lib_script)
 

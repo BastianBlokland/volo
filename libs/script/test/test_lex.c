@@ -23,17 +23,9 @@ spec(lex) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       if (testData[i].expected) {
-        check_msg(
-            script_token_equal(&testData[i].a, &testData[i].b),
-            "{} == {}",
-            script_token_fmt(&testData[i].a),
-            script_token_fmt(&testData[i].b));
+        check_eq_tok(&testData[i].a, &testData[i].b);
       } else {
-        check_msg(
-            !script_token_equal(&testData[i].a, &testData[i].b),
-            "{} != {}",
-            script_token_fmt(&testData[i].a),
-            script_token_fmt(&testData[i].b));
+        check_neq_tok(&testData[i].a, &testData[i].b);
       }
     }
   }
@@ -63,11 +55,7 @@ spec(lex) {
       const String rem = script_lex(testData[i].input, null, &token);
 
       check_msg(string_is_empty(rem), "Unexpected remaining input: '{}'", fmt_text(rem));
-      check_msg(
-          script_token_equal(&token, &testData[i].expected),
-          "{} == {}",
-          script_token_fmt(&token),
-          script_token_fmt(&testData[i].expected));
+      check_eq_tok(&token, &testData[i].expected);
     }
   }
 }

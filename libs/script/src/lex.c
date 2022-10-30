@@ -197,7 +197,7 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   }
 }
 
-String script_token_str(const ScriptToken* token) {
+String script_token_str_scratch(const ScriptToken* token) {
   switch (token->type) {
   case ScriptTokenType_OpEqEq:
     return string_lit("==");

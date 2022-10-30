@@ -1,4 +1,5 @@
 #pragma once
+#include "check_spec.h"
 #include "script_lex.h"
 
 #define tok_simple(_TYPE_)                                                                         \
@@ -24,3 +25,9 @@
 
 #define tok_end()                                                                                  \
   (ScriptToken) { .type = ScriptTokenType_End }
+
+#define check_eq_tok(_A_, _B_) check_eq_tok_impl(_testCtx, (_A_), (_B_), source_location())
+#define check_neq_tok(_A_, _B_) check_neq_tok_impl(_testCtx, (_A_), (_B_), source_location())
+
+void check_eq_tok_impl(CheckTestContext*, const ScriptToken* a, const ScriptToken* b, SourceLoc);
+void check_neq_tok_impl(CheckTestContext*, const ScriptToken* a, const ScriptToken* b, SourceLoc);

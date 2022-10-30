@@ -45,9 +45,9 @@ bool script_token_equal(const ScriptToken*, const ScriptToken*);
  * Create a textual representation of the given token.
  * NOTE: Returned string is allocated in scratch memory.
  */
-String script_token_str(const ScriptToken*);
+String script_token_str_scratch(const ScriptToken*);
 
 /**
  * Create a formatting argument for a token.
  */
-#define script_token_fmt(_TOKEN_) fmt_text(script_token_str(_TOKEN_))
+#define script_token_fmt(_TOKEN_) fmt_text(script_token_str_scratch(_TOKEN_))
