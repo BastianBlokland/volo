@@ -42,60 +42,58 @@ INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
 
 ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
 
-ScriptVal script_val_null() {
+ScriptVal script_null() {
   ASSERT(ScriptType_Null == 0, "ScriptType_Null should be initializable using zero-init");
   return (ScriptVal){0};
 }
 
-ScriptVal script_val_number(const f64 value) {
+ScriptVal script_number(const f64 value) {
   ScriptVal result;
   *((f64*)&result.data) = value;
   result.data[3]        = ScriptType_Number;
   return result;
 }
 
-ScriptVal script_val_bool(const bool value) {
+ScriptVal script_bool(const bool value) {
   ScriptVal result;
   *((bool*)&result.data) = value;
   result.data[3]         = ScriptType_Bool;
   return result;
 }
 
-ScriptVal script_val_vector3(const GeoVector value) {
+ScriptVal script_vector3(const GeoVector value) {
   ScriptVal result;
   *((GeoVector*)&result.data) = value;
   result.data[3]              = ScriptType_Vector3;
   return result;
 }
 
-ScriptVal script_val_entity(const EcsEntityId value) {
+ScriptVal script_entity(const EcsEntityId value) {
   ScriptVal result;
   *((EcsEntityId*)&result.data) = value;
   result.data[3]                = ScriptType_Entity;
   return result;
 }
 
-ScriptVal script_val_time(const TimeDuration value) {
-  return script_val_number(value / (f64)time_second);
-}
+ScriptVal script_time(const TimeDuration value) { return script_number(value / (f64)time_second); }
 
-f64 script_val_get_number(const ScriptVal value, const f64 fallback) {
+f64 script_get_number(const ScriptVal value, const f64 fallback) {
   return script_type(value) == ScriptType_Number ? val_as_number(value) : fallback;
 }
 
-bool script_val_get_bool(const ScriptVal value, const bool fallback) {
+bool script_get_bool(const ScriptVal value, const bool fallback) {
   return script_type(value) == ScriptType_Bool ? val_as_bool(value) : fallback;
 }
 
-GeoVector script_val_get_vector3(const ScriptVal value, const GeoVector fallback) {
+GeoVector script_get_vector3(const ScriptVal value, const GeoVector fallback) {
   return script_type(value) == ScriptType_Vector3 ? val_as_vector3(value) : fallback;
 }
 
-EcsEntityId script_val_get_entity(const ScriptVal value, const EcsEntityId fallback) {
+EcsEntityId script_get_entity(const ScriptVal value, const EcsEntityId fallback) {
   return script_type(value) == ScriptType_Entity ? val_as_entity(value) : fallback;
 }
 
-TimeDuration script_val_get_time(const ScriptVal value, const TimeDuration fallback) {
+TimeDuration script_get_time(const ScriptVal value, const TimeDuration fallback) {
   return script_type(value) == ScriptType_Number ? (TimeDuration)time_seconds(val_as_number(value))
                                                  : fallback;
 }
@@ -239,13 +237,13 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Number:
-    return script_val_number(val_as_number(a) + val_as_number(b));
+    return script_number(val_as_number(a) + val_as_number(b));
   case ScriptType_Bool:
     return a; // Arithmetic on booleans not supported.
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
-    return script_val_vector3(geo_vector_add(vecA, vecB));
+    return script_vector3(geo_vector_add(vecA, vecB));
   }
   case ScriptType_Entity:
     return a; // Arithmetic on entities not supported.
@@ -269,13 +267,13 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Number:
-    return script_val_number(val_as_number(a) - val_as_number(b));
+    return script_number(val_as_number(a) - val_as_number(b));
   case ScriptType_Bool:
     return a; // Arithmetic on booleans not supported.
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
-    return script_val_vector3(geo_vector_sub(vecA, vecB));
+    return script_vector3(geo_vector_sub(vecA, vecB));
   }
   case ScriptType_Entity:
     return a; // Arithmetic on entities not supported.

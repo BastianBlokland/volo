@@ -34,21 +34,21 @@ ScriptType script_type(ScriptVal);
 /**
  * Type-erase a value into a ScriptVal.
  */
-ScriptVal script_val_null();
-ScriptVal script_val_number(f64);
-ScriptVal script_val_bool(bool);
-ScriptVal script_val_vector3(GeoVector);
-ScriptVal script_val_entity(EcsEntityId);
-ScriptVal script_val_time(TimeDuration); // Stored as seconds in a number value.
+ScriptVal script_null();
+ScriptVal script_number(f64);
+ScriptVal script_bool(bool);
+ScriptVal script_vector3(GeoVector);
+ScriptVal script_entity(EcsEntityId);
+ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
  * Extract a specific type.
  */
-f64          script_val_get_number(ScriptVal, f64 fallback);
-bool         script_val_get_bool(ScriptVal, bool fallback);
-GeoVector    script_val_get_vector3(ScriptVal, GeoVector fallback);
-EcsEntityId  script_val_get_entity(ScriptVal, EcsEntityId fallback);
-TimeDuration script_val_get_time(ScriptVal, TimeDuration fallback);
+f64          script_get_number(ScriptVal, f64 fallback);
+bool         script_get_bool(ScriptVal, bool fallback);
+GeoVector    script_get_vector3(ScriptVal, GeoVector fallback);
+EcsEntityId  script_get_entity(ScriptVal, EcsEntityId fallback);
+TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
 
 /**
  * Value utilities.
