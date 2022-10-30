@@ -41,3 +41,8 @@ String script_lex(String, StringTable*, ScriptToken*);
  * NOTE: Returned string is allocated in scratch memory.
  */
 String script_token_str(const ScriptToken*);
+
+/**
+ * Create a formatting argument for a token.
+ */
+#define script_token_fmt(_TOKEN_) fmt_text(script_token_str(_TOKEN_))
