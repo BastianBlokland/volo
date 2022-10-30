@@ -1,5 +1,6 @@
 #pragma once
 #include "core_types.h"
+#include "script_val.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -10,15 +11,37 @@ typedef struct sAllocator Allocator;
 typedef struct sScriptDoc ScriptDoc;
 
 /**
+ * Type of a Script expression.
+ */
+typedef enum {
+  ScriptExprType_Lit,
+
+  ScriptExprType_Count,
+} ScriptExprType;
+
+/**
+ * Handle to a Script expression.
+ */
+typedef u32 ScriptExpr;
+
+/**
  * Create a new Script document.
- * NOTE: 'exprCapacity' is only the initial capacity, more space is automatically allocated when
- * required. Capacity of 0 is legal and will allocate memory when the first expression is added.
  *
  * Should be destroyed using 'script_destroy()'.
  */
-ScriptDoc* script_create(Allocator*, usize exprCapacity);
+ScriptDoc* script_create(Allocator*);
 
 /**
  * Destroy a Script document.
  */
 void script_destroy(ScriptDoc*);
+
+/**
+ * Add new expressions.
+ */
+ScriptExpr script_add_lit(ScriptDoc*, ScriptVal);
+
+/**
+ * Query expression data.
+ */
+ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
