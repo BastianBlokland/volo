@@ -31,7 +31,7 @@ static const String g_errorStrs[] = {
 
 ASSERT(array_elems(g_errorStrs) == JsonError_Count, "Incorrect number of JsonError strings");
 
-String json_error_str(JsonError error) {
+String json_error_str(const JsonError error) {
   diag_assert(error < JsonError_Count);
   return g_errorStrs[error];
 }
