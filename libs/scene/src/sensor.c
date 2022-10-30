@@ -61,12 +61,12 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
-      scene_brain_set(brain, g_brainKeyHealth, ai_value_f64(health->norm));
+      scene_brain_set(brain, g_brainKeyHealth, ai_value_number(health->norm));
     }
 
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
-      scene_brain_set(brain, g_brainKeyFaction, ai_value_f64(faction->id));
+      scene_brain_set(brain, g_brainKeyFaction, ai_value_number(faction->id));
     }
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
@@ -85,7 +85,7 @@ ecs_system_define(SceneSensorUpdateSys) {
 
       scene_brain_set(brain, g_brainKeyTargetEntity, ai_value_entity(targetFinder->target));
       scene_brain_set(brain, g_brainKeyTargetPos, ai_value_vector3(targetFinder->targetPosition));
-      scene_brain_set(brain, g_brainKeyTargetDist, ai_value_f64(distToTarget));
+      scene_brain_set(brain, g_brainKeyTargetDist, ai_value_number(distToTarget));
       scene_brain_set(brain, g_brainKeyTargetLos, ai_value_bool(los));
     } else {
       scene_brain_set_none(brain, g_brainKeyTargetEntity);

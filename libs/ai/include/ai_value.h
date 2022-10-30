@@ -8,7 +8,7 @@ typedef i64 TimeDuration;
 
 typedef enum {
   AiValueType_Null,
-  AiValueType_f64,
+  AiValueType_Number,
   AiValueType_Bool,
   AiValueType_Vector3,
   AiValueType_Entity,
@@ -35,16 +35,16 @@ AiValueType ai_value_type(AiValue);
  * Type-erase a value into a AiValue.
  */
 AiValue ai_value_null();
-AiValue ai_value_f64(f64);
+AiValue ai_value_number(f64);
 AiValue ai_value_bool(bool);
 AiValue ai_value_vector3(GeoVector);
 AiValue ai_value_entity(EcsEntityId);
-AiValue ai_value_time(TimeDuration); // Stored as seconds in a f64 value.
+AiValue ai_value_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
  * Extract a specific type.
  */
-f64          ai_value_get_f64(AiValue, f64 fallback);
+f64          ai_value_get_number(AiValue, f64 fallback);
 bool         ai_value_get_bool(AiValue, bool fallback);
 GeoVector    ai_value_get_vector3(AiValue, GeoVector fallback);
 EcsEntityId  ai_value_get_entity(AiValue, EcsEntityId fallback);

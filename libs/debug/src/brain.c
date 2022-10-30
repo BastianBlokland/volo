@@ -141,9 +141,9 @@ static bool memory_draw_bool(UiCanvasComp* canvas, AiValue* value) {
 }
 
 static bool memory_draw_f64(UiCanvasComp* canvas, AiValue* value) {
-  f64 valNumber = ai_value_get_f64(*value, 0);
+  f64 valNumber = ai_value_get_number(*value, 0);
   if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
-    *value = ai_value_f64(valNumber);
+    *value = ai_value_number(valNumber);
     return true;
   }
   return false;
@@ -184,7 +184,7 @@ static bool memory_draw_value(UiCanvasComp* canvas, AiValue* value) {
   case AiValueType_Null:
     ui_label(canvas, string_lit("< none >"));
     return false;
-  case AiValueType_f64:
+  case AiValueType_Number:
     return memory_draw_f64(canvas, value);
   case AiValueType_Bool:
     return memory_draw_bool(canvas, value);
