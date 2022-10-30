@@ -4,7 +4,7 @@
 
 AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
   switch (src->type) {
-  case AssetAiSource_None: {
+  case AssetAiSource_Null: {
     return ai_value_null();
   }
   case AssetAiSource_Number: {
