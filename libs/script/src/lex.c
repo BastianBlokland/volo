@@ -179,6 +179,24 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   return string_empty;
 }
 
+bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
+  if (a->type != b->type) {
+    return false;
+  }
+  switch (a->type) {
+  case ScriptTokenType_LitNumber:
+    return a->val_number == b->val_number;
+  case ScriptTokenType_LitBool:
+    return a->val_bool == b->val_bool;
+  case ScriptTokenType_LitKey:
+    return a->val_key == b->val_key;
+  case ScriptTokenType_Error:
+    return a->val_error == b->val_error;
+  default:
+    return true;
+  }
+}
+
 String script_token_str(const ScriptToken* token) {
   switch (token->type) {
   case ScriptTokenType_OpEqEq:

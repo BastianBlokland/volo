@@ -37,6 +37,11 @@ typedef struct {
 String script_lex(String, StringTable*, ScriptToken*);
 
 /**
+ * Test if two tokens are equal.
+ */
+bool script_token_equal(const ScriptToken*, const ScriptToken*);
+
+/**
  * Create a textual representation of the given token.
  * NOTE: Returned string is allocated in scratch memory.
  */
