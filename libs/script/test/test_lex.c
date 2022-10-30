@@ -60,7 +60,7 @@ spec(lex) {
         {string_static(".000000000000001337"), tok_number(.000000000000001337)},
         {string_static("0.0"), tok_number(0.0)},
         {string_static("-1e+0"), tok_number(-1e+0)},
-        {string_static("1E+18"), tok_number(1e+18)},
+        {string_static("1E+17"), tok_number(1e+17)},
         {string_static("-0.17976931348623157"), tok_number(-0.17976931348623157)},
 
         {string_static("true"), tok_bool(true)},
