@@ -9,6 +9,7 @@ add_library(lib_script STATIC
   src/doc.c
   src/error.c
   src/lex.c
+  src/result.c
   src/val.c
   )
 target_include_directories(lib_script PUBLIC include)
