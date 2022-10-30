@@ -10,6 +10,10 @@ typedef struct {
 } ScriptExprValue;
 
 typedef struct {
+  StringHash key;
+} ScriptExprLoad;
+
+typedef struct {
   ScriptExpr       lhs;
   ScriptExpr       rhs;
   ScriptComparison comparison;
@@ -19,6 +23,7 @@ typedef struct {
   ScriptExprType type;
   union {
     ScriptExprValue   data_value;
+    ScriptExprLoad    data_load;
     ScriptExprCompare data_compare;
   };
 } ScriptExprData;
@@ -77,6 +82,16 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
       });
 }
 
+ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
+  diag_assert_msg(key, "Empty key is not valid");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type      = ScriptExprType_Load,
+          .data_load = {.key = key},
+      });
+}
+
 ScriptExpr script_add_compare(
     ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptComparison comparison) {
   return script_doc_expr_add(
@@ -110,6 +125,9 @@ void script_expr_str_write(
     fmt_write(str, "[value: ");
     script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
     fmt_write(str, "]");
+    return;
+  case ScriptExprType_Load:
+    fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
     return;
   case ScriptExprType_Compare:
     fmt_write(str, "[compare: {}]", script_comparision_fmt(data->data_compare.comparison));

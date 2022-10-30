@@ -16,6 +16,10 @@ spec(doc) {
     check_expr_str(doc, script_add_value(doc, script_vector3_lit(1, 2, 3)), "[value: 1, 2, 3]");
   }
 
+  it("can create load expressions") {
+    check_expr_str(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
+  }
+
   it("can create basic compare expressions") {
     check_expr_str(
         doc,
