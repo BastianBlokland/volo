@@ -236,5 +236,6 @@ String script_token_str_scratch(const ScriptToken* token) {
   case ScriptTokenType_End:
     return string_lit("\0");
   }
-  diag_crash_msg("Unknown token-type");
+  diag_assert_fail("Unknown token-type");
+  UNREACHABLE
 }

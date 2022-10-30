@@ -1,4 +1,5 @@
 #pragma once
+#include "core_dynstring.h"
 #include "core_types.h"
 #include "script_val.h"
 
@@ -45,3 +46,14 @@ ScriptExpr script_add_lit(ScriptDoc*, ScriptVal);
  * Query expression data.
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
+
+/**
+ * Create a textual representation of the given expression.
+ */
+void   script_expr_str_write(const ScriptDoc*, ScriptExpr, DynString*);
+String script_expr_str_scratch(const ScriptDoc*, ScriptExpr);
+
+/**
+ * Create a formatting argument for a expression.
+ */
+#define script_expr_fmt(_DOC_, _EXPR_) fmt_text(script_expr_str_scratch((_DOC_), (_EXPR_)))
