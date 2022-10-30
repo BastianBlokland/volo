@@ -1,3 +1,4 @@
+#include "core_float.h"
 #include "core_math.h"
 #include "geo_sphere.h"
 

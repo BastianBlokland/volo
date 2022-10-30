@@ -4,6 +4,7 @@
 #include "core_stringtable.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
+#include "core_format.h"
 #include "gap_window.h"
 #include "rend_settings.h"
 #include "rend_stats.h"

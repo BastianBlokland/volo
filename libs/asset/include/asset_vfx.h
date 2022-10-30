@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_quat.h"

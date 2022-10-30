@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
 #include "debug_brain.h"

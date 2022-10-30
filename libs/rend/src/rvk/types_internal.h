@@ -1,5 +1,4 @@
 #pragma once
-#include "core_format.h"
 #include "core_types.h"
 
 typedef union {

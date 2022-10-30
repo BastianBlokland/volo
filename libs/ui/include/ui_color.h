@@ -1,6 +1,6 @@
 #pragma once
 #include "core_annotation.h"
-#include "core_format.h"
+#include "core_types.h"
 
 /**
  * UI Color, 8 bits per channel.

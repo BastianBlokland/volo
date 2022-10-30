@@ -1,3 +1,4 @@
+#include "core_format.h"
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"

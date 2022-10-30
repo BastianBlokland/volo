@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_camera.h"

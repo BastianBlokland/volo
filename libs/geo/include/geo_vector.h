@@ -1,5 +1,6 @@
 #pragma once
-#include "core_format.h"
+#include "core_annotation.h"
+#include "core_types.h"
 
 /**
  * 4 component geometric spacial Vector.
