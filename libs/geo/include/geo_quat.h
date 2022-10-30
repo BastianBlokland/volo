@@ -1,5 +1,4 @@
 #pragma once
-#include "core_format.h"
 #include "geo_vector.h"
 
 /**

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "debug_ecs.h"
 #include "debug_register.h"
 #include "ecs_runner.h"

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_format.h"
+#include "core_string.h"
 #include "core_unicode.h"
 
 #define UI_SHAPES                                                                                  \

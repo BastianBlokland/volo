@@ -1,4 +1,5 @@
 #pragma once
+#include "core_dynstring.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "ui_color.h"

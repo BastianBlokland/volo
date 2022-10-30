@@ -1,5 +1,5 @@
 #pragma once
-#include "core_format.h"
+#include "core_string.h"
 #include "ui_color.h"
 #include "ui_units.h"
 

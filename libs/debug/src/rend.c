@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
