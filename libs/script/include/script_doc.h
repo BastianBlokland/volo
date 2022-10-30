@@ -16,7 +16,7 @@ typedef struct sScriptDoc ScriptDoc;
  * Type of a Script expression.
  */
 typedef enum {
-  ScriptExprType_Lit,
+  ScriptExprType_Value,
   ScriptExprType_Compare,
 
   ScriptExprType_Count,
@@ -42,7 +42,7 @@ void script_destroy(ScriptDoc*);
 /**
  * Add new expressions.
  */
-ScriptExpr script_add_lit(ScriptDoc*, ScriptVal);
+ScriptExpr script_add_value(ScriptDoc*, ScriptVal);
 ScriptExpr script_add_compare(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptComparison);
 
 /**

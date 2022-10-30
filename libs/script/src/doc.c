@@ -7,7 +7,7 @@ typedef u32 ScriptValId;
 
 typedef struct {
   ScriptValId valId;
-} ScriptExprLit;
+} ScriptExprValue;
 
 typedef struct {
   ScriptExpr       lhs;
@@ -18,7 +18,7 @@ typedef struct {
 typedef struct {
   ScriptExprType type;
   union {
-    ScriptExprLit     data_lit;
+    ScriptExprValue   data_value;
     ScriptExprCompare data_compare;
   };
 } ScriptExprData;
@@ -54,9 +54,9 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-      .values = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc  = alloc,
+                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+                .values = dynarray_create_t(alloc, ScriptVal, 32),
+                .alloc  = alloc,
   };
   return doc;
 }
@@ -67,13 +67,13 @@ void script_destroy(ScriptDoc* doc) {
   alloc_free_t(doc->alloc, doc);
 }
 
-ScriptExpr script_add_lit(ScriptDoc* doc, const ScriptVal val) {
+ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type     = ScriptExprType_Lit,
-          .data_lit = {.valId = valId},
+          .type       = ScriptExprType_Value,
+          .data_value = {.valId = valId},
       });
 }
 
@@ -106,9 +106,9 @@ void script_expr_str_write(
     const ScriptDoc* doc, const ScriptExpr expr, const u32 indent, DynString* str) {
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
   switch (data->type) {
-  case ScriptExprType_Lit:
-    fmt_write(str, "[lit: ");
-    script_val_str_write(script_doc_val_data(doc, data->data_lit.valId), str);
+  case ScriptExprType_Value:
+    fmt_write(str, "[value: ");
+    script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
     fmt_write(str, "]");
     return;
   case ScriptExprType_Compare:
