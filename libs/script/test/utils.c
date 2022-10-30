@@ -17,3 +17,39 @@ void check_neq_tok_impl(
     check_report_error(ctx, msg, src);
   }
 }
+
+void check_eq_val_impl(
+    CheckTestContext* ctx, const ScriptVal a, const ScriptVal b, const SourceLoc src) {
+
+  if (UNLIKELY(!script_val_equal(a, b))) {
+    const String msg = fmt_write_scratch("{} == {}", script_val_fmt(a), script_val_fmt(b));
+    check_report_error(ctx, msg, src);
+  }
+}
+
+void check_neq_val_impl(
+    CheckTestContext* ctx, const ScriptVal a, const ScriptVal b, const SourceLoc src) {
+
+  if (UNLIKELY(script_val_equal(a, b))) {
+    const String msg = fmt_write_scratch("{} != {}", script_val_fmt(a), script_val_fmt(b));
+    check_report_error(ctx, msg, src);
+  }
+}
+
+void check_less_val_impl(
+    CheckTestContext* ctx, const ScriptVal a, const ScriptVal b, const SourceLoc src) {
+
+  if (UNLIKELY(!script_val_less(a, b))) {
+    const String msg = fmt_write_scratch("{} < {}", script_val_fmt(a), script_val_fmt(b));
+    check_report_error(ctx, msg, src);
+  }
+}
+
+void check_greater_val_impl(
+    CheckTestContext* ctx, const ScriptVal a, const ScriptVal b, const SourceLoc src) {
+
+  if (UNLIKELY(!script_val_greater(a, b))) {
+    const String msg = fmt_write_scratch("{} > {}", script_val_fmt(a), script_val_fmt(b));
+    check_report_error(ctx, msg, src);
+  }
+}
