@@ -181,7 +181,7 @@ static bool memory_draw_entity(UiCanvasComp* canvas, AiValue* value) {
 
 static bool memory_draw_value(UiCanvasComp* canvas, AiValue* value) {
   switch (ai_value_type(*value)) {
-  case AiValueType_None:
+  case AiValueType_Null:
     ui_label(canvas, string_lit("< none >"));
     return false;
   case AiValueType_f64:

@@ -12,7 +12,7 @@
  *
  * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
  * |---------|---------------|---------------|------------|--------------|
- * | none    | unused        | unused        | unused     | type tag (0) |
+ * | null    | unused        | unused        | unused     | type tag (0) |
  * | f64     | lower 32 bits | upper 32 bits | unused     | type tag (1) |
  * | Bool    | 0 / 1         | unused        | unused     | type tag (2) |
  * | Vector3 | f32 x         | f32 y         | f32 z      | type tag (3) |
@@ -41,8 +41,8 @@ INLINE_HINT static EcsEntityId val_as_entity(const AiValue value) {
 
 AiValueType ai_value_type(const AiValue value) { return (AiValueType)value.data[3]; }
 
-AiValue ai_value_none() {
-  ASSERT(AiValueType_None == 0, "ValueTypeNone should be initializable using zero-init");
+AiValue ai_value_null() {
+  ASSERT(AiValueType_Null == 0, "ValueTypeNull should be initializable using zero-init");
   return (AiValue){0};
 }
 
@@ -97,7 +97,7 @@ TimeDuration ai_value_get_time(const AiValue value, const TimeDuration fallback)
                                                  : fallback;
 }
 
-bool ai_value_has(const AiValue value) { return ai_value_type(value) != AiValueType_None; }
+bool ai_value_has(const AiValue value) { return ai_value_type(value) != AiValueType_Null; }
 
 AiValue ai_value_or(const AiValue value, const AiValue fallback) {
   return ai_value_type(value) ? value : fallback;
@@ -106,7 +106,7 @@ AiValue ai_value_or(const AiValue value, const AiValue fallback) {
 String ai_value_type_str(const AiValueType type) {
   diag_assert_msg(type < AiValueType_Count, "Invalid ai value type: {}", fmt_int(type));
   static const String g_names[] = {
-      string_static("none"),
+      string_static("null"),
       string_static("f64"),
       string_static("bool"),
       string_static("vector3"),
@@ -118,8 +118,8 @@ String ai_value_type_str(const AiValueType type) {
 
 String ai_value_str_scratch(AiValue value) {
   switch (ai_value_type(value)) {
-  case AiValueType_None:
-    return string_lit("none");
+  case AiValueType_Null:
+    return string_lit("null");
   case AiValueType_f64:
     return fmt_write_scratch("{}", fmt_float(val_as_f64(value)));
   case AiValueType_Bool:
@@ -144,7 +144,7 @@ bool ai_value_equal(AiValue a, AiValue b) {
   static const f32 g_scalarThreshold = 1e-6f;
   static const f32 g_vectorThreshold = 1e-6f;
   switch (ai_value_type(a)) {
-  case AiValueType_None:
+  case AiValueType_Null:
     return true;
   case AiValueType_f64:
     return math_abs(val_as_f64(a) - val_as_f64(b)) < g_scalarThreshold;
@@ -169,7 +169,7 @@ bool ai_value_less(AiValue a, AiValue b) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
   switch (ai_value_type(a)) {
-  case AiValueType_None:
+  case AiValueType_Null:
     return false;
   case AiValueType_f64:
     return val_as_f64(a) < val_as_f64(b);
@@ -191,7 +191,7 @@ bool ai_value_greater(AiValue a, AiValue b) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
   switch (ai_value_type(a)) {
-  case AiValueType_None:
+  case AiValueType_Null:
     return false;
   case AiValueType_f64:
     return val_as_f64(a) > val_as_f64(b);
@@ -209,10 +209,10 @@ bool ai_value_greater(AiValue a, AiValue b) {
 }
 
 AiValue ai_value_add(const AiValue a, const AiValue b) {
-  if (ai_value_type(a) == AiValueType_None) {
+  if (ai_value_type(a) == AiValueType_Null) {
     return b;
   }
-  if (ai_value_type(b) == AiValueType_None) {
+  if (ai_value_type(b) == AiValueType_Null) {
     return a;
   }
   if (ai_value_type(a) != ai_value_type(b)) {
@@ -230,7 +230,7 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
   }
   case AiValueType_Entity:
     return a; // Arithmetic on entities not supported.
-  case AiValueType_None:
+  case AiValueType_Null:
   case AiValueType_Count:
     break;
   }
@@ -239,10 +239,10 @@ AiValue ai_value_add(const AiValue a, const AiValue b) {
 }
 
 AiValue ai_value_sub(const AiValue a, const AiValue b) {
-  if (ai_value_type(a) == AiValueType_None) {
+  if (ai_value_type(a) == AiValueType_Null) {
     return b;
   }
-  if (ai_value_type(b) == AiValueType_None) {
+  if (ai_value_type(b) == AiValueType_Null) {
     return a;
   }
   if (ai_value_type(a) != ai_value_type(b)) {
@@ -260,7 +260,7 @@ AiValue ai_value_sub(const AiValue a, const AiValue b) {
   }
   case AiValueType_Entity:
     return a; // Arithmetic on entities not supported.
-  case AiValueType_None:
+  case AiValueType_Null:
   case AiValueType_Count:
     break;
   }

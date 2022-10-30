@@ -17,7 +17,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set f64 knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -41,7 +41,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set boolean knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -65,7 +65,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set vector knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {
@@ -91,7 +91,7 @@ spec(node_knowledgeset) {
   }
 
   it("can set time knowledge when evaluated") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     const AssetAiNode nodeDefs[] = {
         {

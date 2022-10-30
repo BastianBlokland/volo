@@ -7,7 +7,7 @@
 typedef i64 TimeDuration;
 
 typedef enum {
-  AiValueType_None,
+  AiValueType_Null,
   AiValueType_f64,
   AiValueType_Bool,
   AiValueType_Vector3,
@@ -34,7 +34,7 @@ AiValueType ai_value_type(AiValue);
 /**
  * Type-erase a value into a AiValue.
  */
-AiValue ai_value_none();
+AiValue ai_value_null();
 AiValue ai_value_f64(f64);
 AiValue ai_value_bool(bool);
 AiValue ai_value_vector3(GeoVector);

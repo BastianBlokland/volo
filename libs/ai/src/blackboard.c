@@ -112,9 +112,9 @@ void ai_blackboard_set(AiBlackboard* bb, const StringHash key, const AiValue val
   bb->slotValues[slotIndex] = value;
 }
 
-void ai_blackboard_set_none(AiBlackboard* bb, const StringHash key) {
+void ai_blackboard_set_null(AiBlackboard* bb, const StringHash key) {
   const u32 slotIndex       = ai_blackboard_insert(bb, key);
-  bb->slotValues[slotIndex] = ai_value_none();
+  bb->slotValues[slotIndex] = ai_value_null();
 }
 
 AiBlackboardItr ai_blackboard_begin(const AiBlackboard* bb) {

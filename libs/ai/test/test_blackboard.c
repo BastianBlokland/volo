@@ -10,19 +10,19 @@ spec(blackboard) {
 
   setup() { bb = ai_blackboard_create(g_alloc_heap); }
 
-  it("returns none if the knowledge is unset") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_none());
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_none());
+  it("returns null if the knowledge is unset") {
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_null());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_null());
 
     ai_blackboard_set(bb, string_hash_lit("test1"), ai_value_f64(42));
 
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_f64(42));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_null());
 
-    ai_blackboard_set_none(bb, string_hash_lit("test1"));
+    ai_blackboard_set_null(bb, string_hash_lit("test1"));
 
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_none());
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_null());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_null());
   }
 
   it("returns the stored knowledge") {
@@ -43,20 +43,20 @@ spec(blackboard) {
   }
 
   it("can unset knowledge") {
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
     check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_f64(42));
 
-    ai_blackboard_set_none(bb, string_hash_lit("test"));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    ai_blackboard_set_null(bb, string_hash_lit("test"));
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
   }
 
   it("can update previously unset knowledge") {
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
-    ai_blackboard_set_none(bb, string_hash_lit("test"));
+    ai_blackboard_set_null(bb, string_hash_lit("test"));
 
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_none());
+    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_null());
 
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
 

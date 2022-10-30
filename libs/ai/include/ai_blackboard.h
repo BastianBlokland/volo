@@ -26,7 +26,7 @@ void ai_blackboard_destroy(AiBlackboard*);
  */
 AiValue ai_blackboard_get(const AiBlackboard*, StringHash key);
 void    ai_blackboard_set(AiBlackboard*, StringHash key, AiValue);
-void    ai_blackboard_set_none(AiBlackboard*, StringHash key);
+void    ai_blackboard_set_null(AiBlackboard*, StringHash key);
 
 /**
  * Iterator for iterating blackboard keys.
