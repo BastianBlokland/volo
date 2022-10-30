@@ -7,12 +7,9 @@
  * Behavior tree definition.
  */
 
-typedef struct sAssetAiNode AssetAiNode;
+typedef u16 AssetAiNodeId;
 
-typedef struct {
-  const AssetAiNode* values;
-  usize              count;
-} AssetAiNodeList;
+enum { AssetAiNodeRoot = 0 };
 
 typedef enum eAssetAiNodeType {
   AssetAiNode_Running,
@@ -65,7 +62,7 @@ typedef struct {
 } AssetAiSourceTime;
 
 typedef struct {
-  String key;
+  StringHash key;
 } AssetAiSourceKnowledge;
 
 typedef struct {
@@ -80,43 +77,43 @@ typedef struct {
 } AssetAiSource;
 
 typedef struct {
-  const AssetAiNode* child;
+  AssetAiNodeId child;
 } AssetAiNodeInvert;
 
 typedef struct {
-  const AssetAiNode* child;
+  AssetAiNodeId child;
 } AssetAiNodeTry;
 
 typedef struct {
-  const AssetAiNode* child;
+  AssetAiNodeId child;
 } AssetAiNodeRepeat;
 
 typedef struct {
-  AssetAiNodeList children;
+  AssetAiNodeId childrenBegin;
 } AssetAiNodeParallel;
 
 typedef struct {
-  AssetAiNodeList children;
+  AssetAiNodeId childrenBegin;
 } AssetAiNodeSelector;
 
 typedef struct {
-  AssetAiNodeList children;
+  AssetAiNodeId childrenBegin;
 } AssetAiNodeSequence;
 
 typedef struct {
-  String        key;
+  StringHash    key;
   AssetAiSource value;
 } AssetAiNodeKnowledgeSet;
 
 typedef struct {
   AssetAiComparison comparison;
-  String            key;
+  StringHash        key;
   AssetAiSource     value;
 } AssetAiNodeKnowledgeCompare;
 
 typedef struct sAssetAiNode {
   AssetAiNodeType type;
-  String          name;
+  AssetAiNodeId   nextSibling;
   union {
     AssetAiNodeInvert           data_invert;
     AssetAiNodeTry              data_try;
@@ -129,7 +126,11 @@ typedef struct sAssetAiNode {
   };
 } AssetAiNode;
 
-ecs_comp_extern_public(AssetBehaviorComp) { AssetAiNode root; };
+ecs_comp_extern_public(AssetBehaviorComp) {
+  const AssetAiNode* nodes;     // AssetAiNode[nodeCount]
+  const String*      nodeNames; // String[nodeCount]
+  u16                nodeCount;
+};
 
 /**
  * Get a textual representation of the given type enumeration.

@@ -16,9 +16,9 @@
   X(AssetAiNode_Success, ai_node_success_eval)                                                     \
   X(AssetAiNode_Try, ai_node_try_eval)
 
-typedef AiResult (*AiNodeEval)(const AiEvalContext*, const AssetAiNode*);
+typedef AiResult (*AiNodeEval)(const AiEvalContext*, AssetAiNodeId);
 
-#define X(_ASSET_, _FUNC_EVAL_) AiResult _FUNC_EVAL_(const AiEvalContext*, const AssetAiNode*);
+#define X(_ASSET_, _FUNC_EVAL_) AiResult _FUNC_EVAL_(const AiEvalContext*, AssetAiNodeId);
 AI_NODES
 #undef X
 
@@ -29,13 +29,13 @@ static const AiNodeEval g_node_eval_funcs[] = {
 };
 ASSERT(array_elems(g_node_eval_funcs) == AssetAiNode_Count, "Missing node eval function");
 
-AiResult ai_eval(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
+AiResult ai_eval(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
   if (ctx->tracer) {
-    ctx->tracer->begin(ctx, nodeDef);
+    ctx->tracer->begin(ctx, nodeId);
   }
-  const AiResult result = g_node_eval_funcs[nodeDef->type](ctx, nodeDef);
+  const AiResult result = g_node_eval_funcs[ctx->nodeDefs[nodeId].type](ctx, nodeId);
   if (ctx->tracer) {
-    ctx->tracer->end(ctx, nodeDef, result);
+    ctx->tracer->end(ctx, nodeId, result);
   }
   return result;
 }

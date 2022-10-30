@@ -2,10 +2,12 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 
-AiResult ai_node_failure_eval(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
-  diag_assert(nodeDef->type == AssetAiNode_Failure);
+AiResult ai_node_failure_eval(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
+  const AssetAiNode* def = &ctx->nodeDefs[nodeId];
+  diag_assert(def->type == AssetAiNode_Failure);
+
   (void)ctx;
-  (void)nodeDef;
+  (void)def;
 
   return AiResult_Failure;
 }

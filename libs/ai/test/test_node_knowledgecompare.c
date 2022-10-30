@@ -16,78 +16,94 @@ spec(node_knowledgecompare) {
   it("evaluates to success when equals comparison succeeds") {
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_bool(true));
 
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_KnowledgeCompare,
-        .data_knowledgecompare =
-            {
-                .comparison = AssetAiComparison_Equal,
-                .key        = string_lit("test"),
-                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
-            },
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type        = AssetAiNode_KnowledgeCompare,
+            .nextSibling = sentinel_u16,
+            .data_knowledgecompare =
+                {
+                    .comparison = AssetAiComparison_Equal,
+                    .key        = string_hash_lit("test"),
+                    .value      = {.type = AssetAiSource_Bool, .data_bool = true},
+                },
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to failure when the key does not exist") {
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_KnowledgeCompare,
-        .data_knowledgecompare =
-            {
-                .comparison = AssetAiComparison_Equal,
-                .key        = string_lit("test"),
-                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
-            },
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type        = AssetAiNode_KnowledgeCompare,
+            .nextSibling = sentinel_u16,
+            .data_knowledgecompare =
+                {
+                    .comparison = AssetAiComparison_Equal,
+                    .key        = string_hash_lit("test"),
+                    .value      = {.type = AssetAiSource_Bool, .data_bool = true},
+                },
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to failure when equals comparison fails") {
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_bool(false));
 
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_KnowledgeCompare,
-        .data_knowledgecompare =
-            {
-                .comparison = AssetAiComparison_Equal,
-                .key        = string_lit("test"),
-                .value      = {.type = AssetAiSource_Bool, .data_bool = true},
-            },
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type        = AssetAiNode_KnowledgeCompare,
+            .nextSibling = sentinel_u16,
+            .data_knowledgecompare =
+                {
+                    .comparison = AssetAiComparison_Equal,
+                    .key        = string_hash_lit("test"),
+                    .value      = {.type = AssetAiSource_Bool, .data_bool = true},
+                },
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to success when less comparison succeeds") {
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
 
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_KnowledgeCompare,
-        .data_knowledgecompare =
-            {
-                .comparison = AssetAiComparison_Less,
-                .key        = string_lit("test"),
-                .value      = {.type = AssetAiSource_Number, .data_number.value = 1337},
-            },
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type        = AssetAiNode_KnowledgeCompare,
+            .nextSibling = sentinel_u16,
+            .data_knowledgecompare =
+                {
+                    .comparison = AssetAiComparison_Less,
+                    .key        = string_hash_lit("test"),
+                    .value      = {.type = AssetAiSource_Number, .data_number.value = 1337},
+                },
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
@@ -95,24 +111,28 @@ spec(node_knowledgecompare) {
     ai_blackboard_set(bb, string_hash_lit("test"), ai_value_f64(42));
     ai_blackboard_set(bb, string_hash_lit("value"), ai_value_f64(10));
 
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_KnowledgeCompare,
-        .data_knowledgecompare =
-            {
-                .comparison = AssetAiComparison_Less,
-                .key        = string_lit("test"),
-                .value =
-                    {
-                        .type               = AssetAiSource_Knowledge,
-                        .data_knowledge.key = string_lit("value"),
-                    },
-            },
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type        = AssetAiNode_KnowledgeCompare,
+            .nextSibling = sentinel_u16,
+            .data_knowledgecompare =
+                {
+                    .comparison = AssetAiComparison_Less,
+                    .key        = string_hash_lit("test"),
+                    .value =
+                        {
+                            .type               = AssetAiSource_Knowledge,
+                            .data_knowledge.key = string_hash_lit("value"),
+                        },
+                },
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Failure);
     check_eq_int(tracer.count, 1);
   }
 

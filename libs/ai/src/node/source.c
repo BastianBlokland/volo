@@ -27,9 +27,7 @@ AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
     return ai_value_add(now, offset);
   }
   case AssetAiSource_Knowledge: {
-    // TODO: Keys should be pre-hashed in the behavior asset.
-    const StringHash srcKeyHash = string_hash(src->data_knowledge.key);
-    return ai_blackboard_get(bb, srcKeyHash);
+    return ai_blackboard_get(bb, src->data_knowledge.key);
   }
   }
   return ai_value_none();

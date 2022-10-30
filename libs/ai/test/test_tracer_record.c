@@ -21,12 +21,15 @@ spec(tracer_record) {
   }
 
   it("can record information for a single node") {
-    const AssetAiNode   nodeDef = {.type = AssetAiNode_Success};
-    const AiEvalContext ctx     = {
-        .memory = bb,
-        .tracer = ai_tracer_record_api(tracer),
+    const AssetAiNode nodeDefs[] = {
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory   = bb,
+        .tracer   = ai_tracer_record_api(tracer),
+        .nodeDefs = nodeDefs,
+    };
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
 
     check_eq_int(ai_tracer_record_count(tracer), 1);
     check_eq_int(ai_tracer_record_type(tracer, 0), AssetAiNode_Success);
@@ -36,35 +39,41 @@ spec(tracer_record) {
   }
 
   it("can record information for a named node") {
-    const AssetAiNode nodeDef = {
-        .type = AssetAiNode_Success,
-        .name = string_lit("Hello World"),
+    const AssetAiNode nodeDefs[] = {
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
+    const String nodeNames[] = {string_lit("Hello World")};
+    ASSERT(array_elems(nodeDefs) == array_elems(nodeNames), "Node count mismatch");
+
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = ai_tracer_record_api(tracer),
+        .memory    = bb,
+        .tracer    = ai_tracer_record_api(tracer),
+        .nodeDefs  = nodeDefs,
+        .nodeNames = nodeNames,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
 
     check_eq_int(ai_tracer_record_count(tracer), 1);
     check_eq_string(ai_tracer_record_name(tracer, 0), string_lit("Hello World"));
   }
 
   it("can record information for a node with child nodes") {
-    const AssetAiNode children[] = {
-        {.type = AssetAiNode_Failure},
-        {.type = AssetAiNode_Success},
-        {.type = AssetAiNode_Failure},
-    };
-    const AssetAiNode nodeDef = {
-        .type          = AssetAiNode_Selector,
-        .data_selector = {.children = {.values = children, array_elems(children)}},
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type          = AssetAiNode_Selector,
+            .nextSibling   = sentinel_u16,
+            .data_selector = {.childrenBegin = 1},
+        },
+        {.type = AssetAiNode_Failure, .nextSibling = 2},
+        {.type = AssetAiNode_Success, .nextSibling = 3},
+        {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = ai_tracer_record_api(tracer),
+        .memory   = bb,
+        .tracer   = ai_tracer_record_api(tracer),
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(ai_tracer_record_count(tracer), 3);
 
     // Selector node.

@@ -10,44 +10,50 @@ static const struct {
   String          id;
   String          text;
   AssetAiNodeType type;
+  u32             nodeCount;
 } g_testData[] = {
     {
-        .id   = string_static("success.bt"),
-        .text = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
-        .type = AssetAiNode_Success,
+        .id        = string_static("success.bt"),
+        .text      = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
+        .type      = AssetAiNode_Success,
+        .nodeCount = 1,
     },
     {
-        .id   = string_static("success-with-name.bt"),
-        .text = string_static("{ \"$type\": \"AssetAiNode_Success\", \"$name\": \"Hello\" }"),
-        .type = AssetAiNode_Success,
+        .id        = string_static("success-with-name.bt"),
+        .text      = string_static("{ \"$type\": \"AssetAiNode_Success\", \"$name\": \"Hello\" }"),
+        .type      = AssetAiNode_Success,
+        .nodeCount = 1,
     },
     {
-        .id   = string_static("invert.bt"),
-        .text = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_Invert\",\n"
-                              "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
-                              "}"),
-        .type = AssetAiNode_Invert,
+        .id        = string_static("invert.bt"),
+        .text      = string_static("{\n"
+                                   "\"$type\": \"AssetAiNode_Invert\",\n"
+                                   "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
+                                   "}"),
+        .type      = AssetAiNode_Invert,
+        .nodeCount = 2,
     },
     {
-        .id   = string_static("invert-with-name.bt"),
-        .text = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_Invert\",\n"
-                              "\"$name\": \"Hello\",\n"
-                              "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
-                              "}"),
-        .type = AssetAiNode_Invert,
+        .id        = string_static("invert-with-name.bt"),
+        .text      = string_static("{\n"
+                                   "\"$type\": \"AssetAiNode_Invert\",\n"
+                                   "\"$name\": \"Hello\",\n"
+                                   "\"child\": { \"$type\": \"AssetAiNode_Failure\" }\n"
+                                   "}"),
+        .type      = AssetAiNode_Invert,
+        .nodeCount = 2,
     },
     {
-        .id   = string_static("knowledgeset.bt"),
-        .text = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                              "\"key\": \"test\",\n"
-                              "\"value\": {\n"
-                              "  \"$type\": \"AssetAiSource_Vector\",\n"
-                              "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
-                              "}"),
-        .type = AssetAiNode_KnowledgeSet,
+        .id        = string_static("knowledgeset.bt"),
+        .text      = string_static("{\n"
+                                   "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
+                                   "\"key\": \"test\",\n"
+                                   "\"value\": {\n"
+                                   "  \"$type\": \"AssetAiSource_Vector\",\n"
+                                   "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
+                                   "}"),
+        .type      = AssetAiNode_KnowledgeSet,
+        .nodeCount = 1,
     },
 
 };
@@ -103,7 +109,8 @@ spec(loader_behavior) {
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetBehaviorComp* comp = ecs_utils_read_t(world, AssetView, asset, AssetBehaviorComp);
 
-      check_eq_int(comp->root.type, g_testData[i].type);
+      check_require(comp->nodeCount == g_testData[i].nodeCount);
+      check_eq_int(comp->nodes[0].type, g_testData[i].type);
     }
   }
 

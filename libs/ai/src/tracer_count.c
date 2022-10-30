@@ -1,15 +1,15 @@
 #include "ai_eval.h"
 #include "ai_tracer_count.h"
 
-static void tracer_count_begin(const AiEvalContext* ctx, const AssetAiNode* nodeDef) {
+static void tracer_count_begin(const AiEvalContext* ctx, const AssetAiNodeId nodeId) {
   (void)ctx;
-  (void)nodeDef;
+  (void)nodeId;
 }
 
 static void
-tracer_count_end(const AiEvalContext* ctx, const AssetAiNode* nodeDef, const AiResult res) {
+tracer_count_end(const AiEvalContext* ctx, const AssetAiNodeId nodeId, const AiResult res) {
   (void)ctx;
-  (void)nodeDef;
+  (void)nodeId;
   (void)res;
   ++((AiTracerCount*)ctx->tracer)->count;
 }

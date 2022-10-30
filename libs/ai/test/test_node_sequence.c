@@ -15,70 +15,80 @@ spec(node_sequence) {
   }
 
   it("evaluates to success when it doesn't have any children") {
-    const AssetAiNode nodeDef = {
-        .type          = AssetAiNode_Sequence,
-        .data_sequence = {.children = {0}},
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type          = AssetAiNode_Sequence,
+            .nextSibling   = sentinel_u16,
+            .data_sequence = {.childrenBegin = sentinel_u16},
+        },
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to success when all children evaluate to success") {
-    const AssetAiNode children[] = {
-        {.type = AssetAiNode_Success},
-        {.type = AssetAiNode_Success},
-        {.type = AssetAiNode_Success},
-    };
-    const AssetAiNode nodeDef = {
-        .type          = AssetAiNode_Sequence,
-        .data_sequence = {.children = {.values = children, array_elems(children)}},
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type          = AssetAiNode_Sequence,
+            .nextSibling   = sentinel_u16,
+            .data_sequence = {.childrenBegin = 1},
+        },
+        {.type = AssetAiNode_Success, .nextSibling = 2},
+        {.type = AssetAiNode_Success, .nextSibling = 3},
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 4);
   }
 
   it("evaluates to running when any child evaluates to running") {
-    const AssetAiNode children[] = {
-        {.type = AssetAiNode_Success},
-        {.type = AssetAiNode_Running},
-        {.type = AssetAiNode_Success},
-    };
-    const AssetAiNode nodeDef = {
-        .type          = AssetAiNode_Sequence,
-        .data_sequence = {.children = {.values = children, array_elems(children)}},
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type          = AssetAiNode_Sequence,
+            .nextSibling   = sentinel_u16,
+            .data_sequence = {.childrenBegin = 1},
+        },
+        {.type = AssetAiNode_Success, .nextSibling = 2},
+        {.type = AssetAiNode_Running, .nextSibling = 3},
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Running);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Running);
     check_eq_int(tracer.count, 3);
   }
 
   it("evaluates to failure when any child evaluates to failure") {
-    const AssetAiNode children[] = {
-        {.type = AssetAiNode_Success},
-        {.type = AssetAiNode_Failure},
-        {.type = AssetAiNode_Running},
-        {.type = AssetAiNode_Success},
-    };
-    const AssetAiNode nodeDef = {
-        .type          = AssetAiNode_Sequence,
-        .data_sequence = {.children = {.values = children, array_elems(children)}},
+    const AssetAiNode nodeDefs[] = {
+        {
+            .type          = AssetAiNode_Sequence,
+            .nextSibling   = sentinel_u16,
+            .data_sequence = {.childrenBegin = 1},
+        },
+        {.type = AssetAiNode_Success, .nextSibling = 2},
+        {.type = AssetAiNode_Failure, .nextSibling = 3},
+        {.type = AssetAiNode_Running, .nextSibling = 4},
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory = bb,
-        .tracer = &tracer.api,
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Failure);
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Failure);
     check_eq_int(tracer.count, 3);
   }
 

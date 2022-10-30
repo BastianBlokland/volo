@@ -14,12 +14,15 @@ spec(node_running) {
   }
 
   it("evaluates to running") {
-    const AssetAiNode   nodeDef = {.type = AssetAiNode_Running};
-    const AiEvalContext ctx     = {
-        .memory = bb,
-        .tracer = &tracer.api,
+    const AssetAiNode nodeDefs[] = {
+        {.type = AssetAiNode_Running, .nextSibling = sentinel_u16},
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Running);
+    const AiEvalContext ctx = {
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
+    };
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Running);
     check_eq_int(tracer.count, 1);
   }
 

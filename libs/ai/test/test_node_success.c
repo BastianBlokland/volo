@@ -14,12 +14,15 @@ spec(node_success) {
   }
 
   it("evaluates to success") {
-    const AssetAiNode   nodeDef = {.type = AssetAiNode_Success};
-    const AiEvalContext ctx     = {
-        .memory = bb,
-        .tracer = &tracer.api,
+    const AssetAiNode nodeDefs[] = {
+        {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
-    check(ai_eval(&ctx, &nodeDef) == AiResult_Success);
+    const AiEvalContext ctx = {
+        .memory   = bb,
+        .tracer   = &tracer.api,
+        .nodeDefs = nodeDefs,
+    };
+    check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 1);
   }
 
