@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "core_dynstring.h"
 #include "ecs_entity.h"
 #include "geo_vector.h"
 
@@ -60,6 +60,7 @@ ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
  * Create a textual representation of a value.
  */
 String script_val_type_str(ScriptValType);
+void   script_val_str_write(ScriptVal, DynString*);
 String script_val_str_scratch(ScriptVal);
 
 /**

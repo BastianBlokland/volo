@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -119,20 +120,25 @@ String script_val_type_str(const ScriptValType type) {
   return g_names[type];
 }
 
-String script_val_str_scratch(ScriptVal value) {
+void script_val_str_write(const ScriptVal value, DynString* str) {
   switch (script_val_type(value)) {
   case ScriptValType_Null:
-    return string_lit("null");
+    dynstring_append(str, string_lit("null"));
+    return;
   case ScriptValType_Number:
-    return fmt_write_scratch("{}", fmt_float(val_as_number(value)));
+    format_write_f64(str, val_as_number(value), &format_opts_float());
+    return;
   case ScriptValType_Bool:
-    return fmt_write_scratch("{}", fmt_bool(val_as_bool(value)));
+    format_write_bool(str, val_as_bool(value));
+    return;
   case ScriptValType_Vector3: {
     const GeoVector v = val_as_vector3_dirty_w(value);
-    return fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
+    format_write_arg(str, &fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
+    return;
   }
   case ScriptValType_Entity:
-    return fmt_write_scratch("{}", fmt_int(val_as_entity(value), .base = 16));
+    format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
+    return;
   case ScriptValType_Count:
     break;
   }
@@ -140,7 +146,18 @@ String script_val_str_scratch(ScriptVal value) {
   UNREACHABLE
 }
 
-bool script_val_equal(ScriptVal a, ScriptVal b) {
+String script_val_str_scratch(const ScriptVal value) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, 128, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  script_val_str_write(value, &str);
+
+  const String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
+bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   if (script_val_type(a) != script_val_type(b)) {
     return false;
   }
@@ -167,7 +184,7 @@ bool script_val_equal(ScriptVal a, ScriptVal b) {
   UNREACHABLE
 }
 
-bool script_val_less(ScriptVal a, ScriptVal b) {
+bool script_val_less(const ScriptVal a, const ScriptVal b) {
   if (script_val_type(a) != script_val_type(b)) {
     return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
   }
@@ -189,7 +206,7 @@ bool script_val_less(ScriptVal a, ScriptVal b) {
   UNREACHABLE
 }
 
-bool script_val_greater(ScriptVal a, ScriptVal b) {
+bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   if (script_val_type(a) != script_val_type(b)) {
     return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
   }
