@@ -1,15 +1,16 @@
-#include "ai.h"
+#include "ai_eval.h"
 #include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "script_mem.h"
 
 spec(node_running) {
-  AiBlackboard* bb = null;
+  ScriptMem*    memory = null;
   AiTracerCount tracer;
 
   setup() {
-    bb     = ai_blackboard_create(g_alloc_heap);
+    memory = script_mem_create(g_alloc_heap);
     tracer = ai_tracer_count();
   }
 
@@ -18,7 +19,7 @@ spec(node_running) {
         {.type = AssetAiNode_Running, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -26,5 +27,5 @@ spec(node_running) {
     check_eq_int(tracer.count, 1);
   }
 
-  teardown() { ai_blackboard_destroy(bb); }
+  teardown() { script_mem_destroy(memory); }
 }

@@ -2,33 +2,33 @@
 
 #include "source_internal.h"
 
-AiValue ai_source_value(const AssetAiSource* src, const AiBlackboard* bb) {
+ScriptVal ai_source_value(const AssetAiSource* src, const ScriptMem* m) {
   switch (src->type) {
   case AssetAiSource_Null: {
-    return ai_value_null();
+    return script_null();
   }
   case AssetAiSource_Number: {
-    return ai_value_number(src->data_number.value);
+    return script_number(src->data_number.value);
   }
   case AssetAiSource_Bool: {
-    return ai_value_bool(src->data_bool.value);
+    return script_bool(src->data_bool.value);
   }
   case AssetAiSource_Vector: {
     const AssetAiSourceVector* vecSrc = &src->data_vector;
-    return ai_value_vector3(geo_vector(vecSrc->x, vecSrc->y, vecSrc->z));
+    return script_vector3(geo_vector(vecSrc->x, vecSrc->y, vecSrc->z));
   }
   case AssetAiSource_Time: {
     static StringHash g_timeNowHash;
     if (UNLIKELY(!g_timeNowHash)) {
       g_timeNowHash = string_hash_lit("global-time");
     }
-    const AiValue now    = ai_blackboard_get(bb, g_timeNowHash);
-    const AiValue offset = ai_value_time((TimeDuration)time_seconds(src->data_time.secondsFromNow));
-    return ai_value_add(now, offset);
+    const ScriptVal now    = script_mem_get(m, g_timeNowHash);
+    const ScriptVal offset = script_time((TimeDuration)time_seconds(src->data_time.secondsFromNow));
+    return script_val_add(now, offset);
   }
   case AssetAiSource_Knowledge: {
-    return ai_blackboard_get(bb, src->data_knowledge.key);
+    return script_mem_get(m, src->data_knowledge.key);
   }
   }
-  return ai_value_null();
+  return script_null();
 }

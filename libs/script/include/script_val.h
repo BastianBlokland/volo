@@ -17,7 +17,7 @@ typedef enum {
 } ScriptType;
 
 /**
- * Type-erased knowledge value.
+ * Type-erased script value.
  */
 typedef struct {
   ALIGNAS(16) u32 data[4];

@@ -5,14 +5,14 @@
 typedef struct sAssetAiNode AssetAiNode;
 typedef u16                 AssetAiNodeId;
 
-// Forward declare from 'ai_blackboard.h'.
-typedef struct sAiBlackboard AiBlackboard;
+// Forward declare from 'script_mem.h'.
+typedef struct sScriptMem ScriptMem;
 
 // Forward declare from 'ai_tracer.h'.
 typedef struct sAiTracer AiTracer;
 
 typedef struct sAiEvalContext {
-  AiBlackboard*      memory;
+  ScriptMem*         memory;
   AiTracer*          tracer; // [Optional].
   const AssetAiNode* nodeDefs;
   const String*      nodeNames; // [Optional].

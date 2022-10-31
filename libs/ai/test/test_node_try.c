@@ -1,17 +1,16 @@
-#include "ai.h"
+#include "ai_eval.h"
 #include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-
-#include "utils_internal.h"
+#include "script_mem.h"
 
 spec(node_try) {
-  AiBlackboard* bb = null;
+  ScriptMem*    memory = null;
   AiTracerCount tracer;
 
   setup() {
-    bb     = ai_blackboard_create(g_alloc_heap);
+    memory = script_mem_create(g_alloc_heap);
     tracer = ai_tracer_count();
   }
 
@@ -25,7 +24,7 @@ spec(node_try) {
         {.type = AssetAiNode_Running, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -43,7 +42,7 @@ spec(node_try) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -61,7 +60,7 @@ spec(node_try) {
         {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -87,14 +86,14 @@ spec(node_try) {
         },
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 2);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_number(42.42));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test")), script_number(42.42)));
   }
 
-  teardown() { ai_blackboard_destroy(bb); }
+  teardown() { script_mem_destroy(memory); }
 }

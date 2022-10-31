@@ -1,10 +1,10 @@
 #pragma once
-#include "ai_value.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "script_val.h"
 
-// Forward declare from 'ai_blackboard.h'.
-typedef struct sAiBlackboard AiBlackboard;
+// Forward declare from 'script_mem.h'.
+typedef struct sScriptMem ScriptMem;
 
 // Forward declare from 'ai_tracer_record.h'.
 typedef struct sAiTracerRecord AiTracerRecord;
@@ -22,10 +22,10 @@ ecs_comp_extern(SceneBrainComp);
 /**
  * Query and update the brain's memory.
  */
-AiValue             scene_brain_get(const SceneBrainComp*, StringHash key);
-void                scene_brain_set(const SceneBrainComp*, StringHash key, AiValue);
-void                scene_brain_set_none(const SceneBrainComp*, StringHash key);
-const AiBlackboard* scene_brain_memory(const SceneBrainComp*);
+ScriptVal        scene_brain_get(const SceneBrainComp*, StringHash key);
+void             scene_brain_set(const SceneBrainComp*, StringHash key, ScriptVal);
+void             scene_brain_set_none(const SceneBrainComp*, StringHash key);
+const ScriptMem* scene_brain_memory(const SceneBrainComp*);
 
 /**
  * Get access to the brain's tracer for debug visualization purposes.

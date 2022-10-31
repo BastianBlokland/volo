@@ -70,11 +70,11 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_null()));
+    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_null()));
 
-    scene_brain_set(brain, knowledgeKey, ai_value_bool(true));
+    scene_brain_set(brain, knowledgeKey, script_bool(true));
 
-    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_bool(true)));
+    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_bool(true)));
   }
 
   it("updates its memory through its behavior") {
@@ -87,8 +87,8 @@ spec(brain) {
     scene_test_wait(runner);
 
     const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
-    const AiValue         value = scene_brain_get(brain, string_hash_lit("test"));
-    check(ai_value_equal(value, ai_value_bool(true)));
+    const ScriptVal       value = scene_brain_get(brain, string_hash_lit("test"));
+    check(script_val_equal(value, script_bool(true)));
   }
 
   teardown() {

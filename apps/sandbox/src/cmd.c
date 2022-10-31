@@ -77,7 +77,7 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   if (brainItr) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
-    scene_brain_set(brain, g_brainKeyMoveTarget, ai_value_vector3(cmdMove->position));
+    scene_brain_set(brain, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
   }
 }
 

@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "ai_eval.h"
 #include "ai_tracer_record.h"
 #include "asset_manager.h"
@@ -7,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_brain.h"
+#include "script_mem.h"
 
 #define scene_brain_max_behavior_loads 8
 
@@ -17,7 +17,7 @@ typedef enum {
 
 ecs_comp_define(SceneBrainComp) {
   SceneBrainFlags flags;
-  AiBlackboard*   blackboard;
+  ScriptMem*      memory;
   AiTracerRecord* tracer;
   EcsEntityId     behaviorAsset;
 };
@@ -26,7 +26,7 @@ ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
 
 static void ecs_destruct_brain_comp(void* data) {
   SceneBrainComp* brain = data;
-  ai_blackboard_destroy(brain->blackboard);
+  script_mem_destroy(brain->memory);
   if (brain->tracer) {
     ai_tracer_record_destroy(brain->tracer);
   }
@@ -85,7 +85,7 @@ static void scene_brain_eval(
   }
 
   AiEvalContext ctx = {
-      .memory    = brain->blackboard,
+      .memory    = brain->memory,
       .nodeDefs  = behavior->nodes,
       .nodeNames = behavior->nodeNames,
   };
@@ -148,21 +148,19 @@ ecs_module_init(scene_brain_module) {
   ecs_parallel(SceneBrainUpdateSys, 4);
 }
 
-AiValue scene_brain_get(const SceneBrainComp* brain, const StringHash key) {
-  return ai_blackboard_get(brain->blackboard, key);
+ScriptVal scene_brain_get(const SceneBrainComp* brain, const StringHash key) {
+  return script_mem_get(brain->memory, key);
 }
 
-void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const AiValue value) {
-  ai_blackboard_set(brain->blackboard, key, value);
+void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const ScriptVal value) {
+  script_mem_set(brain->memory, key, value);
 }
 
 void scene_brain_set_none(const SceneBrainComp* brain, const StringHash key) {
-  ai_blackboard_set_null(brain->blackboard, key);
+  script_mem_set_null(brain->memory, key);
 }
 
-const AiBlackboard* scene_brain_memory(const SceneBrainComp* brain) { return brain->blackboard; }
-
-AiBlackboard* scene_brain_blackboard_mutable(SceneBrainComp* brain) { return brain->blackboard; }
+const ScriptMem* scene_brain_memory(const SceneBrainComp* brain) { return brain->memory; }
 
 const AiTracerRecord* scene_brain_tracer(const SceneBrainComp* brain) { return brain->tracer; }
 
@@ -188,6 +186,6 @@ scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId beh
       world,
       entity,
       SceneBrainComp,
-      .blackboard    = ai_blackboard_create(g_alloc_heap),
+      .memory        = script_mem_create(g_alloc_heap),
       .behaviorAsset = behaviorAsset);
 }

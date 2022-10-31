@@ -1,7 +1,6 @@
 #include "app_check.h"
 
 void app_check_configure(CheckDef* check) {
-  register_spec(check, blackboard);
   register_spec(check, node_failure);
   register_spec(check, node_invert);
   register_spec(check, node_knowledgecompare);
@@ -14,5 +13,4 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, node_success);
   register_spec(check, node_try);
   register_spec(check, tracer_record);
-  register_spec(check, value);
 }

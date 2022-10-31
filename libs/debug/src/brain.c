@@ -1,4 +1,3 @@
-#include "ai_blackboard.h"
 #include "ai_tracer_record.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -10,6 +9,7 @@
 #include "ecs_world.h"
 #include "scene_brain.h"
 #include "scene_selection.h"
+#include "script_mem.h"
 #include "ui.h"
 
 typedef enum {
@@ -131,32 +131,32 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
-static bool memory_draw_bool(UiCanvasComp* canvas, AiValue* value) {
-  bool valBool = ai_value_get_bool(*value, false);
+static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
+  bool valBool = script_get_bool(*value, false);
   if (ui_toggle(canvas, &valBool)) {
-    *value = ai_value_bool(valBool);
+    *value = script_bool(valBool);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_f64(UiCanvasComp* canvas, AiValue* value) {
-  f64 valNumber = ai_value_get_number(*value, 0);
+static bool memory_draw_f64(UiCanvasComp* canvas, ScriptVal* value) {
+  f64 valNumber = script_get_number(*value, 0);
   if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
-    *value = ai_value_number(valNumber);
+    *value = script_number(valNumber);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_vector3(UiCanvasComp* canvas, AiValue* value) {
+static bool memory_draw_vector3(UiCanvasComp* canvas, ScriptVal* value) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
   ui_layout_resize(canvas, align, ui_vector(1.0f / 3, 0), UiBase_Current, Ui_X);
   ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 3, 0), UiBase_Absolute, Ui_X);
 
-  GeoVector vec3 = ai_value_get_vector3(*value, geo_vector(0));
+  GeoVector vec3 = script_get_vector3(*value, geo_vector(0));
 
   bool dirty = false;
   for (u8 comp = 0; comp != 3; ++comp) {
@@ -169,30 +169,30 @@ static bool memory_draw_vector3(UiCanvasComp* canvas, AiValue* value) {
   }
   ui_layout_pop(canvas);
 
-  *value = ai_value_vector3(vec3);
+  *value = script_vector3(vec3);
   return dirty;
 }
 
-static bool memory_draw_entity(UiCanvasComp* canvas, AiValue* value) {
-  const EcsEntityId valEntity = ai_value_get_entity(*value, 0);
+static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
+  const EcsEntityId valEntity = script_get_entity(*value, 0);
   ui_label_entity(canvas, valEntity);
   return false;
 }
 
-static bool memory_draw_value(UiCanvasComp* canvas, AiValue* value) {
-  switch (ai_value_type(*value)) {
-  case AiValueType_Null:
+static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
+  switch (script_type(*value)) {
+  case ScriptType_Null:
     ui_label(canvas, string_lit("< none >"));
     return false;
-  case AiValueType_Number:
+  case ScriptType_Number:
     return memory_draw_f64(canvas, value);
-  case AiValueType_Bool:
+  case ScriptType_Bool:
     return memory_draw_bool(canvas, value);
-  case AiValueType_Vector3:
+  case ScriptType_Vector3:
     return memory_draw_vector3(canvas, value);
-  case AiValueType_Entity:
+  case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
-  case AiValueType_Count:
+  case ScriptType_Count:
     break;
   }
   return false;
@@ -253,17 +253,17 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
       canvas,
       &table,
       (const UiTableColumnName[]){
-          {string_lit("Key"), string_lit("Knowledge key.")},
-          {string_lit("Type"), string_lit("Knowledge type.")},
-          {string_lit("Value"), string_lit("Knowledge value.")},
+          {string_lit("Key"), string_lit("Memory key.")},
+          {string_lit("Type"), string_lit("Memory value type.")},
+          {string_lit("Value"), string_lit("Memory value.")},
       });
 
   // Collect the memory entries.
-  DynArray            entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
-  const AiBlackboard* bb      = scene_brain_memory(brain);
-  for (AiBlackboardItr itr = ai_blackboard_begin(bb); itr.key; itr = ai_blackboard_next(bb, itr)) {
+  DynArray         entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
+  const ScriptMem* memory  = scene_brain_memory(brain);
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideEmptyMemory && !ai_value_has(scene_brain_get(brain, itr.key))) {
+    if (panelComp->hideEmptyMemory && !script_val_has(scene_brain_get(brain, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
@@ -281,7 +281,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
-      AiValue value = scene_brain_get(brain, entry->key);
+      ScriptVal value = scene_brain_get(brain, entry->key);
 
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -289,7 +289,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
       ui_label(canvas, entry->name, .selectable = true);
       ui_table_next_column(canvas, &table);
 
-      ui_label(canvas, ai_value_type_str(ai_value_type(value)));
+      ui_label(canvas, script_val_type_str(script_type(value)));
       ui_table_next_column(canvas, &table);
 
       if (memory_draw_value(canvas, &value)) {
