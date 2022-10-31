@@ -26,6 +26,13 @@ spec(read) {
         {string_static("((42.1337))"), string_static("[value: 42.1337]")},
         {string_static("(($hello))"), string_static("[load: $3944927369]")},
 
+        // Unary expressions.
+        {
+            string_static("-42"),
+            string_static("[op-unary: negate]\n"
+                          "  [value: 42]"),
+        },
+
         // Binary expressions.
         {
             string_static("null == 42"),
@@ -77,6 +84,20 @@ spec(read) {
         },
 
         // Compound expressions.
+        {
+            string_static("-42 + 1"),
+            string_static("[op-binary: add]\n"
+                          "  [op-unary: negate]\n"
+                          "    [value: 42]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("-(42 + 1)"),
+            string_static("[op-unary: negate]\n"
+                          "  [op-binary: add]\n"
+                          "    [value: 42]\n"
+                          "    [value: 1]"),
+        },
         {
             string_static("1 != 42 > 2"),
             string_static("[op-binary: not-equal]\n"

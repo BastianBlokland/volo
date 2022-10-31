@@ -15,6 +15,7 @@ typedef enum {
   OpPrecedence_Equality,
   OpPrecedence_Relational,
   OpPrecedence_Additive,
+  OpPrecedence_Unary,
 } OpPrecedence;
 
 static OpPrecedence op_precedence(const ScriptTokenType type) {
@@ -32,6 +33,16 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
     return OpPrecedence_Additive;
   default:
     return OpPrecedence_None;
+  }
+}
+
+static ScriptOpUnary token_op_unary(const ScriptTokenType type) {
+  switch (type) {
+  case ScriptTokenType_OpMinus:
+    return ScriptOpUnary_Negate;
+  default:
+    diag_assert_fail("Invalid unary operation token");
+    UNREACHABLE
   }
 }
 
@@ -85,8 +96,25 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
 
   switch (token.type) {
+  /**
+   * Parenthesized expression.
+   */
   case ScriptTokenType_SepParenOpen:
     return read_expr_paren(ctx);
+  /**
+   * Unary operators.
+   */
+  case ScriptTokenType_OpMinus: {
+    const ScriptReadResult val = read_expr(ctx, OpPrecedence_Unary);
+    if (UNLIKELY(val.type == ScriptResult_Fail)) {
+      return val;
+    }
+    const ScriptOpUnary op = token_op_unary(token.type);
+    return script_expr(script_add_op_unary(ctx->doc, val.expr, op));
+  }
+  /**
+   * Literals.
+   */
   case ScriptTokenType_LitNull:
     return script_expr(script_add_value(ctx->doc, script_null()));
   case ScriptTokenType_LitNumber:
@@ -95,6 +123,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return script_expr(script_add_value(ctx->doc, script_bool(token.val_bool)));
   case ScriptTokenType_LitKey:
     return script_expr(script_add_load(ctx->doc, token.val_key));
+  /**
+   * Lex errors.
+   */
   case ScriptTokenType_Error:
     return script_err(token.val_error);
   case ScriptTokenType_End:
