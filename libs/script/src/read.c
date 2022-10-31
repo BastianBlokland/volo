@@ -167,3 +167,17 @@ String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res)
   *res = read_expr(&ctx, OpPrecedence_None);
   return ctx.input;
 }
+
+void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+  ScriptReadContext ctx = {
+      .doc   = doc,
+      .input = str,
+  };
+  *res = read_expr(&ctx, OpPrecedence_None);
+
+  ScriptToken token;
+  script_lex(ctx.input, null, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_End)) {
+    *res = script_err(ScriptError_UnexpectedTokenAfterExpression);
+  }
+}

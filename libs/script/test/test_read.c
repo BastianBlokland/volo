@@ -160,6 +160,21 @@ spec(read) {
     }
   }
 
+  it("can read all input") {
+    ScriptReadResult res;
+    script_read_all(doc, string_lit("1  "), &res);
+
+    check_require(res.type == ScriptResult_Success);
+  }
+
+  it("fails when read-all finds additional tokens after the expression") {
+    ScriptReadResult res;
+    script_read_all(doc, string_lit("1 1"), &res);
+
+    check_require(res.type == ScriptResult_Fail);
+    check(res.error == ScriptError_UnexpectedTokenAfterExpression);
+  }
+
   it("fails when recursing too deep") {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);

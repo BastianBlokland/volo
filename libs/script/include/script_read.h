@@ -25,3 +25,4 @@ typedef struct {
  * Pre-condition: res != null.
  */
 String script_read_expr(ScriptDoc*, String, ScriptReadResult* res);
+void   script_read_all(ScriptDoc*, String, ScriptReadResult* res);

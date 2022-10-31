@@ -12,6 +12,7 @@ typedef enum {
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,
   ScriptError_UnclosedParenthesizedExpression,
+  ScriptError_UnexpectedTokenAfterExpression,
 
   ScriptError_Count,
 } ScriptError;
