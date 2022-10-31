@@ -75,7 +75,7 @@ static String script_lex_null(String str, ScriptToken* out) {
   return script_consume_word_or_char(str);
 }
 
-static String script_lex_lit_number(String str, ScriptToken* out) {
+static String script_lex_lit_number_positive(String str, ScriptToken* out) {
   out->type = ScriptTokenType_LitNumber;
   return format_read_f64(str, &out->val_number);
 }
@@ -161,7 +161,12 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return string_consume(str, 1);
     case 'n':
       return script_lex_null(str, out);
+    case '+':
+      out->type = ScriptTokenType_OpPlus;
+      return string_consume(str, 1);
     case '-':
+      out->type = ScriptTokenType_OpMinus;
+      return string_consume(str, 1);
     case '.':
     case '0':
     case '1':
@@ -173,7 +178,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '7':
     case '8':
     case '9':
-      return script_lex_lit_number(str, out);
+      return script_lex_lit_number_positive(str, out);
     case 't':
       return script_lex_true(str, out);
     case 'f':
@@ -233,6 +238,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit(">");
   case ScriptTokenType_OpGtEq:
     return string_lit(">=");
+  case ScriptTokenType_OpPlus:
+    return string_lit("+");
+  case ScriptTokenType_OpMinus:
+    return string_lit("-");
   case ScriptTokenType_LitNull:
     return string_lit("null");
   case ScriptTokenType_LitNumber:

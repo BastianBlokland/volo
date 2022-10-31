@@ -11,6 +11,8 @@ typedef enum {
   ScriptTokenType_OpLeEq,        // <=
   ScriptTokenType_OpGt,          // >
   ScriptTokenType_OpGtEq,        // >=
+  ScriptTokenType_OpPlus,        // +
+  ScriptTokenType_OpMinus,       // -
   ScriptTokenType_LitNull,       // null
   ScriptTokenType_LitNumber,     // 42.1337
   ScriptTokenType_LitBool,       // true

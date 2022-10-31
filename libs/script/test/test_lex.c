@@ -5,7 +5,7 @@
 #include "utils_internal.h"
 
 spec(lex) {
-  it("can equate token") {
+  it("can equate tokens") {
     const struct {
       ScriptToken a;
       ScriptToken b;
@@ -50,21 +50,21 @@ spec(lex) {
         {string_static(">"), tok_simple(OpGt)},
         {string_static(">="), tok_simple(OpGtEq)},
 
+        {string_static("+"), tok_simple(OpPlus)},
+        {string_static("-"), tok_simple(OpMinus)},
+
         {string_static("null"), tok_null()},
         {string_static("nul"), tok_err(ScriptError_InvalidCharInNull)},
 
         {string_static("42"), tok_number(42)},
-        {string_static("-42"), tok_number(-42)},
         {string_static("0.0"), tok_number(0.0)},
         {string_static("42.1337"), tok_number(42.1337)},
-        {string_static("-42.1337"), tok_number(-42.1337)},
         {string_static(".0"), tok_number(0.0)},
-        {string_static("-.1"), tok_number(-0.1)},
+        {string_static(".1"), tok_number(.1)},
         {string_static(".000000000000001337"), tok_number(.000000000000001337)},
         {string_static("0.0"), tok_number(0.0)},
-        {string_static("-1e+0"), tok_number(-1e+0)},
         {string_static("1E+17"), tok_number(1e+17)},
-        {string_static("-0.17976931348623157"), tok_number(-0.17976931348623157)},
+        {string_static("0.17976931348623157"), tok_number(0.17976931348623157)},
 
         {string_static("true"), tok_bool(true)},
         {string_static("tru"), tok_err(ScriptError_InvalidCharInTrue)},
