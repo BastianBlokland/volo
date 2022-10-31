@@ -136,7 +136,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
         out->type = ScriptTokenType_EqEq;
         return string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar);
+      out->type = ScriptTokenType_Eq;
       return string_consume(str, 1);
     case '!':
       if (script_peek(str, 1) == '=') {
@@ -226,6 +226,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("(");
   case ScriptTokenType_ParenClose:
     return string_lit(")");
+  case ScriptTokenType_Eq:
+    return string_lit("=");
   case ScriptTokenType_EqEq:
     return string_lit("==");
   case ScriptTokenType_BangEq:

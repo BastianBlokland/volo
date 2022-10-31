@@ -38,8 +38,8 @@ spec(lex) {
         {string_static("("), tok_simple(ParenOpen)},
         {string_static(")"), tok_simple(ParenClose)},
 
+        {string_static("="), tok_simple(Eq)},
         {string_static("=="), tok_simple(EqEq)},
-        {string_static("="), tok_err(InvalidChar)},
 
         {string_static("!="), tok_simple(BangEq)},
         {string_static("!"), tok_err(InvalidChar)},
