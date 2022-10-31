@@ -11,8 +11,8 @@ spec(lex) {
       ScriptToken b;
       bool        expected;
     } testData[] = {
-        {.a = tok_simple(OpEqEq), .b = tok_simple(OpEqEq), .expected = true},
-        {.a = tok_simple(OpEqEq), .b = tok_simple(OpBangEq), .expected = false},
+        {.a = tok_simple(EqEq), .b = tok_simple(EqEq), .expected = true},
+        {.a = tok_simple(EqEq), .b = tok_simple(BangEq), .expected = false},
         {.a = tok_number(42), .b = tok_number(42), .expected = true},
         {.a = tok_number(42), .b = tok_number(41), .expected = false},
         {.a = tok_bool(true), .b = tok_bool(true), .expected = true},
@@ -35,26 +35,26 @@ spec(lex) {
       String      input;
       ScriptToken expected;
     } testData[] = {
-        {string_static("("), tok_simple(SepParenOpen)},
-        {string_static(")"), tok_simple(SepParenClose)},
+        {string_static("("), tok_simple(ParenOpen)},
+        {string_static(")"), tok_simple(ParenClose)},
 
-        {string_static("=="), tok_simple(OpEqEq)},
-        {string_static("="), tok_err(ScriptError_InvalidChar)},
+        {string_static("=="), tok_simple(EqEq)},
+        {string_static("="), tok_err(InvalidChar)},
 
-        {string_static("!="), tok_simple(OpBangEq)},
-        {string_static("!"), tok_err(ScriptError_InvalidChar)},
+        {string_static("!="), tok_simple(BangEq)},
+        {string_static("!"), tok_err(InvalidChar)},
 
-        {string_static("<"), tok_simple(OpLe)},
-        {string_static("<="), tok_simple(OpLeEq)},
+        {string_static("<"), tok_simple(Le)},
+        {string_static("<="), tok_simple(LeEq)},
 
-        {string_static(">"), tok_simple(OpGt)},
-        {string_static(">="), tok_simple(OpGtEq)},
+        {string_static(">"), tok_simple(Gt)},
+        {string_static(">="), tok_simple(GtEq)},
 
-        {string_static("+"), tok_simple(OpPlus)},
-        {string_static("-"), tok_simple(OpMinus)},
+        {string_static("+"), tok_simple(Plus)},
+        {string_static("-"), tok_simple(Minus)},
 
         {string_static("null"), tok_null()},
-        {string_static("nul"), tok_err(ScriptError_InvalidCharInNull)},
+        {string_static("nul"), tok_err(InvalidCharInNull)},
 
         {string_static("42"), tok_number(42)},
         {string_static("0.0"), tok_number(0.0)},
@@ -67,10 +67,10 @@ spec(lex) {
         {string_static("0.17976931348623157"), tok_number(0.17976931348623157)},
 
         {string_static("true"), tok_bool(true)},
-        {string_static("tru"), tok_err(ScriptError_InvalidCharInTrue)},
+        {string_static("tru"), tok_err(InvalidCharInTrue)},
 
         {string_static("false"), tok_bool(false)},
-        {string_static("fals"), tok_err(ScriptError_InvalidCharInFalse)},
+        {string_static("fals"), tok_err(InvalidCharInFalse)},
 
         {string_static("$hello"), tok_key_lit("hello")},
         {string_static("$héllo"), tok_key_lit("héllo")},
@@ -79,12 +79,12 @@ spec(lex) {
         {string_static("$123hello"), tok_key_lit("123hello")},
         {string_static("$你好世界"), tok_key_lit("你好世界")},
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
-        {string_static("$"), tok_err(ScriptError_KeyIdentifierEmpty)},
-        {string_static("hello"), tok_err(ScriptError_InvalidChar)},
+        {string_static("$"), tok_err(KeyIdentifierEmpty)},
+        {string_static("hello"), tok_err(InvalidChar)},
 
-        {string_static("|"), tok_err(ScriptError_InvalidChar)},
-        {string_static("@"), tok_err(ScriptError_InvalidChar)},
-        {string_static("abc"), tok_err(ScriptError_InvalidChar)},
+        {string_static("|"), tok_err(InvalidChar)},
+        {string_static("@"), tok_err(InvalidChar)},
+        {string_static("abc"), tok_err(InvalidChar)},
 
         {string_static(""), tok_end()},
         {string_static(" "), tok_end()},

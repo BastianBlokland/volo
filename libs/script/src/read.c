@@ -20,16 +20,16 @@ typedef enum {
 
 static OpPrecedence op_precedence(const ScriptTokenType type) {
   switch (type) {
-  case ScriptTokenType_OpEqEq:
-  case ScriptTokenType_OpBangEq:
+  case ScriptTokenType_EqEq:
+  case ScriptTokenType_BangEq:
     return OpPrecedence_Equality;
-  case ScriptTokenType_OpLe:
-  case ScriptTokenType_OpLeEq:
-  case ScriptTokenType_OpGt:
-  case ScriptTokenType_OpGtEq:
+  case ScriptTokenType_Le:
+  case ScriptTokenType_LeEq:
+  case ScriptTokenType_Gt:
+  case ScriptTokenType_GtEq:
     return OpPrecedence_Relational;
-  case ScriptTokenType_OpPlus:
-  case ScriptTokenType_OpMinus:
+  case ScriptTokenType_Plus:
+  case ScriptTokenType_Minus:
     return OpPrecedence_Additive;
   default:
     return OpPrecedence_None;
@@ -38,7 +38,7 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
 
 static ScriptOpUnary token_op_unary(const ScriptTokenType type) {
   switch (type) {
-  case ScriptTokenType_OpMinus:
+  case ScriptTokenType_Minus:
     return ScriptOpUnary_Negate;
   default:
     diag_assert_fail("Invalid unary operation token");
@@ -48,21 +48,21 @@ static ScriptOpUnary token_op_unary(const ScriptTokenType type) {
 
 static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
   switch (type) {
-  case ScriptTokenType_OpEqEq:
+  case ScriptTokenType_EqEq:
     return ScriptOpBinary_Equal;
-  case ScriptTokenType_OpBangEq:
+  case ScriptTokenType_BangEq:
     return ScriptOpBinary_NotEqual;
-  case ScriptTokenType_OpLe:
+  case ScriptTokenType_Le:
     return ScriptOpBinary_Less;
-  case ScriptTokenType_OpLeEq:
+  case ScriptTokenType_LeEq:
     return ScriptOpBinary_LessOrEqual;
-  case ScriptTokenType_OpGt:
+  case ScriptTokenType_Gt:
     return ScriptOpBinary_Greater;
-  case ScriptTokenType_OpGtEq:
+  case ScriptTokenType_GtEq:
     return ScriptOpBinary_GreaterOrEqual;
-  case ScriptTokenType_OpPlus:
+  case ScriptTokenType_Plus:
     return ScriptOpBinary_Add;
-  case ScriptTokenType_OpMinus:
+  case ScriptTokenType_Minus:
     return ScriptOpBinary_Sub;
   default:
     diag_assert_fail("Invalid binary operation token");
@@ -85,7 +85,7 @@ static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
   }
   ScriptToken closeToken;
   ctx->input = script_lex(ctx->input, null, &closeToken);
-  if (UNLIKELY(closeToken.type != ScriptTokenType_SepParenClose)) {
+  if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
     return script_err(ScriptError_UnclosedParenthesizedExpression);
   }
   return res;
@@ -99,12 +99,12 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Parenthesized expression.
    */
-  case ScriptTokenType_SepParenOpen:
+  case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
   /**
    * Unary operators.
    */
-  case ScriptTokenType_OpMinus: {
+  case ScriptTokenType_Minus: {
     const ScriptReadResult val = read_expr(ctx, OpPrecedence_Unary);
     if (UNLIKELY(val.type == ScriptResult_Fail)) {
       return val;
@@ -115,13 +115,13 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Literals.
    */
-  case ScriptTokenType_LitNull:
+  case ScriptTokenType_Null:
     return script_expr(script_add_value(ctx->doc, script_null()));
-  case ScriptTokenType_LitNumber:
+  case ScriptTokenType_Number:
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
-  case ScriptTokenType_LitBool:
+  case ScriptTokenType_Bool:
     return script_expr(script_add_value(ctx->doc, script_bool(token.val_bool)));
-  case ScriptTokenType_LitKey:
+  case ScriptTokenType_Key:
     return script_expr(script_add_load(ctx->doc, token.val_key));
   /**
    * Lex errors.
@@ -167,14 +167,14 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
      * Binary expressions.
      */
     switch (nextToken.type) {
-    case ScriptTokenType_OpEqEq:
-    case ScriptTokenType_OpBangEq:
-    case ScriptTokenType_OpLe:
-    case ScriptTokenType_OpLeEq:
-    case ScriptTokenType_OpGt:
-    case ScriptTokenType_OpGtEq:
-    case ScriptTokenType_OpPlus:
-    case ScriptTokenType_OpMinus: {
+    case ScriptTokenType_EqEq:
+    case ScriptTokenType_BangEq:
+    case ScriptTokenType_Le:
+    case ScriptTokenType_LeEq:
+    case ScriptTokenType_Gt:
+    case ScriptTokenType_GtEq:
+    case ScriptTokenType_Plus:
+    case ScriptTokenType_Minus: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return res;

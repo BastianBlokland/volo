@@ -68,21 +68,21 @@ static u8 script_peek(const String str, const u32 ahead) {
 
 static String script_lex_null(String str, ScriptToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("null")))) {
-    out->type = ScriptTokenType_LitNull;
+    out->type = ScriptTokenType_Null;
     return string_consume(str, 4);
   }
   *out = script_token_err(ScriptError_InvalidCharInNull);
   return script_consume_word_or_char(str);
 }
 
-static String script_lex_lit_number_positive(String str, ScriptToken* out) {
-  out->type = ScriptTokenType_LitNumber;
+static String script_lex_number_positive(String str, ScriptToken* out) {
+  out->type = ScriptTokenType_Number;
   return format_read_f64(str, &out->val_number);
 }
 
 static String script_lex_true(String str, ScriptToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("true")))) {
-    out->type     = ScriptTokenType_LitBool;
+    out->type     = ScriptTokenType_Bool;
     out->val_bool = true;
     return string_consume(str, 4);
   }
@@ -92,7 +92,7 @@ static String script_lex_true(String str, ScriptToken* out) {
 
 static String script_lex_false(String str, ScriptToken* out) {
   if (LIKELY(string_starts_with(str, string_lit("false")))) {
-    out->type     = ScriptTokenType_LitBool;
+    out->type     = ScriptTokenType_Bool;
     out->val_bool = false;
     return string_consume(str, 5);
   }
@@ -117,7 +117,7 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
 
-  out->type    = ScriptTokenType_LitKey;
+  out->type    = ScriptTokenType_Key;
   out->val_key = keyHash;
   return string_consume(str, end);
 }
@@ -126,46 +126,46 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   while (!string_is_empty(str)) {
     switch (*string_begin(str)) {
     case '(':
-      out->type = ScriptTokenType_SepParenOpen;
+      out->type = ScriptTokenType_ParenOpen;
       return string_consume(str, 1);
     case ')':
-      out->type = ScriptTokenType_SepParenClose;
+      out->type = ScriptTokenType_ParenClose;
       return string_consume(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_OpEqEq;
+        out->type = ScriptTokenType_EqEq;
         return string_consume(str, 2);
       }
       *out = script_token_err(ScriptError_InvalidChar);
       return string_consume(str, 1);
     case '!':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_OpBangEq;
+        out->type = ScriptTokenType_BangEq;
         return string_consume(str, 2);
       }
       *out = script_token_err(ScriptError_InvalidChar);
       return string_consume(str, 1);
     case '<':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_OpLeEq;
+        out->type = ScriptTokenType_LeEq;
         return string_consume(str, 2);
       }
-      out->type = ScriptTokenType_OpLe;
+      out->type = ScriptTokenType_Le;
       return string_consume(str, 1);
     case '>':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_OpGtEq;
+        out->type = ScriptTokenType_GtEq;
         return string_consume(str, 2);
       }
-      out->type = ScriptTokenType_OpGt;
+      out->type = ScriptTokenType_Gt;
       return string_consume(str, 1);
     case 'n':
       return script_lex_null(str, out);
     case '+':
-      out->type = ScriptTokenType_OpPlus;
+      out->type = ScriptTokenType_Plus;
       return string_consume(str, 1);
     case '-':
-      out->type = ScriptTokenType_OpMinus;
+      out->type = ScriptTokenType_Minus;
       return string_consume(str, 1);
     case '.':
     case '0':
@@ -178,7 +178,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '7':
     case '8':
     case '9':
-      return script_lex_lit_number_positive(str, out);
+      return script_lex_number_positive(str, out);
     case 't':
       return script_lex_true(str, out);
     case 'f':
@@ -207,11 +207,11 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
     return false;
   }
   switch (a->type) {
-  case ScriptTokenType_LitNumber:
+  case ScriptTokenType_Number:
     return a->val_number == b->val_number;
-  case ScriptTokenType_LitBool:
+  case ScriptTokenType_Bool:
     return a->val_bool == b->val_bool;
-  case ScriptTokenType_LitKey:
+  case ScriptTokenType_Key:
     return a->val_key == b->val_key;
   case ScriptTokenType_Error:
     return a->val_error == b->val_error;
@@ -222,33 +222,33 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
 
 String script_token_str_scratch(const ScriptToken* token) {
   switch (token->type) {
-  case ScriptTokenType_SepParenOpen:
+  case ScriptTokenType_ParenOpen:
     return string_lit("(");
-  case ScriptTokenType_SepParenClose:
+  case ScriptTokenType_ParenClose:
     return string_lit(")");
-  case ScriptTokenType_OpEqEq:
+  case ScriptTokenType_EqEq:
     return string_lit("==");
-  case ScriptTokenType_OpBangEq:
+  case ScriptTokenType_BangEq:
     return string_lit("!=");
-  case ScriptTokenType_OpLe:
+  case ScriptTokenType_Le:
     return string_lit("<");
-  case ScriptTokenType_OpLeEq:
+  case ScriptTokenType_LeEq:
     return string_lit("<=");
-  case ScriptTokenType_OpGt:
+  case ScriptTokenType_Gt:
     return string_lit(">");
-  case ScriptTokenType_OpGtEq:
+  case ScriptTokenType_GtEq:
     return string_lit(">=");
-  case ScriptTokenType_OpPlus:
+  case ScriptTokenType_Plus:
     return string_lit("+");
-  case ScriptTokenType_OpMinus:
+  case ScriptTokenType_Minus:
     return string_lit("-");
-  case ScriptTokenType_LitNull:
+  case ScriptTokenType_Null:
     return string_lit("null");
-  case ScriptTokenType_LitNumber:
+  case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
-  case ScriptTokenType_LitBool:
+  case ScriptTokenType_Bool:
     return fmt_write_scratch("{}", fmt_bool(token->val_bool));
-  case ScriptTokenType_LitKey:
+  case ScriptTokenType_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
   case ScriptTokenType_Error:
     return script_error_str(token->val_error);
