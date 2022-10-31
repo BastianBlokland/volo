@@ -7,6 +7,7 @@ message(STATUS "> library: script")
 add_library(lib_script STATIC
   src/doc.c
   src/error.c
+  src/eval.c
   src/lex.c
   src/mem.c
   src/operation.c
@@ -20,6 +21,7 @@ target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
 add_executable(test_lib_script
   test/config.c
   test/test_doc.c
+  test/test_eval.c
   test/test_lex.c
   test/test_mem.c
   test/test_operation.c
