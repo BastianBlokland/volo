@@ -126,6 +126,8 @@ bool script_truthy(const ScriptVal value) {
   UNREACHABLE
 }
 
+bool script_falsy(const ScriptVal value) { return !script_truthy(value); }
+
 bool script_val_has(const ScriptVal value) { return script_type(value) != ScriptType_Null; }
 
 ScriptVal script_val_or(const ScriptVal value, const ScriptVal fallback) {

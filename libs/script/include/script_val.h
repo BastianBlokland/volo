@@ -55,6 +55,7 @@ TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
  * Value utilities.
  */
 bool      script_truthy(ScriptVal);
+bool      script_falsy(ScriptVal);
 bool      script_val_has(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 

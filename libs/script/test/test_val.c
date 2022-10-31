@@ -65,6 +65,16 @@ spec(val) {
     check(!script_truthy(script_entity(0x0)));
   }
 
+  it("can test if a value is falsy") {
+    check(script_falsy(script_null()));
+    check(script_falsy(script_number(42)));
+    check(!script_falsy(script_bool(true)));
+    check(script_falsy(script_bool(false)));
+    check(script_falsy(script_vector3_lit(1, 2, 0)));
+    check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
+    check(script_falsy(script_entity(0x0)));
+  }
+
   it("can test if a value is not null") {
     check(script_val_has(script_number(42)));
     check(!script_val_has(script_null()));
