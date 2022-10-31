@@ -63,6 +63,18 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("null + 42"),
+            string_static("[op-bin: add]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("null - 42"),
+            string_static("[op-bin: sub]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
 
         // Compound expressions.
         {
@@ -72,6 +84,26 @@ spec(read) {
                           "  [op-bin: greater]\n"
                           "    [value: 42]\n"
                           "    [value: 2]"),
+        },
+        {
+            string_static("null != 1 + 2 + 3"),
+            string_static("[op-bin: not-equal]\n"
+                          "  [value: null]\n"
+                          "  [op-bin: add]\n"
+                          "    [op-bin: add]\n"
+                          "      [value: 1]\n"
+                          "      [value: 2]\n"
+                          "    [value: 3]"),
+        },
+        {
+            string_static("(null != 1) + 2 + 3"),
+            string_static("[op-bin: add]\n"
+                          "  [op-bin: add]\n"
+                          "    [op-bin: not-equal]\n"
+                          "      [value: null]\n"
+                          "      [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [value: 3]"),
         },
         {
             string_static("1 != (42 > 2)"),

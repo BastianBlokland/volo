@@ -14,6 +14,7 @@ typedef enum {
   OpPrecedence_None,
   OpPrecedence_Equality,
   OpPrecedence_Relational,
+  OpPrecedence_Additive,
 } OpPrecedence;
 
 static OpPrecedence op_precedence(const ScriptTokenType type) {
@@ -26,6 +27,9 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_OpGt:
   case ScriptTokenType_OpGtEq:
     return OpPrecedence_Relational;
+  case ScriptTokenType_OpPlus:
+  case ScriptTokenType_OpMinus:
+    return OpPrecedence_Additive;
   default:
     return OpPrecedence_None;
   }
@@ -45,6 +49,10 @@ static ScriptOpBin op_bin(const ScriptTokenType type) {
     return ScriptOpBin_Greater;
   case ScriptTokenType_OpGtEq:
     return ScriptOpBin_GreaterOrEqual;
+  case ScriptTokenType_OpPlus:
+    return ScriptOpBin_Add;
+  case ScriptTokenType_OpMinus:
+    return ScriptOpBin_Sub;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -124,13 +132,18 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
      */
     ctx->input = remInput; // Consume the 'nextToken'.
 
+    /**
+     * Binary expressions.
+     */
     switch (nextToken.type) {
     case ScriptTokenType_OpEqEq:
     case ScriptTokenType_OpBangEq:
     case ScriptTokenType_OpLe:
     case ScriptTokenType_OpLeEq:
     case ScriptTokenType_OpGt:
-    case ScriptTokenType_OpGtEq: {
+    case ScriptTokenType_OpGtEq:
+    case ScriptTokenType_OpPlus:
+    case ScriptTokenType_OpMinus: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return res;
