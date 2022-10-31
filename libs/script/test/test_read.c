@@ -29,49 +29,49 @@ spec(read) {
         // Binary expressions.
         {
             string_static("null == 42"),
-            string_static("[op-bin: equal]\n"
+            string_static("[op-binary: equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null != 42"),
-            string_static("[op-bin: not-equal]\n"
+            string_static("[op-binary: not-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null < 42"),
-            string_static("[op-bin: less]\n"
+            string_static("[op-binary: less]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null <= 42"),
-            string_static("[op-bin: less-or-equal]\n"
+            string_static("[op-binary: less-or-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null > 42"),
-            string_static("[op-bin: greater]\n"
+            string_static("[op-binary: greater]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null >= 42"),
-            string_static("[op-bin: greater-or-equal]\n"
+            string_static("[op-binary: greater-or-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null + 42"),
-            string_static("[op-bin: add]\n"
+            string_static("[op-binary: add]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null - 42"),
-            string_static("[op-bin: sub]\n"
+            string_static("[op-binary: sub]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
@@ -79,27 +79,27 @@ spec(read) {
         // Compound expressions.
         {
             string_static("1 != 42 > 2"),
-            string_static("[op-bin: not-equal]\n"
+            string_static("[op-binary: not-equal]\n"
                           "  [value: 1]\n"
-                          "  [op-bin: greater]\n"
+                          "  [op-binary: greater]\n"
                           "    [value: 42]\n"
                           "    [value: 2]"),
         },
         {
             string_static("null != 1 + 2 + 3"),
-            string_static("[op-bin: not-equal]\n"
+            string_static("[op-binary: not-equal]\n"
                           "  [value: null]\n"
-                          "  [op-bin: add]\n"
-                          "    [op-bin: add]\n"
+                          "  [op-binary: add]\n"
+                          "    [op-binary: add]\n"
                           "      [value: 1]\n"
                           "      [value: 2]\n"
                           "    [value: 3]"),
         },
         {
             string_static("(null != 1) + 2 + 3"),
-            string_static("[op-bin: add]\n"
-                          "  [op-bin: add]\n"
-                          "    [op-bin: not-equal]\n"
+            string_static("[op-binary: add]\n"
+                          "  [op-binary: add]\n"
+                          "    [op-binary: not-equal]\n"
                           "      [value: null]\n"
                           "      [value: 1]\n"
                           "    [value: 2]\n"
@@ -107,16 +107,16 @@ spec(read) {
         },
         {
             string_static("1 != (42 > 2)"),
-            string_static("[op-bin: not-equal]\n"
+            string_static("[op-binary: not-equal]\n"
                           "  [value: 1]\n"
-                          "  [op-bin: greater]\n"
+                          "  [op-binary: greater]\n"
                           "    [value: 42]\n"
                           "    [value: 2]"),
         },
         {
             string_static("(1 != 42) > 2"),
-            string_static("[op-bin: greater]\n"
-                          "  [op-bin: not-equal]\n"
+            string_static("[op-binary: greater]\n"
+                          "  [op-binary: not-equal]\n"
                           "    [value: 1]\n"
                           "    [value: 42]\n"
                           "  [value: 2]"),

@@ -35,24 +35,24 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   }
 }
 
-static ScriptOpBin op_bin(const ScriptTokenType type) {
+static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_OpEqEq:
-    return ScriptOpBin_Equal;
+    return ScriptOpBinary_Equal;
   case ScriptTokenType_OpBangEq:
-    return ScriptOpBin_NotEqual;
+    return ScriptOpBinary_NotEqual;
   case ScriptTokenType_OpLe:
-    return ScriptOpBin_Less;
+    return ScriptOpBinary_Less;
   case ScriptTokenType_OpLeEq:
-    return ScriptOpBin_LessOrEqual;
+    return ScriptOpBinary_LessOrEqual;
   case ScriptTokenType_OpGt:
-    return ScriptOpBin_Greater;
+    return ScriptOpBinary_Greater;
   case ScriptTokenType_OpGtEq:
-    return ScriptOpBin_GreaterOrEqual;
+    return ScriptOpBinary_GreaterOrEqual;
   case ScriptTokenType_OpPlus:
-    return ScriptOpBin_Add;
+    return ScriptOpBinary_Add;
   case ScriptTokenType_OpMinus:
-    return ScriptOpBin_Sub;
+    return ScriptOpBinary_Sub;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -148,7 +148,8 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return res;
       }
-      res = script_expr(script_add_op_bin(ctx->doc, res.expr, rhs.expr, op_bin(nextToken.type)));
+      const ScriptOpBinary op = token_op_binary(nextToken.type);
+      res                     = script_expr(script_add_op_binary(ctx->doc, res.expr, rhs.expr, op));
     } break;
     default:
       diag_assert_fail("Invalid operator token");

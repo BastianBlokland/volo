@@ -2,29 +2,38 @@
 #include "script_val.h"
 
 typedef enum {
-  ScriptOpBin_Equal,
-  ScriptOpBin_NotEqual,
-  ScriptOpBin_Less,
-  ScriptOpBin_LessOrEqual,
-  ScriptOpBin_Greater,
-  ScriptOpBin_GreaterOrEqual,
-  ScriptOpBin_Add,
-  ScriptOpBin_Sub,
+  ScriptOpUnary_Negate,
 
-  ScriptOpBin_Count,
-} ScriptOpBin;
+  ScriptOpUnary_Count,
+} ScriptOpUnary;
+
+typedef enum {
+  ScriptOpBinary_Equal,
+  ScriptOpBinary_NotEqual,
+  ScriptOpBinary_Less,
+  ScriptOpBinary_LessOrEqual,
+  ScriptOpBinary_Greater,
+  ScriptOpBinary_GreaterOrEqual,
+  ScriptOpBinary_Add,
+  ScriptOpBinary_Sub,
+
+  ScriptOpBinary_Count,
+} ScriptOpBinary;
 
 /**
  * Perform an operation.
  */
-ScriptVal script_op_bin(ScriptVal, ScriptVal, ScriptOpBin);
+ScriptVal script_op_unary(ScriptVal, ScriptOpUnary);
+ScriptVal script_op_binary(ScriptVal, ScriptVal, ScriptOpBinary);
 
 /**
  * Get a textual representation of the given operation.
  */
-String script_op_bin_str(ScriptOpBin);
+String script_op_unary_str(ScriptOpUnary);
+String script_op_binary_str(ScriptOpBinary);
 
 /**
  * Create a formatting argument for an operation type.
  */
-#define script_op_bin_fmt(_VAL_) fmt_text(script_op_bin_str(_VAL_))
+#define script_op_unary_fmt(_VAL_) fmt_text(script_op_unary_str(_VAL_))
+#define script_op_binary_fmt(_VAL_) fmt_text(script_op_binary_str(_VAL_))

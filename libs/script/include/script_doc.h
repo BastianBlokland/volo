@@ -18,7 +18,7 @@ typedef struct sScriptDoc ScriptDoc;
 typedef enum {
   ScriptExprType_Value,
   ScriptExprType_Load,
-  ScriptExprType_OpBin,
+  ScriptExprType_OpBinary,
 
   ScriptExprType_Count,
 } ScriptExprType;
@@ -45,7 +45,7 @@ void script_destroy(ScriptDoc*);
  */
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal);
 ScriptExpr script_add_load(ScriptDoc*, StringHash key);
-ScriptExpr script_add_op_bin(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptOpBin);
+ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptOpBinary);
 
 /**
  * Query expression data.

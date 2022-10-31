@@ -62,13 +62,13 @@ ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
       });
 }
 
-ScriptExpr script_add_op_bin(
-    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptOpBin op) {
+ScriptExpr script_add_op_binary(
+    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptOpBinary op) {
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type        = ScriptExprType_OpBin,
-          .data_op_bin = {.lhs = lhs, .rhs = rhs, .op = op},
+          .type           = ScriptExprType_OpBinary,
+          .data_op_binary = {.lhs = lhs, .rhs = rhs, .op = op},
       });
 }
 
@@ -99,10 +99,10 @@ void script_expr_str_write(
   case ScriptExprType_Load:
     fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
     return;
-  case ScriptExprType_OpBin:
-    fmt_write(str, "[op-bin: {}]", script_op_bin_fmt(data->data_op_bin.op));
-    script_expr_str_write_child(doc, data->data_op_bin.lhs, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_op_bin.rhs, indent + 1, str);
+  case ScriptExprType_OpBinary:
+    fmt_write(str, "[op-binary: {}]", script_op_binary_fmt(data->data_op_binary.op));
+    script_expr_str_write_child(doc, data->data_op_binary.lhs, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_binary.rhs, indent + 1, str);
     return;
   case ScriptExprType_Count:
     break;

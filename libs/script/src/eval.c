@@ -15,18 +15,18 @@ INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const
   return &dynarray_begin_t(&ctx->doc->exprs, ScriptExprData)[expr];
 }
 
-INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* valExpr) {
-  return dynarray_begin_t(&ctx->doc->values, ScriptVal)[valExpr->valId];
+INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
+  return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
 }
 
-INLINE_HINT static ScriptVal eval_load(ScriptEvalContext* ctx, const ScriptExprLoad* loadExpr) {
-  return script_mem_get(ctx->m, loadExpr->key);
+INLINE_HINT static ScriptVal eval_load(ScriptEvalContext* ctx, const ScriptExprLoad* expr) {
+  return script_mem_get(ctx->m, expr->key);
 }
 
-INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExprOpBin* binOpExpr) {
-  const ScriptVal lhs = eval(ctx, binOpExpr->lhs);
-  const ScriptVal rhs = eval(ctx, binOpExpr->rhs);
-  return script_op_bin(lhs, rhs, binOpExpr->op);
+INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExprOpBinary* expr) {
+  const ScriptVal lhs = eval(ctx, expr->lhs);
+  const ScriptVal rhs = eval(ctx, expr->rhs);
+  return script_op_binary(lhs, rhs, expr->op);
 }
 
 static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
@@ -35,8 +35,8 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
   case ScriptExprType_Load:
     return eval_load(ctx, &expr_data(ctx, expr)->data_load);
-  case ScriptExprType_OpBin:
-    return eval_op_bin(ctx, &expr_data(ctx, expr)->data_op_bin);
+  case ScriptExprType_OpBinary:
+    return eval_op_bin(ctx, &expr_data(ctx, expr)->data_op_binary);
   case ScriptExprType_Count:
     break;
   }

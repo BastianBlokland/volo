@@ -23,12 +23,12 @@ spec(doc) {
   it("can create basic binary operation expressions") {
     check_expr_str_lit(
         doc,
-        script_add_op_bin(
+        script_add_op_binary(
             doc,
             script_add_value(doc, script_number(1)),
             script_add_value(doc, script_number(2)),
-            ScriptOpBin_Greater),
-        "[op-bin: greater]\n"
+            ScriptOpBinary_Greater),
+        "[op-binary: greater]\n"
         "  [value: 1]\n"
         "  [value: 2]");
   }
@@ -36,24 +36,24 @@ spec(doc) {
   it("can create nested binary operation expressions") {
     check_expr_str_lit(
         doc,
-        script_add_op_bin(
+        script_add_op_binary(
             doc,
-            script_add_op_bin(
+            script_add_op_binary(
                 doc,
                 script_add_value(doc, script_null()),
                 script_add_value(doc, script_vector3_lit(1, 2, 3)),
-                ScriptOpBin_Equal),
-            script_add_op_bin(
+                ScriptOpBinary_Equal),
+            script_add_op_binary(
                 doc,
                 script_add_value(doc, script_number(1)),
                 script_add_value(doc, script_entity(0x42)),
-                ScriptOpBin_Less),
-            ScriptOpBin_Greater),
-        "[op-bin: greater]\n"
-        "  [op-bin: equal]\n"
+                ScriptOpBinary_Less),
+            ScriptOpBinary_Greater),
+        "[op-binary: greater]\n"
+        "  [op-binary: equal]\n"
         "    [value: null]\n"
         "    [value: 1, 2, 3]\n"
-        "  [op-bin: less]\n"
+        "  [op-binary: less]\n"
         "    [value: 1]\n"
         "    [value: 42]");
   }
