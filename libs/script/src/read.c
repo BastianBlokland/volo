@@ -12,6 +12,7 @@
 
 typedef enum {
   OpPrecedence_None,
+  OpPrecedence_Assignment,
   OpPrecedence_Equality,
   OpPrecedence_Relational,
   OpPrecedence_Additive,
@@ -121,8 +122,22 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
   case ScriptTokenType_Bool:
     return script_expr(script_add_value(ctx->doc, script_bool(token.val_bool)));
-  case ScriptTokenType_Key:
+  /**
+   * Memory access.
+   */
+  case ScriptTokenType_Key: {
+    ScriptToken  nextToken;
+    const String remInput = script_lex(ctx->input, null, &nextToken);
+    if (nextToken.type == ScriptTokenType_Eq) {
+      ctx->input                 = remInput; // Consume the 'nextToken'.
+      const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
+      if (UNLIKELY(val.type == ScriptResult_Fail)) {
+        return val;
+      }
+      return script_expr(script_add_store(ctx->doc, token.val_key, val.expr));
+    }
     return script_expr(script_add_load(ctx->doc, token.val_key));
+  }
   /**
    * Lex errors.
    */

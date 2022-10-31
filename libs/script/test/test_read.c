@@ -19,6 +19,16 @@ spec(read) {
         {string_static("42.1337"), string_static("[value: 42.1337]")},
         {string_static("true"), string_static("[value: true]")},
         {string_static("$hello"), string_static("[load: $3944927369]")},
+        {
+            string_static("$hello = 42"),
+            string_static("[store: $3944927369]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("$hello = $world"),
+            string_static("[store: $3944927369]\n"
+                          "  [load: $4293346878]"),
+        },
 
         // Parenthesized expressions.
         {string_static("(42.1337)"), string_static("[value: 42.1337]")},
@@ -154,6 +164,21 @@ spec(read) {
                           "    [value: 1]\n"
                           "    [value: 42]\n"
                           "  [value: 2]"),
+        },
+        {
+            string_static("$hello = 1 + 2"),
+            string_static("[store: $3944927369]\n"
+                          "  [op-binary: add]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]"),
+        },
+        {
+            string_static("$hello = $world = 1 + 2"),
+            string_static("[store: $3944927369]\n"
+                          "  [store: $4293346878]\n"
+                          "    [op-binary: add]\n"
+                          "      [value: 1]\n"
+                          "      [value: 2]"),
         },
     };
 
