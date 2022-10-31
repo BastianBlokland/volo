@@ -20,6 +20,12 @@ spec(read) {
         {string_static("true"), string_static("[value: true]")},
         {string_static("$hello"), string_static("[load: $3944927369]")},
 
+        // Parenthesized expressions.
+        {string_static("(42.1337)"), string_static("[value: 42.1337]")},
+        {string_static("($hello)"), string_static("[load: $3944927369]")},
+        {string_static("((42.1337))"), string_static("[value: 42.1337]")},
+        {string_static("(($hello))"), string_static("[load: $3944927369]")},
+
         // Comparisons.
         {
             string_static("null == 42"),
