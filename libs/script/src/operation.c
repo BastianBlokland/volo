@@ -16,6 +16,10 @@ ScriptVal script_op_bin(const ScriptVal a, const ScriptVal b, const ScriptOpBin 
     return script_bool(script_val_greater(a, b));
   case ScriptOpBin_GreaterOrEqual:
     return script_bool(!script_val_less(a, b));
+  case ScriptOpBin_Add:
+    return script_val_add(a, b);
+  case ScriptOpBin_Sub:
+    return script_val_sub(a, b);
   case ScriptOpBin_Count:
     break;
   }
@@ -32,6 +36,8 @@ String script_op_bin_str(const ScriptOpBin c) {
       string_static("less-or-equal"),
       string_static("greater"),
       string_static("greater-or-equal"),
+      string_static("add"),
+      string_static("sub"),
   };
   ASSERT(array_elems(g_names) == ScriptOpBin_Count, "Incorrect number of names");
   return g_names[c];

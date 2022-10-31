@@ -8,6 +8,8 @@ typedef enum {
   ScriptOpBin_LessOrEqual,
   ScriptOpBin_Greater,
   ScriptOpBin_GreaterOrEqual,
+  ScriptOpBin_Add,
+  ScriptOpBin_Sub,
 
   ScriptOpBin_Count,
 } ScriptOpBin;
