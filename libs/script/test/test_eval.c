@@ -39,6 +39,8 @@ spec(eval) {
 
         // Arithmetic.
         {string_static("-42"), script_number(-42)},
+        {string_static("--42"), script_number(42)},
+        {string_static("---42"), script_number(-42)},
         {string_static("-42 + -41"), script_number(-83)},
         {string_static("1 + 2"), script_number(3)},
         {string_static("1 + 2 + 3"), script_number(6)},

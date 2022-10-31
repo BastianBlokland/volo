@@ -92,6 +92,19 @@ spec(read) {
                           "  [value: 1]"),
         },
         {
+            string_static("--42"),
+            string_static("[op-unary: negate]\n"
+                          "  [op-unary: negate]\n"
+                          "    [value: 42]"),
+        },
+        {
+            string_static("---42"),
+            string_static("[op-unary: negate]\n"
+                          "  [op-unary: negate]\n"
+                          "    [op-unary: negate]\n"
+                          "      [value: 42]"),
+        },
+        {
             string_static("-(42 + 1)"),
             string_static("[op-unary: negate]\n"
                           "  [op-binary: add]\n"
