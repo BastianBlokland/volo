@@ -58,11 +58,6 @@ typedef struct {
   u32        recursionDepth;
 } ScriptReadContext;
 
-static void read_token_skip(ScriptReadContext* ctx) {
-  ScriptToken discardedToken;
-  ctx->input = script_lex(ctx->input, null, &discardedToken);
-}
-
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
@@ -105,7 +100,6 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
 static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    read_token_skip(ctx); // NOTE: Important to consume a token to make progress.
     return script_err(ScriptError_RecursionLimitExceeded);
   }
 
