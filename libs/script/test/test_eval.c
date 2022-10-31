@@ -37,6 +37,9 @@ spec(eval) {
         {string_static("$v3"), script_null()},
         {string_static("$non-existent"), script_null()},
 
+        // Memory stores.
+        {string_static("$v4 = true"), script_bool(true)},
+
         // Arithmetic.
         {string_static("-42"), script_number(-42)},
         {string_static("--42"), script_number(42)},
@@ -77,6 +80,15 @@ spec(eval) {
       const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
       check_eq_val(evalRes, testData[i].expected);
     }
+  }
+
+  it("can store memory values") {
+    ScriptReadResult readRes;
+    script_read_all(doc, string_lit("$test = 42"), &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    script_eval(doc, mem, readRes.expr);
+    check_eq_val(script_mem_get(mem, string_hash_lit("test")), script_number(42));
   }
 
   teardown() {
