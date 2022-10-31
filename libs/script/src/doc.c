@@ -29,9 +29,9 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-      .values = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc  = alloc,
+                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+                .values = dynarray_create_t(alloc, ScriptVal, 32),
+                .alloc  = alloc,
   };
   return doc;
 }
@@ -59,6 +59,16 @@ ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
       (ScriptExprData){
           .type      = ScriptExprType_Load,
           .data_load = {.key = key},
+      });
+}
+
+ScriptExpr script_add_store(ScriptDoc* doc, const StringHash key, const ScriptExpr val) {
+  diag_assert_msg(key, "Empty key is not valid");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type       = ScriptExprType_Store,
+          .data_store = {.key = key, .val = val},
       });
 }
 
@@ -107,6 +117,10 @@ void script_expr_str_write(
     return;
   case ScriptExprType_Load:
     fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
+    return;
+  case ScriptExprType_Store:
+    fmt_write(str, "[store: ${}]", fmt_int(data->data_store.key));
+    script_expr_str_write_child(doc, data->data_store.val, indent + 1, str);
     return;
   case ScriptExprType_OpUnary:
     fmt_write(str, "[op-unary: {}]", script_op_unary_fmt(data->data_op_unary.op));

@@ -23,6 +23,12 @@ INLINE_HINT static ScriptVal eval_load(ScriptEvalContext* ctx, const ScriptExprL
   return script_mem_get(ctx->m, expr->key);
 }
 
+INLINE_HINT static ScriptVal eval_store(ScriptEvalContext* ctx, const ScriptExprStore* expr) {
+  const ScriptVal val = eval(ctx, expr->val);
+  script_mem_set(ctx->m, expr->key, val);
+  return val;
+}
+
 INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExprOpUnary* expr) {
   const ScriptVal val = eval(ctx, expr->val);
   return script_op_unary(val, expr->op);
@@ -40,6 +46,8 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
   case ScriptExprType_Load:
     return eval_load(ctx, &expr_data(ctx, expr)->data_load);
+  case ScriptExprType_Store:
+    return eval_store(ctx, &expr_data(ctx, expr)->data_store);
   case ScriptExprType_OpUnary:
     return eval_op_una(ctx, &expr_data(ctx, expr)->data_op_unary);
   case ScriptExprType_OpBinary:

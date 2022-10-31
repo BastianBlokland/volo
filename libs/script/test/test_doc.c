@@ -20,6 +20,14 @@ spec(doc) {
     check_expr_str_lit(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
   }
 
+  it("can create store expressions") {
+    check_expr_str_lit(
+        doc,
+        script_add_store(doc, string_hash_lit("Hello"), script_add_value(doc, script_number(42))),
+        "[store: $938478706]\n"
+        "  [value: 42]");
+  }
+
   it("can create basic unary operation expressions") {
     check_expr_str_lit(
         doc,
