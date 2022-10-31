@@ -241,6 +241,25 @@ spec(val) {
     }
   }
 
+  it("can negate values") {
+    const struct {
+      ScriptVal val;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), .expected = script_null()},
+        {script_number(42), .expected = script_number(-42)},
+        {script_bool(true), .expected = script_bool(true)},
+        {script_bool(false), .expected = script_bool(false)},
+        {script_vector3_lit(1, 2, 3), .expected = script_vector3_lit(-1, -2, -3)},
+        {script_time(time_seconds(2)), .expected = script_time(time_seconds(-2))},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_neg(testData[i].val);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
   it("can add values") {
     const struct {
       ScriptVal a, b;
@@ -272,7 +291,6 @@ spec(val) {
          .expected = script_time(time_seconds(1))},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_entity(0x1)},
-
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -312,7 +330,6 @@ spec(val) {
          .expected = script_time(time_seconds(1))},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_entity(0x1)},
-
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

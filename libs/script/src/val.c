@@ -255,6 +255,27 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_neg(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return val;
+  case ScriptType_Number:
+    return script_number(-val_as_number(val));
+  case ScriptType_Bool:
+    return val; // Arithmetic on booleans not supported.
+  case ScriptType_Vector3: {
+    const GeoVector vec = val_as_vector3_dirty_w(val);
+    return script_vector3(geo_vector_mul(vec, -1.0f));
+  }
+  case ScriptType_Entity:
+    return val; // Arithmetic on entities not supported.
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) == ScriptType_Null) {
     return b;
