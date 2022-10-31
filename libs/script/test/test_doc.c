@@ -20,40 +20,40 @@ spec(doc) {
     check_expr_str_lit(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
   }
 
-  it("can create basic compare expressions") {
+  it("can create basic binary operation expressions") {
     check_expr_str_lit(
         doc,
-        script_add_compare(
+        script_add_op_bin(
             doc,
             script_add_value(doc, script_number(1)),
             script_add_value(doc, script_number(2)),
-            ScriptComparison_Greater),
-        "[compare: greater]\n"
+            ScriptOpBin_Greater),
+        "[op-bin: greater]\n"
         "  [value: 1]\n"
         "  [value: 2]");
   }
 
-  it("can create nested compare expressions") {
+  it("can create nested binary operation expressions") {
     check_expr_str_lit(
         doc,
-        script_add_compare(
+        script_add_op_bin(
             doc,
-            script_add_compare(
+            script_add_op_bin(
                 doc,
                 script_add_value(doc, script_null()),
                 script_add_value(doc, script_vector3_lit(1, 2, 3)),
-                ScriptComparison_Equal),
-            script_add_compare(
+                ScriptOpBin_Equal),
+            script_add_op_bin(
                 doc,
                 script_add_value(doc, script_number(1)),
                 script_add_value(doc, script_entity(0x42)),
-                ScriptComparison_Less),
-            ScriptComparison_Greater),
-        "[compare: greater]\n"
-        "  [compare: equal]\n"
+                ScriptOpBin_Less),
+            ScriptOpBin_Greater),
+        "[op-bin: greater]\n"
+        "  [op-bin: equal]\n"
         "    [value: null]\n"
         "    [value: 1, 2, 3]\n"
-        "  [compare: less]\n"
+        "  [op-bin: less]\n"
         "    [value: 1]\n"
         "    [value: 42]");
   }

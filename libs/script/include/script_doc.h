@@ -1,7 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "core_types.h"
-#include "script_compare.h"
+#include "script_operation.h"
 #include "script_val.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -18,7 +18,7 @@ typedef struct sScriptDoc ScriptDoc;
 typedef enum {
   ScriptExprType_Value,
   ScriptExprType_Load,
-  ScriptExprType_Compare,
+  ScriptExprType_OpBin,
 
   ScriptExprType_Count,
 } ScriptExprType;
@@ -45,7 +45,7 @@ void script_destroy(ScriptDoc*);
  */
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal);
 ScriptExpr script_add_load(ScriptDoc*, StringHash key);
-ScriptExpr script_add_compare(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptComparison);
+ScriptExpr script_add_op_bin(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptOpBin);
 
 /**
  * Query expression data.

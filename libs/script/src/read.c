@@ -1,5 +1,4 @@
 #include "core_diag.h"
-#include "script_compare.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -32,22 +31,22 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   }
 }
 
-static ScriptComparison op_comparision(const ScriptTokenType type) {
+static ScriptOpBin op_bin(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_OpEqEq:
-    return ScriptComparison_Equal;
+    return ScriptOpBin_Equal;
   case ScriptTokenType_OpBangEq:
-    return ScriptComparison_NotEqual;
+    return ScriptOpBin_NotEqual;
   case ScriptTokenType_OpLe:
-    return ScriptComparison_Less;
+    return ScriptOpBin_Less;
   case ScriptTokenType_OpLeEq:
-    return ScriptComparison_LessOrEqual;
+    return ScriptOpBin_LessOrEqual;
   case ScriptTokenType_OpGt:
-    return ScriptComparison_Greater;
+    return ScriptOpBin_Greater;
   case ScriptTokenType_OpGtEq:
-    return ScriptComparison_GreaterOrEqual;
+    return ScriptOpBin_GreaterOrEqual;
   default:
-    diag_assert_fail("Invalid comparison token");
+    diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
   }
 }
@@ -136,8 +135,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return res;
       }
-      const ScriptComparison comparison = op_comparision(nextToken.type);
-      res = script_expr(script_add_compare(ctx->doc, res.expr, rhs.expr, comparison));
+      res = script_expr(script_add_op_bin(ctx->doc, res.expr, rhs.expr, op_bin(nextToken.type)));
     } break;
     default:
       diag_assert_fail("Invalid operator token");

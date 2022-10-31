@@ -16,6 +16,8 @@
 
 #define check_eq_tok(_A_, _B_)                   check_eq_tok_impl(_testCtx, (_A_), (_B_), source_location())
 #define check_neq_tok(_A_, _B_)                  check_neq_tok_impl(_testCtx, (_A_), (_B_), source_location())
+#define check_truthy(_VAL_)                      check_truthy_impl(_testCtx, (_VAL_), source_location())
+#define check_falsy(_VAL_)                       check_falsy_impl(_testCtx, (_VAL_), source_location())
 #define check_eq_val(_A_, _B_)                   check_eq_val_impl(_testCtx, (_A_), (_B_), source_location())
 #define check_neq_val(_A_, _B_)                  check_neq_val_impl(_testCtx, (_A_), (_B_), source_location())
 #define check_less_val(_A_, _B_)                 check_less_val_impl(_testCtx, (_A_), (_B_), source_location())
@@ -27,6 +29,8 @@
 
 void check_eq_tok_impl(CheckTestContext*, const ScriptToken* a, const ScriptToken* b, SourceLoc);
 void check_neq_tok_impl(CheckTestContext*, const ScriptToken* a, const ScriptToken* b, SourceLoc);
+void check_truthy_impl(CheckTestContext*, ScriptVal, SourceLoc);
+void check_falsy_impl(CheckTestContext*, ScriptVal, SourceLoc);
 void check_eq_val_impl(CheckTestContext*, ScriptVal a, ScriptVal b, SourceLoc);
 void check_neq_val_impl(CheckTestContext*, ScriptVal a, ScriptVal b, SourceLoc);
 void check_less_val_impl(CheckTestContext*, ScriptVal a, ScriptVal b, SourceLoc);

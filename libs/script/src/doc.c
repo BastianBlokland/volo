@@ -14,17 +14,17 @@ typedef struct {
 } ScriptExprLoad;
 
 typedef struct {
-  ScriptExpr       lhs;
-  ScriptExpr       rhs;
-  ScriptComparison comparison;
-} ScriptExprCompare;
+  ScriptExpr  lhs;
+  ScriptExpr  rhs;
+  ScriptOpBin op;
+} ScriptExprOpBin;
 
 typedef struct {
   ScriptExprType type;
   union {
-    ScriptExprValue   data_value;
-    ScriptExprLoad    data_load;
-    ScriptExprCompare data_compare;
+    ScriptExprValue data_value;
+    ScriptExprLoad  data_load;
+    ScriptExprOpBin data_op_bin;
   };
 } ScriptExprData;
 
@@ -59,9 +59,9 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-                .values = dynarray_create_t(alloc, ScriptVal, 32),
-                .alloc  = alloc,
+      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+      .values = dynarray_create_t(alloc, ScriptVal, 32),
+      .alloc  = alloc,
   };
   return doc;
 }
@@ -92,13 +92,13 @@ ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
       });
 }
 
-ScriptExpr script_add_compare(
-    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptComparison comparison) {
+ScriptExpr script_add_op_bin(
+    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptOpBin op) {
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type         = ScriptExprType_Compare,
-          .data_compare = {.lhs = lhs, .rhs = rhs, .comparison = comparison},
+          .type        = ScriptExprType_OpBin,
+          .data_op_bin = {.lhs = lhs, .rhs = rhs, .op = op},
       });
 }
 
@@ -129,10 +129,10 @@ void script_expr_str_write(
   case ScriptExprType_Load:
     fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
     return;
-  case ScriptExprType_Compare:
-    fmt_write(str, "[compare: {}]", script_comparision_fmt(data->data_compare.comparison));
-    script_expr_str_write_child(doc, data->data_compare.lhs, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_compare.rhs, indent + 1, str);
+  case ScriptExprType_OpBin:
+    fmt_write(str, "[op-bin: {}]", script_op_bin_fmt(data->data_op_bin.op));
+    script_expr_str_write_child(doc, data->data_op_bin.lhs, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_bin.rhs, indent + 1, str);
     return;
   case ScriptExprType_Count:
     break;

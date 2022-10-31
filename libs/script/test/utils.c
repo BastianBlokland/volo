@@ -18,6 +18,20 @@ void check_neq_tok_impl(
   }
 }
 
+void check_truthy_impl(CheckTestContext* ctx, const ScriptVal val, const SourceLoc src) {
+  if (UNLIKELY(!script_truthy(val))) {
+    const String msg = fmt_write_scratch("truthy({})", script_val_fmt(val));
+    check_report_error(ctx, msg, src);
+  }
+}
+
+void check_falsy_impl(CheckTestContext* ctx, const ScriptVal val, const SourceLoc src) {
+  if (UNLIKELY(!script_falsy(val))) {
+    const String msg = fmt_write_scratch("falsy({})", script_val_fmt(val));
+    check_report_error(ctx, msg, src);
+  }
+}
+
 void check_eq_val_impl(
     CheckTestContext* ctx, const ScriptVal a, const ScriptVal b, const SourceLoc src) {
 
