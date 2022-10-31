@@ -12,6 +12,11 @@ typedef struct {
 } ScriptExprLoad;
 
 typedef struct {
+  ScriptExpr    val;
+  ScriptOpUnary op;
+} ScriptExprOpUnary;
+
+typedef struct {
   ScriptExpr     lhs;
   ScriptExpr     rhs;
   ScriptOpBinary op;
@@ -22,6 +27,7 @@ typedef struct {
   union {
     ScriptExprValue    data_value;
     ScriptExprLoad     data_load;
+    ScriptExprOpUnary  data_op_unary;
     ScriptExprOpBinary data_op_binary;
   };
 } ScriptExprData;

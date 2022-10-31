@@ -62,6 +62,15 @@ ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
       });
 }
 
+ScriptExpr script_add_op_unary(ScriptDoc* doc, const ScriptExpr val, const ScriptOpUnary op) {
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type          = ScriptExprType_OpUnary,
+          .data_op_unary = {.val = val, .op = op},
+      });
+}
+
 ScriptExpr script_add_op_binary(
     ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptOpBinary op) {
   return script_doc_expr_add(
@@ -98,6 +107,10 @@ void script_expr_str_write(
     return;
   case ScriptExprType_Load:
     fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
+    return;
+  case ScriptExprType_OpUnary:
+    fmt_write(str, "[op-unary: {}]", script_op_unary_fmt(data->data_op_unary.op));
+    script_expr_str_write_child(doc, data->data_op_unary.val, indent + 1, str);
     return;
   case ScriptExprType_OpBinary:
     fmt_write(str, "[op-binary: {}]", script_op_binary_fmt(data->data_op_binary.op));
