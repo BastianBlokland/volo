@@ -27,6 +27,7 @@ typedef enum eAssetAiNodeType {
   AssetAiNode_Sequence,
   AssetAiNode_KnowledgeSet,
   AssetAiNode_Condition,
+  AssetAiNode_Execute,
 
   AssetAiNode_Count,
 } AssetAiNodeType;
@@ -104,6 +105,10 @@ typedef struct {
   ScriptExpr scriptExpr;
 } AssetAiNodeCondition;
 
+typedef struct {
+  ScriptExpr scriptExpr;
+} AssetAiNodeExecute;
+
 typedef struct sAssetAiNode {
   AssetAiNodeType type;
   AssetAiNodeId   nextSibling;
@@ -116,6 +121,7 @@ typedef struct sAssetAiNode {
     AssetAiNodeSequence     data_sequence;
     AssetAiNodeKnowledgeSet data_knowledgeset;
     AssetAiNodeCondition    data_condition;
+    AssetAiNodeExecute      data_execute;
   };
 } AssetAiNode;
 

@@ -86,6 +86,10 @@ typedef struct {
   String script;
 } AssetAiNodeDefCondition;
 
+typedef struct {
+  String script;
+} AssetAiNodeDefExecute;
+
 typedef struct sAssetAiNodeDef {
   AssetAiNodeType type;
   String          name;
@@ -98,6 +102,7 @@ typedef struct sAssetAiNodeDef {
     AssetAiNodeDefSequence     data_sequence;
     AssetAiNodeDefKnowledgeSet data_knowledgeset;
     AssetAiNodeDefCondition    data_condition;
+    AssetAiNodeDefExecute      data_execute;
   };
 } AssetAiNodeDef;
 
@@ -171,6 +176,10 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String));
     data_reg_comment_t(g_dataReg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
 
+    data_reg_struct_t(g_dataReg, AssetAiNodeDefExecute);
+    data_reg_field_t(g_dataReg, AssetAiNodeDefExecute, script, data_prim_t(String));
+    data_reg_comment_t(g_dataReg, AssetAiNodeDefExecute, "Execute the script expression.\nEvaluates to 'Success'.");
+
     data_reg_union_t(g_dataReg, AssetAiNodeDef, type);
     data_reg_union_name_t(g_dataReg, AssetAiNodeDef, name);
     data_reg_choice_empty(g_dataReg, AssetAiNodeDef, AssetAiNode_Running);
@@ -184,6 +193,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeDefSequence);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_KnowledgeSet, data_knowledgeset, t_AssetAiNodeDefKnowledgeSet);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Condition, data_condition, t_AssetAiNodeDefCondition);
+    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Execute, data_execute, t_AssetAiNodeDefExecute);
     // clang-format on
 
     g_dataNodeMeta = data_meta_t(nodeType);
@@ -303,16 +313,25 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     log_e("Invalid condition script", log_param("error", script_error_fmt(readRes.error)));
     ctx->error = BehaviorError_ScriptInvalid;
-    goto Error;
+    return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
   }
   if (UNLIKELY(!script_expr_readonly(ctx->scriptDoc, readRes.expr))) {
     ctx->error = BehaviorError_ScriptNotReadonly;
-    goto Error;
+    return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
   }
   return (AssetAiNodeCondition){.scriptExpr = readRes.expr};
+}
 
-Error:
-  return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
+static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNodeDef* def) {
+  ScriptReadResult readRes;
+  script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
+
+  if (UNLIKELY(readRes.type != ScriptResult_Success)) {
+    log_e("Invalid execute script", log_param("error", script_error_fmt(readRes.error)));
+    ctx->error = BehaviorError_ScriptInvalid;
+    return (AssetAiNodeExecute){.scriptExpr = sentinel_u32};
+  }
+  return (AssetAiNodeExecute){.scriptExpr = readRes.expr};
 }
 
 static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
@@ -352,6 +371,9 @@ static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
     break;
   case AssetAiNode_Condition:
     resNode->data_condition = build_node_condition(ctx, def);
+    break;
+  case AssetAiNode_Execute:
+    resNode->data_execute = build_node_execute(ctx, def);
     break;
   case AssetAiNode_Count:
     break;
@@ -465,6 +487,7 @@ String asset_behavior_type_str(const AssetAiNodeType type) {
       string_static("Sequence"),
       string_static("KnowledgeSet"),
       string_static("Condition"),
+      string_static("Execute"),
   };
   ASSERT(array_elems(g_names) == AssetAiNode_Count, "Incorrect number of names");
   return g_names[type];

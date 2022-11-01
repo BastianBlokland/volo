@@ -13,8 +13,8 @@
         "AssetAiNode_Selector",
         "AssetAiNode_Sequence",
         "AssetAiNode_KnowledgeSet",
-        "AssetAiNode_KnowledgeCompare",
-        "AssetAiNode_Condition"
+        "AssetAiNode_Condition",
+        "AssetAiNode_Execute"
       ]
     },
     {
@@ -29,37 +29,7 @@
       ]
     }
   ],
-  "enums": [
-    {
-      "identifier": "AssetAiComparison",
-      "values": [
-        {
-          "value": 0,
-          "name": "Equal"
-        },
-        {
-          "value": 1,
-          "name": "NotEqual"
-        },
-        {
-          "value": 2,
-          "name": "Less"
-        },
-        {
-          "value": 3,
-          "name": "LessOrEqual"
-        },
-        {
-          "value": 4,
-          "name": "Greater"
-        },
-        {
-          "value": 5,
-          "name": "GreaterOrEqual"
-        }
-      ]
-    }
-  ],
+  "enums": [],
   "nodes": [
     {
       "nodeType": "AssetAiNode_Running",
@@ -208,26 +178,18 @@
       ]
     },
     {
-      "nodeType": "AssetAiNode_KnowledgeCompare",
-      "comment": "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.",
+      "nodeType": "AssetAiNode_Condition",
+      "comment": "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.",
       "fields": [
         {
-          "name": "comparison",
-          "valueType": "AssetAiComparison"
-        },
-        {
-          "name": "key",
+          "name": "script",
           "valueType": "string"
-        },
-        {
-          "name": "value",
-          "valueType": "AssetAiSourceDef"
         }
       ]
     },
     {
-      "nodeType": "AssetAiNode_Condition",
-      "comment": "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.",
+      "nodeType": "AssetAiNode_Execute",
+      "comment": "Execute the script expression.\nEvaluates to 'Success'.",
       "fields": [
         {
           "name": "script",

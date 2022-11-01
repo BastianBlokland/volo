@@ -7,6 +7,7 @@ message(STATUS "> library: ai")
 add_library(lib_ai STATIC
   src/eval.c
   src/node/condition.c
+  src/node/execute.c
   src/node/failure.c
   src/node/invert.c
   src/node/knowledgeset.c
@@ -29,6 +30,7 @@ target_link_libraries(lib_ai PRIVATE lib_log)
 add_executable(test_lib_ai
   test/config.c
   test/test_node_condition.c
+  test/test_node_execute.c
   test/test_node_failure.c
   test/test_node_invert.c
   test/test_node_knowledgeset.c
