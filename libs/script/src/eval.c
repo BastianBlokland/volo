@@ -96,3 +96,12 @@ ScriptVal script_eval(const ScriptDoc* doc, ScriptMem* m, const ScriptExpr expr)
   };
   return eval(&ctx, expr);
 }
+
+ScriptVal script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr expr) {
+  diag_assert(script_expr_readonly(doc, expr));
+  ScriptEvalContext ctx = {
+      .doc = doc,
+      .m   = (ScriptMem*)m, // NOTE: Safe as long as the readonly invariant is maintained.
+  };
+  return eval(&ctx, expr);
+}
