@@ -44,18 +44,6 @@ static const struct {
         .nodeCount = 2,
     },
     {
-        .id        = string_static("knowledgeset.bt"),
-        .text      = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                              "\"key\": \"test\",\n"
-                              "\"value\": {\n"
-                              "  \"$type\": \"AssetAiSource_Vector\",\n"
-                              "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
-                              "}"),
-        .type      = AssetAiNode_KnowledgeSet,
-        .nodeCount = 1,
-    },
-    {
         .id        = string_static("condition.bt"),
         .text      = string_static("{\n"
                               "\"$type\": \"AssetAiNode_Condition\",\n"

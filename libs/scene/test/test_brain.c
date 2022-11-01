@@ -14,13 +14,10 @@ static const AssetMemRecord g_testBrainAssets[] = {
         .data = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
     },
     {
-        .id   = string_static("knowledgeset.bt"),
+        .id   = string_static("execute.bt"),
         .data = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                              "\"key\": \"test\",\n"
-                              "\"value\": {\n"
-                              "  \"$type\": \"AssetAiSource_Bool\",\n"
-                              "  \"value\": true }\n"
+                              "\"$type\": \"AssetAiNode_Execute\",\n"
+                              "\"script\": \"$test = true\"\n"
                               "}"),
     },
 };
@@ -79,7 +76,7 @@ spec(brain) {
 
   it("updates its memory through its behavior") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("knowledgeset.bt"));
+    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("execute.bt"));
 
     const EcsEntityId agent = ecs_world_entity_create(world);
     scene_brain_add(world, agent, behaviorAsset);

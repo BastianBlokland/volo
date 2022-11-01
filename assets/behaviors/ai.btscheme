@@ -12,20 +12,8 @@
         "AssetAiNode_Parallel",
         "AssetAiNode_Selector",
         "AssetAiNode_Sequence",
-        "AssetAiNode_KnowledgeSet",
         "AssetAiNode_Condition",
         "AssetAiNode_Execute"
-      ]
-    },
-    {
-      "identifier": "AssetAiSourceDef",
-      "values": [
-        "AssetAiSource_Null",
-        "AssetAiSource_Number",
-        "AssetAiSource_Bool",
-        "AssetAiSource_Vector",
-        "AssetAiSource_Time",
-        "AssetAiSource_Knowledge"
       ]
     }
   ],
@@ -103,77 +91,6 @@
           "name": "children",
           "isArray": true,
           "valueType": "AssetAiNodeDef"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiNode_KnowledgeSet",
-      "comment": "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.",
-      "fields": [
-        {
-          "name": "key",
-          "valueType": "string"
-        },
-        {
-          "name": "value",
-          "valueType": "AssetAiSourceDef"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Null",
-      "fields": []
-    },
-    {
-      "nodeType": "AssetAiSource_Number",
-      "fields": [
-        {
-          "name": "value",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Bool",
-      "fields": [
-        {
-          "name": "value",
-          "valueType": "boolean"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Vector",
-      "fields": [
-        {
-          "name": "x",
-          "valueType": "number"
-        },
-        {
-          "name": "y",
-          "valueType": "number"
-        },
-        {
-          "name": "z",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Time",
-      "fields": [
-        {
-          "name": "secondsFromNow",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Knowledge",
-      "fields": [
-        {
-          "name": "key",
-          "valueType": "string"
         }
       ]
     },

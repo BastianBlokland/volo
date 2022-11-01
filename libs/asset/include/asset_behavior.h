@@ -25,52 +25,11 @@ typedef enum eAssetAiNodeType {
   AssetAiNode_Parallel,
   AssetAiNode_Selector,
   AssetAiNode_Sequence,
-  AssetAiNode_KnowledgeSet,
   AssetAiNode_Condition,
   AssetAiNode_Execute,
 
   AssetAiNode_Count,
 } AssetAiNodeType;
-
-typedef enum {
-  AssetAiSource_Null,
-  AssetAiSource_Number,
-  AssetAiSource_Bool,
-  AssetAiSource_Vector,
-  AssetAiSource_Time,
-  AssetAiSource_Knowledge,
-} AssetAiSourceType;
-
-typedef struct {
-  f64 value;
-} AssetAiSourceNumber;
-
-typedef struct {
-  bool value;
-} AssetAiSourceBool;
-
-typedef struct {
-  f32 x, y, z;
-} AssetAiSourceVector;
-
-typedef struct {
-  f32 secondsFromNow;
-} AssetAiSourceTime;
-
-typedef struct {
-  StringHash key;
-} AssetAiSourceKnowledge;
-
-typedef struct {
-  AssetAiSourceType type;
-  union {
-    AssetAiSourceNumber    data_number;
-    AssetAiSourceBool      data_bool;
-    AssetAiSourceVector    data_vector;
-    AssetAiSourceTime      data_time;
-    AssetAiSourceKnowledge data_knowledge;
-  };
-} AssetAiSource;
 
 typedef struct {
   AssetAiNodeId child;
@@ -97,11 +56,6 @@ typedef struct {
 } AssetAiNodeSequence;
 
 typedef struct {
-  StringHash    key;
-  AssetAiSource value;
-} AssetAiNodeKnowledgeSet;
-
-typedef struct {
   ScriptExpr scriptExpr;
 } AssetAiNodeCondition;
 
@@ -113,15 +67,14 @@ typedef struct sAssetAiNode {
   AssetAiNodeType type;
   AssetAiNodeId   nextSibling;
   union {
-    AssetAiNodeInvert       data_invert;
-    AssetAiNodeTry          data_try;
-    AssetAiNodeRepeat       data_repeat;
-    AssetAiNodeParallel     data_parallel;
-    AssetAiNodeSelector     data_selector;
-    AssetAiNodeSequence     data_sequence;
-    AssetAiNodeKnowledgeSet data_knowledgeset;
-    AssetAiNodeCondition    data_condition;
-    AssetAiNodeExecute      data_execute;
+    AssetAiNodeInvert    data_invert;
+    AssetAiNodeTry       data_try;
+    AssetAiNodeRepeat    data_repeat;
+    AssetAiNodeParallel  data_parallel;
+    AssetAiNodeSelector  data_selector;
+    AssetAiNodeSequence  data_sequence;
+    AssetAiNodeCondition data_condition;
+    AssetAiNodeExecute   data_execute;
   };
 } AssetAiNode;
 
