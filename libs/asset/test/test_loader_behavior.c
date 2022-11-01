@@ -55,7 +55,15 @@ static const struct {
         .type      = AssetAiNode_KnowledgeSet,
         .nodeCount = 1,
     },
-
+    {
+        .id        = string_static("condition.bt"),
+        .text      = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"script\": \"true\"\n"
+                              "}"),
+        .type      = AssetAiNode_Condition,
+        .nodeCount = 1,
+    },
 };
 
 static const struct {
@@ -73,6 +81,13 @@ static const struct {
     {
         .id   = string_static("empty-array.bt"),
         .text = string_static("[]"),
+    },
+    {
+        .id   = string_static("invalid-condition.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"script\": \"\"\n"
+                              "}"),
     },
 };
 
