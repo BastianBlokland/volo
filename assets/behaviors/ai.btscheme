@@ -12,53 +12,12 @@
         "AssetAiNode_Parallel",
         "AssetAiNode_Selector",
         "AssetAiNode_Sequence",
-        "AssetAiNode_KnowledgeSet",
-        "AssetAiNode_KnowledgeCompare"
-      ]
-    },
-    {
-      "identifier": "AssetAiSourceDef",
-      "values": [
-        "AssetAiSource_Null",
-        "AssetAiSource_Number",
-        "AssetAiSource_Bool",
-        "AssetAiSource_Vector",
-        "AssetAiSource_Time",
-        "AssetAiSource_Knowledge"
+        "AssetAiNode_Condition",
+        "AssetAiNode_Execute"
       ]
     }
   ],
-  "enums": [
-    {
-      "identifier": "AssetAiComparison",
-      "values": [
-        {
-          "value": 0,
-          "name": "Equal"
-        },
-        {
-          "value": 1,
-          "name": "NotEqual"
-        },
-        {
-          "value": 2,
-          "name": "Less"
-        },
-        {
-          "value": 3,
-          "name": "LessOrEqual"
-        },
-        {
-          "value": 4,
-          "name": "Greater"
-        },
-        {
-          "value": 5,
-          "name": "GreaterOrEqual"
-        }
-      ]
-    }
-  ],
+  "enums": [],
   "nodes": [
     {
       "nodeType": "AssetAiNode_Running",
@@ -136,91 +95,22 @@
       ]
     },
     {
-      "nodeType": "AssetAiNode_KnowledgeSet",
-      "comment": "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.",
+      "nodeType": "AssetAiNode_Condition",
+      "comment": "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.",
       "fields": [
         {
-          "name": "key",
-          "valueType": "string"
-        },
-        {
-          "name": "value",
-          "valueType": "AssetAiSourceDef"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Null",
-      "fields": []
-    },
-    {
-      "nodeType": "AssetAiSource_Number",
-      "fields": [
-        {
-          "name": "value",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Bool",
-      "fields": [
-        {
-          "name": "value",
-          "valueType": "boolean"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Vector",
-      "fields": [
-        {
-          "name": "x",
-          "valueType": "number"
-        },
-        {
-          "name": "y",
-          "valueType": "number"
-        },
-        {
-          "name": "z",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Time",
-      "fields": [
-        {
-          "name": "secondsFromNow",
-          "valueType": "number"
-        }
-      ]
-    },
-    {
-      "nodeType": "AssetAiSource_Knowledge",
-      "fields": [
-        {
-          "name": "key",
+          "name": "script",
           "valueType": "string"
         }
       ]
     },
     {
-      "nodeType": "AssetAiNode_KnowledgeCompare",
-      "comment": "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.",
+      "nodeType": "AssetAiNode_Execute",
+      "comment": "Execute the script expression.\nEvaluates to 'Success'.",
       "fields": [
         {
-          "name": "comparison",
-          "valueType": "AssetAiComparison"
-        },
-        {
-          "name": "key",
+          "name": "script",
           "valueType": "string"
-        },
-        {
-          "name": "value",
-          "valueType": "AssetAiSourceDef"
         }
       ]
     }

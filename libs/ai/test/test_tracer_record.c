@@ -1,15 +1,16 @@
-#include "ai.h"
+#include "ai_eval.h"
 #include "ai_tracer_record.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "script_mem.h"
 
 spec(tracer_record) {
-  AiBlackboard*   bb = null;
+  ScriptMem*      memory = null;
   AiTracerRecord* tracer;
 
   setup() {
-    bb     = ai_blackboard_create(g_alloc_heap);
+    memory = script_mem_create(g_alloc_heap);
     tracer = ai_tracer_record_create(g_alloc_heap);
   }
 
@@ -25,7 +26,7 @@ spec(tracer_record) {
         {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = ai_tracer_record_api(tracer),
         .nodeDefs = nodeDefs,
     };
@@ -46,7 +47,7 @@ spec(tracer_record) {
     ASSERT(array_elems(nodeDefs) == array_elems(nodeNames), "Node count mismatch");
 
     const AiEvalContext ctx = {
-        .memory    = bb,
+        .memory    = memory,
         .tracer    = ai_tracer_record_api(tracer),
         .nodeDefs  = nodeDefs,
         .nodeNames = nodeNames,
@@ -69,7 +70,7 @@ spec(tracer_record) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = ai_tracer_record_api(tracer),
         .nodeDefs = nodeDefs,
     };
@@ -96,7 +97,7 @@ spec(tracer_record) {
   }
 
   teardown() {
-    ai_blackboard_destroy(bb);
+    script_mem_destroy(memory);
     ai_tracer_record_destroy(tracer);
   }
 }

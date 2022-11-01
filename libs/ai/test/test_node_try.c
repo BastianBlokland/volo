@@ -1,18 +1,20 @@
-#include "ai.h"
+#include "ai_eval.h"
 #include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-
-#include "utils_internal.h"
+#include "script_doc.h"
+#include "script_mem.h"
 
 spec(node_try) {
-  AiBlackboard* bb = null;
+  ScriptMem*    memory    = null;
+  ScriptDoc*    scriptDoc = null;
   AiTracerCount tracer;
 
   setup() {
-    bb     = ai_blackboard_create(g_alloc_heap);
-    tracer = ai_tracer_count();
+    memory    = script_mem_create(g_alloc_heap);
+    scriptDoc = script_create(g_alloc_heap);
+    tracer    = ai_tracer_count();
   }
 
   it("evaluates to running when child evaluates to running") {
@@ -25,7 +27,7 @@ spec(node_try) {
         {.type = AssetAiNode_Running, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -43,7 +45,7 @@ spec(node_try) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -61,7 +63,7 @@ spec(node_try) {
         {.type = AssetAiNode_Success, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -77,24 +79,30 @@ spec(node_try) {
             .data_try    = {.child = 1},
         },
         {
-            .type        = AssetAiNode_KnowledgeSet,
+            .type        = AssetAiNode_Execute,
             .nextSibling = sentinel_u16,
-            .data_knowledgeset =
+            .data_execute =
                 {
-                    .key   = string_hash_lit("test"),
-                    .value = {.type = AssetAiSource_Number, .data_number.value = 42.42},
+                    .scriptExpr = script_add_store(
+                        scriptDoc,
+                        string_hash_lit("test"),
+                        script_add_value(scriptDoc, script_number(42.42))),
                 },
         },
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
-        .tracer   = &tracer.api,
-        .nodeDefs = nodeDefs,
+        .memory    = memory,
+        .tracer    = &tracer.api,
+        .nodeDefs  = nodeDefs,
+        .scriptDoc = scriptDoc,
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 2);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test")), ai_value_number(42.42));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test")), script_number(42.42)));
   }
 
-  teardown() { ai_blackboard_destroy(bb); }
+  teardown() {
+    script_mem_destroy(memory);
+    script_destroy(scriptDoc);
+  }
 }

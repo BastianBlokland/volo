@@ -44,18 +44,23 @@ static const struct {
         .nodeCount = 2,
     },
     {
-        .id        = string_static("knowledgeset.bt"),
+        .id        = string_static("condition.bt"),
         .text      = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                              "\"key\": \"test\",\n"
-                              "\"value\": {\n"
-                              "  \"$type\": \"AssetAiSource_Vector\",\n"
-                              "  \"x\": 1, \"y\": 2, \"z\": 3 }\n"
+                              "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"script\": \"true\"\n"
                               "}"),
-        .type      = AssetAiNode_KnowledgeSet,
+        .type      = AssetAiNode_Condition,
         .nodeCount = 1,
     },
-
+    {
+        .id        = string_static("execute.bt"),
+        .text      = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Execute\",\n"
+                              "\"script\": \"$hello = 42\"\n"
+                              "}"),
+        .type      = AssetAiNode_Execute,
+        .nodeCount = 1,
+    },
 };
 
 static const struct {
@@ -73,6 +78,29 @@ static const struct {
     {
         .id   = string_static("empty-array.bt"),
         .text = string_static("[]"),
+    },
+    {
+        .id   = string_static("malformed-condition.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"$name\": \"Hello\",\n"
+                              "\"script\": \"\"\n"
+                              "}"),
+    },
+    {
+        .id   = string_static("non-readonly-condition.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"$name\": \"Hello\",\n"
+                              "\"script\": \"$hello = 42\"\n"
+                              "}"),
+    },
+    {
+        .id   = string_static("malformed-execute.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetAiNode_Execute\",\n"
+                              "\"script\": \"\"\n"
+                              "}"),
     },
 };
 

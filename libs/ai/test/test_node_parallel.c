@@ -1,19 +1,21 @@
-#include "ai.h"
+#include "ai_eval.h"
 #include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
-
-#include "utils_internal.h"
+#include "script_doc.h"
+#include "script_mem.h"
 
 spec(node_parallel) {
-  AiBlackboard* bb = null;
+  ScriptMem*    memory    = null;
+  ScriptDoc*    scriptDoc = null;
   AiTracerCount tracer;
 
   setup() {
-    bb     = ai_blackboard_create(g_alloc_heap);
-    tracer = ai_tracer_count();
+    memory    = script_mem_create(g_alloc_heap);
+    scriptDoc = script_create(g_alloc_heap);
+    tracer    = ai_tracer_count();
   }
 
   it("evaluates to failure when it doesn't have any children") {
@@ -25,7 +27,7 @@ spec(node_parallel) {
         },
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -46,7 +48,7 @@ spec(node_parallel) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -66,7 +68,7 @@ spec(node_parallel) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -86,7 +88,7 @@ spec(node_parallel) {
         {.type = AssetAiNode_Failure, .nextSibling = sentinel_u16},
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
+        .memory   = memory,
         .tracer   = &tracer.api,
         .nodeDefs = nodeDefs,
     };
@@ -102,44 +104,54 @@ spec(node_parallel) {
             .data_parallel = {.childrenBegin = 1},
         },
         {
-            .type        = AssetAiNode_KnowledgeSet,
+            .type        = AssetAiNode_Execute,
             .nextSibling = 2,
-            .data_knowledgeset =
+            .data_execute =
                 {
-                    .key   = string_hash_lit("test1"),
-                    .value = {.type = AssetAiSource_Number, .data_number.value = 1},
+                    .scriptExpr = script_add_store(
+                        scriptDoc,
+                        string_hash_lit("test1"),
+                        script_add_value(scriptDoc, script_number(1))),
                 },
         },
         {
-            .type        = AssetAiNode_KnowledgeSet,
+            .type        = AssetAiNode_Execute,
             .nextSibling = 3,
-            .data_knowledgeset =
+            .data_execute =
                 {
-                    .key   = string_hash_lit("test2"),
-                    .value = {.type = AssetAiSource_Number, .data_number.value = 2},
+                    .scriptExpr = script_add_store(
+                        scriptDoc,
+                        string_hash_lit("test2"),
+                        script_add_value(scriptDoc, script_number(2))),
                 },
         },
         {
-            .type        = AssetAiNode_KnowledgeSet,
+            .type        = AssetAiNode_Execute,
             .nextSibling = sentinel_u16,
-            .data_knowledgeset =
+            .data_execute =
                 {
-                    .key   = string_hash_lit("test3"),
-                    .value = {.type = AssetAiSource_Number, .data_number.value = 3},
+                    .scriptExpr = script_add_store(
+                        scriptDoc,
+                        string_hash_lit("test3"),
+                        script_add_value(scriptDoc, script_number(3))),
                 },
         },
     };
     const AiEvalContext ctx = {
-        .memory   = bb,
-        .tracer   = &tracer.api,
-        .nodeDefs = nodeDefs,
+        .memory    = memory,
+        .tracer    = &tracer.api,
+        .nodeDefs  = nodeDefs,
+        .scriptDoc = scriptDoc,
     };
     check(ai_eval(&ctx, AssetAiNodeRoot) == AiResult_Success);
     check_eq_int(tracer.count, 4);
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test1")), ai_value_number(1));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test2")), ai_value_number(2));
-    check_eq_value(ai_blackboard_get(bb, string_hash_lit("test3")), ai_value_number(3));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test1")), script_number(1)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test2")), script_number(2)));
+    check(script_val_equal(script_mem_get(memory, string_hash_lit("test3")), script_number(3)));
   }
 
-  teardown() { ai_blackboard_destroy(bb); }
+  teardown() {
+    script_mem_destroy(memory);
+    script_destroy(scriptDoc);
+  }
 }

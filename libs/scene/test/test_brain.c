@@ -14,13 +14,10 @@ static const AssetMemRecord g_testBrainAssets[] = {
         .data = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
     },
     {
-        .id   = string_static("knowledgeset.bt"),
+        .id   = string_static("execute.bt"),
         .data = string_static("{\n"
-                              "\"$type\": \"AssetAiNode_KnowledgeSet\",\n"
-                              "\"key\": \"test\",\n"
-                              "\"value\": {\n"
-                              "  \"$type\": \"AssetAiSource_Bool\",\n"
-                              "  \"value\": true }\n"
+                              "\"$type\": \"AssetAiNode_Execute\",\n"
+                              "\"script\": \"$test = true\"\n"
                               "}"),
     },
 };
@@ -70,16 +67,16 @@ spec(brain) {
 
     const StringHash knowledgeKey = string_hash_lit("test");
 
-    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_null()));
+    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_null()));
 
-    scene_brain_set(brain, knowledgeKey, ai_value_bool(true));
+    scene_brain_set(brain, knowledgeKey, script_bool(true));
 
-    check(ai_value_equal(scene_brain_get(brain, knowledgeKey), ai_value_bool(true)));
+    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_bool(true)));
   }
 
   it("updates its memory through its behavior") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("knowledgeset.bt"));
+    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("execute.bt"));
 
     const EcsEntityId agent = ecs_world_entity_create(world);
     scene_brain_add(world, agent, behaviorAsset);
@@ -87,8 +84,8 @@ spec(brain) {
     scene_test_wait(runner);
 
     const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
-    const AiValue         value = scene_brain_get(brain, string_hash_lit("test"));
-    check(ai_value_equal(value, ai_value_bool(true)));
+    const ScriptVal       value = scene_brain_get(brain, string_hash_lit("test"));
+    check(script_val_equal(value, script_bool(true)));
   }
 
   teardown() {

@@ -3,6 +3,10 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
+// Forward declare from 'script_doc.h'.
+typedef struct sScriptDoc ScriptDoc;
+typedef u32               ScriptExpr;
+
 /**
  * Behavior tree definition.
  */
@@ -21,60 +25,11 @@ typedef enum eAssetAiNodeType {
   AssetAiNode_Parallel,
   AssetAiNode_Selector,
   AssetAiNode_Sequence,
-  AssetAiNode_KnowledgeSet,
-  AssetAiNode_KnowledgeCompare,
+  AssetAiNode_Condition,
+  AssetAiNode_Execute,
 
   AssetAiNode_Count,
 } AssetAiNodeType;
-
-typedef enum {
-  AssetAiComparison_Equal,
-  AssetAiComparison_NotEqual,
-  AssetAiComparison_Less,
-  AssetAiComparison_LessOrEqual,
-  AssetAiComparison_Greater,
-  AssetAiComparison_GreaterOrEqual,
-} AssetAiComparison;
-
-typedef enum {
-  AssetAiSource_Null,
-  AssetAiSource_Number,
-  AssetAiSource_Bool,
-  AssetAiSource_Vector,
-  AssetAiSource_Time,
-  AssetAiSource_Knowledge,
-} AssetAiSourceType;
-
-typedef struct {
-  f64 value;
-} AssetAiSourceNumber;
-
-typedef struct {
-  bool value;
-} AssetAiSourceBool;
-
-typedef struct {
-  f32 x, y, z;
-} AssetAiSourceVector;
-
-typedef struct {
-  f32 secondsFromNow;
-} AssetAiSourceTime;
-
-typedef struct {
-  StringHash key;
-} AssetAiSourceKnowledge;
-
-typedef struct {
-  AssetAiSourceType type;
-  union {
-    AssetAiSourceNumber    data_number;
-    AssetAiSourceBool      data_bool;
-    AssetAiSourceVector    data_vector;
-    AssetAiSourceTime      data_time;
-    AssetAiSourceKnowledge data_knowledge;
-  };
-} AssetAiSource;
 
 typedef struct {
   AssetAiNodeId child;
@@ -101,28 +56,25 @@ typedef struct {
 } AssetAiNodeSequence;
 
 typedef struct {
-  StringHash    key;
-  AssetAiSource value;
-} AssetAiNodeKnowledgeSet;
+  ScriptExpr scriptExpr;
+} AssetAiNodeCondition;
 
 typedef struct {
-  AssetAiComparison comparison;
-  StringHash        key;
-  AssetAiSource     value;
-} AssetAiNodeKnowledgeCompare;
+  ScriptExpr scriptExpr;
+} AssetAiNodeExecute;
 
 typedef struct sAssetAiNode {
   AssetAiNodeType type;
   AssetAiNodeId   nextSibling;
   union {
-    AssetAiNodeInvert           data_invert;
-    AssetAiNodeTry              data_try;
-    AssetAiNodeRepeat           data_repeat;
-    AssetAiNodeParallel         data_parallel;
-    AssetAiNodeSelector         data_selector;
-    AssetAiNodeSequence         data_sequence;
-    AssetAiNodeKnowledgeSet     data_knowledgeset;
-    AssetAiNodeKnowledgeCompare data_knowledgecompare;
+    AssetAiNodeInvert    data_invert;
+    AssetAiNodeTry       data_try;
+    AssetAiNodeRepeat    data_repeat;
+    AssetAiNodeParallel  data_parallel;
+    AssetAiNodeSelector  data_selector;
+    AssetAiNodeSequence  data_sequence;
+    AssetAiNodeCondition data_condition;
+    AssetAiNodeExecute   data_execute;
   };
 } AssetAiNode;
 
@@ -130,6 +82,7 @@ ecs_comp_extern_public(AssetBehaviorComp) {
   const AssetAiNode* nodes;     // AssetAiNode[nodeCount]
   const String*      nodeNames; // String[nodeCount]
   u16                nodeCount;
+  const ScriptDoc*   scriptDoc;
 };
 
 /**

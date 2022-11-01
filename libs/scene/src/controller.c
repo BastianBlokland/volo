@@ -28,10 +28,10 @@ ecs_system_define(SceneControllerUpdateSys) {
 
     SceneNavAgentComp* navAgent = ecs_view_write_t(itr, SceneNavAgentComp);
     if (navAgent) {
-      // Start moving when the nav-target knowledge is set.
-      const AiValue navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
-      if (ai_value_has(navTarget)) {
-        const GeoVector navTargetPos = ai_value_get_vector3(navTarget, geo_vector(0));
+      // Start moving when the nav-target value is set.
+      const ScriptVal navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
+      if (script_val_has(navTarget)) {
+        const GeoVector navTargetPos = script_get_vector3(navTarget, geo_vector(0));
         if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
           scene_nav_move_to(navAgent, navTargetPos);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
@@ -39,8 +39,8 @@ ecs_system_define(SceneControllerUpdateSys) {
         }
       }
 
-      // Stop moving when nav-stop knowledge is set.
-      if (ai_value_has(scene_brain_get(brain, g_brainKeyNavStop))) {
+      // Stop moving when nav-stop value is set.
+      if (script_val_has(scene_brain_get(brain, g_brainKeyNavStop))) {
         scene_nav_stop(navAgent);
         scene_brain_set_none(brain, g_brainKeyNavTarget);
         scene_brain_set_none(brain, g_brainKeyNavStop);
@@ -50,17 +50,17 @@ ecs_system_define(SceneControllerUpdateSys) {
     // Set attack target.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
-      const AiValue attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
-      attack->targetEntity       = ai_value_get_entity(attackTarget, 0);
+      const ScriptVal attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
+      attack->targetEntity         = script_get_entity(attackTarget, 0);
       scene_brain_set_none(brain, g_brainKeyAttackTarget);
     }
   }
 }
 
 ecs_module_init(scene_controller_module) {
-  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd-nav-target"));
-  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd-nav-stop"));
-  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd-attack-target"));
+  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd_nav_target"));
+  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd_nav_stop"));
+  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd_attack_target"));
 
   ecs_register_view(BrainView);
 
