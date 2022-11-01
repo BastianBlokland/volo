@@ -213,11 +213,30 @@ static void behavior_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
+typedef enum {
+  BehaviorError_None              = 0,
+  BehaviorError_ScriptInvalid     = 1,
+  BehaviorError_ScriptNotReadonly = 2,
+
+  BehaviorError_Count,
+} BehaviorError;
+
+static String behavior_error_str(const BehaviorError err) {
+  static const String g_msgs[] = {
+      string_static("None"),
+      string_static("Invalid script expression"),
+      string_static("Script expression is not readonly"),
+  };
+  ASSERT(array_elems(g_msgs) == BehaviorError_Count, "Incorrect number of error messages");
+  return g_msgs[err];
+}
+
 typedef struct {
-  StringTable* stringTable;
-  DynArray*    nodes;     // AssetAiNode[]
-  DynArray*    nodeNames; // String[]
-  ScriptDoc*   scriptDoc;
+  StringTable*  stringTable;
+  DynArray*     nodes;     // AssetAiNode[]
+  DynArray*     nodeNames; // String[]
+  ScriptDoc*    scriptDoc;
+  BehaviorError error;
 } BuildContext;
 
 static AssetAiSource build_source(const BuildContext* ctx, const AssetAiSourceDef* def) {
@@ -312,10 +331,19 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   ScriptReadResult readRes;
   script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
 
-  // TODO: Handle errors.
-  diag_assert(readRes.type == ScriptResult_Success);
-
+  if (UNLIKELY(readRes.type != ScriptResult_Success)) {
+    log_e("Invalid condition script", log_param("error", script_error_fmt(readRes.error)));
+    ctx->error = BehaviorError_ScriptInvalid;
+    goto Error;
+  }
+  if (UNLIKELY(!script_expr_readonly(ctx->scriptDoc, readRes.expr))) {
+    ctx->error = BehaviorError_ScriptNotReadonly;
+    goto Error;
+  }
   return (AssetAiNodeCondition){.scriptExpr = readRes.expr};
+
+Error:
+  return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
 }
 
 static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
@@ -407,6 +435,10 @@ ecs_module_init(asset_behavior_module) {
 void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
+  DynArray   nodes     = dynarray_create_t(g_alloc_heap, AssetAiNode, 64);
+  DynArray   nodeNames = dynarray_create_t(g_alloc_heap, String, 64);
+  ScriptDoc* scriptDoc = script_create(g_alloc_heap);
+
   AssetAiNodeDef rootDef;
   String         errMsg;
   DataReadResult readRes;
@@ -416,10 +448,6 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
     goto Error;
   }
 
-  DynArray   nodes     = dynarray_create_t(g_alloc_heap, AssetAiNode, 64);
-  DynArray   nodeNames = dynarray_create_t(g_alloc_heap, String, 64);
-  ScriptDoc* scriptDoc = script_create(g_alloc_heap);
-
   BuildContext ctx = {
       .nodes       = &nodes,
       .nodeNames   = &nodeNames,
@@ -427,6 +455,11 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
       .scriptDoc   = scriptDoc,
   };
   build_node(&ctx, &rootDef);
+
+  if (UNLIKELY(ctx.error)) {
+    errMsg = behavior_error_str(ctx.error);
+    goto Error;
+  }
 
   ecs_world_add_t(
       world,
@@ -437,20 +470,19 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
       .nodeCount = (u16)nodes.size,
       .scriptDoc = scriptDoc);
 
-  dynarray_destroy(&nodes);
-  dynarray_destroy(&nodeNames);
-
-  data_destroy(g_dataReg, g_alloc_heap, g_dataNodeMeta, mem_var(rootDef));
-
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 
 Error:
   log_e("Failed to load Behavior", log_param("error", fmt_text(errMsg)));
+  script_destroy(scriptDoc);
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
   asset_repo_source_close(src);
+  dynarray_destroy(&nodes);
+  dynarray_destroy(&nodeNames);
+  data_destroy(g_dataReg, g_alloc_heap, g_dataNodeMeta, mem_var(rootDef));
 }
 
 String asset_behavior_type_str(const AssetAiNodeType type) {
