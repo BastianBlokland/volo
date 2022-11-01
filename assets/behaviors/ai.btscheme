@@ -13,7 +13,8 @@
         "AssetAiNode_Selector",
         "AssetAiNode_Sequence",
         "AssetAiNode_KnowledgeSet",
-        "AssetAiNode_KnowledgeCompare"
+        "AssetAiNode_KnowledgeCompare",
+        "AssetAiNode_Condition"
       ]
     },
     {
@@ -221,6 +222,16 @@
         {
           "name": "value",
           "valueType": "AssetAiSourceDef"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetAiNode_Condition",
+      "comment": "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.",
+      "fields": [
+        {
+          "name": "script",
+          "valueType": "string"
         }
       ]
     }
