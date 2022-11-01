@@ -11,7 +11,7 @@ spec(read) {
   setup() { doc = script_create(g_alloc_heap); }
 
   it("can parse expressions") {
-    const static struct {
+    static const struct {
       String input, expect;
     } g_testData[] = {
         // Primary expressions.
@@ -199,7 +199,7 @@ spec(read) {
   }
 
   it("fails when parsing invalid expressions") {
-    const static struct {
+    static const struct {
       String      input;
       ScriptError expected;
     } g_testData[] = {
