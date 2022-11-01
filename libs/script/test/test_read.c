@@ -57,6 +57,12 @@ spec(read) {
                           "  [value: 42]"),
         },
         {
+            string_static("$hello != null"),
+            string_static("[op-binary: not-equal]\n"
+                          "  [load: $3944927369]\n"
+                          "  [value: null]"),
+        },
+        {
             string_static("null < 42"),
             string_static("[op-binary: less]\n"
                           "  [value: null]\n"
