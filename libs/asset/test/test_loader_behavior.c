@@ -86,6 +86,7 @@ static const struct {
         .id   = string_static("invalid-condition.bt"),
         .text = string_static("{\n"
                               "\"$type\": \"AssetAiNode_Condition\",\n"
+                              "\"$name\": \"Hello\",\n"
                               "\"script\": \"\"\n"
                               "}"),
     },

@@ -476,6 +476,7 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
 Error:
   log_e("Failed to load Behavior", log_param("error", fmt_text(errMsg)));
   script_destroy(scriptDoc);
+  dynarray_for_t(&nodeNames, String, nodeName) { string_maybe_free(g_alloc_heap, *nodeName); }
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
