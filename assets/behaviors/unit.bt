@@ -7,10 +7,9 @@
       "$name": "Move to user input",
       "children": [
         {
-          "$type": "AssetAiNode_KnowledgeCompare",
+          "$type": "AssetAiNode_Condition",
           "$name": "Wait for user input",
-          "comparison": 1,
-          "key": "user_move_target"
+          "script": "$user_move_target != null"
         },
         {
           "$type": "AssetAiNode_KnowledgeSet",
@@ -24,13 +23,8 @@
           "$type": "AssetAiNode_Try",
           "$name": "Check if we arrived at the user input",
           "child": {
-            "$type": "AssetAiNode_KnowledgeCompare",
-            "comparison": 0,
-            "key": "self_nav_arrived",
-            "value": {
-              "$type": "AssetAiSource_Knowledge",
-              "key": "user_move_target"
-            }
+            "$type": "AssetAiNode_Condition",
+            "script": "$self_nav_arrived == $user_move_target"
           }
         },
         {
@@ -47,10 +41,9 @@
       "$name": "Attack target",
       "children": [
         {
-          "$type": "AssetAiNode_KnowledgeCompare",
+          "$type": "AssetAiNode_Condition",
           "$name": "Find target",
-          "comparison": 1,
-          "key": "target_entity"
+          "script": "$target_entity != null"
         },
         {
           "$type": "AssetAiNode_Selector",
@@ -64,27 +57,17 @@
                   "$name": "Check if in range",
                   "children": [
                     {
-                      "$type": "AssetAiNode_KnowledgeCompare",
+                      "$type": "AssetAiNode_Condition",
                       "$name": "In-range cooldown",
-                      "comparison": 4,
-                      "key": "self_inrange_time",
-                      "value": {
-                        "$type": "AssetAiSource_Time",
-                        "secondsFromNow": 0
-                      }
+                      "script": "$self_inrange_time > $global_time"
                     },
                     {
                       "$type": "AssetAiNode_Sequence",
                       "children": [
                         {
-                          "$type": "AssetAiNode_KnowledgeCompare",
+                          "$type": "AssetAiNode_Condition",
                           "$name": "Test if in range",
-                          "comparison": 2,
-                          "key": "target_dist",
-                          "value": {
-                            "$type": "AssetAiSource_Number",
-                            "value": 35
-                          }
+                          "script": "$target_dist < 35"
                         },
                         {
                           "$type": "AssetAiNode_KnowledgeSet",
@@ -100,14 +83,9 @@
                   ]
                 },
                 {
-                  "$type": "AssetAiNode_KnowledgeCompare",
+                  "$type": "AssetAiNode_Condition",
                   "$name": "Test Line-of-Sight",
-                  "comparison": 0,
-                  "key": "target_los",
-                  "value": {
-                    "$type": "AssetAiSource_Bool",
-                    "value": true
-                  }
+                  "script": "$target_los == true"
                 }
               ]
             },
