@@ -26,20 +26,10 @@ typedef enum eAssetAiNodeType {
   AssetAiNode_Selector,
   AssetAiNode_Sequence,
   AssetAiNode_KnowledgeSet,
-  AssetAiNode_KnowledgeCompare,
   AssetAiNode_Condition,
 
   AssetAiNode_Count,
 } AssetAiNodeType;
-
-typedef enum {
-  AssetAiComparison_Equal,
-  AssetAiComparison_NotEqual,
-  AssetAiComparison_Less,
-  AssetAiComparison_LessOrEqual,
-  AssetAiComparison_Greater,
-  AssetAiComparison_GreaterOrEqual,
-} AssetAiComparison;
 
 typedef enum {
   AssetAiSource_Null,
@@ -111,12 +101,6 @@ typedef struct {
 } AssetAiNodeKnowledgeSet;
 
 typedef struct {
-  AssetAiComparison comparison;
-  StringHash        key;
-  AssetAiSource     value;
-} AssetAiNodeKnowledgeCompare;
-
-typedef struct {
   ScriptExpr scriptExpr;
 } AssetAiNodeCondition;
 
@@ -124,15 +108,14 @@ typedef struct sAssetAiNode {
   AssetAiNodeType type;
   AssetAiNodeId   nextSibling;
   union {
-    AssetAiNodeInvert           data_invert;
-    AssetAiNodeTry              data_try;
-    AssetAiNodeRepeat           data_repeat;
-    AssetAiNodeParallel         data_parallel;
-    AssetAiNodeSelector         data_selector;
-    AssetAiNodeSequence         data_sequence;
-    AssetAiNodeKnowledgeSet     data_knowledgeset;
-    AssetAiNodeKnowledgeCompare data_knowledgecompare;
-    AssetAiNodeCondition        data_condition;
+    AssetAiNodeInvert       data_invert;
+    AssetAiNodeTry          data_try;
+    AssetAiNodeRepeat       data_repeat;
+    AssetAiNodeParallel     data_parallel;
+    AssetAiNodeSelector     data_selector;
+    AssetAiNodeSequence     data_sequence;
+    AssetAiNodeKnowledgeSet data_knowledgeset;
+    AssetAiNodeCondition    data_condition;
   };
 } AssetAiNode;
 

@@ -9,7 +9,6 @@ add_library(lib_ai STATIC
   src/node/condition.c
   src/node/failure.c
   src/node/invert.c
-  src/node/knowledgecompare.c
   src/node/knowledgeset.c
   src/node/parallel.c
   src/node/repeat.c
@@ -32,7 +31,6 @@ add_executable(test_lib_ai
   test/test_node_condition.c
   test/test_node_failure.c
   test/test_node_invert.c
-  test/test_node_knowledgecompare.c
   test/test_node_knowledgeset.c
   test/test_node_parallel.c
   test/test_node_repeat.c

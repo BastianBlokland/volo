@@ -83,12 +83,6 @@ typedef struct {
 } AssetAiNodeDefKnowledgeSet;
 
 typedef struct {
-  AssetAiComparison comparison;
-  String            key;
-  AssetAiSourceDef  value;
-} AssetAiNodeDefKnowledgeCompare;
-
-typedef struct {
   String script;
 } AssetAiNodeDefCondition;
 
@@ -96,15 +90,14 @@ typedef struct sAssetAiNodeDef {
   AssetAiNodeType type;
   String          name;
   union {
-    AssetAiNodeDefInvert           data_invert;
-    AssetAiNodeDefTry              data_try;
-    AssetAiNodeDefRepeat           data_repeat;
-    AssetAiNodeDefParallel         data_parallel;
-    AssetAiNodeDefSelector         data_selector;
-    AssetAiNodeDefSequence         data_sequence;
-    AssetAiNodeDefKnowledgeSet     data_knowledgeset;
-    AssetAiNodeDefKnowledgeCompare data_knowledgecompare;
-    AssetAiNodeDefCondition        data_condition;
+    AssetAiNodeDefInvert       data_invert;
+    AssetAiNodeDefTry          data_try;
+    AssetAiNodeDefRepeat       data_repeat;
+    AssetAiNodeDefParallel     data_parallel;
+    AssetAiNodeDefSelector     data_selector;
+    AssetAiNodeDefSequence     data_sequence;
+    AssetAiNodeDefKnowledgeSet data_knowledgeset;
+    AssetAiNodeDefCondition    data_condition;
   };
 } AssetAiNodeDef;
 
@@ -119,14 +112,6 @@ static void behavior_datareg_init() {
 
     // clang-format off
     const DataType nodeType = data_declare_t(g_dataReg, AssetAiNodeDef);
-
-    data_reg_enum_t(g_dataReg, AssetAiComparison);
-    data_reg_const_t(g_dataReg, AssetAiComparison, Equal);
-    data_reg_const_t(g_dataReg, AssetAiComparison, NotEqual);
-    data_reg_const_t(g_dataReg, AssetAiComparison, Less);
-    data_reg_const_t(g_dataReg, AssetAiComparison, LessOrEqual);
-    data_reg_const_t(g_dataReg, AssetAiComparison, Greater);
-    data_reg_const_t(g_dataReg, AssetAiComparison, GreaterOrEqual);
 
     data_reg_struct_t(g_dataReg, AssetAiSourceDefNumber);
     data_reg_field_t(g_dataReg, AssetAiSourceDefNumber, value, data_prim_t(f64));
@@ -182,12 +167,6 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetAiNodeDefKnowledgeSet, value, t_AssetAiSourceDef, .flags = DataFlags_Opt);
     data_reg_comment_t(g_dataReg, AssetAiNodeDefKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefKnowledgeCompare);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, comparison, t_AssetAiComparison);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, value, t_AssetAiSourceDef, .flags = DataFlags_Opt);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
-
     data_reg_struct_t(g_dataReg, AssetAiNodeDefCondition);
     data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String));
     data_reg_comment_t(g_dataReg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
@@ -204,7 +183,6 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Selector, data_selector, t_AssetAiNodeDefSelector);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeDefSequence);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_KnowledgeSet, data_knowledgeset, t_AssetAiNodeDefKnowledgeSet);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_KnowledgeCompare, data_knowledgecompare, t_AssetAiNodeDefKnowledgeCompare);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Condition, data_condition, t_AssetAiNodeDefCondition);
     // clang-format on
 
@@ -318,15 +296,6 @@ build_node_knowledgeset(BuildContext* ctx, const AssetAiNodeDef* def) {
   };
 }
 
-static AssetAiNodeKnowledgeCompare
-build_node_knowledgecompare(BuildContext* ctx, const AssetAiNodeDef* def) {
-  return (AssetAiNodeKnowledgeCompare){
-      .comparison = def->data_knowledgecompare.comparison,
-      .key        = stringtable_add(ctx->stringTable, def->data_knowledgecompare.key),
-      .value      = build_source(ctx, &def->data_knowledgecompare.value),
-  };
-}
-
 static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
   ScriptReadResult readRes;
   script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
@@ -380,9 +349,6 @@ static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
     break;
   case AssetAiNode_KnowledgeSet:
     resNode->data_knowledgeset = build_node_knowledgeset(ctx, def);
-    break;
-  case AssetAiNode_KnowledgeCompare:
-    resNode->data_knowledgecompare = build_node_knowledgecompare(ctx, def);
     break;
   case AssetAiNode_Condition:
     resNode->data_condition = build_node_condition(ctx, def);
@@ -498,7 +464,6 @@ String asset_behavior_type_str(const AssetAiNodeType type) {
       string_static("Selector"),
       string_static("Sequence"),
       string_static("KnowledgeSet"),
-      string_static("KnowledgeCompare"),
       string_static("Condition"),
   };
   ASSERT(array_elems(g_names) == AssetAiNode_Count, "Incorrect number of names");

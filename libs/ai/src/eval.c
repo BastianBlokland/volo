@@ -7,7 +7,6 @@
   X(AssetAiNode_Condition, ai_node_condition_eval)                                                 \
   X(AssetAiNode_Failure, ai_node_failure_eval)                                                     \
   X(AssetAiNode_Invert, ai_node_invert_eval)                                                       \
-  X(AssetAiNode_KnowledgeCompare, ai_node_knowledgecompare_eval)                                   \
   X(AssetAiNode_KnowledgeSet, ai_node_knowledgeset_eval)                                           \
   X(AssetAiNode_Parallel, ai_node_parallel_eval)                                                   \
   X(AssetAiNode_Repeat, ai_node_repeat_eval)                                                       \
