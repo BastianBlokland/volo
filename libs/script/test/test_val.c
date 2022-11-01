@@ -248,8 +248,7 @@ spec(val) {
     } testData[] = {
         {script_null(), .expected = script_null()},
         {script_number(42), .expected = script_number(-42)},
-        {script_bool(true), .expected = script_bool(true)},
-        {script_bool(false), .expected = script_bool(false)},
+        {script_bool(true), .expected = script_null()},
         {script_vector3_lit(1, 2, 3), .expected = script_vector3_lit(-1, -2, -3)},
         {script_time(time_seconds(2)), .expected = script_time(time_seconds(-2))},
     };
@@ -268,29 +267,24 @@ spec(val) {
         {script_null(), script_null(), .expected = script_null()},
         {script_null(), script_number(42), .expected = script_number(42)},
         {script_number(42), script_null(), .expected = script_number(42)},
-        {script_number(42), script_bool(false), .expected = script_number(42)},
+        {script_number(42), script_bool(false), .expected = script_null()},
 
         {script_number(42), script_number(1), .expected = script_number(43)},
         {script_number(42), script_number(1337), .expected = script_number(1379)},
 
-        {script_bool(true), script_bool(false), .expected = script_bool(true)},
-        {script_bool(true), script_bool(true), .expected = script_bool(true)},
-        {script_bool(false), script_bool(false), .expected = script_bool(false)},
-        {script_bool(false), script_bool(true), .expected = script_bool(false)},
+        {script_bool(true), script_bool(false), .expected = script_null()},
 
         {.a        = script_vector3_lit(1, 2, 3),
          .b        = script_vector3_lit(4, 5, 6),
          .expected = script_vector3_lit(5, 7, 9)},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_number(42),
-         .expected = script_vector3_lit(1, 2, 3)},
+        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
 
         {.a        = script_time(time_seconds(1)),
          .b        = script_null(),
          .expected = script_time(time_seconds(1))},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_entity(0x1)},
+        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -307,29 +301,24 @@ spec(val) {
         {script_null(), script_null(), .expected = script_null()},
         {script_null(), script_number(42), .expected = script_number(42)},
         {script_number(42), script_null(), .expected = script_number(42)},
-        {script_number(42), script_bool(false), .expected = script_number(42)},
+        {script_number(42), script_bool(false), .expected = script_null()},
 
         {script_number(42), script_number(1), .expected = script_number(41)},
         {script_number(42), script_number(1337), .expected = script_number(-1295)},
 
-        {script_bool(true), script_bool(false), .expected = script_bool(true)},
-        {script_bool(true), script_bool(true), .expected = script_bool(true)},
-        {script_bool(false), script_bool(false), .expected = script_bool(false)},
-        {script_bool(false), script_bool(true), .expected = script_bool(false)},
+        {script_bool(true), script_bool(false), .expected = script_null()},
 
         {.a        = script_vector3_lit(1, 2, 3),
          .b        = script_vector3_lit(4, 5, 6),
          .expected = script_vector3_lit(-3, -3, -3)},
 
-        {.a        = script_vector3_lit(1, 2, 3),
-         .b        = script_number(42),
-         .expected = script_vector3_lit(1, 2, 3)},
+        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
 
         {.a        = script_time(time_seconds(1)),
          .b        = script_null(),
          .expected = script_time(time_seconds(1))},
 
-        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_entity(0x1)},
+        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

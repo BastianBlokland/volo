@@ -258,17 +258,17 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_neg(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
-    return val;
+    return script_null();
   case ScriptType_Number:
     return script_number(-val_as_number(val));
   case ScriptType_Bool:
-    return val; // Arithmetic on booleans not supported.
+    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vec = val_as_vector3_dirty_w(val);
     return script_vector3(geo_vector_mul(vec, -1.0f));
   }
   case ScriptType_Entity:
-    return val; // Arithmetic on entities not supported.
+    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -284,20 +284,20 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
     return a;
   }
   if (script_type(a) != script_type(b)) {
-    return a; // Arithmetic on mismatched types not supported atm.
+    return script_null();
   }
   switch (script_type(a)) {
   case ScriptType_Number:
     return script_number(val_as_number(a) + val_as_number(b));
   case ScriptType_Bool:
-    return a; // Arithmetic on booleans not supported.
+    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_vector3(geo_vector_add(vecA, vecB));
   }
   case ScriptType_Entity:
-    return a; // Arithmetic on entities not supported.
+    return script_null();
   case ScriptType_Null:
   case ScriptType_Count:
     break;
@@ -314,20 +314,20 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
     return a;
   }
   if (script_type(a) != script_type(b)) {
-    return a; // Arithmetic on mismatched types not supported atm.
+    return script_null();
   }
   switch (script_type(a)) {
   case ScriptType_Number:
     return script_number(val_as_number(a) - val_as_number(b));
   case ScriptType_Bool:
-    return a; // Arithmetic on booleans not supported.
+    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_vector3(geo_vector_sub(vecA, vecB));
   }
   case ScriptType_Entity:
-    return a; // Arithmetic on entities not supported.
+    return script_null();
   case ScriptType_Null:
   case ScriptType_Count:
     break;

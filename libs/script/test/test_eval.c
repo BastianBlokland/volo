@@ -69,7 +69,7 @@ spec(eval) {
 
         // Compound expressions.
         {string_static("1 + 2 == 4 - 1"), script_bool(true)},
-        {string_static("1 + (2 == 4) - 1"), script_number(0)},
+        {string_static("1 + (2 == 4) - 1"), script_number(1)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
