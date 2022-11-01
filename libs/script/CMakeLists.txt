@@ -24,7 +24,6 @@ add_executable(test_lib_script
   test/test_eval.c
   test/test_lex.c
   test/test_mem.c
-  test/test_operation.c
   test/test_read.c
   test/test_val.c
   test/utils.c

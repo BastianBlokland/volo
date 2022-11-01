@@ -31,13 +31,43 @@ INLINE_HINT static ScriptVal eval_store(ScriptEvalContext* ctx, const ScriptExpr
 
 INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExprOpUnary* expr) {
   const ScriptVal val = eval(ctx, expr->val);
-  return script_op_unary(val, expr->op);
+
+  switch (expr->op) {
+  case ScriptOpUnary_Negate:
+    return script_val_neg(val);
+  case ScriptOpUnary_Count:
+    break;
+  }
+  diag_assert_fail("Invalid unary operation");
+  UNREACHABLE
 }
 
 INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExprOpBinary* expr) {
-  const ScriptVal lhs = eval(ctx, expr->lhs);
-  const ScriptVal rhs = eval(ctx, expr->rhs);
-  return script_op_binary(lhs, rhs, expr->op);
+  const ScriptVal a = eval(ctx, expr->lhs);
+  const ScriptVal b = eval(ctx, expr->rhs);
+
+  switch (expr->op) {
+  case ScriptOpBinary_Equal:
+    return script_bool(script_val_equal(a, b));
+  case ScriptOpBinary_NotEqual:
+    return script_bool(!script_val_equal(a, b));
+  case ScriptOpBinary_Less:
+    return script_bool(script_val_less(a, b));
+  case ScriptOpBinary_LessOrEqual:
+    return script_bool(!script_val_greater(a, b));
+  case ScriptOpBinary_Greater:
+    return script_bool(script_val_greater(a, b));
+  case ScriptOpBinary_GreaterOrEqual:
+    return script_bool(!script_val_less(a, b));
+  case ScriptOpBinary_Add:
+    return script_val_add(a, b);
+  case ScriptOpBinary_Sub:
+    return script_val_sub(a, b);
+  case ScriptOpBinary_Count:
+    break;
+  }
+  diag_assert_fail("Invalid binary operation");
+  UNREACHABLE
 }
 
 static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {

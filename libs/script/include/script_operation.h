@@ -21,12 +21,6 @@ typedef enum {
 } ScriptOpBinary;
 
 /**
- * Perform an operation.
- */
-ScriptVal script_op_unary(ScriptVal, ScriptOpUnary);
-ScriptVal script_op_binary(ScriptVal, ScriptVal, ScriptOpBinary);
-
-/**
  * Get a textual representation of the given operation.
  */
 String script_op_unary_str(ScriptOpUnary);
