@@ -136,7 +136,7 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(sandbox_cmd_module) {
-  g_brainKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user-move-target"));
+  g_brainKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user_move_target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 

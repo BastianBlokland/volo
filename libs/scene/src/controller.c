@@ -58,9 +58,9 @@ ecs_system_define(SceneControllerUpdateSys) {
 }
 
 ecs_module_init(scene_controller_module) {
-  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd-nav-target"));
-  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd-nav-stop"));
-  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd-attack-target"));
+  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd_nav_target"));
+  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd_nav_stop"));
+  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd_attack_target"));
 
   ecs_register_view(BrainView);
 

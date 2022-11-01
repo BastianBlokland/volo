@@ -10,14 +10,14 @@
           "$type": "AssetAiNode_KnowledgeCompare",
           "$name": "Wait for user input",
           "comparison": 1,
-          "key": "user-move-target"
+          "key": "user_move_target"
         },
         {
           "$type": "AssetAiNode_KnowledgeSet",
-          "key": "cmd-nav-target",
+          "key": "cmd_nav_target",
           "value": {
             "$type": "AssetAiSource_Knowledge",
-            "key": "user-move-target"
+            "key": "user_move_target"
           }
         },
         {
@@ -26,16 +26,16 @@
           "child": {
             "$type": "AssetAiNode_KnowledgeCompare",
             "comparison": 0,
-            "key": "self-nav-arrived",
+            "key": "self_nav_arrived",
             "value": {
               "$type": "AssetAiSource_Knowledge",
-              "key": "user-move-target"
+              "key": "user_move_target"
             }
           }
         },
         {
           "$type": "AssetAiNode_KnowledgeSet",
-          "key": "user-move-target",
+          "key": "user_move_target",
           "value": {
             "$type": "AssetAiSource_Null"
           }
@@ -50,7 +50,7 @@
           "$type": "AssetAiNode_KnowledgeCompare",
           "$name": "Find target",
           "comparison": 1,
-          "key": "target-entity"
+          "key": "target_entity"
         },
         {
           "$type": "AssetAiNode_Selector",
@@ -67,7 +67,7 @@
                       "$type": "AssetAiNode_KnowledgeCompare",
                       "$name": "In-range cooldown",
                       "comparison": 4,
-                      "key": "self-inrange-time",
+                      "key": "self_inrange_time",
                       "value": {
                         "$type": "AssetAiSource_Time",
                         "secondsFromNow": 0
@@ -80,7 +80,7 @@
                           "$type": "AssetAiNode_KnowledgeCompare",
                           "$name": "Test if in range",
                           "comparison": 2,
-                          "key": "target-dist",
+                          "key": "target_dist",
                           "value": {
                             "$type": "AssetAiSource_Number",
                             "value": 35
@@ -88,8 +88,8 @@
                         },
                         {
                           "$type": "AssetAiNode_KnowledgeSet",
-                          "$name": "Set in-range cooldown",
-                          "key": "self-inrange-time",
+                          "$name": "Set in_range cooldown",
+                          "key": "self_inrange_time",
                           "value": {
                             "$type": "AssetAiSource_Time",
                             "secondsFromNow": 0.5
@@ -103,7 +103,7 @@
                   "$type": "AssetAiNode_KnowledgeCompare",
                   "$name": "Test Line-of-Sight",
                   "comparison": 0,
-                  "key": "target-los",
+                  "key": "target_los",
                   "value": {
                     "$type": "AssetAiSource_Bool",
                     "value": true
@@ -116,10 +116,10 @@
               "$name": "Move",
               "child": {
                 "$type": "AssetAiNode_KnowledgeSet",
-                "key": "cmd-nav-target",
+                "key": "cmd_nav_target",
                 "value": {
                   "$type": "AssetAiSource_Knowledge",
-                  "key": "target-position"
+                  "key": "target_position"
                 }
               }
             }
@@ -128,7 +128,7 @@
         {
           "$type": "AssetAiNode_KnowledgeSet",
           "$name": "Stop moving",
-          "key": "cmd-nav-stop",
+          "key": "cmd_nav_stop",
           "value": {
             "$type": "AssetAiSource_Bool",
             "value": true
@@ -137,10 +137,10 @@
         {
           "$type": "AssetAiNode_KnowledgeSet",
           "$name": "Attack",
-          "key": "cmd-attack-target",
+          "key": "cmd_attack_target",
           "value": {
             "$type": "AssetAiSource_Knowledge",
-            "key": "target-entity"
+            "key": "target_entity"
           }
         }
       ]
