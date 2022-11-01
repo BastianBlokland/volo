@@ -29,9 +29,9 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-                .values = dynarray_create_t(alloc, ScriptVal, 32),
-                .alloc  = alloc,
+      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+      .values = dynarray_create_t(alloc, ScriptVal, 32),
+      .alloc  = alloc,
   };
   return doc;
 }
@@ -93,6 +93,38 @@ ScriptExpr script_add_op_binary(
 
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
+}
+
+void script_expr_visit(
+    const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
+  /**
+   * Visit the expression itself.
+   */
+  visitor(ctx, doc, expr);
+
+  /**
+   * Visit the expression's children.
+   */
+  const ScriptExprData* data = script_doc_expr_data(doc, expr);
+  switch (data->type) {
+  case ScriptExprType_Value:
+  case ScriptExprType_Load:
+    return; // No children.
+  case ScriptExprType_Store:
+    script_expr_visit(doc, data->data_store.val, ctx, visitor);
+    return;
+  case ScriptExprType_OpUnary:
+    script_expr_visit(doc, data->data_op_unary.val, ctx, visitor);
+    return;
+  case ScriptExprType_OpBinary:
+    script_expr_visit(doc, data->data_op_binary.lhs, ctx, visitor);
+    script_expr_visit(doc, data->data_op_binary.rhs, ctx, visitor);
+    return;
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
 }
 
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {

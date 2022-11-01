@@ -56,6 +56,9 @@ ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, Scri
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
 
+typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
+void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);
+
 /**
  * Create a textual representation of the given expression.
  */
