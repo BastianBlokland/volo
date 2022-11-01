@@ -12,12 +12,8 @@
           "script": "$user_move_target != null"
         },
         {
-          "$type": "AssetAiNode_KnowledgeSet",
-          "key": "cmd_nav_target",
-          "value": {
-            "$type": "AssetAiSource_Knowledge",
-            "key": "user_move_target"
-          }
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_nav_target = $user_move_target"
         },
         {
           "$type": "AssetAiNode_Try",
@@ -28,11 +24,8 @@
           }
         },
         {
-          "$type": "AssetAiNode_KnowledgeSet",
-          "key": "user_move_target",
-          "value": {
-            "$type": "AssetAiSource_Null"
-          }
+          "$type": "AssetAiNode_Execute",
+          "script": "$user_move_target = null"
         }
       ]
     },
@@ -70,13 +63,9 @@
                           "script": "$target_dist < 35"
                         },
                         {
-                          "$type": "AssetAiNode_KnowledgeSet",
+                          "$type": "AssetAiNode_Execute",
                           "$name": "Set in_range cooldown",
-                          "key": "self_inrange_time",
-                          "value": {
-                            "$type": "AssetAiSource_Time",
-                            "secondsFromNow": 0.5
-                          }
+                          "script": "$self_inrange_time = $global_time + 0.5"
                         }
                       ]
                     }
@@ -93,33 +82,21 @@
               "$type": "AssetAiNode_Repeat",
               "$name": "Move",
               "child": {
-                "$type": "AssetAiNode_KnowledgeSet",
-                "key": "cmd_nav_target",
-                "value": {
-                  "$type": "AssetAiSource_Knowledge",
-                  "key": "target_position"
-                }
+                "$type": "AssetAiNode_Execute",
+                "script": "$cmd_nav_target = $target_position"
               }
             }
           ]
         },
         {
-          "$type": "AssetAiNode_KnowledgeSet",
+          "$type": "AssetAiNode_Execute",
           "$name": "Stop moving",
-          "key": "cmd_nav_stop",
-          "value": {
-            "$type": "AssetAiSource_Bool",
-            "value": true
-          }
+          "script": "$cmd_nav_stop = true"
         },
         {
-          "$type": "AssetAiNode_KnowledgeSet",
+          "$type": "AssetAiNode_Execute",
           "$name": "Attack",
-          "key": "cmd_attack_target",
-          "value": {
-            "$type": "AssetAiSource_Knowledge",
-            "key": "target_entity"
-          }
+          "script": "$cmd_attack_target = $target_entity"
         }
       ]
     },
