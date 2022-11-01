@@ -1,6 +1,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "script_doc.h"
+#include "script_read.h"
 
 #include "utils_internal.h"
 
@@ -97,6 +99,32 @@ spec(doc) {
     CountVisitorContext ctx = {0};
     script_expr_visit(doc, expr, &ctx, &test_doc_count_visitor);
     check_eq_int(ctx.count, 6);
+  }
+
+  it("can test if expressions are readonly") {
+    static const struct {
+      String input;
+      bool   readonly;
+    } g_testData[] = {
+        {string_static("1"), .readonly = true},
+        {string_static("1 + 2 + 3"), .readonly = true},
+        {string_static("$hello"), .readonly = true},
+        {string_static("1 + 2 + $hello"), .readonly = true},
+        {string_static("$hello + $world"), .readonly = true},
+
+        {string_static("$hello = 42"), .readonly = false},
+        {string_static("1 + 2 + ($hello = 42)"), .readonly = false},
+        {string_static("($hello = 42) + ($world = 1337)"), .readonly = false},
+        {string_static("$hello + ($world = 42)"), .readonly = false},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptReadResult readRes;
+      script_read_all(doc, g_testData[i].input, &readRes);
+      check_require(readRes.type == ScriptResult_Success);
+
+      check(script_expr_readonly(doc, readRes.expr) == g_testData[i].readonly);
+    }
   }
 
   teardown() { script_destroy(doc); }

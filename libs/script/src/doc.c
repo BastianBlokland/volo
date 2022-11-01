@@ -95,6 +95,30 @@ ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
 }
 
+static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  bool* isReadonly = ctx;
+  switch (script_doc_expr_data(doc, expr)->type) {
+  case ScriptExprType_Store:
+    *isReadonly = false;
+    return;
+  case ScriptExprType_Value:
+  case ScriptExprType_Load:
+  case ScriptExprType_OpUnary:
+  case ScriptExprType_OpBinary:
+    return;
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
+bool script_expr_readonly(const ScriptDoc* doc, const ScriptExpr expr) {
+  bool isReadonly = true;
+  script_expr_visit(doc, expr, &isReadonly, script_visitor_readonly);
+  return isReadonly;
+}
+
 void script_expr_visit(
     const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
   /**

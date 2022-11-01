@@ -55,6 +55,7 @@ ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, Scri
  * Query expression data.
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
+bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);
