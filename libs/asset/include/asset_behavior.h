@@ -3,6 +3,10 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
+// Forward declare from 'script_doc.h'.
+typedef struct sScriptDoc ScriptDoc;
+typedef u32               ScriptExpr;
+
 /**
  * Behavior tree definition.
  */
@@ -23,6 +27,7 @@ typedef enum eAssetAiNodeType {
   AssetAiNode_Sequence,
   AssetAiNode_KnowledgeSet,
   AssetAiNode_KnowledgeCompare,
+  AssetAiNode_Condition,
 
   AssetAiNode_Count,
 } AssetAiNodeType;
@@ -111,6 +116,10 @@ typedef struct {
   AssetAiSource     value;
 } AssetAiNodeKnowledgeCompare;
 
+typedef struct {
+  ScriptExpr scriptExpr;
+} AssetAiNodeCondition;
+
 typedef struct sAssetAiNode {
   AssetAiNodeType type;
   AssetAiNodeId   nextSibling;
@@ -123,6 +132,7 @@ typedef struct sAssetAiNode {
     AssetAiNodeSequence         data_sequence;
     AssetAiNodeKnowledgeSet     data_knowledgeset;
     AssetAiNodeKnowledgeCompare data_knowledgecompare;
+    AssetAiNodeCondition        data_condition;
   };
 } AssetAiNode;
 
@@ -130,6 +140,7 @@ ecs_comp_extern_public(AssetBehaviorComp) {
   const AssetAiNode* nodes;     // AssetAiNode[nodeCount]
   const String*      nodeNames; // String[nodeCount]
   u16                nodeCount;
+  const ScriptDoc*   scriptDoc;
 };
 
 /**

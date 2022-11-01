@@ -36,7 +36,7 @@ add_library(lib_asset STATIC
   src/repo.c
   )
 target_include_directories(lib_asset PUBLIC include)
-target_link_libraries(lib_asset PUBLIC lib_core lib_ecs lib_geo)
+target_link_libraries(lib_asset PUBLIC lib_core lib_ecs lib_geo lib_script)
 target_link_libraries(lib_asset PRIVATE lib_data lib_json lib_log)
 
 add_executable(test_lib_asset

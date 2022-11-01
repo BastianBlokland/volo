@@ -4,6 +4,7 @@
 #include "core_array.h"
 
 #define AI_NODES                                                                                   \
+  X(AssetAiNode_Condition, ai_node_condition_eval)                                                 \
   X(AssetAiNode_Failure, ai_node_failure_eval)                                                     \
   X(AssetAiNode_Invert, ai_node_invert_eval)                                                       \
   X(AssetAiNode_KnowledgeCompare, ai_node_knowledgecompare_eval)                                   \

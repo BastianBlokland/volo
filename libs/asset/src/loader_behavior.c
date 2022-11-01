@@ -8,6 +8,7 @@
 #include "data_treescheme.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "script_read.h"
 
 #include "repo_internal.h"
 
@@ -87,6 +88,10 @@ typedef struct {
   AssetAiSourceDef  value;
 } AssetAiNodeDefKnowledgeCompare;
 
+typedef struct {
+  String script;
+} AssetAiNodeDefCondition;
+
 typedef struct sAssetAiNodeDef {
   AssetAiNodeType type;
   String          name;
@@ -99,6 +104,7 @@ typedef struct sAssetAiNodeDef {
     AssetAiNodeDefSequence         data_sequence;
     AssetAiNodeDefKnowledgeSet     data_knowledgeset;
     AssetAiNodeDefKnowledgeCompare data_knowledgecompare;
+    AssetAiNodeDefCondition        data_condition;
   };
 } AssetAiNodeDef;
 
@@ -182,6 +188,10 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, value, t_AssetAiSourceDef, .flags = DataFlags_Opt);
     data_reg_comment_t(g_dataReg, AssetAiNodeDefKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
 
+    data_reg_struct_t(g_dataReg, AssetAiNodeDefCondition);
+    data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String));
+    data_reg_comment_t(g_dataReg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
+
     data_reg_union_t(g_dataReg, AssetAiNodeDef, type);
     data_reg_union_name_t(g_dataReg, AssetAiNodeDef, name);
     data_reg_choice_empty(g_dataReg, AssetAiNodeDef, AssetAiNode_Running);
@@ -195,6 +205,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeDefSequence);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_KnowledgeSet, data_knowledgeset, t_AssetAiNodeDefKnowledgeSet);
     data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_KnowledgeCompare, data_knowledgecompare, t_AssetAiNodeDefKnowledgeCompare);
+    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Condition, data_condition, t_AssetAiNodeDefCondition);
     // clang-format on
 
     g_dataNodeMeta = data_meta_t(nodeType);
@@ -206,9 +217,10 @@ typedef struct {
   StringTable* stringTable;
   DynArray*    nodes;     // AssetAiNode[]
   DynArray*    nodeNames; // String[]
+  ScriptDoc*   scriptDoc;
 } BuildContext;
 
-AssetAiSource build_source(const BuildContext* ctx, const AssetAiSourceDef* def) {
+static AssetAiSource build_source(const BuildContext* ctx, const AssetAiSourceDef* def) {
   AssetAiSource res = {.type = def->type};
   switch (def->type) {
   case AssetAiSource_Null:
@@ -296,6 +308,16 @@ build_node_knowledgecompare(BuildContext* ctx, const AssetAiNodeDef* def) {
   };
 }
 
+static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
+  ScriptReadResult readRes;
+  script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
+
+  // TODO: Handle errors.
+  diag_assert(readRes.type == ScriptResult_Success);
+
+  return (AssetAiNodeCondition){.scriptExpr = readRes.expr};
+}
+
 static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
   const AssetAiNodeId id = build_node_id_peek(ctx);
 
@@ -334,6 +356,9 @@ static AssetAiNodeId build_node(BuildContext* ctx, const AssetAiNodeDef* def) {
   case AssetAiNode_KnowledgeCompare:
     resNode->data_knowledgecompare = build_node_knowledgecompare(ctx, def);
     break;
+  case AssetAiNode_Condition:
+    resNode->data_condition = build_node_condition(ctx, def);
+    break;
   case AssetAiNode_Count:
     break;
   }
@@ -350,6 +375,7 @@ static void ecs_destruct_behavior_comp(void* data) {
   }
   alloc_free_array_t(g_alloc_heap, comp->nodes, comp->nodeCount);
   alloc_free_array_t(g_alloc_heap, comp->nodeNames, comp->nodeCount);
+  script_destroy((ScriptDoc*)comp->scriptDoc);
 }
 
 ecs_view_define(BehaviorUnloadView) {
@@ -390,13 +416,15 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
     goto Error;
   }
 
-  DynArray nodes     = dynarray_create_t(g_alloc_heap, AssetAiNode, 64);
-  DynArray nodeNames = dynarray_create_t(g_alloc_heap, String, 64);
+  DynArray   nodes     = dynarray_create_t(g_alloc_heap, AssetAiNode, 64);
+  DynArray   nodeNames = dynarray_create_t(g_alloc_heap, String, 64);
+  ScriptDoc* scriptDoc = script_create(g_alloc_heap);
 
   BuildContext ctx = {
       .nodes       = &nodes,
       .nodeNames   = &nodeNames,
       .stringTable = g_stringtable,
+      .scriptDoc   = scriptDoc,
   };
   build_node(&ctx, &rootDef);
 
@@ -406,7 +434,8 @@ void asset_load_bt(EcsWorld* world, const String id, const EcsEntityId entity, A
       AssetBehaviorComp,
       .nodes     = dynarray_copy_as_new(&nodes, g_alloc_heap),
       .nodeNames = dynarray_copy_as_new(&nodeNames, g_alloc_heap),
-      .nodeCount = (u16)nodes.size);
+      .nodeCount = (u16)nodes.size,
+      .scriptDoc = scriptDoc);
 
   dynarray_destroy(&nodes);
   dynarray_destroy(&nodeNames);
@@ -437,6 +466,7 @@ String asset_behavior_type_str(const AssetAiNodeType type) {
       string_static("Sequence"),
       string_static("KnowledgeSet"),
       string_static("KnowledgeCompare"),
+      string_static("Condition"),
   };
   ASSERT(array_elems(g_names) == AssetAiNode_Count, "Incorrect number of names");
   return g_names[type];

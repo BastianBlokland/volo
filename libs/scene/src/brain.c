@@ -88,6 +88,7 @@ static void scene_brain_eval(
       .memory    = brain->memory,
       .nodeDefs  = behavior->nodes,
       .nodeNames = behavior->nodeNames,
+      .scriptDoc = behavior->scriptDoc,
   };
 
   if (brain->flags & SceneBrainFlags_Trace) {
