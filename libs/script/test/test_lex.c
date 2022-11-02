@@ -53,6 +53,8 @@ spec(lex) {
         {string_static("+"), tok_simple(Plus)},
         {string_static("-"), tok_simple(Minus)},
 
+        {string_static(";"), tok_simple(SemiColon)},
+
         {string_static("null"), tok_null()},
         {string_static("nul"), tok_err(InvalidCharInNull)},
 

@@ -159,6 +159,9 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       }
       out->type = ScriptTokenType_Gt;
       return string_consume(str, 1);
+    case ';':
+      out->type = ScriptTokenType_SemiColon;
+      return string_consume(str, 1);
     case 'n':
       return script_lex_null(str, out);
     case '+':
@@ -246,6 +249,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("+");
   case ScriptTokenType_Minus:
     return string_lit("-");
+  case ScriptTokenType_SemiColon:
+    return string_lit(";");
   case ScriptTokenType_Null:
     return string_lit("null");
   case ScriptTokenType_Number:
