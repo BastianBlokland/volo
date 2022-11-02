@@ -105,11 +105,11 @@ static void behavior_datareg_init() {
     data_reg_comment_t(g_dataReg, AssetAiNodeDefSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
 
     data_reg_struct_t(g_dataReg, AssetAiNodeDefCondition);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String), .flags = DataFlags_HideName);
     data_reg_comment_t(g_dataReg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
 
     data_reg_struct_t(g_dataReg, AssetAiNodeDefExecute);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefExecute, script, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetAiNodeDefExecute, script, data_prim_t(String), .flags = DataFlags_HideName);
     data_reg_comment_t(g_dataReg, AssetAiNodeDefExecute, "Execute the script expression.\nEvaluates to 'Success'.");
 
     data_reg_union_t(g_dataReg, AssetAiNodeDef, type);
