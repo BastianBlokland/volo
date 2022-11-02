@@ -90,13 +90,8 @@
         },
         {
           "$type": "AssetAiNode_Execute",
-          "$name": "Stop moving",
-          "script": "$cmd_nav_stop = true"
-        },
-        {
-          "$type": "AssetAiNode_Execute",
           "$name": "Attack",
-          "script": "$cmd_attack_target = $target_entity"
+          "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true"
         }
       ]
     },
