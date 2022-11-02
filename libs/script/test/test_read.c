@@ -210,6 +210,7 @@ spec(read) {
     } g_testData[] = {
         {string_static(""), ScriptError_MissingPrimaryExpression},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 <"), ScriptError_MissingPrimaryExpression},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
@@ -224,9 +225,10 @@ spec(read) {
       check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
       check_msg(
           res.error == g_testData[i].expected,
-          "{} == {}",
+          "{} == {} (index: {})",
           script_error_fmt(res.error),
-          script_error_fmt(g_testData[i].expected));
+          script_error_fmt(g_testData[i].expected),
+          fmt_int(i));
     }
   }
 

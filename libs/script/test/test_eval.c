@@ -35,7 +35,7 @@ spec(eval) {
         {string_static("$v1"), script_bool(true)},
         {string_static("$v2"), script_number(1337)},
         {string_static("$v3"), script_null()},
-        {string_static("$non-existent"), script_null()},
+        {string_static("$non_existent"), script_null()},
 
         // Memory stores.
         {string_static("$v4 = true"), script_bool(true)},
@@ -77,7 +77,8 @@ spec(eval) {
     for (u32 i = 0; i != array_elems(testData); ++i) {
       ScriptReadResult readRes;
       script_read_all(doc, testData[i].input, &readRes);
-      check_require(readRes.type == ScriptResult_Success);
+      check_require_msg(
+          readRes.type == ScriptResult_Success, "Read failed (index: {})", fmt_int(i));
 
       const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
       check_eq_val(evalRes, testData[i].expected);

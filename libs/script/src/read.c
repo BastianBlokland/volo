@@ -195,7 +195,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Minus: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
-        return res;
+        return rhs;
       }
       const ScriptOpBinary op = token_op_binary(nextToken.type);
       res                     = script_expr(script_add_op_binary(ctx->doc, res.expr, rhs.expr, op));
