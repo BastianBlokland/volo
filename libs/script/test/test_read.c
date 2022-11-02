@@ -221,7 +221,7 @@ spec(read) {
       const String     remInput = script_read_expr(doc, g_testData[i].input, &res);
       check_eq_string(remInput, string_lit(""));
 
-      check_require_msg(res.type == ScriptResult_Fail, "Failed to read: {}", fmt_int(i));
+      check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
       check_msg(
           res.error == g_testData[i].expected,
           "{} == {}",
