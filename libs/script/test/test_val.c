@@ -265,8 +265,8 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_number(42)},
-        {script_number(42), script_null(), .expected = script_number(42)},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
         {script_number(42), script_bool(false), .expected = script_null()},
 
         {script_number(42), script_number(1), .expected = script_number(43)},
@@ -280,9 +280,11 @@ spec(val) {
 
         {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
 
-        {.a        = script_time(time_seconds(1)),
-         .b        = script_null(),
-         .expected = script_time(time_seconds(1))},
+        {.a        = script_time(time_seconds(2)),
+         .b        = script_time(time_seconds(3)),
+         .expected = script_time(time_seconds(5))},
+
+        {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
     };
@@ -299,8 +301,8 @@ spec(val) {
       ScriptVal expected;
     } testData[] = {
         {script_null(), script_null(), .expected = script_null()},
-        {script_null(), script_number(42), .expected = script_number(42)},
-        {script_number(42), script_null(), .expected = script_number(42)},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
         {script_number(42), script_bool(false), .expected = script_null()},
 
         {script_number(42), script_number(1), .expected = script_number(41)},
@@ -315,8 +317,10 @@ spec(val) {
         {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
 
         {.a        = script_time(time_seconds(1)),
-         .b        = script_null(),
-         .expected = script_time(time_seconds(1))},
+         .b        = script_time(time_seconds(2)),
+         .expected = script_time(time_seconds(-1))},
+
+        {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
     };

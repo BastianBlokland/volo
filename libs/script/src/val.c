@@ -213,7 +213,7 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
 
 bool script_val_less(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) != script_type(b)) {
-    return false; // TODO: Can we define meaningful 'less' semantics for mismatching types?
+    return false;
   }
   switch (script_type(a)) {
   case ScriptType_Null:
@@ -235,7 +235,7 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
 
 bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) != script_type(b)) {
-    return false; // TODO: Can we define meaningful 'greater' semantics for mismatching types?
+    return false;
   }
   switch (script_type(a)) {
   case ScriptType_Null:
@@ -277,16 +277,12 @@ ScriptVal script_val_neg(const ScriptVal val) {
 }
 
 ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
-  if (script_type(a) == ScriptType_Null) {
-    return b;
-  }
-  if (script_type(b) == ScriptType_Null) {
-    return a;
-  }
   if (script_type(a) != script_type(b)) {
     return script_null();
   }
   switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) + val_as_number(b));
   case ScriptType_Bool:
@@ -298,7 +294,6 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   }
   case ScriptType_Entity:
     return script_null();
-  case ScriptType_Null:
   case ScriptType_Count:
     break;
   }
@@ -307,16 +302,12 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
 }
 
 ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
-  if (script_type(a) == ScriptType_Null) {
-    return b;
-  }
-  if (script_type(b) == ScriptType_Null) {
-    return a;
-  }
   if (script_type(a) != script_type(b)) {
     return script_null();
   }
   switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) - val_as_number(b));
   case ScriptType_Bool:
@@ -328,7 +319,6 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
   }
   case ScriptType_Entity:
     return script_null();
-  case ScriptType_Null:
   case ScriptType_Count:
     break;
   }
