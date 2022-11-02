@@ -276,6 +276,22 @@ ScriptVal script_val_neg(const ScriptVal val) {
   UNREACHABLE
 }
 
+ScriptVal script_val_inv(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+  case ScriptType_Number:
+  case ScriptType_Vector3:
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Bool:
+    return script_bool(!val_as_bool(val));
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) != script_type(b)) {
     return script_null();

@@ -77,6 +77,7 @@ bool script_val_greater(ScriptVal, ScriptVal);
  * Value arithmetic.
  */
 ScriptVal script_val_neg(ScriptVal);
+ScriptVal script_val_inv(ScriptVal);
 ScriptVal script_val_add(ScriptVal, ScriptVal);
 ScriptVal script_val_sub(ScriptVal, ScriptVal);
 

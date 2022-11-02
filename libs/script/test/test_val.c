@@ -259,6 +259,25 @@ spec(val) {
     }
   }
 
+  it("can invert values") {
+    const struct {
+      ScriptVal val;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), .expected = script_null()},
+        {script_number(42), .expected = script_null()},
+        {script_bool(true), .expected = script_bool(false)},
+        {script_bool(false), .expected = script_bool(true)},
+        {script_vector3_lit(1, 2, 3), .expected = script_null()},
+        {script_time(time_seconds(2)), .expected = script_null()},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_neg(testData[i].val);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
   it("can add values") {
     const struct {
       ScriptVal a, b;
