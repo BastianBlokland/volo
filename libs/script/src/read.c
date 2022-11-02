@@ -41,6 +41,8 @@ static ScriptOpUnary token_op_unary(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_Minus:
     return ScriptOpUnary_Negate;
+  case ScriptTokenType_Bang:
+    return ScriptOpUnary_Invert;
   default:
     diag_assert_fail("Invalid unary operation token");
     UNREACHABLE
@@ -105,7 +107,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Unary operators.
    */
-  case ScriptTokenType_Minus: {
+  case ScriptTokenType_Minus:
+  case ScriptTokenType_Bang: {
     const ScriptReadResult val = read_expr(ctx, OpPrecedence_Unary);
     if (UNLIKELY(val.type == ScriptResult_Fail)) {
       return val;

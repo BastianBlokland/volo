@@ -273,7 +273,7 @@ spec(val) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      const ScriptVal actual = script_val_neg(testData[i].val);
+      const ScriptVal actual = script_val_inv(testData[i].val);
       check_eq_val(actual, testData[i].expected);
     }
   }

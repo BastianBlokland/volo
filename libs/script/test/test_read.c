@@ -42,6 +42,11 @@ spec(read) {
             string_static("[op-unary: negate]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("!true"),
+            string_static("[op-unary: invert]\n"
+                          "  [value: true]"),
+        },
 
         // Binary expressions.
         {

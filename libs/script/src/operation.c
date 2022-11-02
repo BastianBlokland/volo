@@ -6,6 +6,7 @@ String script_op_unary_str(const ScriptOpUnary c) {
   diag_assert(c < ScriptOpUnary_Count);
   static const String g_names[] = {
       string_static("negate"),
+      string_static("invert"),
   };
   ASSERT(array_elems(g_names) == ScriptOpUnary_Count, "Incorrect number of names");
   return g_names[c];

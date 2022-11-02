@@ -42,7 +42,7 @@ spec(lex) {
         {string_static("=="), tok_simple(EqEq)},
 
         {string_static("!="), tok_simple(BangEq)},
-        {string_static("!"), tok_err(InvalidChar)},
+        {string_static("!"), tok_simple(Bang)},
 
         {string_static("<"), tok_simple(Le)},
         {string_static("<="), tok_simple(LeEq)},

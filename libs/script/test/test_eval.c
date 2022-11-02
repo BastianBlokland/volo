@@ -54,6 +54,8 @@ spec(eval) {
         {string_static("1 - 2"), script_number(-1)},
         {string_static("1 - 2 - 3"), script_number(-4)},
         {string_static("1 + $v2"), script_number(1338)},
+        {string_static("!true"), script_bool(false)},
+        {string_static("!false"), script_bool(true)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},

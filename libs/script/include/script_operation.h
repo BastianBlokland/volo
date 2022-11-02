@@ -3,6 +3,7 @@
 
 typedef enum {
   ScriptOpUnary_Negate,
+  ScriptOpUnary_Invert,
 
   ScriptOpUnary_Count,
 } ScriptOpUnary;

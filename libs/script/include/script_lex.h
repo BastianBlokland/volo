@@ -7,6 +7,7 @@ typedef enum {
   ScriptTokenType_ParenClose, // )
   ScriptTokenType_Eq,         // =
   ScriptTokenType_EqEq,       // ==
+  ScriptTokenType_Bang,       // !
   ScriptTokenType_BangEq,     // !=
   ScriptTokenType_Le,         // <
   ScriptTokenType_LeEq,       // <=
