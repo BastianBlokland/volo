@@ -16,6 +16,7 @@ typedef enum {
   DataFlags_None     = 0,
   DataFlags_Opt      = 1 << 0,
   DataFlags_NotEmpty = 1 << 1,
+  DataFlags_HideName = 1 << 2,
 } DataFlags;
 
 /**
