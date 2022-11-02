@@ -69,6 +69,11 @@ spec(eval) {
         {string_static("2 >= 2"), script_bool(true)},
         {string_static("2 <= 2"), script_bool(true)},
 
+        // Group expressions.
+        {string_static("1; 2; 3"), script_number(3)},
+        {string_static("$a = 1; $a + 41"), script_number(42)},
+        {string_static("$a = 1; $b = 5; $c = 42; $a + $b + $c"), script_number(48)},
+
         // Compound expressions.
         {string_static("1 + 2 == 4 - 1"), script_bool(true)},
         {string_static("1 + (2 == 4) - 1"), script_null()},
@@ -87,11 +92,13 @@ spec(eval) {
 
   it("can store memory values") {
     ScriptReadResult readRes;
-    script_read_all(doc, string_lit("$test = 42"), &readRes);
+    script_read_all(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     script_eval(doc, mem, readRes.expr);
-    check_eq_val(script_mem_get(mem, string_hash_lit("test")), script_number(42));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
   }
 
   teardown() {

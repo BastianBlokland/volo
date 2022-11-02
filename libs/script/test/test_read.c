@@ -191,6 +191,37 @@ spec(read) {
                           "      [value: 1]\n"
                           "      [value: 2]"),
         },
+
+        // Group expressions.
+        {
+            string_static("1; 2"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1; 2; 3; 4; 5"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: ret-right]\n"
+                          "    [op-binary: ret-right]\n"
+                          "      [op-binary: ret-right]\n"
+                          "        [value: 1]\n"
+                          "        [value: 2]\n"
+                          "      [value: 3]\n"
+                          "    [value: 4]\n"
+                          "  [value: 5]"),
+        },
+        {
+            string_static("$a = 1; $b = 2; $c = 3"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: ret-right]\n"
+                          "    [store: $3645546703]\n"
+                          "      [value: 1]\n"
+                          "    [store: $1612769824]\n"
+                          "      [value: 2]\n"
+                          "  [store: $1857025631]\n"
+                          "    [value: 3]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -215,6 +246,9 @@ spec(read) {
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
+        {string_static("!"), ScriptError_MissingPrimaryExpression},
+        {string_static(";"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 ;"), ScriptError_MissingPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
