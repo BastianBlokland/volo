@@ -18,6 +18,8 @@ typedef enum {
   ScriptTokenType_Star,       // *
   ScriptTokenType_Slash,      // /
   ScriptTokenType_SemiColon,  // ;
+  ScriptTokenType_AmpAmp,     // &&
+  ScriptTokenType_PipePipe,   // ||
   ScriptTokenType_Null,       // null
   ScriptTokenType_Number,     // 42.1337
   ScriptTokenType_Bool,       // true

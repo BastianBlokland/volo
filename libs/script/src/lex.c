@@ -176,6 +176,20 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '/':
       out->type = ScriptTokenType_Slash;
       return string_consume(str, 1);
+    case '&':
+      if (script_peek(str, 1) == '&') {
+        out->type = ScriptTokenType_AmpAmp;
+        return string_consume(str, 2);
+      }
+      *out = script_token_err(ScriptError_InvalidChar);
+      return string_consume(str, 1);
+    case '|':
+      if (script_peek(str, 1) == '|') {
+        out->type = ScriptTokenType_PipePipe;
+        return string_consume(str, 2);
+      }
+      *out = script_token_err(ScriptError_InvalidChar);
+      return string_consume(str, 1);
     case '.':
     case '0':
     case '1':
@@ -261,6 +275,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("/");
   case ScriptTokenType_SemiColon:
     return string_lit(";");
+  case ScriptTokenType_AmpAmp:
+    return string_lit("&&");
+  case ScriptTokenType_PipePipe:
+    return string_lit("||");
   case ScriptTokenType_Null:
     return string_lit("null");
   case ScriptTokenType_Number:
