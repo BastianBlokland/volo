@@ -84,6 +84,12 @@ typedef struct {
   u32        recursionDepth;
 } ScriptReadContext;
 
+static bool read_at_end(const ScriptReadContext* ctx) {
+  ScriptToken token;
+  script_lex(ctx->input, null, &token);
+  return token.type == ScriptTokenType_End;
+}
+
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
@@ -190,6 +196,13 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
      * Binary expressions.
      */
     switch (nextToken.type) {
+    case ScriptTokenType_SemiColon:
+      // Expressions are allowed to be ended with semi-colons.
+      if (read_at_end(ctx)) {
+        ctx->input = string_empty;
+        return res;
+      }
+      // Fallthrough.
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
     case ScriptTokenType_Le:
@@ -197,8 +210,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Gt:
     case ScriptTokenType_GtEq:
     case ScriptTokenType_Plus:
-    case ScriptTokenType_Minus:
-    case ScriptTokenType_SemiColon: {
+    case ScriptTokenType_Minus: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;

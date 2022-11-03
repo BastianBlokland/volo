@@ -71,6 +71,7 @@ spec(eval) {
 
         // Group expressions.
         {string_static("1; 2; 3"), script_number(3)},
+        {string_static("1; 2; 3;"), script_number(3)},
         {string_static("$a = 1; $a + 41"), script_number(42)},
         {string_static("$a = 1; $b = 5; $c = 42; $a + $b + $c"), script_number(48)},
 

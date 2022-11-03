@@ -200,6 +200,18 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
+            string_static("1; 2;"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1; 2;\t \n"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
             string_static("1; 2; 3; 4; 5"),
             string_static("[op-binary: ret-right]\n"
                           "  [op-binary: ret-right]\n"
@@ -242,13 +254,15 @@ spec(read) {
         {string_static(""), ScriptError_MissingPrimaryExpression},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 < hello"), ScriptError_InvalidChar},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("!"), ScriptError_MissingPrimaryExpression},
         {string_static(";"), ScriptError_InvalidPrimaryExpression},
-        {string_static("1 ;"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ; ;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1;;"), ScriptError_InvalidPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
