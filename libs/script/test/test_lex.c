@@ -87,7 +87,7 @@ spec(lex) {
         {string_static("$123hello"), tok_key_lit("123hello")},
         {string_static("$你好世界"), tok_key_lit("你好世界")},
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
-        {string_static("$"), tok_err(KeyIdentifierEmpty)},
+        {string_static("$"), tok_err(KeyEmpty)},
         {string_static("hello"), tok_err(InvalidChar)},
 
         {string_static("&"), tok_err(InvalidChar)},

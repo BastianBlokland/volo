@@ -106,13 +106,13 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    *out = script_token_err(ScriptError_KeyIdentifierEmpty);
+    *out = script_token_err(ScriptError_KeyEmpty);
     return str;
   }
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    *out = script_token_err(ScriptError_KeyIdentifierInvalidUtf8);
+    *out = script_token_err(ScriptError_KeyInvalidUtf8);
     return str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
