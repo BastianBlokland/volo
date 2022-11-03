@@ -14,6 +14,7 @@ typedef enum {
   OpPrecedence_None,
   OpPrecedence_Grouping,
   OpPrecedence_Assignment,
+  OpPrecedence_Logical,
   OpPrecedence_Equality,
   OpPrecedence_Relational,
   OpPrecedence_Additive,
@@ -37,6 +38,9 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_Star:
   case ScriptTokenType_Slash:
     return OpPrecedence_Multiplicative;
+  case ScriptTokenType_AmpAmp:
+  case ScriptTokenType_PipePipe:
+    return OpPrecedence_Logical;
   case ScriptTokenType_SemiColon:
     return OpPrecedence_Grouping;
   default:
