@@ -100,6 +100,7 @@
       "fields": [
         {
           "name": "script",
+          "hideName": true,
           "valueType": "string"
         }
       ]
@@ -110,6 +111,7 @@
       "fields": [
         {
           "name": "script",
+          "hideName": true,
           "valueType": "string"
         }
       ]

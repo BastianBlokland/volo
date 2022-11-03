@@ -143,7 +143,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
         out->type = ScriptTokenType_BangEq;
         return string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar);
+      out->type = ScriptTokenType_Bang;
       return string_consume(str, 1);
     case '<':
       if (script_peek(str, 1) == '=') {
@@ -158,6 +158,9 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
         return string_consume(str, 2);
       }
       out->type = ScriptTokenType_Gt;
+      return string_consume(str, 1);
+    case ';':
+      out->type = ScriptTokenType_SemiColon;
       return string_consume(str, 1);
     case 'n':
       return script_lex_null(str, out);
@@ -230,6 +233,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("=");
   case ScriptTokenType_EqEq:
     return string_lit("==");
+  case ScriptTokenType_Bang:
+    return string_lit("!");
   case ScriptTokenType_BangEq:
     return string_lit("!=");
   case ScriptTokenType_Le:
@@ -244,6 +249,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("+");
   case ScriptTokenType_Minus:
     return string_lit("-");
+  case ScriptTokenType_SemiColon:
+    return string_lit(";");
   case ScriptTokenType_Null:
     return string_lit("null");
   case ScriptTokenType_Number:

@@ -7,6 +7,7 @@ typedef enum {
   ScriptTokenType_ParenClose, // )
   ScriptTokenType_Eq,         // =
   ScriptTokenType_EqEq,       // ==
+  ScriptTokenType_Bang,       // !
   ScriptTokenType_BangEq,     // !=
   ScriptTokenType_Le,         // <
   ScriptTokenType_LeEq,       // <=
@@ -14,6 +15,7 @@ typedef enum {
   ScriptTokenType_GtEq,       // >=
   ScriptTokenType_Plus,       // +
   ScriptTokenType_Minus,      // -
+  ScriptTokenType_SemiColon,  // ;
   ScriptTokenType_Null,       // null
   ScriptTokenType_Number,     // 42.1337
   ScriptTokenType_Bool,       // true

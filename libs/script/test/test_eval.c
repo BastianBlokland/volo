@@ -35,7 +35,7 @@ spec(eval) {
         {string_static("$v1"), script_bool(true)},
         {string_static("$v2"), script_number(1337)},
         {string_static("$v3"), script_null()},
-        {string_static("$non-existent"), script_null()},
+        {string_static("$non_existent"), script_null()},
 
         // Memory stores.
         {string_static("$v4 = true"), script_bool(true)},
@@ -48,12 +48,14 @@ spec(eval) {
         {string_static("1 + 2"), script_number(3)},
         {string_static("1 + 2 + 3"), script_number(6)},
         {string_static("-(1 + 2 + 3)"), script_number(-6)},
-        {string_static("1 + null"), script_number(1)},
-        {string_static("null + 1"), script_number(1)},
+        {string_static("1 + null"), script_null()},
+        {string_static("null + 1"), script_null()},
         {string_static("null + null"), script_null()},
         {string_static("1 - 2"), script_number(-1)},
         {string_static("1 - 2 - 3"), script_number(-4)},
         {string_static("1 + $v2"), script_number(1338)},
+        {string_static("!true"), script_bool(false)},
+        {string_static("!false"), script_bool(true)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},
@@ -67,15 +69,21 @@ spec(eval) {
         {string_static("2 >= 2"), script_bool(true)},
         {string_static("2 <= 2"), script_bool(true)},
 
+        // Group expressions.
+        {string_static("1; 2; 3"), script_number(3)},
+        {string_static("$a = 1; $a + 41"), script_number(42)},
+        {string_static("$a = 1; $b = 5; $c = 42; $a + $b + $c"), script_number(48)},
+
         // Compound expressions.
         {string_static("1 + 2 == 4 - 1"), script_bool(true)},
-        {string_static("1 + (2 == 4) - 1"), script_number(1)},
+        {string_static("1 + (2 == 4) - 1"), script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       ScriptReadResult readRes;
       script_read_all(doc, testData[i].input, &readRes);
-      check_require(readRes.type == ScriptResult_Success);
+      check_require_msg(
+          readRes.type == ScriptResult_Success, "Read failed (index: {})", fmt_int(i));
 
       const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
       check_eq_val(evalRes, testData[i].expected);
@@ -84,11 +92,13 @@ spec(eval) {
 
   it("can store memory values") {
     ScriptReadResult readRes;
-    script_read_all(doc, string_lit("$test = 42"), &readRes);
+    script_read_all(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     script_eval(doc, mem, readRes.expr);
-    check_eq_val(script_mem_get(mem, string_hash_lit("test")), script_number(42));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
+    check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
   }
 
   teardown() {

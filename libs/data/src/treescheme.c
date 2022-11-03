@@ -122,6 +122,9 @@ treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String 
     if (fieldDecl->meta.container == DataContainer_Array) {
       json_add_field_lit(ctx->doc, fieldObj, "isArray", json_add_bool(ctx->doc, true));
     }
+    if (fieldDecl->meta.flags & DataFlags_HideName) {
+      json_add_field_lit(ctx->doc, fieldObj, "hideName", json_add_bool(ctx->doc, true));
+    }
 
     const DataDecl* fieldTypeDecl = data_decl(ctx->reg, fieldDecl->meta.type);
     JsonVal         valueType;

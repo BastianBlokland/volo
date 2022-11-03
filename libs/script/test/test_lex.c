@@ -42,7 +42,7 @@ spec(lex) {
         {string_static("=="), tok_simple(EqEq)},
 
         {string_static("!="), tok_simple(BangEq)},
-        {string_static("!"), tok_err(InvalidChar)},
+        {string_static("!"), tok_simple(Bang)},
 
         {string_static("<"), tok_simple(Le)},
         {string_static("<="), tok_simple(LeEq)},
@@ -52,6 +52,8 @@ spec(lex) {
 
         {string_static("+"), tok_simple(Plus)},
         {string_static("-"), tok_simple(Minus)},
+
+        {string_static(";"), tok_simple(SemiColon)},
 
         {string_static("null"), tok_null()},
         {string_static("nul"), tok_err(InvalidCharInNull)},

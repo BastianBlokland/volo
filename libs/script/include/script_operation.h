@@ -3,6 +3,7 @@
 
 typedef enum {
   ScriptOpUnary_Negate,
+  ScriptOpUnary_Invert,
 
   ScriptOpUnary_Count,
 } ScriptOpUnary;
@@ -16,6 +17,7 @@ typedef enum {
   ScriptOpBinary_GreaterOrEqual,
   ScriptOpBinary_Add,
   ScriptOpBinary_Sub,
+  ScriptOpBinary_RetRight,
 
   ScriptOpBinary_Count,
 } ScriptOpBinary;

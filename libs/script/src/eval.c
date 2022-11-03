@@ -35,6 +35,8 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
   switch (expr->op) {
   case ScriptOpUnary_Negate:
     return script_val_neg(val);
+  case ScriptOpUnary_Invert:
+    return script_val_inv(val);
   case ScriptOpUnary_Count:
     break;
   }
@@ -63,6 +65,8 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_add(a, b);
   case ScriptOpBinary_Sub:
     return script_val_sub(a, b);
+  case ScriptOpBinary_RetRight:
+    return b; // NOTE: Even though we return rhs we still evaluate both lhs and rhs expressions.
   case ScriptOpBinary_Count:
     break;
   }

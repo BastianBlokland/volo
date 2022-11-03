@@ -42,6 +42,11 @@ spec(read) {
             string_static("[op-unary: negate]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("!true"),
+            string_static("[op-unary: invert]\n"
+                          "  [value: true]"),
+        },
 
         // Binary expressions.
         {
@@ -186,6 +191,37 @@ spec(read) {
                           "      [value: 1]\n"
                           "      [value: 2]"),
         },
+
+        // Group expressions.
+        {
+            string_static("1; 2"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1; 2; 3; 4; 5"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: ret-right]\n"
+                          "    [op-binary: ret-right]\n"
+                          "      [op-binary: ret-right]\n"
+                          "        [value: 1]\n"
+                          "        [value: 2]\n"
+                          "      [value: 3]\n"
+                          "    [value: 4]\n"
+                          "  [value: 5]"),
+        },
+        {
+            string_static("$a = 1; $b = 2; $c = 3"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: ret-right]\n"
+                          "    [store: $3645546703]\n"
+                          "      [value: 1]\n"
+                          "    [store: $1612769824]\n"
+                          "      [value: 2]\n"
+                          "  [store: $1857025631]\n"
+                          "    [value: 3]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -205,10 +241,14 @@ spec(read) {
     } g_testData[] = {
         {string_static(""), ScriptError_MissingPrimaryExpression},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 <"), ScriptError_MissingPrimaryExpression},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
+        {string_static("!"), ScriptError_MissingPrimaryExpression},
+        {string_static(";"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 ;"), ScriptError_MissingPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -216,12 +256,13 @@ spec(read) {
       const String     remInput = script_read_expr(doc, g_testData[i].input, &res);
       check_eq_string(remInput, string_lit(""));
 
-      check_require_msg(res.type == ScriptResult_Fail, "Failed to read: {}", fmt_int(i));
+      check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
       check_msg(
           res.error == g_testData[i].expected,
-          "{} == {}",
+          "{} == {} (index: {})",
           script_error_fmt(res.error),
-          script_error_fmt(g_testData[i].expected));
+          script_error_fmt(g_testData[i].expected),
+          fmt_int(i));
     }
   }
 
