@@ -57,6 +57,7 @@ spec(lex) {
 
         {string_static("&&"), tok_simple(AmpAmp)},
         {string_static("||"), tok_simple(PipePipe)},
+        {string_static("??"), tok_simple(QMarkQMark)},
 
         {string_static(";"), tok_simple(SemiColon)},
 
@@ -91,6 +92,7 @@ spec(lex) {
 
         {string_static("&"), tok_err(InvalidChar)},
         {string_static("|"), tok_err(InvalidChar)},
+        {string_static("?"), tok_err(InvalidChar)},
         {string_static("@"), tok_err(InvalidChar)},
         {string_static("abc"), tok_err(InvalidChar)},
 
