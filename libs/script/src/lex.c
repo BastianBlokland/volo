@@ -126,77 +126,56 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   while (!string_is_empty(str)) {
     switch (*string_begin(str)) {
     case '(':
-      out->type = ScriptTokenType_ParenOpen;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_ParenOpen, string_consume(str, 1);
     case ')':
-      out->type = ScriptTokenType_ParenClose;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_ParenClose, string_consume(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_EqEq;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_EqEq, string_consume(str, 2);
       }
-      out->type = ScriptTokenType_Eq;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Eq, string_consume(str, 1);
     case '!':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_BangEq;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_BangEq, string_consume(str, 2);
       }
-      out->type = ScriptTokenType_Bang;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Bang, string_consume(str, 1);
     case '<':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_LeEq;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_LeEq, string_consume(str, 2);
       }
-      out->type = ScriptTokenType_Le;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Le, string_consume(str, 1);
     case '>':
       if (script_peek(str, 1) == '=') {
-        out->type = ScriptTokenType_GtEq;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_GtEq, string_consume(str, 2);
       }
-      out->type = ScriptTokenType_Gt;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Gt, string_consume(str, 1);
     case ';':
-      out->type = ScriptTokenType_SemiColon;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
     case 'n':
       return script_lex_null(str, out);
     case '+':
-      out->type = ScriptTokenType_Plus;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Plus, string_consume(str, 1);
     case '-':
-      out->type = ScriptTokenType_Minus;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Minus, string_consume(str, 1);
     case '*':
-      out->type = ScriptTokenType_Star;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Star, string_consume(str, 1);
     case '/':
-      out->type = ScriptTokenType_Slash;
-      return string_consume(str, 1);
+      return out->type = ScriptTokenType_Slash, string_consume(str, 1);
     case '&':
       if (script_peek(str, 1) == '&') {
-        out->type = ScriptTokenType_AmpAmp;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_AmpAmp, string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar);
-      return string_consume(str, 1);
+      *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
-        out->type = ScriptTokenType_PipePipe;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_PipePipe, string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar);
-      return string_consume(str, 1);
+      *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
-        out->type = ScriptTokenType_QMarkQMark;
-        return string_consume(str, 2);
+        return out->type = ScriptTokenType_QMarkQMark, string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar);
-      return string_consume(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '.':
     case '0':
     case '1':
@@ -223,13 +202,11 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       str = string_consume(str, 1); // Skip whitespace.
       continue;
     default:
-      *out = script_token_err(ScriptError_InvalidChar);
-      return script_consume_word_or_char(str);
+      return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
   }
 
-  out->type = ScriptTokenType_End;
-  return string_empty;
+  return out->type = ScriptTokenType_End, string_empty;
 }
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
