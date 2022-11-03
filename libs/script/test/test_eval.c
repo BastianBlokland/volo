@@ -70,11 +70,25 @@ spec(eval) {
         {string_static("2 >= 2"), script_bool(true)},
         {string_static("2 <= 2"), script_bool(true)},
 
+        // Logic.
+        {string_static("false && false"), script_bool(false)},
+        {string_static("false && true"), script_bool(false)},
+        {string_static("true && false"), script_bool(false)},
+        {string_static("true && true"), script_bool(true)},
+        {string_static("false || false"), script_bool(false)},
+        {string_static("false || true"), script_bool(true)},
+        {string_static("true || false"), script_bool(true)},
+        {string_static("true || true"), script_bool(true)},
+        {string_static("false && ($a = 1; false); $a"), script_null()},
+        {string_static("true && ($b = 1; false); $b"), script_number(1)},
+        {string_static("false || ($c = 1; false); $c"), script_number(1)},
+        {string_static("true || ($d = 1; false); $d"), script_null()},
+
         // Group expressions.
         {string_static("1; 2; 3"), script_number(3)},
         {string_static("1; 2; 3;"), script_number(3)},
-        {string_static("$a = 1; $a + 41"), script_number(42)},
-        {string_static("$a = 1; $b = 5; $c = 42; $a + $b + $c"), script_number(48)},
+        {string_static("$e = 1; $e + 41"), script_number(42)},
+        {string_static("$f = 1; $g = 5; $h = 42; $f + $g + $h"), script_number(48)},
 
         // Compound expressions.
         {string_static("1 + 2 == 4 - 1"), script_bool(true)},
@@ -85,10 +99,15 @@ spec(eval) {
       ScriptReadResult readRes;
       script_read_all(doc, testData[i].input, &readRes);
       check_require_msg(
-          readRes.type == ScriptResult_Success, "Read failed (index: {})", fmt_int(i));
+          readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
       const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
-      check_eq_val(evalRes, testData[i].expected);
+      check_msg(
+          script_val_equal(evalRes, testData[i].expected),
+          "{} == {} ({})",
+          script_val_fmt(evalRes),
+          script_val_fmt(testData[i].expected),
+          fmt_text(testData[i].input));
     }
   }
 

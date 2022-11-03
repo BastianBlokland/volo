@@ -115,6 +115,18 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("true && false"),
+            string_static("[op-binary: logic-and]\n"
+                          "  [value: true]\n"
+                          "  [value: false]"),
+        },
+        {
+            string_static("true || false"),
+            string_static("[op-binary: logic-or]\n"
+                          "  [value: true]\n"
+                          "  [value: false]"),
+        },
 
         // Compound expressions.
         {
@@ -212,6 +224,17 @@ spec(read) {
                           "    [op-binary: add]\n"
                           "      [value: 1]\n"
                           "      [value: 2]"),
+        },
+        {
+            string_static("true || ($a = 1; false); $a"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: logic-or]\n"
+                          "    [value: true]\n"
+                          "    [op-binary: ret-right]\n"
+                          "      [store: $3645546703]\n"
+                          "        [value: 1]\n"
+                          "      [value: false]\n"
+                          "  [load: $3645546703]"),
         },
 
         // Group expressions.

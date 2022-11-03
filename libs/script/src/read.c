@@ -84,6 +84,10 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_Div;
   case ScriptTokenType_SemiColon:
     return ScriptOpBinary_RetRight;
+  case ScriptTokenType_AmpAmp:
+    return ScriptOpBinary_LogicAnd;
+  case ScriptTokenType_PipePipe:
+    return ScriptOpBinary_LogicOr;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -224,7 +228,9 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Plus:
     case ScriptTokenType_Minus:
     case ScriptTokenType_Star:
-    case ScriptTokenType_Slash: {
+    case ScriptTokenType_Slash:
+    case ScriptTokenType_AmpAmp:
+    case ScriptTokenType_PipePipe: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;

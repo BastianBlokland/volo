@@ -15,6 +15,8 @@ typedef enum {
   ScriptOpBinary_LessOrEqual,
   ScriptOpBinary_Greater,
   ScriptOpBinary_GreaterOrEqual,
+  ScriptOpBinary_LogicAnd,
+  ScriptOpBinary_LogicOr,
   ScriptOpBinary_Add,
   ScriptOpBinary_Sub,
   ScriptOpBinary_Mul,
