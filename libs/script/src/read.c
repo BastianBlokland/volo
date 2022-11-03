@@ -14,6 +14,7 @@ typedef enum {
   OpPrecedence_None,
   OpPrecedence_Grouping,
   OpPrecedence_Assignment,
+  OpPrecedence_Conditional,
   OpPrecedence_Logical,
   OpPrecedence_Equality,
   OpPrecedence_Relational,
@@ -41,6 +42,8 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_AmpAmp:
   case ScriptTokenType_PipePipe:
     return OpPrecedence_Logical;
+  case ScriptTokenType_QMarkQMark:
+    return OpPrecedence_Conditional;
   case ScriptTokenType_SemiColon:
     return OpPrecedence_Grouping;
   default:
@@ -88,6 +91,8 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_LogicAnd;
   case ScriptTokenType_PipePipe:
     return ScriptOpBinary_LogicOr;
+  case ScriptTokenType_QMarkQMark:
+    return ScriptOpBinary_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -230,7 +235,8 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Star:
     case ScriptTokenType_Slash:
     case ScriptTokenType_AmpAmp:
-    case ScriptTokenType_PipePipe: {
+    case ScriptTokenType_PipePipe:
+    case ScriptTokenType_QMarkQMark: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;

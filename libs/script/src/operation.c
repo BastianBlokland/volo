@@ -23,6 +23,7 @@ String script_op_binary_str(const ScriptOpBinary c) {
       string_static("greater-or-equal"),
       string_static("logic-and"),
       string_static("logic-or"),
+      string_static("null-coalescing"),
       string_static("add"),
       string_static("sub"),
       string_static("mul"),

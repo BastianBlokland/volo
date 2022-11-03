@@ -63,6 +63,8 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_bool(script_truthy(a) && script_truthy(eval(ctx, expr->rhs)));
   case ScriptOpBinary_LogicOr:
     return script_bool(script_truthy(a) || script_truthy(eval(ctx, expr->rhs)));
+  case ScriptOpBinary_NullCoalescing:
+    return script_val_has(a) ? a : eval(ctx, expr->rhs);
   case ScriptOpBinary_Add:
     return script_val_add(a, eval(ctx, expr->rhs));
   case ScriptOpBinary_Sub:

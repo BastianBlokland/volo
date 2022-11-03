@@ -80,9 +80,16 @@ spec(eval) {
         {string_static("true || false"), script_bool(true)},
         {string_static("true || true"), script_bool(true)},
         {string_static("false && ($a = 1; false); $a"), script_null()},
-        {string_static("true && ($b = 1; false); $b"), script_number(1)},
-        {string_static("false || ($c = 1; false); $c"), script_number(1)},
-        {string_static("true || ($d = 1; false); $d"), script_null()},
+        {string_static("true && ($b = 2; false); $b"), script_number(2)},
+        {string_static("false || ($c = 3; false); $c"), script_number(3)},
+        {string_static("true || ($d = 4; false); $d"), script_null()},
+
+        // Condition expressions.
+        {string_static("null ?? null"), script_null()},
+        {string_static("null ?? true"), script_bool(true)},
+        {string_static("false ?? true"), script_bool(false)},
+        {string_static("null ?? ($i = 10; false); $i"), script_number(10)},
+        {string_static("1 ?? ($j = 11; false); $j"), script_null()},
 
         // Group expressions.
         {string_static("1; 2; 3"), script_number(3)},

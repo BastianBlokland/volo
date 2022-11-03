@@ -127,6 +127,12 @@ spec(read) {
                           "  [value: true]\n"
                           "  [value: false]"),
         },
+        {
+            string_static("null ?? true"),
+            string_static("[op-binary: null-coalescing]\n"
+                          "  [value: null]\n"
+                          "  [value: true]"),
+        },
 
         // Compound expressions.
         {
