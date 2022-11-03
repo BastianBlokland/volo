@@ -349,4 +349,76 @@ spec(val) {
       check_eq_val(actual, testData[i].expected);
     }
   }
+
+  it("can multiply values") {
+    const struct {
+      ScriptVal a, b;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), .expected = script_null()},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
+        {script_number(42), script_bool(false), .expected = script_null()},
+
+        {script_number(42), script_number(2), .expected = script_number(84)},
+        {script_number(42), script_number(1337), .expected = script_number(56154)},
+
+        {script_bool(true), script_bool(false), .expected = script_null()},
+
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_vector3_lit(4, 5, 6),
+         .expected = script_vector3_lit(4, 10, 18)},
+
+        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+
+        {.a        = script_time(time_seconds(2)),
+         .b        = script_time(time_seconds(3)),
+         .expected = script_time(time_seconds(6))},
+
+        {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
+
+        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_mul(testData[i].a, testData[i].b);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
+  it("can divide values") {
+    const struct {
+      ScriptVal a, b;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), .expected = script_null()},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
+        {script_number(42), script_bool(false), .expected = script_null()},
+
+        {script_number(42), script_number(2), .expected = script_number(21)},
+        {script_number(1337), script_number(42), .expected = script_number(1337.0 / 42.0)},
+
+        {script_bool(true), script_bool(false), .expected = script_null()},
+
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_vector3_lit(4, 5, 6),
+         .expected = script_vector3_lit(0.25f, 0.4f, 0.5f)},
+
+        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+
+        {.a        = script_time(time_seconds(10)),
+         .b        = script_time(time_seconds(2)),
+         .expected = script_time(time_seconds(5))},
+
+        {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
+
+        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_div(testData[i].a, testData[i].b);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
 }

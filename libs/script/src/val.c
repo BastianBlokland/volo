@@ -341,3 +341,53 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
   diag_assert_fail("Invalid script value");
   UNREACHABLE
 }
+
+ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
+  if (script_type(a) != script_type(b)) {
+    return script_null();
+  }
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(val_as_number(a) * val_as_number(b));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return script_vector3(geo_vector_mul_comps(vecA, vecB));
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
+  if (script_type(a) != script_type(b)) {
+    return script_null();
+  }
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(val_as_number(a) / val_as_number(b));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return script_vector3(geo_vector_div_comps(vecA, vecB));
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
