@@ -170,6 +170,12 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '-':
       out->type = ScriptTokenType_Minus;
       return string_consume(str, 1);
+    case '*':
+      out->type = ScriptTokenType_Star;
+      return string_consume(str, 1);
+    case '/':
+      out->type = ScriptTokenType_Slash;
+      return string_consume(str, 1);
     case '.':
     case '0':
     case '1':
@@ -249,6 +255,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("+");
   case ScriptTokenType_Minus:
     return string_lit("-");
+  case ScriptTokenType_Star:
+    return string_lit("*");
+  case ScriptTokenType_Slash:
+    return string_lit("/");
   case ScriptTokenType_SemiColon:
     return string_lit(";");
   case ScriptTokenType_Null:

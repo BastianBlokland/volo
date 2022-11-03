@@ -52,6 +52,8 @@ spec(lex) {
 
         {string_static("+"), tok_simple(Plus)},
         {string_static("-"), tok_simple(Minus)},
+        {string_static("*"), tok_simple(Star)},
+        {string_static("/"), tok_simple(Slash)},
 
         {string_static(";"), tok_simple(SemiColon)},
 
