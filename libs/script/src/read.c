@@ -17,6 +17,7 @@ typedef enum {
   OpPrecedence_Equality,
   OpPrecedence_Relational,
   OpPrecedence_Additive,
+  OpPrecedence_Multiplicative,
   OpPrecedence_Unary,
 } OpPrecedence;
 
@@ -33,6 +34,9 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_Plus:
   case ScriptTokenType_Minus:
     return OpPrecedence_Additive;
+  case ScriptTokenType_Star:
+  case ScriptTokenType_Slash:
+    return OpPrecedence_Multiplicative;
   case ScriptTokenType_SemiColon:
     return OpPrecedence_Grouping;
   default:
@@ -70,6 +74,10 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_Add;
   case ScriptTokenType_Minus:
     return ScriptOpBinary_Sub;
+  case ScriptTokenType_Star:
+    return ScriptOpBinary_Mul;
+  case ScriptTokenType_Slash:
+    return ScriptOpBinary_Div;
   case ScriptTokenType_SemiColon:
     return ScriptOpBinary_RetRight;
   default:
@@ -210,7 +218,9 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Gt:
     case ScriptTokenType_GtEq:
     case ScriptTokenType_Plus:
-    case ScriptTokenType_Minus: {
+    case ScriptTokenType_Minus:
+    case ScriptTokenType_Star:
+    case ScriptTokenType_Slash: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;

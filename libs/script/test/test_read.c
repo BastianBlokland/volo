@@ -103,6 +103,18 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("null * 42"),
+            string_static("[op-binary: mul]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("null / 42"),
+            string_static("[op-binary: div]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
 
         // Compound expressions.
         {
@@ -182,6 +194,16 @@ spec(read) {
                           "  [op-binary: add]\n"
                           "    [value: 1]\n"
                           "    [value: 2]"),
+        },
+        {
+            string_static("1 * 2 + 2 / 4"),
+            string_static("[op-binary: add]\n"
+                          "  [op-binary: mul]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [op-binary: div]\n"
+                          "    [value: 2]\n"
+                          "    [value: 4]"),
         },
         {
             string_static("$hello = $world = 1 + 2"),

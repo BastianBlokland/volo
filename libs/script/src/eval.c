@@ -65,6 +65,10 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_add(a, b);
   case ScriptOpBinary_Sub:
     return script_val_sub(a, b);
+  case ScriptOpBinary_Mul:
+    return script_val_mul(a, b);
+  case ScriptOpBinary_Div:
+    return script_val_div(a, b);
   case ScriptOpBinary_RetRight:
     return b; // NOTE: Even though we return rhs we still evaluate both lhs and rhs expressions.
   case ScriptOpBinary_Count:
