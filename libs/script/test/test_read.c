@@ -103,6 +103,36 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("null * 42"),
+            string_static("[op-binary: mul]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("null / 42"),
+            string_static("[op-binary: div]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("true && false"),
+            string_static("[op-binary: logic-and]\n"
+                          "  [value: true]\n"
+                          "  [value: false]"),
+        },
+        {
+            string_static("true || false"),
+            string_static("[op-binary: logic-or]\n"
+                          "  [value: true]\n"
+                          "  [value: false]"),
+        },
+        {
+            string_static("null ?? true"),
+            string_static("[op-binary: null-coalescing]\n"
+                          "  [value: null]\n"
+                          "  [value: true]"),
+        },
 
         // Compound expressions.
         {
@@ -184,6 +214,16 @@ spec(read) {
                           "    [value: 2]"),
         },
         {
+            string_static("1 * 2 + 2 / 4"),
+            string_static("[op-binary: add]\n"
+                          "  [op-binary: mul]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [op-binary: div]\n"
+                          "    [value: 2]\n"
+                          "    [value: 4]"),
+        },
+        {
             string_static("$hello = $world = 1 + 2"),
             string_static("[store: $3944927369]\n"
                           "  [store: $4293346878]\n"
@@ -191,10 +231,33 @@ spec(read) {
                           "      [value: 1]\n"
                           "      [value: 2]"),
         },
+        {
+            string_static("true || ($a = 1; false); $a"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [op-binary: logic-or]\n"
+                          "    [value: true]\n"
+                          "    [op-binary: ret-right]\n"
+                          "      [store: $3645546703]\n"
+                          "        [value: 1]\n"
+                          "      [value: false]\n"
+                          "  [load: $3645546703]"),
+        },
 
         // Group expressions.
         {
             string_static("1; 2"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1; 2;"),
+            string_static("[op-binary: ret-right]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1; 2;\t \n"),
             string_static("[op-binary: ret-right]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
@@ -242,13 +305,15 @@ spec(read) {
         {string_static(""), ScriptError_MissingPrimaryExpression},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 < hello"), ScriptError_InvalidChar},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("!"), ScriptError_MissingPrimaryExpression},
         {string_static(";"), ScriptError_InvalidPrimaryExpression},
-        {string_static("1 ;"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ; ;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1;;"), ScriptError_InvalidPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

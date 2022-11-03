@@ -14,9 +14,12 @@ typedef enum {
   OpPrecedence_None,
   OpPrecedence_Grouping,
   OpPrecedence_Assignment,
+  OpPrecedence_Conditional,
+  OpPrecedence_Logical,
   OpPrecedence_Equality,
   OpPrecedence_Relational,
   OpPrecedence_Additive,
+  OpPrecedence_Multiplicative,
   OpPrecedence_Unary,
 } OpPrecedence;
 
@@ -33,6 +36,14 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_Plus:
   case ScriptTokenType_Minus:
     return OpPrecedence_Additive;
+  case ScriptTokenType_Star:
+  case ScriptTokenType_Slash:
+    return OpPrecedence_Multiplicative;
+  case ScriptTokenType_AmpAmp:
+  case ScriptTokenType_PipePipe:
+    return OpPrecedence_Logical;
+  case ScriptTokenType_QMarkQMark:
+    return OpPrecedence_Conditional;
   case ScriptTokenType_SemiColon:
     return OpPrecedence_Grouping;
   default:
@@ -70,8 +81,18 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_Add;
   case ScriptTokenType_Minus:
     return ScriptOpBinary_Sub;
+  case ScriptTokenType_Star:
+    return ScriptOpBinary_Mul;
+  case ScriptTokenType_Slash:
+    return ScriptOpBinary_Div;
   case ScriptTokenType_SemiColon:
     return ScriptOpBinary_RetRight;
+  case ScriptTokenType_AmpAmp:
+    return ScriptOpBinary_LogicAnd;
+  case ScriptTokenType_PipePipe:
+    return ScriptOpBinary_LogicOr;
+  case ScriptTokenType_QMarkQMark:
+    return ScriptOpBinary_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -83,6 +104,12 @@ typedef struct {
   String     input;
   u32        recursionDepth;
 } ScriptReadContext;
+
+static bool read_at_end(const ScriptReadContext* ctx) {
+  ScriptToken token;
+  script_lex(ctx->input, null, &token);
+  return token.type == ScriptTokenType_End;
+}
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
@@ -190,6 +217,13 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
      * Binary expressions.
      */
     switch (nextToken.type) {
+    case ScriptTokenType_SemiColon:
+      // Expressions are allowed to be ended with semi-colons.
+      if (read_at_end(ctx)) {
+        ctx->input = string_empty;
+        return res;
+      }
+      // Fallthrough.
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
     case ScriptTokenType_Le:
@@ -198,7 +232,11 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_GtEq:
     case ScriptTokenType_Plus:
     case ScriptTokenType_Minus:
-    case ScriptTokenType_SemiColon: {
+    case ScriptTokenType_Star:
+    case ScriptTokenType_Slash:
+    case ScriptTokenType_AmpAmp:
+    case ScriptTokenType_PipePipe:
+    case ScriptTokenType_QMarkQMark: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;

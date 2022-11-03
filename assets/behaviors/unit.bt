@@ -9,23 +9,23 @@
         {
           "$type": "AssetAiNode_Condition",
           "$name": "Wait for user input",
-          "script": "$user_move_target != null"
+          "script": "$user_move_target != null;"
         },
         {
           "$type": "AssetAiNode_Execute",
-          "script": "$cmd_nav_target = $user_move_target"
+          "script": "$cmd_nav_target = $user_move_target;"
         },
         {
           "$type": "AssetAiNode_Try",
           "$name": "Check if we arrived at the user input",
           "child": {
             "$type": "AssetAiNode_Condition",
-            "script": "$self_nav_arrived == $user_move_target"
+            "script": "$self_nav_arrived == $user_move_target;"
           }
         },
         {
           "$type": "AssetAiNode_Execute",
-          "script": "$user_move_target = null"
+          "script": "$user_move_target = null;"
         }
       ]
     },
@@ -36,7 +36,7 @@
         {
           "$type": "AssetAiNode_Condition",
           "$name": "Find target",
-          "script": "$target_entity != null"
+          "script": "$target_entity != null;"
         },
         {
           "$type": "AssetAiNode_Selector",
@@ -52,7 +52,7 @@
                     {
                       "$type": "AssetAiNode_Condition",
                       "$name": "In-range cooldown",
-                      "script": "$self_inrange_time > $global_time"
+                      "script": "$self_inrange_time > $global_time;"
                     },
                     {
                       "$type": "AssetAiNode_Sequence",
@@ -60,12 +60,12 @@
                         {
                           "$type": "AssetAiNode_Condition",
                           "$name": "Test if in range",
-                          "script": "$target_dist < 35"
+                          "script": "$target_dist < 35;"
                         },
                         {
                           "$type": "AssetAiNode_Execute",
                           "$name": "Set in_range cooldown",
-                          "script": "$self_inrange_time = $global_time + 0.5"
+                          "script": "$self_inrange_time = $global_time + 0.5;"
                         }
                       ]
                     }
@@ -74,7 +74,7 @@
                 {
                   "$type": "AssetAiNode_Condition",
                   "$name": "Test Line-of-Sight",
-                  "script": "$target_los == true"
+                  "script": "$target_los == true;"
                 }
               ]
             },
@@ -83,7 +83,7 @@
               "$name": "Move",
               "child": {
                 "$type": "AssetAiNode_Execute",
-                "script": "$cmd_nav_target = $target_position"
+                "script": "$cmd_nav_target = $target_position;"
               }
             }
           ]
@@ -91,7 +91,7 @@
         {
           "$type": "AssetAiNode_Execute",
           "$name": "Attack",
-          "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true"
+          "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true;"
         }
       ]
     },

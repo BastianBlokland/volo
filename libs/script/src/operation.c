@@ -21,8 +21,13 @@ String script_op_binary_str(const ScriptOpBinary c) {
       string_static("less-or-equal"),
       string_static("greater"),
       string_static("greater-or-equal"),
+      string_static("logic-and"),
+      string_static("logic-or"),
+      string_static("null-coalescing"),
       string_static("add"),
       string_static("sub"),
+      string_static("mul"),
+      string_static("div"),
       string_static("ret-right"),
   };
   ASSERT(array_elems(g_names) == ScriptOpBinary_Count, "Incorrect number of names");

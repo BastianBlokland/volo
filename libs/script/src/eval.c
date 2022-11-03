@@ -46,27 +46,35 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
 
 INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExprOpBinary* expr) {
   const ScriptVal a = eval(ctx, expr->lhs);
-  const ScriptVal b = eval(ctx, expr->rhs);
-
   switch (expr->op) {
   case ScriptOpBinary_Equal:
-    return script_bool(script_val_equal(a, b));
+    return script_bool(script_val_equal(a, eval(ctx, expr->rhs)));
   case ScriptOpBinary_NotEqual:
-    return script_bool(!script_val_equal(a, b));
+    return script_bool(!script_val_equal(a, eval(ctx, expr->rhs)));
   case ScriptOpBinary_Less:
-    return script_bool(script_val_less(a, b));
+    return script_bool(script_val_less(a, eval(ctx, expr->rhs)));
   case ScriptOpBinary_LessOrEqual:
-    return script_bool(!script_val_greater(a, b));
+    return script_bool(!script_val_greater(a, eval(ctx, expr->rhs)));
   case ScriptOpBinary_Greater:
-    return script_bool(script_val_greater(a, b));
+    return script_bool(script_val_greater(a, eval(ctx, expr->rhs)));
   case ScriptOpBinary_GreaterOrEqual:
-    return script_bool(!script_val_less(a, b));
+    return script_bool(!script_val_less(a, eval(ctx, expr->rhs)));
+  case ScriptOpBinary_LogicAnd:
+    return script_bool(script_truthy(a) && script_truthy(eval(ctx, expr->rhs)));
+  case ScriptOpBinary_LogicOr:
+    return script_bool(script_truthy(a) || script_truthy(eval(ctx, expr->rhs)));
+  case ScriptOpBinary_NullCoalescing:
+    return script_val_has(a) ? a : eval(ctx, expr->rhs);
   case ScriptOpBinary_Add:
-    return script_val_add(a, b);
+    return script_val_add(a, eval(ctx, expr->rhs));
   case ScriptOpBinary_Sub:
-    return script_val_sub(a, b);
+    return script_val_sub(a, eval(ctx, expr->rhs));
+  case ScriptOpBinary_Mul:
+    return script_val_mul(a, eval(ctx, expr->rhs));
+  case ScriptOpBinary_Div:
+    return script_val_div(a, eval(ctx, expr->rhs));
   case ScriptOpBinary_RetRight:
-    return b; // NOTE: Even though we return rhs we still evaluate both lhs and rhs expressions.
+    return eval(ctx, expr->rhs);
   case ScriptOpBinary_Count:
     break;
   }
