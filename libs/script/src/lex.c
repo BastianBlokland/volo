@@ -7,6 +7,12 @@
 #define script_token_err(_ERR_)                                                                    \
   (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
 
+static bool script_is_word_start(const u8 c) {
+  // Either ascii letter or start of non-ascii utf8 character.
+  static const u8 g_utf8Start = 0xC0;
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c >= g_utf8Start;
+}
+
 static bool script_is_word_seperator(const u8 c) {
   switch (c) {
   case '\0':
@@ -66,38 +72,9 @@ static u8 script_peek(const String str, const u32 ahead) {
   return UNLIKELY(str.size <= ahead) ? '\0' : *string_at(str, ahead);
 }
 
-static String script_lex_null(String str, ScriptToken* out) {
-  if (LIKELY(string_starts_with(str, string_lit("null")))) {
-    out->type = ScriptTokenType_Null;
-    return string_consume(str, 4);
-  }
-  *out = script_token_err(ScriptError_InvalidCharInNull);
-  return script_consume_word_or_char(str);
-}
-
 static String script_lex_number_positive(String str, ScriptToken* out) {
   out->type = ScriptTokenType_Number;
   return format_read_f64(str, &out->val_number);
-}
-
-static String script_lex_true(String str, ScriptToken* out) {
-  if (LIKELY(string_starts_with(str, string_lit("true")))) {
-    out->type     = ScriptTokenType_Bool;
-    out->val_bool = true;
-    return string_consume(str, 4);
-  }
-  *out = script_token_err(ScriptError_InvalidCharInTrue);
-  return script_consume_word_or_char(str);
-}
-
-static String script_lex_false(String str, ScriptToken* out) {
-  if (LIKELY(string_starts_with(str, string_lit("false")))) {
-    out->type     = ScriptTokenType_Bool;
-    out->val_bool = false;
-    return string_consume(str, 5);
-  }
-  *out = script_token_err(ScriptError_InvalidCharInFalse);
-  return script_consume_word_or_char(str);
 }
 
 static String script_lex_key(String str, StringTable* stringtable, ScriptToken* out) {
@@ -112,7 +89,7 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    *out = script_token_err(ScriptError_KeyInvalidUtf8);
+    *out = script_token_err(ScriptError_InvalidUtf8);
     return str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
@@ -122,9 +99,25 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
   return string_consume(str, end);
 }
 
+static String script_lex_identifier(String str, ScriptToken* out) {
+  const u32 end = script_scan_word_end(str);
+  diag_assert(end);
+
+  const String identifier = string_slice(str, 0, end);
+  if (UNLIKELY(!utf8_validate(identifier))) {
+    *out = script_token_err(ScriptError_InvalidUtf8);
+    return str;
+  }
+
+  out->type           = ScriptTokenType_Identifier;
+  out->val_identifier = string_hash(identifier);
+  return string_consume(str, end);
+}
+
 String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
   while (!string_is_empty(str)) {
-    switch (*string_begin(str)) {
+    const u8 c = string_begin(str)[0];
+    switch (c) {
     case '(':
       return out->type = ScriptTokenType_ParenOpen, string_consume(str, 1);
     case ')':
@@ -151,8 +144,6 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return out->type = ScriptTokenType_Gt, string_consume(str, 1);
     case ';':
       return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
-    case 'n':
-      return script_lex_null(str, out);
     case '+':
       return out->type = ScriptTokenType_Plus, string_consume(str, 1);
     case '-':
@@ -188,10 +179,6 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '8':
     case '9':
       return script_lex_number_positive(str, out);
-    case 't':
-      return script_lex_true(str, out);
-    case 'f':
-      return script_lex_false(str, out);
     case '$':
       return script_lex_key(str, stringtable, out);
     case ' ':
@@ -202,6 +189,9 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       str = string_consume(str, 1); // Skip whitespace.
       continue;
     default:
+      if (script_is_word_start(c)) {
+        return script_lex_identifier(str, out);
+      }
       return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
   }
@@ -216,8 +206,8 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   switch (a->type) {
   case ScriptTokenType_Number:
     return a->val_number == b->val_number;
-  case ScriptTokenType_Bool:
-    return a->val_bool == b->val_bool;
+  case ScriptTokenType_Identifier:
+    return a->val_identifier == b->val_identifier;
   case ScriptTokenType_Key:
     return a->val_key == b->val_key;
   case ScriptTokenType_Error:
@@ -265,12 +255,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("||");
   case ScriptTokenType_QMarkQMark:
     return string_lit("??");
-  case ScriptTokenType_Null:
-    return string_lit("null");
   case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
-  case ScriptTokenType_Bool:
-    return fmt_write_scratch("{}", fmt_bool(token->val_bool));
+  case ScriptTokenType_Identifier:
+    return fmt_write_scratch("${}", fmt_int(token->val_identifier, .base = 16));
   case ScriptTokenType_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
   case ScriptTokenType_Error:

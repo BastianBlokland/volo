@@ -21,10 +21,9 @@ typedef enum {
   ScriptTokenType_AmpAmp,     // &&
   ScriptTokenType_PipePipe,   // ||
   ScriptTokenType_QMarkQMark, // ??
-  ScriptTokenType_Null,       // null
   ScriptTokenType_Number,     // 42.1337
-  ScriptTokenType_Bool,       // true
-  ScriptTokenType_Key,        // $foo
+  ScriptTokenType_Identifier, // foo
+  ScriptTokenType_Key,        // $bar
   ScriptTokenType_Error,      //
   ScriptTokenType_End,        // \0
 } ScriptTokenType;
@@ -33,7 +32,7 @@ typedef struct {
   ScriptTokenType type;
   union {
     f64         val_number;
-    bool        val_bool;
+    StringHash  val_identifier;
     StringHash  val_key;
     ScriptError val_error;
   };

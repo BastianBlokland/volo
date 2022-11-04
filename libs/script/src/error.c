@@ -4,14 +4,12 @@
 
 static const String g_errorStrs[] = {
     string_static("InvalidChar"),
-    string_static("InvalidCharInNull"),
-    string_static("InvalidCharInTrue"),
-    string_static("InvalidCharInFalse"),
+    string_static("InvalidUtf8"),
     string_static("KeyEmpty"),
-    string_static("KeyInvalidUtf8"),
     string_static("RecursionLimitExceeded"),
     string_static("MissingPrimaryExpression"),
     string_static("InvalidPrimaryExpression"),
+    string_static("NoBuildInFoundForIdentifier"),
     string_static("UnclosedParenthesizedExpression"),
     string_static("UnexpectedTokenAfterExpression"),
 };

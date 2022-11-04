@@ -9,6 +9,8 @@
 #define tok_null()         (ScriptToken){.type = ScriptTokenType_Null}
 #define tok_number(_VAL_)  (ScriptToken){.type = ScriptTokenType_Number, .val_number = (_VAL_)}
 #define tok_bool(_VAL_)    (ScriptToken){.type = ScriptTokenType_Bool, .val_bool = (_VAL_)}
+#define tok_id(_VAL_)      (ScriptToken){.type = ScriptTokenType_Identifier, .val_identifier = string_hash(_VAL_)}
+#define tok_id_lit(_VAL_)  (ScriptToken){.type = ScriptTokenType_Identifier, .val_identifier = string_hash_lit(_VAL_)}
 #define tok_key(_VAL_)     (ScriptToken){.type = ScriptTokenType_Key, .val_key = string_hash(_VAL_)}
 #define tok_key_lit(_VAL_) (ScriptToken){.type = ScriptTokenType_Key, .val_key = string_hash_lit(_VAL_)}
 #define tok_err(_ERR_)     (ScriptToken){.type = ScriptTokenType_Error, .val_error = ScriptError_##_ERR_}

@@ -13,10 +13,13 @@ spec(lex) {
     } testData[] = {
         {.a = tok_simple(EqEq), .b = tok_simple(EqEq), .expected = true},
         {.a = tok_simple(EqEq), .b = tok_simple(BangEq), .expected = false},
+
         {.a = tok_number(42), .b = tok_number(42), .expected = true},
         {.a = tok_number(42), .b = tok_number(41), .expected = false},
-        {.a = tok_bool(true), .b = tok_bool(true), .expected = true},
-        {.a = tok_bool(true), .b = tok_bool(false), .expected = false},
+
+        {.a = tok_id_lit("HelloWorld"), .b = tok_id_lit("HelloWorld"), .expected = true},
+        {.a = tok_id_lit("Hello"), .b = tok_id_lit("HelloWorld"), .expected = false},
+
         {.a = tok_key_lit("HelloWorld"), .b = tok_key_lit("HelloWorld"), .expected = true},
         {.a = tok_key_lit("Hello"), .b = tok_key_lit("HelloWorld"), .expected = false},
     };
@@ -61,9 +64,6 @@ spec(lex) {
 
         {string_static(";"), tok_simple(SemiColon)},
 
-        {string_static("null"), tok_null()},
-        {string_static("nul"), tok_err(InvalidCharInNull)},
-
         {string_static("42"), tok_number(42)},
         {string_static("0.0"), tok_number(0.0)},
         {string_static("42.1337"), tok_number(42.1337)},
@@ -74,11 +74,11 @@ spec(lex) {
         {string_static("1E+17"), tok_number(1e+17)},
         {string_static("0.17976931348623157"), tok_number(0.17976931348623157)},
 
-        {string_static("true"), tok_bool(true)},
-        {string_static("tru"), tok_err(InvalidCharInTrue)},
-
-        {string_static("false"), tok_bool(false)},
-        {string_static("fals"), tok_err(InvalidCharInFalse)},
+        {string_static("null"), tok_id_lit("null")},
+        {string_static("true"), tok_id_lit("true")},
+        {string_static("hello"), tok_id_lit("hello")},
+        {string_static("hello_world"), tok_id_lit("hello_world")},
+        {string_static("你好世界"), tok_id_lit("你好世界")},
 
         {string_static("$hello"), tok_key_lit("hello")},
         {string_static("$héllo"), tok_key_lit("héllo")},
@@ -88,13 +88,11 @@ spec(lex) {
         {string_static("$你好世界"), tok_key_lit("你好世界")},
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
         {string_static("$"), tok_err(KeyEmpty)},
-        {string_static("hello"), tok_err(InvalidChar)},
 
         {string_static("&"), tok_err(InvalidChar)},
         {string_static("|"), tok_err(InvalidChar)},
         {string_static("?"), tok_err(InvalidChar)},
         {string_static("@"), tok_err(InvalidChar)},
-        {string_static("abc"), tok_err(InvalidChar)},
 
         {string_static(""), tok_end()},
         {string_static(" "), tok_end()},

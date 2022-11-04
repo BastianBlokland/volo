@@ -3,14 +3,12 @@
 
 typedef enum {
   ScriptError_InvalidChar,
-  ScriptError_InvalidCharInNull,
-  ScriptError_InvalidCharInTrue,
-  ScriptError_InvalidCharInFalse,
+  ScriptError_InvalidUtf8,
   ScriptError_KeyEmpty,
-  ScriptError_KeyInvalidUtf8,
   ScriptError_RecursionLimitExceeded,
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,
+  ScriptError_NoBuildInFoundForIdentifier,
   ScriptError_UnclosedParenthesizedExpression,
   ScriptError_UnexpectedTokenAfterExpression,
 

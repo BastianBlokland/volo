@@ -53,6 +53,11 @@ struct sScriptDoc {
 };
 
 /**
+ * Add new expressions.
+ */
+ScriptExpr script_add_value_id(ScriptDoc*, ScriptValId);
+
+/**
  * Lookup a constant by name.
  * NOTE: Returns 'sentinel_u32' if no constant was found with the given name.
  * Pre-condition: namehash != 0.
