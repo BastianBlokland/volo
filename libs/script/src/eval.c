@@ -73,6 +73,8 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_mul(a, eval(ctx, expr->rhs));
   case ScriptOpBinary_Div:
     return script_val_div(a, eval(ctx, expr->rhs));
+  case ScriptOpBinary_Distance:
+    return script_val_div(a, eval(ctx, expr->rhs));
   case ScriptOpBinary_RetRight:
     return eval(ctx, expr->rhs);
   case ScriptOpBinary_Count:
