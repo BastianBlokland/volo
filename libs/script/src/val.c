@@ -391,3 +391,28 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
   diag_assert_fail("Invalid script value");
   UNREACHABLE
 }
+
+ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
+  if (script_type(a) != script_type(b)) {
+    return script_null();
+  }
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_abs(val_as_number(a) - val_as_number(b)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return script_number(geo_vector_mag(geo_vector_sub(vecA, vecB)));
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
