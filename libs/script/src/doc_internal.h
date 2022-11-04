@@ -1,6 +1,8 @@
 #pragma once
 #include "script_doc.h"
 
+#define script_constants_max 10
+
 typedef u32 ScriptValId;
 
 typedef struct {
@@ -38,8 +40,21 @@ typedef struct {
   };
 } ScriptExprData;
 
+typedef struct {
+  StringHash  nameHash;
+  ScriptValId valId;
+} ScriptConstant;
+
 struct sScriptDoc {
-  DynArray   exprs;  // ScriptExprData[]
-  DynArray   values; // ScriptVal[]
-  Allocator* alloc;
+  DynArray       exprs;  // ScriptExprData[]
+  DynArray       values; // ScriptVal[]
+  ScriptConstant constants[script_constants_max];
+  Allocator*     alloc;
 };
+
+/**
+ * Lookup a constant by name.
+ * NOTE: Returns 'sentinel_u32' if no constant was found with the given name.
+ * Pre-condition: namehash != 0.
+ */
+ScriptValId script_doc_constant_lookup(const ScriptDoc*, StringHash nameHash);
