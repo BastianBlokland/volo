@@ -122,6 +122,8 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return out->type = ScriptTokenType_ParenOpen, string_consume(str, 1);
     case ')':
       return out->type = ScriptTokenType_ParenClose, string_consume(str, 1);
+    case ',':
+      return out->type = ScriptTokenType_Comma, string_consume(str, 1);
     case '=':
       if (script_peek(str, 1) == '=') {
         return out->type = ScriptTokenType_EqEq, string_consume(str, 2);
@@ -223,6 +225,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("(");
   case ScriptTokenType_ParenClose:
     return string_lit(")");
+  case ScriptTokenType_Comma:
+    return string_lit(",");
   case ScriptTokenType_Eq:
     return string_lit("=");
   case ScriptTokenType_EqEq:

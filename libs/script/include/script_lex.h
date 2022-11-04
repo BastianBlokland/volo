@@ -5,6 +5,7 @@
 typedef enum {
   ScriptTokenType_ParenOpen,  // (
   ScriptTokenType_ParenClose, // )
+  ScriptTokenType_Comma,      // ,
   ScriptTokenType_Eq,         // =
   ScriptTokenType_EqEq,       // ==
   ScriptTokenType_Bang,       // !
