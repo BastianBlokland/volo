@@ -1,6 +1,8 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 
 #include "doc_internal.h"
 
@@ -26,6 +28,19 @@ static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id)
   return *dynarray_at_t(&doc->values, id, ScriptVal);
 }
 
+static void script_doc_constant_add(ScriptDoc* doc, const String name, const ScriptVal val) {
+  const StringHash  nameHash = string_hash(name);
+  const ScriptValId valId    = script_doc_val_add(doc, val);
+
+  array_for_t(doc->constants, ScriptConstant, constant) {
+    if (!constant->nameHash) {
+      *constant = (ScriptConstant){.nameHash = nameHash, .valId = valId};
+      return;
+    }
+  }
+  diag_crash_msg("Script constants count exceeded");
+}
+
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
@@ -33,6 +48,15 @@ ScriptDoc* script_create(Allocator* alloc) {
       .values = dynarray_create_t(alloc, ScriptVal, 32),
       .alloc  = alloc,
   };
+
+  // Register build-in constants.
+  script_doc_constant_add(doc, string_lit("null"), script_null());
+  script_doc_constant_add(doc, string_lit("true"), script_bool(true));
+  script_doc_constant_add(doc, string_lit("false"), script_bool(false));
+  script_doc_constant_add(doc, string_lit("pi"), script_number(math_pi_f64));
+  script_doc_constant_add(doc, string_lit("deg_to_rad"), script_number(math_deg_to_rad));
+  script_doc_constant_add(doc, string_lit("rad_to_deg"), script_number(math_rad_to_deg));
+
   return doc;
 }
 
@@ -204,4 +228,24 @@ String script_expr_str_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
   const String res = dynstring_view(&str);
   dynstring_destroy(&str);
   return res;
+}
+
+ScriptExpr script_add_value_id(ScriptDoc* doc, const ScriptValId valId) {
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type       = ScriptExprType_Value,
+          .data_value = {.valId = valId},
+      });
+}
+
+ScriptValId script_doc_constant_lookup(const ScriptDoc* doc, const StringHash nameHash) {
+  diag_assert_msg(nameHash, "Constant name cannot be empty");
+
+  array_for_t(doc->constants, ScriptConstant, constant) {
+    if (constant->nameHash == nameHash) {
+      return constant->valId;
+    }
+  }
+  return sentinel_u32;
 }

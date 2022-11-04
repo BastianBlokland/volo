@@ -2,6 +2,8 @@
 #include "script_lex.h"
 #include "script_read.h"
 
+#include "doc_internal.h"
+
 #define script_depth_max 25
 
 #define script_err(_ERR_)                                                                          \
@@ -151,12 +153,16 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Literals.
    */
-  case ScriptTokenType_Null:
-    return script_expr(script_add_value(ctx->doc, script_null()));
   case ScriptTokenType_Number:
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
-  case ScriptTokenType_Bool:
-    return script_expr(script_add_value(ctx->doc, script_bool(token.val_bool)));
+  case ScriptTokenType_Identifier: {
+    const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, token.val_identifier);
+    if (UNLIKELY(sentinel_check(constValId))) {
+      return script_err(ScriptError_NoBuildInFoundForIdentifier);
+    }
+    return script_expr(script_add_value_id(ctx->doc, constValId));
+  }
+
   /**
    * Memory access.
    */

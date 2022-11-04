@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_math.h"
 #include "script_eval.h"
 #include "script_mem.h"
 #include "script_read.h"
@@ -30,6 +31,9 @@ spec(eval) {
         {string_static("42.1337"), script_number(42.1337)},
         {string_static("true"), script_bool(true)},
         {string_static("false"), script_bool(false)},
+        {string_static("pi"), script_number(math_pi_f64)},
+        {string_static("deg_to_rad"), script_number(math_deg_to_rad)},
+        {string_static("rad_to_deg"), script_number(math_rad_to_deg)},
 
         // Memory loads.
         {string_static("$v1"), script_bool(true)},

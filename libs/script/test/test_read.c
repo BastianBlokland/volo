@@ -19,6 +19,9 @@ spec(read) {
         {string_static("42.1337"), string_static("[value: 42.1337]")},
         {string_static("true"), string_static("[value: true]")},
         {string_static("$hello"), string_static("[load: $3944927369]")},
+        {string_static("pi"), string_static("[value: 3.1415927]")},
+        {string_static("deg_to_rad"), string_static("[value: 0.0174533]")},
+        {string_static("rad_to_deg"), string_static("[value: 57.2957802]")},
         {
             string_static("$hello = 42"),
             string_static("[store: $3944927369]\n"
@@ -303,9 +306,10 @@ spec(read) {
       ScriptError expected;
     } g_testData[] = {
         {string_static(""), ScriptError_MissingPrimaryExpression},
+        {string_static("hello"), ScriptError_NoBuildInFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
-        {string_static("1 < hello"), ScriptError_InvalidChar},
+        {string_static("1 < hello"), ScriptError_NoBuildInFoundForIdentifier},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
