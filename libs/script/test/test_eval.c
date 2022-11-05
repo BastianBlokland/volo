@@ -35,6 +35,11 @@ spec(eval) {
         {string_static("deg_to_rad"), script_number(math_deg_to_rad)},
         {string_static("rad_to_deg"), script_number(math_rad_to_deg)},
 
+        // Conversions.
+        {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
+        {string_static("vector(1,true,3)"), script_null()},
+        {string_static("vector(1 + 2, 2 + 3, 3 + 4)"), script_vector3_lit(3, 5, 7)},
+
         // Memory loads.
         {string_static("$v1"), script_bool(true)},
         {string_static("$v2"), script_number(1337)},

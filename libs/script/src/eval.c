@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "script_eval.h"
 #include "script_mem.h"
+#include "script_val.h"
 
 #include "doc_internal.h"
 
@@ -86,9 +87,12 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
 
 INLINE_HINT static ScriptVal eval_op_ter(ScriptEvalContext* ctx, const ScriptExprOpTernary* expr) {
   switch (expr->op) {
-  case ScriptOpTernary_ComposeVector3:
-    (void)ctx;
-    return script_vector3_lit(1, 2, 3);
+  case ScriptOpTernary_ComposeVector3: {
+    const ScriptVal valX = eval(ctx, expr->arg1);
+    const ScriptVal valY = eval(ctx, expr->arg2);
+    const ScriptVal valZ = eval(ctx, expr->arg3);
+    return script_val_compose_vector3(valX, valY, valZ);
+  }
   case ScriptOpTernary_Count:
     break;
   }

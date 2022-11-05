@@ -48,6 +48,13 @@ spec(read) {
                           "    [value: 3]\n"
                           "    [value: 4]"),
         },
+        {
+            string_static("vector(1, 2, 3)"),
+            string_static("[op-ternary: compose-vector3]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
+        },
 
         // Parenthesized expressions.
         {string_static("(42.1337)"), string_static("[value: 42.1337]")},
