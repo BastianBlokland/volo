@@ -18,6 +18,7 @@ typedef enum {
   ScriptTokenType_Minus,      // -
   ScriptTokenType_Star,       // *
   ScriptTokenType_Slash,      // /
+  ScriptTokenType_Colon,      // :
   ScriptTokenType_SemiColon,  // ;
   ScriptTokenType_AmpAmp,     // &&
   ScriptTokenType_PipePipe,   // ||
