@@ -1,16 +1,30 @@
+#include "core_array.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "script_lex.h"
 #include "script_read.h"
 
 #include "doc_internal.h"
 
 #define script_depth_max 25
+#define script_args_max 10
 
 #define script_err(_ERR_)                                                                          \
   (ScriptReadResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
 
 #define script_expr(_EXPR_)                                                                        \
   (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
+
+typedef struct {
+  String     name;
+  StringHash nameHash; // NOTE: Initialized at runtime.
+  u32        argCount;
+  u32        opType; // ScriptOpUnary / ScriptOpBinary
+} ScriptFunction;
+
+static ScriptFunction g_scriptReadFuncs[] = {
+    {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
+};
 
 typedef enum {
   OpPrecedence_None,
@@ -115,6 +129,9 @@ static bool read_at_end(const ScriptReadContext* ctx) {
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
 static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
   const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
@@ -128,6 +145,90 @@ static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
   return res;
 }
 
+typedef struct {
+  ScriptResult type;
+  union {
+    u32         argCount;
+    ScriptError error;
+  };
+} ScriptArgsResult;
+
+#define script_args_success(_COUNT_)                                                               \
+  (ScriptArgsResult) { .type = ScriptResult_Success, .argCount = (_COUNT_) }
+
+#define script_args_err(_ERR_)                                                                     \
+  (ScriptArgsResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
+
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
+static ScriptArgsResult read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
+  ScriptToken token;
+  u32         count = 0;
+
+  script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_ParenClose) {
+    // Empty argument list.
+    goto ArgEnd;
+  }
+
+ArgNext:
+  if (UNLIKELY(count == script_args_max)) {
+    return script_args_err(ScriptError_ArgumentCountExceedsMaximum);
+  }
+  const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(arg.type == ScriptResult_Fail)) {
+    return script_args_err(arg.error);
+  }
+  out[count++] = arg.expr;
+
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_Comma) {
+    ctx->input = remInput; // Consume the comma.
+    goto ArgNext;
+  }
+
+ArgEnd:
+  ctx->input = script_lex(ctx->input, null, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_ParenClose)) {
+    return script_args_err(ScriptError_UnterminatedArgumentList);
+  }
+  return script_args_success(count);
+}
+
+static ScriptReadResult read_expr_constant(ScriptReadContext* ctx, const StringHash identifier) {
+  const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, identifier);
+  if (LIKELY(!sentinel_check(constValId))) {
+    return script_expr(script_add_value_id(ctx->doc, constValId));
+  }
+  return script_err(ScriptError_NoConstantFoundForIdentifier);
+}
+
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
+static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringHash identifier) {
+  ScriptExpr             args[script_args_max];
+  const ScriptArgsResult argsRes = read_args(ctx, args);
+  if (argsRes.type == ScriptResult_Fail) {
+    return script_err(argsRes.error);
+  }
+
+  array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
+    if (func->nameHash == identifier && argsRes.argCount == func->argCount) {
+      switch (func->argCount) {
+      case 1:
+        return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
+      case 2:
+        return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], func->opType));
+      default:
+        diag_crash_msg("Unsupported function argument count ({})", fmt_int(func->argCount));
+      }
+    }
+  }
+  return script_err(ScriptError_NoFunctionFoundForIdentifier);
+}
+
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
@@ -138,6 +239,18 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
+    /**
+     * Identifiers.
+     */
+  case ScriptTokenType_Identifier: {
+    ScriptToken  nextToken;
+    const String remInput = script_lex(ctx->input, null, &nextToken);
+    if (nextToken.type == ScriptTokenType_ParenOpen) {
+      ctx->input = remInput; // Consume the opening parenthesis.
+      return read_expr_function(ctx, token.val_identifier);
+    }
+    return read_expr_constant(ctx, token.val_identifier);
+  }
   /**
    * Unary operators.
    */
@@ -155,14 +268,6 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Number:
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
-  case ScriptTokenType_Identifier: {
-    const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, token.val_identifier);
-    if (UNLIKELY(sentinel_check(constValId))) {
-      return script_err(ScriptError_NoBuildInFoundForIdentifier);
-    }
-    return script_expr(script_add_value_id(ctx->doc, constValId));
-  }
-
   /**
    * Memory access.
    */
@@ -259,7 +364,25 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
   return res;
 }
 
+static void script_read_init() {
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (g_init) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_init) {
+    array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
+      func->nameHash = string_hash(func->name);
+    }
+    g_init = true;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
+
 String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+  script_read_init();
+
   ScriptReadContext ctx = {
       .doc   = doc,
       .input = str,
@@ -269,6 +392,8 @@ String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res)
 }
 
 void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+  script_read_init();
+
   ScriptReadContext ctx = {
       .doc   = doc,
       .input = str,

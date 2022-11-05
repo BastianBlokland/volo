@@ -82,6 +82,7 @@ ScriptVal script_val_add(ScriptVal, ScriptVal);
 ScriptVal script_val_sub(ScriptVal, ScriptVal);
 ScriptVal script_val_mul(ScriptVal, ScriptVal);
 ScriptVal script_val_div(ScriptVal, ScriptVal);
+ScriptVal script_val_dist(ScriptVal, ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

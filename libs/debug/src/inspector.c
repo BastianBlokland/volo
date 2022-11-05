@@ -400,10 +400,10 @@ static void inspector_panel_draw_target(
       inspector_panel_draw_value_entity(canvas, finder->target);
 
       inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Distance"));
+      ui_label(canvas, string_lit("Position"));
       ui_table_next_column(canvas, table);
-      const f32 dist = math_sqrt_f32(finder->targetDistSqr);
-      inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_float(dist)));
+      GeoVector pos = finder->targetPosition;
+      inspector_panel_draw_editor_vec(canvas, &pos, 3);
     }
   }
 }

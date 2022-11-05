@@ -40,6 +40,7 @@ spec(lex) {
     } testData[] = {
         {string_static("("), tok_simple(ParenOpen)},
         {string_static(")"), tok_simple(ParenClose)},
+        {string_static(","), tok_simple(Comma)},
 
         {string_static("="), tok_simple(Eq)},
         {string_static("=="), tok_simple(EqEq)},

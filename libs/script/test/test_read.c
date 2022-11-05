@@ -32,6 +32,22 @@ spec(read) {
             string_static("[store: $3944927369]\n"
                           "  [load: $4293346878]"),
         },
+        {
+            string_static("distance(1,2)"),
+            string_static("[op-binary: distance]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("distance(1 + 2, 3 / 4)"),
+            string_static("[op-binary: distance]\n"
+                          "  [op-binary: add]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [op-binary: div]\n"
+                          "    [value: 3]\n"
+                          "    [value: 4]"),
+        },
 
         // Parenthesized expressions.
         {string_static("(42.1337)"), string_static("[value: 42.1337]")},
@@ -306,10 +322,10 @@ spec(read) {
       ScriptError expected;
     } g_testData[] = {
         {string_static(""), ScriptError_MissingPrimaryExpression},
-        {string_static("hello"), ScriptError_NoBuildInFoundForIdentifier},
+        {string_static("hello"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
-        {string_static("1 < hello"), ScriptError_NoBuildInFoundForIdentifier},
+        {string_static("1 < hello"), ScriptError_NoConstantFoundForIdentifier},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
@@ -318,6 +334,17 @@ spec(read) {
         {string_static(";"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 ; ;"), ScriptError_InvalidPrimaryExpression},
         {string_static("1;;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("distance"), ScriptError_NoConstantFoundForIdentifier},
+        {string_static("distance("), ScriptError_MissingPrimaryExpression},
+        {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
+        {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},
+        {string_static("distance(1,"), ScriptError_MissingPrimaryExpression},
+        {string_static("hello()"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(null)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1 + 2 + 4, 5 + 6 + 7)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5,6,7,8,9,10)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5,6,7,8,9,10,"), ScriptError_ArgumentCountExceedsMaximum},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

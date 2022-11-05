@@ -19,7 +19,6 @@ static StringHash g_brainKeyTime,
                   g_brainKeyNavArrived,
                   g_brainKeyTargetEntity,
                   g_brainKeyTargetPos,
-                  g_brainKeyTargetDist,
                   g_brainKeyTargetLos;
 
 // clang-format on
@@ -80,17 +79,14 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
     if (targetFinder && targetFinder->target) {
-      const f64  distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
-      const bool los          = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
+      const bool los = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
 
       scene_brain_set(brain, g_brainKeyTargetEntity, script_entity(targetFinder->target));
       scene_brain_set(brain, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
-      scene_brain_set(brain, g_brainKeyTargetDist, script_number(distToTarget));
       scene_brain_set(brain, g_brainKeyTargetLos, script_bool(los));
     } else {
       scene_brain_set_none(brain, g_brainKeyTargetEntity);
       scene_brain_set_none(brain, g_brainKeyTargetPos);
-      scene_brain_set_none(brain, g_brainKeyTargetDist);
       scene_brain_set_none(brain, g_brainKeyTargetLos);
     }
   }
@@ -105,7 +101,6 @@ ecs_module_init(scene_sensor_module) {
   g_brainKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self_nav_arrived"));
   g_brainKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target_entity"));
   g_brainKeyTargetPos    = stringtable_add(g_stringtable, string_lit("target_position"));
-  g_brainKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target_dist"));
   g_brainKeyTargetLos    = stringtable_add(g_stringtable, string_lit("target_los"));
 
   ecs_register_view(SensorGlobalView);

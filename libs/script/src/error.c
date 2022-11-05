@@ -9,8 +9,11 @@ static const String g_errorStrs[] = {
     string_static("RecursionLimitExceeded"),
     string_static("MissingPrimaryExpression"),
     string_static("InvalidPrimaryExpression"),
-    string_static("NoBuildInFoundForIdentifier"),
+    string_static("NoConstantFoundForIdentifier"),
+    string_static("NoFunctionFoundForIdentifier"),
     string_static("UnclosedParenthesizedExpression"),
+    string_static("UnterminatedArgumentList"),
+    string_static("ArgumentCountExceedsMaximum"),
     string_static("UnexpectedTokenAfterExpression"),
 };
 

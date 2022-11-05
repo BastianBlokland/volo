@@ -421,4 +421,49 @@ spec(val) {
       check_eq_val(actual, testData[i].expected);
     }
   }
+
+  it("can compute the distance between values") {
+    const struct {
+      ScriptVal a, b;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), .expected = script_null()},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
+        {script_number(42), script_bool(false), .expected = script_null()},
+
+        {script_number(0), script_number(0), .expected = script_number(0)},
+        {script_number(-1), script_number(1), .expected = script_number(2)},
+        {script_number(0), script_number(42), .expected = script_number(42)},
+        {script_number(-42), script_number(0), .expected = script_number(42)},
+        {script_number(42), script_number(2), .expected = script_number(40)},
+        {script_number(-1337), script_number(42), .expected = script_number(1379)},
+
+        {script_bool(true), script_bool(false), .expected = script_null()},
+
+        {.a        = script_vector3_lit(0, 0, 0),
+         .b        = script_vector3_lit(0, 42, 0),
+         .expected = script_number(42)},
+
+        {.a        = script_vector3_lit(0, -42, 0),
+         .b        = script_vector3_lit(0, 42, 0),
+         .expected = script_number(84)},
+
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_vector3_lit(4, 5, 6),
+         .expected = script_number(5.1961522)},
+
+        {.a        = script_time(time_seconds(10)),
+         .b        = script_time(time_seconds(2)),
+         .expected = script_time(time_seconds(8))},
+
+        {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_dist(testData[i].a, testData[i].b);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
 }

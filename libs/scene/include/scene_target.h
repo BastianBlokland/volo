@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
@@ -11,7 +12,6 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   EcsEntityId      target;
   SceneTargetFlags targetFlags;
   GeoVector        targetPosition;
-  f32              targetDistSqr;
   f32              targetScoreSqr;
   TimeDuration     nextRefreshTime;
 };
