@@ -1,4 +1,6 @@
+#include "core_array.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -12,6 +14,17 @@
 
 #define script_expr(_EXPR_)                                                                        \
   (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
+
+typedef struct {
+  String     name;
+  StringHash nameHash; // NOTE: Initialized at runtime.
+  u32        argCount;
+  u32        opType; // ScriptOpUnary / ScriptOpBinary
+} ScriptFunction;
+
+static ScriptFunction g_scriptReadFuncs[] = {
+    {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
+};
 
 typedef enum {
   OpPrecedence_None,
@@ -200,8 +213,18 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
   if (argsRes.type == ScriptResult_Fail) {
     return script_err(argsRes.error);
   }
-  if (identifier == string_hash_lit("distance") && argsRes.argCount == 2) {
-    return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], ScriptOpBinary_Distance));
+
+  array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
+    if (func->nameHash == identifier && argsRes.argCount == func->argCount) {
+      switch (func->argCount) {
+      case 1:
+        return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
+      case 2:
+        return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], func->opType));
+      default:
+        diag_crash_msg("Unsupported function argument count ({})", fmt_int(func->argCount));
+      }
+    }
   }
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
@@ -341,7 +364,25 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
   return res;
 }
 
+static void script_read_init() {
+  static bool           g_init;
+  static ThreadSpinLock g_initLock;
+  if (g_init) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_init) {
+    array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
+      func->nameHash = string_hash(func->name);
+    }
+    g_init = true;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
+
 String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+  script_read_init();
+
   ScriptReadContext ctx = {
       .doc   = doc,
       .input = str,
@@ -351,6 +392,8 @@ String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res)
 }
 
 void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+  script_read_init();
+
   ScriptReadContext ctx = {
       .doc   = doc,
       .input = str,
