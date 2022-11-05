@@ -34,6 +34,23 @@ spec(eval) {
         {string_static("pi"), script_number(math_pi_f64)},
         {string_static("deg_to_rad"), script_number(math_deg_to_rad)},
         {string_static("rad_to_deg"), script_number(math_rad_to_deg)},
+        {string_static("up"), script_vector3(geo_up)},
+        {string_static("down"), script_vector3(geo_down)},
+        {string_static("left"), script_vector3(geo_left)},
+        {string_static("right"), script_vector3(geo_right)},
+        {string_static("forward"), script_vector3(geo_forward)},
+        {string_static("backward"), script_vector3(geo_backward)},
+
+        // Conversions.
+        {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
+        {string_static("vector(1,true,3)"), script_null()},
+        {string_static("vector(1 + 2, 2 + 3, 3 + 4)"), script_vector3_lit(3, 5, 7)},
+        {string_static("get_x(vector(1, 2, 3))"), script_number(1)},
+        {string_static("get_y(vector(1, 2, 3))"), script_number(2)},
+        {string_static("get_z(vector(1, 2, 3))"), script_number(3)},
+        {string_static("get_x(vector(1, true, 3))"), script_null()},
+        {string_static("get_y(vector(1, true, 3))"), script_null()},
+        {string_static("get_z(vector(1, true, 3))"), script_null()},
 
         // Memory loads.
         {string_static("$v1"), script_bool(true)},
@@ -61,9 +78,18 @@ spec(eval) {
         {string_static("1 + $v2"), script_number(1338)},
         {string_static("!true"), script_bool(false)},
         {string_static("!false"), script_bool(true)},
+        {string_static("distance(1)"), script_number(1)},
+        {string_static("distance(-1)"), script_number(1)},
         {string_static("distance(0, 0)"), script_number(0)},
         {string_static("distance(-1, 1)"), script_number(2)},
         {string_static("distance(42, 1337)"), script_number(1295)},
+        {string_static("distance(vector(0,2,0))"), script_number(2)},
+        {string_static("distance(vector(1,2,3), vector(1,3,3))"), script_number(1)},
+        {string_static("angle(up, down)"), script_number(math_pi_f64)},
+        {string_static("angle(up, up)"), script_number(0)},
+        {string_static("angle(up, down) == pi"), script_bool(true)},
+        {string_static("up * 42"), script_vector3_lit(0, 42, 0)},
+        {string_static("up * 42 / 42"), script_vector3(geo_up)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},

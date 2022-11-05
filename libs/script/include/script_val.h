@@ -83,6 +83,17 @@ ScriptVal script_val_sub(ScriptVal, ScriptVal);
 ScriptVal script_val_mul(ScriptVal, ScriptVal);
 ScriptVal script_val_div(ScriptVal, ScriptVal);
 ScriptVal script_val_dist(ScriptVal, ScriptVal);
+ScriptVal script_val_norm(ScriptVal);
+ScriptVal script_val_mag(ScriptVal);
+ScriptVal script_val_angle(ScriptVal, ScriptVal);
+
+/**
+ * Value conversions.
+ */
+ScriptVal script_val_compose_vector3(ScriptVal, ScriptVal, ScriptVal);
+ScriptVal script_val_get_x(ScriptVal);
+ScriptVal script_val_get_y(ScriptVal);
+ScriptVal script_val_get_z(ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

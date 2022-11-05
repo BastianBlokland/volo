@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "script_lex.h"
+#include "script_operation.h"
 #include "script_read.h"
 
 #include "doc_internal.h"
@@ -19,11 +20,18 @@ typedef struct {
   String     name;
   StringHash nameHash; // NOTE: Initialized at runtime.
   u32        argCount;
-  u32        opType; // ScriptOpUnary / ScriptOpBinary
+  u32        opType; // ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
 } ScriptFunction;
 
 static ScriptFunction g_scriptReadFuncs[] = {
+    {.name = string_static("vector"), .argCount = 3, .opType = ScriptOpTernary_ComposeVector3},
+    {.name = string_static("get_x"), .argCount = 1, .opType = ScriptOpUnary_GetX},
+    {.name = string_static("get_y"), .argCount = 1, .opType = ScriptOpUnary_GetY},
+    {.name = string_static("get_z"), .argCount = 1, .opType = ScriptOpUnary_GetZ},
     {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
+    {.name = string_static("distance"), .argCount = 1, .opType = ScriptOpUnary_Magnitude},
+    {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
+    {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
 };
 
 typedef enum {
@@ -215,15 +223,18 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
   }
 
   array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
-    if (func->nameHash == identifier && argsRes.argCount == func->argCount) {
-      switch (func->argCount) {
-      case 1:
-        return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
-      case 2:
-        return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], func->opType));
-      default:
-        diag_crash_msg("Unsupported function argument count ({})", fmt_int(func->argCount));
-      }
+    if (func->nameHash != identifier || argsRes.argCount != func->argCount) {
+      continue;
+    }
+    switch (func->argCount) {
+    case 1:
+      return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
+    case 2:
+      return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], func->opType));
+    case 3:
+      return script_expr(script_add_op_ternary(ctx->doc, args[0], args[1], args[2], func->opType));
+    default:
+      diag_crash_msg("Unsupported function argument count ({})", fmt_int(func->argCount));
     }
   }
   return script_err(ScriptError_NoFunctionFoundForIdentifier);

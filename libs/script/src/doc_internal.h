@@ -1,7 +1,7 @@
 #pragma once
 #include "script_doc.h"
 
-#define script_constants_max 10
+#define script_constants_max 15
 
 typedef u32 ScriptValId;
 
@@ -19,24 +19,32 @@ typedef struct {
 } ScriptExprStore;
 
 typedef struct {
-  ScriptExpr    val;
+  ScriptExpr    arg1;
   ScriptOpUnary op;
 } ScriptExprOpUnary;
 
 typedef struct {
-  ScriptExpr     lhs;
-  ScriptExpr     rhs;
+  ScriptExpr     arg1;
+  ScriptExpr     arg2;
   ScriptOpBinary op;
 } ScriptExprOpBinary;
 
 typedef struct {
+  ScriptExpr      arg1;
+  ScriptExpr      arg2;
+  ScriptExpr      arg3;
+  ScriptOpTernary op;
+} ScriptExprOpTernary;
+
+typedef struct {
   ScriptExprType type;
   union {
-    ScriptExprValue    data_value;
-    ScriptExprLoad     data_load;
-    ScriptExprStore    data_store;
-    ScriptExprOpUnary  data_op_unary;
-    ScriptExprOpBinary data_op_binary;
+    ScriptExprValue     data_value;
+    ScriptExprLoad      data_load;
+    ScriptExprStore     data_store;
+    ScriptExprOpUnary   data_op_unary;
+    ScriptExprOpBinary  data_op_binary;
+    ScriptExprOpTernary data_op_ternary;
   };
 } ScriptExprData;
 

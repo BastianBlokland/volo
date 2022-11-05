@@ -369,7 +369,9 @@ spec(val) {
          .b        = script_vector3_lit(4, 5, 6),
          .expected = script_vector3_lit(4, 10, 18)},
 
-        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+        {.a        = script_vector3_lit(1, 2, 3),
+         .b        = script_number(42),
+         .expected = script_vector3_lit(42, 84, 126)},
 
         {.a        = script_time(time_seconds(2)),
          .b        = script_time(time_seconds(3)),
@@ -405,7 +407,9 @@ spec(val) {
          .b        = script_vector3_lit(4, 5, 6),
          .expected = script_vector3_lit(0.25f, 0.4f, 0.5f)},
 
-        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+        {.a        = script_vector3_lit(2, 4, 8),
+         .b        = script_number(2),
+         .expected = script_vector3_lit(1, 2, 4)},
 
         {.a        = script_time(time_seconds(10)),
          .b        = script_time(time_seconds(2)),
@@ -458,11 +462,49 @@ spec(val) {
          .expected = script_time(time_seconds(8))},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
-
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       const ScriptVal actual = script_val_dist(testData[i].a, testData[i].b);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
+  it("can compose a vector3") {
+    const struct {
+      ScriptVal a, b, c;
+      ScriptVal expected;
+    } testData[] = {
+        {
+            script_number(1),
+            script_number(2),
+            script_number(3),
+            .expected = script_vector3_lit(1, 2, 3),
+        },
+        {
+            script_null(),
+            script_number(2),
+            script_number(3),
+            .expected = script_null(),
+        },
+        {
+            script_number(1),
+            script_null(),
+            script_number(3),
+            .expected = script_null(),
+        },
+        {
+            script_number(1),
+            script_number(2),
+            script_null(),
+            .expected = script_null(),
+        },
+        {script_null(), script_null(), script_null(), .expected = script_null()},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual =
+          script_val_compose_vector3(testData[i].a, testData[i].b, testData[i].c);
       check_eq_val(actual, testData[i].expected);
     }
   }

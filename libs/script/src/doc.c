@@ -44,9 +44,9 @@ static void script_doc_constant_add(ScriptDoc* doc, const String name, const Scr
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-      .values = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc  = alloc,
+                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+                .values = dynarray_create_t(alloc, ScriptVal, 32),
+                .alloc  = alloc,
   };
 
   // Register build-in constants.
@@ -56,6 +56,12 @@ ScriptDoc* script_create(Allocator* alloc) {
   script_doc_constant_add(doc, string_lit("pi"), script_number(math_pi_f64));
   script_doc_constant_add(doc, string_lit("deg_to_rad"), script_number(math_deg_to_rad));
   script_doc_constant_add(doc, string_lit("rad_to_deg"), script_number(math_rad_to_deg));
+  script_doc_constant_add(doc, string_lit("up"), script_vector3(geo_up));
+  script_doc_constant_add(doc, string_lit("down"), script_vector3(geo_down));
+  script_doc_constant_add(doc, string_lit("left"), script_vector3(geo_left));
+  script_doc_constant_add(doc, string_lit("right"), script_vector3(geo_right));
+  script_doc_constant_add(doc, string_lit("forward"), script_vector3(geo_forward));
+  script_doc_constant_add(doc, string_lit("backward"), script_vector3(geo_backward));
 
   return doc;
 }
@@ -96,22 +102,36 @@ ScriptExpr script_add_store(ScriptDoc* doc, const StringHash key, const ScriptEx
       });
 }
 
-ScriptExpr script_add_op_unary(ScriptDoc* doc, const ScriptExpr val, const ScriptOpUnary op) {
+ScriptExpr script_add_op_unary(ScriptDoc* doc, const ScriptExpr arg1, const ScriptOpUnary op) {
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
           .type          = ScriptExprType_OpUnary,
-          .data_op_unary = {.val = val, .op = op},
+          .data_op_unary = {.arg1 = arg1, .op = op},
       });
 }
 
 ScriptExpr script_add_op_binary(
-    ScriptDoc* doc, const ScriptExpr lhs, const ScriptExpr rhs, const ScriptOpBinary op) {
+    ScriptDoc* doc, const ScriptExpr arg1, const ScriptExpr arg2, const ScriptOpBinary op) {
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
           .type           = ScriptExprType_OpBinary,
-          .data_op_binary = {.lhs = lhs, .rhs = rhs, .op = op},
+          .data_op_binary = {.arg1 = arg1, .arg2 = arg2, .op = op},
+      });
+}
+
+ScriptExpr script_add_op_ternary(
+    ScriptDoc*            doc,
+    const ScriptExpr      arg1,
+    const ScriptExpr      arg2,
+    const ScriptExpr      arg3,
+    const ScriptOpTernary op) {
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type            = ScriptExprType_OpTernary,
+          .data_op_ternary = {.arg1 = arg1, .arg2 = arg2, .arg3 = arg3, .op = op},
       });
 }
 
@@ -129,6 +149,7 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
   case ScriptExprType_Load:
   case ScriptExprType_OpUnary:
   case ScriptExprType_OpBinary:
+  case ScriptExprType_OpTernary:
     return;
   case ScriptExprType_Count:
     break;
@@ -162,11 +183,16 @@ void script_expr_visit(
     script_expr_visit(doc, data->data_store.val, ctx, visitor);
     return;
   case ScriptExprType_OpUnary:
-    script_expr_visit(doc, data->data_op_unary.val, ctx, visitor);
+    script_expr_visit(doc, data->data_op_unary.arg1, ctx, visitor);
     return;
   case ScriptExprType_OpBinary:
-    script_expr_visit(doc, data->data_op_binary.lhs, ctx, visitor);
-    script_expr_visit(doc, data->data_op_binary.rhs, ctx, visitor);
+    script_expr_visit(doc, data->data_op_binary.arg1, ctx, visitor);
+    script_expr_visit(doc, data->data_op_binary.arg2, ctx, visitor);
+    return;
+  case ScriptExprType_OpTernary:
+    script_expr_visit(doc, data->data_op_ternary.arg1, ctx, visitor);
+    script_expr_visit(doc, data->data_op_ternary.arg2, ctx, visitor);
+    script_expr_visit(doc, data->data_op_ternary.arg3, ctx, visitor);
     return;
   case ScriptExprType_Count:
     break;
@@ -204,12 +230,18 @@ void script_expr_str_write(
     return;
   case ScriptExprType_OpUnary:
     fmt_write(str, "[op-unary: {}]", script_op_unary_fmt(data->data_op_unary.op));
-    script_expr_str_write_child(doc, data->data_op_unary.val, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_unary.arg1, indent + 1, str);
     return;
   case ScriptExprType_OpBinary:
     fmt_write(str, "[op-binary: {}]", script_op_binary_fmt(data->data_op_binary.op));
-    script_expr_str_write_child(doc, data->data_op_binary.lhs, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_op_binary.rhs, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_binary.arg1, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_binary.arg2, indent + 1, str);
+    return;
+  case ScriptExprType_OpTernary:
+    fmt_write(str, "[op-ternary: {}]", script_op_ternary_fmt(data->data_op_ternary.op));
+    script_expr_str_write_child(doc, data->data_op_ternary.arg1, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_ternary.arg2, indent + 1, str);
+    script_expr_str_write_child(doc, data->data_op_ternary.arg3, indent + 1, str);
     return;
   case ScriptExprType_Count:
     break;

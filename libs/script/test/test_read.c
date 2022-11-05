@@ -39,6 +39,11 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
+            string_static("distance(1)"),
+            string_static("[op-unary: magnitude]\n"
+                          "  [value: 1]"),
+        },
+        {
             string_static("distance(1 + 2, 3 / 4)"),
             string_static("[op-binary: distance]\n"
                           "  [op-binary: add]\n"
@@ -47,6 +52,39 @@ spec(read) {
                           "  [op-binary: div]\n"
                           "    [value: 3]\n"
                           "    [value: 4]"),
+        },
+        {
+            string_static("vector(1, 2, 3)"),
+            string_static("[op-ternary: compose-vector3]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
+        },
+        {
+            string_static("normalize(1)"),
+            string_static("[op-unary: normalize]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("angle(1, 2)"),
+            string_static("[op-binary: angle]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("get_x(1)"),
+            string_static("[op-unary: get-x]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("get_y(1)"),
+            string_static("[op-unary: get-y]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("get_z(1)"),
+            string_static("[op-unary: get-z]\n"
+                          "  [value: 1]"),
         },
 
         // Parenthesized expressions.
