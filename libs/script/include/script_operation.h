@@ -4,6 +4,7 @@
 typedef enum {
   ScriptOpUnary_Negate,
   ScriptOpUnary_Invert,
+  ScriptOpUnary_Normalize,
   ScriptOpUnary_GetX,
   ScriptOpUnary_GetY,
   ScriptOpUnary_GetZ,

@@ -417,6 +417,12 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_norm(const ScriptVal val) {
+  return script_type(val) == ScriptType_Vector3
+             ? script_vector3(geo_vector_norm(val_as_vector3(val)))
+             : script_null();
+}
+
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {

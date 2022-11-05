@@ -55,6 +55,26 @@ spec(read) {
                           "  [value: 2]\n"
                           "  [value: 3]"),
         },
+        {
+            string_static("normalize(1)"),
+            string_static("[op-unary: normalize]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("get_x(1)"),
+            string_static("[op-unary: get-x]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("get_y(1)"),
+            string_static("[op-unary: get-y]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("get_z(1)"),
+            string_static("[op-unary: get-z]\n"
+                          "  [value: 1]"),
+        },
 
         // Parenthesized expressions.
         {string_static("(42.1337)"), string_static("[value: 42.1337]")},

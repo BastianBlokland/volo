@@ -38,6 +38,8 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
     return script_val_neg(val);
   case ScriptOpUnary_Invert:
     return script_val_inv(val);
+  case ScriptOpUnary_Normalize:
+    return script_val_norm(val);
   case ScriptOpUnary_GetX:
     return script_val_get_x(val);
   case ScriptOpUnary_GetY:
