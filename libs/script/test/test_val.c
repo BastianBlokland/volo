@@ -407,7 +407,9 @@ spec(val) {
          .b        = script_vector3_lit(4, 5, 6),
          .expected = script_vector3_lit(0.25f, 0.4f, 0.5f)},
 
-        {.a = script_vector3_lit(1, 2, 3), .b = script_number(42), .expected = script_null()},
+        {.a        = script_vector3_lit(2, 4, 8),
+         .b        = script_number(2),
+         .expected = script_vector3_lit(1, 2, 4)},
 
         {.a        = script_time(time_seconds(10)),
          .b        = script_time(time_seconds(2)),

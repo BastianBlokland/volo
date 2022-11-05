@@ -89,6 +89,7 @@ spec(eval) {
         {string_static("angle(up, up)"), script_number(0)},
         {string_static("angle(up, down) == pi"), script_bool(true)},
         {string_static("up * 42"), script_vector3_lit(0, 42, 0)},
+        {string_static("up * 42 / 42"), script_vector3(geo_up)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},
