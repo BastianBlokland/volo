@@ -84,6 +84,7 @@ ScriptVal script_val_mul(ScriptVal, ScriptVal);
 ScriptVal script_val_div(ScriptVal, ScriptVal);
 ScriptVal script_val_dist(ScriptVal, ScriptVal);
 ScriptVal script_val_norm(ScriptVal);
+ScriptVal script_val_angle(ScriptVal, ScriptVal);
 
 /**
  * Value conversions.

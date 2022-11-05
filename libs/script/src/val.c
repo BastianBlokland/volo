@@ -423,6 +423,12 @@ ScriptVal script_val_norm(const ScriptVal val) {
              : script_null();
 }
 
+ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
+  return (script_type(a) == ScriptType_Vector3 && script_type(b) == ScriptType_Vector3)
+             ? script_number(geo_vector_angle(val_as_vector3(a), val_as_vector3(b)))
+             : script_null();
+}
+
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {

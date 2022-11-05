@@ -61,6 +61,12 @@ spec(read) {
                           "  [value: 1]"),
         },
         {
+            string_static("angle(1, 2)"),
+            string_static("[op-binary: angle]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
             string_static("get_x(1)"),
             string_static("[op-unary: get-x]\n"
                           "  [value: 1]"),

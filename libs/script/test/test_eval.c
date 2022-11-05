@@ -81,6 +81,9 @@ spec(eval) {
         {string_static("distance(0, 0)"), script_number(0)},
         {string_static("distance(-1, 1)"), script_number(2)},
         {string_static("distance(42, 1337)"), script_number(1295)},
+        {string_static("angle(up, down)"), script_number(math_pi_f64)},
+        {string_static("angle(up, up)"), script_number(0)},
+        {string_static("angle(up, down) == pi"), script_bool(true)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},

@@ -27,6 +27,7 @@ typedef enum {
   ScriptOpBinary_Mul,
   ScriptOpBinary_Div,
   ScriptOpBinary_Distance,
+  ScriptOpBinary_Angle,
   ScriptOpBinary_RetRight,
 
   ScriptOpBinary_Count,

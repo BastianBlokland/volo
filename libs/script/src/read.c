@@ -23,12 +23,13 @@ typedef struct {
 } ScriptFunction;
 
 static ScriptFunction g_scriptReadFuncs[] = {
-    {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
     {.name = string_static("vector"), .argCount = 3, .opType = ScriptOpTernary_ComposeVector3},
-    {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
     {.name = string_static("get_x"), .argCount = 1, .opType = ScriptOpUnary_GetX},
     {.name = string_static("get_y"), .argCount = 1, .opType = ScriptOpUnary_GetY},
     {.name = string_static("get_z"), .argCount = 1, .opType = ScriptOpUnary_GetZ},
+    {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
+    {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
+    {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
 };
 
 typedef enum {
