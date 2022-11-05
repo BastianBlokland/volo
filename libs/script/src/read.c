@@ -66,6 +66,7 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_AmpAmp:
   case ScriptTokenType_PipePipe:
     return OpPrecedence_Logical;
+  case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
     return OpPrecedence_Conditional;
   case ScriptTokenType_SemiColon:
@@ -240,6 +241,27 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
 
+static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
+  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_Grouping);
+  if (UNLIKELY(b1.type == ScriptResult_Fail)) {
+    return b1;
+  }
+
+  ScriptToken token;
+  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
+    return script_err(ScriptError_MissingColonInSelectExpression);
+  }
+
+  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_Grouping);
+  if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+    return b2;
+  }
+
+  const ScriptOpTernary op = ScriptOpTernary_Select;
+  return script_expr(script_add_op_ternary(ctx->doc, condition, b1.expr, b2.expr, op));
+}
+
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
@@ -336,9 +358,16 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     ctx->input = remInput; // Consume the 'nextToken'.
 
     /**
-     * Binary expressions.
+     * Binary / Ternary expressions.
      */
     switch (nextToken.type) {
+    case ScriptTokenType_QMark: {
+      const ScriptReadResult selectExpr = read_expr_select(ctx, res.expr);
+      if (UNLIKELY(selectExpr.type == ScriptResult_Fail)) {
+        return selectExpr;
+      }
+      res = script_expr(selectExpr.expr);
+    } break;
     case ScriptTokenType_SemiColon:
       // Expressions are allowed to be ended with semi-colons.
       if (read_at_end(ctx)) {

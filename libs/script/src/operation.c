@@ -45,6 +45,7 @@ String script_op_ternary_str(const ScriptOpTernary c) {
   diag_assert(c < ScriptOpTernary_Count);
   static const String g_names[] = {
       string_static("compose-vector3"),
+      string_static("select"),
   };
   ASSERT(array_elems(g_names) == ScriptOpTernary_Count, "Incorrect number of names");
   return g_names[c];

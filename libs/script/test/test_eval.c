@@ -123,6 +123,13 @@ spec(eval) {
         {string_static("false ?? true"), script_bool(false)},
         {string_static("null ?? ($i = 10; false); $i"), script_number(10)},
         {string_static("1 ?? ($j = 11; false); $j"), script_null()},
+        {string_static("true ? 42 : 1337"), script_number(42)},
+        {string_static("false ? 42 : 1337"), script_number(1337)},
+        {string_static("2 > 1 ? 42 : 1337"), script_number(42)},
+        {string_static("(true ? $k = 22 : 0); $k"), script_number(22)},
+        {string_static("(true ? 0 : $l = 33); $l"), script_null()},
+        {string_static("(false ? $m = 44 : 0); $m"), script_null()},
+        {string_static("(false ? 0 : $n = 55); $n"), script_number(55)},
 
         // Group expressions.
         {string_static("1; 2; 3"), script_number(3)},

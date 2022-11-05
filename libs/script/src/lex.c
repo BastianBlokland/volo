@@ -144,6 +144,8 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
         return out->type = ScriptTokenType_GtEq, string_consume(str, 2);
       }
       return out->type = ScriptTokenType_Gt, string_consume(str, 1);
+    case ':':
+      return out->type = ScriptTokenType_Colon, string_consume(str, 1);
     case ';':
       return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
     case '+':
@@ -158,17 +160,17 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       if (script_peek(str, 1) == '&') {
         return out->type = ScriptTokenType_AmpAmp, string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
         return out->type = ScriptTokenType_PipePipe, string_consume(str, 2);
       }
-      *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
         return out->type = ScriptTokenType_QMarkQMark, string_consume(str, 2);
       }
-      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
+      return out->type = ScriptTokenType_QMark, string_consume(str, 1);
     case '.':
     case '0':
     case '1':
@@ -251,12 +253,16 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("*");
   case ScriptTokenType_Slash:
     return string_lit("/");
+  case ScriptTokenType_Colon:
+    return string_lit(":");
   case ScriptTokenType_SemiColon:
     return string_lit(";");
   case ScriptTokenType_AmpAmp:
     return string_lit("&&");
   case ScriptTokenType_PipePipe:
     return string_lit("||");
+  case ScriptTokenType_QMark:
+    return string_lit("?");
   case ScriptTokenType_QMarkQMark:
     return string_lit("??");
   case ScriptTokenType_Number:

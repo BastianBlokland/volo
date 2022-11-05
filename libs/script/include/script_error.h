@@ -13,6 +13,7 @@ typedef enum {
   ScriptError_UnclosedParenthesizedExpression,
   ScriptError_UnterminatedArgumentList,
   ScriptError_ArgumentCountExceedsMaximum,
+  ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
 
   ScriptError_Count,
