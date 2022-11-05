@@ -60,7 +60,7 @@
                         {
                           "$type": "AssetAiNode_Condition",
                           "$name": "Test if in range",
-                          "script": "$target_dist < 35;"
+                          "script": "distance($target_position, $self_position) < 35;"
                         },
                         {
                           "$type": "AssetAiNode_Execute",
