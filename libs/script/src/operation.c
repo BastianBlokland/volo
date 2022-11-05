@@ -8,6 +8,7 @@ String script_op_unary_str(const ScriptOpUnary c) {
       string_static("negate"),
       string_static("invert"),
       string_static("normalize"),
+      string_static("magnitude"),
       string_static("get-x"),
       string_static("get-y"),
       string_static("get-z"),

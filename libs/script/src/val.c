@@ -423,6 +423,25 @@ ScriptVal script_val_norm(const ScriptVal val) {
              : script_null();
 }
 
+ScriptVal script_val_mag(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_abs(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_number(geo_vector_mag(val_as_vector3(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
   return (script_type(a) == ScriptType_Vector3 && script_type(b) == ScriptType_Vector3)
              ? script_number(geo_vector_angle(val_as_vector3(a), val_as_vector3(b)))

@@ -39,6 +39,11 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
+            string_static("distance(1)"),
+            string_static("[op-unary: magnitude]\n"
+                          "  [value: 1]"),
+        },
+        {
             string_static("distance(1 + 2, 3 / 4)"),
             string_static("[op-binary: distance]\n"
                           "  [op-binary: add]\n"
