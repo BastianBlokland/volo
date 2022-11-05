@@ -5,6 +5,7 @@
 #include "doc_internal.h"
 
 #define script_depth_max 25
+#define script_args_max 10
 
 #define script_err(_ERR_)                                                                          \
   (ScriptReadResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
@@ -115,6 +116,9 @@ static bool read_at_end(const ScriptReadContext* ctx) {
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
 static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
   const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
@@ -126,6 +130,80 @@ static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
     return script_err(ScriptError_UnclosedParenthesizedExpression);
   }
   return res;
+}
+
+typedef struct {
+  ScriptResult type;
+  union {
+    u32         argCount;
+    ScriptError error;
+  };
+} ScriptArgsResult;
+
+#define script_args_success(_COUNT_)                                                               \
+  (ScriptArgsResult) { .type = ScriptResult_Success, .argCount = (_COUNT_) }
+
+#define script_args_err(_ERR_)                                                                     \
+  (ScriptArgsResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
+
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
+static ScriptArgsResult read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
+  ScriptToken token;
+  u32         count = 0;
+
+  script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_ParenClose) {
+    // Empty argument list.
+    goto ArgEnd;
+  }
+
+ArgNext:
+  if (UNLIKELY(count == script_args_max)) {
+    return script_args_err(ScriptError_ArgumentCountExceedsMaximum);
+  }
+  const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(arg.type == ScriptResult_Fail)) {
+    return script_args_err(arg.error);
+  }
+  out[count++] = arg.expr;
+
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_Comma) {
+    ctx->input = remInput; // Consume the comma.
+    goto ArgNext;
+  }
+
+ArgEnd:
+  ctx->input = script_lex(ctx->input, null, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_ParenClose)) {
+    return script_args_err(ScriptError_UnterminatedArgumentList);
+  }
+  return script_args_success(count);
+}
+
+static ScriptReadResult read_expr_constant(ScriptReadContext* ctx, const StringHash identifier) {
+  const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, identifier);
+  if (LIKELY(!sentinel_check(constValId))) {
+    return script_expr(script_add_value_id(ctx->doc, constValId));
+  }
+  return script_err(ScriptError_NoConstantFoundForIdentifier);
+}
+
+/**
+ * NOTE: Caller is expected to consume the opening parenthesis.
+ */
+static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringHash identifier) {
+  ScriptExpr             args[script_args_max];
+  const ScriptArgsResult argsRes = read_args(ctx, args);
+  if (argsRes.type == ScriptResult_Fail) {
+    return script_err(argsRes.error);
+  }
+  if (identifier == string_hash_lit("distance") && argsRes.argCount == 2) {
+    return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], ScriptOpBinary_Distance));
+  }
+  return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
@@ -142,13 +220,14 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
      * Identifiers.
      */
   case ScriptTokenType_Identifier: {
-    const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, token.val_identifier);
-    if (LIKELY(!sentinel_check(constValId))) {
-      return script_expr(script_add_value_id(ctx->doc, constValId));
+    ScriptToken  nextToken;
+    const String remInput = script_lex(ctx->input, null, &nextToken);
+    if (nextToken.type == ScriptTokenType_ParenOpen) {
+      ctx->input = remInput; // Consume the opening parenthesis.
+      return read_expr_function(ctx, token.val_identifier);
     }
-    return script_err(ScriptError_NoBuildInFoundForIdentifier);
+    return read_expr_constant(ctx, token.val_identifier);
   }
-
   /**
    * Unary operators.
    */

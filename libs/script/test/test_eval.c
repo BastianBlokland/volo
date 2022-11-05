@@ -61,6 +61,9 @@ spec(eval) {
         {string_static("1 + $v2"), script_number(1338)},
         {string_static("!true"), script_bool(false)},
         {string_static("!false"), script_bool(true)},
+        {string_static("distance(0, 0)"), script_number(0)},
+        {string_static("distance(-1, 1)"), script_number(2)},
+        {string_static("distance(42, 1337)"), script_number(1295)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},
