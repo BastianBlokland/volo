@@ -123,7 +123,7 @@ static void select_update_drag(
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
   // Only allow box-selecting your own units.
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionA};
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionC};
 
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);

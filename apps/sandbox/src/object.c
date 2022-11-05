@@ -15,9 +15,9 @@
 #include "object_internal.h"
 
 ecs_comp_define(ObjectDatabaseComp) {
-  EcsEntityId unitAGraphic, unitBGraphic;
+  EcsEntityId unitAGraphic, unitBGraphic, unitCGraphic;
   EcsEntityId muzzleFlashVfx, projectileVfx, impactVfx;
-  EcsEntityId unitBehavior;
+  EcsEntityId unitBehaviorAuto, unitBehaviorManual;
   EcsEntityId wallGraphic;
 };
 ecs_comp_define(ObjectComp);
@@ -33,6 +33,37 @@ static SceneLayer object_unit_layer(const SceneFaction faction) {
     return SceneLayer_UnitFactionC;
   case SceneFaction_D:
     return SceneLayer_UnitFactionD;
+  case SceneFaction_Count:
+  case SceneFaction_None:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
+}
+
+static EcsEntityId object_unit_graphic(const ObjectDatabaseComp* db, const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return db->unitAGraphic;
+  case SceneFaction_B:
+    return db->unitBGraphic;
+  case SceneFaction_C:
+  case SceneFaction_D:
+    return db->unitCGraphic;
+  case SceneFaction_Count:
+  case SceneFaction_None:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
+}
+
+static EcsEntityId object_unit_behavior(const ObjectDatabaseComp* db, const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+  case SceneFaction_B:
+  case SceneFaction_D:
+    return db->unitBehaviorAuto;
+  case SceneFaction_C:
+    return db->unitBehaviorManual;
   case SceneFaction_Count:
   case SceneFaction_None:
     break;
@@ -57,13 +88,15 @@ ecs_system_define(ObjectDatabaseInitSys) {
       world,
       ecs_world_global(world),
       ObjectDatabaseComp,
-      .unitAGraphic   = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
-      .unitBGraphic   = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
-      .muzzleFlashVfx = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
-      .projectileVfx  = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
-      .impactVfx      = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
-      .unitBehavior   = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
-      .wallGraphic    = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
+      .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
+      .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
+      .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
+      .muzzleFlashVfx     = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
+      .projectileVfx      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
+      .impactVfx          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
+      .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
+      .unitBehaviorManual = asset_lookup(world, assets, string_lit("behaviors/unit-manual.bt")),
+      .wallGraphic        = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
 }
 
 ecs_module_init(sandbox_object_module) {
@@ -91,8 +124,9 @@ EcsEntityId object_spawn_unit(
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
-  const EcsEntityId graphic = faction == SceneFaction_A ? db->unitAGraphic : db->unitBGraphic;
-  const SceneLayer  layer   = object_unit_layer(faction);
+  const EcsEntityId graphic  = object_unit_graphic(db, faction);
+  const EcsEntityId behavior = object_unit_behavior(db, faction);
+  const SceneLayer  layer    = object_unit_layer(faction);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_empty_t(world, e, ObjectUnitComp);
@@ -115,7 +149,7 @@ EcsEntityId object_spawn_unit(
       .impactVfx      = db->impactVfx);
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);
-  scene_brain_add(world, e, db->unitBehavior);
+  scene_brain_add(world, e, behavior);
   return e;
 }
 
