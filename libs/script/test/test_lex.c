@@ -61,6 +61,7 @@ spec(lex) {
 
         {string_static("&&"), tok_simple(AmpAmp)},
         {string_static("||"), tok_simple(PipePipe)},
+        {string_static("?"), tok_simple(QMark)},
         {string_static("??"), tok_simple(QMarkQMark)},
 
         {string_static(";"), tok_simple(SemiColon)},
@@ -92,7 +93,6 @@ spec(lex) {
 
         {string_static("&"), tok_err(InvalidChar)},
         {string_static("|"), tok_err(InvalidChar)},
-        {string_static("?"), tok_err(InvalidChar)},
         {string_static("@"), tok_err(InvalidChar)},
 
         {string_static(""), tok_end()},
@@ -109,7 +109,12 @@ spec(lex) {
       const String rem = script_lex(testData[i].input, null, &token);
 
       check_msg(string_is_empty(rem), "Unexpected remaining input: '{}'", fmt_text(rem));
-      check_eq_tok(&token, &testData[i].expected);
+      check_msg(
+          script_token_equal(&token, &testData[i].expected),
+          "{} == {} (input: '{}')",
+          script_token_fmt(&token),
+          script_token_fmt(&testData[i].expected),
+          fmt_text(testData[i].input));
     }
   }
 }
