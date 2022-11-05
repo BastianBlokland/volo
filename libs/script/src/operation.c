@@ -7,6 +7,9 @@ String script_op_unary_str(const ScriptOpUnary c) {
   static const String g_names[] = {
       string_static("negate"),
       string_static("invert"),
+      string_static("get_x"),
+      string_static("get_y"),
+      string_static("get_z"),
   };
   ASSERT(array_elems(g_names) == ScriptOpUnary_Count, "Incorrect number of names");
   return g_names[c];

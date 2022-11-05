@@ -424,3 +424,18 @@ ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const
   }
   return script_vector3_lit((f32)val_as_number(x), (f32)val_as_number(y), (f32)val_as_number(z));
 }
+
+ScriptVal script_val_get_x(const ScriptVal val) {
+  return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).x)
+                                                : script_null();
+}
+
+ScriptVal script_val_get_y(const ScriptVal val) {
+  return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).y)
+                                                : script_null();
+}
+
+ScriptVal script_val_get_z(const ScriptVal val) {
+  return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).z)
+                                                : script_null();
+}

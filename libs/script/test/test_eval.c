@@ -39,6 +39,12 @@ spec(eval) {
         {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
         {string_static("vector(1,true,3)"), script_null()},
         {string_static("vector(1 + 2, 2 + 3, 3 + 4)"), script_vector3_lit(3, 5, 7)},
+        {string_static("get_x(vector(1, 2, 3))"), script_number(1)},
+        {string_static("get_y(vector(1, 2, 3))"), script_number(2)},
+        {string_static("get_z(vector(1, 2, 3))"), script_number(3)},
+        {string_static("get_x(vector(1, true, 3))"), script_null()},
+        {string_static("get_y(vector(1, true, 3))"), script_null()},
+        {string_static("get_z(vector(1, true, 3))"), script_null()},
 
         // Memory loads.
         {string_static("$v1"), script_bool(true)},
