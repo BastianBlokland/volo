@@ -138,6 +138,17 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
+    /**
+     * Identifiers.
+     */
+  case ScriptTokenType_Identifier: {
+    const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, token.val_identifier);
+    if (LIKELY(!sentinel_check(constValId))) {
+      return script_expr(script_add_value_id(ctx->doc, constValId));
+    }
+    return script_err(ScriptError_NoBuildInFoundForIdentifier);
+  }
+
   /**
    * Unary operators.
    */
@@ -155,14 +166,6 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Number:
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
-  case ScriptTokenType_Identifier: {
-    const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, token.val_identifier);
-    if (UNLIKELY(sentinel_check(constValId))) {
-      return script_err(ScriptError_NoBuildInFoundForIdentifier);
-    }
-    return script_expr(script_add_value_id(ctx->doc, constValId));
-  }
-
   /**
    * Memory access.
    */
