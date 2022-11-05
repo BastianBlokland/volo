@@ -14,6 +14,7 @@ static const String g_errorStrs[] = {
     string_static("UnclosedParenthesizedExpression"),
     string_static("UnterminatedArgumentList"),
     string_static("ArgumentCountExceedsMaximum"),
+    string_static("MissingColonInSelectExpression"),
     string_static("UnexpectedTokenAfterExpression"),
 };
 

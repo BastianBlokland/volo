@@ -36,6 +36,7 @@ typedef enum {
 
 typedef enum {
   ScriptOpTernary_ComposeVector3,
+  ScriptOpTernary_Select,
 
   ScriptOpTernary_Count,
 } ScriptOpTernary;

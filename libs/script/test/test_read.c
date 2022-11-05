@@ -191,6 +191,28 @@ spec(read) {
                           "  [value: true]"),
         },
 
+        // Ternary expressions.
+        {
+            string_static("true ? 1 : 2"),
+            string_static("[op-ternary: select]\n"
+                          "  [value: true]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("1 > 2 ? 1 + 2 : 3 + 4"),
+            string_static("[op-ternary: select]\n"
+                          "  [op-binary: greater]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [op-binary: add]\n"
+                          "    [value: 1]\n"
+                          "    [value: 2]\n"
+                          "  [op-binary: add]\n"
+                          "    [value: 3]\n"
+                          "    [value: 4]"),
+        },
+
         // Compound expressions.
         {
             string_static("-42 + 1"),
@@ -372,6 +394,13 @@ spec(read) {
         {string_static(";"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 ; ;"), ScriptError_InvalidPrimaryExpression},
         {string_static("1;;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("?"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1?"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ?"), ScriptError_MissingPrimaryExpression},
+        {string_static("1?1"), ScriptError_MissingColonInSelectExpression},
+        {string_static("1 ? 1"), ScriptError_MissingColonInSelectExpression},
+        {string_static("1 ? foo"), ScriptError_NoConstantFoundForIdentifier},
+        {string_static("1 ? 1 : foo"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("distance"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("distance("), ScriptError_MissingPrimaryExpression},
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},

@@ -105,6 +105,10 @@ INLINE_HINT static ScriptVal eval_op_ter(ScriptEvalContext* ctx, const ScriptExp
     const ScriptVal valZ = eval(ctx, expr->arg3);
     return script_val_compose_vector3(valX, valY, valZ);
   }
+  case ScriptOpTernary_Select: {
+    const ScriptVal condition = eval(ctx, expr->arg1);
+    return script_truthy(condition) ? eval(ctx, expr->arg2) : eval(ctx, expr->arg3);
+  }
   case ScriptOpTernary_Count:
     break;
   }
