@@ -130,9 +130,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       ecs_view_jump(targetItr, finder->target);
 
       const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-      const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
-      finder->targetPosition             = targetTrans->position;
-      finder->targetDistSqr              = geo_vector_mag_sqr(posDelta);
+      finder->targetPosition                = targetTrans->position;
 
       if (target_line_of_sight_test(collisionEnv, itr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;

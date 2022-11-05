@@ -12,7 +12,6 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   EcsEntityId      target;
   SceneTargetFlags targetFlags;
   GeoVector        targetPosition;
-  f32              targetDistSqr;
   f32              targetScoreSqr;
   TimeDuration     nextRefreshTime;
 };
