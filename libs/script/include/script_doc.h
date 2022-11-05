@@ -21,6 +21,7 @@ typedef enum {
   ScriptExprType_Store,
   ScriptExprType_OpUnary,
   ScriptExprType_OpBinary,
+  ScriptExprType_OpTernary,
 
   ScriptExprType_Count,
 } ScriptExprType;
@@ -48,8 +49,9 @@ void script_destroy(ScriptDoc*);
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);
 ScriptExpr script_add_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_store(ScriptDoc*, StringHash key, ScriptExpr val);
-ScriptExpr script_add_op_unary(ScriptDoc*, ScriptExpr val, ScriptOpUnary);
-ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr lhs, ScriptExpr rhs, ScriptOpBinary);
+ScriptExpr script_add_op_unary(ScriptDoc*, ScriptExpr, ScriptOpUnary);
+ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptOpBinary);
+ScriptExpr script_add_op_ternary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptExpr, ScriptOpTernary);
 
 /**
  * Query expression data.

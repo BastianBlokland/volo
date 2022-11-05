@@ -64,6 +64,21 @@ spec(doc) {
         "  [value: 2]");
   }
 
+  it("can create basic ternary operation expressions") {
+    check_expr_str_lit(
+        doc,
+        script_add_op_ternary(
+            doc,
+            script_add_value(doc, script_number(1)),
+            script_add_value(doc, script_number(2)),
+            script_add_value(doc, script_number(3)),
+            ScriptOpTernary_ComposeVector3),
+        "[op-ternary: compose-vector3]\n"
+        "  [value: 1]\n"
+        "  [value: 2]\n"
+        "  [value: 3]");
+  }
+
   it("can create nested operation expressions") {
     check_expr_str_lit(
         doc,
