@@ -85,6 +85,11 @@ ScriptVal script_val_div(ScriptVal, ScriptVal);
 ScriptVal script_val_dist(ScriptVal, ScriptVal);
 
 /**
+ * Value conversions.
+ */
+ScriptVal script_val_compose_vector3(ScriptVal, ScriptVal, ScriptVal);
+
+/**
  * Create a formatting argument for a script value.
  */
 #define script_val_fmt(_VAL_) fmt_text(script_val_str_scratch(_VAL_))

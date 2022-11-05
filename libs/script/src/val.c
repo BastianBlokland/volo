@@ -416,3 +416,11 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
   diag_assert_fail("Invalid script value");
   UNREACHABLE
 }
+
+ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
+  if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
+      script_type(z) != ScriptType_Number) {
+    return script_null();
+  }
+  return script_vector3_lit((f32)val_as_number(x), (f32)val_as_number(y), (f32)val_as_number(z));
+}
