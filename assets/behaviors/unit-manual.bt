@@ -1,0 +1,57 @@
+{
+  "$type": "AssetAiNode_Selector",
+  "$name": "Root",
+  "children": [
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Move to user input",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "$name": "Wait for user input",
+          "script": "$user_move_target != null;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_nav_target = $user_move_target;"
+        },
+        {
+          "$type": "AssetAiNode_Try",
+          "$name": "Check if we arrived at the user input",
+          "child": {
+            "$type": "AssetAiNode_Condition",
+            "script": "$self_nav_arrived == $user_move_target;"
+          }
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$user_move_target = null;"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Attack target",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "$name": "Find target",
+          "script": "$target_los && distance($target_position, $self_position) < 35;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "$name": "Initiate attack",
+          "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true;"
+        },
+        {
+          "$type": "AssetAiNode_Running",
+          "$name": "Attacking"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Success",
+      "$name": "Idle"
+    }
+  ]
+}
