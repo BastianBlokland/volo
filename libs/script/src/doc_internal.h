@@ -1,7 +1,7 @@
 #pragma once
 #include "script_doc.h"
 
-#define script_constants_max 10
+#define script_constants_max 15
 
 typedef u32 ScriptValId;
 

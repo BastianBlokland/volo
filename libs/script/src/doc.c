@@ -44,9 +44,9 @@ static void script_doc_constant_add(ScriptDoc* doc, const String name, const Scr
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-      .values = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc  = alloc,
+                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+                .values = dynarray_create_t(alloc, ScriptVal, 32),
+                .alloc  = alloc,
   };
 
   // Register build-in constants.
@@ -56,6 +56,12 @@ ScriptDoc* script_create(Allocator* alloc) {
   script_doc_constant_add(doc, string_lit("pi"), script_number(math_pi_f64));
   script_doc_constant_add(doc, string_lit("deg_to_rad"), script_number(math_deg_to_rad));
   script_doc_constant_add(doc, string_lit("rad_to_deg"), script_number(math_rad_to_deg));
+  script_doc_constant_add(doc, string_lit("up"), script_vector3(geo_up));
+  script_doc_constant_add(doc, string_lit("down"), script_vector3(geo_down));
+  script_doc_constant_add(doc, string_lit("left"), script_vector3(geo_left));
+  script_doc_constant_add(doc, string_lit("right"), script_vector3(geo_right));
+  script_doc_constant_add(doc, string_lit("forward"), script_vector3(geo_forward));
+  script_doc_constant_add(doc, string_lit("backward"), script_vector3(geo_backward));
 
   return doc;
 }

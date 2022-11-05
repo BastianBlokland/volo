@@ -34,6 +34,12 @@ spec(eval) {
         {string_static("pi"), script_number(math_pi_f64)},
         {string_static("deg_to_rad"), script_number(math_deg_to_rad)},
         {string_static("rad_to_deg"), script_number(math_rad_to_deg)},
+        {string_static("up"), script_vector3(geo_up)},
+        {string_static("down"), script_vector3(geo_down)},
+        {string_static("left"), script_vector3(geo_left)},
+        {string_static("right"), script_vector3(geo_right)},
+        {string_static("forward"), script_vector3(geo_forward)},
+        {string_static("backward"), script_vector3(geo_backward)},
 
         // Conversions.
         {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
