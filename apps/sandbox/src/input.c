@@ -134,6 +134,36 @@ static void select_update_drag(
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
 
+static void input_order(
+    CmdControllerComp*           cmdController,
+    const SceneCollisionEnvComp* collisionEnv,
+    const SceneSelectionComp*    sel,
+    const GeoPlane*              groundPlane,
+    const GeoRay*                inputRay) {
+  /**
+   * Order an attack when clicking an opponent unit.
+   */
+  SceneRayHit            hit;
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB};
+  const f32              maxDist = g_inputMaxInteractDist;
+  if (scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit)) {
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      cmd_push_attack(cmdController, *e, hit.entity);
+    }
+    return;
+  }
+  /**
+   * Otherwise order an move.
+   */
+  const f32 rayT = geo_plane_intersect_ray(groundPlane, inputRay);
+  if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
+    const GeoVector targetPos = geo_ray_position(inputRay, rayT);
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      cmd_push_move(cmdController, *e, targetPos);
+    }
+  }
+}
+
 static void update_camera_interact(
     InputStateComp*              state,
     CmdControllerComp*           cmdController,
@@ -182,13 +212,7 @@ static void update_camera_interact(
   }
 
   if (!selectActive && input_triggered_lit(input, "Order")) {
-    const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
-    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      const GeoVector targetPos = geo_ray_position(&inputRay, rayT);
-      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-        cmd_push_move(cmdController, *e, targetPos);
-      }
-    }
+    input_order(cmdController, collisionEnv, sel, &groundPlane, &inputRay);
   }
 
   if (!selectActive && input_triggered_lit(input, "SpawnUnit")) {
