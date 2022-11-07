@@ -85,6 +85,7 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
+    scene_brain_set_none(brain, g_brainKeyAttackTarget);
   }
 }
 
@@ -94,6 +95,7 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyAttackTarget, script_entity(cmdAttack->target));
+    scene_brain_set_none(brain, g_brainKeyMoveTarget);
   }
 }
 

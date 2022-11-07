@@ -3,11 +3,13 @@
 #include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_nav.h"
+#include "scene_target.h"
 
 // clang-format off
 
 static StringHash g_brainKeyNavTarget,
                   g_brainKeyNavStop,
+                  g_brainKeyTargetOverride,
                   g_brainKeyAttackTarget;
 
 // clang-format on
@@ -15,6 +17,7 @@ static StringHash g_brainKeyNavTarget,
 ecs_view_define(BrainView) {
   ecs_access_maybe_write(SceneAttackComp);
   ecs_access_maybe_write(SceneNavAgentComp);
+  ecs_access_maybe_write(SceneTargetFinderComp);
   ecs_access_write(SceneBrainComp);
 }
 
@@ -47,6 +50,13 @@ ecs_system_define(SceneControllerUpdateSys) {
       }
     }
 
+    // Set target override.
+    SceneTargetFinderComp* target = ecs_view_write_t(itr, SceneTargetFinderComp);
+    if (target) {
+      const ScriptVal targetOverride = scene_brain_get(brain, g_brainKeyTargetOverride);
+      target->targetOverride         = script_get_entity(targetOverride, 0);
+    }
+
     // Set attack target.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
@@ -58,9 +68,10 @@ ecs_system_define(SceneControllerUpdateSys) {
 }
 
 ecs_module_init(scene_controller_module) {
-  g_brainKeyNavTarget    = stringtable_add(g_stringtable, string_lit("cmd_nav_target"));
-  g_brainKeyNavStop      = stringtable_add(g_stringtable, string_lit("cmd_nav_stop"));
-  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmd_attack_target"));
+  g_brainKeyNavTarget      = stringtable_add(g_stringtable, string_lit("cmd_nav_target"));
+  g_brainKeyNavStop        = stringtable_add(g_stringtable, string_lit("cmd_nav_stop"));
+  g_brainKeyTargetOverride = stringtable_add(g_stringtable, string_lit("cmd_target_override"));
+  g_brainKeyAttackTarget   = stringtable_add(g_stringtable, string_lit("cmd_attack_target"));
 
   ecs_register_view(BrainView);
 

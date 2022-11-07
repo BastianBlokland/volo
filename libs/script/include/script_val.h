@@ -40,6 +40,7 @@ ScriptVal script_bool(bool);
 ScriptVal script_vector3(GeoVector);
 ScriptVal script_vector3_lit(f32 x, f32 y, f32 z);
 ScriptVal script_entity(EcsEntityId);
+ScriptVal script_entity_or_null(EcsEntityId);
 ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
