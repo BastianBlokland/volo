@@ -38,15 +38,15 @@ ecs_system_define(SceneControllerUpdateSys) {
         if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
           scene_nav_move_to(navAgent, navTargetPos);
         } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
-          scene_brain_set_none(brain, g_brainKeyNavTarget);
+          scene_brain_set_null(brain, g_brainKeyNavTarget);
         }
       }
 
       // Stop moving when nav-stop value is set.
       if (script_val_has(scene_brain_get(brain, g_brainKeyNavStop))) {
         scene_nav_stop(navAgent);
-        scene_brain_set_none(brain, g_brainKeyNavTarget);
-        scene_brain_set_none(brain, g_brainKeyNavStop);
+        scene_brain_set_null(brain, g_brainKeyNavTarget);
+        scene_brain_set_null(brain, g_brainKeyNavStop);
       }
     }
 
@@ -62,7 +62,7 @@ ecs_system_define(SceneControllerUpdateSys) {
     if (attack) {
       const ScriptVal attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
       attack->targetEntity         = script_get_entity(attackTarget, 0);
-      scene_brain_set_none(brain, g_brainKeyAttackTarget);
+      scene_brain_set_null(brain, g_brainKeyAttackTarget);
     }
   }
 }
