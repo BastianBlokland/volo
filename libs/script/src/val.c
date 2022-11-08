@@ -84,6 +84,10 @@ ScriptVal script_entity(const EcsEntityId value) {
   return result;
 }
 
+ScriptVal script_entity_or_null(const EcsEntityId entity) {
+  return entity ? script_entity(entity) : script_null();
+}
+
 ScriptVal script_time(const TimeDuration value) { return script_number(value / (f64)time_second); }
 
 f64 script_get_number(const ScriptVal value, const f64 fallback) {

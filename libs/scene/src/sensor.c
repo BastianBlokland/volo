@@ -71,7 +71,7 @@ ecs_system_define(SceneSensorUpdateSys) {
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
-        scene_brain_set_none(brain, g_brainKeyNavArrived);
+        scene_brain_set_null(brain, g_brainKeyNavArrived);
       } else {
         scene_brain_set(brain, g_brainKeyNavArrived, script_vector3(navAgent->target));
       }
@@ -85,9 +85,9 @@ ecs_system_define(SceneSensorUpdateSys) {
       scene_brain_set(brain, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
       scene_brain_set(brain, g_brainKeyTargetLos, script_bool(los));
     } else {
-      scene_brain_set_none(brain, g_brainKeyTargetEntity);
-      scene_brain_set_none(brain, g_brainKeyTargetPos);
-      scene_brain_set_none(brain, g_brainKeyTargetLos);
+      scene_brain_set_null(brain, g_brainKeyTargetEntity);
+      scene_brain_set_null(brain, g_brainKeyTargetPos);
+      scene_brain_set_null(brain, g_brainKeyTargetLos);
     }
   }
 }

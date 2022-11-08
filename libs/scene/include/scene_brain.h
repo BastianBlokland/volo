@@ -24,7 +24,7 @@ ecs_comp_extern(SceneBrainComp);
  */
 ScriptVal        scene_brain_get(const SceneBrainComp*, StringHash key);
 void             scene_brain_set(const SceneBrainComp*, StringHash key, ScriptVal);
-void             scene_brain_set_none(const SceneBrainComp*, StringHash key);
+void             scene_brain_set_null(const SceneBrainComp*, StringHash key);
 const ScriptMem* scene_brain_memory(const SceneBrainComp*);
 
 /**

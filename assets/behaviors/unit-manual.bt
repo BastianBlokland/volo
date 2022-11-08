@@ -16,6 +16,10 @@
           "script": "$cmd_nav_target = $user_move_target;"
         },
         {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_target_override = null;"
+        },
+        {
           "$type": "AssetAiNode_Try",
           "$name": "Check if we arrived at the user input",
           "child": {
@@ -26,6 +30,24 @@
         {
           "$type": "AssetAiNode_Execute",
           "script": "$user_move_target = null;"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Set attack target",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "script": "$user_attack_target != null;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_target_override = $user_attack_target;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$user_attack_target = null;"
         }
       ]
     },
@@ -46,6 +68,27 @@
         {
           "$type": "AssetAiNode_Running",
           "$name": "Attacking"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Move to target",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "script": "$cmd_target_override && $target_entity == $cmd_target_override;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_nav_target = $target_position;"
+        },
+        {
+          "$type": "AssetAiNode_Try",
+          "child": {
+            "$type": "AssetAiNode_Condition",
+            "script": "distance($target_position, $self_nav_arrived) < 5"
+          }
         }
       ]
     },

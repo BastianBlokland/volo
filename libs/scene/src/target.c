@@ -55,6 +55,9 @@ static bool target_line_of_sight_test(
 
 static bool
 target_finder_needs_refresh(const SceneTargetFinderComp* finder, const SceneTimeComp* time) {
+  if (finder->targetOverride) {
+    return false;
+  }
   return time->time >= finder->nextRefreshTime;
 }
 
@@ -93,6 +96,10 @@ ecs_system_define(SceneTargetUpdateSys) {
     const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
     SceneTargetFinderComp*    finder  = ecs_view_write_t(itr, SceneTargetFinderComp);
+
+    if (finder->targetOverride) {
+      finder->target = finder->targetOverride;
+    }
 
     /**
      * Refresh our target.
@@ -136,7 +143,8 @@ ecs_system_define(SceneTargetUpdateSys) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
-      finder->target = 0;
+      finder->targetOverride = 0;
+      finder->target         = 0;
     }
   }
 }

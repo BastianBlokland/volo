@@ -9,13 +9,14 @@
 #include "cmd_internal.h"
 #include "object_internal.h"
 
-static StringHash g_brainKeyMoveTarget;
+static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
 static const u8   g_cmdPlayerFaction = 2;
 
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
   Cmd_Move,
+  Cmd_Attack,
   Cmd_SpawnUnit,
   Cmd_Destroy,
 } CmdType;
@@ -28,6 +29,11 @@ typedef struct {
   EcsEntityId object;
   GeoVector   position;
 } CmdMove;
+
+typedef struct {
+  EcsEntityId object;
+  EcsEntityId target;
+} CmdAttack;
 
 typedef struct {
   GeoVector position;
@@ -43,6 +49,7 @@ typedef struct {
   union {
     CmdSelect    select;
     CmdMove      move;
+    CmdAttack    attack;
     CmdSpawnUnit spawnUnit;
     CmdDestroy   destroy;
   };
@@ -78,6 +85,17 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
+    scene_brain_set_null(brain, g_brainKeyAttackTarget);
+  }
+}
+
+static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
+  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdAttack->object);
+  if (brainItr) {
+    SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
+
+    scene_brain_set(brain, g_brainKeyAttackTarget, script_entity(cmdAttack->target));
+    scene_brain_set_null(brain, g_brainKeyMoveTarget);
   }
 }
 
@@ -98,6 +116,9 @@ static void cmd_execute(
     break;
   case Cmd_Move:
     cmd_execute_move(world, &cmd->move);
+    break;
+  case Cmd_Attack:
+    cmd_execute_attack(world, &cmd->attack);
     break;
   case Cmd_SpawnUnit:
     for (u32 i = 0; i != cmd->spawnUnit.count; ++i) {
@@ -136,7 +157,8 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(sandbox_cmd_module) {
-  g_brainKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user_move_target"));
+  g_brainKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
+  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
@@ -171,6 +193,14 @@ void cmd_push_move(
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Move,
       .move = {.object = object, .position = position},
+  };
+}
+
+void cmd_push_attack(
+    CmdControllerComp* controller, const EcsEntityId object, const EcsEntityId target) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type   = Cmd_Attack,
+      .attack = {.object = object, .target = target},
   };
 }
 

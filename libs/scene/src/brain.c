@@ -157,7 +157,7 @@ void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const Sc
   script_mem_set(brain->memory, key, value);
 }
 
-void scene_brain_set_none(const SceneBrainComp* brain, const StringHash key) {
+void scene_brain_set_null(const SceneBrainComp* brain, const StringHash key) {
   script_mem_set_null(brain->memory, key);
 }
 
