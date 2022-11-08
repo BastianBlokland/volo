@@ -59,4 +59,22 @@ spec(line) {
       check_eq_float(geo_line_closest_time_ray(&line, &ray), 1, 1e-6);
     }
   }
+
+  it("can compute the distance squared to a given point") {
+    {
+      const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 0, 0)), 1, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 1, 0)), 0, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 2, 0)), 1, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 1, 5)), 0, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 1, 10)), 25, 1e-6);
+    }
+    {
+      const GeoLine line = {{-2, -2, -2}, {2, 2, 2}};
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-2, -2, -2)), 0, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 0, 0)), 0, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-3, -3, -3)), 3, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-5, -5, -5)), 27, 1e-6);
+    }
+  }
 }

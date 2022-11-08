@@ -57,3 +57,8 @@ GeoVector geo_line_closest_point_ray(const GeoLine* line, const GeoRay* ray) {
   const f32 t = geo_line_closest_time_ray(line, ray);
   return geo_vector_lerp(line->a, line->b, t);
 }
+
+f32 geo_line_distance_sqr_point(const GeoLine* line, const GeoVector point) {
+  const GeoVector pointOnLine = geo_line_closest_point(line, point);
+  return geo_vector_mag_sqr(geo_vector_sub(point, pointOnLine));
+}
