@@ -364,41 +364,6 @@ GeoBox geo_box_from_frustum(const GeoVector frustum[8]) {
   return result;
 }
 
-bool geo_box_intersect_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
-#if geo_box_simd_enable
-  const SimdVec boxMin = simd_vec_load(box->min.comps);
-  const SimdVec boxMax = simd_vec_load(box->max.comps);
-  if (simd_vec_any_true(simd_vec_greater(boxMin, boxMax))) {
-    return true; // Box is inverted.
-  }
-  for (usize i = 0; i != 4; ++i) {
-    const SimdVec planeNorm           = simd_vec_load(frustum[i].normal.comps);
-    const SimdVec greaterThenZeroMask = simd_vec_greater(planeNorm, simd_vec_zero());
-    const SimdVec max                 = simd_vec_select(boxMin, boxMax, greaterThenZeroMask);
-    const SimdVec dot                 = simd_vec_dot4(planeNorm, max);
-    if (simd_vec_x(dot) < frustum[i].distance) {
-      return false;
-    }
-  }
-  return true;
-#else
-  if (geo_box_is_inverted3(box)) {
-    return true;
-  }
-  for (usize i = 0; i != 4; ++i) {
-    const GeoVector max = {
-        .x = frustum[i].normal.x > 0 ? box->max.x : box->min.x,
-        .y = frustum[i].normal.y > 0 ? box->max.y : box->min.y,
-        .z = frustum[i].normal.z > 0 ? box->max.z : box->min.z,
-    };
-    if (geo_vector_dot(frustum[i].normal, max) < frustum[i].distance) {
-      return false;
-    }
-  }
-  return true;
-#endif
-}
-
 f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNormal) {
   /**
    * Find the intersection of the axis-aligned box the given ray using Cyrus-Beck clipping.
@@ -464,4 +429,39 @@ bool geo_box_overlap_sphere(const GeoBox* box, const GeoSphere* sphere) {
   const GeoVector closest = geo_box_closest_point(box, sphere->point);
   const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(closest, sphere->point));
   return distSqr <= (sphere->radius * sphere->radius);
+}
+
+bool geo_box_overlap_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
+#if geo_box_simd_enable
+  const SimdVec boxMin = simd_vec_load(box->min.comps);
+  const SimdVec boxMax = simd_vec_load(box->max.comps);
+  if (simd_vec_any_true(simd_vec_greater(boxMin, boxMax))) {
+    return true; // Box is inverted.
+  }
+  for (usize i = 0; i != 4; ++i) {
+    const SimdVec planeNorm           = simd_vec_load(frustum[i].normal.comps);
+    const SimdVec greaterThenZeroMask = simd_vec_greater(planeNorm, simd_vec_zero());
+    const SimdVec max                 = simd_vec_select(boxMin, boxMax, greaterThenZeroMask);
+    const SimdVec dot                 = simd_vec_dot4(planeNorm, max);
+    if (simd_vec_x(dot) < frustum[i].distance) {
+      return false;
+    }
+  }
+  return true;
+#else
+  if (geo_box_is_inverted3(box)) {
+    return true;
+  }
+  for (usize i = 0; i != 4; ++i) {
+    const GeoVector max = {
+        .x = frustum[i].normal.x > 0 ? box->max.x : box->min.x,
+        .y = frustum[i].normal.y > 0 ? box->max.y : box->min.y,
+        .z = frustum[i].normal.z > 0 ? box->max.z : box->min.z,
+    };
+    if (geo_vector_dot(frustum[i].normal, max) < frustum[i].distance) {
+      return false;
+    }
+  }
+  return true;
+#endif
 }
