@@ -30,6 +30,6 @@ f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector
 bool geo_box_rotated_intersect_frustum(const GeoBoxRotated*, const GeoVector frustum[8]);
 
 /**
- * Test if the rotated box overlaps the given axis-aligned box.
+ * Overlap tests.
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);

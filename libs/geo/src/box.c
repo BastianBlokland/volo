@@ -363,20 +363,6 @@ GeoBox geo_box_from_frustum(const GeoVector frustum[8]) {
   return result;
 }
 
-bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
-#if geo_box_simd_enable
-  const SimdVec xMin = simd_vec_load(x->min.comps);
-  const SimdVec xMax = simd_vec_load(x->max.comps);
-  const SimdVec yMin = simd_vec_load(y->min.comps);
-  const SimdVec yMax = simd_vec_load(y->max.comps);
-  const SimdVec cmp  = simd_vec_and(simd_vec_less(xMin, yMax), simd_vec_greater(xMax, yMin));
-  return simd_vec_all_true(simd_vec_w_all_ones(cmp)); // W to all ones to ignore the w comparision.
-#else
-  return x->min.x < y->max.x && x->min.y < y->max.y && x->min.z < y->max.z && x->max.x > y->min.x &&
-         x->max.y > y->min.y && x->max.z > y->min.z;
-#endif
-}
-
 bool geo_box_intersect_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
 #if geo_box_simd_enable
   const SimdVec boxMin = simd_vec_load(box->min.comps);
@@ -457,4 +443,18 @@ f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNo
   }
 
   return result;
+}
+
+bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
+#if geo_box_simd_enable
+  const SimdVec xMin = simd_vec_load(x->min.comps);
+  const SimdVec xMax = simd_vec_load(x->max.comps);
+  const SimdVec yMin = simd_vec_load(y->min.comps);
+  const SimdVec yMax = simd_vec_load(y->max.comps);
+  const SimdVec cmp  = simd_vec_and(simd_vec_less(xMin, yMax), simd_vec_greater(xMax, yMin));
+  return simd_vec_all_true(simd_vec_w_all_ones(cmp)); // W to all ones to ignore the w comparision.
+#else
+  return x->min.x < y->max.x && x->min.y < y->max.y && x->min.z < y->max.z && x->max.x > y->min.x &&
+         x->max.y > y->min.y && x->max.z > y->min.z;
+#endif
 }
