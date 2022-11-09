@@ -22,5 +22,5 @@ f32 geo_sphere_intersect_ray(const GeoSphere*, const GeoRay*);
 /**
  * Overlap tests.
  */
+bool geo_sphere_overlap(const GeoSphere*, const GeoSphere*);
 bool geo_sphere_overlap_box(const GeoSphere*, const GeoBox*);
-bool geo_sphere_overlap_sphere(const GeoSphere*, const GeoSphere*);
