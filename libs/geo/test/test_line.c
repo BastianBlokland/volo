@@ -102,10 +102,10 @@ spec(line) {
     }
     {
       const GeoLine line = {{0, 0, 0}, {0, 0, 0}};
-      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-2, -2, -2)), 0, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-2, -2, -2)), 12, 1e-6);
       check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(0, 0, 0)), 0, 1e-6);
-      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-3, -3, -3)), 3, 1e-6);
-      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-5, -5, -5)), 27, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-3, -3, -3)), 27, 1e-6);
+      check_eq_float(geo_line_distance_sqr_point(&line, geo_vector(-5, -5, -5)), 75, 1e-6);
     }
   }
 }

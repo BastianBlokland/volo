@@ -15,12 +15,19 @@ f32 geo_line_length_sqr(const GeoLine* line) {
 GeoVector geo_line_direction(const GeoLine* line) {
   const GeoVector delta  = geo_vector_sub(line->b, line->a);
   const f32       length = geo_vector_mag(delta);
-  return length <= f32_epsilon ? geo_forward : geo_vector_div(delta, length);
+  if (length <= f32_epsilon) {
+    return geo_forward; // Zero length line.
+  }
+  return geo_vector_div(delta, length);
 }
 
 f32 geo_line_closest_time(const GeoLine* line, const GeoVector point) {
-  const GeoVector toB = geo_vector_sub(line->b, line->a);
-  const f32 t = geo_vector_dot(geo_vector_sub(point, line->a), toB) / geo_vector_dot(toB, toB);
+  const GeoVector toB       = geo_vector_sub(line->b, line->a);
+  const f32       lengthSqr = geo_vector_dot(toB, toB);
+  if (lengthSqr < f32_epsilon) {
+    return 0; // Zero length line.
+  }
+  const f32 t = geo_vector_dot(geo_vector_sub(point, line->a), toB) / lengthSqr;
   return math_clamp_f32(t, 0, 1);
 }
 
