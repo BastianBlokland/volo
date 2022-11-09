@@ -49,7 +49,7 @@ ecs_system_define(SceneAttackInitSys) {
       const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
 
       const u32 muzzleJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("muzzle"));
-      diag_assert_msg(!sentinel_check(muzzleJoint), "No 'muzzle' joint found ");
+      diag_assert_msg(!sentinel_check(muzzleJoint), "No 'muzzle' joint found");
       ecs_world_add_t(world, entity, SceneAttackAnimComp, .muzzleJoint = muzzleJoint);
     }
   }
