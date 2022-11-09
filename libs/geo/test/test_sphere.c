@@ -59,4 +59,32 @@ spec(sphere) {
       check_eq_float(hitT, 0.5f, 1e-6);
     }
   }
+
+  it("can test overlaps with other spheres") {
+    check_msg(
+        geo_sphere_overlap_sphere(
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f},
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_sphere_overlap_sphere(
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f},
+            &(GeoSphere){.point = {0, 0, 2}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        !geo_sphere_overlap_sphere(
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f},
+            &(GeoSphere){.point = {0, 0, 2.1f}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_sphere_overlap_sphere(
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 0.2f},
+            &(GeoSphere){.point = {0, 0, .8f}, .radius = 0.6f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_sphere_overlap_sphere(
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 0.2f},
+            &(GeoSphere){.point = {0, 0, .8f}, .radius = 0.6f}),
+        "Sphere overlap check failed");
+  }
 }

@@ -37,3 +37,8 @@ bool geo_sphere_overlap_box(const GeoSphere* sphere, const GeoBox* box) {
   const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(closest, sphere->point));
   return distSqr <= (sphere->radius * sphere->radius);
 }
+
+bool geo_sphere_overlap_sphere(const GeoSphere* a, const GeoSphere* b) {
+  const f32 distSqr = geo_vector_mag_sqr(geo_vector_sub(b->point, a->point));
+  return distSqr <= ((a->radius + b->radius) * (a->radius + b->radius));
+}
