@@ -127,27 +127,27 @@ static f32 geo_prim_intersect_ray(
   UNREACHABLE
 }
 
-static bool geo_prim_intersect_frustum(
-    const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[8]) {
+static bool
+geo_prim_overlap_frustum(const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[8]) {
   switch (prim->type) {
   case GeoQueryPrim_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
-    // * TODO: Implement sphere <-> frustum intersection instead of converting spheres to boxes.
+    // TODO: Implement sphere <-> frustum overlap instead of converting spheres to boxes.
     const GeoBoxRotated box = {
         .box      = geo_box_from_sphere(sphere->point, sphere->radius),
         .rotation = geo_quat_ident,
     };
-    return geo_box_rotated_intersect_frustum(&box, frustum);
+    return geo_box_rotated_overlap_frustum(&box, frustum);
   }
   case GeoQueryPrim_Capsule: {
     const GeoCapsule* cap = &((const GeoCapsule*)prim->shapes)[entryIdx];
-    // * TODO: Implement capsule <-> frustum intersection instead of converting capsules to boxes.
+    // TODO: Implement capsule <-> frustum overlap instead of converting capsules to boxes.
     const GeoBoxRotated box = geo_box_rotated_from_capsule(cap->line.a, cap->line.b, cap->radius);
-    return geo_box_rotated_intersect_frustum(&box, frustum);
+    return geo_box_rotated_overlap_frustum(&box, frustum);
   }
   case GeoQueryPrim_BoxRotated: {
     const GeoBoxRotated* box = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
-    return geo_box_rotated_intersect_frustum(box, frustum);
+    return geo_box_rotated_overlap_frustum(box, frustum);
   }
   case GeoQueryPrim_Count:
     break;
@@ -322,7 +322,7 @@ u32 geo_query_frustum_all(
       if (!geo_box_overlap(&prim->bounds[i], &queryBounds)) {
         continue; // Bounds do not intersect; no need to test against the shape.
       }
-      if (!geo_prim_intersect_frustum(prim, i, frustum)) {
+      if (!geo_prim_overlap_frustum(prim, i, frustum)) {
         continue; // Miss.
       }
       if (!geo_query_filter_callback(filter, prim->ids[i])) {

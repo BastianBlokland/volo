@@ -115,57 +115,6 @@ f32 geo_box_rotated_intersect_ray(
   return rayHitT;
 }
 
-bool geo_box_rotated_intersect_frustum(const GeoBoxRotated* box, const GeoVector frustum[8]) {
-  GeoVector boxPoints[8];
-  geo_box_rotated_corners(box, boxPoints);
-
-  const GeoVector boxAxes[] = {
-      geo_quat_rotate(box->rotation, geo_right),
-      geo_quat_rotate(box->rotation, geo_up),
-      geo_quat_rotate(box->rotation, geo_forward),
-  };
-  const GeoVector frustumAxes[] = {
-      geo_plane_at_triangle(frustum[2], frustum[6], frustum[3]).normal, // Right.
-      geo_plane_at_triangle(frustum[0], frustum[4], frustum[1]).normal, // Left.
-      geo_plane_at_triangle(frustum[1], frustum[5], frustum[2]).normal, // Up.
-      geo_plane_at_triangle(frustum[0], frustum[3], frustum[4]).normal, // Down.
-      geo_plane_at_triangle(frustum[6], frustum[5], frustum[4]).normal, // Forward.
-  };
-  const GeoVector frustumEdges[] = {
-      frustumAxes[0], // Right.
-      frustumAxes[2], // Up.
-      geo_vector_sub(frustum[4], frustum[0]),
-      geo_vector_sub(frustum[5], frustum[1]),
-      geo_vector_sub(frustum[6], frustum[2]),
-      geo_vector_sub(frustum[7], frustum[3]),
-  };
-
-  // Check the axes of the box.
-  array_for_t(boxAxes, GeoVector, boxAxis) {
-    if (!geo_sat_overlapping3(*boxAxis, boxPoints, frustum)) {
-      return false;
-    }
-  }
-
-  // Check the axes of the frustum.
-  array_for_t(frustumAxes, GeoVector, frustumAxis) {
-    if (!geo_sat_overlapping3(*frustumAxis, boxPoints, frustum)) {
-      return false;
-    }
-  }
-
-  // Check the derived axes (cross of all the edges).
-  array_for_t(boxAxes, GeoVector, boxAxis) {
-    array_for_t(frustumEdges, GeoVector, frustumEdge) {
-      if (!geo_sat_overlapping3(geo_vector_cross3(*boxAxis, *frustumEdge), boxPoints, frustum)) {
-        return false;
-      }
-    }
-  }
-
-  return true; // No separating axis found; boxes are overlapping.
-}
-
 bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
   /**
    * Check if two boxes are overlapping using the Separating Axis Theorem:
@@ -223,4 +172,55 @@ bool geo_box_rotated_overlap_sphere(const GeoBoxRotated* boxRotated, const GeoSp
   const GeoVector localClosest      = geo_box_closest_point(&boxRotated->box, localSphereCenter);
   const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(localClosest, localSphereCenter));
   return distSqr <= (sphere->radius * sphere->radius);
+}
+
+bool geo_box_rotated_overlap_frustum(const GeoBoxRotated* box, const GeoVector frustum[8]) {
+  GeoVector boxPoints[8];
+  geo_box_rotated_corners(box, boxPoints);
+
+  const GeoVector boxAxes[] = {
+      geo_quat_rotate(box->rotation, geo_right),
+      geo_quat_rotate(box->rotation, geo_up),
+      geo_quat_rotate(box->rotation, geo_forward),
+  };
+  const GeoVector frustumAxes[] = {
+      geo_plane_at_triangle(frustum[2], frustum[6], frustum[3]).normal, // Right.
+      geo_plane_at_triangle(frustum[0], frustum[4], frustum[1]).normal, // Left.
+      geo_plane_at_triangle(frustum[1], frustum[5], frustum[2]).normal, // Up.
+      geo_plane_at_triangle(frustum[0], frustum[3], frustum[4]).normal, // Down.
+      geo_plane_at_triangle(frustum[6], frustum[5], frustum[4]).normal, // Forward.
+  };
+  const GeoVector frustumEdges[] = {
+      frustumAxes[0], // Right.
+      frustumAxes[2], // Up.
+      geo_vector_sub(frustum[4], frustum[0]),
+      geo_vector_sub(frustum[5], frustum[1]),
+      geo_vector_sub(frustum[6], frustum[2]),
+      geo_vector_sub(frustum[7], frustum[3]),
+  };
+
+  // Check the axes of the box.
+  array_for_t(boxAxes, GeoVector, boxAxis) {
+    if (!geo_sat_overlapping3(*boxAxis, boxPoints, frustum)) {
+      return false;
+    }
+  }
+
+  // Check the axes of the frustum.
+  array_for_t(frustumAxes, GeoVector, frustumAxis) {
+    if (!geo_sat_overlapping3(*frustumAxis, boxPoints, frustum)) {
+      return false;
+    }
+  }
+
+  // Check the derived axes (cross of all the edges).
+  array_for_t(boxAxes, GeoVector, boxAxis) {
+    array_for_t(frustumEdges, GeoVector, frustumEdge) {
+      if (!geo_sat_overlapping3(geo_vector_cross3(*boxAxis, *frustumEdge), boxPoints, frustum)) {
+        return false;
+      }
+    }
+  }
+
+  return true; // No separating axis found; boxes are overlapping.
 }
