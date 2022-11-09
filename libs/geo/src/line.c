@@ -15,8 +15,7 @@ f32 geo_line_length_sqr(const GeoLine* line) {
 GeoVector geo_line_direction(const GeoLine* line) {
   const GeoVector delta  = geo_vector_sub(line->b, line->a);
   const f32       length = geo_vector_mag(delta);
-  diag_assert(length != 0);
-  return geo_vector_div(delta, length);
+  return length <= f32_epsilon ? geo_forward : geo_vector_div(delta, length);
 }
 
 f32 geo_line_closest_time(const GeoLine* line, const GeoVector point) {
