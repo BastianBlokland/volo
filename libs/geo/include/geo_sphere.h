@@ -7,7 +7,7 @@
  * Sphere in 3 dimensional space.
  */
 
-typedef struct {
+typedef struct sGeoSphere {
   GeoVector point;
   f32       radius;
 } GeoSphere;
