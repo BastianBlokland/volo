@@ -3,6 +3,7 @@
 #include "core_math.h"
 #include "geo_box.h"
 #include "geo_box_rotated.h"
+#include "geo_sphere.h"
 
 /**
  * Separating Axis Theorem helpers to check if two sets of points overlap on a given axis.
@@ -78,6 +79,12 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
       .box      = geo_box_from_capsule(localBottom, localTop, radius),
       .rotation = geo_quat_look(dir, geo_up),
   };
+}
+
+static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
+  const GeoVector boxCenter      = geo_box_center(&box->box);
+  const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
+  return geo_rotate_around(boxCenter, boxInvRotation, point);
 }
 
 static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
@@ -209,4 +216,11 @@ bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
   }
 
   return true; // No separating axis found; boxes are overlapping.
+}
+
+bool geo_box_rotated_overlap_sphere(const GeoBoxRotated* boxRotated, const GeoSphere* sphere) {
+  const GeoVector localSphereCenter = geo_box_rotated_local_point(boxRotated, sphere->point);
+  const GeoVector localClosest      = geo_box_closest_point(&boxRotated->box, localSphereCenter);
+  const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(localClosest, localSphereCenter));
+  return distSqr <= (sphere->radius * sphere->radius);
 }

@@ -25,6 +25,7 @@ target_link_libraries(lib_geo PRIVATE lib_jobs lib_log)
 
 add_executable(test_lib_geo
   test/config.c
+  test/test_box_rotated.c
   test/test_box.c
   test/test_capsule.c
   test/test_line.c

@@ -1,6 +1,7 @@
 #include "app_check.h"
 
 void app_check_configure(CheckDef* check) {
+  register_spec(check, box_rotated);
   register_spec(check, box);
   register_spec(check, capsule);
   register_spec(check, line);

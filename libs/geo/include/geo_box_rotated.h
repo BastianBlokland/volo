@@ -2,6 +2,9 @@
 #include "geo_box.h"
 #include "geo_quat.h"
 
+// Forward declare from 'geo_sphere.h'.
+typedef struct sGeoSphere GeoSphere;
+
 /**
  * Geometric 3d rotated box.
  */
@@ -33,3 +36,4 @@ bool geo_box_rotated_intersect_frustum(const GeoBoxRotated*, const GeoVector fru
  * Overlap tests.
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);
+bool geo_box_rotated_overlap_sphere(const GeoBoxRotated*, const GeoSphere*);
