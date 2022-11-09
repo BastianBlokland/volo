@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_math.h"
 #include "geo_box.h"
+#include "geo_sphere.h"
 
 #include "utils_internal.h"
 
@@ -172,29 +173,6 @@ spec(box) {
     check_eq_vector(box.max, geo_vector(6, 1, 0));
   }
 
-  it("can test if two boxes overlap") {
-    {
-      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
-      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
-      check(geo_box_overlap(&a, &b));
-    }
-    {
-      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
-      const GeoBox b = geo_box_from_center(geo_vector(3, 0, 0), geo_vector(1, 1, 1));
-      check(!geo_box_overlap(&a, &b));
-    }
-    {
-      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
-      const GeoBox b = geo_box_from_center(geo_vector(0, 3, 0), geo_vector(1, 1, 1));
-      check(!geo_box_overlap(&a, &b));
-    }
-    {
-      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
-      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 3), geo_vector(1, 1, 1));
-      check(!geo_box_overlap(&a, &b));
-    }
-  }
-
   it("can test for approximate intersection with 4 frustum planes") {
     const GeoPlane frustum[4] = {
         {.normal = geo_right, .distance = -1.0f},
@@ -237,5 +215,61 @@ spec(box) {
     const GeoBox inverted = geo_box_inverted3();
     // NOTE: Inverted boxes are considered to always be intersecting.
     check(geo_box_intersect_frustum4_approx(&inverted, frustum));
+  }
+
+  it("can test if two boxes overlap") {
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      check(geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(3, 0, 0), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 3, 0), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+    {
+      const GeoBox a = geo_box_from_center(geo_vector(0, 0, 0), geo_vector(1, 1, 1));
+      const GeoBox b = geo_box_from_center(geo_vector(0, 0, 3), geo_vector(1, 1, 1));
+      check(!geo_box_overlap(&a, &b));
+    }
+  }
+
+  it("can test overlaps with spheres") {
+    check_msg(
+        geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {0, 0, 0}},
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {0, 0, 0}},
+            &(GeoSphere){.point = {0, 1, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        !geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {0, 0, 0}},
+            &(GeoSphere){.point = {0, 1.1f, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {1, 1, 1}},
+            &(GeoSphere){.point = {0, 0, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {1, 1, 1}},
+            &(GeoSphere){.point = {0, 2, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
+    check_msg(
+        !geo_box_overlap_sphere(
+            &(GeoBox){.min = {0, 0, 0}, .max = {1, 1, 1}},
+            &(GeoSphere){.point = {0, 2.1f, 0}, .radius = 1.0f}),
+        "Sphere overlap check failed");
   }
 }

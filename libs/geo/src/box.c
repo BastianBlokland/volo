@@ -2,6 +2,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "geo_box.h"
+#include "geo_sphere.h"
 
 #define geo_box_simd_enable 1
 
@@ -457,4 +458,10 @@ bool geo_box_overlap(const GeoBox* x, const GeoBox* y) {
   return x->min.x < y->max.x && x->min.y < y->max.y && x->min.z < y->max.z && x->max.x > y->min.x &&
          x->max.y > y->min.y && x->max.z > y->min.z;
 #endif
+}
+
+bool geo_box_overlap_sphere(const GeoBox* box, const GeoSphere* sphere) {
+  const GeoVector closest = geo_box_closest_point(box, sphere->point);
+  const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(closest, sphere->point));
+  return distSqr <= (sphere->radius * sphere->radius);
 }

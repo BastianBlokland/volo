@@ -3,6 +3,9 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
+// Forward declare from 'geo_sphere.h'.
+typedef struct sGeoSphere GeoSphere;
+
 /**
  * Geometric 3d axis-aligned box.
  */
@@ -122,4 +125,5 @@ f32 geo_box_intersect_ray(const GeoBox*, const GeoRay*, GeoVector* outNormal);
 /**
  * Overlap tests.
  */
-bool geo_box_overlap(const GeoBox* x, const GeoBox* y);
+bool geo_box_overlap(const GeoBox*, const GeoBox*);
+bool geo_box_overlap_sphere(const GeoBox*, const GeoSphere*);
