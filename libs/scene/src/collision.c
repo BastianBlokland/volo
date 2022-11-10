@@ -196,6 +196,21 @@ bool scene_query_ray(
   return false;
 }
 
+u32 scene_query_sphere_all(
+    const SceneCollisionEnvComp* env,
+    const GeoSphere*             sphere,
+    const SceneQueryFilter*      filter,
+    EcsEntityId                  out[geo_query_max_hits]) {
+  diag_assert(filter);
+
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
+  return geo_query_sphere_all(env->queryEnv, sphere, &geoFilter, (u64*)out);
+}
+
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
     const GeoVector              frustum[8],

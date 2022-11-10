@@ -12,3 +12,8 @@ f32 geo_capsule_intersect_ray(const GeoCapsule* capsule, const GeoRay* ray, GeoV
   }
   return rayHitT;
 }
+
+bool geo_capsule_overlap_sphere(const GeoCapsule* capsule, const GeoSphere* sphere) {
+  const f32 distSqr = geo_line_distance_sqr_point(&capsule->line, sphere->point);
+  return distSqr <= ((capsule->radius + sphere->radius) * (capsule->radius + sphere->radius));
+}

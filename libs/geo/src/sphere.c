@@ -32,6 +32,11 @@ f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
   return a - f;
 }
 
+bool geo_sphere_overlap(const GeoSphere* a, const GeoSphere* b) {
+  const f32 distSqr = geo_vector_mag_sqr(geo_vector_sub(b->point, a->point));
+  return distSqr <= ((a->radius + b->radius) * (a->radius + b->radius));
+}
+
 bool geo_sphere_overlap_box(const GeoSphere* sphere, const GeoBox* box) {
   const GeoVector closest = geo_box_closest_point(box, sphere->point);
   const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(closest, sphere->point));

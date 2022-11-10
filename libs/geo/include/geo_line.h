@@ -33,3 +33,8 @@ f32 geo_line_closest_time_ray(const GeoLine*, const GeoRay* ray);
  */
 GeoVector geo_line_closest_point(const GeoLine*, GeoVector point);
 GeoVector geo_line_closest_point_ray(const GeoLine*, const GeoRay* ray);
+
+/**
+ * Compute the distance squared from the line to the given point.
+ */
+f32 geo_line_distance_sqr_point(const GeoLine*, GeoVector point);

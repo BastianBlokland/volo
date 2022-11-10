@@ -124,6 +124,16 @@ bool scene_query_ray(
     SceneRayHit* out);
 
 /**
+ * Query for all objects that are contained in the given sphere.
+ * NOTE: Returns the number of hit entities.
+ */
+u32 scene_query_sphere_all(
+    const SceneCollisionEnvComp*,
+    const GeoSphere*,
+    const SceneQueryFilter*,
+    EcsEntityId out[scene_query_max_hits]);
+
+/**
  * Query for all entities that are contained in the frustum formed by the given 8 corner points.
  * NOTE: Returns the number of hit entities.
  */

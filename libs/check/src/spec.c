@@ -131,7 +131,11 @@ void check_eq_i64_raw(CheckTestContext* ctx, const i64 a, const i64 b, const Sou
 
 void check_eq_f64_raw(
     CheckTestContext* ctx, const f64 a, const f64 b, const f64 threshold, const SourceLoc source) {
-  if (UNLIKELY(math_abs(a - b) > threshold)) {
+  if (UNLIKELY(float_isnan(a))) {
+    check_report_error(ctx, fmt_write_scratch("nan == {}", fmt_float(b)), source);
+  } else if (UNLIKELY(float_isnan(b))) {
+    check_report_error(ctx, fmt_write_scratch("{} == nan", fmt_float(a)), source);
+  } else if (UNLIKELY(math_abs(a - b) > threshold)) {
     check_report_error(ctx, fmt_write_scratch("{} == {}", fmt_float(a), fmt_float(b)), source);
   }
 }

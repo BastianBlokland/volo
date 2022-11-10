@@ -7,7 +7,7 @@
  * Sphere in 3 dimensional space.
  */
 
-typedef struct {
+typedef struct sGeoSphere {
   GeoVector point;
   f32       radius;
 } GeoSphere;
@@ -20,6 +20,7 @@ typedef struct {
 f32 geo_sphere_intersect_ray(const GeoSphere*, const GeoRay*);
 
 /**
- * Test if the sphere overlap the given box.
+ * Overlap tests.
  */
+bool geo_sphere_overlap(const GeoSphere*, const GeoSphere*);
 bool geo_sphere_overlap_box(const GeoSphere*, const GeoBox*);
