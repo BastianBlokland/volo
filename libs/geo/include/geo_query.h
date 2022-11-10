@@ -70,6 +70,13 @@ bool geo_query_ray(
     const GeoQueryEnv*, const GeoRay*, f32 maxDist, const GeoQueryFilter*, GeoQueryRayHit* outHit);
 
 /**
+ * Query for all objects that are contained in the given sphere.
+ * NOTE: Returns the number of hit objects.
+ */
+u32 geo_query_sphere_all(
+    const GeoQueryEnv*, const GeoSphere*, const GeoQueryFilter*, u64 out[geo_query_max_hits]);
+
+/**
  * Query for all objects that are contained in the frustum formed by the given 8 corner points.
  * NOTE: Returns the number of hit objects.
  */
