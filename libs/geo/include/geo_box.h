@@ -54,6 +54,11 @@ GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
 GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
 
 /**
+ * Dilate the box by the given amount on all sides.
+ */
+GeoBox geo_box_dilate(const GeoBox*, GeoVector size);
+
+/**
  * Retrieve the 8 corners of the 3d box.
  */
 void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
