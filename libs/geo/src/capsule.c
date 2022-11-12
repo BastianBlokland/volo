@@ -2,6 +2,10 @@
 #include "geo_capsule.h"
 #include "geo_sphere.h"
 
+GeoCapsule geo_capsule_dilate(const GeoCapsule* capsule, const f32 radius) {
+  return (GeoCapsule){.line = capsule->line, .radius = capsule->radius + radius};
+}
+
 f32 geo_capsule_intersect_ray(const GeoCapsule* capsule, const GeoRay* ray, GeoVector* outNormal) {
   const GeoVector linePos       = geo_line_closest_point_ray(&capsule->line, ray);
   const GeoSphere closestSphere = {.point = linePos, .radius = capsule->radius};

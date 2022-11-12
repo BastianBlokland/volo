@@ -112,6 +112,13 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 #endif
 }
 
+GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
+  return (GeoBox){
+      .min = geo_vector_sub(b->min, size),
+      .max = geo_vector_add(b->max, size),
+  };
+}
+
 void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
   corners[0] = geo_vector(box->min.x, box->min.y, box->min.z);
   corners[1] = geo_vector(box->min.x, box->min.y, box->max.z);

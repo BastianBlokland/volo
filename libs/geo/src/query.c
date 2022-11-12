@@ -112,6 +112,7 @@ static f32 geo_prim_intersect_ray(
     if (hitT >= 0) {
       *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
     }
+    return hitT;
   }
   case GeoQueryPrim_Capsule: {
     const GeoCapsule* capsule = &((const GeoCapsule*)prim->shapes)[entryIdx];
@@ -120,6 +121,39 @@ static f32 geo_prim_intersect_ray(
   case GeoQueryPrim_BoxRotated: {
     const GeoBoxRotated* boxRotated = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
     return geo_box_rotated_intersect_ray(boxRotated, ray, outNormal);
+  }
+  case GeoQueryPrim_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static f32 geo_prim_intersect_ray_fat(
+    const GeoQueryPrim* prim,
+    const u32           entryIdx,
+    const GeoRay*       ray,
+    const f32           radius,
+    GeoVector*          outNormal) {
+  switch (prim->type) {
+  case GeoQueryPrim_Sphere: {
+    const GeoSphere* sphere        = &((const GeoSphere*)prim->shapes)[entryIdx];
+    const GeoSphere  sphereDilated = geo_sphere_dilate(sphere, radius);
+    const f32        hitT          = geo_sphere_intersect_ray(&sphereDilated, ray);
+    if (hitT >= 0) {
+      *outNormal = geo_vector_norm(geo_vector_sub(geo_ray_position(ray, hitT), sphere->point));
+    }
+    return hitT;
+  }
+  case GeoQueryPrim_Capsule: {
+    const GeoCapsule* capsule        = &((const GeoCapsule*)prim->shapes)[entryIdx];
+    const GeoCapsule  capsuleDilated = geo_capsule_dilate(capsule, radius);
+    return geo_capsule_intersect_ray(&capsuleDilated, ray, outNormal);
+  }
+  case GeoQueryPrim_BoxRotated: {
+    const GeoBoxRotated* boxRotated        = &((const GeoBoxRotated*)prim->shapes)[entryIdx];
+    const GeoVector      dilateSize        = geo_vector(radius, radius, radius);
+    const GeoBoxRotated  boxRotatedDilated = geo_box_rotated_dilate(boxRotated, dilateSize);
+    return geo_box_rotated_intersect_ray(&boxRotatedDilated, ray, outNormal);
   }
   case GeoQueryPrim_Count:
     break;
@@ -301,6 +335,66 @@ bool geo_query_ray(
       }
       GeoVector normal;
       const f32 hitT = geo_prim_intersect_ray(prim, i, ray, &normal);
+      if (hitT < 0.0 || hitT > maxDist) {
+        continue; // Miss.
+      }
+      if (hitT >= bestHit.time) {
+        continue; // Better hit already found.
+      }
+      if (!geo_query_filter_callback(filter, prim->ids[i])) {
+        continue; // Filtered out by the filter's callback.
+      }
+
+      // New best hit.
+      bestHit.time    = hitT;
+      bestHit.shapeId = prim->ids[i];
+      bestHit.normal  = normal;
+      foundHit        = true;
+    }
+  }
+
+  if (foundHit) {
+    *outHit = bestHit;
+  }
+  return foundHit;
+}
+
+bool geo_query_ray_fat(
+    const GeoQueryEnv*    env,
+    const GeoRay*         ray,
+    const f32             radius,
+    const f32             maxDist,
+    const GeoQueryFilter* filter,
+    GeoQueryRayHit*       outHit) {
+  diag_assert(filter);
+  diag_assert_msg(filter->layerMask, "Queries without any layers in the mask won't hit anything");
+  diag_assert_msg(radius >= 0.0f, "Raycast radius has to be positive");
+  diag_assert_msg(maxDist >= 0.0f, "Maximum raycast distance has to be positive");
+  diag_assert_msg(maxDist <= 1e5f, "Maximum raycast distance ({}) exceeded", fmt_float(1e5f));
+  geo_query_validate_pos(ray->point);
+  geo_query_validate_dir(ray->dir);
+
+  const GeoLine queryLine = {
+      .a = ray->point,
+      .b = geo_vector_add(ray->point, geo_vector_mul(ray->dir, maxDist)),
+  };
+  const GeoBox rayBox      = geo_box_from_line(queryLine.a, queryLine.b);
+  const GeoBox queryBounds = geo_box_dilate(&rayBox, geo_vector(radius, radius, radius));
+
+  GeoQueryRayHit bestHit  = {.time = f32_max};
+  bool           foundHit = false;
+
+  for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
+    const GeoQueryPrim* prim = &env->prims[primIdx];
+    for (u32 i = 0; i != prim->count; ++i) {
+      if (!geo_query_filter_layer(filter, prim->layers[i])) {
+        continue; // Layer not included in filter.
+      }
+      if (!geo_box_overlap(&prim->bounds[i], &queryBounds)) {
+        continue; // Bounds do not intersect; no need to test against the shape.
+      }
+      GeoVector normal;
+      const f32 hitT = geo_prim_intersect_ray_fat(prim, i, ray, radius, &normal);
       if (hitT < 0.0 || hitT > maxDist) {
         continue; // Miss.
       }

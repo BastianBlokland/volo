@@ -13,6 +13,11 @@ typedef struct sGeoSphere {
 } GeoSphere;
 
 /**
+ * Dilate the sphere by the given amount.
+ */
+GeoSphere geo_sphere_dilate(const GeoSphere*, f32 radius);
+
+/**
  * Compute the intersection of the sphere with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

@@ -196,6 +196,37 @@ bool scene_query_ray(
   return false;
 }
 
+bool scene_query_ray_fat(
+    const SceneCollisionEnvComp* env,
+    const GeoRay*                ray,
+    const f32                    radius,
+    const f32                    maxDist,
+    const SceneQueryFilter*      filter,
+    SceneRayHit*                 out) {
+  diag_assert(filter);
+
+  GeoQueryRayHit       hit;
+  const GeoQueryFilter geoFilter = {
+      .context   = filter->context,
+      .callback  = filter->callback,
+      .layerMask = (GeoQueryLayer)filter->layerMask,
+  };
+  if (geo_query_ray_fat(env->queryEnv, ray, radius, maxDist, &geoFilter, &hit)) {
+    *out = (SceneRayHit){
+        .entity = (EcsEntityId)hit.shapeId,
+        /**
+         * TODO: Instead of always outputting positions on the ray we should find the actual
+         * intersection point.
+         */
+        .position = geo_ray_position(ray, hit.time),
+        .normal   = hit.normal,
+        .time     = hit.time,
+    };
+    return true;
+  }
+  return false;
+}
+
 u32 scene_query_sphere_all(
     const SceneCollisionEnvComp* env,
     const GeoSphere*             sphere,

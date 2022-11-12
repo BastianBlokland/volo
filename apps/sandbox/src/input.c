@@ -145,8 +145,9 @@ static void input_order(
    */
   SceneRayHit            hit;
   const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB};
+  const f32              radius  = 0.5f;
   const f32              maxDist = g_inputMaxInteractDist;
-  if (scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit)) {
+  if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_attack(cmdController, *e, hit.entity);
     }

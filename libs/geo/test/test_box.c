@@ -67,6 +67,17 @@ spec(box) {
     check_eq_vector(geo_box_size(&b), geo_vector(0, 0, 3));
   }
 
+  it("can compute a dilated box") {
+    const GeoVector p      = {5, 0, 0};
+    const f32       radius = 1.0f;
+    const f32       size   = radius * 2;
+    const GeoBox    box    = geo_box_from_sphere(p, radius);
+    check_eq_vector(geo_box_size(&box), geo_vector(size, size, size));
+
+    const GeoBox dilatedBox = geo_box_dilate(&box, geo_vector(1, 2, 3));
+    check_eq_vector(geo_box_size(&dilatedBox), geo_vector(size + 2, size + 4, size + 6));
+  }
+
   it("can retrieve the corners of a 3d box") {
     const GeoBox box = {{-1, -1, -1}, {1, 1, 1}};
     GeoVector    corners[8];
