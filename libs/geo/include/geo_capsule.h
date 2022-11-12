@@ -15,6 +15,11 @@ typedef struct {
 } GeoCapsule;
 
 /**
+ * Dilate the capsule by the given amount.
+ */
+GeoCapsule geo_capsule_dilate(const GeoCapsule*, f32 radius);
+
+/**
  * Compute the intersection of the capsule with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

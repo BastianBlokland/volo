@@ -15,6 +15,11 @@ typedef struct {
 } GeoBoxRotated;
 
 /**
+ * Dilate the box by the given amount on all sides.
+ */
+GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated*, GeoVector size);
+
+/**
  * Calculate the rotated bounding box of a Capsule.
  */
 GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 radius);

@@ -4,6 +4,10 @@
 
 #include "intrinsic_internal.h"
 
+GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {
+  return (GeoSphere){.point = sphere->radius, .radius = sphere->radius + radius};
+}
+
 f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
   /**
    * Additional information:

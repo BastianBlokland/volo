@@ -63,6 +63,17 @@ static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
   }
 }
 
+GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
+  return (GeoBoxRotated){
+      .box =
+          {
+              .min = geo_vector_sub(b->box.min, size),
+              .max = geo_vector_add(b->box.max, size),
+          },
+      .rotation = b->rotation,
+  };
+}
+
 GeoBoxRotated
 geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const f32 radius) {
   const GeoVector toTop  = geo_vector_sub(top, bottom);
