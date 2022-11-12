@@ -70,6 +70,19 @@ bool geo_query_ray(
     const GeoQueryEnv*, const GeoRay*, f32 maxDist, const GeoQueryFilter*, GeoQueryRayHit* outHit);
 
 /**
+ * Query for a hit along the given ray with radius.
+ * Returns true if a shape was hit otherwise false.
+ * NOTE: Hit information is written to the out pointer if true was returned.
+ */
+bool geo_query_ray_fat(
+    const GeoQueryEnv*,
+    const GeoRay*,
+    f32 radius,
+    f32 maxDist,
+    const GeoQueryFilter*,
+    GeoQueryRayHit* outHit);
+
+/**
  * Query for all objects that are contained in the given sphere.
  * NOTE: Returns the number of hit objects.
  */
