@@ -123,6 +123,14 @@ bool scene_query_ray(
     const SceneQueryFilter*,
     SceneRayHit* out);
 
+bool scene_query_ray_fat(
+    const SceneCollisionEnvComp*,
+    const GeoRay* ray,
+    f32           radius,
+    f32           maxDist,
+    const SceneQueryFilter*,
+    SceneRayHit* out);
+
 /**
  * Query for all objects that are contained in the given sphere.
  * NOTE: Returns the number of hit entities.
