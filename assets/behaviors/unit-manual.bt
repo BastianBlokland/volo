@@ -93,8 +93,9 @@
       ]
     },
     {
-      "$type": "AssetAiNode_Success",
-      "$name": "Idle"
+      "$type": "AssetAiNode_Execute",
+      "$name": "Idle",
+      "script": "$cmd_target_override = null;"
     }
   ]
 }
