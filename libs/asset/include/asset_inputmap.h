@@ -35,4 +35,4 @@ ecs_comp_extern_public(AssetInputMapComp) {
 /**
  * Lookup an input action by the hash of its name.
  */
-const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, u32 nameHash);
+const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, StringHash nameHash);
