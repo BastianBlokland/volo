@@ -16,7 +16,6 @@
 
 ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId unitAGraphic, unitBGraphic, unitCGraphic;
-  EcsEntityId vfxProjectile, vfxImpact;
   EcsEntityId unitBehaviorAuto, unitBehaviorManual;
   EcsEntityId wallGraphic;
 };
@@ -91,8 +90,6 @@ ecs_system_define(ObjectDatabaseInitSys) {
       .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
       .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
       .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
-      .vfxProjectile      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
-      .vfxImpact          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
       .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
       .unitBehaviorManual = asset_lookup(world, assets, string_lit("behaviors/unit-manual.bt")),
       .wallGraphic        = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
@@ -137,20 +134,6 @@ EcsEntityId object_spawn_unit(
   ecs_world_add_t(world, e, SceneDamageComp);
   ecs_world_add_t(world, e, SceneFactionComp, .id = faction);
   ecs_world_add_t(world, e, SceneTargetFinderComp);
-  ecs_world_add_t(
-      world,
-      e,
-      SceneWeaponComp,
-      .animFire    = string_hash_lit("fire"),
-      .jointOrigin = string_hash_lit("muzzle"),
-      .vfxImpact   = db->vfxImpact,
-      .projectile  = {
-          .vfx            = db->vfxProjectile,
-          .delay          = time_milliseconds(25),
-          .speed          = 50.0f,
-          .damage         = 5.0f,
-          .spreadAngleMax = 2.5f,
-      });
   ecs_world_add_t(world, e, SceneAttackComp, .weaponName = string_hash_lit("AssaultRifle"));
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);

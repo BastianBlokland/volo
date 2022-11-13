@@ -21,7 +21,6 @@
 #define attack_in_sight_threshold 0.975f
 #define attack_in_sight_min_dist 2.0f
 
-ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
 
 ecs_view_define(GlobalView) {
@@ -49,43 +48,11 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
-static GeoQuat attack_projectile_random_deviation(const SceneWeaponComp* weapon) {
-  const f32 minAngle = -weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
-  const f32 maxAngle = weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
+static GeoQuat proj_random_dev(const f32 spreadAngle) {
+  const f32 minAngle = -spreadAngle * 0.5f * math_deg_to_rad;
+  const f32 maxAngle = spreadAngle * 0.5f * math_deg_to_rad;
   const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
   return geo_quat_angle_axis(geo_up, angle);
-}
-
-static void attack_projectile_spawn(
-    EcsWorld*              world,
-    const SceneWeaponComp* weapon,
-    const EcsEntityId      instigator,
-    const SceneFaction     factionId,
-    const GeoMatrix*       originMatrix,
-    const GeoVector        targetPos) {
-  const EcsEntityId e         = ecs_world_entity_create(world);
-  const GeoVector   originPos = geo_matrix_to_translation(originMatrix);
-  const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, originPos));
-  const GeoQuat     rotation =
-      geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation(weapon));
-
-  if (weapon->projectile.vfx) {
-    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->projectile.vfx);
-  }
-  if (factionId != SceneFaction_None) {
-    ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
-  }
-  ecs_world_add_t(world, e, SceneTransformComp, .position = originPos, .rotation = rotation);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
-  ecs_world_add_t(
-      world,
-      e,
-      SceneProjectileComp,
-      .delay      = weapon->projectile.delay,
-      .speed      = weapon->projectile.speed,
-      .damage     = weapon->projectile.damage,
-      .instigator = instigator,
-      .impactVfx  = weapon->vfxImpact);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -110,14 +77,50 @@ typedef struct {
   EcsEntityId                   instigator;
   const AssetWeaponMapComp*     weaponMap;
   const AssetWeapon*            weapon;
+  const SceneTransformComp*     trans;
+  const SceneScaleComp*         scale;
+  const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
+  SceneFaction                  factionId;
+  GeoVector                     targetPos;
 } AttackEffectCtx;
+
+static void effect_exec_proj(const AttackEffectCtx* ctx, const AssetWeaponEffectProj* def) {
+  const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
+  if (sentinel_check(orgIdx)) {
+    log_w("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    return;
+  }
+  const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
+  const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
+  const GeoVector dir    = geo_vector_norm(geo_vector_sub(ctx->targetPos, orgPos));
+  const GeoQuat   rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
+
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  if (def->vfxProjectile) {
+    ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->vfxProjectile);
+  }
+  if (ctx->factionId != SceneFaction_None) {
+    ecs_world_add_t(ctx->world, e, SceneFactionComp, .id = ctx->factionId);
+  }
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = orgPos, .rotation = rot);
+  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->lifetime);
+  ecs_world_add_t(
+      ctx->world,
+      e,
+      SceneProjectileComp,
+      .delay      = def->delay,
+      .speed      = def->speed,
+      .damage     = def->damage,
+      .instigator = ctx->instigator,
+      .impactVfx  = def->vfxImpact);
+}
 
 static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectVfx* def) {
   const EcsEntityId inst           = ctx->instigator;
   const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(jointOriginIdx)) {
-    log_w("Weapon origin joint not found", log_param("entity", fmt_int(inst, .base = 16)));
+    log_w("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
     return;
   }
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
@@ -131,7 +134,10 @@ static void effect_exec(const AttackEffectCtx* ctx) {
   for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
     switch (effect->type) {
-    case AssetWeaponEffectType_Vfx:
+    case AssetWeaponEffect_Projectile:
+      effect_exec_proj(ctx, &effect->data_proj);
+      break;
+    case AssetWeaponEffect_Vfx:
       effect_exec_vfx(ctx, &effect->data_vfx);
       break;
     }
@@ -145,7 +151,6 @@ ecs_view_define(AttackView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneWeaponComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
 }
@@ -182,7 +187,6 @@ ecs_system_define(SceneAttackSys) {
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneWeaponComp*     weapon2    = ecs_view_read_t(itr, SceneWeaponComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -218,7 +222,6 @@ ecs_system_define(SceneAttackSys) {
     }
 
     const GeoVector targetPos = aim_target_position(targetItr);
-
     if (loco) {
       const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
       const f32       faceDist  = geo_vector_mag(faceDelta);
@@ -228,7 +231,7 @@ ecs_system_define(SceneAttackSys) {
       }
     }
 
-    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, weapon2->animFire);
+    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, string_hash_lit("fire"));
     diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
     fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
     fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
@@ -242,19 +245,17 @@ ecs_system_define(SceneAttackSys) {
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
 
-      const u32 jointOriginIdx = scene_skeleton_joint_by_name(skelTempl, weapon2->jointOrigin);
-      diag_assert_msg(!sentinel_check(jointOriginIdx), "Weapon origin joint not found");
-
-      const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
-      const GeoMatrix originMatrix = scene_skeleton_joint_world(trans, scale, skel, jointOriginIdx);
-      attack_projectile_spawn(world, weapon2, entity, factionId, &originMatrix, targetPos);
-
       const AttackEffectCtx effectCtx = {
           .world      = world,
           .instigator = entity,
           .weaponMap  = weaponMap,
           .weapon     = weapon,
+          .trans      = trans,
+          .scale      = scale,
+          .skel       = skel,
           .skelTempl  = skelTempl,
+          .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .targetPos  = targetPos,
       };
       effect_exec(&effectCtx);
     }
@@ -268,7 +269,6 @@ ecs_system_define(SceneAttackSys) {
 }
 
 ecs_module_init(scene_attack_module) {
-  ecs_register_comp(SceneWeaponComp);
   ecs_register_comp(SceneAttackComp);
 
   ecs_register_view(GlobalView);

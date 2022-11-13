@@ -7,7 +7,6 @@
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_utils.h"
-#include "ecs_world.h"
 #include "log_logger.h"
 
 #include "manager_internal.h"
@@ -17,15 +16,25 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  String assetId;
+  String originJoint;
+  f32    delay, lifetime;
+  f32    spreadAngle;
+  f32    speed;
+  f32    damage;
+  String vfxIdProjectile, vfxIdImpact;
+} AssetWeaponEffectProjDef;
+
+typedef struct {
   String originJoint;
   f32    duration;
+  String assetId;
 } AssetWeaponEffectVfxDef;
 
 typedef struct {
   AssetWeaponEffectType type;
   union {
-    AssetWeaponEffectVfxDef data_vfx;
+    AssetWeaponEffectProjDef data_proj;
+    AssetWeaponEffectVfxDef  data_vfx;
   };
 } AssetWeaponEffectDef;
 
@@ -58,13 +67,24 @@ static void weapon_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(g_dataReg, AssetWeaponEffectProjDef);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, lifetime, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
-    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffectType_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
+    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProjDef);
+    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
 
     data_reg_struct_t(g_dataReg, AssetWeaponDef);
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -110,22 +130,38 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static void asset_weapon_effect_vfx_build(
-    BuildCtx*                      ctx,
-    const AssetWeaponEffectVfxDef* def,
-    AssetWeaponEffectVfx*          out,
-    WeaponError*                   err) {
-  (void)ctx;
-
-  *out = (AssetWeaponEffectVfx){
-      .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
-      .originJoint = string_hash(def->originJoint),
-      .duration    = (TimeDuration)time_seconds(def->duration),
+static void weapon_effect_proj_build(
+    BuildCtx*                       ctx,
+    const AssetWeaponEffectProjDef* def,
+    AssetWeaponEffectProj*          out,
+    WeaponError*                    err) {
+  *out = (AssetWeaponEffectProj){
+      .originJoint   = string_hash(def->originJoint),
+      .delay         = (TimeDuration)time_seconds(def->delay),
+      .lifetime      = (TimeDuration)time_seconds(def->lifetime),
+      .spreadAngle   = def->spreadAngle,
+      .speed         = def->speed,
+      .damage        = def->damage,
+      .vfxProjectile = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
+      .vfxImpact     = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
   };
   *err = WeaponError_None;
 }
 
-static void asset_weapon_build(
+static void weapon_effect_vfx_build(
+    BuildCtx*                      ctx,
+    const AssetWeaponEffectVfxDef* def,
+    AssetWeaponEffectVfx*          out,
+    WeaponError*                   err) {
+  *out = (AssetWeaponEffectVfx){
+      .originJoint = string_hash(def->originJoint),
+      .duration    = (TimeDuration)time_seconds(def->duration),
+      .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
+  };
+  *err = WeaponError_None;
+}
+
+static void weapon_build(
     BuildCtx*             ctx,
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
@@ -149,15 +185,18 @@ static void asset_weapon_build(
     outEffect->type              = effectDef->type;
 
     switch (effectDef->type) {
-    case AssetWeaponEffectType_Vfx:
-      asset_weapon_effect_vfx_build(ctx, &effectDef->data_vfx, &outEffect->data_vfx, err);
+    case AssetWeaponEffect_Projectile:
+      weapon_effect_proj_build(ctx, &effectDef->data_proj, &outEffect->data_proj, err);
+      continue;
+    case AssetWeaponEffect_Vfx:
+      weapon_effect_vfx_build(ctx, &effectDef->data_vfx, &outEffect->data_vfx, err);
       continue;
     }
     diag_crash_msg("Unexpected weapon effect type");
   }
 }
 
-static void asset_weaponmap_build(
+static void weaponmap_build(
     BuildCtx*                ctx,
     const AssetWeaponMapDef* def,
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
@@ -166,7 +205,7 @@ static void asset_weaponmap_build(
 
   array_ptr_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
-    asset_weapon_build(ctx, weaponDef, outEffects, &weapon, err);
+    weapon_build(ctx, weaponDef, outEffects, &weapon, err);
     if (*err) {
       return;
     }
@@ -237,7 +276,7 @@ ecs_system_define(LoadWeaponAssetSys) {
     };
 
     WeaponError buildErr;
-    asset_weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
+    weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
     data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);

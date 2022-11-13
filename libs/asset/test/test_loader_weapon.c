@@ -80,23 +80,23 @@ static const struct {
     {
         .id          = string_static("effect-vfx.wea"),
         .text        = string_static("{ \"weapons\": [ {"
-                              "      \"name\": \"Pistol\","
-                              "      \"intervalMin\": 1,"
-                              "      \"intervalMax\": 2,"
-                              "      \"aimSpeed\": 3.5,"
-                              "      \"aimMinTime\": 3,"
-                              "      \"effects\": [ {"
-                              "        \"$type\": \"AssetWeaponEffectType_Vfx\","
-                              "        \"assetId\": \"test1\","
-                              "        \"originJoint\": \"test2\","
-                              "        \"duration\": 1"
-                              "      }]"
-                              "  }"
-                              "]}"),
+                                     "      \"name\": \"Pistol\","
+                                     "      \"intervalMin\": 1,"
+                                     "      \"intervalMax\": 2,"
+                                     "      \"aimSpeed\": 3.5,"
+                                     "      \"aimMinTime\": 3,"
+                                     "      \"effects\": [ {"
+                                     "        \"$type\": \"AssetWeaponEffect_Vfx\","
+                                     "        \"assetId\": \"test1\","
+                                     "        \"originJoint\": \"test2\","
+                                     "        \"duration\": 1"
+                                     "      }]"
+                                     "  }"
+                                     "]}"),
         .weapons     = {{
-            .name        = string_static("Pistol"),
-            .intervalMin = time_seconds(1),
-            .intervalMax = time_seconds(2),
+                .name        = string_static("Pistol"),
+                .intervalMin = time_seconds(1),
+                .intervalMax = time_seconds(2),
         }},
         .weaponCount = 1,
     },

@@ -3,20 +3,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-ecs_comp_extern_public(SceneWeaponComp) {
-  StringHash  animFire;
-  StringHash  jointOrigin; // For example the weapon's muzzle.
-  EcsEntityId vfxImpact;
-
-  struct {
-    EcsEntityId  vfx;
-    TimeDuration delay;
-    f32          spreadAngleMax;
-    f32          speed;
-    f32          damage;
-  } projectile;
-};
-
 typedef enum {
   SceneAttackFlags_Firing = 1 << 0,
 } SceneAttackFlags;

@@ -4,23 +4,34 @@
 #include "ecs_module.h"
 
 /**
- * Weapon Map.
+ * Weapon database.
  */
 
 typedef enum {
-  AssetWeaponEffectType_Vfx,
+  AssetWeaponEffect_Projectile,
+  AssetWeaponEffect_Vfx,
 } AssetWeaponEffectType;
 
 typedef struct {
-  EcsEntityId  asset;
+  StringHash   originJoint; // For example the weapon's muzzle.
+  TimeDuration delay, lifetime;
+  f32          spreadAngle;
+  f32          speed;
+  f32          damage;
+  EcsEntityId  vfxProjectile, vfxImpact;
+} AssetWeaponEffectProj;
+
+typedef struct {
   StringHash   originJoint; // For example the weapon's muzzle.
   TimeDuration duration;
+  EcsEntityId  asset;
 } AssetWeaponEffectVfx;
 
 typedef struct {
   AssetWeaponEffectType type;
   union {
-    AssetWeaponEffectVfx data_vfx;
+    AssetWeaponEffectProj data_proj;
+    AssetWeaponEffectVfx  data_vfx;
   };
 } AssetWeaponEffect;
 
