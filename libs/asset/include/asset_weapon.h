@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "ecs_entity.h"
 #include "ecs_module.h"
 
 /**
@@ -11,7 +12,8 @@ typedef enum {
 } AssetWeaponEffectType;
 
 typedef struct {
-  u32 dummy;
+  EcsEntityId vfxAsset;
+  StringHash  originJoint; // For example the weapon's muzzle.
 } AssetWeaponEffectVfx;
 
 typedef struct {

@@ -6,7 +6,8 @@
       "intervalMax": 0.35,
       "aimSpeed": 3.5,
       "aimMinTime": 3,
-      "aimAnim": "aim"
+      "aimAnim": "aim",
+      "effects": []
     }
   ]
 }

@@ -16,7 +16,8 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  u32 dummy;
+  String vfxAssetId;
+  String originJoint;
 } AssetWeaponEffectVfxDef;
 
 typedef struct {
@@ -56,7 +57,8 @@ static void weapon_datareg_init() {
 
     // clang-format off
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
-    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, dummy, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, vfxAssetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffectType_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
@@ -100,14 +102,26 @@ static String weapon_error_str(const WeaponError err) {
   return g_msgs[err];
 }
 
-static void asset_weapon_effect_vfx_build(
-    const AssetWeaponEffectVfxDef* def, AssetWeaponEffectVfx* out, WeaponError* err) {
+typedef struct {
+  EcsWorld* world;
+} BuildCtx;
 
-  *out = (AssetWeaponEffectVfx){.dummy = def->dummy};
+static void asset_weapon_effect_vfx_build(
+    BuildCtx*                      ctx,
+    const AssetWeaponEffectVfxDef* def,
+    AssetWeaponEffectVfx*          out,
+    WeaponError*                   err) {
+  (void)ctx;
+
+  *out = (AssetWeaponEffectVfx){
+      .vfxAsset    = 0, // asset_lookup(world, manager, def->vfxAssetId);
+      .originJoint = string_hash(def->originJoint),
+  };
   *err = WeaponError_None;
 }
 
 static void asset_weapon_build(
+    BuildCtx*             ctx,
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
     AssetWeapon*          outWeapon,
@@ -131,7 +145,7 @@ static void asset_weapon_build(
 
     switch (effectDef->type) {
     case AssetWeaponEffectType_Vfx:
-      asset_weapon_effect_vfx_build(&effectDef->data_vfx, &outEffect->data_vfx, err);
+      asset_weapon_effect_vfx_build(ctx, &effectDef->data_vfx, &outEffect->data_vfx, err);
       continue;
     }
     diag_crash_msg("Unexpected weapon effect type");
@@ -139,6 +153,7 @@ static void asset_weapon_build(
 }
 
 static void asset_weaponmap_build(
+    BuildCtx*                ctx,
     const AssetWeaponMapDef* def,
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
     DynArray*                outEffects, // AssetWeaponEffect[], needs to be already initialized.
@@ -146,7 +161,7 @@ static void asset_weaponmap_build(
 
   array_ptr_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
-    asset_weapon_build(weaponDef, outEffects, &weapon, err);
+    asset_weapon_build(ctx, weaponDef, outEffects, &weapon, err);
     if (*err) {
       return;
     }
@@ -212,8 +227,12 @@ void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Error;
   }
 
+  BuildCtx buildCtx = {
+      .world = world,
+  };
+
   WeaponError buildErr;
-  asset_weaponmap_build(&def, &weapons, &effects, &buildErr);
+  asset_weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
   data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
   if (buildErr) {
     errMsg = weapon_error_str(buildErr);
