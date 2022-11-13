@@ -3,7 +3,10 @@
     {
       "name": "AssaultRifle",
       "intervalMin": 0.15,
-      "intervalMax": 0.35
+      "intervalMax": 0.35,
+      "aimSpeed": 3.5,
+      "aimMinTime": 3,
+      "aimAnim": "aim"
     }
   ]
 }

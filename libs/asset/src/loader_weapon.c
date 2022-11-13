@@ -17,6 +17,9 @@ static DataMeta g_dataMapDefMeta;
 typedef struct {
   String name;
   f32    intervalMin, intervalMax;
+  f32    aimSpeed;
+  f32    aimMinTime;
+  String aimAnim;
 } AssetWeaponDef;
 
 typedef struct {
@@ -40,6 +43,9 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, aimSpeed, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, aimMinTime, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, aimAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
     data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
@@ -76,6 +82,9 @@ static void asset_weapon_build(const AssetWeaponDef* def, AssetWeapon* out, Weap
       .nameHash    = stringtable_add(g_stringtable, def->name),
       .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax = (TimeDuration)time_seconds(def->intervalMax),
+      .aimSpeed    = def->aimSpeed,
+      .aimMinTime  = def->aimMinTime,
+      .aimAnim     = string_is_empty(def->aimAnim) ? 0 : string_hash(def->aimAnim),
   };
   *err = WeaponError_None;
 }

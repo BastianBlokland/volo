@@ -9,6 +9,9 @@
 typedef struct {
   StringHash   nameHash;
   TimeDuration intervalMin, intervalMax;
+  f32          aimSpeed;   // Speed to increase the aim amount, when aim reaches 1.0 we can fire.
+  f32          aimMinTime; // Time to keep aiming after the last shot.
+  StringHash   aimAnim;
 } AssetWeapon;
 
 ecs_comp_extern_public(AssetWeaponMapComp) {

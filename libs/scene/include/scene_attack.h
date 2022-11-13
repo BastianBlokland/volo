@@ -4,7 +4,7 @@
 #include "ecs_module.h"
 
 ecs_comp_extern_public(SceneWeaponComp) {
-  StringHash  animAim, animFire;
+  StringHash  animFire;
   StringHash  jointOrigin; // For example the weapon's muzzle.
   EcsEntityId vfxFire, vfxImpact;
 

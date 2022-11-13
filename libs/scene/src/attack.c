@@ -18,8 +18,6 @@
 #include "scene_vfx.h"
 #include "scene_weapon.h"
 
-#define attack_aim_speed 3.5f
-#define attack_aim_min_time time_seconds(3)
 #define attack_in_sight_threshold 0.975f
 #define attack_in_sight_min_dist 2.0f
 
@@ -207,12 +205,14 @@ ecs_system_define(SceneAttackSys) {
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     const bool isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
     const bool shouldAim =
-        !isMoving && (hasTarget || (time->time - attack->lastFireTime) < attack_aim_min_time);
+        !isMoving && (hasTarget || (time->time - attack->lastFireTime) < weapon->aimMinTime);
 
     const bool isAiming = math_towards_f32(
-        &attack->aimNorm, shouldAim ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
+        &attack->aimNorm, shouldAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
 
-    scene_animation_set_weight(anim, weapon2->animAim, attack->aimNorm);
+    if (weapon->aimAnim) {
+      scene_animation_set_weight(anim, weapon->aimAnim, attack->aimNorm);
+    }
     if (!hasTarget) {
       attack->flags &= ~SceneAttackFlags_Firing;
       continue;

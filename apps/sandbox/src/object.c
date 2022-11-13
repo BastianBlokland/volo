@@ -142,7 +142,6 @@ EcsEntityId object_spawn_unit(
       world,
       e,
       SceneWeaponComp,
-      .animAim     = string_hash_lit("aim"),
       .animFire    = string_hash_lit("fire"),
       .jointOrigin = string_hash_lit("muzzle"),
       .vfxFire     = db->vfxMuzzleFlash,

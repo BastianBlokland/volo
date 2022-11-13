@@ -27,7 +27,9 @@ static const struct {
         .text = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
-                              "      \"intervalMax\": 2"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3"
                               "  }"
                               "]}"),
         .weapons =
@@ -51,11 +53,15 @@ static const struct {
         .text = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
-                              "      \"intervalMax\": 2"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3"
                               "    }, {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
-                              "      \"intervalMax\": 2"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3"
                               "    }"
                               "]}"),
     },
