@@ -9,6 +9,7 @@ typedef enum {
 
 ecs_comp_extern_public(SceneWeaponComp) {
   TimeDuration intervalMin, intervalMax;
+  StringHash   animAim, animFire;
   EcsEntityId  vfxMuzzleFlash, vfxProjectile, vfxImpact;
 };
 

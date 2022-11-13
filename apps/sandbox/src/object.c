@@ -144,6 +144,8 @@ EcsEntityId object_spawn_unit(
       SceneWeaponComp,
       .intervalMin    = time_milliseconds(150),
       .intervalMax    = time_milliseconds(300),
+      .animAim        = string_hash_lit("aim"),
+      .animFire       = string_hash_lit("fire"),
       .vfxMuzzleFlash = db->vfxMuzzleFlash,
       .vfxProjectile  = db->vfxProjectile,
       .vfxImpact      = db->vfxImpact);

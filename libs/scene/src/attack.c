@@ -21,8 +21,6 @@
 #define attack_in_sight_min_dist 2.0f
 #define attack_max_deviation_angle 2.5f
 
-static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
-
 ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define(SceneAttackAnimComp) { u32 muzzleJoint; };
@@ -183,7 +181,7 @@ ecs_system_define(SceneAttackSys) {
     const bool isAiming = math_towards_f32(
         &attack->aimNorm, shouldAim ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
 
-    scene_animation_set_weight(anim, g_attackAimAnimHash, attack->aimNorm);
+    scene_animation_set_weight(anim, weapon->animAim, attack->aimNorm);
     if (!hasTarget) {
       attack->flags &= ~SceneAttackFlags_Firing;
       continue;
@@ -200,7 +198,7 @@ ecs_system_define(SceneAttackSys) {
       }
     }
 
-    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, g_attackFireAnimHash);
+    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, weapon->animFire);
     diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
     fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
     fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
@@ -232,9 +230,6 @@ ecs_system_define(SceneAttackSys) {
 }
 
 ecs_module_init(scene_attack_module) {
-  g_attackAimAnimHash  = string_hash_lit("aim");
-  g_attackFireAnimHash = string_hash_lit("fire");
-
   ecs_register_comp(SceneWeaponComp);
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAnimComp);
