@@ -114,17 +114,17 @@ typedef struct {
 } AttackEffectCtx;
 
 static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectVfx* def) {
-  const u32 jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
+  const EcsEntityId inst           = ctx->instigator;
+  const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(jointOriginIdx)) {
-    log_w("Weapon not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    log_w("Weapon origin joint not found", log_param("entity", fmt_int(inst, .base = 16)));
     return;
   }
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
+  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
-  ecs_world_add_t(
-      ctx->world, e, SceneAttachmentComp, .target = ctx->instigator, .jointIndex = jointOriginIdx);
+  ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
 }
 
 static void effect_exec(const AttackEffectCtx* ctx) {

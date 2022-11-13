@@ -11,7 +11,8 @@
         {
           "$type": "AssetWeaponEffectType_Vfx",
           "assetId": "vfx/sandbox/muzzleflash.vfx",
-          "originJoint": "muzzle"
+          "originJoint": "muzzle",
+          "duration": 0.15
         }
       ]
     }

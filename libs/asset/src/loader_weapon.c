@@ -19,6 +19,7 @@ static DataMeta g_dataMapDefMeta;
 typedef struct {
   String assetId;
   String originJoint;
+  f32    duration;
 } AssetWeaponEffectVfxDef;
 
 typedef struct {
@@ -60,6 +61,7 @@ static void weapon_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffectType_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
@@ -118,6 +120,7 @@ static void asset_weapon_effect_vfx_build(
   *out = (AssetWeaponEffectVfx){
       .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
       .originJoint = string_hash(def->originJoint),
+      .duration    = (TimeDuration)time_seconds(def->duration),
   };
   *err = WeaponError_None;
 }

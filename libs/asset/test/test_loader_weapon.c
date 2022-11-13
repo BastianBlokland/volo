@@ -88,12 +88,15 @@ static const struct {
                               "      \"effects\": [ {"
                               "        \"$type\": \"AssetWeaponEffectType_Vfx\","
                               "        \"assetId\": \"test1\","
-                              "        \"originJoint\": \"test2\""
+                              "        \"originJoint\": \"test2\","
+                              "        \"duration\": 1"
                               "      }]"
                               "  }"
                               "]}"),
         .weapons     = {{
-            .name = string_static("Pistol"),
+            .name        = string_static("Pistol"),
+            .intervalMin = time_seconds(1),
+            .intervalMax = time_seconds(2),
         }},
         .weaponCount = 1,
     },

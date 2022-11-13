@@ -12,8 +12,9 @@ typedef enum {
 } AssetWeaponEffectType;
 
 typedef struct {
-  EcsEntityId asset;
-  StringHash  originJoint; // For example the weapon's muzzle.
+  EcsEntityId  asset;
+  StringHash   originJoint; // For example the weapon's muzzle.
+  TimeDuration duration;
 } AssetWeaponEffectVfx;
 
 typedef struct {
