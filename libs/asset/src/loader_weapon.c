@@ -15,11 +15,19 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
+  u32 dummy;
+} AssetWeaponEffectDef;
+
+typedef struct {
   String name;
   f32    intervalMin, intervalMax;
   f32    aimSpeed;
   f32    aimMinTime;
   String aimAnim;
+  struct {
+    AssetWeaponEffectDef* values;
+    usize                 count;
+  } effects;
 } AssetWeaponDef;
 
 typedef struct {
@@ -39,6 +47,9 @@ static void weapon_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(g_dataReg, AssetWeaponEffectDef);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDef, dummy, data_prim_t(u32));
+
     data_reg_struct_t(g_dataReg, AssetWeaponDef);
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
@@ -46,6 +57,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponDef, aimSpeed, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, aimMinTime, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, aimAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
 
     data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
     data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
@@ -77,26 +89,41 @@ static String weapon_error_str(const WeaponError err) {
   return g_msgs[err];
 }
 
-static void asset_weapon_build(const AssetWeaponDef* def, AssetWeapon* out, WeaponError* err) {
-  *out = (AssetWeapon){
+static void asset_weapon_build(
+    const AssetWeaponDef* def,
+    DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
+    AssetWeapon*          outWeapon,
+    WeaponError*          err) {
+
+  *outWeapon = (AssetWeapon){
       .nameHash    = stringtable_add(g_stringtable, def->name),
       .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax = (TimeDuration)time_seconds(def->intervalMax),
       .aimSpeed    = def->aimSpeed,
       .aimMinTime  = def->aimMinTime,
       .aimAnim     = string_is_empty(def->aimAnim) ? 0 : string_hash(def->aimAnim),
+      .effectIndex = (u16)outEffects->size,
+      .effectCount = (u16)def->effects.count,
   };
+
+  array_ptr_for_t(def->effects, AssetWeaponEffectDef, effectDef) {
+    *dynarray_push_t(outEffects, AssetWeaponEffect) = (AssetWeaponEffect){
+        .dummy = effectDef->dummy,
+    };
+  }
+
   *err = WeaponError_None;
 }
 
 static void asset_weaponmap_build(
     const AssetWeaponMapDef* def,
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
+    DynArray*                outEffects, // AssetWeaponEffect[], needs to be already initialized.
     WeaponError*             err) {
 
   array_ptr_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
-    asset_weapon_build(weaponDef, &weapon, err);
+    asset_weapon_build(weaponDef, outEffects, &weapon, err);
     if (*err) {
       return;
     }
@@ -115,6 +142,9 @@ static void ecs_destruct_weaponmap_comp(void* data) {
   AssetWeaponMapComp* comp = data;
   if (comp->weapons) {
     alloc_free_array_t(g_alloc_heap, comp->weapons, comp->weaponCount);
+  }
+  if (comp->effects) {
+    alloc_free_array_t(g_alloc_heap, comp->effects, comp->effectCount);
   }
 }
 
@@ -148,6 +178,7 @@ void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, 
   (void)id;
 
   DynArray weapons = dynarray_create_t(g_alloc_heap, AssetWeapon, 64);
+  DynArray effects = dynarray_create_t(g_alloc_heap, AssetWeaponEffect, 64);
 
   AssetWeaponMapDef def;
   String            errMsg;
@@ -159,7 +190,7 @@ void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
 
   WeaponError buildErr;
-  asset_weaponmap_build(&def, &weapons, &buildErr);
+  asset_weaponmap_build(&def, &weapons, &effects, &buildErr);
   data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
   if (buildErr) {
     errMsg = weapon_error_str(buildErr);
@@ -171,7 +202,9 @@ void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, 
       entity,
       AssetWeaponMapComp,
       .weapons     = dynarray_copy_as_new(&weapons, g_alloc_heap),
-      .weaponCount = weapons.size);
+      .weaponCount = weapons.size,
+      .effects     = dynarray_copy_as_new(&effects, g_alloc_heap),
+      .effectCount = effects.size);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -183,6 +216,7 @@ Error:
 Cleanup:
   asset_repo_source_close(src);
   dynarray_destroy(&weapons);
+  dynarray_destroy(&effects);
 }
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {

@@ -29,7 +29,8 @@ static const struct {
                               "      \"intervalMin\": 1,"
                               "      \"intervalMax\": 2,"
                               "      \"aimSpeed\": 3.5,"
-                              "      \"aimMinTime\": 3"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": []"
                               "  }"
                               "]}"),
         .weapons =
@@ -55,13 +56,15 @@ static const struct {
                               "      \"intervalMin\": 1,"
                               "      \"intervalMax\": 2,"
                               "      \"aimSpeed\": 3.5,"
-                              "      \"aimMinTime\": 3"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": []"
                               "    }, {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
                               "      \"intervalMax\": 2,"
                               "      \"aimSpeed\": 3.5,"
-                              "      \"aimMinTime\": 3"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": []"
                               "    }"
                               "]}"),
     },

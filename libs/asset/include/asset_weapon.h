@@ -7,16 +7,23 @@
  */
 
 typedef struct {
+  u32 dummy;
+} AssetWeaponEffect;
+
+typedef struct {
   StringHash   nameHash;
   TimeDuration intervalMin, intervalMax;
   f32          aimSpeed;   // Speed to increase the aim amount, when aim reaches 1.0 we can fire.
   f32          aimMinTime; // Time to keep aiming after the last shot.
   StringHash   aimAnim;
+  u16          effectIndex, effectCount; // Stored in the effects array.
 } AssetWeapon;
 
 ecs_comp_extern_public(AssetWeaponMapComp) {
-  AssetWeapon* weapons; // Sorted on the nameHash.
-  usize        weaponCount;
+  AssetWeapon*       weapons; // Sorted on the nameHash.
+  usize              weaponCount;
+  AssetWeaponEffect* effects;
+  usize              effectCount;
 };
 
 /**
