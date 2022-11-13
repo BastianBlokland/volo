@@ -6,6 +6,7 @@
 #include "core_stringtable.h"
 #include "core_thread.h"
 #include "data.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -175,6 +176,7 @@ static void asset_weaponmap_build(
 }
 
 ecs_comp_define_public(AssetWeaponMapComp);
+ecs_comp_define(AssetWeaponLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_weaponmap_comp(void* data) {
   AssetWeaponMapComp* comp = data;
@@ -186,16 +188,85 @@ static void ecs_destruct_weaponmap_comp(void* data) {
   }
 }
 
-ecs_view_define(WeaponMapUnloadView) {
+static void ecs_destruct_weapon_load_comp(void* data) {
+  AssetWeaponLoadComp* comp = data;
+  asset_repo_source_close(comp->src);
+}
+
+ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(LoadView) { ecs_access_read(AssetWeaponLoadComp); }
+
+ecs_view_define(UnloadView) {
   ecs_access_with(AssetWeaponMapComp);
   ecs_access_without(AssetLoadedComp);
 }
 
 /**
+ * Load weapon-map assets.
+ */
+ecs_system_define(LoadWeaponAssetSys) {
+  AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+  if (!manager) {
+    return;
+  }
+
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId  entity = ecs_view_entity(itr);
+    const AssetSource* src    = ecs_view_read_t(itr, AssetWeaponLoadComp)->src;
+
+    DynArray weapons = dynarray_create_t(g_alloc_heap, AssetWeapon, 64);
+    DynArray effects = dynarray_create_t(g_alloc_heap, AssetWeaponEffect, 64);
+
+    AssetWeaponMapDef def;
+    String            errMsg;
+    DataReadResult    readRes;
+    data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
+    if (UNLIKELY(readRes.error)) {
+      errMsg = readRes.errorMsg;
+      goto Error;
+    }
+
+    BuildCtx buildCtx = {
+        .world = world,
+    };
+
+    WeaponError buildErr;
+    asset_weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
+    data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
+    if (buildErr) {
+      errMsg = weapon_error_str(buildErr);
+      goto Error;
+    }
+
+    ecs_world_add_t(
+        world,
+        entity,
+        AssetWeaponMapComp,
+        .weapons     = dynarray_copy_as_new(&weapons, g_alloc_heap),
+        .weaponCount = weapons.size,
+        .effects     = dynarray_copy_as_new(&effects, g_alloc_heap),
+        .effectCount = effects.size);
+
+    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    goto Cleanup;
+
+  Error:
+    log_e("Failed to load WeaponMap", log_param("error", fmt_text(errMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+
+  Cleanup:
+    dynarray_destroy(&weapons);
+    dynarray_destroy(&effects);
+    ecs_world_remove_t(world, entity, AssetWeaponLoadComp);
+  }
+}
+
+/**
  * Remove any weapon-map asset component for unloaded assets.
  */
-ecs_system_define(WeaponMapUnloadAssetSys) {
-  EcsView* unloadView = ecs_world_view_t(world, WeaponMapUnloadView);
+ecs_system_define(UnloadWeaponAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, UnloadView);
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetWeaponMapComp);
@@ -206,59 +277,19 @@ ecs_module_init(asset_weapon_module) {
   weapon_datareg_init();
 
   ecs_register_comp(AssetWeaponMapComp, .destructor = ecs_destruct_weaponmap_comp);
+  ecs_register_comp(AssetWeaponLoadComp, .destructor = ecs_destruct_weapon_load_comp);
 
-  ecs_register_view(WeaponMapUnloadView);
+  ecs_register_view(ManagerView);
+  ecs_register_view(LoadView);
+  ecs_register_view(UnloadView);
 
-  ecs_register_system(WeaponMapUnloadAssetSys, ecs_view_id(WeaponMapUnloadView));
+  ecs_register_system(LoadWeaponAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(UnloadWeaponAssetSys, ecs_view_id(UnloadView));
 }
 
 void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
-
-  DynArray weapons = dynarray_create_t(g_alloc_heap, AssetWeapon, 64);
-  DynArray effects = dynarray_create_t(g_alloc_heap, AssetWeaponEffect, 64);
-
-  AssetWeaponMapDef def;
-  String            errMsg;
-  DataReadResult    readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
-  if (UNLIKELY(readRes.error)) {
-    errMsg = readRes.errorMsg;
-    goto Error;
-  }
-
-  BuildCtx buildCtx = {
-      .world = world,
-  };
-
-  WeaponError buildErr;
-  asset_weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataMapDefMeta, mem_var(def));
-  if (buildErr) {
-    errMsg = weapon_error_str(buildErr);
-    goto Error;
-  }
-
-  ecs_world_add_t(
-      world,
-      entity,
-      AssetWeaponMapComp,
-      .weapons     = dynarray_copy_as_new(&weapons, g_alloc_heap),
-      .weaponCount = weapons.size,
-      .effects     = dynarray_copy_as_new(&effects, g_alloc_heap),
-      .effectCount = effects.size);
-
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  goto Cleanup;
-
-Error:
-  log_e("Failed to load WeaponMap", log_param("error", fmt_text(errMsg)));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-
-Cleanup:
-  asset_repo_source_close(src);
-  dynarray_destroy(&weapons);
-  dynarray_destroy(&effects);
+  ecs_world_add_t(world, entity, AssetWeaponLoadComp, .src = src);
 }
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {
