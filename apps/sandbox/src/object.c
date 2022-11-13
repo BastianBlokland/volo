@@ -16,7 +16,7 @@
 
 ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId unitAGraphic, unitBGraphic, unitCGraphic;
-  EcsEntityId muzzleFlashVfx, projectileVfx, impactVfx;
+  EcsEntityId vfxMuzzleFlash, vfxProjectile, vfxImpact;
   EcsEntityId unitBehaviorAuto, unitBehaviorManual;
   EcsEntityId wallGraphic;
 };
@@ -91,9 +91,9 @@ ecs_system_define(ObjectDatabaseInitSys) {
       .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
       .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
       .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
-      .muzzleFlashVfx     = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
-      .projectileVfx      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
-      .impactVfx          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
+      .vfxMuzzleFlash     = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
+      .vfxProjectile      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
+      .vfxImpact          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
       .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
       .unitBehaviorManual = asset_lookup(world, assets, string_lit("behaviors/unit-manual.bt")),
       .wallGraphic        = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
@@ -142,11 +142,11 @@ EcsEntityId object_spawn_unit(
       world,
       e,
       SceneWeaponComp,
-      .minInterval    = time_milliseconds(150),
-      .maxInterval    = time_milliseconds(300),
-      .muzzleFlashVfx = db->muzzleFlashVfx,
-      .projectileVfx  = db->projectileVfx,
-      .impactVfx      = db->impactVfx);
+      .intervalMin    = time_milliseconds(150),
+      .intervalMax    = time_milliseconds(300),
+      .vfxMuzzleFlash = db->vfxMuzzleFlash,
+      .vfxProjectile  = db->vfxProjectile,
+      .vfxImpact      = db->vfxImpact);
   ecs_world_add_t(world, e, SceneAttackComp);
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);

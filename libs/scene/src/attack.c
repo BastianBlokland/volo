@@ -73,7 +73,7 @@ static void attack_muzzleflash_spawn(
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->muzzleFlashVfx);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxMuzzleFlash);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
@@ -97,8 +97,8 @@ static void attack_projectile_spawn(
   const GeoQuat     rotation =
       geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation());
 
-  if (weapon->projectileVfx) {
-    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->projectileVfx);
+  if (weapon->vfxProjectile) {
+    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxProjectile);
   }
   if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
@@ -113,7 +113,7 @@ static void attack_projectile_spawn(
       .speed      = 50,
       .damage     = 5,
       .instigator = instigator,
-      .impactVfx  = weapon->impactVfx);
+      .impactVfx  = weapon->vfxImpact);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -129,7 +129,7 @@ static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector tar
 
 static TimeDuration attack_next_time(const SceneWeaponComp* weapon, const TimeDuration timeNow) {
   TimeDuration next = timeNow;
-  next += (TimeDuration)rng_sample_range(g_rng, weapon->minInterval, weapon->maxInterval);
+  next += (TimeDuration)rng_sample_range(g_rng, weapon->intervalMin, weapon->intervalMax);
   return next;
 }
 
@@ -218,7 +218,7 @@ ecs_system_define(SceneAttackSys) {
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
       attack_projectile_spawn(world, weapon, entity, factionId, &muz, targetPos);
 
-      if (weapon->muzzleFlashVfx) {
+      if (weapon->vfxMuzzleFlash) {
         attack_muzzleflash_spawn(world, weapon, entity, attackAnim->muzzleJoint);
       }
     }

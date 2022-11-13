@@ -8,8 +8,8 @@ typedef enum {
 } SceneAttackFlags;
 
 ecs_comp_extern_public(SceneWeaponComp) {
-  TimeDuration minInterval, maxInterval;
-  EcsEntityId  muzzleFlashVfx, projectileVfx, impactVfx;
+  TimeDuration intervalMin, intervalMax;
+  EcsEntityId  vfxMuzzleFlash, vfxProjectile, vfxImpact;
 };
 
 ecs_comp_extern_public(SceneAttackComp) {
