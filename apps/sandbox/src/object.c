@@ -153,7 +153,7 @@ EcsEntityId object_spawn_unit(
            .vfx            = db->vfxProjectile,
            .delay          = time_milliseconds(25),
            .speed          = 50.0f,
-           .speed          = 5.0f,
+           .damage         = 5.0f,
            .spreadAngleMax = 2.5f,
       });
   ecs_world_add_t(world, e, SceneAttackComp);
