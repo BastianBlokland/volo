@@ -42,19 +42,13 @@ ecs_system_define(SceneHealthInitSys) {
       const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
       SceneHealthAnimComp*          animComp  = ecs_world_add_t(world, entity, SceneHealthAnimComp);
 
-#define ENABLE_JOINT(_MASK_, _NAME_)                                                               \
-  scene_skeleton_mask_set(_MASK_, scene_skeleton_joint_by_name(skelTempl, string_hash_lit(_NAME_)))
-
       /**
        * TODO: Define this skeleton mask in content instead of hard-coding it here.
        */
-      scene_skeleton_mask_clear_all(&animComp->hitAnimMask);
-      ENABLE_JOINT(&animComp->hitAnimMask, "Spine2");
-      ENABLE_JOINT(&animComp->hitAnimMask, "Neck");
-      ENABLE_JOINT(&animComp->hitAnimMask, "Neck1");
-      ENABLE_JOINT(&animComp->hitAnimMask, "Head");
+      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Neck"));
 
-#undef ENABLE_JOINT
+      scene_skeleton_mask_clear_rec(&animComp->hitAnimMask, skelTempl, 0);
+      scene_skeleton_mask_set_rec(&animComp->hitAnimMask, skelTempl, neckJoint);
     }
   }
 }

@@ -71,10 +71,9 @@ SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp*, u32 join
 SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp*);
 
 void scene_skeleton_mask_set(SceneSkeletonMask*, u32 joint);
-void scene_skeleton_mask_set_all(SceneSkeletonMask*);
+void scene_skeleton_mask_set_rec(SceneSkeletonMask*, const SceneSkeletonTemplComp*, u32 joint);
 void scene_skeleton_mask_clear(SceneSkeletonMask*, u32 joint);
-void scene_skeleton_mask_clear_all(SceneSkeletonMask*);
-void scene_skeleton_mask_flip(SceneSkeletonMask*, u32 joint);
+void scene_skeleton_mask_clear_rec(SceneSkeletonMask*, const SceneSkeletonTemplComp*, u32 joint);
 bool scene_skeleton_mask_test(const SceneSkeletonMask*, u32 joint);
 
 void scene_skeleton_delta(

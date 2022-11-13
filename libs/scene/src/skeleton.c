@@ -142,7 +142,7 @@ static void scene_skeleton_init_from_templ(
         .nameHash = tl->anims[i].nameHash,
         .flags    = SceneAnimFlags_Loop,
     };
-    scene_skeleton_mask_set_all(&layers[i].mask);
+    scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
@@ -645,20 +645,44 @@ void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
   bitset_set(bitset_from_array(mask->jointBits), joint);
 }
 
-void scene_skeleton_mask_set_all(SceneSkeletonMask* mask) {
-  bitset_set_all(bitset_from_array(mask->jointBits), scene_skeleton_joints_max);
+void scene_skeleton_mask_set_rec(
+    SceneSkeletonMask* mask, const SceneSkeletonTemplComp* tl, const u32 joint) {
+  const BitSet bitset     = bitset_from_array(mask->jointBits);
+  const u32    jointCount = scene_skeleton_joint_count(tl);
+  if (joint == 0) {
+    bitset_set_all(bitset, jointCount);
+    return;
+  }
+  const u32 parentIndex = tl->parentIndices[joint];
+
+  diag_assert(joint < jointCount);
+
+  bitset_set(bitset, joint);
+  for (u32 i = joint + 1; i != jointCount && tl->parentIndices[i] > parentIndex; ++i) {
+    bitset_set(bitset, i);
+  }
 }
 
 void scene_skeleton_mask_clear(SceneSkeletonMask* mask, const u32 joint) {
   bitset_clear(bitset_from_array(mask->jointBits), joint);
 }
 
-void scene_skeleton_mask_clear_all(SceneSkeletonMask* mask) {
-  bitset_clear_all(bitset_from_array(mask->jointBits));
-}
+void scene_skeleton_mask_clear_rec(
+    SceneSkeletonMask* mask, const SceneSkeletonTemplComp* tl, const u32 joint) {
+  const BitSet bitset = bitset_from_array(mask->jointBits);
+  if (joint == 0) {
+    bitset_clear_all(bitset);
+    return;
+  }
+  const u32 jointCount  = scene_skeleton_joint_count(tl);
+  const u32 parentIndex = tl->parentIndices[joint];
 
-void scene_skeleton_mask_flip(SceneSkeletonMask* mask, const u32 joint) {
-  bitset_flip(bitset_from_array(mask->jointBits), joint);
+  diag_assert(joint < jointCount);
+
+  bitset_clear(bitset, joint);
+  for (u32 i = joint + 1; i != jointCount && tl->parentIndices[i] > parentIndex; ++i) {
+    bitset_clear(bitset, i);
+  }
 }
 
 bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
