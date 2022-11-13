@@ -14,6 +14,7 @@
 #include "scene_renderable.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_weapon.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
@@ -248,7 +249,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  input_resource_create(world, string_lit("input/sandbox.imp"));
+  input_resource_init(world, string_lit("input/sandbox.imp"));
+  scene_weapon_init(world, string_lit("weapons/sandbox.wea"));
 
   app_window_create(world);
 }
