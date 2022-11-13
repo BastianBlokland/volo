@@ -6,8 +6,19 @@
  * Weapon Map.
  */
 
+typedef enum {
+  AssetWeaponEffectType_Vfx,
+} AssetWeaponEffectType;
+
 typedef struct {
   u32 dummy;
+} AssetWeaponEffectVfx;
+
+typedef struct {
+  AssetWeaponEffectType type;
+  union {
+    AssetWeaponEffectVfx data_vfx;
+  };
 } AssetWeaponEffect;
 
 typedef struct {

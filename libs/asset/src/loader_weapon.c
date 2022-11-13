@@ -1,6 +1,7 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
@@ -16,6 +17,13 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   u32 dummy;
+} AssetWeaponEffectVfxDef;
+
+typedef struct {
+  AssetWeaponEffectType type;
+  union {
+    AssetWeaponEffectVfxDef data_vfx;
+  };
 } AssetWeaponEffectDef;
 
 typedef struct {
@@ -47,8 +55,11 @@ static void weapon_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(g_dataReg, AssetWeaponEffectDef);
-    data_reg_field_t(g_dataReg, AssetWeaponEffectDef, dummy, data_prim_t(u32));
+    data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, dummy, data_prim_t(u32));
+
+    data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
+    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffectType_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
 
     data_reg_struct_t(g_dataReg, AssetWeaponDef);
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -89,12 +100,20 @@ static String weapon_error_str(const WeaponError err) {
   return g_msgs[err];
 }
 
+static void asset_weapon_effect_vfx_build(
+    const AssetWeaponEffectVfxDef* def, AssetWeaponEffectVfx* out, WeaponError* err) {
+
+  *out = (AssetWeaponEffectVfx){.dummy = def->dummy};
+  *err = WeaponError_None;
+}
+
 static void asset_weapon_build(
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
     AssetWeapon*          outWeapon,
     WeaponError*          err) {
 
+  *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
       .nameHash    = stringtable_add(g_stringtable, def->name),
       .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
@@ -107,12 +126,16 @@ static void asset_weapon_build(
   };
 
   array_ptr_for_t(def->effects, AssetWeaponEffectDef, effectDef) {
-    *dynarray_push_t(outEffects, AssetWeaponEffect) = (AssetWeaponEffect){
-        .dummy = effectDef->dummy,
-    };
-  }
+    AssetWeaponEffect* outEffect = dynarray_push_t(outEffects, AssetWeaponEffect);
+    outEffect->type              = effectDef->type;
 
-  *err = WeaponError_None;
+    switch (effectDef->type) {
+    case AssetWeaponEffectType_Vfx:
+      asset_weapon_effect_vfx_build(&effectDef->data_vfx, &outEffect->data_vfx, err);
+      continue;
+    }
+    diag_crash_msg("Unexpected weapon effect type");
+  }
 }
 
 static void asset_weaponmap_build(
