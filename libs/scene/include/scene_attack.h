@@ -7,12 +7,15 @@ typedef enum {
   SceneAttackFlags_Firing = 1 << 0,
 } SceneAttackFlags;
 
+ecs_comp_extern_public(SceneWeaponComp) {
+  TimeDuration minInterval, maxInterval;
+  EcsEntityId  muzzleFlashVfx, projectileVfx, impactVfx;
+};
+
 ecs_comp_extern_public(SceneAttackComp) {
   SceneAttackFlags flags;
   TimeDuration     lastFireTime, nextFireTime;
   f32              aimNorm; // Process of aiming.
 
-  TimeDuration minInterval, maxInterval;
-  EcsEntityId  targetEntity;
-  EcsEntityId  muzzleFlashVfx, projectileVfx, impactVfx;
+  EcsEntityId targetEntity;
 };

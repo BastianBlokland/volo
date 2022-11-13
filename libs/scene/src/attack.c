@@ -23,6 +23,7 @@
 
 static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
+ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define(SceneAttackAnimComp) { u32 muzzleJoint; };
 
@@ -66,13 +67,13 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
 
 static void attack_muzzleflash_spawn(
     EcsWorld*              world,
-    const SceneAttackComp* attack,
+    const SceneWeaponComp* weapon,
     const EcsEntityId      instigator,
     const u32              muzzleJoint) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->muzzleFlashVfx);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->muzzleFlashVfx);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
@@ -85,7 +86,7 @@ static GeoQuat attack_projectile_random_deviation() {
 
 static void attack_projectile_spawn(
     EcsWorld*              world,
-    const SceneAttackComp* attack,
+    const SceneWeaponComp* weapon,
     const EcsEntityId      instigator,
     const SceneFaction     factionId,
     const GeoMatrix*       muzzleMatrix,
@@ -96,8 +97,8 @@ static void attack_projectile_spawn(
   const GeoQuat     rotation =
       geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation());
 
-  if (attack->projectileVfx) {
-    ecs_world_add_t(world, e, SceneVfxComp, .asset = attack->projectileVfx);
+  if (weapon->projectileVfx) {
+    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->projectileVfx);
   }
   if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
@@ -112,7 +113,7 @@ static void attack_projectile_spawn(
       .speed      = 50,
       .damage     = 5,
       .instigator = instigator,
-      .impactVfx  = attack->impactVfx);
+      .impactVfx  = weapon->impactVfx);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -126,9 +127,9 @@ static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector tar
   return geo_vector_dot(forward, dirToTarget) > attack_in_sight_threshold;
 }
 
-static TimeDuration attack_next_time(const SceneAttackComp* attack, const TimeDuration timeNow) {
+static TimeDuration attack_next_time(const SceneWeaponComp* weapon, const TimeDuration timeNow) {
   TimeDuration next = timeNow;
-  next += (TimeDuration)rng_sample_range(g_rng, attack->minInterval, attack->maxInterval);
+  next += (TimeDuration)rng_sample_range(g_rng, weapon->minInterval, weapon->maxInterval);
   return next;
 }
 
@@ -139,6 +140,7 @@ ecs_view_define(AttackView) {
   ecs_access_read(SceneAttackAnimComp);
   ecs_access_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneWeaponComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
 }
@@ -164,10 +166,11 @@ ecs_system_define(SceneAttackSys) {
   for (EcsIterator* itr = ecs_view_itr_step(attackView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneAttackAnimComp* attackAnim = ecs_view_read_t(itr, SceneAttackAnimComp);
+    const SceneFactionComp*    faction    = ecs_view_read_t(itr, SceneFactionComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneFactionComp*    faction    = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneWeaponComp*     weapon     = ecs_view_read_t(itr, SceneWeaponComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -213,17 +216,17 @@ ecs_system_define(SceneAttackSys) {
 
       const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, attack, entity, factionId, &muz, targetPos);
+      attack_projectile_spawn(world, weapon, entity, factionId, &muz, targetPos);
 
-      if (attack->muzzleFlashVfx) {
-        attack_muzzleflash_spawn(world, attack, entity, attackAnim->muzzleJoint);
+      if (weapon->muzzleFlashVfx) {
+        attack_muzzleflash_spawn(world, weapon, entity, attackAnim->muzzleJoint);
       }
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
       // Finished firing the shot.
       attack->flags &= ~SceneAttackFlags_Firing;
-      attack->nextFireTime = attack_next_time(attack, time->time);
+      attack->nextFireTime = attack_next_time(weapon, time->time);
     }
   }
 }
@@ -232,6 +235,7 @@ ecs_module_init(scene_attack_module) {
   g_attackAimAnimHash  = string_hash_lit("aim");
   g_attackFireAnimHash = string_hash_lit("fire");
 
+  ecs_register_comp(SceneWeaponComp);
   ecs_register_comp(SceneAttackComp);
   ecs_register_comp(SceneAttackAnimComp);
 

@@ -141,12 +141,13 @@ EcsEntityId object_spawn_unit(
   ecs_world_add_t(
       world,
       e,
-      SceneAttackComp,
+      SceneWeaponComp,
       .minInterval    = time_milliseconds(150),
       .maxInterval    = time_milliseconds(300),
       .muzzleFlashVfx = db->muzzleFlashVfx,
       .projectileVfx  = db->projectileVfx,
       .impactVfx      = db->impactVfx);
+  ecs_world_add_t(world, e, SceneAttackComp);
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);
   scene_brain_add(world, e, behavior);
