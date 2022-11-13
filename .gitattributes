@@ -22,3 +22,4 @@
 *.pme linguist-language=JSON
 *.ptx linguist-language=JSON
 *.vfx linguist-language=JSON
+*.wea linguist-language=JSON

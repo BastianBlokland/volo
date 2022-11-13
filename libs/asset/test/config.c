@@ -13,5 +13,6 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, loader_texture_atlas);
   register_spec(check, loader_texture_ppm);
   register_spec(check, loader_texture_tga);
+  register_spec(check, loader_weapon);
   register_spec(check, manager);
 }

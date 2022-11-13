@@ -20,6 +20,7 @@ typedef enum {
   AssetFormat_Tga,
   AssetFormat_Ttf,
   AssetFormat_Vfx,
+  AssetFormat_Wea,
 
   AssetFormat_Count,
 } AssetFormat;
