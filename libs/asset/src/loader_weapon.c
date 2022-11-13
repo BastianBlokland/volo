@@ -17,7 +17,7 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  String vfxAssetId;
+  String assetId;
   String originJoint;
 } AssetWeaponEffectVfxDef;
 
@@ -58,7 +58,7 @@ static void weapon_datareg_init() {
 
     // clang-format off
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
-    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, vfxAssetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
@@ -104,7 +104,8 @@ static String weapon_error_str(const WeaponError err) {
 }
 
 typedef struct {
-  EcsWorld* world;
+  EcsWorld*         world;
+  AssetManagerComp* assetManager;
 } BuildCtx;
 
 static void asset_weapon_effect_vfx_build(
@@ -115,7 +116,7 @@ static void asset_weapon_effect_vfx_build(
   (void)ctx;
 
   *out = (AssetWeaponEffectVfx){
-      .vfxAsset    = 0, // asset_lookup(world, manager, def->vfxAssetId);
+      .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
       .originJoint = string_hash(def->originJoint),
   };
   *err = WeaponError_None;
@@ -228,7 +229,8 @@ ecs_system_define(LoadWeaponAssetSys) {
     }
 
     BuildCtx buildCtx = {
-        .world = world,
+        .world        = world,
+        .assetManager = manager,
     };
 
     WeaponError buildErr;

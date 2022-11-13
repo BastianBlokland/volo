@@ -7,7 +7,13 @@
       "aimSpeed": 3.5,
       "aimMinTime": 3,
       "aimAnim": "aim",
-      "effects": []
+      "effects": [
+        {
+          "$type": "AssetWeaponEffectType_Vfx",
+          "assetId": "vfx/sandbox/muzzleflash.vfx",
+          "originJoint": "muzzle"
+        }
+      ]
     }
   ]
 }

@@ -32,6 +32,27 @@ static const struct {
                               "      \"aimSpeed\": 3.5,"
                               "      \"aimMinTime\": 3,"
                               "      \"effects\": []"
+                              "  }"
+                              "]}"),
+        .weapons =
+            {
+                {
+                    .name        = string_static("Pistol"),
+                    .intervalMin = time_seconds(1),
+                    .intervalMax = time_seconds(2),
+                },
+            },
+        .weaponCount = 1,
+    },
+    {
+        .id   = string_static("multi.wea"),
+        .text = string_static("{ \"weapons\": [ {"
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": []"
                               "  }, {"
                               "      \"name\": \"Sword\","
                               "      \"intervalMin\": 2,"
@@ -55,6 +76,26 @@ static const struct {
                 },
             },
         .weaponCount = 2,
+    },
+    {
+        .id          = string_static("effect-vfx.wea"),
+        .text        = string_static("{ \"weapons\": [ {"
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": [ {"
+                              "        \"$type\": \"AssetWeaponEffectType_Vfx\","
+                              "        \"assetId\": \"test1\","
+                              "        \"originJoint\": \"test2\""
+                              "      }]"
+                              "  }"
+                              "]}"),
+        .weapons     = {{
+            .name = string_static("Pistol"),
+        }},
+        .weaponCount = 1,
     },
 };
 
