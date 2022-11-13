@@ -22,12 +22,13 @@
 
 ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
-ecs_comp_define(SceneAttackAnimComp) { u32 muzzleJoint; };
+ecs_comp_define(SceneAttackAnimComp) { u32 jointOriginIdx; };
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(AttackInitView) {
   ecs_access_read(SceneRenderableComp);
+  ecs_access_read(SceneWeaponComp);
   ecs_access_with(SceneAnimationComp);
   ecs_access_with(SceneAttackComp);
   ecs_access_without(SceneAttackAnimComp);
@@ -42,13 +43,14 @@ ecs_system_define(SceneAttackInitSys) {
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    const SceneWeaponComp*     weapon     = ecs_view_read_t(itr, SceneWeaponComp);
 
     if (ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
       const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
 
-      const u32 muzzleJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("muzzle"));
-      diag_assert_msg(!sentinel_check(muzzleJoint), "No 'muzzle' joint found");
-      ecs_world_add_t(world, entity, SceneAttackAnimComp, .muzzleJoint = muzzleJoint);
+      const u32 jointOriginIdx = scene_skeleton_joint_by_name(skelTempl, weapon->jointOrigin);
+      diag_assert_msg(!sentinel_check(jointOriginIdx), "Weapon origin joint not found");
+      ecs_world_add_t(world, entity, SceneAttackAnimComp, .jointOriginIdx = jointOriginIdx);
     }
   }
 }
@@ -62,16 +64,16 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
-static void attack_muzzleflash_spawn(
+static void attack_vfx_fire_spawn(
     EcsWorld*              world,
     const SceneWeaponComp* weapon,
     const EcsEntityId      instigator,
-    const u32              muzzleJoint) {
+    const u32              jointOrigin) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxMuzzleFlash);
-  ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxFire);
+  ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = jointOrigin);
 }
 
 static GeoQuat attack_projectile_random_deviation(const SceneWeaponComp* weapon) {
@@ -86,11 +88,11 @@ static void attack_projectile_spawn(
     const SceneWeaponComp* weapon,
     const EcsEntityId      instigator,
     const SceneFaction     factionId,
-    const GeoMatrix*       muzzleMatrix,
+    const GeoMatrix*       originMatrix,
     const GeoVector        targetPos) {
   const EcsEntityId e         = ecs_world_entity_create(world);
-  const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
-  const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
+  const GeoVector   originPos = geo_matrix_to_translation(originMatrix);
+  const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, originPos));
   const GeoQuat     rotation =
       geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation(weapon));
 
@@ -100,7 +102,7 @@ static void attack_projectile_spawn(
   if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
   }
-  ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = originPos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
   ecs_world_add_t(
       world,
@@ -212,11 +214,12 @@ ecs_system_define(SceneAttackSys) {
       attack->flags |= SceneAttackFlags_Firing;
 
       const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
-      const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, weapon, entity, factionId, &muz, targetPos);
+      const GeoMatrix    originMatrix =
+          scene_skeleton_joint_world(trans, scale, skel, attackAnim->jointOriginIdx);
+      attack_projectile_spawn(world, weapon, entity, factionId, &originMatrix, targetPos);
 
-      if (weapon->vfxMuzzleFlash) {
-        attack_muzzleflash_spawn(world, weapon, entity, attackAnim->muzzleJoint);
+      if (weapon->vfxFire) {
+        attack_vfx_fire_spawn(world, weapon, entity, attackAnim->jointOriginIdx);
       }
     }
 
