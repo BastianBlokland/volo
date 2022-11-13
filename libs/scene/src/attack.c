@@ -23,7 +23,6 @@
 
 ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
-ecs_comp_define(SceneAttackAnimComp) { u32 jointOriginIdx; };
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneTimeComp);
@@ -32,40 +31,13 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
+ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
+
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const EcsEntityId              mapAsset = scene_weapon_map(resource);
   EcsIterator*                   itr      = ecs_view_maybe_at(mapView, mapAsset);
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
-}
-
-ecs_view_define(AttackInitView) {
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_read(SceneWeaponComp);
-  ecs_access_with(SceneAnimationComp);
-  ecs_access_with(SceneAttackComp);
-  ecs_access_without(SceneAttackAnimComp);
-}
-
-ecs_view_define(AttackGraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
-
-ecs_system_define(SceneAttackInitSys) {
-  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, AttackGraphicView));
-
-  EcsView* initView = ecs_world_view_t(world, AttackInitView);
-  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId          entity     = ecs_view_entity(itr);
-    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    const SceneWeaponComp*     weapon     = ecs_view_read_t(itr, SceneWeaponComp);
-
-    if (ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
-      const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
-
-      const u32 jointOriginIdx = scene_skeleton_joint_by_name(skelTempl, weapon->jointOrigin);
-      diag_assert_msg(!sentinel_check(jointOriginIdx), "Weapon origin joint not found");
-      ecs_world_add_t(world, entity, SceneAttackAnimComp, .jointOriginIdx = jointOriginIdx);
-    }
-  }
 }
 
 static GeoVector aim_target_position(EcsIterator* targetItr) {
@@ -149,7 +121,7 @@ ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneLocomotionComp);
-  ecs_access_read(SceneAttackAnimComp);
+  ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneWeaponComp);
@@ -178,13 +150,14 @@ ecs_system_define(SceneAttackSys) {
     return; // Weapon-map not loaded yet.
   }
 
-  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
+  EcsIterator* targetItr  = ecs_view_itr(ecs_world_view_t(world, TargetView));
+  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, GraphicView));
 
   EcsView* attackView = ecs_world_view_t(world, AttackView);
   for (EcsIterator* itr = ecs_view_itr_step(attackView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
-    const SceneAttackAnimComp* attackAnim = ecs_view_read_t(itr, SceneAttackAnimComp);
     const SceneFactionComp*    faction    = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
@@ -192,6 +165,11 @@ ecs_system_define(SceneAttackSys) {
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
+
+    if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
+      continue; // Graphic is missing required components.
+    }
+    const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
 
     if (UNLIKELY(!attack->weaponName)) {
       continue; // Entity has no weapon equipped.
@@ -243,13 +221,15 @@ ecs_system_define(SceneAttackSys) {
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
 
+      const u32 jointOriginIdx = scene_skeleton_joint_by_name(skelTempl, weapon2->jointOrigin);
+      diag_assert_msg(!sentinel_check(jointOriginIdx), "Weapon origin joint not found");
+
       const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
-      const GeoMatrix    originMatrix =
-          scene_skeleton_joint_world(trans, scale, skel, attackAnim->jointOriginIdx);
+      const GeoMatrix originMatrix = scene_skeleton_joint_world(trans, scale, skel, jointOriginIdx);
       attack_projectile_spawn(world, weapon2, entity, factionId, &originMatrix, targetPos);
 
       if (weapon2->vfxFire) {
-        attack_vfx_fire_spawn(world, weapon2, entity, attackAnim->jointOriginIdx);
+        attack_vfx_fire_spawn(world, weapon2, entity, jointOriginIdx);
       }
     }
 
@@ -264,18 +244,16 @@ ecs_system_define(SceneAttackSys) {
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneWeaponComp);
   ecs_register_comp(SceneAttackComp);
-  ecs_register_comp(SceneAttackAnimComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
-
-  ecs_register_system(
-      SceneAttackInitSys, ecs_register_view(AttackInitView), ecs_register_view(AttackGraphicView));
+  ecs_register_view(GraphicView);
 
   ecs_register_system(
       SceneAttackSys,
       ecs_view_id(GlobalView),
       ecs_view_id(WeaponMapView),
+      ecs_view_id(GraphicView),
       ecs_register_view(AttackView),
       ecs_register_view(TargetView));
 
