@@ -11,6 +11,7 @@ ecs_comp_extern_public(SceneWeaponComp) {
   TimeDuration intervalMin, intervalMax;
   StringHash   animAim, animFire;
   EcsEntityId  vfxMuzzleFlash, vfxProjectile, vfxImpact;
+  f32          spreadAngleMax;
 };
 
 ecs_comp_extern_public(SceneAttackComp) {

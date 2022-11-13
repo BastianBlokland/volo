@@ -19,7 +19,6 @@
 #define attack_aim_min_time time_seconds(3)
 #define attack_in_sight_threshold 0.975f
 #define attack_in_sight_min_dist 2.0f
-#define attack_max_deviation_angle 2.5f
 
 ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
@@ -75,9 +74,9 @@ static void attack_muzzleflash_spawn(
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
-static GeoQuat attack_projectile_random_deviation() {
-  const f32 minAngle = -attack_max_deviation_angle * 0.5f * math_deg_to_rad;
-  const f32 maxAngle = attack_max_deviation_angle * 0.5f * math_deg_to_rad;
+static GeoQuat attack_projectile_random_deviation(const SceneWeaponComp* weapon) {
+  const f32 minAngle = -weapon->spreadAngleMax * 0.5f * math_deg_to_rad;
+  const f32 maxAngle = weapon->spreadAngleMax * 0.5f * math_deg_to_rad;
   const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
   return geo_quat_angle_axis(geo_up, angle);
 }
@@ -93,7 +92,7 @@ static void attack_projectile_spawn(
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
   const GeoQuat     rotation =
-      geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation());
+      geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation(weapon));
 
   if (weapon->vfxProjectile) {
     ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxProjectile);

@@ -148,7 +148,8 @@ EcsEntityId object_spawn_unit(
       .animFire       = string_hash_lit("fire"),
       .vfxMuzzleFlash = db->vfxMuzzleFlash,
       .vfxProjectile  = db->vfxProjectile,
-      .vfxImpact      = db->vfxImpact);
+      .vfxImpact      = db->vfxImpact,
+      .spreadAngleMax = 2.5f);
   ecs_world_add_t(world, e, SceneAttackComp);
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);
