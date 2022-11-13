@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_module.h"
 
 /**
@@ -6,7 +7,8 @@
  */
 
 typedef struct {
-  StringHash nameHash;
+  StringHash   nameHash;
+  TimeDuration intervalMin, intervalMax;
 } AssetWeapon;
 
 ecs_comp_extern_public(AssetWeaponMapComp) {

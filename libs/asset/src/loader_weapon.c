@@ -16,6 +16,7 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   String name;
+  f32    intervalMin, intervalMax;
 } AssetWeaponDef;
 
 typedef struct {
@@ -37,6 +38,8 @@ static void weapon_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, AssetWeaponDef);
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(f32));
 
     data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
     data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_Array);
@@ -68,15 +71,26 @@ static String weapon_error_str(const WeaponError err) {
   return g_msgs[err];
 }
 
+static void asset_weapon_build(const AssetWeaponDef* def, AssetWeapon* out, WeaponError* err) {
+  *out = (AssetWeapon){
+      .nameHash    = stringtable_add(g_stringtable, def->name),
+      .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
+      .intervalMax = (TimeDuration)time_seconds(def->intervalMax),
+  };
+  *err = WeaponError_None;
+}
+
 static void asset_weaponmap_build(
     const AssetWeaponMapDef* def,
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
     WeaponError*             err) {
 
   array_ptr_for_t(def->weapons, AssetWeaponDef, weaponDef) {
-    const AssetWeapon weapon = {
-        .nameHash = stringtable_add(g_stringtable, weaponDef->name),
-    };
+    AssetWeapon weapon;
+    asset_weapon_build(weaponDef, &weapon, err);
+    if (*err) {
+      return;
+    }
     if (dynarray_search_binary(outWeapons, asset_weapon_compare, &weapon)) {
       *err = WeaponError_DuplicateWeapon;
       return;

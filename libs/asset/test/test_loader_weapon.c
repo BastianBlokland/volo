@@ -25,7 +25,9 @@ static const struct {
     {
         .id   = string_static("single.wea"),
         .text = string_static("{ \"weapons\": [ {"
-                              "      \"name\": \"Pistol\""
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2"
                               "  }"
                               "]}"),
         .weapons =
@@ -47,9 +49,13 @@ static const struct {
     {
         .id   = string_static("duplicate-weapon-name.wea"),
         .text = string_static("{ \"weapons\": [ {"
-                              "      \"name\": \"Pistol\""
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2"
                               "    }, {"
-                              "      \"name\": \"Pistol\""
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2"
                               "    }"
                               "]}"),
     },
