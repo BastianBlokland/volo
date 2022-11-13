@@ -4,10 +4,9 @@
 #include "ecs_module.h"
 
 ecs_comp_extern_public(SceneWeaponComp) {
-  TimeDuration intervalMin, intervalMax;
-  StringHash   animAim, animFire;
-  StringHash   jointOrigin; // For example the weapon's muzzle.
-  EcsEntityId  vfxFire, vfxImpact;
+  StringHash  animAim, animFire;
+  StringHash  jointOrigin; // For example the weapon's muzzle.
+  EcsEntityId vfxFire, vfxImpact;
 
   struct {
     EcsEntityId  vfx;
@@ -23,9 +22,9 @@ typedef enum {
 } SceneAttackFlags;
 
 ecs_comp_extern_public(SceneAttackComp) {
+  StringHash       weaponName;
   SceneAttackFlags flags;
-  TimeDuration     lastFireTime, nextFireTime;
   f32              aimNorm; // Process of aiming.
-
-  EcsEntityId targetEntity;
+  TimeDuration     lastFireTime, nextFireTime;
+  EcsEntityId      targetEntity;
 };

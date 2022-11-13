@@ -1,7 +1,9 @@
+#include "asset_weapon.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
@@ -14,6 +16,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_weapon.h"
 
 #define attack_aim_speed 3.5f
 #define attack_aim_min_time time_seconds(3)
@@ -24,7 +27,19 @@ ecs_comp_define_public(SceneWeaponComp);
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define(SceneAttackAnimComp) { u32 jointOriginIdx; };
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneWeaponResourceComp);
+}
+
+ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
+
+static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
+  const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
+  const EcsEntityId              mapAsset = scene_weapon_map(resource);
+  EcsIterator*                   itr      = ecs_view_maybe_at(mapView, mapAsset);
+  return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
+}
 
 ecs_view_define(AttackInitView) {
   ecs_access_read(SceneRenderableComp);
@@ -126,7 +141,7 @@ static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector tar
   return geo_vector_dot(forward, dirToTarget) > attack_in_sight_threshold;
 }
 
-static TimeDuration attack_next_time(const SceneWeaponComp* weapon, const TimeDuration timeNow) {
+static TimeDuration attack_next_fire_time(const AssetWeapon* weapon, const TimeDuration timeNow) {
   TimeDuration next = timeNow;
   next += (TimeDuration)rng_sample_range(g_rng, weapon->intervalMin, weapon->intervalMax);
   return next;
@@ -159,6 +174,12 @@ ecs_system_define(SceneAttackSys) {
   const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSeconds = scene_delta_seconds(time);
 
+  EcsView*                  weaponMapView = ecs_world_view_t(world, WeaponMapView);
+  const AssetWeaponMapComp* weaponMap     = attack_weapon_map_get(globalItr, weaponMapView);
+  if (!weaponMap) {
+    return; // Weapon-map not loaded yet.
+  }
+
   EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
 
   EcsView* attackView = ecs_world_view_t(world, AttackView);
@@ -169,10 +190,19 @@ ecs_system_define(SceneAttackSys) {
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneWeaponComp*     weapon     = ecs_view_read_t(itr, SceneWeaponComp);
+    const SceneWeaponComp*     weapon2    = ecs_view_read_t(itr, SceneWeaponComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
+
+    if (UNLIKELY(!attack->weaponName)) {
+      continue; // Entity has no weapon equipped.
+    }
+    const AssetWeapon* weapon = asset_weapon_get(weaponMap, attack->weaponName);
+    if (UNLIKELY(!weapon)) {
+      log_w("Weapon not found", log_param("entity", fmt_int(entity, .base = 16)));
+      continue;
+    }
 
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     const bool isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
@@ -182,7 +212,7 @@ ecs_system_define(SceneAttackSys) {
     const bool isAiming = math_towards_f32(
         &attack->aimNorm, shouldAim ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
 
-    scene_animation_set_weight(anim, weapon->animAim, attack->aimNorm);
+    scene_animation_set_weight(anim, weapon2->animAim, attack->aimNorm);
     if (!hasTarget) {
       attack->flags &= ~SceneAttackFlags_Firing;
       continue;
@@ -199,7 +229,7 @@ ecs_system_define(SceneAttackSys) {
       }
     }
 
-    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, weapon->animFire);
+    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, weapon2->animFire);
     diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
     fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
     fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
@@ -216,17 +246,17 @@ ecs_system_define(SceneAttackSys) {
       const SceneFaction factionId = LIKELY(faction) ? faction->id : SceneFaction_None;
       const GeoMatrix    originMatrix =
           scene_skeleton_joint_world(trans, scale, skel, attackAnim->jointOriginIdx);
-      attack_projectile_spawn(world, weapon, entity, factionId, &originMatrix, targetPos);
+      attack_projectile_spawn(world, weapon2, entity, factionId, &originMatrix, targetPos);
 
-      if (weapon->vfxFire) {
-        attack_vfx_fire_spawn(world, weapon, entity, attackAnim->jointOriginIdx);
+      if (weapon2->vfxFire) {
+        attack_vfx_fire_spawn(world, weapon2, entity, attackAnim->jointOriginIdx);
       }
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
       // Finished firing the shot.
       attack->flags &= ~SceneAttackFlags_Firing;
-      attack->nextFireTime = attack_next_time(weapon, time->time);
+      attack->nextFireTime = attack_next_fire_time(weapon, time->time);
     }
   }
 }
@@ -237,6 +267,7 @@ ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackAnimComp);
 
   ecs_register_view(GlobalView);
+  ecs_register_view(WeaponMapView);
 
   ecs_register_system(
       SceneAttackInitSys, ecs_register_view(AttackInitView), ecs_register_view(AttackGraphicView));
@@ -244,6 +275,7 @@ ecs_module_init(scene_attack_module) {
   ecs_register_system(
       SceneAttackSys,
       ecs_view_id(GlobalView),
+      ecs_view_id(WeaponMapView),
       ecs_register_view(AttackView),
       ecs_register_view(TargetView));
 

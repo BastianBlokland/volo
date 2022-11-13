@@ -1,7 +1,9 @@
 {
   "weapons": [
     {
-      "name": "AssaultRifle"
+      "name": "AssaultRifle",
+      "intervalMin": 0.15,
+      "intervalMax": 0.35
     }
   ]
 }
