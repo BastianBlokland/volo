@@ -6,7 +6,7 @@
 ecs_comp_extern_public(SceneWeaponComp) {
   StringHash  animFire;
   StringHash  jointOrigin; // For example the weapon's muzzle.
-  EcsEntityId vfxFire, vfxImpact;
+  EcsEntityId vfxImpact;
 
   struct {
     EcsEntityId  vfx;

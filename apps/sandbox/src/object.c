@@ -16,7 +16,7 @@
 
 ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId unitAGraphic, unitBGraphic, unitCGraphic;
-  EcsEntityId vfxMuzzleFlash, vfxProjectile, vfxImpact;
+  EcsEntityId vfxProjectile, vfxImpact;
   EcsEntityId unitBehaviorAuto, unitBehaviorManual;
   EcsEntityId wallGraphic;
 };
@@ -91,7 +91,6 @@ ecs_system_define(ObjectDatabaseInitSys) {
       .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
       .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
       .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
-      .vfxMuzzleFlash     = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
       .vfxProjectile      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
       .vfxImpact          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
       .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
@@ -144,7 +143,6 @@ EcsEntityId object_spawn_unit(
       SceneWeaponComp,
       .animFire    = string_hash_lit("fire"),
       .jointOrigin = string_hash_lit("muzzle"),
-      .vfxFire     = db->vfxMuzzleFlash,
       .vfxImpact   = db->vfxImpact,
       .projectile  = {
           .vfx            = db->vfxProjectile,

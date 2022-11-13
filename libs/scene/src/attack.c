@@ -49,18 +49,6 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
-static void attack_vfx_fire_spawn(
-    EcsWorld*              world,
-    const SceneWeaponComp* weapon,
-    const EcsEntityId      instigator,
-    const u32              jointOrigin) {
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxFire);
-  ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = jointOrigin);
-}
-
 static GeoQuat attack_projectile_random_deviation(const SceneWeaponComp* weapon) {
   const f32 minAngle = -weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
   const f32 maxAngle = weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
@@ -115,6 +103,39 @@ static TimeDuration attack_next_fire_time(const AssetWeapon* weapon, const TimeD
   TimeDuration next = timeNow;
   next += (TimeDuration)rng_sample_range(g_rng, weapon->intervalMin, weapon->intervalMax);
   return next;
+}
+
+typedef struct {
+  EcsWorld*                     world;
+  EcsEntityId                   instigator;
+  const AssetWeaponMapComp*     weaponMap;
+  const AssetWeapon*            weapon;
+  const SceneSkeletonTemplComp* skelTempl;
+} AttackEffectCtx;
+
+static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectVfx* def) {
+  const u32 jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
+  if (sentinel_check(jointOriginIdx)) {
+    log_w("Weapon not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    return;
+  }
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
+  ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
+  ecs_world_add_t(
+      ctx->world, e, SceneAttachmentComp, .target = ctx->instigator, .jointIndex = jointOriginIdx);
+}
+
+static void effect_exec(const AttackEffectCtx* ctx) {
+  for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
+    const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
+    switch (effect->type) {
+    case AssetWeaponEffectType_Vfx:
+      effect_exec_vfx(ctx, &effect->data_vfx);
+      break;
+    }
+  }
 }
 
 ecs_view_define(AttackView) {
@@ -228,9 +249,14 @@ ecs_system_define(SceneAttackSys) {
       const GeoMatrix originMatrix = scene_skeleton_joint_world(trans, scale, skel, jointOriginIdx);
       attack_projectile_spawn(world, weapon2, entity, factionId, &originMatrix, targetPos);
 
-      if (weapon2->vfxFire) {
-        attack_vfx_fire_spawn(world, weapon2, entity, jointOriginIdx);
-      }
+      const AttackEffectCtx effectCtx = {
+          .world      = world,
+          .instigator = entity,
+          .weaponMap  = weaponMap,
+          .weapon     = weapon,
+          .skelTempl  = skelTempl,
+      };
+      effect_exec(&effectCtx);
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
