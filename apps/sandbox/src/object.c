@@ -142,15 +142,20 @@ EcsEntityId object_spawn_unit(
       world,
       e,
       SceneWeaponComp,
-      .intervalMin    = time_milliseconds(150),
-      .intervalMax    = time_milliseconds(300),
-      .spreadAngleMax = 2.5f,
-      .animAim        = string_hash_lit("aim"),
-      .animFire       = string_hash_lit("fire"),
-      .jointOrigin    = string_hash_lit("muzzle"),
-      .vfxFire        = db->vfxMuzzleFlash,
-      .vfxProjectile  = db->vfxProjectile,
-      .vfxImpact      = db->vfxImpact);
+      .intervalMin = time_milliseconds(150),
+      .intervalMax = time_milliseconds(300),
+      .animAim     = string_hash_lit("aim"),
+      .animFire    = string_hash_lit("fire"),
+      .jointOrigin = string_hash_lit("muzzle"),
+      .vfxFire     = db->vfxMuzzleFlash,
+      .vfxImpact   = db->vfxImpact,
+      .projectile  = {
+           .vfx            = db->vfxProjectile,
+           .delay          = time_milliseconds(25),
+           .speed          = 50.0f,
+           .speed          = 5.0f,
+           .spreadAngleMax = 2.5f,
+      });
   ecs_world_add_t(world, e, SceneAttackComp);
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
   scene_collision_add_capsule(world, e, g_capsule, layer);

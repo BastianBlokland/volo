@@ -77,8 +77,8 @@ static void attack_vfx_fire_spawn(
 }
 
 static GeoQuat attack_projectile_random_deviation(const SceneWeaponComp* weapon) {
-  const f32 minAngle = -weapon->spreadAngleMax * 0.5f * math_deg_to_rad;
-  const f32 maxAngle = weapon->spreadAngleMax * 0.5f * math_deg_to_rad;
+  const f32 minAngle = -weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
+  const f32 maxAngle = weapon->projectile.spreadAngleMax * 0.5f * math_deg_to_rad;
   const f32 angle    = rng_sample_range(g_rng, minAngle, maxAngle);
   return geo_quat_angle_axis(geo_up, angle);
 }
@@ -96,8 +96,8 @@ static void attack_projectile_spawn(
   const GeoQuat     rotation =
       geo_quat_mul(geo_quat_look(dir, geo_up), attack_projectile_random_deviation(weapon));
 
-  if (weapon->vfxProjectile) {
-    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->vfxProjectile);
+  if (weapon->projectile.vfx) {
+    ecs_world_add_t(world, e, SceneVfxComp, .asset = weapon->projectile.vfx);
   }
   if (factionId != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = factionId);
@@ -108,9 +108,9 @@ static void attack_projectile_spawn(
       world,
       e,
       SceneProjectileComp,
-      .delay      = time_milliseconds(25),
-      .speed      = 50,
-      .damage     = 5,
+      .delay      = weapon->projectile.delay,
+      .speed      = weapon->projectile.speed,
+      .damage     = weapon->projectile.damage,
       .instigator = instigator,
       .impactVfx  = weapon->vfxImpact);
 }

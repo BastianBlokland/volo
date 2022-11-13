@@ -5,10 +5,17 @@
 
 ecs_comp_extern_public(SceneWeaponComp) {
   TimeDuration intervalMin, intervalMax;
-  f32          spreadAngleMax;
   StringHash   animAim, animFire;
   StringHash   jointOrigin; // For example the weapon's muzzle.
-  EcsEntityId  vfxFire, vfxProjectile, vfxImpact;
+  EcsEntityId  vfxFire, vfxImpact;
+
+  struct {
+    EcsEntityId  vfx;
+    TimeDuration delay;
+    f32          spreadAngleMax;
+    f32          speed;
+    f32          damage;
+  } projectile;
 };
 
 typedef enum {
