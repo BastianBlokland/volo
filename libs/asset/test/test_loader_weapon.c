@@ -7,7 +7,8 @@
 #include "utils_internal.h"
 
 typedef struct {
-  String name;
+  String       name;
+  TimeDuration intervalMin, intervalMax;
 } TestWeaponData;
 
 static const struct {
@@ -31,13 +32,29 @@ static const struct {
                               "      \"aimSpeed\": 3.5,"
                               "      \"aimMinTime\": 3,"
                               "      \"effects\": []"
+                              "  }, {"
+                              "      \"name\": \"Sword\","
+                              "      \"intervalMin\": 2,"
+                              "      \"intervalMax\": 3,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": []"
                               "  }"
                               "]}"),
         .weapons =
             {
-                {.name = string_static("Pistol")},
+                {
+                    .name        = string_static("Pistol"),
+                    .intervalMin = time_seconds(1),
+                    .intervalMax = time_seconds(2),
+                },
+                {
+                    .name        = string_static("Sword"),
+                    .intervalMin = time_seconds(2),
+                    .intervalMax = time_seconds(3),
+                },
             },
-        .weaponCount = 1,
+        .weaponCount = 2,
     },
 };
 
@@ -116,6 +133,8 @@ spec(loader_weapon) {
         const TestWeaponData* expectedWeapon = &g_testData[i].weapons[a];
 
         check_eq_int(actualWeapon->nameHash, string_hash(expectedWeapon->name));
+        check_eq_int(actualWeapon->intervalMin, expectedWeapon->intervalMin);
+        check_eq_int(actualWeapon->intervalMax, expectedWeapon->intervalMax);
       }
     }
   }
