@@ -87,11 +87,34 @@ typedef struct {
   GeoVector                     targetPos;
 } AttackCtx;
 
-static void effect_exec_proj(const AttackCtx* ctx, const AssetWeaponEffectProj* def) {
+static bool effect_execute_once(const AttackCtx* ctx, const u32 effectIndex) {
+  if (ctx->attack->executedEffects & (1 << effectIndex)) {
+    return false; // Already executed.
+  }
+  ctx->attack->executedEffects |= 1 << effectIndex;
+  return true;
+}
+
+typedef enum {
+  EffectResult_Done,
+  EffectResult_Running,
+} EffectResult;
+
+static EffectResult effect_update_proj(
+    const AttackCtx*             ctx,
+    const TimeDuration           effectTime,
+    const u32                    effectIndex,
+    const AssetWeaponEffectProj* def) {
+  (void)effectTime;
+
+  if (!effect_execute_once(ctx, effectIndex)) {
+    return EffectResult_Done; // Already executed.
+  }
+
   const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(orgIdx)) {
     log_w("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
-    return;
+    return EffectResult_Done;
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
   const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
@@ -116,56 +139,74 @@ static void effect_exec_proj(const AttackCtx* ctx, const AssetWeaponEffectProj* 
       .damage     = def->damage,
       .instigator = ctx->instigator,
       .impactVfx  = def->vfxImpact);
+  return EffectResult_Done;
 }
 
-static void effect_exec_anim(const AttackCtx* ctx, const AssetWeaponEffectAnim* def) {
+static EffectResult effect_update_anim(
+    const AttackCtx*             ctx,
+    const TimeDuration           effectTime,
+    const u32                    effectIndex,
+    const AssetWeaponEffectAnim* def) {
+  (void)effectTime;
+
   SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
   if (UNLIKELY(!animLayer)) {
     log_w("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
-    return;
+    return EffectResult_Done;
   }
-  animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
-  animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
-  animLayer->time  = 0.0f;                     // Restart the animation.
-  animLayer->speed = def->speed;
+  if (effect_execute_once(ctx, effectIndex)) {
+    animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
+    animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
+    animLayer->time  = 0.0f;                     // Restart the animation.
+    animLayer->speed = def->speed;
+    return EffectResult_Running;
+  }
+  // Keep running until the animation reaches the end.
+  return animLayer->time == animLayer->duration ? EffectResult_Done : EffectResult_Running;
 }
 
-static void effect_exec_vfx(const AttackCtx* ctx, const AssetWeaponEffectVfx* def) {
+static EffectResult effect_update_vfx(
+    const AttackCtx*            ctx,
+    const TimeDuration          effectTime,
+    const u32                   effectIndex,
+    const AssetWeaponEffectVfx* def) {
+
+  if (!effect_execute_once(ctx, effectIndex)) {
+    return effectTime < def->duration ? EffectResult_Running : EffectResult_Done;
+  }
+
   const EcsEntityId inst           = ctx->instigator;
   const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (UNLIKELY(sentinel_check(jointOriginIdx))) {
     log_w("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
-    return;
+    return EffectResult_Done;
   }
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
+  return EffectResult_Done;
 }
 
-static void effect_exec(const AttackCtx* ctx) {
-  diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->activatedEffects) * 8);
+static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effectTime) {
+  diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->executedEffects) * 8);
 
+  EffectResult result = EffectResult_Done;
   for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
-    if (ctx->attack->activatedEffects & (1 << i)) {
-      continue; // Already activated.
-    }
-    ctx->attack->activatedEffects |= 1 << i;
-
     switch (effect->type) {
     case AssetWeaponEffect_Projectile:
-      effect_exec_proj(ctx, &effect->data_proj);
+      result |= effect_update_proj(ctx, effectTime, i, &effect->data_proj);
       break;
     case AssetWeaponEffect_Animation:
-      effect_exec_anim(ctx, &effect->data_anim);
+      result |= effect_update_anim(ctx, effectTime, i, &effect->data_anim);
       break;
     case AssetWeaponEffect_Vfx:
-      effect_exec_vfx(ctx, &effect->data_vfx);
-      break;
+      result |= effect_update_vfx(ctx, effectTime, i, &effect->data_vfx);
     }
   }
+  return result;
 }
 
 ecs_view_define(AttackView) {
@@ -229,10 +270,10 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    const bool isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
-    const bool shouldAim =
-        !isMoving && (hasTarget || (time->time - attack->lastFireTime) < weapon->aimMinTime);
+    const TimeDuration timeSinceLastFire = time->time - attack->lastFireTime;
+    const bool         hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
+    const bool         isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
+    const bool shouldAim = !isMoving && (hasTarget || timeSinceLastFire < weapon->aimMinTime);
 
     const bool isAiming = math_towards_f32(
         &attack->aimNorm, shouldAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
@@ -262,10 +303,10 @@ ecs_system_define(SceneAttackSys) {
     const bool isCoolingDown = time->time < attack->nextFireTime;
 
     if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
-      // Start firing the shot.
+      // Start the attack..
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
-      attack->activatedEffects = 0;
+      attack->executedEffects = 0;
     }
 
     if (attack->flags & SceneAttackFlags_Firing) {
@@ -283,13 +324,12 @@ ecs_system_define(SceneAttackSys) {
           .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
           .targetPos  = targetPos,
       };
-      effect_exec(&ctx);
-    }
-
-    if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
-      // Finished firing the shot.
-      attack->flags &= ~SceneAttackFlags_Firing;
-      attack->nextFireTime = attack_next_fire_time(weapon, time->time);
+      const TimeDuration effectTime = time->time - attack->lastFireTime;
+      if (effect_update(&ctx, effectTime) == EffectResult_Done) {
+        // Finish the attack.
+        attack->flags &= ~SceneAttackFlags_Firing;
+        attack->nextFireTime = attack_next_fire_time(weapon, time->time);
+      }
     }
   }
 }
