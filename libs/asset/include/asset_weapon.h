@@ -23,13 +23,14 @@ typedef struct {
 } AssetWeaponEffectProj;
 
 typedef struct {
-  StringHash layer;
-  f32        speed;
+  StringHash   layer;
+  TimeDuration delay;
+  f32          speed;
 } AssetWeaponEffectAnim;
 
 typedef struct {
   StringHash   originJoint; // For example the weapon's muzzle.
-  TimeDuration duration;
+  TimeDuration delay, duration;
   EcsEntityId  asset;
 } AssetWeaponEffectVfx;
 

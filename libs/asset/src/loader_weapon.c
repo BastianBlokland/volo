@@ -26,12 +26,13 @@ typedef struct {
 
 typedef struct {
   String layer;
+  f32    delay;
   f32    speed;
 } AssetWeaponEffectAnimDef;
 
 typedef struct {
   String originJoint;
-  f32    duration;
+  f32    delay, duration;
   String assetId;
 } AssetWeaponEffectVfxDef;
 
@@ -85,11 +86,13 @@ static void weapon_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
@@ -174,6 +177,7 @@ static void weapon_effect_anim_build(
   }
   *out = (AssetWeaponEffectAnim){
       .layer = string_hash(def->layer),
+      .delay = (TimeDuration)time_seconds(def->delay),
       .speed = def->speed,
   };
   *err = WeaponError_None;
@@ -186,6 +190,7 @@ static void weapon_effect_vfx_build(
     WeaponError*                   err) {
   *out = (AssetWeaponEffectVfx){
       .originJoint = string_hash(def->originJoint),
+      .delay       = (TimeDuration)time_seconds(def->delay),
       .duration    = (TimeDuration)time_seconds(def->duration),
       .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
   };

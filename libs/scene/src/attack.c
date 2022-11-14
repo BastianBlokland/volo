@@ -149,7 +149,10 @@ static EffectResult effect_update_anim(
     const TimeDuration           effectTime,
     const u32                    effectIndex,
     const AssetWeaponEffectAnim* def) {
-  (void)effectTime;
+
+  if (effectTime < def->delay) {
+    return EffectResult_Running; // Waiting to execute.
+  }
 
   SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
   if (UNLIKELY(!animLayer)) {
@@ -175,8 +178,11 @@ static EffectResult effect_update_vfx(
     const u32                   effectIndex,
     const AssetWeaponEffectVfx* def) {
 
+  if (effectTime < def->delay) {
+    return EffectResult_Running; // Waiting to execute.
+  }
   if (!effect_execute_once(ctx, effectIndex)) {
-    return effectTime < def->duration ? EffectResult_Running : EffectResult_Done;
+    return (effectTime - def->delay) < def->duration ? EffectResult_Running : EffectResult_Done;
   }
 
   const EcsEntityId inst           = ctx->instigator;
