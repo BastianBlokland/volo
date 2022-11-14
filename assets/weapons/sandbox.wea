@@ -11,7 +11,7 @@
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
-          "delay": 0.025,
+          "delay": 0.05,
           "lifetime": 2,
           "spreadAngle": 2.5,
           "speed": 50,
