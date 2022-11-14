@@ -81,6 +81,7 @@ typedef struct {
   const SceneScaleComp*         scale;
   const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
+  SceneAnimationComp*           anim;
   SceneFaction                  factionId;
   GeoVector                     targetPos;
 } AttackEffectCtx;
@@ -116,10 +117,22 @@ static void effect_exec_proj(const AttackEffectCtx* ctx, const AssetWeaponEffect
       .impactVfx  = def->vfxImpact);
 }
 
+static void effect_exec_anim(const AttackEffectCtx* ctx, const AssetWeaponEffectAnim* def) {
+  SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
+  if (UNLIKELY(!animLayer)) {
+    log_w("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    return;
+  }
+  animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
+  animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
+  animLayer->time  = 0.0f;                     // Restart the animation.
+  animLayer->speed = def->speed;
+}
+
 static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectVfx* def) {
   const EcsEntityId inst           = ctx->instigator;
   const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
-  if (sentinel_check(jointOriginIdx)) {
+  if (UNLIKELY(sentinel_check(jointOriginIdx))) {
     log_w("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
     return;
   }
@@ -136,6 +149,9 @@ static void effect_exec(const AttackEffectCtx* ctx) {
     switch (effect->type) {
     case AssetWeaponEffect_Projectile:
       effect_exec_proj(ctx, &effect->data_proj);
+      break;
+    case AssetWeaponEffect_Animation:
+      effect_exec_anim(ctx, &effect->data_anim);
       break;
     case AssetWeaponEffect_Vfx:
       effect_exec_vfx(ctx, &effect->data_vfx);
@@ -233,15 +249,12 @@ ecs_system_define(SceneAttackSys) {
 
     SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, string_hash_lit("fire"));
     diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
-    fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
 
     const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
     const bool isCoolingDown = time->time < attack->nextFireTime;
 
     if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
       // Start firing the shot.
-      fireAnimLayer->time  = 0.0f;
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
 
@@ -254,6 +267,7 @@ ecs_system_define(SceneAttackSys) {
           .scale      = scale,
           .skel       = skel,
           .skelTempl  = skelTempl,
+          .anim       = anim,
           .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
           .targetPos  = targetPos,
       };

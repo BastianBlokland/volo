@@ -9,12 +9,6 @@
       "aimAnim": "aim",
       "effects": [
         {
-          "$type": "AssetWeaponEffect_Vfx",
-          "originJoint": "muzzle",
-          "duration": 0.15,
-          "assetId": "vfx/sandbox/muzzleflash.vfx"
-        },
-        {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
           "delay": 0.025,
@@ -24,6 +18,17 @@
           "damage": 5,
           "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
           "vfxIdImpact": "vfx/sandbox/impact.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "speed": 1
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "duration": 0.15,
+          "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
     }

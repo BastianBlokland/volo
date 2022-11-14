@@ -25,6 +25,11 @@ typedef struct {
 } AssetWeaponEffectProjDef;
 
 typedef struct {
+  String layer;
+  f32    speed;
+} AssetWeaponEffectAnimDef;
+
+typedef struct {
   String originJoint;
   f32    duration;
   String assetId;
@@ -34,6 +39,7 @@ typedef struct {
   AssetWeaponEffectType type;
   union {
     AssetWeaponEffectProjDef data_proj;
+    AssetWeaponEffectAnimDef data_anim;
     AssetWeaponEffectVfxDef  data_vfx;
   };
 } AssetWeaponEffectDef;
@@ -82,8 +88,13 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProjDef);
+    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
 
     data_reg_struct_t(g_dataReg, AssetWeaponDef);
@@ -110,8 +121,9 @@ static i8 asset_weapon_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  WeaponError_None            = 0,
-  WeaponError_DuplicateWeapon = 1,
+  WeaponError_None                      = 0,
+  WeaponError_DuplicateWeapon           = 1,
+  WeaponError_OutOfBoundsAnimationSpeed = 2,
 
   WeaponError_Count,
 } WeaponError;
@@ -120,6 +132,7 @@ static String weapon_error_str(const WeaponError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Multiple weapons with the same name"),
+      string_static("Out of bounds animation speed"),
   };
   ASSERT(array_elems(g_msgs) == WeaponError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -144,6 +157,24 @@ static void weapon_effect_proj_build(
       .damage        = def->damage,
       .vfxProjectile = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
       .vfxImpact     = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
+  };
+  *err = WeaponError_None;
+}
+
+static void weapon_effect_anim_build(
+    BuildCtx*                       ctx,
+    const AssetWeaponEffectAnimDef* def,
+    AssetWeaponEffectAnim*          out,
+    WeaponError*                    err) {
+  (void)ctx;
+
+  if (UNLIKELY(def->speed < 1e-4f || def->speed > 1e+4f)) {
+    *err = WeaponError_OutOfBoundsAnimationSpeed;
+    return;
+  }
+  *out = (AssetWeaponEffectAnim){
+      .layer = string_hash(def->layer),
+      .speed = def->speed,
   };
   *err = WeaponError_None;
 }
@@ -187,12 +218,17 @@ static void weapon_build(
     switch (effectDef->type) {
     case AssetWeaponEffect_Projectile:
       weapon_effect_proj_build(ctx, &effectDef->data_proj, &outEffect->data_proj, err);
-      continue;
+      break;
+    case AssetWeaponEffect_Animation:
+      weapon_effect_anim_build(ctx, &effectDef->data_anim, &outEffect->data_anim, err);
+      break;
     case AssetWeaponEffect_Vfx:
       weapon_effect_vfx_build(ctx, &effectDef->data_vfx, &outEffect->data_vfx, err);
-      continue;
+      break;
     }
-    diag_crash_msg("Unexpected weapon effect type");
+    if (*err) {
+      return; // Failed to build effect.
+    }
   }
 }
 
