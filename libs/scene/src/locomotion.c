@@ -9,7 +9,7 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 0.1f
-#define locomotion_rotation_speed 360.0f
+#define locomotion_rotation_speed 270.0f
 #define locomotion_accelerate_time 4.0f
 
 static StringHash g_locoRunAnimHash;
