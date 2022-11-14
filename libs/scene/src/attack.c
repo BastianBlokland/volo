@@ -84,7 +84,6 @@ typedef struct {
   SceneAttackComp*              attack;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
-  GeoVector                     targetPos;
 } AttackCtx;
 
 static bool effect_execute_once(const AttackCtx* ctx, const u32 effectIndex) {
@@ -120,7 +119,7 @@ static EffectResult effect_update_proj(
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
   const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
-  const GeoVector dir    = geo_vector_norm(geo_vector_sub(ctx->targetPos, orgPos));
+  const GeoVector dir    = geo_vector_norm(geo_vector_sub(ctx->attack->targetPos, orgPos));
   const GeoQuat   rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
@@ -293,34 +292,32 @@ ecs_system_define(SceneAttackSys) {
     if (weapon->aimAnim) {
       scene_animation_set_weight(anim, weapon->aimAnim, attack->aimNorm);
     }
-    if (!hasTarget) {
-      attack->flags &= ~SceneAttackFlags_Firing;
-      continue;
-    }
 
-    const GeoVector targetPos = aim_target_position(targetItr);
-    if (loco) {
-      const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
-      const f32       faceDist  = geo_vector_mag(faceDelta);
-      if (faceDist > f32_epsilon) {
-        const GeoVector faceDir = geo_vector_div(faceDelta, faceDist);
-        scene_locomotion_face(loco, faceDir);
+    // Potentially start a new attack.
+    if (hasTarget) {
+      const GeoVector targetPos = aim_target_position(targetItr);
+      if (loco) {
+        const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+        const f32       faceDist  = geo_vector_mag(faceDelta);
+        if (faceDist > f32_epsilon) {
+          const GeoVector faceDir = geo_vector_div(faceDelta, faceDist);
+          scene_locomotion_face(loco, faceDir);
+        }
+      }
+
+      const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
+      const bool isCoolingDown = time->time < attack->nextFireTime;
+
+      if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
+        // Start the attack..
+        attack->lastFireTime = time->time;
+        attack->flags |= SceneAttackFlags_Firing;
+        attack->executedEffects = 0;
+        attack->targetPos       = targetPos;
       }
     }
 
-    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, string_hash_lit("fire"));
-    diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
-
-    const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
-    const bool isCoolingDown = time->time < attack->nextFireTime;
-
-    if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
-      // Start the attack..
-      attack->lastFireTime = time->time;
-      attack->flags |= SceneAttackFlags_Firing;
-      attack->executedEffects = 0;
-    }
-
+    // Update the current attack.
     if (attack->flags & SceneAttackFlags_Firing) {
       const AttackCtx ctx = {
           .world      = world,
@@ -334,7 +331,6 @@ ecs_system_define(SceneAttackSys) {
           .attack     = attack,
           .anim       = anim,
           .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
-          .targetPos  = targetPos,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
       if (effect_update(&ctx, effectTime) == EffectResult_Done) {
