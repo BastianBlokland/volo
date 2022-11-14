@@ -84,9 +84,9 @@ typedef struct {
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
   GeoVector                     targetPos;
-} AttackEffectCtx;
+} AttackCtx;
 
-static void effect_exec_proj(const AttackEffectCtx* ctx, const AssetWeaponEffectProj* def) {
+static void effect_exec_proj(const AttackCtx* ctx, const AssetWeaponEffectProj* def) {
   const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(orgIdx)) {
     log_w("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
@@ -117,7 +117,7 @@ static void effect_exec_proj(const AttackEffectCtx* ctx, const AssetWeaponEffect
       .impactVfx  = def->vfxImpact);
 }
 
-static void effect_exec_anim(const AttackEffectCtx* ctx, const AssetWeaponEffectAnim* def) {
+static void effect_exec_anim(const AttackCtx* ctx, const AssetWeaponEffectAnim* def) {
   SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
   if (UNLIKELY(!animLayer)) {
     log_w("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
@@ -129,7 +129,7 @@ static void effect_exec_anim(const AttackEffectCtx* ctx, const AssetWeaponEffect
   animLayer->speed = def->speed;
 }
 
-static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectVfx* def) {
+static void effect_exec_vfx(const AttackCtx* ctx, const AssetWeaponEffectVfx* def) {
   const EcsEntityId inst           = ctx->instigator;
   const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (UNLIKELY(sentinel_check(jointOriginIdx))) {
@@ -143,7 +143,7 @@ static void effect_exec_vfx(const AttackEffectCtx* ctx, const AssetWeaponEffectV
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
 }
 
-static void effect_exec(const AttackEffectCtx* ctx) {
+static void effect_exec(const AttackCtx* ctx) {
   for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
     switch (effect->type) {
@@ -258,7 +258,7 @@ ecs_system_define(SceneAttackSys) {
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
 
-      const AttackEffectCtx effectCtx = {
+      const AttackCtx effectCtx = {
           .world      = world,
           .instigator = entity,
           .weaponMap  = weaponMap,
