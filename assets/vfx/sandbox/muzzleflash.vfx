@@ -9,11 +9,11 @@
         "z": 90
       },
       "size": {
-        "x": 1,
+        "x": 1.2,
         "y": 0.5
       },
-      "scaleInTime": 0.125,
-      "fadeOutTime": 0.075,
+      "scaleInTime": 0.175,
+      "fadeOutTime": 0.1,
       "blend": "Additive"
     },
     {
@@ -26,11 +26,11 @@
         "z": 90
       },
       "size": {
-        "x": 1,
+        "x": 1.2,
         "y": 0.5
       },
-      "scaleInTime": 0.125,
-      "fadeOutTime": 0.075,
+      "scaleInTime": 0.175,
+      "fadeOutTime": 0.1,
       "blend": "Additive"
     },
     {
@@ -42,8 +42,8 @@
         "x": 0.8,
         "y": 0.8
       },
-      "scaleInTime": 0.125,
-      "fadeOutTime": 0.075,
+      "scaleInTime": 0.175,
+      "fadeOutTime": 0.1,
       "blend": "Additive"
     }
   ]

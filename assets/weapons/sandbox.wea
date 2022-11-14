@@ -11,9 +11,9 @@
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
-          "delay": 0.05,
+          "delay": 0.035,
           "lifetime": 2,
-          "spreadAngle": 2.5,
+          "spreadAngle": 2,
           "speed": 50,
           "damage": 5,
           "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
@@ -22,14 +22,14 @@
         {
           "$type": "AssetWeaponEffect_Animation",
           "layer": "fire",
-          "delay": 0,
+          "delay": 0.05,
           "speed": 1
         },
         {
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.15,
+          "duration": 0.175,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
