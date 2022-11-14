@@ -81,6 +81,7 @@ typedef struct {
   const SceneScaleComp*         scale;
   const SceneSkeletonComp*      skel;
   const SceneSkeletonTemplComp* skelTempl;
+  SceneAttackComp*              attack;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
   GeoVector                     targetPos;
@@ -144,8 +145,15 @@ static void effect_exec_vfx(const AttackCtx* ctx, const AssetWeaponEffectVfx* de
 }
 
 static void effect_exec(const AttackCtx* ctx) {
+  diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->activatedEffects) * 8);
+
   for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
     const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
+    if (ctx->attack->activatedEffects & (1 << i)) {
+      continue; // Already activated.
+    }
+    ctx->attack->activatedEffects |= 1 << i;
+
     switch (effect->type) {
     case AssetWeaponEffect_Projectile:
       effect_exec_proj(ctx, &effect->data_proj);
@@ -257,8 +265,11 @@ ecs_system_define(SceneAttackSys) {
       // Start firing the shot.
       attack->lastFireTime = time->time;
       attack->flags |= SceneAttackFlags_Firing;
+      attack->activatedEffects = 0;
+    }
 
-      const AttackCtx effectCtx = {
+    if (attack->flags & SceneAttackFlags_Firing) {
+      const AttackCtx ctx = {
           .world      = world,
           .instigator = entity,
           .weaponMap  = weaponMap,
@@ -267,11 +278,12 @@ ecs_system_define(SceneAttackSys) {
           .scale      = scale,
           .skel       = skel,
           .skelTempl  = skelTempl,
+          .attack     = attack,
           .anim       = anim,
           .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
           .targetPos  = targetPos,
       };
-      effect_exec(&effectCtx);
+      effect_exec(&ctx);
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {

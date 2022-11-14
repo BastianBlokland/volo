@@ -9,7 +9,8 @@ typedef enum {
 
 ecs_comp_extern_public(SceneAttackComp) {
   StringHash       weaponName;
-  SceneAttackFlags flags;
+  SceneAttackFlags flags : 16;
+  u16              activatedEffects;
   f32              aimNorm; // Process of aiming.
   TimeDuration     lastFireTime, nextFireTime;
   EcsEntityId      targetEntity;
