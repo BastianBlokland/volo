@@ -12,8 +12,8 @@
         "x": 3.5,
         "y": 0.1
       },
-      "fadeInTime": 0.075,
-      "scaleInTime": 0.15,
+      "fadeInTime": 0,
+      "scaleInTime": 0.05,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,
       "blend": "Additive"
@@ -31,8 +31,8 @@
         "x": 3.5,
         "y": 0.1
       },
-      "fadeInTime": 0.075,
-      "scaleInTime": 0.15,
+      "fadeInTime": 0,
+      "scaleInTime": 0.05,
       "scaleOutTime": 0.15,
       "fadeOutTime": 0.15,
       "blend": "Additive"
