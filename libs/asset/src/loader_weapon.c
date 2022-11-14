@@ -205,7 +205,7 @@ static void weapon_build(
       .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax = (TimeDuration)time_seconds(def->intervalMax),
       .aimSpeed    = def->aimSpeed,
-      .aimMinTime  = def->aimMinTime,
+      .aimMinTime  = (TimeDuration)time_seconds(def->aimMinTime),
       .aimAnim     = string_is_empty(def->aimAnim) ? 0 : string_hash(def->aimAnim),
       .effectIndex = (u16)outEffects->size,
       .effectCount = (u16)def->effects.count,
