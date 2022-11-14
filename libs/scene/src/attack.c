@@ -39,6 +39,15 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
+static bool aim_update(
+    SceneAttackComp*   attack,
+    const AssetWeapon* weapon,
+    const f32          deltaSeconds,
+    const bool         wantAim) {
+
+  return math_towards_f32(&attack->aimNorm, wantAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
+}
+
 static GeoVector aim_target_position(EcsIterator* targetItr) {
   const SceneCollisionComp* collision    = ecs_view_read_t(targetItr, SceneCollisionComp);
   const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
@@ -286,9 +295,7 @@ ecs_system_define(SceneAttackSys) {
     const bool         isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
     const bool shouldAim = !isMoving && (hasTarget || timeSinceLastFire < weapon->aimMinTime);
 
-    const bool isAiming = math_towards_f32(
-        &attack->aimNorm, shouldAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
-
+    const bool isAiming = aim_update(attack, weapon, deltaSeconds, shouldAim);
     if (weapon->aimAnim) {
       scene_animation_set_weight(anim, weapon->aimAnim, attack->aimNorm);
     }
