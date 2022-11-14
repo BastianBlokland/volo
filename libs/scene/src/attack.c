@@ -105,8 +105,10 @@ static EffectResult effect_update_proj(
     const TimeDuration           effectTime,
     const u32                    effectIndex,
     const AssetWeaponEffectProj* def) {
-  (void)effectTime;
 
+  if (effectTime < def->delay) {
+    return EffectResult_Running; // Waiting to execute.
+  }
   if (!effect_execute_once(ctx, effectIndex)) {
     return EffectResult_Done; // Already executed.
   }
@@ -134,11 +136,11 @@ static EffectResult effect_update_proj(
       ctx->world,
       e,
       SceneProjectileComp,
-      .delay      = def->delay,
       .speed      = def->speed,
       .damage     = def->damage,
       .instigator = ctx->instigator,
       .impactVfx  = def->vfxImpact);
+
   return EffectResult_Done;
 }
 
@@ -154,6 +156,7 @@ static EffectResult effect_update_anim(
     log_w("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
     return EffectResult_Done;
   }
+
   if (effect_execute_once(ctx, effectIndex)) {
     animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
     animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
@@ -161,6 +164,7 @@ static EffectResult effect_update_anim(
     animLayer->speed = def->speed;
     return EffectResult_Running;
   }
+
   // Keep running until the animation reaches the end.
   return animLayer->time == animLayer->duration ? EffectResult_Done : EffectResult_Running;
 }
@@ -181,11 +185,13 @@ static EffectResult effect_update_vfx(
     log_w("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
     return EffectResult_Done;
   }
+
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
+
   return EffectResult_Done;
 }
 

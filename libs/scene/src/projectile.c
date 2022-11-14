@@ -88,20 +88,15 @@ ecs_system_define(SceneProjectileSys) {
     SceneTransformComp*     trans      = ecs_view_write_t(itr, SceneTransformComp);
     const SceneFactionComp* faction    = ecs_view_read_t(itr, SceneFactionComp);
 
-    if (projectile->delay > 0) {
-      projectile->delay -= time->delta;
-      continue;
-    }
-
     const GeoVector dir       = geo_quat_rotate(trans->rotation, geo_forward);
     const f32       deltaDist = projectile->speed * deltaSeconds;
     const GeoRay    ray       = {.point = trans->position, .dir = dir};
 
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     SceneRayHit hit;
