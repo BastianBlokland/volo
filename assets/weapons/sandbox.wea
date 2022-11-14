@@ -33,6 +33,28 @@
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
+    },
+    {
+      "name": "Melee",
+      "intervalMin": 0,
+      "intervalMax": 0.5,
+      "aimSpeed": 3.5,
+      "aimMinTime": 0,
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Damage",
+          "originJoint": "RightHand",
+          "delay": 0.9,
+          "damage": 25,
+          "radius": 0.5
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "melee",
+          "delay": 0,
+          "speed": 1
+        }
+      ]
     }
   ]
 }
