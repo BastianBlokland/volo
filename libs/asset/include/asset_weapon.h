@@ -9,12 +9,13 @@
 
 typedef enum {
   AssetWeaponEffect_Projectile,
+  AssetWeaponEffect_Damage,
   AssetWeaponEffect_Animation,
   AssetWeaponEffect_Vfx,
 } AssetWeaponEffectType;
 
 typedef struct {
-  StringHash   originJoint; // For example the weapon's muzzle.
+  StringHash   originJoint;
   TimeDuration delay, lifetime;
   f32          spreadAngle;
   f32          speed;
@@ -23,13 +24,20 @@ typedef struct {
 } AssetWeaponEffectProj;
 
 typedef struct {
+  StringHash   originJoint;
+  TimeDuration delay;
+  f32          radius;
+  f32          damage;
+} AssetWeaponEffectDmg;
+
+typedef struct {
   StringHash   layer;
   TimeDuration delay;
   f32          speed;
 } AssetWeaponEffectAnim;
 
 typedef struct {
-  StringHash   originJoint; // For example the weapon's muzzle.
+  StringHash   originJoint;
   TimeDuration delay, duration;
   EcsEntityId  asset;
 } AssetWeaponEffectVfx;
@@ -38,6 +46,7 @@ typedef struct {
   AssetWeaponEffectType type;
   union {
     AssetWeaponEffectProj data_proj;
+    AssetWeaponEffectDmg  data_dmg;
     AssetWeaponEffectAnim data_anim;
     AssetWeaponEffectVfx  data_vfx;
   };

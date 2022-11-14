@@ -25,6 +25,13 @@ typedef struct {
 } AssetWeaponEffectProjDef;
 
 typedef struct {
+  String originJoint;
+  f32    delay;
+  f32    radius;
+  f32    damage;
+} AssetWeaponEffectDmgDef;
+
+typedef struct {
   String layer;
   f32    delay;
   f32    speed;
@@ -40,6 +47,7 @@ typedef struct {
   AssetWeaponEffectType type;
   union {
     AssetWeaponEffectProjDef data_proj;
+    AssetWeaponEffectDmgDef  data_dmg;
     AssetWeaponEffectAnimDef data_anim;
     AssetWeaponEffectVfxDef  data_vfx;
   };
@@ -84,6 +92,12 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(g_dataReg, AssetWeaponEffectDmgDef);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
@@ -97,6 +111,7 @@ static void weapon_datareg_init() {
 
     data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProjDef);
+    data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmgDef);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
     data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
 
@@ -164,6 +179,22 @@ static void weapon_effect_proj_build(
   *err = WeaponError_None;
 }
 
+static void weapon_effect_dmg_build(
+    BuildCtx*                      ctx,
+    const AssetWeaponEffectDmgDef* def,
+    AssetWeaponEffectDmg*          out,
+    WeaponError*                   err) {
+  (void)ctx;
+
+  *out = (AssetWeaponEffectDmg){
+      .originJoint = string_hash(def->originJoint),
+      .delay       = (TimeDuration)time_seconds(def->delay),
+      .damage      = def->damage,
+      .radius      = def->radius,
+  };
+  *err = WeaponError_None;
+}
+
 static void weapon_effect_anim_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectAnimDef* def,
@@ -223,6 +254,9 @@ static void weapon_build(
     switch (effectDef->type) {
     case AssetWeaponEffect_Projectile:
       weapon_effect_proj_build(ctx, &effectDef->data_proj, &outEffect->data_proj, err);
+      break;
+    case AssetWeaponEffect_Damage:
+      weapon_effect_dmg_build(ctx, &effectDef->data_dmg, &outEffect->data_dmg, err);
       break;
     case AssetWeaponEffect_Animation:
       weapon_effect_anim_build(ctx, &effectDef->data_anim, &outEffect->data_anim, err);

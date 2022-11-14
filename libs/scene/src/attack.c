@@ -8,6 +8,7 @@
 #include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
+#include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_projectile.h"
@@ -24,6 +25,7 @@
 ecs_comp_define_public(SceneAttackComp);
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneWeaponResourceComp);
 }
@@ -57,6 +59,32 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
+static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
+  switch (factionId) {
+  case SceneFaction_A:
+    return SceneLayer_UnitFactionA;
+  case SceneFaction_B:
+    return SceneLayer_UnitFactionB;
+  case SceneFaction_C:
+    return SceneLayer_UnitFactionC;
+  case SceneFaction_D:
+    return SceneLayer_UnitFactionD;
+  case SceneFaction_None:
+    return SceneLayer_None;
+  case SceneFaction_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported faction");
+}
+
+static SceneLayer damage_query_layer_mask(const SceneFaction factionId) {
+  SceneLayer layer = SceneLayer_Unit;
+  if (factionId) {
+    layer &= ~damage_ignore_layer(factionId);
+  }
+  return layer;
+}
+
 static GeoQuat proj_random_dev(const f32 spreadAngle) {
   const f32 minAngle = -spreadAngle * 0.5f * math_deg_to_rad;
   const f32 maxAngle = spreadAngle * 0.5f * math_deg_to_rad;
@@ -84,6 +112,7 @@ static TimeDuration attack_next_fire_time(const AssetWeapon* weapon, const TimeD
 typedef struct {
   EcsWorld*                     world;
   EcsEntityId                   instigator;
+  const SceneCollisionEnvComp*  collisionEnv;
   const AssetWeaponMapComp*     weaponMap;
   const AssetWeapon*            weapon;
   const SceneTransformComp*     trans;
@@ -148,6 +177,48 @@ static EffectResult effect_update_proj(
       .damage     = def->damage,
       .instigator = ctx->instigator,
       .impactVfx  = def->vfxImpact);
+
+  return EffectResult_Done;
+}
+
+static EffectResult effect_update_dmg(
+    const AttackCtx*            ctx,
+    const TimeDuration          effectTime,
+    const u32                   effectIndex,
+    const AssetWeaponEffectDmg* def) {
+
+  if (effectTime < def->delay) {
+    return EffectResult_Running; // Waiting to execute.
+  }
+  if (!effect_execute_once(ctx, effectIndex)) {
+    return EffectResult_Done; // Already executed.
+  }
+
+  const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
+  if (sentinel_check(orgIdx)) {
+    log_w("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    return EffectResult_Done;
+  }
+  const GeoMatrix orgMat    = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
+  const GeoSphere orgSphere = {
+      .point  = geo_matrix_to_translation(&orgMat),
+      .radius = def->radius,
+  };
+  const SceneQueryFilter filter = {
+      .layerMask = damage_query_layer_mask(ctx->factionId),
+  };
+  EcsEntityId hits[scene_query_max_hits];
+  const u32   hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+
+  for (u32 i = 0; i != hitCount; ++i) {
+    if (hits[i] == ctx->instigator) {
+      continue; // Ignore ourselves.
+    }
+    const bool hitEntityExists = ecs_world_exists(ctx->world, hits[i]);
+    if (hitEntityExists && ecs_world_has_t(ctx->world, hits[i], SceneHealthComp)) {
+      scene_health_damage(ctx->world, hits[i], def->damage);
+    }
+  }
 
   return EffectResult_Done;
 }
@@ -219,6 +290,9 @@ static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effec
     case AssetWeaponEffect_Projectile:
       result |= effect_update_proj(ctx, effectTime, i, &effect->data_proj);
       break;
+    case AssetWeaponEffect_Damage:
+      result |= effect_update_dmg(ctx, effectTime, i, &effect->data_dmg);
+      break;
     case AssetWeaponEffect_Animation:
       result |= effect_update_anim(ctx, effectTime, i, &effect->data_anim);
       break;
@@ -252,8 +326,9 @@ ecs_system_define(SceneAttackSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32            deltaSeconds = scene_delta_seconds(time);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32                    deltaSeconds = scene_delta_seconds(time);
 
   EcsView*                  weaponMapView = ecs_world_view_t(world, WeaponMapView);
   const AssetWeaponMapComp* weaponMap     = attack_weapon_map_get(globalItr, weaponMapView);
@@ -327,17 +402,18 @@ ecs_system_define(SceneAttackSys) {
     // Update the current attack.
     if (attack->flags & SceneAttackFlags_Firing) {
       const AttackCtx ctx = {
-          .world      = world,
-          .instigator = entity,
-          .weaponMap  = weaponMap,
-          .weapon     = weapon,
-          .trans      = trans,
-          .scale      = scale,
-          .skel       = skel,
-          .skelTempl  = skelTempl,
-          .attack     = attack,
-          .anim       = anim,
-          .factionId  = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .world        = world,
+          .instigator   = entity,
+          .collisionEnv = collisionEnv,
+          .weaponMap    = weaponMap,
+          .weapon       = weapon,
+          .trans        = trans,
+          .scale        = scale,
+          .skel         = skel,
+          .skelTempl    = skelTempl,
+          .attack       = attack,
+          .anim         = anim,
+          .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
       if (effect_update(&ctx, effectTime) == EffectResult_Done) {
