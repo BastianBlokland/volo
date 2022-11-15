@@ -3,68 +3,46 @@
   "$name": "Root",
   "children": [
     {
-      "$type": "AssetAiNode_Sequence",
-      "$name": "Attack target",
+      "$type": "AssetAiNode_Selector",
+      "$name": "Attack",
       "children": [
         {
           "$type": "AssetAiNode_Condition",
-          "$name": "Find target",
-          "script": "$target_entity != null;"
+          "$name": "Continue attacking",
+          "script": "$self_attacking == true"
         },
         {
-          "$type": "AssetAiNode_Selector",
-          "$name": "Move into range",
+          "$type": "AssetAiNode_Sequence",
+          "$name": "Start attacking",
           "children": [
             {
-              "$type": "AssetAiNode_Sequence",
+              "$type": "AssetAiNode_Condition",
+              "$name": "Find target",
+              "script": "$target_entity != null;"
+            },
+            {
+              "$type": "AssetAiNode_Selector",
+              "$name": "Move into range",
               "children": [
                 {
-                  "$type": "AssetAiNode_Selector",
-                  "$name": "Check if in range",
-                  "children": [
-                    {
-                      "$type": "AssetAiNode_Condition",
-                      "$name": "In-range cooldown",
-                      "script": "$self_inrange_time > $global_time;"
-                    },
-                    {
-                      "$type": "AssetAiNode_Sequence",
-                      "children": [
-                        {
-                          "$type": "AssetAiNode_Condition",
-                          "$name": "Test if in range",
-                          "script": "distance($target_position, $self_position) < 2;"
-                        },
-                        {
-                          "$type": "AssetAiNode_Execute",
-                          "$name": "Set in_range cooldown",
-                          "script": "$self_inrange_time = $global_time + 0.5;"
-                        }
-                      ]
-                    }
-                  ]
+                  "$type": "AssetAiNode_Condition",
+                  "script": "distance($target_position, $self_position) < 1.25;"
                 },
                 {
-                  "$type": "AssetAiNode_Condition",
-                  "$name": "Test Line-of-Sight",
-                  "script": "$target_los == true;"
+                  "$type": "AssetAiNode_Repeat",
+                  "$name": "Move",
+                  "child": {
+                    "$type": "AssetAiNode_Execute",
+                    "script": "$cmd_nav_target = $target_position;"
+                  }
                 }
               ]
             },
             {
-              "$type": "AssetAiNode_Repeat",
-              "$name": "Move",
-              "child": {
-                "$type": "AssetAiNode_Execute",
-                "script": "$cmd_nav_target = $target_position;"
-              }
+              "$type": "AssetAiNode_Execute",
+              "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true;"
             }
           ]
-        },
-        {
-          "$type": "AssetAiNode_Execute",
-          "$name": "Attack",
-          "script": "$cmd_attack_target = $target_entity; $cmd_nav_stop = true;"
         }
       ]
     },
