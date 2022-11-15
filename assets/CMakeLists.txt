@@ -48,6 +48,10 @@ if(${EXTERNAL_ASSETS})
       swat/swat_nrm.tga
       swat/swat_3.bin
       swat/swat_3.gltf
+      maynard/maynard_diff.tga
+      maynard/maynard_nrm.tga
+      maynard/maynard.bin
+      maynard/maynard.gltf
       vfx/flash.tga
       vfx/flash_star.tga
       vfx/trail.tga

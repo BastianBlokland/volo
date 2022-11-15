@@ -1,12 +1,13 @@
 #include "ai_tracer_record.h"
+#include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
 #include "debug_brain.h"
 #include "debug_register.h"
+#include "ecs_utils.h"
 #include "ecs_view.h"
-#include "ecs_world.h"
 #include "scene_brain.h"
 #include "scene_selection.h"
 #include "script_mem.h"
@@ -41,21 +42,29 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 }
 
 ecs_view_define(SubjectView) { ecs_access_write(SceneBrainComp); }
+ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
-static void evaluation_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
+static void evaluation_options_draw(UiCanvasComp* canvas, EcsWorld* world, SceneBrainComp* brain) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 110);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
+
   bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
   ui_label(canvas, string_lit("Pause eval:"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseEval)) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
   }
+  ui_table_next_column(canvas, &table);
+
+  const EcsEntityId behavior = scene_brain_behavior(brain);
+  const String behaviorName  = asset_id(ecs_utils_read_t(world, AssetView, behavior, AssetComp));
+  ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(behaviorName)), .align = UiAlign_MiddleRight);
 
   ui_layout_pop(canvas);
 }
@@ -73,7 +82,7 @@ static UiColor evaluation_node_bg_color(const AiResult result) {
 }
 
 static void evaluation_panel_tab_draw(
-    UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
+    UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsWorld* world, EcsIterator* subject) {
   diag_assert(subject);
 
   SceneBrainComp*       brain  = ecs_view_write_t(subject, SceneBrainComp);
@@ -83,7 +92,7 @@ static void evaluation_panel_tab_draw(
     return;
   }
 
-  evaluation_options_draw(canvas, brain);
+  evaluation_options_draw(canvas, world, brain);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -306,8 +315,9 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
   ui_layout_container_pop(canvas);
 }
 
-static void
-brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
+static void brain_panel_draw(
+    UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsWorld* world, EcsIterator* subject) {
+
   const String title = fmt_write_scratch("{} Brain Panel", fmt_ui_shape(Psychology));
   ui_panel_begin(
       canvas,
@@ -319,7 +329,7 @@ brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterat
   if (subject) {
     switch (panelComp->panel.activeTab) {
     case DebugBrainTab_Evaluation:
-      evaluation_panel_tab_draw(canvas, panelComp, subject);
+      evaluation_panel_tab_draw(canvas, panelComp, world, subject);
       break;
     case DebugBrainTab_Memory:
       memory_panel_tab_draw(canvas, panelComp, subject);
@@ -356,7 +366,7 @@ ecs_system_define(DebugBrainUpdatePanelSys) {
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    brain_panel_draw(canvas, panelComp, subject);
+    brain_panel_draw(canvas, panelComp, world, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -373,12 +383,14 @@ ecs_module_init(debug_brain_module) {
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectView);
+  ecs_register_view(AssetView);
 
   ecs_register_system(
       DebugBrainUpdatePanelSys,
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(SubjectView));
+      ecs_view_id(SubjectView),
+      ecs_view_id(AssetView));
 }
 
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {

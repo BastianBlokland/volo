@@ -156,7 +156,11 @@ static void anim_draw_joints_layer(
 
     bool enabled = scene_skeleton_mask_test(&layer->mask, joint);
     if (ui_toggle(canvas, &enabled, .tooltip = string_lit("Enable / disable this joint."))) {
-      scene_skeleton_mask_flip(&layer->mask, joint);
+      if (enabled) {
+        scene_skeleton_mask_set_rec(&layer->mask, skelTempl, joint);
+      } else {
+        scene_skeleton_mask_clear_rec(&layer->mask, skelTempl, joint);
+      }
     }
 
     const u32 parent = scene_skeleton_joint_parent(skelTempl, joint);

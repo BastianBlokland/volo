@@ -27,6 +27,7 @@ add_library(lib_asset STATIC
   src/loader_texture_tga.c
   src/loader_texture.c
   src/loader_vfx.c
+  src/loader_weapon.c
   src/loader.c
   src/manager.c
   src/mesh_utils.c
@@ -53,6 +54,7 @@ add_executable(test_lib_asset
   test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
+  test/test_loader_weapon.c
   test/test_manager.c
   test/utils.c
   )

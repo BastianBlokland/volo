@@ -123,7 +123,7 @@ static void select_update_drag(
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
   // Only allow box-selecting your own units.
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionC};
+  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionA};
 
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
@@ -144,7 +144,7 @@ static void input_order(
    * Order an attack when clicking an opponent unit.
    */
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB};
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionB};
   const f32              radius  = 0.5f;
   const f32              maxDist = g_inputMaxInteractDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {

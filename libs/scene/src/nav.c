@@ -228,8 +228,8 @@ static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
  * cells around the target.
  */
 static f32 scene_nav_arrive_threshold(const SceneNavEnvComp* env, const GeoNavCell toCell) {
-  const GeoNavCell closestFree  = geo_nav_closest_free(env->navGrid, toCell);
-  const f32        occupiedDist = geo_nav_distance(env->navGrid, toCell, closestFree);
+  const GeoNavCell closestFree = geo_nav_closest_free(env->navGrid, toCell);
+  const f32 occupiedDist = math_max(geo_nav_distance(env->navGrid, toCell, closestFree) - 0.5f, 0);
   return occupiedDist * nav_arrive_threshold_occupied_cell_mult + nav_arrive_threshold_min;
 }
 

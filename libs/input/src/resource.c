@@ -49,7 +49,7 @@ ecs_system_define(InputResourceInitSys) {
   }
 
   if (!(resource->flags & (InputRes_MapAcquired | InputRes_MapUnloading))) {
-    log_i("Acquiring inputmap", log_param("id", fmt_text(resource->mapId)));
+    log_i("Acquiring input-map", log_param("id", fmt_text(resource->mapId)));
     asset_acquire(world, resource->mapEntity);
     resource->flags |= InputRes_MapAcquired;
   }
@@ -66,7 +66,7 @@ ecs_system_define(InputResourceUnloadChangedMapSys) {
 
   if (resource->flags & InputRes_MapAcquired && (isLoaded || isFailed) && hasChanged) {
     log_i(
-        "Unloading inputmap",
+        "Unloading input-map",
         log_param("id", fmt_text(resource->mapId)),
         log_param("reason", fmt_text_lit("Asset changed")));
 
@@ -90,7 +90,7 @@ ecs_module_init(input_resource_module) {
   ecs_register_system(InputResourceUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
 }
 
-void input_resource_create(EcsWorld* world, const String inputMapId) {
+void input_resource_init(EcsWorld* world, const String inputMapId) {
   diag_assert_msg(inputMapId.size, "Invalid inputMapId");
 
   ecs_world_add_t(

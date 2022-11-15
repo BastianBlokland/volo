@@ -1,6 +1,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_faction.h"
 #include "scene_health.h"
@@ -17,6 +18,7 @@ static StringHash g_brainKeyTime,
                   g_brainKeyHealth,
                   g_brainKeyFaction,
                   g_brainKeyNavArrived,
+                  g_brainKeyAttacking,
                   g_brainKeyTargetEntity,
                   g_brainKeyTargetPos,
                   g_brainKeyTargetLos;
@@ -26,6 +28,7 @@ static StringHash g_brainKeyTime,
 ecs_view_define(SensorGlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(BrainView) {
+  ecs_access_maybe_read(SceneAttackComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneNavAgentComp);
@@ -77,6 +80,12 @@ ecs_system_define(SceneSensorUpdateSys) {
       }
     }
 
+    const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
+    if (attack) {
+      const bool isAttacking = (attack->flags & SceneAttackFlags_Firing) != 0;
+      scene_brain_set(brain, g_brainKeyAttacking, script_bool(isAttacking));
+    }
+
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
     if (targetFinder && targetFinder->target) {
       const bool los = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
@@ -99,6 +108,7 @@ ecs_module_init(scene_sensor_module) {
   g_brainKeyHealth       = stringtable_add(g_stringtable, string_lit("self_health"));
   g_brainKeyFaction      = stringtable_add(g_stringtable, string_lit("self_faction"));
   g_brainKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self_nav_arrived"));
+  g_brainKeyAttacking    = stringtable_add(g_stringtable, string_lit("self_attacking"));
   g_brainKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target_entity"));
   g_brainKeyTargetPos    = stringtable_add(g_stringtable, string_lit("target_position"));
   g_brainKeyTargetLos    = stringtable_add(g_stringtable, string_lit("target_los"));

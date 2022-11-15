@@ -12,3 +12,4 @@
 #include "asset_shader.h"
 #include "asset_texture.h"
 #include "asset_vfx.h"
+#include "asset_weapon.h"

@@ -10,7 +10,7 @@
 #include "object_internal.h"
 
 static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
-static const u8   g_cmdPlayerFaction = 2;
+static const u8   g_cmdPlayerFaction = 0;
 
 typedef enum {
   Cmd_Select,

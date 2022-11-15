@@ -179,6 +179,8 @@ void scene_brain_flags_toggle(SceneBrainComp* brain, const SceneBrainFlags flags
   brain->flags ^= flags;
 }
 
+EcsEntityId scene_brain_behavior(const SceneBrainComp* brain) { return brain->behaviorAsset; }
+
 SceneBrainComp*
 scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId behaviorAsset) {
   diag_assert(ecs_world_exists(world, behaviorAsset));

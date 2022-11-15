@@ -15,9 +15,8 @@
 #include "object_internal.h"
 
 ecs_comp_define(ObjectDatabaseComp) {
-  EcsEntityId unitAGraphic, unitBGraphic, unitCGraphic;
-  EcsEntityId muzzleFlashVfx, projectileVfx, impactVfx;
-  EcsEntityId unitBehaviorAuto, unitBehaviorManual;
+  EcsEntityId unitPlayerGraphic, unitPlayerBehavior;
+  EcsEntityId unitAiGraphic, unitAiBehavior;
   EcsEntityId wallGraphic;
 };
 ecs_comp_define(ObjectComp);
@@ -29,46 +28,9 @@ static SceneLayer object_unit_layer(const SceneFaction faction) {
     return SceneLayer_UnitFactionA;
   case SceneFaction_B:
     return SceneLayer_UnitFactionB;
-  case SceneFaction_C:
-    return SceneLayer_UnitFactionC;
-  case SceneFaction_D:
-    return SceneLayer_UnitFactionD;
-  case SceneFaction_Count:
-  case SceneFaction_None:
-    break;
+  default:
+    diag_crash_msg("Unsupported faction");
   }
-  diag_crash_msg("Unsupported faction");
-}
-
-static EcsEntityId object_unit_graphic(const ObjectDatabaseComp* db, const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return db->unitAGraphic;
-  case SceneFaction_B:
-    return db->unitBGraphic;
-  case SceneFaction_C:
-  case SceneFaction_D:
-    return db->unitCGraphic;
-  case SceneFaction_Count:
-  case SceneFaction_None:
-    break;
-  }
-  diag_crash_msg("Unsupported faction");
-}
-
-static EcsEntityId object_unit_behavior(const ObjectDatabaseComp* db, const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-  case SceneFaction_B:
-  case SceneFaction_D:
-    return db->unitBehaviorAuto;
-  case SceneFaction_C:
-    return db->unitBehaviorManual;
-  case SceneFaction_Count:
-  case SceneFaction_None:
-    break;
-  }
-  diag_crash_msg("Unsupported faction");
 }
 
 ecs_view_define(GlobalInitView) {
@@ -82,21 +44,17 @@ ecs_system_define(ObjectDatabaseInitSys) {
   if (!globalItr) {
     return; // Already initialized or dependencies not ready.
   }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  AssetManagerComp* man = ecs_view_write_t(globalItr, AssetManagerComp);
 
   ecs_world_add_t(
       world,
       ecs_world_global(world),
       ObjectDatabaseComp,
-      .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
-      .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
-      .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
-      .muzzleFlashVfx     = asset_lookup(world, assets, string_lit("vfx/sandbox/muzzleflash.vfx")),
-      .projectileVfx      = asset_lookup(world, assets, string_lit("vfx/sandbox/projectile.vfx")),
-      .impactVfx          = asset_lookup(world, assets, string_lit("vfx/sandbox/impact.vfx")),
-      .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
-      .unitBehaviorManual = asset_lookup(world, assets, string_lit("behaviors/unit-manual.bt")),
-      .wallGraphic        = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
+      .unitPlayerGraphic  = asset_lookup(world, man, string_lit("graphics/sandbox/swat_a.gra")),
+      .unitPlayerBehavior = asset_lookup(world, man, string_lit("behaviors/unit-ranged-manual.bt")),
+      .unitAiGraphic      = asset_lookup(world, man, string_lit("graphics/sandbox/maynard.gra")),
+      .unitAiBehavior     = asset_lookup(world, man, string_lit("behaviors/unit-melee-auto.bt")),
+      .wallGraphic        = asset_lookup(world, man, string_lit("graphics/sandbox/wall.gra")));
 }
 
 ecs_module_init(sandbox_object_module) {
@@ -114,7 +72,19 @@ EcsEntityId object_spawn_unit(
     const ObjectDatabaseComp* db,
     const GeoVector           pos,
     const SceneFaction        faction) {
-  static const f32                   g_speed   = 4.0f;
+
+  switch (faction) {
+  case SceneFaction_A:
+    return object_spawn_unit_player(world, db, pos);
+  case SceneFaction_B:
+    return object_spawn_unit_ai(world, db, pos);
+  default:
+    diag_crash_msg("Unsupported faction");
+  }
+}
+
+EcsEntityId
+object_spawn_unit_player(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos) {
   static const SceneCollisionCapsule g_capsule = {
       .offset = {0, 0.3f, 0},
       .radius = 0.3f,
@@ -124,32 +94,48 @@ EcsEntityId object_spawn_unit(
   const EcsEntityId e        = ecs_world_entity_create(world);
   const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
-  const EcsEntityId graphic  = object_unit_graphic(db, faction);
-  const EcsEntityId behavior = object_unit_behavior(db, faction);
-  const SceneLayer  layer    = object_unit_layer(faction);
+  ecs_world_add_empty_t(world, e, ObjectComp);
+  ecs_world_add_empty_t(world, e, ObjectUnitComp);
+  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitPlayerGraphic);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
+  scene_nav_add_agent(world, e);
+  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 4.0f, .radius = 0.4f);
+  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
+  ecs_world_add_t(world, e, SceneDamageComp);
+  ecs_world_add_t(world, e, SceneFactionComp, .id = SceneFaction_A);
+  ecs_world_add_t(world, e, SceneTargetFinderComp);
+  ecs_world_add_t(world, e, SceneAttackComp, .weaponName = string_hash_lit("AssaultRifle"));
+  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
+  scene_collision_add_capsule(world, e, g_capsule, object_unit_layer(SceneFaction_A));
+  scene_brain_add(world, e, db->unitPlayerBehavior);
+  return e;
+}
+
+EcsEntityId
+object_spawn_unit_ai(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos) {
+  static const SceneCollisionCapsule g_capsule = {
+      .offset = {0, 0.3f, 0},
+      .radius = 0.3f,
+      .height = 1.1f,
+  };
+
+  const EcsEntityId e        = ecs_world_entity_create(world);
+  const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
 
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_empty_t(world, e, ObjectUnitComp);
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
+  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitAiGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
   scene_nav_add_agent(world, e);
-  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = g_speed, .radius = 0.4f);
-  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
+  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 4.5f, .radius = 0.35f);
+  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 150.0f);
   ecs_world_add_t(world, e, SceneDamageComp);
-  ecs_world_add_t(world, e, SceneFactionComp, .id = faction);
+  ecs_world_add_t(world, e, SceneFactionComp, .id = SceneFaction_B);
   ecs_world_add_t(world, e, SceneTargetFinderComp);
-  ecs_world_add_t(
-      world,
-      e,
-      SceneAttackComp,
-      .minInterval    = time_milliseconds(150),
-      .maxInterval    = time_milliseconds(300),
-      .muzzleFlashVfx = db->muzzleFlashVfx,
-      .projectileVfx  = db->projectileVfx,
-      .impactVfx      = db->impactVfx);
+  ecs_world_add_t(world, e, SceneAttackComp, .weaponName = string_hash_lit("Melee"));
   ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
-  scene_collision_add_capsule(world, e, g_capsule, layer);
-  scene_brain_add(world, e, behavior);
+  scene_collision_add_capsule(world, e, g_capsule, object_unit_layer(SceneFaction_B));
+  scene_brain_add(world, e, db->unitAiBehavior);
   return e;
 }
 

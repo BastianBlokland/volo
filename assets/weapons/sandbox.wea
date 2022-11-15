@@ -1,0 +1,60 @@
+{
+  "weapons": [
+    {
+      "name": "AssaultRifle",
+      "intervalMin": 0.15,
+      "intervalMax": 0.35,
+      "aimSpeed": 2.5,
+      "aimMinTime": 3,
+      "aimAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "delay": 0.035,
+          "lifetime": 2,
+          "spreadAngle": 2,
+          "speed": 50,
+          "damage": 15,
+          "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
+          "vfxIdImpact": "vfx/sandbox/impact.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0.05,
+          "speed": 1
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 0.175,
+          "assetId": "vfx/sandbox/muzzleflash.vfx"
+        }
+      ]
+    },
+    {
+      "name": "Melee",
+      "intervalMin": 0,
+      "intervalMax": 0,
+      "aimSpeed": 1000,
+      "aimMinTime": 0,
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Damage",
+          "originJoint": "RightHand",
+          "delay": 0.5,
+          "damage": 25,
+          "radius": 0.75
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "melee",
+          "delay": 0,
+          "speed": 1.75
+        }
+      ]
+    }
+  ]
+}
