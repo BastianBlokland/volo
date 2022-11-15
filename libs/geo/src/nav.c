@@ -12,7 +12,7 @@
 
 #define geo_nav_workers_max 64
 #define geo_nav_occupants_max 2048
-#define geo_nav_occupants_per_cell 4
+#define geo_nav_occupants_per_cell 5
 #define geo_nav_blockers_max 512
 #define geo_nav_blocker_max_cells 128
 
