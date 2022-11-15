@@ -41,6 +41,11 @@ void            scene_brain_flags_unset(SceneBrainComp*, SceneBrainFlags);
 void            scene_brain_flags_toggle(SceneBrainComp*, SceneBrainFlags);
 
 /**
+ * Retrieve the asset for the given brain's behavior.
+ */
+EcsEntityId scene_brain_behavior(const SceneBrainComp*);
+
+/**
  * Add a new brain to the entity that executes the given behavior asset.
  */
 SceneBrainComp* scene_brain_add(EcsWorld*, EcsEntityId entity, EcsEntityId behaviorAsset);
