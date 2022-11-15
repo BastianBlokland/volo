@@ -4,7 +4,7 @@
       "name": "AssaultRifle",
       "intervalMin": 0.15,
       "intervalMax": 0.35,
-      "aimSpeed": 3.5,
+      "aimSpeed": 2.5,
       "aimMinTime": 3,
       "aimAnim": "aim",
       "effects": [
@@ -15,7 +15,7 @@
           "lifetime": 2,
           "spreadAngle": 2,
           "speed": 50,
-          "damage": 5,
+          "damage": 15,
           "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
           "vfxIdImpact": "vfx/sandbox/impact.vfx"
         },
@@ -37,22 +37,22 @@
     {
       "name": "Melee",
       "intervalMin": 0,
-      "intervalMax": 0.5,
-      "aimSpeed": 3.5,
+      "intervalMax": 0,
+      "aimSpeed": 1000,
       "aimMinTime": 0,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Damage",
           "originJoint": "RightHand",
-          "delay": 0.9,
+          "delay": 0.5,
           "damage": 25,
-          "radius": 0.5
+          "radius": 0.75
         },
         {
           "$type": "AssetWeaponEffect_Animation",
           "layer": "melee",
           "delay": 0,
-          "speed": 1
+          "speed": 1.75
         }
       ]
     }
