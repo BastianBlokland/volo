@@ -81,18 +81,18 @@ ecs_system_define(ObjectDatabaseInitSys) {
   if (!globalItr) {
     return; // Already initialized or dependencies not ready.
   }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  AssetManagerComp* man = ecs_view_write_t(globalItr, AssetManagerComp);
 
   ecs_world_add_t(
       world,
       ecs_world_global(world),
       ObjectDatabaseComp,
-      .unitAGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_a.gra")),
-      .unitBGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_b.gra")),
-      .unitCGraphic       = asset_lookup(world, assets, string_lit("graphics/sandbox/swat_c.gra")),
-      .unitBehaviorAuto   = asset_lookup(world, assets, string_lit("behaviors/unit-auto.bt")),
-      .unitBehaviorManual = asset_lookup(world, assets, string_lit("behaviors/unit-manual.bt")),
-      .wallGraphic        = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
+      .unitAGraphic       = asset_lookup(world, man, string_lit("graphics/sandbox/swat_a.gra")),
+      .unitBGraphic       = asset_lookup(world, man, string_lit("graphics/sandbox/swat_b.gra")),
+      .unitCGraphic       = asset_lookup(world, man, string_lit("graphics/sandbox/swat_c.gra")),
+      .unitBehaviorAuto   = asset_lookup(world, man, string_lit("behaviors/unit-ranged-auto.bt")),
+      .unitBehaviorManual = asset_lookup(world, man, string_lit("behaviors/unit-ranged-manual.bt")),
+      .wallGraphic        = asset_lookup(world, man, string_lit("graphics/sandbox/wall.gra")));
 }
 
 ecs_module_init(sandbox_object_module) {
