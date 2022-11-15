@@ -45,7 +45,7 @@ ecs_system_define(SceneHealthInitSys) {
       /**
        * TODO: Define this skeleton mask in content instead of hard-coding it here.
        */
-      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Spine1"));
+      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Neck"));
       if (!sentinel_check(neckJoint)) {
         scene_skeleton_mask_clear_rec(&animComp->hitAnimMask, skelTempl, 0);
         scene_skeleton_mask_set_rec(&animComp->hitAnimMask, skelTempl, neckJoint);
