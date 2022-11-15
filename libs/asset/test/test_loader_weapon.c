@@ -80,23 +80,24 @@ static const struct {
     {
         .id          = string_static("effect-vfx.wea"),
         .text        = string_static("{ \"weapons\": [ {"
-                                     "      \"name\": \"Pistol\","
-                                     "      \"intervalMin\": 1,"
-                                     "      \"intervalMax\": 2,"
-                                     "      \"aimSpeed\": 3.5,"
-                                     "      \"aimMinTime\": 3,"
-                                     "      \"effects\": [ {"
-                                     "        \"$type\": \"AssetWeaponEffect_Vfx\","
-                                     "        \"assetId\": \"test1\","
-                                     "        \"originJoint\": \"test2\","
-                                     "        \"duration\": 1"
-                                     "      }]"
-                                     "  }"
-                                     "]}"),
+                              "      \"name\": \"Pistol\","
+                              "      \"intervalMin\": 1,"
+                              "      \"intervalMax\": 2,"
+                              "      \"aimSpeed\": 3.5,"
+                              "      \"aimMinTime\": 3,"
+                              "      \"effects\": [ {"
+                              "        \"$type\": \"AssetWeaponEffect_Vfx\","
+                              "        \"assetId\": \"test1\","
+                              "        \"originJoint\": \"test2\","
+                              "        \"delay\": 0,"
+                              "        \"duration\": 1"
+                              "      }]"
+                              "  }"
+                              "]}"),
         .weapons     = {{
-                .name        = string_static("Pistol"),
-                .intervalMin = time_seconds(1),
-                .intervalMax = time_seconds(2),
+            .name        = string_static("Pistol"),
+            .intervalMin = time_seconds(1),
+            .intervalMax = time_seconds(2),
         }},
         .weaponCount = 1,
     },
@@ -169,7 +170,11 @@ spec(loader_weapon) {
 
       asset_test_wait(runner);
 
-      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
+      check_require_msg(
+          ecs_world_has_t(world, asset, AssetLoadedComp),
+          "Failed to load: {}",
+          fmt_text(g_testData[i].id));
+
       const AssetWeaponMapComp* map = ecs_utils_read_t(world, AssetView, asset, AssetWeaponMapComp);
       check_require(map->weaponCount == g_testData[i].weaponCount);
       for (usize a = 0; a != g_testData[i].weaponCount; ++a) {
