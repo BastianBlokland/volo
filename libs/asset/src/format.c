@@ -14,6 +14,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("gra"),
       string_static("imp"),
       string_static("obj"),
+      string_static("pfb"),
       string_static("pme"),
       string_static("ppm"),
       string_static("ptx"),

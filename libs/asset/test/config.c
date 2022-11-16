@@ -8,6 +8,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, loader_inputmap);
   register_spec(check, loader_mesh_gltf);
   register_spec(check, loader_mesh_obj);
+  register_spec(check, loader_prefab);
   register_spec(check, loader_raw);
   register_spec(check, loader_shader_spv);
   register_spec(check, loader_texture_atlas);
