@@ -8,24 +8,33 @@
  */
 
 typedef enum {
-  AssetPrefabCollision_Sphere,
-  AssetPrefabCollision_Capsule,
-  AssetPrefabCollision_Box,
-} AssetPrefabCollisionType;
+  AssetPrefabShape_Sphere,
+  AssetPrefabShape_Capsule,
+  AssetPrefabShape_Box,
+} AssetPrefabShapeType;
 
 typedef struct {
   GeoVector offset;
   f32       radius;
-} AssetPrefabCollisionSphere;
+} AssetPrefabShapeSphere;
 
 typedef struct {
   GeoVector offset;
   f32       radius, height;
-} AssetPrefabCollisionCapsule;
+} AssetPrefabShapeCapsule;
 
 typedef struct {
   GeoVector min, max;
-} AssetPrefabCollisionBox;
+} AssetPrefabShapeBox;
+
+typedef struct {
+  AssetPrefabShapeType type;
+  union {
+    AssetPrefabShapeSphere  data_sphere;
+    AssetPrefabShapeCapsule data_capsule;
+    AssetPrefabShapeBox     data_box;
+  };
+} AssetPrefabShape;
 
 typedef enum {
   AssetPrefabTrait_Renderable,
@@ -60,13 +69,8 @@ typedef struct {
 } AssetPrefabTraitAttack;
 
 typedef struct {
-  AssetPrefabCollisionType type;
-  bool                     navBlocker;
-  union {
-    AssetPrefabCollisionSphere  data_sphere;
-    AssetPrefabCollisionCapsule data_capsule;
-    AssetPrefabCollisionBox     data_box;
-  };
+  bool             navBlocker;
+  AssetPrefabShape shape;
 } AssetPrefabTraitCollision;
 
 typedef struct {

@@ -2,7 +2,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
-#include "core_bitset.h"
 #include "core_diag.h"
 #include "core_search.h"
 #include "core_stringtable.h"
@@ -22,21 +21,27 @@ typedef struct {
 } PrefabVec3Def;
 
 typedef struct {
-  bool          navBlocker;
   PrefabVec3Def offset;
   f32           radius;
-} AssetPrefabCollisionSphereDef;
+} AssetPrefabShapeSphereDef;
 
 typedef struct {
-  bool          navBlocker;
   PrefabVec3Def offset;
   f32           radius, height;
-} AssetPrefabCollisionCapsuleDef;
+} AssetPrefabShapeCapsuleDef;
 
 typedef struct {
-  bool          navBlocker;
   PrefabVec3Def min, max;
-} AssetPrefabCollisionBoxDef;
+} AssetPrefabShapeBoxDef;
+
+typedef struct {
+  AssetPrefabShapeType type;
+  union {
+    AssetPrefabShapeSphereDef  data_sphere;
+    AssetPrefabShapeCapsuleDef data_capsule;
+    AssetPrefabShapeBoxDef     data_box;
+  };
+} AssetPrefabShapeDef;
 
 typedef struct {
   String graphicId;
@@ -59,12 +64,8 @@ typedef struct {
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
-  AssetPrefabCollisionType type;
-  union {
-    AssetPrefabCollisionSphereDef  data_sphere;
-    AssetPrefabCollisionCapsuleDef data_capsule;
-    AssetPrefabCollisionBoxDef     data_box;
-  };
+  bool                navBlocker;
+  AssetPrefabShapeDef shape;
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
@@ -114,21 +115,23 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, PrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
-    data_reg_struct_t(g_dataReg, AssetPrefabCollisionSphereDef);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, navBlocker, data_prim_t(bool));
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, AssetPrefabShapeSphereDef);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(g_dataReg, AssetPrefabCollisionCapsuleDef);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, navBlocker, data_prim_t(bool));
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(g_dataReg, AssetPrefabShapeCapsuleDef);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(g_dataReg, AssetPrefabCollisionBoxDef);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, navBlocker, data_prim_t(bool));
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, min, t_PrefabVec3Def);
-    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, max, t_PrefabVec3Def);
+    data_reg_struct_t(g_dataReg, AssetPrefabShapeBoxDef);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, t_PrefabVec3Def);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, t_PrefabVec3Def);
+
+    data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
+    data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -146,10 +149,9 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_union_t(g_dataReg, AssetPrefabTraitCollisionDef, type);
-    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Sphere, data_sphere, t_AssetPrefabCollisionSphereDef);
-    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Capsule, data_capsule, t_AssetPrefabCollisionCapsuleDef);
-    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Box, data_box, t_AssetPrefabCollisionBoxDef);
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShapeDef);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitBrainDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitBrainDef, behaviorId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -208,31 +210,26 @@ static GeoVector prefab_build_vec3(const PrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
 
-static void prefab_build_trait_collision(
-    const AssetPrefabTraitCollisionDef* def, AssetPrefabTraitCollision* out) {
-
+static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   switch (def->type) {
-  case AssetPrefabCollision_Sphere:
-    *out = (AssetPrefabTraitCollision){
-        .type               = AssetPrefabCollision_Sphere,
-        .navBlocker         = def->data_sphere.navBlocker,
+  case AssetPrefabShape_Sphere:
+    return (AssetPrefabShape){
+        .type               = AssetPrefabShape_Sphere,
         .data_sphere.offset = prefab_build_vec3(&def->data_sphere.offset),
         .data_sphere.radius = def->data_sphere.radius,
     };
     break;
-  case AssetPrefabCollision_Capsule:
-    *out = (AssetPrefabTraitCollision){
-        .type                = AssetPrefabCollision_Capsule,
-        .navBlocker          = def->data_capsule.navBlocker,
+  case AssetPrefabShape_Capsule:
+    return (AssetPrefabShape){
+        .type                = AssetPrefabShape_Capsule,
         .data_capsule.offset = prefab_build_vec3(&def->data_capsule.offset),
         .data_capsule.radius = def->data_capsule.radius,
         .data_capsule.height = def->data_capsule.height,
     };
     break;
-  case AssetPrefabCollision_Box:
-    *out = (AssetPrefabTraitCollision){
-        .type         = AssetPrefabCollision_Box,
-        .navBlocker   = def->data_box.navBlocker,
+  case AssetPrefabShape_Box:
+    return (AssetPrefabShape){
+        .type         = AssetPrefabShape_Box,
         .data_box.min = prefab_build_vec3(&def->data_box.min),
         .data_box.max = prefab_build_vec3(&def->data_box.max),
     };
@@ -296,7 +293,10 @@ static void prefab_build(
       };
       break;
     case AssetPrefabTrait_Collision:
-      prefab_build_trait_collision(&traitDef->data_collision, &outTrait->data_collision);
+      outTrait->data_collision = (AssetPrefabTraitCollision){
+          .navBlocker = traitDef->data_collision.navBlocker,
+          .shape      = prefab_build_shape(&traitDef->data_collision.shape),
+      };
       break;
     case AssetPrefabTrait_Brain:
       outTrait->data_brain = (AssetPrefabTraitBrain){

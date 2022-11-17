@@ -21,6 +21,18 @@
           "weaponId": "AssaultRifle"
         },
         {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Capsule",
+            "offset": {
+              "y": 0.3
+            },
+            "radius": 0.3,
+            "height": 1.2
+          }
+        },
+        {
           "$type": "AssetPrefabTrait_Brain",
           "behaviorId": "behaviors/unit-ranged-manual.bt"
         }
