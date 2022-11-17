@@ -37,7 +37,7 @@ static SceneWeaponResourceComp* weapon_resource(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, SceneWeaponResourceComp) : null;
 }
 
-ecs_system_define(WeaponResourceInitSys) {
+ecs_system_define(SceneWeaponInitMapSys) {
   AssetManagerComp*        assets   = weapon_asset_manager(world);
   SceneWeaponResourceComp* resource = weapon_resource(world);
   if (!assets || !resource) {
@@ -55,7 +55,7 @@ ecs_system_define(WeaponResourceInitSys) {
   }
 }
 
-ecs_system_define(WeaponResourceUnloadChangedMapSys) {
+ecs_system_define(SceneWeaponUnloadChangedMapSys) {
   SceneWeaponResourceComp* resource = weapon_resource(world);
   if (!resource || !ecs_entity_valid(resource->mapEntity)) {
     return;
@@ -86,8 +86,8 @@ ecs_module_init(scene_weapon_module) {
   ecs_register_view(GlobalResourceView);
 
   ecs_register_system(
-      WeaponResourceInitSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
-  ecs_register_system(WeaponResourceUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
+      SceneWeaponInitMapSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
+  ecs_register_system(SceneWeaponUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
 }
 
 void scene_weapon_init(EcsWorld* world, const String weaponMapId) {
