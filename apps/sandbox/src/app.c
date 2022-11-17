@@ -10,6 +10,7 @@
 #include "input_resource.h"
 #include "rend_register.h"
 #include "scene_camera.h"
+#include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_time.h"
@@ -263,6 +264,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
   input_resource_init(world, string_lit("global/sandbox.imp"));
+  scene_prefab_init(world, string_lit("global/sandbox.pfb"));
   scene_weapon_init(world, string_lit("global/sandbox.wea"));
 
   app_window_create(world);

@@ -1,0 +1,30 @@
+{
+  "prefabs": [
+    {
+      "name": "UnitRifle",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/swat_a.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 4,
+          "radius": 0.4
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 100
+        },
+        {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "AssaultRifle"
+        },
+        {
+          "$type": "AssetPrefabTrait_Brain",
+          "behaviorId": "behaviors/unit-ranged-manual.bt"
+        }
+      ]
+    }
+  ]
+}

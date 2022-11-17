@@ -15,6 +15,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_locomotion_module);
   ecs_register_module(def, scene_name_module);
   ecs_register_module(def, scene_nav_module);
+  ecs_register_module(def, scene_prefab_module);
   ecs_register_module(def, scene_projectile_module);
   ecs_register_module(def, scene_renderable_module);
   ecs_register_module(def, scene_selection_module);
