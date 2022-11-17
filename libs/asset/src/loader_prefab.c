@@ -1,6 +1,8 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
+#include "core_bitset.h"
 #include "core_diag.h"
 #include "core_search.h"
 #include "core_stringtable.h"
@@ -182,6 +184,7 @@ static i8 prefab_compare(const void* a, const void* b) {
 typedef enum {
   PrefabError_None            = 0,
   PrefabError_DuplicatePrefab = 1,
+  PrefabError_DuplicateTrait  = 2,
 
   PrefabError_Count,
 } PrefabError;
@@ -190,6 +193,7 @@ static String prefab_error_str(const PrefabError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Multiple prefabs with the same name"),
+      string_static("Prefab defines the same trait more then once"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -250,9 +254,17 @@ static void prefab_build(
       .traitCount = (u16)def->traits.count,
   };
 
-  AssetManagerComp* manager = ctx->assetManager;
+  const u8     addedTraitsBits[bits_to_bytes(AssetPrefabTrait_Count) + 1] = {0};
+  const BitSet addedTraits = bitset_from_array(addedTraitsBits);
 
+  AssetManagerComp* manager = ctx->assetManager;
   array_ptr_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
+    if (bitset_test(addedTraits, traitDef->type)) {
+      *err = PrefabError_DuplicateTrait;
+      return;
+    }
+    bitset_set(addedTraits, traitDef->type);
+
     AssetPrefabTrait* outTrait = dynarray_push_t(outTraits, AssetPrefabTrait);
     outTrait->type             = traitDef->type;
 
@@ -290,6 +302,8 @@ static void prefab_build(
       outTrait->data_brain = (AssetPrefabTraitBrain){
           .behavior = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
       };
+      break;
+    case AssetPrefabTrait_Count:
       break;
     }
     if (*err) {

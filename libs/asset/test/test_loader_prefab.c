@@ -58,7 +58,8 @@ static const struct {
                               "      \"name\": \"Unit\","
                               "      \"traits\": [ {"
                               "        \"$type\": \"AssetPrefabTrait_Movement\","
-                              "        \"speed\": 1"
+                              "        \"speed\": 1,"
+                              "        \"radius\": 2"
                               "      }]"
                               "  }"
                               "]}"),
@@ -86,6 +87,22 @@ static const struct {
                               "    }, {"
                               "      \"name\": \"Unit\","
                               "      \"traits\": []"
+                              "    }"
+                              "]}"),
+    },
+    {
+        .id   = string_static("duplicate-prefab-trait.pfb"),
+        .text = string_static("{ \"prefabs\": [ {"
+                              "      \"name\": \"UnitA\","
+                              "      \"traits\": [ {"
+                              "        \"$type\": \"AssetPrefabTrait_Movement\","
+                              "        \"speed\": 1,"
+                              "        \"radius\": 2"
+                              "      }, {"
+                              "        \"$type\": \"AssetPrefabTrait_Movement\","
+                              "        \"speed\": 1,"
+                              "        \"radius\": 2"
+                              "      } ]"
                               "    }"
                               "]}"),
     },

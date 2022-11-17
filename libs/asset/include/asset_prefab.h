@@ -35,6 +35,8 @@ typedef enum {
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Brain,
+
+  AssetPrefabTrait_Count,
 } AssetPrefabTraitType;
 
 typedef struct {
