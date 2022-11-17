@@ -18,20 +18,20 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   f32 x, y, z;
-} PrefabVec3Def;
+} AssetPrefabVec3Def;
 
 typedef struct {
-  PrefabVec3Def offset;
-  f32           radius;
+  AssetPrefabVec3Def offset;
+  f32                radius;
 } AssetPrefabShapeSphereDef;
 
 typedef struct {
-  PrefabVec3Def offset;
-  f32           radius, height;
+  AssetPrefabVec3Def offset;
+  f32                radius, height;
 } AssetPrefabShapeCapsuleDef;
 
 typedef struct {
-  PrefabVec3Def min, max;
+  AssetPrefabVec3Def min, max;
 } AssetPrefabShapeBoxDef;
 
 typedef struct {
@@ -110,23 +110,23 @@ static void prefab_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(g_dataReg, PrefabVec3Def);
-    data_reg_field_t(g_dataReg, PrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_struct_t(g_dataReg, AssetPrefabVec3Def);
+    data_reg_field_t(g_dataReg, AssetPrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetPrefabShapeSphereDef);
-    data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabShapeCapsuleDef);
-    data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabShapeBoxDef);
-    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, t_PrefabVec3Def);
-    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, t_PrefabVec3Def);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, t_AssetPrefabVec3Def);
+    data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, t_AssetPrefabVec3Def);
 
     data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
     data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
@@ -206,7 +206,7 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static GeoVector prefab_build_vec3(const PrefabVec3Def* def) {
+static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
 
