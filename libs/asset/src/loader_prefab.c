@@ -55,7 +55,7 @@ typedef struct {
 } AssetPrefabTraitHealthDef;
 
 typedef struct {
-  String weapon;
+  String weaponId;
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
@@ -144,7 +144,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weapon, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetPrefabTraitCollisionDef, type);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Sphere, data_sphere, t_AssetPrefabCollisionSphereDef);
@@ -292,7 +292,7 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon = string_hash(traitDef->data_attack.weapon),
+          .weapon = string_hash(traitDef->data_attack.weaponId),
       };
       break;
     case AssetPrefabTrait_Collision:
