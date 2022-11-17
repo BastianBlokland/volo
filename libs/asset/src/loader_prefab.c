@@ -16,13 +16,69 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  f32 speed;
+  f32 x, y, z;
+} PrefabVec3Def;
+
+typedef struct {
+  bool          navBlocker;
+  PrefabVec3Def offset;
+  f32           radius;
+} AssetPrefabCollisionSphereDef;
+
+typedef struct {
+  bool          navBlocker;
+  PrefabVec3Def offset;
+  f32           radius, height;
+} AssetPrefabCollisionCapsuleDef;
+
+typedef struct {
+  bool          navBlocker;
+  PrefabVec3Def min, max;
+} AssetPrefabCollisionBoxDef;
+
+typedef struct {
+  String graphicId;
+} AssetPrefabTraitRenderableDef;
+
+typedef struct {
+  f32 scale;
+} AssetPrefabTraitScaleDef;
+
+typedef struct {
+  f32 speed, radius;
 } AssetPrefabTraitMovementDef;
+
+typedef struct {
+  f32 amount;
+} AssetPrefabTraitHealthDef;
+
+typedef struct {
+  String weapon;
+} AssetPrefabTraitAttackDef;
+
+typedef struct {
+  AssetPrefabCollisionType type;
+  union {
+    AssetPrefabCollisionSphereDef  data_sphere;
+    AssetPrefabCollisionCapsuleDef data_capsule;
+    AssetPrefabCollisionBoxDef     data_box;
+  };
+} AssetPrefabTraitCollisionDef;
+
+typedef struct {
+  String behaviorId;
+} AssetPrefabTraitBrainDef;
 
 typedef struct {
   AssetPrefabTraitType type;
   union {
-    AssetPrefabTraitMovementDef data_movement;
+    AssetPrefabTraitRenderableDef data_renderable;
+    AssetPrefabTraitScaleDef      data_scale;
+    AssetPrefabTraitMovementDef   data_movement;
+    AssetPrefabTraitHealthDef     data_health;
+    AssetPrefabTraitAttackDef     data_attack;
+    AssetPrefabTraitCollisionDef  data_collision;
+    AssetPrefabTraitBrainDef      data_brain;
   };
 } AssetPrefabTraitDef;
 
@@ -51,11 +107,59 @@ static void prefab_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(g_dataReg, PrefabVec3Def);
+    data_reg_field_t(g_dataReg, PrefabVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PrefabVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PrefabVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabCollisionSphereDef);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, navBlocker, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabCollisionCapsuleDef);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, navBlocker, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, offset, t_PrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabCollisionBoxDef);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, navBlocker, data_prim_t(bool));
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, min, t_PrefabVec3Def);
+    data_reg_field_t(g_dataReg, AssetPrefabCollisionBoxDef, max, t_PrefabVec3Def);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderableDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitScaleDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitScaleDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(g_dataReg, AssetPrefabTraitMovementDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weapon, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    data_reg_union_t(g_dataReg, AssetPrefabTraitCollisionDef, type);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Sphere, data_sphere, t_AssetPrefabCollisionSphereDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Capsule, data_capsule, t_AssetPrefabCollisionCapsuleDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitCollisionDef, AssetPrefabCollision_Box, data_box, t_AssetPrefabCollisionBoxDef);
+
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitBrainDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitBrainDef, behaviorId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scale, data_scale, t_AssetPrefabTraitScaleDef);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealthDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Brain, data_brain, t_AssetPrefabTraitBrainDef);
 
     data_reg_struct_t(g_dataReg, AssetPrefabDef);
     data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -96,17 +200,40 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static void prefab_trait_movement_build(
-    BuildCtx*                          ctx,
-    const AssetPrefabTraitMovementDef* def,
-    AssetPrefabTraitMovement*          out,
-    PrefabError*                       err) {
-  (void)ctx;
+static GeoVector prefab_build_vec3(const PrefabVec3Def* def) {
+  return geo_vector(def->x, def->y, def->z);
+}
 
-  *out = (AssetPrefabTraitMovement){
-      .speed = def->speed,
-  };
-  *err = PrefabError_None;
+static void prefab_build_trait_collision(
+    const AssetPrefabTraitCollisionDef* def, AssetPrefabTraitCollision* out) {
+
+  switch (def->type) {
+  case AssetPrefabCollision_Sphere:
+    *out = (AssetPrefabTraitCollision){
+        .type               = AssetPrefabCollision_Sphere,
+        .navBlocker         = def->data_sphere.navBlocker,
+        .data_sphere.offset = prefab_build_vec3(&def->data_sphere.offset),
+        .data_sphere.radius = def->data_sphere.radius,
+    };
+    break;
+  case AssetPrefabCollision_Capsule:
+    *out = (AssetPrefabTraitCollision){
+        .type                = AssetPrefabCollision_Capsule,
+        .navBlocker          = def->data_capsule.navBlocker,
+        .data_capsule.offset = prefab_build_vec3(&def->data_capsule.offset),
+        .data_capsule.radius = def->data_capsule.radius,
+        .data_capsule.height = def->data_capsule.height,
+    };
+    break;
+  case AssetPrefabCollision_Box:
+    *out = (AssetPrefabTraitCollision){
+        .type         = AssetPrefabCollision_Box,
+        .navBlocker   = def->data_box.navBlocker,
+        .data_box.min = prefab_build_vec3(&def->data_box.min),
+        .data_box.max = prefab_build_vec3(&def->data_box.max),
+    };
+    break;
+  }
 }
 
 static void prefab_build(
@@ -123,13 +250,46 @@ static void prefab_build(
       .traitCount = (u16)def->traits.count,
   };
 
+  AssetManagerComp* manager = ctx->assetManager;
+
   array_ptr_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
     AssetPrefabTrait* outTrait = dynarray_push_t(outTraits, AssetPrefabTrait);
     outTrait->type             = traitDef->type;
 
     switch (traitDef->type) {
+    case AssetPrefabTrait_Renderable:
+      outTrait->data_renderable = (AssetPrefabTraitRenderable){
+          .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
+      };
+      break;
+    case AssetPrefabTrait_Scale:
+      outTrait->data_scale = (AssetPrefabTraitScale){
+          .scale = traitDef->data_scale.scale,
+      };
+      break;
     case AssetPrefabTrait_Movement:
-      prefab_trait_movement_build(ctx, &traitDef->data_movement, &outTrait->data_movement, err);
+      outTrait->data_movement = (AssetPrefabTraitMovement){
+          .speed  = traitDef->data_movement.speed,
+          .radius = traitDef->data_movement.radius,
+      };
+      break;
+    case AssetPrefabTrait_Health:
+      outTrait->data_health = (AssetPrefabTraitHealth){
+          .amount = traitDef->data_health.amount,
+      };
+      break;
+    case AssetPrefabTrait_Attack:
+      outTrait->data_attack = (AssetPrefabTraitAttack){
+          .weapon = string_hash(traitDef->data_attack.weapon),
+      };
+      break;
+    case AssetPrefabTrait_Collision:
+      prefab_build_trait_collision(&traitDef->data_collision, &outTrait->data_collision);
+      break;
+    case AssetPrefabTrait_Brain:
+      outTrait->data_brain = (AssetPrefabTraitBrain){
+          .behavior = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
+      };
       break;
     }
     if (*err) {
