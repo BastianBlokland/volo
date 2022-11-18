@@ -7,7 +7,8 @@
 #include "utils_internal.h"
 
 typedef struct {
-  String name;
+  String           name;
+  AssetPrefabFlags flags;
 } TestPrefabData;
 
 static const struct {
@@ -32,6 +33,20 @@ static const struct {
         .prefabs =
             {
                 {.name = string_static("Unit")},
+            },
+        .prefabCount = 1,
+    },
+    {
+        .id   = string_static("flags.pfb"),
+        .text = string_static("{ \"prefabs\": [ {"
+                              "      \"name\": \"Unit\","
+                              "      \"isUnit\": true,"
+                              "      \"traits\": []"
+                              "  }"
+                              "]}"),
+        .prefabs =
+            {
+                {.name = string_static("Unit"), .flags = AssetPrefabFlags_Unit},
             },
         .prefabCount = 1,
     },
@@ -158,6 +173,7 @@ spec(loader_prefab) {
         const TestPrefabData* expectedPrefab = &g_testData[i].prefabs[a];
 
         check_eq_int(actualPrefab->nameHash, string_hash(expectedPrefab->name));
+        check_eq_int(actualPrefab->flags, expectedPrefab->flags);
       }
     }
   }

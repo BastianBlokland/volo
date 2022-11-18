@@ -87,6 +87,7 @@ typedef struct {
 
 typedef struct {
   String name;
+  bool   isUnit;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -167,6 +168,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetPrefabDef);
     data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabDef, isUnit, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
     data_reg_struct_t(g_dataReg, AssetPrefabMapDef);
@@ -237,6 +239,14 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
   }
 }
 
+static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
+  AssetPrefabFlags result = 0;
+  if (def->isUnit) {
+    result |= AssetPrefabFlags_Unit;
+  }
+  return result;
+}
+
 static void prefab_build(
     BuildCtx*             ctx,
     const AssetPrefabDef* def,
@@ -247,6 +257,7 @@ static void prefab_build(
   *err       = PrefabError_None;
   *outPrefab = (AssetPrefab){
       .nameHash   = stringtable_add(g_stringtable, def->name),
+      .flags      = prefab_build_flags(def),
       .traitIndex = (u16)outTraits->size,
       .traitCount = (u16)def->traits.count,
   };

@@ -90,9 +90,14 @@ typedef struct {
   };
 } AssetPrefabTrait;
 
+typedef enum {
+  AssetPrefabFlags_Unit = 1 << 0,
+} AssetPrefabFlags;
+
 typedef struct {
-  StringHash nameHash;
-  u16        traitIndex, traitCount; // Stored in the traits array.
+  StringHash       nameHash;
+  AssetPrefabFlags flags;
+  u16              traitIndex, traitCount; // Stored in the traits array.
 } AssetPrefab;
 
 ecs_comp_extern_public(AssetPrefabMapComp) {

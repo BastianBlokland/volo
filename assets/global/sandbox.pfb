@@ -2,6 +2,7 @@
   "prefabs": [
     {
       "name": "UnitRifle",
+      "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
