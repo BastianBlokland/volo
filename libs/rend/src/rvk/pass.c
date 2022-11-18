@@ -337,23 +337,23 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   RvkGraphic* graphic       = draw->graphic;
 
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireGlobalData && !hasGlobalData)) {
-    log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
+    log_e("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicMesh && !draw->dynMesh)) {
-    log_w("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+    log_e("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
-    log_w("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
+    log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {
-    log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
+    log_e("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(draw->instDataStride > rvk_uniform_size_max(pass->uniformPool))) {
-    log_w(
+    log_e(
         "Draw instance data exceeds maximum",
         log_param("graphic", fmt_text(graphic->dbgName)),
         log_param("size", fmt_size(draw->instDataStride)),

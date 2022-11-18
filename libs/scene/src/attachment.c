@@ -52,7 +52,7 @@ ecs_system_define(SceneAttachmentSys) {
       const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
       attach->jointIndex = scene_skeleton_joint_by_name(skelTempl, attach->jointName);
       if (UNLIKELY(sentinel_check(attach->jointIndex))) {
-        log_w("Missing attachment joint", log_param("joint-name-hash", fmt_int(attach->jointName)));
+        log_e("Missing attachment joint", log_param("joint-name-hash", fmt_int(attach->jointName)));
         continue;
       }
     }

@@ -195,7 +195,7 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   };
 
   if (UNLIKELY(overrideCount > Limit_EntriesMax)) {
-    log_w(
+    log_e(
         "More then {} shader overrides are not supported",
         log_param("limit", fmt_int(Limit_EntriesMax)),
         log_param("provided", fmt_int(overrideCount)));

@@ -720,7 +720,7 @@ static u32 nav_blocker_count(GeoNavGrid* grid) {
 static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
   const usize index = bitset_next(grid->blockerFreeSet, 0);
   if (UNLIKELY(sentinel_check(index))) {
-    log_w("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
+    log_e("Navigation blocker limit reached", log_param("limit", fmt_int(geo_nav_blockers_max)));
     return (GeoNavBlockerId)sentinel_u16;
   }
   bitset_clear(grid->blockerFreeSet, index);
@@ -915,7 +915,7 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   }
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    log_w(
+    log_e(
         "Navigation blocker cell limit reached",
         log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
     // TODO: Support switching to a heap allocation for big blockers?
@@ -950,7 +950,7 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    log_w(
+    log_e(
         "Navigation blocker cell limit reached",
         log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
     // TODO: Support switching to a heap allocation for big blockers?
@@ -1014,7 +1014,7 @@ void geo_nav_occupant_add(
     const GeoNavOccupantFlags flags) {
   diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
   if (UNLIKELY(grid->occupantCount == geo_nav_occupants_max)) {
-    log_w("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
+    log_e("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
     return;
   }
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
