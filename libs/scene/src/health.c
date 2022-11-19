@@ -176,7 +176,8 @@ ecs_system_define(SceneHealthUpdateSys) {
         health_anim_play_death(anim);
       }
 
-      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_seconds(5));
+      ecs_world_add_t(
+          world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
     }
   }
 }

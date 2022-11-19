@@ -140,7 +140,14 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 }
 
 static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {
-  ecs_world_add_t(w, e, SceneHealthComp, .norm = 1.0f, .max = t->amount);
+  ecs_world_add_t(
+      w,
+      e,
+      SceneHealthComp,
+      .norm              = 1.0f,
+      .max               = t->amount,
+      .deathDestroyDelay = t->deathDestroyDelay);
+
   ecs_world_add_t(w, e, SceneDamageComp);
 }
 

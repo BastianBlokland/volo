@@ -18,7 +18,8 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 100
+          "amount": 100,
+          "deathDestroyDelay": 2
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -62,7 +63,8 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 150
+          "amount": 150,
+          "deathDestroyDelay": 2
         },
         {
           "$type": "AssetPrefabTrait_Attack",

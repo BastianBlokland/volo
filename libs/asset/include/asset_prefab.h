@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
@@ -65,7 +66,8 @@ typedef struct {
 } AssetPrefabTraitMovement;
 
 typedef struct {
-  f32 amount;
+  f32          amount;
+  TimeDuration deathDestroyDelay;
 } AssetPrefabTraitHealth;
 
 typedef struct {

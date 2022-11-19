@@ -12,6 +12,7 @@ ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
   f32              norm;
   f32              max;
+  TimeDuration     deathDestroyDelay;
 };
 
 ecs_comp_extern_public(SceneDamageComp) {
