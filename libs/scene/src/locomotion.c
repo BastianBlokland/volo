@@ -78,11 +78,13 @@ static void scene_loco_separate(
     const SceneNavEnvComp* navEnv,
     const EcsEntityId      entity,
     SceneLocomotionComp*   loco,
-    SceneTransformComp*    trans) {
+    SceneTransformComp*    trans,
+    const f32              scale) {
   const bool      moving = (loco->flags & SceneLocomotion_Moving) != 0;
   const GeoVector pos    = trans->position;
-  loco->lastSeparation   = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
-  trans->position        = geo_vector_add(trans->position, loco->lastSeparation);
+
+  loco->lastSeparation = scene_nav_separate(navEnv, entity, pos, loco->radius * scale, moving);
+  trans->position      = geo_vector_add(trans->position, loco->lastSeparation);
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
@@ -116,7 +118,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
         loco->targetDir = geo_vector(0);
       }
     }
-    scene_loco_separate(navEnv, entity, loco, trans);
+    scene_loco_separate(navEnv, entity, loco, trans, scale);
 
     if (anim && loco->speedNorm < f32_epsilon) {
       scene_animation_set_time(anim, g_locoRunAnimHash, 0);

@@ -202,7 +202,7 @@ static EffectResult effect_update_dmg(
   const GeoMatrix orgMat    = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
   const GeoSphere orgSphere = {
       .point  = geo_matrix_to_translation(&orgMat),
-      .radius = def->radius,
+      .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
   };
   const SceneQueryFilter filter = {
       .layerMask = damage_query_layer_mask(ctx->factionId),
