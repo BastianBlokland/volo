@@ -11,7 +11,6 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
-#define target_distance_deviation 5.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -70,10 +69,13 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
-static f32 target_score_sqr(const SceneTransformComp* transA, const SceneTransformComp* transB) {
+static f32 target_score_sqr(
+    const SceneTargetFinderComp* finder,
+    const SceneTransformComp*    transA,
+    const SceneTransformComp*    transB) {
   const GeoVector posDelta        = geo_vector_sub(transA->position, transB->position);
   const f32       distSqr         = geo_vector_mag_sqr(posDelta);
-  const f32       maxDeviationSqr = target_distance_deviation * target_distance_deviation;
+  const f32       maxDeviationSqr = finder->scoreRandomness * finder->scoreRandomness;
   return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
 }
 
@@ -122,7 +124,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-        const f32                 scoreSqr    = target_score_sqr(trans, targetTrans);
+        const f32                 scoreSqr    = target_score_sqr(finder, trans, targetTrans);
         if (scoreSqr < finder->targetScoreSqr) {
           finder->target         = targetEntity;
           finder->targetScoreSqr = scoreSqr;

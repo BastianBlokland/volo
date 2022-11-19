@@ -67,6 +67,7 @@ typedef struct {
 typedef struct {
   String weaponId;
   f32    lineOfSightRadius;
+  f32    targetScoreRandomness;
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
@@ -159,6 +160,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandomness, data_prim_t(f32));
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
@@ -315,8 +317,9 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon            = string_hash(traitDef->data_attack.weaponId),
-          .lineOfSightRadius = traitDef->data_attack.lineOfSightRadius,
+          .weapon                = string_hash(traitDef->data_attack.weaponId),
+          .lineOfSightRadius     = traitDef->data_attack.lineOfSightRadius,
+          .targetScoreRandomness = traitDef->data_attack.targetScoreRandomness,
       };
       break;
     case AssetPrefabTrait_Collision:

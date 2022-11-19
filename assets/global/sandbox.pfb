@@ -23,7 +23,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "AssaultRifle",
-          "lineOfSightRadius": 0.2
+          "lineOfSightRadius": 0.2,
+          "targetScoreRandomness": 10
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -66,7 +67,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
-          "lineOfSightRadius": 0.2
+          "lineOfSightRadius": 0.2,
+          "targetScoreRandomness": 2
         },
         {
           "$type": "AssetPrefabTrait_Collision",

@@ -71,6 +71,7 @@ typedef struct {
 typedef struct {
   StringHash weapon;
   f32        lineOfSightRadius;
+  f32        targetScoreRandomness;
 } AssetPrefabTraitAttack;
 
 typedef struct {
