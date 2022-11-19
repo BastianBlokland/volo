@@ -4,6 +4,8 @@
 #include "geo_quat.h"
 #include "scene_faction.h"
 
+ecs_comp_extern_public(ScenePrefabInstance) { StringHash prefabId; };
+
 /**
  * Create a new prefab resource from the given PrefabMap.
  */

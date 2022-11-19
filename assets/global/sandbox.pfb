@@ -38,6 +38,72 @@
           "behaviorId": "behaviors/unit-ranged-manual.bt"
         }
       ]
+    },
+    {
+      "name": "UnitMelee",
+      "isUnit": true,
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/maynard.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 4.5,
+          "radius": 0.35
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 150
+        },
+        {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "Melee"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Capsule",
+            "offset": {
+              "y": 0.3
+            },
+            "radius": 0.3,
+            "height": 1.1
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Brain",
+          "behaviorId": "behaviors/unit-melee-auto.bt"
+        }
+      ]
+    },
+    {
+      "name": "Wall",
+      "isUnit": true,
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/wall.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1,
+              "y": 0,
+              "z": -2
+            },
+            "max": {
+              "x": 1,
+              "y": 2,
+              "z": 2
+            }
+          }
+        }
+      ]
     }
   ]
 }

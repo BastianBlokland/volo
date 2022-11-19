@@ -5,7 +5,18 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_attack.h"
+#include "scene_brain.h"
+#include "scene_collision.h"
+#include "scene_health.h"
+#include "scene_locomotion.h"
+#include "scene_nav.h"
 #include "scene_prefab.h"
+#include "scene_renderable.h"
+#include "scene_tag.h"
+#include "scene_target.h"
+#include "scene_transform.h"
+#include "scene_unit.h"
 
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,
@@ -19,6 +30,7 @@ ecs_comp_define(ScenePrefabResourceComp) {
 };
 
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
+ecs_comp_define_public(ScenePrefabInstance);
 
 static void ecs_destruct_prefab_resource(void* data) {
   ScenePrefabResourceComp* comp = data;
@@ -83,6 +95,152 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
   }
 }
 
+static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const SceneFaction faction) {
+  if (flags & AssetPrefabFlags_Unit) {
+    switch (faction) {
+    case SceneFaction_A:
+      return SceneLayer_UnitFactionA;
+    case SceneFaction_B:
+      return SceneLayer_UnitFactionB;
+    case SceneFaction_C:
+      return SceneLayer_UnitFactionC;
+    case SceneFaction_D:
+      return SceneLayer_UnitFactionD;
+    case SceneFaction_None:
+      // TODO: Should units without factions have a unique layer?
+      return SceneLayer_UnitFactionA;
+    default:
+      diag_crash_msg("Unsupported faction");
+    }
+  }
+  return SceneLayer_Environment;
+}
+
+static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
+  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic);
+}
+
+static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScale* t) {
+  ecs_world_add_t(w, e, SceneScaleComp, .scale = t->scale);
+}
+
+static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
+  ecs_world_add_t(w, e, SceneLocomotionComp, .maxSpeed = t->speed, .radius = t->radius);
+  scene_nav_add_agent(w, e);
+}
+
+static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {
+  ecs_world_add_t(w, e, SceneHealthComp, .norm = 1.0f, .max = t->amount);
+  ecs_world_add_t(w, e, SceneDamageComp);
+}
+
+static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
+  ecs_world_add_t(w, e, SceneAttackComp, .weaponName = t->weapon);
+  ecs_world_add_t(w, e, SceneTargetFinderComp);
+}
+
+static void setup_collision(
+    EcsWorld*                        w,
+    const EcsEntityId                e,
+    const ScenePrefabSpec*           s,
+    const AssetPrefab*               p,
+    const AssetPrefabTraitCollision* t) {
+  if (t->navBlocker) {
+    scene_nav_add_blocker(w, e);
+  }
+  const SceneLayer layer = prefab_instance_layer(p->flags, s->faction);
+  switch (t->shape.type) {
+  case AssetPrefabShape_Sphere: {
+    const SceneCollisionSphere sphere = {
+        .offset = t->shape.data_sphere.offset,
+        .radius = t->shape.data_sphere.radius,
+    };
+    scene_collision_add_sphere(w, e, sphere, layer);
+  } break;
+  case AssetPrefabShape_Capsule: {
+    const SceneCollisionCapsule capsule = {
+        .offset = t->shape.data_capsule.offset,
+        .dir    = SceneCollision_Up, // TODO: Make this configurable.
+        .radius = t->shape.data_capsule.radius,
+        .height = t->shape.data_capsule.height,
+    };
+    scene_collision_add_capsule(w, e, capsule, layer);
+  } break;
+  case AssetPrefabShape_Box: {
+    const SceneCollisionBox box = {
+        .min = t->shape.data_box.min,
+        .max = t->shape.data_box.max,
+    };
+    scene_collision_add_box(w, e, box, layer);
+  } break;
+  }
+}
+
+static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
+  scene_brain_add(w, e, t->behavior);
+}
+
+static void setup_trait(
+    EcsWorld*               w,
+    const EcsEntityId       e,
+    const ScenePrefabSpec*  s,
+    const AssetPrefab*      p,
+    const AssetPrefabTrait* t) {
+  switch (t->type) {
+  case AssetPrefabTrait_Renderable:
+    setup_renderable(w, e, &t->data_renderable);
+    return;
+  case AssetPrefabTrait_Scale:
+    setup_scale(w, e, &t->data_scale);
+    return;
+  case AssetPrefabTrait_Movement:
+    setup_movement(w, e, &t->data_movement);
+    return;
+  case AssetPrefabTrait_Health:
+    setup_health(w, e, &t->data_health);
+    return;
+  case AssetPrefabTrait_Attack:
+    setup_attack(w, e, &t->data_attack);
+    return;
+  case AssetPrefabTrait_Collision:
+    setup_collision(w, e, s, p, &t->data_collision);
+    return;
+  case AssetPrefabTrait_Brain:
+    setup_brain(w, e, &t->data_brain);
+    return;
+  case AssetPrefabTrait_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported prefab trait: '{}'", fmt_int(t->type));
+}
+
+static void setup_prefab(
+    EcsWorld* w, const EcsEntityId e, const ScenePrefabSpec* spec, const AssetPrefabMapComp* map) {
+
+  ecs_world_add_t(w, e, ScenePrefabInstance, .prefabId = spec->prefabId);
+  const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
+  if (UNLIKELY(!prefab)) {
+    log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
+    return;
+  }
+  ecs_world_add_t(w, e, SceneTransformComp, .position = spec->position, .rotation = spec->rotation);
+
+  SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
+  if (prefab->flags & AssetPrefabFlags_Unit) {
+    ecs_world_add_empty_t(w, e, SceneUnitComp);
+    tagComp->tags |= SceneTags_Unit;
+  }
+
+  if (spec->faction != SceneFaction_None) {
+    ecs_world_add_t(w, e, SceneFactionComp, .id = spec->faction);
+  }
+
+  for (u16 i = 0; i != prefab->traitCount; ++i) {
+    const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
+    setup_trait(w, e, spec, prefab, trait);
+  }
+}
+
 ecs_system_define(ScenePrefabSpawnSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalResourceReadView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -101,21 +259,17 @@ ecs_system_define(ScenePrefabSpawnSys) {
   EcsView* spawnView = ecs_world_view_t(world, PrefabSpawnView);
   for (EcsIterator* itr = ecs_view_itr(spawnView); ecs_view_walk(itr);) {
     const EcsEntityId             entity  = ecs_view_entity(itr);
-    const ScenePrefabRequestComp* request = ecs_view_read_t(globalItr, ScenePrefabRequestComp);
-    const AssetPrefab*            prefab  = asset_prefab_get(map, request->spec.prefabId);
-    if (UNLIKELY(!prefab)) {
-      log_e("Prefab not found", log_param("entity", fmt_int(entity, .base = 16)));
-      goto RequestHandled;
-    }
+    const ScenePrefabRequestComp* request = ecs_view_read_t(itr, ScenePrefabRequestComp);
 
-  RequestHandled:
+    setup_prefab(world, entity, &request->spec, map);
     ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
   }
 }
 
 ecs_module_init(scene_prefab_module) {
   ecs_register_comp(ScenePrefabResourceComp, .destructor = ecs_destruct_prefab_resource);
-  ecs_register_comp(ScenePrefabRequestComp, .destructor = ecs_destruct_prefab_resource);
+  ecs_register_comp(ScenePrefabRequestComp);
+  ecs_register_comp(ScenePrefabInstance);
 
   ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(GlobalResourceReadView);

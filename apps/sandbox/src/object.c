@@ -7,6 +7,7 @@
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
+#include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -21,17 +22,6 @@ ecs_comp_define(ObjectDatabaseComp) {
 };
 ecs_comp_define(ObjectComp);
 ecs_comp_define(ObjectUnitComp);
-
-static SceneLayer object_unit_layer(const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return SceneLayer_UnitFactionA;
-  case SceneFaction_B:
-    return SceneLayer_UnitFactionB;
-  default:
-    diag_crash_msg("Unsupported faction");
-  }
-}
 
 ecs_view_define(GlobalInitView) {
   ecs_access_write(AssetManagerComp);
@@ -85,75 +75,47 @@ EcsEntityId object_spawn_unit(
 
 EcsEntityId
 object_spawn_unit_player(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos) {
-  static const SceneCollisionCapsule g_capsule = {
-      .offset = {0, 0.3f, 0},
-      .radius = 0.3f,
-      .height = 1.2f,
+  (void)db;
+
+  const ScenePrefabSpec spec = {
+      .prefabId = string_hash_lit("UnitRifle"),
+      .position = pos,
+      .rotation = geo_quat_look(geo_backward, geo_up),
+      .faction  = SceneFaction_A,
   };
-
-  const EcsEntityId e        = ecs_world_entity_create(world);
-  const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
-
+  const EcsEntityId e = scene_prefab_spawn(world, &spec);
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_empty_t(world, e, ObjectUnitComp);
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitPlayerGraphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
-  scene_nav_add_agent(world, e);
-  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 4.0f, .radius = 0.4f);
-  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
-  ecs_world_add_t(world, e, SceneDamageComp);
-  ecs_world_add_t(world, e, SceneFactionComp, .id = SceneFaction_A);
-  ecs_world_add_t(world, e, SceneTargetFinderComp);
-  ecs_world_add_t(world, e, SceneAttackComp, .weaponName = string_hash_lit("AssaultRifle"));
-  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
-  scene_collision_add_capsule(world, e, g_capsule, object_unit_layer(SceneFaction_A));
-  scene_brain_add(world, e, db->unitPlayerBehavior);
   return e;
 }
 
 EcsEntityId
 object_spawn_unit_ai(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos) {
-  static const SceneCollisionCapsule g_capsule = {
-      .offset = {0, 0.3f, 0},
-      .radius = 0.3f,
-      .height = 1.1f,
+  (void)db;
+
+  const ScenePrefabSpec spec = {
+      .prefabId = string_hash_lit("UnitMelee"),
+      .position = pos,
+      .rotation = geo_quat_look(geo_backward, geo_up),
+      .faction  = SceneFaction_B,
   };
-
-  const EcsEntityId e        = ecs_world_entity_create(world);
-  const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
-
+  const EcsEntityId e = scene_prefab_spawn(world, &spec);
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_empty_t(world, e, ObjectUnitComp);
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitAiGraphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rotation);
-  scene_nav_add_agent(world, e);
-  ecs_world_add_t(world, e, SceneLocomotionComp, .maxSpeed = 4.5f, .radius = 0.35f);
-  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 150.0f);
-  ecs_world_add_t(world, e, SceneDamageComp);
-  ecs_world_add_t(world, e, SceneFactionComp, .id = SceneFaction_B);
-  ecs_world_add_t(world, e, SceneTargetFinderComp);
-  ecs_world_add_t(world, e, SceneAttackComp, .weaponName = string_hash_lit("Melee"));
-  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default | SceneTags_Unit);
-  scene_collision_add_capsule(world, e, g_capsule, object_unit_layer(SceneFaction_B));
-  scene_brain_add(world, e, db->unitAiBehavior);
   return e;
 }
 
 EcsEntityId object_spawn_wall(
     EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector pos, const GeoQuat rot) {
-  static const SceneCollisionBox g_box = {
-      .min = {-1, 0, -2},
-      .max = {1, 2, 2},
+  (void)db;
+
+  const ScenePrefabSpec spec = {
+      .prefabId = string_hash_lit("Wall"),
+      .position = pos,
+      .rotation = rot,
+      .faction  = SceneFaction_B,
   };
-
-  const EcsEntityId e = ecs_world_entity_create(world);
-
+  const EcsEntityId e = scene_prefab_spawn(world, &spec);
   ecs_world_add_empty_t(world, e, ObjectComp);
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->wallGraphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
-  ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default);
-  scene_collision_add_box(world, e, g_box, SceneLayer_Environment);
-  scene_nav_add_blocker(world, e);
   return e;
 }
