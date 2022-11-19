@@ -319,6 +319,10 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
       .mapId = string_dup(g_alloc_heap, prefabMapId));
 }
 
+EcsEntityId scene_prefab_map(const ScenePrefabResourceComp* resource) {
+  return resource->mapEntity;
+}
+
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
