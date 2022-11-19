@@ -19,7 +19,7 @@ typedef struct {
   f32          spreadAngle;
   f32          speed;
   f32          damage;
-  TimeDuration delay, lifetime;
+  TimeDuration delay, lifetime, impactLifetime;
   EcsEntityId  vfxProjectile, vfxImpact;
 } AssetWeaponEffectProj;
 

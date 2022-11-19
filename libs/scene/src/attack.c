@@ -173,10 +173,11 @@ static EffectResult effect_update_proj(
       ctx->world,
       e,
       SceneProjectileComp,
-      .speed      = def->speed,
-      .damage     = def->damage,
-      .instigator = ctx->instigator,
-      .impactVfx  = def->vfxImpact);
+      .speed          = def->speed,
+      .damage         = def->damage,
+      .impactLifetime = def->impactLifetime,
+      .instigator     = ctx->instigator,
+      .impactVfx      = def->vfxImpact);
 
   return EffectResult_Done;
 }
