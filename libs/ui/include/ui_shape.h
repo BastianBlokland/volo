@@ -30,6 +30,7 @@
   X(0xE9BA, Logout)                                                                                \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
+  X(0xEA3C, Construction)                                                                          \
   X(0xEA4A, Psychology)                                                                            \
   X(0xEA5F, Calculate)                                                                             \
   X(0xEF5B, Monitor)                                                                               \
