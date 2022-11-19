@@ -125,7 +125,16 @@ static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
 }
 
 static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
-  ecs_world_add_t(w, e, SceneLocomotionComp, .maxSpeed = t->speed, .radius = t->radius);
+
+  ecs_world_add_t(
+      w,
+      e,
+      SceneLocomotionComp,
+      .maxSpeed         = t->speed,
+      .accelerationNorm = t->accelerationNorm,
+      .rotationSpeedRad = t->rotationSpeedRad,
+      .radius           = t->radius);
+
   scene_nav_add_agent(w, e);
 }
 

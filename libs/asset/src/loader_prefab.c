@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
@@ -52,7 +53,10 @@ typedef struct {
 } AssetPrefabTraitScaleDef;
 
 typedef struct {
-  f32 speed, radius;
+  f32 speed;
+  f32 accelerationNorm; // Normalized acceleration, 1 = 'speed' per second.
+  f32 rotationSpeed;    // Degrees per second.
+  f32 radius;
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
@@ -142,6 +146,8 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitMovementDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, accelerationNorm, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, rotationSpeed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
@@ -289,8 +295,10 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Movement:
       outTrait->data_movement = (AssetPrefabTraitMovement){
-          .speed  = traitDef->data_movement.speed,
-          .radius = traitDef->data_movement.radius,
+          .speed            = traitDef->data_movement.speed,
+          .accelerationNorm = traitDef->data_movement.accelerationNorm,
+          .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
+          .radius           = traitDef->data_movement.radius,
       };
       break;
     case AssetPrefabTrait_Health:

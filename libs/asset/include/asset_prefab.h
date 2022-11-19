@@ -57,7 +57,10 @@ typedef struct {
 } AssetPrefabTraitScale;
 
 typedef struct {
-  f32 speed, radius;
+  f32 speed;
+  f32 accelerationNorm; // Normalized acceleration, 1 = 'speed' per second.
+  f32 rotationSpeedRad; // Radians per second.
+  f32 radius;
 } AssetPrefabTraitMovement;
 
 typedef struct {

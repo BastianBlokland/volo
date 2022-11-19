@@ -9,8 +9,6 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 0.1f
-#define locomotion_rotation_speed 270.0f
-#define locomotion_accelerate_time 4.0f
 
 static StringHash g_locoRunAnimHash;
 
@@ -39,13 +37,12 @@ static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, cons
   const GeoVector forward     = geo_quat_rotate(trans->rotation, geo_forward);
   f32             yAngleDelta = scene_loco_y_angle_diff(forward, dir);
 
-  bool      clamped       = false;
-  const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * delta;
-  if (yAngleDelta < -maxAngleDelta) {
-    yAngleDelta = -maxAngleDelta;
+  bool clamped = false;
+  if (yAngleDelta < -delta) {
+    yAngleDelta = -delta;
     clamped     = true;
-  } else if (yAngleDelta > maxAngleDelta) {
-    yAngleDelta = maxAngleDelta;
+  } else if (yAngleDelta > delta) {
+    yAngleDelta = delta;
     clamped     = true;
   }
 
@@ -114,7 +111,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
     scene_loco_move(loco, trans, scale, deltaSeconds);
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
-      if (scene_loco_face(trans, loco->targetDir, deltaSeconds)) {
+      if (scene_loco_face(trans, loco->targetDir, loco->rotationSpeedRad * deltaSeconds)) {
         loco->targetDir = geo_vector(0);
       }
     }
@@ -125,7 +122,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
 
     const f32 targetSpeedNorm = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
-    math_towards_f32(&loco->speedNorm, targetSpeedNorm, locomotion_accelerate_time * deltaSeconds);
+    math_towards_f32(&loco->speedNorm, targetSpeedNorm, loco->accelerationNorm * deltaSeconds);
 
     if (anim) {
       scene_animation_set_weight(anim, g_locoRunAnimHash, loco->speedNorm);
