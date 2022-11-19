@@ -21,4 +21,3 @@ ecs_comp_extern(ObjectUnitComp);
 EcsEntityId object_spawn_unit(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos, SceneFaction);
 EcsEntityId object_spawn_unit_player(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos);
 EcsEntityId object_spawn_unit_ai(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos);
-EcsEntityId object_spawn_wall(EcsWorld*, const ObjectDatabaseComp*, GeoVector pos, GeoQuat rot);

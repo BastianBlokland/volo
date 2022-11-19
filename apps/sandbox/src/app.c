@@ -85,14 +85,22 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
-static void app_scene_create_walls(EcsWorld* world, const ObjectDatabaseComp* objDb, Rng* rng) {
+static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
+  const StringHash wallPrefabId = string_hash_lit("Wall");
+
   for (u32 i = 0; i != g_appWallCount; ++i) {
-    const f32     posX  = rng_sample_range(rng, -75.0f, 75.0f);
-    const f32     posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32     posZ  = rng_sample_range(rng, -75.0f, 75.0f);
-    const f32     angle = rng_sample_f32(rng) * math_pi_f32 * 2;
-    const GeoQuat rot   = geo_quat_angle_axis(geo_up, angle);
-    object_spawn_wall(world, objDb, geo_vector(posX, posY, posZ), rot);
+    const f32 posX  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
+    const f32 posZ  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 angle = rng_sample_f32(rng) * math_pi_f32 * 2;
+    scene_prefab_spawn(
+        world,
+        &(ScenePrefabSpec){
+            .prefabId = wallPrefabId,
+            .faction  = SceneFaction_None,
+            .position = geo_vector(posX, posY, posZ),
+            .rotation = geo_quat_angle_axis(geo_up, angle),
+        });
   }
 }
 
@@ -155,7 +163,7 @@ ecs_system_define(AppUpdateSys) {
   // Create the inital scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
-    app_scene_create_walls(world, objDb, app->rng);
+    app_scene_create_walls(world, app->rng);
     app->sceneCreated = true;
   }
 
