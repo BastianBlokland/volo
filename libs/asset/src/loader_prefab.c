@@ -251,6 +251,7 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
     };
     break;
   }
+  diag_crash("Unsupported prefab shape");
 }
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
