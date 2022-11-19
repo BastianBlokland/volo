@@ -14,7 +14,7 @@
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
-static const f32       g_sceneNavSize    = 150.0f;
+static const f32       g_sceneNavSize    = 200.0f;
 static const f32       g_sceneNavDensity = 1.0f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
@@ -137,14 +137,17 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*      scale = ecs_view_read_t(itr, SceneScaleComp);
     const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
+
+    const f32 radius = loco->radius * (scale ? scale->scale : 1.0f);
 
     const u64           occupantId    = (u64)ecs_view_entity(itr);
     GeoNavOccupantFlags occupantFlags = 0;
     if (loco->flags & SceneLocomotion_Moving) {
       occupantFlags |= GeoNavOccupantFlags_Moving;
     }
-    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, loco->radius, occupantFlags);
+    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, radius, occupantFlags);
   }
 }
 
@@ -167,6 +170,7 @@ ecs_view_define(BlockerEntityView) {
 }
 
 ecs_view_define(OccupantEntityView) {
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_read(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneNavAgentComp);

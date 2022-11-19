@@ -16,24 +16,24 @@ typedef enum {
 
 typedef struct {
   StringHash   originJoint;
-  TimeDuration delay, lifetime;
   f32          spreadAngle;
   f32          speed;
   f32          damage;
+  TimeDuration delay, lifetime, impactLifetime;
   EcsEntityId  vfxProjectile, vfxImpact;
 } AssetWeaponEffectProj;
 
 typedef struct {
   StringHash   originJoint;
-  TimeDuration delay;
   f32          radius;
   f32          damage;
+  TimeDuration delay;
 } AssetWeaponEffectDmg;
 
 typedef struct {
   StringHash   layer;
-  TimeDuration delay;
   f32          speed;
+  TimeDuration delay;
 } AssetWeaponEffectAnim;
 
 typedef struct {
@@ -54,11 +54,11 @@ typedef struct {
 
 typedef struct {
   StringHash   nameHash;
-  TimeDuration intervalMin, intervalMax;
-  f32          aimSpeed;   // Speed to increase the aim amount, when aim reaches 1.0 we can fire.
-  TimeDuration aimMinTime; // Time to keep aiming after the last shot.
-  StringHash   aimAnim;
   u16          effectIndex, effectCount; // Stored in the effects array.
+  f32          aimSpeed; // Speed to increase the aim amount, when aim reaches 1.0 we can fire.
+  StringHash   aimAnim;
+  TimeDuration aimMinTime; // Time to keep aiming after the last shot.
+  TimeDuration intervalMin, intervalMax;
 } AssetWeapon;
 
 ecs_comp_extern_public(AssetWeaponMapComp) {

@@ -183,7 +183,7 @@ static void vfx_system_spawn(
 
   const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitterAsset->atlasEntry);
   if (UNLIKELY(!atlasEntry)) {
-    log_w("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
+    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
     return;
   }
 

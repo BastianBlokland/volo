@@ -68,7 +68,7 @@ static void projectile_impact_spawn(
   const EcsEntityId e   = ecs_world_entity_create(world);
   const GeoQuat     rot = geo_quat_look(norm, geo_up);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(200));
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = projectile->impactLifetime);
   ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx);
 }
 

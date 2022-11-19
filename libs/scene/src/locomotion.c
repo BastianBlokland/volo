@@ -9,10 +9,6 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 0.1f
-#define locomotion_rotation_speed 270.0f
-#define locomotion_accelerate_time 4.0f
-
-static StringHash g_locoRunAnimHash;
 
 ecs_comp_define_public(SceneLocomotionComp);
 
@@ -39,13 +35,12 @@ static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, cons
   const GeoVector forward     = geo_quat_rotate(trans->rotation, geo_forward);
   f32             yAngleDelta = scene_loco_y_angle_diff(forward, dir);
 
-  bool      clamped       = false;
-  const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * delta;
-  if (yAngleDelta < -maxAngleDelta) {
-    yAngleDelta = -maxAngleDelta;
+  bool clamped = false;
+  if (yAngleDelta < -delta) {
+    yAngleDelta = -delta;
     clamped     = true;
-  } else if (yAngleDelta > maxAngleDelta) {
-    yAngleDelta = maxAngleDelta;
+  } else if (yAngleDelta > delta) {
+    yAngleDelta = delta;
     clamped     = true;
   }
 
@@ -78,11 +73,13 @@ static void scene_loco_separate(
     const SceneNavEnvComp* navEnv,
     const EcsEntityId      entity,
     SceneLocomotionComp*   loco,
-    SceneTransformComp*    trans) {
+    SceneTransformComp*    trans,
+    const f32              scale) {
   const bool      moving = (loco->flags & SceneLocomotion_Moving) != 0;
   const GeoVector pos    = trans->position;
-  loco->lastSeparation   = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
-  trans->position        = geo_vector_add(trans->position, loco->lastSeparation);
+
+  loco->lastSeparation = scene_nav_separate(navEnv, entity, pos, loco->radius * scale, moving);
+  trans->position      = geo_vector_add(trans->position, loco->lastSeparation);
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
@@ -112,28 +109,37 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
     scene_loco_move(loco, trans, scale, deltaSeconds);
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
-      if (scene_loco_face(trans, loco->targetDir, deltaSeconds)) {
+      if (scene_loco_face(trans, loco->targetDir, loco->rotationSpeedRad * deltaSeconds)) {
         loco->targetDir = geo_vector(0);
       }
     }
-    scene_loco_separate(navEnv, entity, loco, trans);
+    if (deltaSeconds > 0) {
+      /**
+       * Move this entity out of other navigation agents and blockers.
+       * This is not an 'over time' effect as it moves far enough to fully separate, however with
+       * groups of navigation agents it can take multiple frames to settle.
+       *
+       * TODO: This means that it ends up being quite frame-rate dependent (and doesn't respect
+       * time-scale). Consider changing this to use forces and apply the separation over-time, this
+       * will mean that we have to accept units temporary overlapping each other.
+       */
+      scene_loco_separate(navEnv, entity, loco, trans, scale);
+    }
 
     if (anim && loco->speedNorm < f32_epsilon) {
-      scene_animation_set_time(anim, g_locoRunAnimHash, 0);
+      scene_animation_set_time(anim, loco->moveAnimation, 0);
     }
 
     const f32 targetSpeedNorm = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
-    math_towards_f32(&loco->speedNorm, targetSpeedNorm, locomotion_accelerate_time * deltaSeconds);
+    math_towards_f32(&loco->speedNorm, targetSpeedNorm, loco->accelerationNorm * deltaSeconds);
 
     if (anim) {
-      scene_animation_set_weight(anim, g_locoRunAnimHash, loco->speedNorm);
+      scene_animation_set_weight(anim, loco->moveAnimation, loco->speedNorm);
     }
   }
 }
 
 ecs_module_init(scene_locomotion_module) {
-  g_locoRunAnimHash = string_hash_lit("run");
-
   ecs_register_comp(SceneLocomotionComp);
 
   ecs_register_view(GlobalView);

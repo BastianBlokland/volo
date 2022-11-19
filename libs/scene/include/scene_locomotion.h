@@ -9,8 +9,12 @@ typedef enum {
 
 ecs_comp_extern_public(SceneLocomotionComp) {
   SceneLocomotionFlags flags;
-  f32                  maxSpeed, speedNorm;
+  f32                  maxSpeed;         // Meter per second.
+  f32                  accelerationNorm; // Normalized acceleration, 1 = maxSpeed per second.
+  f32                  speedNorm;        // Current normalized speed, 1 = maxSpeed.
+  f32                  rotationSpeedRad; // Radians per second.
   f32                  radius;
+  StringHash           moveAnimation; // Optional: 0 to disable.
   GeoVector            lastSeparation;
   GeoVector            targetPos;
   GeoVector            targetDir;

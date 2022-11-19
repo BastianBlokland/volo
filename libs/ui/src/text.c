@@ -55,7 +55,7 @@ static void ui_text_background_start(
     const f32                  xPos) {
   diag_assert(sentinel_check(collector->active));
   if (UNLIKELY(collector->count == ui_text_max_backgrounds)) {
-    log_w("Ui text background count exceeds maximum");
+    log_e("Ui text background count exceeds maximum");
     return;
   }
   collector->active                    = collector->count++;
@@ -388,8 +388,8 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
   const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
-                  .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
-                  .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
+      .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
+      .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
   };
   state->buildBackground(
       state->userCtx,

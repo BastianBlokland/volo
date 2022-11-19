@@ -16,6 +16,7 @@
           "spreadAngle": 2,
           "speed": 50,
           "damage": 15,
+          "impactLifetime": 0.2,
           "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
           "vfxIdImpact": "vfx/sandbox/impact.vfx"
         },

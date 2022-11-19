@@ -18,6 +18,7 @@ add_library(lib_scene STATIC
   src/locomotion.c
   src/name.c
   src/nav.c
+  src/prefab.c
   src/projectile.c
   src/register.c
   src/renderable.c
@@ -28,6 +29,7 @@ add_library(lib_scene STATIC
   src/target.c
   src/time.c
   src/transform.c
+  src/unit.c
   src/vfx.c
   src/weapon.c
   )

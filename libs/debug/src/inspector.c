@@ -776,11 +776,17 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 }
 
 static void inspector_vis_draw_locomotion(
-    DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
-  const GeoVector pos          = transform ? transform->position : geo_vector(0);
+    DebugShapeComp*            shape,
+    const SceneLocomotionComp* loco,
+    const SceneTransformComp*  transform,
+    const SceneScaleComp*      scale) {
+  const GeoVector pos      = transform ? transform->position : geo_vector(0);
+  const f32       scaleVal = scale ? scale->scale : 1.0f;
+
   const f32 separationStrength = math_clamp_f32(geo_vector_mag(loco->lastSeparation) * 100, 0, 1);
-  const GeoColor circleColor   = geo_color_lerp(geo_color_white, geo_color_red, separationStrength);
-  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius, circleColor);
+
+  const GeoColor circleColor = geo_color_lerp(geo_color_white, geo_color_red, separationStrength);
+  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, circleColor);
 
   if (loco->flags & SceneLocomotion_Moving) {
     debug_line(shape, pos, loco->targetPos, geo_color_yellow);
@@ -903,7 +909,7 @@ static void inspector_vis_draw_subject(
     debug_text(text, pos, name, geo_color_white);
   }
   if (locoComp && set->visFlags & (1 << DebugInspectorVis_Locomotion)) {
-    inspector_vis_draw_locomotion(shape, locoComp, transformComp);
+    inspector_vis_draw_locomotion(shape, locoComp, transformComp, scaleComp);
   }
   if (collisionComp && set->visFlags & (1 << DebugInspectorVis_Collision)) {
     inspector_vis_draw_collision(shape, collisionComp, transformComp, scaleComp);

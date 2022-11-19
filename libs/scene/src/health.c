@@ -82,7 +82,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
       return; // Don't restart the animation if its already playing.
     }
     hitAnimLayer->time  = 0;
-    hitAnimLayer->speed = 1.5f;
+    hitAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
     hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
     hitAnimLayer->mask = healthAnim->hitAnimMask;
@@ -176,7 +176,8 @@ ecs_system_define(SceneHealthUpdateSys) {
         health_anim_play_death(anim);
       }
 
-      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_seconds(5));
+      ecs_world_add_t(
+          world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
     }
   }
 }

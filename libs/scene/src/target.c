@@ -11,7 +11,6 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
-#define target_distance_deviation 5.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -39,7 +38,10 @@ static GeoVector target_position_center(EcsIterator* entityItr) {
 }
 
 static bool target_line_of_sight_test(
-    const SceneCollisionEnvComp* collisionEnv, EcsIterator* finderItr, EcsIterator* targetItr) {
+    const SceneCollisionEnvComp* collisionEnv,
+    const f32                    radius,
+    EcsIterator*                 finderItr,
+    EcsIterator*                 targetItr) {
   const GeoVector sourcePos = target_position_center(finderItr);
   const GeoVector targetPos = target_position_center(targetItr);
   const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
@@ -49,7 +51,6 @@ static bool target_line_of_sight_test(
   }
   const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
   const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-  const f32              radius = 0.2f;
   SceneRayHit            hit;
   return !scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit);
 }
@@ -68,10 +69,13 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
-static f32 target_score_sqr(const SceneTransformComp* transA, const SceneTransformComp* transB) {
+static f32 target_score_sqr(
+    const SceneTargetFinderComp* finder,
+    const SceneTransformComp*    transA,
+    const SceneTransformComp*    transB) {
   const GeoVector posDelta        = geo_vector_sub(transA->position, transB->position);
   const f32       distSqr         = geo_vector_mag_sqr(posDelta);
-  const f32       maxDeviationSqr = target_distance_deviation * target_distance_deviation;
+  const f32       maxDeviationSqr = finder->scoreRandomness * finder->scoreRandomness;
   return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
 }
 
@@ -120,7 +124,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-        const f32                 scoreSqr    = target_score_sqr(trans, targetTrans);
+        const f32                 scoreSqr    = target_score_sqr(finder, trans, targetTrans);
         if (scoreSqr < finder->targetScoreSqr) {
           finder->target         = targetEntity;
           finder->targetScoreSqr = scoreSqr;
@@ -140,7 +144,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
       finder->targetPosition                = targetTrans->position;
 
-      if (target_line_of_sight_test(collisionEnv, itr, targetItr)) {
+      if (target_line_of_sight_test(collisionEnv, finder->lineOfSightRadius, itr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {
