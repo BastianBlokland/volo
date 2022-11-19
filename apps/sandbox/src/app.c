@@ -15,16 +15,17 @@
 #include "scene_renderable.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_unit.h"
 #include "scene_weapon.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
 #include "cmd_internal.h"
-#include "object_internal.h"
 
 typedef struct {
   GeoBox       spawnArea;
   TimeDuration spawnIntervalMin, spawnIntervalMax;
+  String       unitPrefabId;
   u32          totalCount;
 } AppFactionConfig;
 
@@ -35,14 +36,16 @@ static const u32              g_appMaxUnits        = 1500;
 static const AppFactionConfig g_appFactionConfig[] = {
     [SceneFaction_A] =
         {
-            .spawnArea  = {.min = {.x = 15, .z = -50}, .max = {.x = 65, .z = 50}},
-            .totalCount = 150,
+            .spawnArea    = {.min = {.x = 15, .z = -50}, .max = {.x = 65, .z = 50}},
+            .totalCount   = 150,
+            .unitPrefabId = string_static("UnitRifle"),
         },
     [SceneFaction_B] =
         {
             .spawnArea        = {.min = {.x = -65, .z = -50}, .max = {.x = -50, .z = 50}},
             .spawnIntervalMin = time_milliseconds(50),
             .spawnIntervalMax = time_milliseconds(100),
+            .unitPrefabId     = string_static("UnitMelee"),
         },
 };
 ASSERT(array_elems(g_appFactionConfig) <= SceneFaction_Count, "More factions then supported");
@@ -139,14 +142,13 @@ static void ecs_destruct_app_comp(void* data) {
 
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(ObjectDatabaseComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AppComp);
   ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
-ecs_view_define(UnitView) { ecs_access_with(ObjectUnitComp); }
+ecs_view_define(UnitView) { ecs_access_with(SceneUnitComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -154,11 +156,10 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                  app    = ecs_view_write_t(globalItr, AppComp);
-  AssetManagerComp*         assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  const InputManagerComp*   input  = ecs_view_read_t(globalItr, InputManagerComp);
-  const ObjectDatabaseComp* objDb  = ecs_view_read_t(globalItr, ObjectDatabaseComp);
-  const SceneTimeComp*      time   = ecs_view_read_t(globalItr, SceneTimeComp);
+  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
+  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTimeComp*    time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
   // Create the inital scene.
   if (!app->sceneCreated) {
@@ -182,7 +183,15 @@ ecs_system_define(AppUpdateSys) {
     const bool spawnAllowed = app->spawningEnabled && !appLimitExceeded && !factionLimitedExceeded;
 
     if (spawnAllowed && time->time > factionData->nextSpawnTime) {
-      object_spawn_unit(world, objDb, app_next_spawn_pos(app->rng, faction), faction);
+      scene_prefab_spawn(
+          world,
+          &(ScenePrefabSpec){
+              .prefabId = string_hash(g_appFactionConfig[faction].unitPrefabId),
+              .faction  = faction,
+              .position = app_next_spawn_pos(app->rng, faction),
+              .rotation = geo_quat_look(geo_backward, geo_up),
+          });
+
       factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
       ++factionData->spawnedAmount;
     }
@@ -256,7 +265,6 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ecs_register_module(def, sandbox_app_module);
   ecs_register_module(def, sandbox_cmd_module);
   ecs_register_module(def, sandbox_input_module);
-  ecs_register_module(def, sandbox_object_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {

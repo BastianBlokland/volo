@@ -4,10 +4,10 @@
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_brain.h"
+#include "scene_prefab.h"
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
-#include "object_internal.h"
 
 static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
 static const u8   g_cmdPlayerFaction = 0;
@@ -65,12 +65,7 @@ static void ecs_destruct_controller(void* data) {
 }
 
 ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
-
-ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(ObjectDatabaseComp);
-  ecs_access_write(SceneSelectionComp);
-}
-
+ecs_view_define(GlobalUpdateView) { ecs_access_write(SceneSelectionComp); }
 ecs_view_define(BrainView) { ecs_access_write(SceneBrainComp); }
 
 static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
@@ -99,11 +94,7 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   }
 }
 
-static void cmd_execute(
-    EcsWorld*                 world,
-    const ObjectDatabaseComp* objectDb,
-    SceneSelectionComp*       selection,
-    const Cmd*                cmd) {
+static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cmd* cmd) {
   switch (cmd->type) {
   case Cmd_Select:
     diag_assert_msg(ecs_entity_valid(cmd->select.object), "Selecting invalid entity");
@@ -122,7 +113,14 @@ static void cmd_execute(
     break;
   case Cmd_SpawnUnit:
     for (u32 i = 0; i != cmd->spawnUnit.count; ++i) {
-      object_spawn_unit(world, objectDb, cmd->spawnUnit.position, g_cmdPlayerFaction);
+      scene_prefab_spawn(
+          world,
+          &(ScenePrefabSpec){
+              .prefabId = string_hash_lit("UnitRifle"),
+              .faction  = g_cmdPlayerFaction,
+              .position = cmd->spawnUnit.position,
+              .rotation = geo_quat_look(geo_backward, geo_up),
+          });
     }
     break;
   case Cmd_Destroy:
@@ -141,9 +139,8 @@ ecs_system_define(CmdControllerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const ObjectDatabaseComp* objectDb   = ecs_view_read_t(globalItr, ObjectDatabaseComp);
-  SceneSelectionComp*       selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
-  CmdControllerComp*        controller = cmd_controller_get(world);
+  SceneSelectionComp* selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
+  CmdControllerComp*  controller = cmd_controller_get(world);
   if (!controller) {
     controller = ecs_world_add_t(
         world,
@@ -152,7 +149,7 @@ ecs_system_define(CmdControllerUpdateSys) {
         .commands = dynarray_create_t(g_alloc_heap, Cmd, 2));
   }
 
-  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, objectDb, selection, cmd); }
+  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, selection, cmd); }
   dynarray_clear(&controller->commands);
 }
 
