@@ -13,6 +13,7 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   EcsEntityId      targetOverride;
   SceneTargetFlags targetFlags;
   f32              targetScoreSqr;
+  f32              lineOfSightRadius;
   TimeDuration     nextRefreshTime;
   GeoVector        targetPosition;
 };

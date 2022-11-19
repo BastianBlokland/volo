@@ -70,6 +70,7 @@ typedef struct {
 
 typedef struct {
   StringHash weapon;
+  f32        lineOfSightRadius;
 } AssetPrefabTraitAttack;
 
 typedef struct {

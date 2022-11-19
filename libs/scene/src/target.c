@@ -39,7 +39,10 @@ static GeoVector target_position_center(EcsIterator* entityItr) {
 }
 
 static bool target_line_of_sight_test(
-    const SceneCollisionEnvComp* collisionEnv, EcsIterator* finderItr, EcsIterator* targetItr) {
+    const SceneCollisionEnvComp* collisionEnv,
+    const f32                    radius,
+    EcsIterator*                 finderItr,
+    EcsIterator*                 targetItr) {
   const GeoVector sourcePos = target_position_center(finderItr);
   const GeoVector targetPos = target_position_center(targetItr);
   const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
@@ -49,7 +52,6 @@ static bool target_line_of_sight_test(
   }
   const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
   const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-  const f32              radius = 0.2f;
   SceneRayHit            hit;
   return !scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit);
 }
@@ -140,7 +142,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
       finder->targetPosition                = targetTrans->position;
 
-      if (target_line_of_sight_test(collisionEnv, itr, targetItr)) {
+      if (target_line_of_sight_test(collisionEnv, finder->lineOfSightRadius, itr, targetItr)) {
         finder->targetFlags |= SceneTarget_LineOfSight;
       }
     } else {

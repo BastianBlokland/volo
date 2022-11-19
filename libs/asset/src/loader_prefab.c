@@ -66,6 +66,7 @@ typedef struct {
 
 typedef struct {
   String weaponId;
+  f32    lineOfSightRadius;
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
@@ -157,6 +158,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
@@ -313,7 +315,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon = string_hash(traitDef->data_attack.weaponId),
+          .weapon            = string_hash(traitDef->data_attack.weaponId),
+          .lineOfSightRadius = traitDef->data_attack.lineOfSightRadius,
       };
       break;
     case AssetPrefabTrait_Collision:

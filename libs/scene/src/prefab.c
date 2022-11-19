@@ -146,7 +146,7 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
   ecs_world_add_t(w, e, SceneAttackComp, .weaponName = t->weapon);
-  ecs_world_add_t(w, e, SceneTargetFinderComp);
+  ecs_world_add_t(w, e, SceneTargetFinderComp, .lineOfSightRadius = t->lineOfSightRadius);
 }
 
 static void setup_collision(
