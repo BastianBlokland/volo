@@ -357,7 +357,7 @@
       ]
     },
     {
-      "name": "DebugPanelTime",
+      "name": "DebugPanelPrefab",
       "blockers": [
         "TextInput"
       ],
@@ -369,7 +369,7 @@
       ]
     },
     {
-      "name": "DebugPanelAnimation",
+      "name": "DebugPanelTime",
       "blockers": [
         "TextInput"
       ],
@@ -381,7 +381,7 @@
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelAnimation",
       "blockers": [
         "TextInput"
       ],
@@ -393,7 +393,7 @@
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelAsset",
       "blockers": [
         "TextInput"
       ],
@@ -405,7 +405,7 @@
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelEcs",
       "blockers": [
         "TextInput"
       ],
@@ -417,7 +417,7 @@
       ]
     },
     {
-      "name": "DebugPanelGrid",
+      "name": "DebugPanelCamera",
       "blockers": [
         "TextInput"
       ],
@@ -429,7 +429,7 @@
       ]
     },
     {
-      "name": "DebugPanelRenderer",
+      "name": "DebugPanelGrid",
       "blockers": [
         "TextInput"
       ],
@@ -441,7 +441,7 @@
       ]
     },
     {
-      "name": "DebugPanelInterface",
+      "name": "DebugPanelRenderer",
       "blockers": [
         "TextInput"
       ],
