@@ -51,7 +51,7 @@ ecs_module_init(nav_test_module) {
 
 spec(nav) {
 
-  const u16  halfGridSize = 75;
+  const u16  halfGridSize = 100;
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
