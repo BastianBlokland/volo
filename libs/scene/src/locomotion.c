@@ -113,7 +113,18 @@ ecs_system_define(SceneLocomotionMoveSys) {
         loco->targetDir = geo_vector(0);
       }
     }
-    scene_loco_separate(navEnv, entity, loco, trans, scale);
+    if (deltaSeconds > 0) {
+      /**
+       * Move this entity out of other navigation agents and blockers.
+       * This is not an 'over time' effect as it moves far enough to fully separate, however with
+       * groups of navigation agents it can take multiple frames to settle.
+       *
+       * TODO: This means that it ends up being quite frame-rate dependent (and doesn't respect
+       * time-scale). Consider changing this to use forces and apply the separation over-time, this
+       * will mean that we have to accept units temporary overlapping each other.
+       */
+      scene_loco_separate(navEnv, entity, loco, trans, scale);
+    }
 
     if (anim && loco->speedNorm < f32_epsilon) {
       scene_animation_set_time(anim, loco->moveAnimation, 0);
