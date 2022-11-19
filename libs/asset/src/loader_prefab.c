@@ -53,10 +53,11 @@ typedef struct {
 } AssetPrefabTraitScaleDef;
 
 typedef struct {
-  f32 speed;
-  f32 accelerationNorm; // Normalized acceleration, 1 = 'speed' per second.
-  f32 rotationSpeed;    // Degrees per second.
-  f32 radius;
+  f32    speed;
+  f32    accelerationNorm; // Normalized acceleration, 1 = 'speed' per second.
+  f32    rotationSpeed;    // Degrees per second.
+  f32    radius;
+  String moveAnimation;
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
@@ -149,6 +150,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, accelerationNorm, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, rotationSpeed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String));
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -299,6 +301,9 @@ static void prefab_build(
           .accelerationNorm = traitDef->data_movement.accelerationNorm,
           .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
           .radius           = traitDef->data_movement.radius,
+          .moveAnimation    = string_is_empty(traitDef->data_movement.moveAnimation)
+                                  ? 0
+                                  : string_hash(traitDef->data_movement.moveAnimation),
       };
       break;
     case AssetPrefabTrait_Health:

@@ -14,6 +14,7 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   f32                  speedNorm;        // Current normalized speed, 1 = maxSpeed.
   f32                  rotationSpeedRad; // Radians per second.
   f32                  radius;
+  StringHash           moveAnimation; // Optional: 0 to disable.
   GeoVector            lastSeparation;
   GeoVector            targetPos;
   GeoVector            targetDir;

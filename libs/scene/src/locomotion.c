@@ -10,8 +10,6 @@
 
 #define locomotion_arrive_threshold 0.1f
 
-static StringHash g_locoRunAnimHash;
-
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) {
@@ -118,21 +116,19 @@ ecs_system_define(SceneLocomotionMoveSys) {
     scene_loco_separate(navEnv, entity, loco, trans, scale);
 
     if (anim && loco->speedNorm < f32_epsilon) {
-      scene_animation_set_time(anim, g_locoRunAnimHash, 0);
+      scene_animation_set_time(anim, loco->moveAnimation, 0);
     }
 
     const f32 targetSpeedNorm = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
     math_towards_f32(&loco->speedNorm, targetSpeedNorm, loco->accelerationNorm * deltaSeconds);
 
     if (anim) {
-      scene_animation_set_weight(anim, g_locoRunAnimHash, loco->speedNorm);
+      scene_animation_set_weight(anim, loco->moveAnimation, loco->speedNorm);
     }
   }
 }
 
 ecs_module_init(scene_locomotion_module) {
-  g_locoRunAnimHash = string_hash_lit("run");
-
   ecs_register_comp(SceneLocomotionComp);
 
   ecs_register_view(GlobalView);

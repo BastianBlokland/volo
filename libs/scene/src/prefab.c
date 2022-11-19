@@ -133,7 +133,8 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       .maxSpeed         = t->speed,
       .accelerationNorm = t->accelerationNorm,
       .rotationSpeedRad = t->rotationSpeedRad,
-      .radius           = t->radius);
+      .radius           = t->radius,
+      .moveAnimation    = t->moveAnimation);
 
   scene_nav_add_agent(w, e);
 }

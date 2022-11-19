@@ -13,7 +13,8 @@
           "speed": 4,
           "accelerationNorm": 4,
           "rotationSpeed": 270,
-          "radius": 0.4
+          "radius": 0.4,
+          "moveAnimation": "run"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -54,7 +55,8 @@
           "speed": 4.5,
           "accelerationNorm": 5,
           "rotationSpeed": 360,
-          "radius": 0.35
+          "radius": 0.35,
+          "moveAnimation": "run"
         },
         {
           "$type": "AssetPrefabTrait_Health",
