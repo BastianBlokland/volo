@@ -211,16 +211,52 @@ static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_layout_pop(canvas);
 }
 
+static void prefab_faction_select(UiCanvasComp* canvas, SceneFaction* faction) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("A"),
+      string_static("B"),
+      string_static("C"),
+      string_static("D"),
+  };
+  static SceneFaction g_values[] = {
+      SceneFaction_None,
+      SceneFaction_A,
+      SceneFaction_B,
+      SceneFaction_C,
+      SceneFaction_D,
+  };
+  ASSERT(array_elems(g_names) == array_elems(g_values), "Mismatching faction options");
+
+  i32 index = 0;
+  for (u32 i = 0; i != array_elems(g_values); ++i) {
+    if (g_values[i] == *faction) {
+      index = i;
+      break;
+    }
+  }
+  if (ui_select(canvas, &index, g_names, array_elems(g_values))) {
+    *faction = g_values[index];
+  }
+}
+
 static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_label(canvas, string_lit("Creating prefab"));
+  ui_label(canvas, string_lit("Create"));
+  ui_table_next_column(canvas, &table);
+
+  ui_label(canvas, string_lit("Faction:"));
+  ui_table_next_column(canvas, &table);
+  prefab_faction_select(canvas, &ctx->panelComp->createFaction);
   ui_table_next_column(canvas, &table);
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleRight, Ui_X);
