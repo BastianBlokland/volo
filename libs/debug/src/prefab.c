@@ -102,7 +102,10 @@ static void prefab_panel_draw(
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
-    ui_label(canvas, name);
+    const String nameTooltip = fmt_write_scratch(
+        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), fmt_int(string_hash(name), .base = 16));
+
+    ui_label(canvas, name, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(instanceCounts[prefabIdx])));
