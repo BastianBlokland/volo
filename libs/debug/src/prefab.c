@@ -13,6 +13,8 @@
 #include "scene_prefab.h"
 #include "scene_selection.h"
 #include "ui.h"
+#include "ui_canvas.h"
+#include "ui_table.h"
 
 static const f32          g_createMinInteractDist = 1.0f;
 static const f32          g_createMaxInteractDist = 250.0f;
@@ -147,7 +149,8 @@ static void prefab_create_update(
   }
 }
 
-static void prefab_panel_options_draw(UiCanvasComp* canvas) {
+static void prefab_panel_options_normal_draw(UiCanvasComp* canvas, DebugPrefabPanelComp* panel) {
+  (void)panel;
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -162,6 +165,37 @@ static void prefab_panel_options_draw(UiCanvasComp* canvas) {
   ui_layout_pop(canvas);
 }
 
+static void prefab_panel_options_create_draw(UiCanvasComp* canvas, DebugPrefabPanelComp* panel) {
+  (void)panel;
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
+  ui_label(canvas, string_lit("Creating prefab"));
+  ui_table_next_column(canvas, &table);
+
+  if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
+    prefab_create_cancel(panel);
+  }
+  ui_layout_pop(canvas);
+}
+
+static void prefab_panel_options_draw(UiCanvasComp* canvas, DebugPrefabPanelComp* panel) {
+  switch (panel->mode) {
+  case DebugPrefabPanel_Normal:
+    prefab_panel_options_normal_draw(canvas, panel);
+    break;
+  case DebugPrefabPanel_Create:
+    prefab_panel_options_create_draw(canvas, panel);
+    break;
+  }
+  ui_canvas_id_block_next(canvas);
+}
+
 static void prefab_panel_draw(
     EcsWorld*                 world,
     UiCanvasComp*             canvas,
@@ -172,7 +206,7 @@ static void prefab_panel_draw(
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  prefab_panel_options_draw(canvas);
+  prefab_panel_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
