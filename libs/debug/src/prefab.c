@@ -12,9 +12,15 @@
 #include "scene_selection.h"
 #include "ui.h"
 
+typedef enum {
+  DebugPrefabPanel_Normal,
+  DebugPrefabPanel_CreateInstance,
+} DebugPrefabPanelMode;
+
 ecs_comp_define(DebugPrefabPanelComp) {
-  UiPanel      panel;
-  UiScrollview scrollview;
+  UiPanel              panel;
+  DebugPrefabPanelMode mode;
+  UiScrollview         scrollview;
 };
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
@@ -62,6 +68,10 @@ static void prefab_select_all(EcsWorld* world, SceneSelectionComp* sel, const St
   }
 }
 
+static void prefab_create_instance_start(DebugPrefabPanelComp* panelComp) {
+  panelComp->mode = DebugPrefabPanel_CreateInstance;
+}
+
 static void prefab_panel_options_draw(UiCanvasComp* canvas) {
   ui_layout_push(canvas);
 
@@ -90,6 +100,13 @@ static void prefab_panel_draw(
   prefab_panel_options_draw(canvas);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
+
+  const bool disabled = panelComp->mode != DebugPrefabPanel_Normal;
+
+  ui_style_push(canvas);
+  if (disabled) {
+    ui_style_color_mult(canvas, 0.5f);
+  }
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
@@ -129,33 +146,38 @@ static void prefab_panel_draw(
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
     if (ui_button(
             canvas,
+            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
-            .frameColor = ui_color(255, 16, 0, 192),
+            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(255, 16, 0, 192),
             .tooltip    = string_lit("Destroy all instances."))) {
       prefab_destroy_all(world, prefab->nameHash);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
+            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .fontSize   = 18,
-            .frameColor = ui_color(0, 16, 255, 192),
+            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
             .tooltip    = string_lit("Select all instances."))) {
       prefab_select_all(world, selection, prefab->nameHash);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
+            .flags      = disabled ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Add),
             .fontSize   = 18,
-            .frameColor = ui_color(16, 192, 0, 192),
+            .frameColor = disabled ? ui_color(64, 64, 64, 192) : ui_color(16, 192, 0, 192),
             .tooltip    = string_lit("Create a new instance."))) {
+      prefab_create_instance_start(panelComp);
     }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
 
+  ui_style_pop(canvas);
   ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
