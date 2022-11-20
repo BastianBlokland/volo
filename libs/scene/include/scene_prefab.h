@@ -12,7 +12,7 @@ ecs_comp_extern(ScenePrefabResourceComp);
 /**
  * Component on a prefab instance.
  */
-ecs_comp_extern_public(ScenePrefabInstance) { StringHash prefabId; };
+ecs_comp_extern_public(ScenePrefabInstanceComp) { StringHash prefabId; };
 
 /**
  * Create a new prefab resource from the given PrefabMap.
