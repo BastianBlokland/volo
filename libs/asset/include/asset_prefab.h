@@ -45,6 +45,7 @@ typedef enum {
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Brain,
+  AssetPrefabTrait_Spawner,
 
   AssetPrefabTrait_Count,
 } AssetPrefabTraitType;
@@ -86,6 +87,14 @@ typedef struct {
 } AssetPrefabTraitBrain;
 
 typedef struct {
+  StringHash   prefabId;
+  f32          radius;
+  u32          count;
+  u32          maxInstances;
+  TimeDuration intervalMin, intervalMax;
+} AssetPrefabTraitSpawner;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -95,6 +104,7 @@ typedef struct {
     AssetPrefabTraitAttack     data_attack;
     AssetPrefabTraitCollision  data_collision;
     AssetPrefabTraitBrain      data_brain;
+    AssetPrefabTraitSpawner    data_spawner;
   };
 } AssetPrefabTrait;
 

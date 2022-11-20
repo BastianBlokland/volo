@@ -25,6 +25,7 @@ add_library(lib_scene STATIC
   src/selection.c
   src/sensor.c
   src/skeleton.c
+  src/spawner.c
   src/tag.c
   src/target.c
   src/time.c

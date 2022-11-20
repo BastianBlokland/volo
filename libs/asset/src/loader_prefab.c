@@ -81,6 +81,14 @@ typedef struct {
 } AssetPrefabTraitBrainDef;
 
 typedef struct {
+  String prefabId;
+  f32    radius;
+  u32    count;
+  u32    maxInstances;
+  f32    intervalMin, intervalMax;
+} AssetPrefabTraitSpawnerDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderableDef data_renderable;
@@ -90,6 +98,7 @@ typedef struct {
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitBrainDef      data_brain;
+    AssetPrefabTraitSpawnerDef    data_spawner;
   };
 } AssetPrefabTraitDef;
 
@@ -171,6 +180,14 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitBrainDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitBrainDef, behaviorId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(g_dataReg, AssetPrefabTraitSpawnerDef);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, prefabId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, count, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, maxInstances, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMin, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMax, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scale, data_scale, t_AssetPrefabTraitScaleDef);
@@ -179,6 +196,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Brain, data_brain, t_AssetPrefabTraitBrainDef);
+    data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Spawner, data_spawner, t_AssetPrefabTraitSpawnerDef);
 
     data_reg_struct_t(g_dataReg, AssetPrefabDef);
     data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -335,6 +353,16 @@ static void prefab_build(
     case AssetPrefabTrait_Brain:
       outTrait->data_brain = (AssetPrefabTraitBrain){
           .behavior = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
+      };
+      break;
+    case AssetPrefabTrait_Spawner:
+      outTrait->data_spawner = (AssetPrefabTraitSpawner){
+          .prefabId     = string_hash(traitDef->data_spawner.prefabId),
+          .radius       = traitDef->data_spawner.radius,
+          .count        = traitDef->data_spawner.count,
+          .maxInstances = traitDef->data_spawner.maxInstances,
+          .intervalMin  = (TimeDuration)time_seconds(traitDef->data_spawner.intervalMin),
+          .intervalMax  = (TimeDuration)time_seconds(traitDef->data_spawner.intervalMax),
       };
       break;
     case AssetPrefabTrait_Count:

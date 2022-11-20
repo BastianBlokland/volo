@@ -115,6 +115,31 @@
           }
         }
       ]
+    },
+    {
+      "name": "SpawnerUnitRifle",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Spawner",
+          "prefabId": "UnitRifle",
+          "radius": 25,
+          "count": 100
+        }
+      ]
+    },
+    {
+      "name": "SpawnerUnitMelee",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Spawner",
+          "prefabId": "UnitMelee",
+          "radius": 50,
+          "count": 2,
+          "maxInstances": 1000,
+          "intervalMin": 0.1,
+          "intervalMax": 0.2
+        }
+      ]
     }
   ]
 }

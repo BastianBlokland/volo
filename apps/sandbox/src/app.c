@@ -13,42 +13,17 @@
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
-#include "scene_time.h"
+#include "scene_spawner.h"
 #include "scene_transform.h"
-#include "scene_unit.h"
 #include "scene_weapon.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
 #include "cmd_internal.h"
 
-typedef struct {
-  GeoBox       spawnArea;
-  TimeDuration spawnIntervalMin, spawnIntervalMax;
-  String       unitPrefabId;
-  u32          totalCount;
-} AppFactionConfig;
-
-static const GapVector        g_appWindowSize      = {1920, 1080};
-static const u32              g_appWallCount       = 175;
-static const u64              g_appRngSeed         = 41;
-static const u32              g_appMaxUnits        = 1500;
-static const AppFactionConfig g_appFactionConfig[] = {
-    [SceneFaction_A] =
-        {
-            .spawnArea    = {.min = {.x = 15, .z = -50}, .max = {.x = 65, .z = 50}},
-            .totalCount   = 150,
-            .unitPrefabId = string_static("UnitRifle"),
-        },
-    [SceneFaction_B] =
-        {
-            .spawnArea        = {.min = {.x = -65, .z = -50}, .max = {.x = -50, .z = 50}},
-            .spawnIntervalMin = time_milliseconds(50),
-            .spawnIntervalMax = time_milliseconds(100),
-            .unitPrefabId     = string_static("UnitMelee"),
-        },
-};
-ASSERT(array_elems(g_appFactionConfig) <= SceneFaction_Count, "More factions then supported");
+static const GapVector g_appWindowSize = {1920, 1080};
+static const u32       g_appWallCount  = 175;
+static const u64       g_appRngSeed    = 42;
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -107,32 +82,29 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   }
 }
 
-static TimeDuration
-app_next_spawn_time(Rng* rng, const SceneFaction faction, const TimeDuration now) {
-  TimeDuration       next        = now;
-  const TimeDuration intervalMin = g_appFactionConfig[faction].spawnIntervalMin;
-  const TimeDuration intervalMax = g_appFactionConfig[faction].spawnIntervalMax;
-  next += (TimeDuration)rng_sample_range(rng, intervalMin, intervalMax);
-  return next;
-}
+static void app_scene_create_spawners(EcsWorld* world) {
+  scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = string_hash_lit("SpawnerUnitRifle"),
+          .faction  = SceneFaction_A,
+          .position = geo_vector(50),
+          .rotation = geo_quat_ident,
+      });
 
-static GeoVector app_next_spawn_pos(Rng* rng, const SceneFaction faction) {
-  const GeoBox* b = &g_appFactionConfig[faction].spawnArea;
-  return geo_vector(
-          .x = rng_sample_range(rng, b->min.x, b->max.x),
-          .z = rng_sample_range(rng, b->min.z, b->max.z));
+  scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = string_hash_lit("SpawnerUnitMelee"),
+          .faction  = SceneFaction_B,
+          .position = geo_vector(-50),
+          .rotation = geo_quat_ident,
+      });
 }
-
-typedef struct {
-  TimeDuration nextSpawnTime;
-  u32          spawnedAmount;
-} AppFactionData;
 
 ecs_comp_define(AppComp) {
-  bool           sceneCreated;
-  bool           spawningEnabled;
-  Rng*           rng;
-  AppFactionData factionData[array_elems(g_appFactionConfig)];
+  bool sceneCreated;
+  Rng* rng;
 };
 
 static void ecs_destruct_app_comp(void* data) {
@@ -142,13 +114,12 @@ static void ecs_destruct_app_comp(void* data) {
 
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneTimeComp);
   ecs_access_write(AppComp);
   ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
-ecs_view_define(UnitView) { ecs_access_with(SceneUnitComp); }
+ecs_view_define(InstanceView) { ecs_access_with(ScenePrefabInstanceComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -159,57 +130,23 @@ ecs_system_define(AppUpdateSys) {
   AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
   AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneTimeComp*    time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  // Create the inital scene.
+  // Create the scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
     app_scene_create_walls(world, app->rng);
+    app_scene_create_spawners(world);
     app->sceneCreated = true;
   }
 
-  EcsView* unitView = ecs_world_view_t(world, UnitView);
-
-  // Spawn new units.
-  for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
-    AppFactionData* factionData = &app->factionData[faction];
-
-    const bool appLimitExceeded = ecs_view_entities(unitView) > g_appMaxUnits;
-
-    const bool factionLimitedExceeded =
-        g_appFactionConfig[faction].totalCount &&
-        factionData->spawnedAmount > g_appFactionConfig[faction].totalCount;
-
-    const bool spawnAllowed = app->spawningEnabled && !appLimitExceeded && !factionLimitedExceeded;
-
-    if (spawnAllowed && time->time > factionData->nextSpawnTime) {
-      scene_prefab_spawn(
-          world,
-          &(ScenePrefabSpec){
-              .prefabId = string_hash(g_appFactionConfig[faction].unitPrefabId),
-              .faction  = faction,
-              .position = app_next_spawn_pos(app->rng, faction),
-              .rotation = geo_quat_look(geo_backward, geo_up),
-          });
-
-      factionData->nextSpawnTime = app_next_spawn_time(app->rng, faction, time->time);
-      ++factionData->spawnedAmount;
-    }
-  }
-
-  if (input_triggered_lit(input, "SpawningToggle")) {
-    app->spawningEnabled ^= 1;
-  }
-
   if (input_triggered_lit(input, "Reset")) {
-    // Destroy all units.
-    for (EcsIterator* itr = ecs_view_itr(unitView); ecs_view_walk(itr);) {
+    // Destroy all instances.
+    EcsView* instanceView = ecs_world_view_t(world, InstanceView);
+    for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
-    // Reset faction data.
-    for (SceneFaction faction = 0; faction != array_elems(g_appFactionConfig); ++faction) {
-      app->factionData[faction] = (AppFactionData){0};
-    }
+    // Recreate the scene next frame.
+    app->sceneCreated = false;
   }
 
   if (input_triggered_lit(input, "WindowNew")) {
@@ -234,13 +171,13 @@ ecs_module_init(sandbox_app_module) {
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
-  ecs_register_view(UnitView);
+  ecs_register_view(InstanceView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(WindowView),
-      ecs_view_id(UnitView));
+      ecs_view_id(InstanceView));
 }
 
 static CliId g_assetFlag;
@@ -272,8 +209,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world,
       ecs_world_global(world),
       AppComp,
-      .spawningEnabled = true,
-      .rng             = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
+      .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
 
   const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
   asset_manager_create_fs(
