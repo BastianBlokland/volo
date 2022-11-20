@@ -27,12 +27,6 @@ typedef enum {
   PrefabPanelMode_Count,
 } PrefabPanelMode;
 
-static const String g_prefabPanelModeNames[] = {
-    [PrefabPanelMode_Normal] = string_static("Normal"),
-    [PrefabPanelMode_Create] = string_static("Create"),
-};
-ASSERT(array_elems(g_prefabPanelModeNames) == PrefabPanelMode_Count, "Missing mode name");
-
 ecs_comp_define(DebugPrefabPanelComp) {
   PrefabPanelMode mode;
   StringHash      createPrefabId;
@@ -77,6 +71,8 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
 }
 
 static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
+  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Destroy all"));
+
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
@@ -88,6 +84,8 @@ static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash p
 }
 
 static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
+  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
+
   scene_selection_clear(ctx->selection);
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
@@ -100,21 +98,22 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   }
 }
 
-static void prefab_mode_change(const PrefabPanelContext* ctx, const PrefabPanelMode mode) {
-  ctx->panelComp->mode = mode;
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab mode"), g_prefabPanelModeNames[mode]);
-}
-
 static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash prefabId) {
-  prefab_mode_change(ctx, PrefabPanelMode_Create);
+  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create start"));
+
+  ctx->panelComp->mode           = PrefabPanelMode_Create;
   ctx->panelComp->createPrefabId = prefabId;
 }
 
 static void prefab_create_cancel(const PrefabPanelContext* ctx) {
-  prefab_mode_change(ctx, PrefabPanelMode_Normal);
+  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create cancel"));
+
+  ctx->panelComp->mode = PrefabPanelMode_Normal;
 }
 
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
+  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
+
   scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
@@ -123,7 +122,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .rotation = geo_quat_ident,
           .faction  = ctx->panelComp->createFaction,
       });
-  prefab_mode_change(ctx, PrefabPanelMode_Normal);
+  ctx->panelComp->mode = PrefabPanelMode_Normal;
 }
 
 static void prefab_create_update(const PrefabPanelContext* ctx) {
