@@ -223,6 +223,8 @@ static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_label(canvas, string_lit("Creating prefab"));
   ui_table_next_column(canvas, &table);
 
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleRight, Ui_X);
+  ui_layout_resize(canvas, UiAlign_MiddleRight, ui_vector(75, 0), UiBase_Absolute, Ui_X);
   if (ui_button(canvas, .label = string_lit("Cancel"), .frameColor = ui_color(255, 16, 0, 192))) {
     prefab_create_cancel(ctx);
   }
