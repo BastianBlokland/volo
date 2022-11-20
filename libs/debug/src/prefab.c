@@ -1,4 +1,6 @@
 #include "asset_prefab.h"
+#include "core_alloc.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "debug_prefab.h"
@@ -15,6 +17,25 @@ ecs_comp_define(DebugPrefabPanelComp) {
 };
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
+ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); }
+
+static u32* prefab_instance_counts_scratch(EcsWorld* world, const AssetPrefabMapComp* prefabMap) {
+  Mem scratch = alloc_alloc(g_alloc_scratch, prefabMap->prefabCount * sizeof(u32), alignof(u32));
+  mem_set(scratch, 0);
+
+  u32* res = scratch.ptr;
+
+  EcsView* prefabInstanceView = ecs_world_view_t(world, PrefabInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+
+    const u32 prefabIndex = asset_prefab_get_index(prefabMap, instComp->prefabId);
+    diag_assert(!sentinel_check(prefabIndex));
+
+    ++res[prefabIndex];
+  }
+  return res;
+}
 
 static void prefab_panel_options_draw(UiCanvasComp* canvas) {
   ui_layout_push(canvas);
@@ -32,7 +53,10 @@ static void prefab_panel_options_draw(UiCanvasComp* canvas) {
 }
 
 static void prefab_panel_draw(
-    UiCanvasComp* canvas, DebugPrefabPanelComp* panelComp, const AssetPrefabMapComp* prefabMap) {
+    EcsWorld*                 world,
+    UiCanvasComp*             canvas,
+    DebugPrefabPanelComp*     panelComp,
+    const AssetPrefabMapComp* prefabMap) {
 
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
@@ -50,8 +74,11 @@ static void prefab_panel_draw(
       &table,
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Prefab name.")},
+          {string_lit("Count"), string_lit("Amount of currently spawned instances.")},
           {string_lit("Actions"), string_lit("Prefab actions.")},
       });
+
+  const u32* instanceCounts = prefab_instance_counts_scratch(world, prefabMap);
 
   const f32 totalHeight = ui_table_height(&table, (u32)prefabMap->prefabCount);
   ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
@@ -64,6 +91,9 @@ static void prefab_panel_draw(
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     ui_label(canvas, name);
+    ui_table_next_column(canvas, &table);
+
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(instanceCounts[prefabIdx])));
     ui_table_next_column(canvas, &table);
   }
 
@@ -101,7 +131,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    prefab_panel_draw(canvas, panelComp, prefabMap);
+    prefab_panel_draw(world, canvas, panelComp, prefabMap);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -116,12 +146,14 @@ ecs_module_init(debug_prefab_module) {
   ecs_register_comp(DebugPrefabPanelComp);
 
   ecs_register_view(PrefabMapView);
+  ecs_register_view(PrefabInstanceView);
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
       DebugPrefabUpdatePanelSys,
       ecs_view_id(PrefabMapView),
+      ecs_view_id(PrefabInstanceView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
 }
