@@ -27,6 +27,7 @@
   X(0xE80E, Whatshot)                                                                              \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \
+  X(0xE92B, Delete)                                                                                \
   X(0xE9BA, Logout)                                                                                \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
