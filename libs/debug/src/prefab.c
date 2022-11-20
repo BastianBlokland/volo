@@ -14,11 +14,14 @@
 #include "scene_selection.h"
 #include "ui.h"
 
+// clang-format off
+
+static const String       g_tooltipFilter         = string_static("Filter prefab's by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const f32          g_createMinInteractDist = 1.0f;
 static const f32          g_createMaxInteractDist = 250.0f;
-static const InputBlocker g_createInputBlockers =
-    InputBlocker_HoveringUi | InputBlocker_HoveringGizmo | InputBlocker_TextInput |
-    InputBlocker_CursorLocked;
+static const InputBlocker g_createInputBlockers   = InputBlocker_HoveringUi | InputBlocker_HoveringGizmo | InputBlocker_TextInput | InputBlocker_CursorLocked;
+
+// clang-format on
 
 typedef enum {
   PrefabPanelMode_Normal,
@@ -31,15 +34,22 @@ ecs_comp_define(DebugPrefabPanelComp) {
   PrefabPanelMode mode;
   StringHash      createPrefabId;
   SceneFaction    createFaction;
+  DynString       idFilter;
   UiPanel         panel;
   UiScrollview    scrollview;
+  u32             totalRows;
 };
+
+static void ecs_destruct_prefab_panel(void* data) {
+  DebugPrefabPanelComp* comp = data;
+  dynstring_destroy(&comp->idFilter);
+}
 
 typedef struct {
   EcsWorld*                 world;
   const AssetPrefabMapComp* prefabMap;
-  const InputManagerComp*   input;
   DebugPrefabPanelComp*     panelComp;
+  const InputManagerComp*   input;
   DebugShapeComp*           shape;
   DebugStatsGlobalComp*     globalStats;
   SceneSelectionComp*       selection;
@@ -50,6 +60,15 @@ ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); 
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+}
+
+static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
+  if (!ctx->panelComp->idFilter.size) {
+    return true;
+  }
+  const String rawFilter = dynstring_view(&ctx->panelComp->idFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(prefabName, filter, StringMatchFlags_IgnoreCase);
 }
 
 static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
@@ -173,23 +192,26 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 }
 
-static void prefab_panel_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-  (void)ctx;
+static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-  ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_label(canvas, string_lit("Test"));
+  ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas,
+      &ctx->panelComp->idFilter,
+      .placeholder = string_lit("*"),
+      .tooltip     = g_tooltipFilter);
 
   ui_layout_pop(canvas);
 }
 
-static void prefab_panel_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
@@ -207,13 +229,13 @@ static void prefab_panel_options_create_draw(UiCanvasComp* canvas, const PrefabP
   ui_layout_pop(canvas);
 }
 
-static void prefab_panel_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
+static void prefab_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   switch (ctx->panelComp->mode) {
   case PrefabPanelMode_Normal:
-    prefab_panel_options_normal_draw(canvas, ctx);
+    prefab_options_normal_draw(canvas, ctx);
     break;
   case PrefabPanelMode_Create:
-    prefab_panel_options_create_draw(canvas, ctx);
+    prefab_options_create_draw(canvas, ctx);
     break;
   case PrefabPanelMode_Count:
     break;
@@ -226,7 +248,7 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
   ui_panel_begin(canvas, &ctx->panelComp->panel, .title = title);
 
-  prefab_panel_options_draw(canvas, ctx);
+  prefab_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
@@ -253,12 +275,18 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 
   const u32* instanceCounts = prefab_instance_counts_scratch(ctx);
 
-  const f32 totalHeight = ui_table_height(&table, (u32)ctx->prefabMap->prefabCount);
+  const f32 totalHeight = ui_table_height(&table, ctx->panelComp->totalRows);
   ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
+  ctx->panelComp->totalRows = 0;
 
   for (u32 prefabIdx = 0; prefabIdx != ctx->prefabMap->prefabCount; ++prefabIdx) {
     AssetPrefab* prefab = &ctx->prefabMap->prefabs[prefabIdx];
     const String name   = stringtable_lookup(g_stringtable, prefab->nameHash);
+
+    if (!prefab_filter(ctx, name)) {
+      continue;
+    }
+    ++ctx->panelComp->totalRows;
 
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -349,8 +377,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     const PrefabPanelContext ctx = {
         .world       = world,
         .prefabMap   = prefabMap,
-        .input       = ecs_view_read_t(globalItr, InputManagerComp),
         .panelComp   = panelComp,
+        .input       = ecs_view_read_t(globalItr, InputManagerComp),
         .shape       = ecs_view_write_t(globalItr, DebugShapeComp),
         .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
         .selection   = ecs_view_write_t(globalItr, SceneSelectionComp),
@@ -376,7 +404,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
 }
 
 ecs_module_init(debug_prefab_module) {
-  ecs_register_comp(DebugPrefabPanelComp);
+  ecs_register_comp(DebugPrefabPanelComp, .destructor = ecs_destruct_prefab_panel);
 
   ecs_register_view(PrefabMapView);
   ecs_register_view(PrefabInstanceView);
@@ -401,6 +429,8 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
       .createFaction = SceneFaction_None,
+      .idFilter      = dynstring_create(g_alloc_heap, 32),
+      .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(0.2f, 0.3f), .size = ui_vector(500, 350)));
   return panelEntity;
 }
