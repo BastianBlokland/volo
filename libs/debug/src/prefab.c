@@ -9,6 +9,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_prefab.h"
+#include "scene_selection.h"
 #include "ui.h"
 
 ecs_comp_define(DebugPrefabPanelComp) {
@@ -48,6 +49,19 @@ static void prefab_destroy_all(EcsWorld* world, const StringHash prefabId) {
   }
 }
 
+static void prefab_select_all(EcsWorld* world, SceneSelectionComp* sel, const StringHash prefabId) {
+  scene_selection_clear(sel);
+
+  EcsView* prefabInstanceView = ecs_world_view_t(world, PrefabInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+
+    if (instComp->prefabId == prefabId) {
+      scene_selection_add(sel, ecs_view_entity(itr));
+    }
+  }
+}
+
 static void prefab_panel_options_draw(UiCanvasComp* canvas) {
   ui_layout_push(canvas);
 
@@ -67,7 +81,8 @@ static void prefab_panel_draw(
     EcsWorld*                 world,
     UiCanvasComp*             canvas,
     DebugPrefabPanelComp*     panelComp,
-    const AssetPrefabMapComp* prefabMap) {
+    const AssetPrefabMapComp* prefabMap,
+    SceneSelectionComp*       selection) {
 
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
@@ -120,6 +135,15 @@ static void prefab_panel_draw(
             .tooltip    = string_lit("Destroy all instances."))) {
       prefab_destroy_all(world, prefab->nameHash);
     }
+    ui_layout_next(canvas, Ui_Right, 10);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .fontSize   = 18,
+            .frameColor = ui_color(0, 16, 255, 192),
+            .tooltip    = string_lit("Select all instances."))) {
+      prefab_select_all(world, selection, prefab->nameHash);
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -128,7 +152,10 @@ static void prefab_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(ScenePrefabResourceComp); }
+ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_read(ScenePrefabResourceComp);
+  ecs_access_write(SceneSelectionComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugPrefabPanelComp);
@@ -142,6 +169,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     return;
   }
   const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  SceneSelectionComp*            selection = ecs_view_write_t(globalItr, SceneSelectionComp);
 
   EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
   EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabRes));
@@ -156,7 +184,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    prefab_panel_draw(world, canvas, panelComp, prefabMap);
+    prefab_panel_draw(world, canvas, panelComp, prefabMap, selection);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
