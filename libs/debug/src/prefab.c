@@ -37,6 +37,17 @@ static u32* prefab_instance_counts_scratch(EcsWorld* world, const AssetPrefabMap
   return res;
 }
 
+static void prefab_destroy_all(EcsWorld* world, const StringHash prefabId) {
+  EcsView* prefabInstanceView = ecs_world_view_t(world, PrefabInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+
+    if (instComp->prefabId == prefabId) {
+      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+    }
+  }
+}
+
 static void prefab_panel_options_draw(UiCanvasComp* canvas) {
   ui_layout_push(canvas);
 
@@ -66,7 +77,8 @@ static void prefab_panel_draw(
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -75,7 +87,7 @@ static void prefab_panel_draw(
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Prefab name.")},
           {string_lit("Count"), string_lit("Amount of currently spawned instances.")},
-          {string_lit("Actions"), string_lit("Prefab actions.")},
+          {string_lit("Actions"), string_empty},
       });
 
   const u32* instanceCounts = prefab_instance_counts_scratch(world, prefabMap);
@@ -95,6 +107,16 @@ static void prefab_panel_draw(
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(instanceCounts[prefabIdx])));
     ui_table_next_column(canvas, &table);
+
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_Delete),
+            .fontSize   = 18,
+            .frameColor = ui_color(255, 16, 0, 192),
+            .tooltip    = string_lit("Destroy all instances."))) {
+      prefab_destroy_all(world, prefab->nameHash);
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
