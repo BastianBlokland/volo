@@ -71,7 +71,7 @@ static bool prefab_faction_select(UiCanvasComp* canvas, SceneFaction* faction) {
       string_static("C"),
       string_static("D"),
   };
-  static SceneFaction g_values[] = {
+  static const SceneFaction g_values[] = {
       SceneFaction_None,
       SceneFaction_A,
       SceneFaction_B,
@@ -291,7 +291,6 @@ static void prefab_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* 
 }
 
 static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
-
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
   ui_panel_begin(canvas, &ctx->panelComp->panel, .title = title);
 
@@ -434,12 +433,11 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .selection   = ecs_view_write_t(globalItr, SceneSelectionComp),
     };
     switch (panelComp->mode) {
-    case PrefabPanelMode_Normal:
-      break;
     case PrefabPanelMode_Create:
       prefab_create_update(&ctx);
       creatingPrefab |= true;
       break;
+    case PrefabPanelMode_Normal:
     case PrefabPanelMode_Count:
       break;
     }
