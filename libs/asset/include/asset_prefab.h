@@ -119,3 +119,4 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
  * Lookup a prefab by the hash of its name.
  */
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
+u32                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
