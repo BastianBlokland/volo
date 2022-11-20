@@ -153,6 +153,14 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     const GeoVector pos = geo_ray_position(&inputRay, rayT);
     if (!blocked) {
       debug_sphere(ctx->shape, pos, 0.5f, geo_color_green, DebugShape_Overlay);
+
+      debug_stats_notify(
+          ctx->globalStats,
+          string_lit("Prefab location"),
+          fmt_write_scratch(
+              "x: {<5} z: {<5}",
+              fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+              fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
     }
     if (create) {
       prefab_create_accept(ctx, pos);
