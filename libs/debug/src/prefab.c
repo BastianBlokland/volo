@@ -34,6 +34,7 @@ ecs_comp_define(DebugPrefabPanelComp) {
   PrefabPanelMode mode;
   StringHash      createPrefabId;
   SceneFaction    createFaction;
+  bool            createMultiple;
   DynString       idFilter;
   UiPanel         panel;
   UiScrollview    scrollview;
@@ -60,6 +61,37 @@ ecs_view_define(PrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); 
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+}
+
+static bool prefab_faction_select(UiCanvasComp* canvas, SceneFaction* faction) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("A"),
+      string_static("B"),
+      string_static("C"),
+      string_static("D"),
+  };
+  static SceneFaction g_values[] = {
+      SceneFaction_None,
+      SceneFaction_A,
+      SceneFaction_B,
+      SceneFaction_C,
+      SceneFaction_D,
+  };
+  ASSERT(array_elems(g_names) == array_elems(g_values), "Mismatching faction options");
+
+  i32 index = 0;
+  for (u32 i = 0; i != array_elems(g_values); ++i) {
+    if (g_values[i] == *faction) {
+      index = i;
+      break;
+    }
+  }
+  if (ui_select(canvas, &index, g_names, array_elems(g_values))) {
+    *faction = g_values[index];
+    return true;
+  }
+  return false;
 }
 
 static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
@@ -141,7 +173,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .rotation = geo_quat_ident,
           .faction  = ctx->panelComp->createFaction,
       });
-  ctx->panelComp->mode = PrefabPanelMode_Normal;
+
+  if (!ctx->panelComp->createMultiple) {
+    ctx->panelComp->mode = PrefabPanelMode_Normal;
+  }
 }
 
 static void prefab_create_update(const PrefabPanelContext* ctx) {
@@ -170,7 +205,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   if (rayT > g_createMinInteractDist && rayT < g_createMaxInteractDist) {
     const GeoVector pos = geo_ray_position(&inputRay, rayT);
     if (!blocked) {
-      debug_sphere(ctx->shape, pos, 0.5f, geo_color_green, DebugShape_Overlay);
+      debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
       debug_stats_notify(
           ctx->globalStats,
@@ -211,40 +246,13 @@ static void prefab_options_normal_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_layout_pop(canvas);
 }
 
-static void prefab_faction_select(UiCanvasComp* canvas, SceneFaction* faction) {
-  static const String g_names[] = {
-      string_static("None"),
-      string_static("A"),
-      string_static("B"),
-      string_static("C"),
-      string_static("D"),
-  };
-  static SceneFaction g_values[] = {
-      SceneFaction_None,
-      SceneFaction_A,
-      SceneFaction_B,
-      SceneFaction_C,
-      SceneFaction_D,
-  };
-  ASSERT(array_elems(g_names) == array_elems(g_values), "Mismatching faction options");
-
-  i32 index = 0;
-  for (u32 i = 0; i != array_elems(g_values); ++i) {
-    if (g_values[i] == *faction) {
-      index = i;
-      break;
-    }
-  }
-  if (ui_select(canvas, &index, g_names, array_elems(g_values))) {
-    *faction = g_values[index];
-  }
-}
-
 static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 35);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -252,6 +260,11 @@ static void prefab_options_create_draw(UiCanvasComp* canvas, const PrefabPanelCo
   ui_table_next_row(canvas, &table);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
   ui_label(canvas, string_lit("Create"));
+  ui_table_next_column(canvas, &table);
+
+  ui_label(canvas, string_lit("Multiple:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &ctx->panelComp->createMultiple);
   ui_table_next_column(canvas, &table);
 
   ui_label(canvas, string_lit("Faction:"));
