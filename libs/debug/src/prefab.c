@@ -144,6 +144,14 @@ static void prefab_panel_draw(
             .tooltip    = string_lit("Select all instances."))) {
       prefab_select_all(world, selection, prefab->nameHash);
     }
+    ui_layout_next(canvas, Ui_Right, 10);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_Add),
+            .fontSize   = 18,
+            .frameColor = ui_color(16, 192, 0, 192),
+            .tooltip    = string_lit("Create a new instance."))) {
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
