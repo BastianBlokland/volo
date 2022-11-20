@@ -185,8 +185,8 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, count, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, maxInstances, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMin, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMin, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMax, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
     data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);

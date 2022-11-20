@@ -124,9 +124,7 @@
           "prefabId": "UnitRifle",
           "radius": 25,
           "count": 100,
-          "maxInstances": 100,
-          "intervalMin": 0.1,
-          "intervalMax": 1
+          "maxInstances": 100
         }
       ]
     },
@@ -137,7 +135,7 @@
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitMelee",
           "radius": 50,
-          "count": 4,
+          "count": 2,
           "maxInstances": 1000,
           "intervalMin": 0.1,
           "intervalMax": 0.2

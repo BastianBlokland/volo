@@ -84,10 +84,11 @@ ecs_system_define(SceneSpawnerUpdateSys) {
     const SceneTransformComp* transComp   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
 
-    if (!spawnerComp->nextTime) {
+    const bool hasInterval = spawnerComp->intervalMax > 0;
+    if (!spawnerComp->nextTime && hasInterval) {
       spawnerComp->nextTime = spawner_next_time(spawnerComp, time->time);
     }
-    if (time->time > spawnerComp->nextTime) {
+    if (time->time >= spawnerComp->nextTime) {
       const GeoVector    spawnerPos = LIKELY(transComp) ? transComp->position : geo_vector(0);
       const GeoQuat      spawnerRot = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
       const SceneFaction faction    = LIKELY(factionComp) ? factionComp->id : SceneFaction_None;
@@ -99,7 +100,12 @@ ecs_system_define(SceneSpawnerUpdateSys) {
 
         spawner_spawn(world, spawnerComp, entity, spawnerPos, spawnerRot, faction, amountToSpawn);
       }
-      spawnerComp->nextTime = spawner_next_time(spawnerComp, time->time);
+
+      if (hasInterval) {
+        spawnerComp->nextTime = spawner_next_time(spawnerComp, time->time);
+      } else {
+        spawnerComp->nextTime = time_days(99999);
+      }
     }
   }
 }
