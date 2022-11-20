@@ -107,8 +107,7 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
     case SceneFaction_D:
       return SceneLayer_UnitFactionD;
     case SceneFaction_None:
-      // TODO: Should units without factions have a unique layer?
-      return SceneLayer_UnitFactionA;
+      return SceneLayer_UnitFactionNone;
     default:
       diag_crash_msg("Unsupported faction");
     }
