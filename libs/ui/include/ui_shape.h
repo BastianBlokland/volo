@@ -5,6 +5,8 @@
 #define UI_SHAPES                                                                                  \
   X(0x0020, Empty)                                                                                 \
   X(0xE069, WebAsset)                                                                              \
+  X(0xE145, Add)                                                                                   \
+  X(0xE162, SelectAll)                                                                             \
   X(0xE1DB, Storage)                                                                               \
   X(0xE25E, FormatShapes)                                                                          \
   X(0xE312, Keyboard)                                                                              \
@@ -27,9 +29,11 @@
   X(0xE80E, Whatshot)                                                                              \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \
+  X(0xE92B, Delete)                                                                                \
   X(0xE9BA, Logout)                                                                                \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
+  X(0xEA3C, Construction)                                                                          \
   X(0xEA4A, Psychology)                                                                            \
   X(0xEA5F, Calculate)                                                                             \
   X(0xEF5B, Monitor)                                                                               \

@@ -30,7 +30,7 @@ ecs_comp_define(ScenePrefabResourceComp) {
 };
 
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
-ecs_comp_define_public(ScenePrefabInstance);
+ecs_comp_define_public(ScenePrefabInstanceComp);
 
 static void ecs_destruct_prefab_resource(void* data) {
   ScenePrefabResourceComp* comp = data;
@@ -107,8 +107,7 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
     case SceneFaction_D:
       return SceneLayer_UnitFactionD;
     case SceneFaction_None:
-      // TODO: Should units without factions have a unique layer?
-      return SceneLayer_UnitFactionA;
+      return SceneLayer_UnitFactionNone;
     default:
       diag_crash_msg("Unsupported faction");
     }
@@ -239,7 +238,7 @@ static void setup_trait(
 static void setup_prefab(
     EcsWorld* w, const EcsEntityId e, const ScenePrefabSpec* spec, const AssetPrefabMapComp* map) {
 
-  ecs_world_add_t(w, e, ScenePrefabInstance, .prefabId = spec->prefabId);
+  ecs_world_add_t(w, e, ScenePrefabInstanceComp, .prefabId = spec->prefabId);
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
@@ -291,7 +290,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
 ecs_module_init(scene_prefab_module) {
   ecs_register_comp(ScenePrefabResourceComp, .destructor = ecs_destruct_prefab_resource);
   ecs_register_comp(ScenePrefabRequestComp);
-  ecs_register_comp(ScenePrefabInstance);
+  ecs_register_comp(ScenePrefabInstanceComp);
 
   ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(GlobalResourceReadView);
@@ -317,6 +316,10 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
       ecs_world_global(world),
       ScenePrefabResourceComp,
       .mapId = string_dup(g_alloc_heap, prefabMapId));
+}
+
+EcsEntityId scene_prefab_map(const ScenePrefabResourceComp* resource) {
+  return resource->mapEntity;
 }
 
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {

@@ -4,7 +4,8 @@
       "name": "Select",
       "blockers": [
         "TextInput",
-        "CursorLocked"
+        "CursorLocked",
+        "PrefabCreateMode"
       ],
       "bindings": [
         {
@@ -23,6 +24,7 @@
         "TextInput",
         "HoveringUi",
         "HoveringGizmo",
+        "PrefabCreateMode",
         "CursorLocked"
       ],
       "bindings": [
@@ -38,6 +40,7 @@
         "TextInput",
         "HoveringUi",
         "HoveringGizmo",
+        "PrefabCreateMode",
         "CursorLocked"
       ],
       "bindings": [
@@ -333,6 +336,36 @@
       ]
     },
     {
+      "name": "DebugPrefabCreate",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "HoveringGizmo",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseLeft"
+        }
+      ]
+    },
+    {
+      "name": "DebugPrefabCreateCancel",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "HoveringGizmo",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseRight"
+        }
+      ]
+    },
+    {
       "name": "DebugPanelStats",
       "blockers": [
         "TextInput"
@@ -357,7 +390,7 @@
       ]
     },
     {
-      "name": "DebugPanelTime",
+      "name": "DebugPanelPrefab",
       "blockers": [
         "TextInput"
       ],
@@ -369,7 +402,7 @@
       ]
     },
     {
-      "name": "DebugPanelAnimation",
+      "name": "DebugPanelTime",
       "blockers": [
         "TextInput"
       ],
@@ -381,7 +414,7 @@
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelAnimation",
       "blockers": [
         "TextInput"
       ],
@@ -393,7 +426,7 @@
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelAsset",
       "blockers": [
         "TextInput"
       ],
@@ -405,7 +438,7 @@
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelEcs",
       "blockers": [
         "TextInput"
       ],
@@ -417,7 +450,7 @@
       ]
     },
     {
-      "name": "DebugPanelGrid",
+      "name": "DebugPanelCamera",
       "blockers": [
         "TextInput"
       ],
@@ -429,7 +462,7 @@
       ]
     },
     {
-      "name": "DebugPanelRenderer",
+      "name": "DebugPanelGrid",
       "blockers": [
         "TextInput"
       ],
@@ -441,7 +474,7 @@
       ]
     },
     {
-      "name": "DebugPanelInterface",
+      "name": "DebugPanelRenderer",
       "blockers": [
         "TextInput"
       ],

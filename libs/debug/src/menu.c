@@ -11,6 +11,7 @@
 #include "debug_interface.h"
 #include "debug_log_viewer.h"
 #include "debug_menu.h"
+#include "debug_prefab.h"
 #include "debug_rend.h"
 #include "debug_stats.h"
 #include "debug_time.h"
@@ -42,6 +43,12 @@ static const struct {
         .iconShape  = UiShape_ViewInAr,
         .openFunc   = debug_inspector_panel_open,
         .hotkeyName = string_static("DebugPanelInspector"),
+    },
+    {
+        .name       = string_static("Prefab"),
+        .iconShape  = UiShape_Construction,
+        .openFunc   = debug_prefab_panel_open,
+        .hotkeyName = string_static("DebugPanelPrefab"),
     },
     {
         .name       = string_static("Time"),
@@ -92,10 +99,9 @@ static const struct {
         .hotkeyName = string_static("DebugPanelRenderer"),
     },
     {
-        .name       = string_static("Interface"),
-        .iconShape  = UiShape_FormatShapes,
-        .openFunc   = debug_interface_panel_open,
-        .hotkeyName = string_static("DebugPanelInterface"),
+        .name      = string_static("Interface"),
+        .iconShape = UiShape_FormatShapes,
+        .openFunc  = debug_interface_panel_open,
     },
 };
 

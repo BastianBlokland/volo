@@ -165,7 +165,7 @@ static void grid_panel_draw(
           &grid->cellSize,
           .min     = g_gridCellSizeMin,
           .max     = g_gridCellSizeMax,
-          .step    = 0.1f,
+          .step    = 0.25f,
           .tooltip = g_tooltipCellSize)) {
     grid_notify_cell_size(stats, grid->cellSize);
   }

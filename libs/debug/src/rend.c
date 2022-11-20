@@ -292,7 +292,7 @@ static void rend_settings_tab_draw(
   if (ui_button(
           canvas,
           .label      = string_lit("Reset"),
-          .frameColor = ui_color(255, 0, 0, 192),
+          .frameColor = ui_color(255, 16, 0, 192),
           .tooltip    = g_tooltipReset)) {
     rend_reset(world);
   }

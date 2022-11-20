@@ -27,7 +27,8 @@ typedef enum {
   InputBlocker_TextInput     = 1 << 0,
   InputBlocker_HoveringUi    = 1 << 1,
   InputBlocker_HoveringGizmo = 1 << 2,
-  InputBlocker_CursorLocked  = 1 << 3, // Managed by the input library.
+  InputBlocker_PrefabCreate  = 1 << 3,
+  InputBlocker_CursorLocked  = 1 << 4, // Managed by the input library.
 } InputBlocker;
 
 InputBlocker input_blockers(const InputManagerComp*);

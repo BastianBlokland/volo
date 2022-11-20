@@ -94,7 +94,7 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static bool asset_filter(DebugAssetPanelComp* panelComp, const AssetComp* assetComp) {
-  if (string_is_empty(panelComp->idFilter)) {
+  if (!panelComp->idFilter.size) {
     return true;
   }
   const String assetId   = asset_id(assetComp);
