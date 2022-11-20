@@ -4,7 +4,8 @@
       "name": "Select",
       "blockers": [
         "TextInput",
-        "CursorLocked"
+        "CursorLocked",
+        "PrefabCreateMode"
       ],
       "bindings": [
         {
@@ -23,6 +24,7 @@
         "TextInput",
         "HoveringUi",
         "HoveringGizmo",
+        "PrefabCreateMode",
         "CursorLocked"
       ],
       "bindings": [
@@ -38,6 +40,7 @@
         "TextInput",
         "HoveringUi",
         "HoveringGizmo",
+        "PrefabCreateMode",
         "CursorLocked"
       ],
       "bindings": [

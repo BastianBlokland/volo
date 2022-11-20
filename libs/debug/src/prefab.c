@@ -387,10 +387,10 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_read(ScenePrefabResourceComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSelectionComp);
 }
 
@@ -406,6 +406,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     return;
   }
   const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  InputManagerComp*              input     = ecs_view_write_t(globalItr, InputManagerComp);
 
   EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
   EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabRes));
@@ -413,6 +414,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     return;
   }
   const AssetPrefabMapComp* prefabMap = ecs_view_read_t(mapItr, AssetPrefabMapComp);
+
+  bool creatingPrefab = false;
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -425,7 +428,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .world       = world,
         .prefabMap   = prefabMap,
         .panelComp   = panelComp,
-        .input       = ecs_view_read_t(globalItr, InputManagerComp),
+        .input       = input,
         .shape       = ecs_view_write_t(globalItr, DebugShapeComp),
         .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
         .selection   = ecs_view_write_t(globalItr, SceneSelectionComp),
@@ -435,6 +438,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
       break;
     case PrefabPanelMode_Create:
       prefab_create_update(&ctx);
+      creatingPrefab |= true;
       break;
     case PrefabPanelMode_Count:
       break;
@@ -448,6 +452,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
       ui_canvas_to_front(canvas);
     }
   }
+
+  input_blocker_update(input, InputBlocker_PrefabCreate, creatingPrefab);
 }
 
 ecs_module_init(debug_prefab_module) {
