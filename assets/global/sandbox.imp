@@ -348,6 +348,21 @@
       ]
     },
     {
+      "name": "DebugPrefabCreateCancel",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "HoveringGizmo",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseRight"
+        }
+      ]
+    },
+    {
       "name": "DebugPanelStats",
       "blockers": [
         "TextInput"

@@ -188,42 +188,38 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     prefab_create_cancel(ctx); // No active window.
     return;
   }
+  if (input_triggered_lit(ctx->input, "DebugPrefabCreateCancel")) {
+    prefab_create_cancel(ctx); // Cancel requested.
+    return;
+  }
 
   EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(ctx->input));
   const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-  const bool blocked = (input_blockers(ctx->input) & g_createInputBlockers) != 0;
-  const bool create  = !blocked && input_triggered_lit(ctx->input, "DebugPrefabCreate");
-
+  const bool      blocked      = (input_blockers(ctx->input) & g_createInputBlockers) != 0;
   const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
   const GeoPlane  groundPlane  = {.normal = geo_up};
 
   const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
-  if (rayT > g_createMinInteractDist && rayT < g_createMaxInteractDist) {
-    const GeoVector pos = geo_ray_position(&inputRay, rayT);
-    if (!blocked) {
-      debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
-
-      debug_stats_notify(
-          ctx->globalStats,
-          string_lit("Prefab location"),
-          fmt_write_scratch(
-              "x: {<5} z: {<5}",
-              fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
-              fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
-    }
-    if (create) {
-      prefab_create_accept(ctx, pos);
-      return; // Prefab created.
-    }
+  if (rayT < g_createMinInteractDist || rayT > g_createMaxInteractDist || blocked) {
+    return;
   }
+  const GeoVector pos = geo_ray_position(&inputRay, rayT);
+  debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
-  if (create) {
-    prefab_create_cancel(ctx);
-    return; // No position found to create the prefab.
+  debug_stats_notify(
+      ctx->globalStats,
+      string_lit("Prefab location"),
+      fmt_write_scratch(
+          "x: {<5} z: {<5}",
+          fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+          fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
+
+  if (input_triggered_lit(ctx->input, "DebugPrefabCreate")) {
+    prefab_create_accept(ctx, pos);
   }
 }
 
