@@ -174,18 +174,6 @@
       ]
     },
     {
-      "name": "SpawningToggle",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "E"
-        }
-      ]
-    },
-    {
       "name": "WindowNew",
       "blockers": [
         "TextInput"
