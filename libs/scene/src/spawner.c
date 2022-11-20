@@ -31,7 +31,7 @@ static void spawner_spawn(
   const ScenePrefabSpec spec = {
       .prefabId = spawner->prefabId,
       .faction  = faction,
-      .position = spawn_random_point_in_circle(spawnerPos, spawner->spawnRadius),
+      .position = spawn_random_point_in_circle(spawnerPos, spawner->radius),
       .rotation = spawnerRot,
   };
   const EcsEntityId instEntity = scene_prefab_spawn(world, &spec);

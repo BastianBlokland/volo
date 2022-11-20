@@ -4,7 +4,7 @@
 
 ecs_comp_extern_public(SceneSpawnerComp) {
   StringHash   prefabId;
-  f32          spawnRadius;
+  f32          radius;
   u32          maxInstances;
   TimeDuration intervalMin, intervalMax;
   TimeDuration nextTime;

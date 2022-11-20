@@ -13,6 +13,7 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
+#include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_transform.h"
@@ -201,6 +202,18 @@ static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
   scene_brain_add(w, e, t->behavior);
 }
 
+static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitSpawner* t) {
+  ecs_world_add_t(
+      w,
+      e,
+      SceneSpawnerComp,
+      .prefabId     = t->prefabId,
+      .radius       = t->radius,
+      .maxInstances = t->maxInstances,
+      .intervalMin  = t->intervalMin,
+      .intervalMax  = t->intervalMax);
+}
+
 static void setup_trait(
     EcsWorld*               w,
     const EcsEntityId       e,
@@ -228,6 +241,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Brain:
     setup_brain(w, e, &t->data_brain);
+    return;
+  case AssetPrefabTrait_Spawner:
+    setup_spawner(w, e, &t->data_spawner);
     return;
   case AssetPrefabTrait_Count:
     break;
