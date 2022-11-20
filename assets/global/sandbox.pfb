@@ -123,8 +123,7 @@
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitRifle",
           "radius": 25,
-          "count": 100,
-          "maxInstances": 100
+          "count": 100
         }
       ]
     },

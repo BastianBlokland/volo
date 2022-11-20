@@ -93,10 +93,12 @@ ecs_system_define(SceneSpawnerUpdateSys) {
       const GeoQuat      spawnerRot = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
       const SceneFaction faction    = LIKELY(factionComp) ? factionComp->id : SceneFaction_None;
 
-      const u32 currentInstances = spawner_instance_count(instanceView, entity);
-      if (currentInstances < spawnerComp->maxInstances) {
-        const u32 maxRemaining  = spawnerComp->maxInstances - currentInstances;
-        const u32 amountToSpawn = math_min(maxRemaining, spawnerComp->count);
+      const u32 instancesMax     = spawnerComp->maxInstances ? spawnerComp->maxInstances : u32_max;
+      const u32 instancesCurrent = spawner_instance_count(instanceView, entity);
+
+      if (instancesCurrent < instancesMax) {
+        const u32 instancesRemaining = instancesMax - instancesCurrent;
+        const u32 amountToSpawn      = math_min(instancesRemaining, spawnerComp->count);
 
         spawner_spawn(world, spawnerComp, entity, spawnerPos, spawnerRot, faction, amountToSpawn);
       }
