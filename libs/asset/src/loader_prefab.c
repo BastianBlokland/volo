@@ -83,6 +83,7 @@ typedef struct {
 typedef struct {
   String prefabId;
   f32    radius;
+  u32    count;
   u32    maxInstances;
   f32    intervalMin, intervalMax;
 } AssetPrefabTraitSpawnerDef;
@@ -182,6 +183,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitSpawnerDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, prefabId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, count, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, maxInstances, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMin, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitSpawnerDef, intervalMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -357,6 +359,7 @@ static void prefab_build(
       outTrait->data_spawner = (AssetPrefabTraitSpawner){
           .prefabId     = string_hash(traitDef->data_spawner.prefabId),
           .radius       = traitDef->data_spawner.radius,
+          .count        = traitDef->data_spawner.count,
           .maxInstances = traitDef->data_spawner.maxInstances,
           .intervalMin  = (TimeDuration)time_seconds(traitDef->data_spawner.intervalMin),
           .intervalMax  = (TimeDuration)time_seconds(traitDef->data_spawner.intervalMax),

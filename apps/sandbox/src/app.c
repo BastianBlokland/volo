@@ -88,7 +88,7 @@ static void app_scene_create_spawners(EcsWorld* world) {
       &(ScenePrefabSpec){
           .prefabId = string_hash_lit("SpawnerUnitRifle"),
           .faction  = SceneFaction_A,
-          .position = geo_vector(30),
+          .position = geo_vector(50),
           .rotation = geo_quat_ident,
       });
 
@@ -97,7 +97,7 @@ static void app_scene_create_spawners(EcsWorld* world) {
       &(ScenePrefabSpec){
           .prefabId = string_hash_lit("SpawnerUnitMelee"),
           .faction  = SceneFaction_B,
-          .position = geo_vector(-30),
+          .position = geo_vector(-50),
           .rotation = geo_quat_ident,
       });
 }

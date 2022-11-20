@@ -26,18 +26,19 @@ static void spawner_spawn(
     const EcsEntityId       spawnerEntity,
     const GeoVector         spawnerPos,
     const GeoQuat           spawnerRot,
-    const SceneFaction      faction) {
+    const SceneFaction      faction,
+    const u32               spawnCount) {
 
-  const ScenePrefabSpec spec = {
+  ScenePrefabSpec spec = {
       .prefabId = spawner->prefabId,
       .faction  = faction,
-      .position = spawn_random_point_in_circle(spawnerPos, spawner->radius),
       .rotation = spawnerRot,
   };
-  const EcsEntityId instEntity = scene_prefab_spawn(world, &spec);
-
-  // Track the spawned entities.
-  ecs_world_add_t(world, instEntity, SceneSpawnerInstanceComp, .spawner = spawnerEntity);
+  for (u32 i = 0; i != spawnCount; ++i) {
+    spec.position       = spawn_random_point_in_circle(spawnerPos, spawner->radius);
+    const EcsEntityId e = scene_prefab_spawn(world, &spec);
+    ecs_world_add_t(world, e, SceneSpawnerInstanceComp, .spawner = spawnerEntity);
+  }
 }
 
 static u32 spawner_instance_count(EcsView* instanceView, const EcsEntityId spawnerEntity) {
@@ -91,8 +92,12 @@ ecs_system_define(SceneSpawnerUpdateSys) {
       const GeoQuat      spawnerRot = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
       const SceneFaction faction    = LIKELY(factionComp) ? factionComp->id : SceneFaction_None;
 
-      if (spawner_instance_count(instanceView, entity) < spawnerComp->maxInstances) {
-        spawner_spawn(world, spawnerComp, entity, spawnerPos, spawnerRot, faction);
+      const u32 currentInstances = spawner_instance_count(instanceView, entity);
+      if (currentInstances < spawnerComp->maxInstances) {
+        const u32 maxRemaining  = spawnerComp->maxInstances - currentInstances;
+        const u32 amountToSpawn = math_min(maxRemaining, spawnerComp->count);
+
+        spawner_spawn(world, spawnerComp, entity, spawnerPos, spawnerRot, faction, amountToSpawn);
       }
       spawnerComp->nextTime = spawner_next_time(spawnerComp, time->time);
     }

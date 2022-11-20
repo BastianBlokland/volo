@@ -209,6 +209,7 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
       SceneSpawnerComp,
       .prefabId     = t->prefabId,
       .radius       = t->radius,
+      .count        = t->count,
       .maxInstances = t->maxInstances,
       .intervalMin  = t->intervalMin,
       .intervalMax  = t->intervalMax);

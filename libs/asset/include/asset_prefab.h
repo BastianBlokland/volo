@@ -89,6 +89,7 @@ typedef struct {
 typedef struct {
   StringHash   prefabId;
   f32          radius;
+  u32          count;
   u32          maxInstances;
   TimeDuration intervalMin, intervalMax;
 } AssetPrefabTraitSpawner;
