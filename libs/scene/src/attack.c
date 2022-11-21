@@ -368,7 +368,7 @@ ecs_system_define(SceneAttackSys) {
 
     const TimeDuration timeSinceLastFire = time->time - attack->lastFireTime;
     const bool         hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    const bool         isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
+    const bool         isMoving  = loco && (loco->flags & SceneLocomotion_Moving) != 0;
     const bool shouldAim = !isMoving && (hasTarget || timeSinceLastFire < weapon->aimMinTime);
 
     const bool isAiming = aim_update(attack, weapon, deltaSeconds, shouldAim);
