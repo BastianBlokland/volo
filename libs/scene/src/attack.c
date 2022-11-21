@@ -19,7 +19,7 @@
 #include "scene_vfx.h"
 #include "scene_weapon.h"
 
-#define attack_in_sight_threshold 0.99f
+#define attack_in_sight_threshold 0.9995f
 #define attack_in_sight_min_dist 2.0f
 
 ecs_comp_define_public(SceneAttackComp);
