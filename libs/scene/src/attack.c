@@ -392,7 +392,7 @@ ecs_system_define(SceneAttackSys) {
       const bool isCoolingDown = time->time < attack->nextFireTime;
 
       if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
-        // Start the attack..
+        // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;
         attack->executedEffects = 0;
