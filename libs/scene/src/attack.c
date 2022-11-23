@@ -41,15 +41,6 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
-static bool aim_update(
-    SceneAttackComp*   attack,
-    const AssetWeapon* weapon,
-    const f32          deltaSeconds,
-    const bool         wantAim) {
-
-  return math_towards_f32(&attack->aimNorm, wantAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
-}
-
 static GeoVector aim_target_position(EcsIterator* targetItr) {
   const SceneCollisionComp* collision    = ecs_view_read_t(targetItr, SceneCollisionComp);
   const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
@@ -369,11 +360,16 @@ ecs_system_define(SceneAttackSys) {
     const TimeDuration timeSinceLastFire = time->time - attack->lastFireTime;
     const bool         hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     const bool         isMoving  = loco && (loco->flags & SceneLocomotion_Moving) != 0;
-    const bool shouldAim = !isMoving && (hasTarget || timeSinceLastFire < weapon->aimMinTime);
 
-    const bool isAiming = aim_update(attack, weapon, deltaSeconds, shouldAim);
-    if (weapon->aimAnim) {
-      scene_animation_set_weight(anim, weapon->aimAnim, attack->aimNorm);
+    bool weaponReady = false;
+    if (!isMoving && (hasTarget || timeSinceLastFire < weapon->readyMinTime)) {
+      weaponReady = math_towards_f32(&attack->readyNorm, 1, weapon->readySpeed * deltaSeconds);
+    } else {
+      math_towards_f32(&attack->readyNorm, 0, weapon->readySpeed * deltaSeconds);
+    }
+
+    if (weapon->readyAnim) {
+      scene_animation_set_weight(anim, weapon->readyAnim, attack->readyNorm);
     }
 
     // Potentially start a new attack.
@@ -391,7 +387,7 @@ ecs_system_define(SceneAttackSys) {
       const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
       const bool isCoolingDown = time->time < attack->nextFireTime;
 
-      if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
+      if (weaponReady && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
         // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;

@@ -55,9 +55,9 @@ typedef struct {
 typedef struct {
   StringHash   nameHash;
   u16          effectIndex, effectCount; // Stored in the effects array.
-  f32          aimSpeed; // Speed to increase the aim amount, when aim reaches 1.0 we can fire.
-  StringHash   aimAnim;
-  TimeDuration aimMinTime; // Time to keep aiming after the last shot.
+  f32          readySpeed; // Speed to increase the ready amount, when reaches 1.0 we can fire.
+  StringHash   readyAnim;
+  TimeDuration readyMinTime; // Time to keep the weapon ready after the last shot.
   TimeDuration intervalMin, intervalMax;
 } AssetWeapon;
 

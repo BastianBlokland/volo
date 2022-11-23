@@ -4,9 +4,9 @@
       "name": "AssaultRifle",
       "intervalMin": 0.15,
       "intervalMax": 0.35,
-      "aimSpeed": 2.5,
-      "aimMinTime": 3,
-      "aimAnim": "aim",
+      "readySpeed": 2.5,
+      "readyMinTime": 3,
+      "readyAnim": "aim",
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
@@ -39,8 +39,8 @@
       "name": "Melee",
       "intervalMin": 0,
       "intervalMax": 0,
-      "aimSpeed": 1000,
-      "aimMinTime": 0,
+      "readySpeed": 1000,
+      "readyMinTime": 0,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Damage",

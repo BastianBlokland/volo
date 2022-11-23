@@ -12,7 +12,7 @@ ecs_comp_extern_public(SceneAttackComp) {
   StringHash       weaponName;
   SceneAttackFlags flags : 16;
   u16              executedEffects;
-  f32              aimNorm; // Process of aiming.
+  f32              readyNorm; // Process of readying the weapon, 1.0 = ready.
   TimeDuration     lastFireTime, nextFireTime;
   EcsEntityId      targetEntity;
   GeoVector        targetPos;
