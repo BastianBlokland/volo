@@ -67,6 +67,8 @@ typedef struct {
 
 typedef struct {
   String weaponId;
+  String aimJoint;
+  f32    aimSpeed; // Degrees per second.
   f32    lineOfSightRadius;
   f32    targetScoreRandomness;
 } AssetPrefabTraitAttackDef;
@@ -170,6 +172,8 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandomness, data_prim_t(f32));
 
@@ -340,6 +344,10 @@ static void prefab_build(
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
           .weapon                = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint              = string_is_empty(traitDef->data_attack.aimJoint)
+                                       ? 0
+                                       : string_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad           = traitDef->data_attack.aimSpeed * math_deg_to_rad,
           .lineOfSightRadius     = traitDef->data_attack.lineOfSightRadius,
           .targetScoreRandomness = traitDef->data_attack.targetScoreRandomness,
       };
