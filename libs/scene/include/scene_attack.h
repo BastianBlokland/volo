@@ -17,3 +17,9 @@ ecs_comp_extern_public(SceneAttackComp) {
   EcsEntityId      targetEntity;
   GeoVector        targetPos;
 };
+
+ecs_comp_extern_public(SceneAttackAimComp) {
+  StringHash aimJoint;
+  f32        aimSpeedRad; // Radians per second.
+  GeoVector  aimDir;
+};

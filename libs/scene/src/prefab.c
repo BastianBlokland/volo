@@ -153,6 +153,15 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
   ecs_world_add_t(w, e, SceneAttackComp, .weaponName = t->weapon);
+  if (t->aimJoint) {
+    ecs_world_add_t(
+        w,
+        e,
+        SceneAttackAimComp,
+        .aimJoint    = t->aimJoint,
+        .aimSpeedRad = t->aimSpeedRad,
+        .aimDir      = geo_forward);
+  }
   ecs_world_add_t(
       w,
       e,

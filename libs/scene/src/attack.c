@@ -23,6 +23,7 @@
 #define attack_in_sight_min_dist 2.0f
 
 ecs_comp_define_public(SceneAttackComp);
+ecs_comp_define_public(SceneAttackAimComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -424,6 +425,7 @@ ecs_system_define(SceneAttackSys) {
 
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
+  ecs_register_comp(SceneAttackAimComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);
