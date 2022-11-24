@@ -32,15 +32,6 @@ spec(quat) {
     check_eq_quat(geo_quat_from_to(q1, q2), geo_quat_mul(q2, geo_quat_angle_axis(geo_left, 42)));
   }
 
-  it("can compute the angle of a quaternion") {
-    check_eq_float(geo_quat_angle(geo_quat_ident), 0, 1e-6);
-    check_eq_float(geo_quat_angle(geo_quat_angle_axis(geo_up, math_pi_f32)), math_pi_f32, 1e-6);
-    check_eq_float(
-        geo_quat_angle(geo_quat_angle_axis(geo_right, math_pi_f32 * .42f)),
-        math_pi_f32 * .42f,
-        1e-6);
-  }
-
   it("can combine quaternions") {
     const GeoQuat q1    = geo_quat_angle_axis(geo_up, 42);
     const GeoQuat q2    = geo_quat_angle_axis(geo_right, 13.37f);
@@ -173,10 +164,37 @@ spec(quat) {
         geo_vector(0.1337f, 0, 0.42f));
   }
 
-  it("roundtrips the euler conversion") {
+  it("round-trips the euler conversion") {
     const GeoQuat   q1 = geo_quat_from_euler(geo_vector(0.1337f, 1.2345f, 0.42f));
     const GeoVector e  = geo_quat_to_euler(q1);
     const GeoQuat   q2 = geo_quat_from_euler(e);
+    check_eq_quat(q1, q2);
+  }
+
+  it("can be converted to an angle-axis representation") {
+    {
+      const GeoVector aa = geo_quat_to_angle_axis(geo_quat_ident);
+      check_eq_vector(aa, geo_vector(0, 0, 0));
+    }
+    {
+      const GeoVector aa = geo_quat_to_angle_axis(geo_quat_angle_axis(geo_up, math_pi_f32));
+      check_eq_vector(aa, geo_vector(0, math_pi_f32, 0));
+    }
+  }
+
+  it("round-trips the angle-axis conversion") {
+    const GeoVector orgAxis  = geo_vector_norm(geo_vector(-1, 2, 3));
+    const f32       orgAngle = math_pi_f32 * 1.337f;
+
+    const GeoQuat   q1    = geo_quat_angle_axis(orgAxis, orgAngle);
+    const GeoVector aa    = geo_quat_to_angle_axis(q1);
+    const f32       angle = geo_vector_mag(aa);
+    const GeoVector axis  = geo_vector_div(aa, angle);
+
+    check_eq_float(orgAngle, angle, 1e-6f);
+    check_eq_vector(orgAxis, axis);
+
+    const GeoQuat q2 = geo_quat_angle_axis(axis, angle);
     check_eq_quat(q1, q2);
   }
 }

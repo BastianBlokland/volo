@@ -32,10 +32,11 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   res.w = cosHalfAngle;
   return res;
 #else
-  const f32 axisMag = geo_vector_mag(axis);
-  if (axisMag <= f32_epsilon) {
+  const f32 axisMagSqr = geo_vector_mag_sqr(axis);
+  if (axisMagSqr <= f32_epsilon) {
     return geo_quat_ident;
   }
+  const f32       axisMag     = intrinsic_sqrt_f32(axisMagSqr);
   const GeoVector unitVecAxis = geo_vector_div(axis, axisMag);
   const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sin_f32(angle * .5f));
   return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cos_f32(angle * .5f)};
@@ -45,12 +46,6 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
 GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
   const GeoQuat toIdentity = geo_quat_inverse(from);
   return geo_quat_mul(to, toIdentity);
-}
-
-f32 geo_quat_angle(const GeoQuat q) {
-  const GeoVector axis    = geo_vector(q.x, q.y, q.z);
-  const f32       axisMag = geo_vector_mag(axis);
-  return 2 * intrinsic_atan2_f32(axisMag, q.w);
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
@@ -241,6 +236,16 @@ GeoVector geo_quat_to_euler(const GeoQuat q) {
       .y = pitch,
       .z = yaw,
   };
+}
+
+GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
+  const GeoVector axis       = geo_vector(q.x, q.y, q.z);
+  const f32       axisMagSqr = geo_vector_mag_sqr(axis);
+  if (axisMagSqr >= f32_epsilon) {
+    const f32 axisMag = intrinsic_sqrt_f32(axisMagSqr);
+    return geo_vector_mul(axis, 2.0f * intrinsic_atan2_f32(axisMag, q.w) / axisMag);
+  }
+  return geo_vector_mul(axis, 2.0f);
 }
 
 void geo_quat_pack_f16(const GeoQuat quat, f16 out[4]) {

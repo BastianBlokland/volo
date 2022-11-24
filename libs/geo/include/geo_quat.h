@@ -39,11 +39,6 @@ GeoQuat geo_quat_angle_axis(GeoVector axis, f32 angle);
 GeoQuat geo_quat_from_to(GeoQuat from, GeoQuat to);
 
 /**
- * Calculate the angle in radians that the given quaternion represents.
- */
-f32 geo_quat_angle(GeoQuat);
-
-/**
  * Compute a quaternion that combines both quaternions.
  */
 GeoQuat geo_quat_mul(GeoQuat a, GeoQuat b);
@@ -101,6 +96,12 @@ GeoQuat geo_quat_from_euler(GeoVector);
  * Convert the given quaternion to euler angles (in radians).
  */
 GeoVector geo_quat_to_euler(GeoQuat q);
+
+/**
+ * Convert the given quaternion to a combined angle-axis.
+ * NOTE: The angle is the magnitude of the combined angle-axis.
+ */
+GeoVector geo_quat_to_angle_axis(GeoQuat);
 
 /**
  * Pack a quaternion to 16 bit floats.
