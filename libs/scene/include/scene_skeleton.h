@@ -15,8 +15,12 @@ typedef struct {
 ecs_comp_extern(SceneSkeletonTemplComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
-  u32        jointCount;
   GeoMatrix* jointTransforms;
+  u32        jointCount;
+
+  // Optional transformation to apply post animation sampling.
+  u32       postTransJointIdx;
+  GeoMatrix postTransMat;
 };
 
 typedef enum {
@@ -55,6 +59,12 @@ ecs_comp_extern_public(SceneAnimationComp) {
 SceneAnimLayer* scene_animation_layer(SceneAnimationComp*, StringHash layer);
 bool            scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
 bool            scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
+
+/**
+ * Transformation to apply to the given joint post animation sampling.
+ * NOTE: Only a single post transform is supported at this time.
+ */
+void scene_skeleton_post_transform(SceneSkeletonComp*, u32 joint, const GeoMatrix*);
 
 u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 joint);
