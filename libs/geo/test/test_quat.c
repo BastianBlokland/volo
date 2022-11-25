@@ -131,6 +131,19 @@ spec(quat) {
     }
   }
 
+  it("can rotate towards a target rotation") {
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_forward, 1.0f);
+      check(!geo_quat_towards(&q, geo_quat_angle_axis(geo_forward, 1.5f), 0.1f));
+      check_eq_quat(q, geo_quat_angle_axis(geo_forward, 1.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_forward, 1.0f);
+      check(geo_quat_towards(&q, geo_quat_angle_axis(geo_forward, 1.5f), 1.0f));
+      check_eq_quat(q, geo_quat_angle_axis(geo_forward, 1.5f));
+    }
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_quat_fmt(geo_quat_ident)), string_lit("0, 0, 0, 1"));

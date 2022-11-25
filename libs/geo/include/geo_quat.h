@@ -88,6 +88,12 @@ GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef);
 GeoQuat geo_quat_slerp(GeoQuat a, GeoQuat b, f32 t);
 
 /**
+ * Rotate the quaternion towards the given target with a maximum step-size of maxAngle radians.
+ * NOTE: Returns true if we've reached the target.
+ */
+bool geo_quat_towards(GeoQuat*, GeoQuat target, f32 maxAngle);
+
+/**
  * Compute a quaternion based on the given euler angles (in radians).
  */
 GeoQuat geo_quat_from_euler(GeoVector);

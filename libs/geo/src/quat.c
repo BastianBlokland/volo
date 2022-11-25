@@ -188,6 +188,13 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
   };
 }
 
+bool geo_quat_towards(GeoQuat* q, const GeoQuat target, const f32 maxAngle) {
+  GeoQuat    rotDelta = geo_quat_from_to(*q, target);
+  const bool clamped  = geo_quat_clamp(&rotDelta, maxAngle);
+  *q                  = geo_quat_mul(*q, rotDelta);
+  return !clamped;
+}
+
 GeoQuat geo_quat_from_euler(const GeoVector e) {
   /**
    * Implementation based on:
