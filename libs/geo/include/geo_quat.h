@@ -104,6 +104,12 @@ GeoVector geo_quat_to_euler(GeoQuat q);
 GeoVector geo_quat_to_angle_axis(GeoQuat);
 
 /**
+ * Clamp the quaternion so that the angle does not exceed 'maxAngle'.
+ * NOTE: Returns 'true' if clamping applied otherwise 'false'.
+ */
+bool geo_quat_clamp(GeoQuat*, f32 maxAngle);
+
+/**
  * Pack a quaternion to 16 bit floats.
  */
 void geo_quat_pack_f16(GeoQuat, f16 out[4]);

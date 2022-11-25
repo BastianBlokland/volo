@@ -248,6 +248,25 @@ GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
   return geo_vector_mul(axis, 2.0f);
 }
 
+bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
+  const GeoVector angleAxis = geo_quat_to_angle_axis(*q);
+  const f32       angleSqr  = geo_vector_mag_sqr(angleAxis);
+  if (angleSqr <= (maxAngle * maxAngle)) {
+    return false;
+  }
+  const f32       angle = intrinsic_sqrt_f32(angleSqr);
+  const GeoVector axis  = geo_vector_div(angleAxis, angle);
+
+  GeoQuat clamped = geo_quat_angle_axis(axis, math_min(angle, maxAngle));
+  if (geo_quat_dot(clamped, *q) < 0) {
+    // Compensate for quaternion double-cover (two quaternions representing the same rot).
+    clamped = geo_quat_flip(clamped);
+  }
+
+  *q = clamped;
+  return true;
+}
+
 void geo_quat_pack_f16(const GeoQuat quat, f16 out[4]) {
   out[0] = float_f32_to_f16(quat.x);
   out[1] = float_f32_to_f16(quat.y);

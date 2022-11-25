@@ -197,4 +197,25 @@ spec(quat) {
     const GeoQuat q2 = geo_quat_angle_axis(axis, angle);
     check_eq_quat(q1, q2);
   }
+
+  it("can clamp rotations") {
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      check(geo_quat_clamp(&q, 0.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      check(!geo_quat_clamp(&q, 0.84f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      geo_quat_clamp(&q, 0.1f);
+      check_eq_quat(q, geo_quat_angle_axis(geo_right, 0.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      geo_quat_clamp(&q, 0.0f);
+      check_eq_quat(q, geo_quat_ident);
+    }
+  }
 }
