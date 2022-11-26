@@ -24,7 +24,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "AssaultRifle",
-          "lineOfSightRadius": 0.2,
+          "lineOfSightRadius": 0.4,
           "targetScoreRandomness": 10
         },
         {
@@ -109,7 +109,7 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "lineOfSightRadius": 0.1,
+          "lineOfSightRadius": 0.4,
           "targetScoreRandomness": 5,
           "targetInstantRefreshOnIdle": true
         },

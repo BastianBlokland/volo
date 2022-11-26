@@ -137,6 +137,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
+  ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
@@ -933,9 +934,14 @@ static void inspector_vis_draw_subject(
   const SceneScaleComp*        scaleComp        = ecs_view_read_t(subject, SceneScaleComp);
   const SceneTargetFinderComp* targetFinderComp = ecs_view_read_t(subject, SceneTargetFinderComp);
   const SceneTransformComp*    transformComp    = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneVelocityComp*     veloComp         = ecs_view_read_t(subject, SceneVelocityComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
+    if (veloComp && geo_vector_mag(veloComp->velocityAvg) > 1e-3f) {
+      const GeoVector posOneSecAway = scene_position_predict(transformComp, veloComp, time_second);
+      debug_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
+    }
   }
   if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);

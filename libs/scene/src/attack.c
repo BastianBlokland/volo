@@ -83,13 +83,19 @@ static void aim_face(
   }
 }
 
-static GeoVector aim_target_position(EcsIterator* targetItr) {
-  const SceneCollisionComp* collision    = ecs_view_read_t(targetItr, SceneCollisionComp);
-  const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
-  const SceneScaleComp*     scale        = ecs_view_read_t(targetItr, SceneScaleComp);
-  const GeoBox              targetBounds = scene_collision_world_bounds(collision, trans, scale);
-  // TODO: Instead of hardcoding an offset we should add a preferred height and clamp to bounds.
-  return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
+static GeoVector aim_target_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
+  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+  const SceneVelocityComp*  velo  = ecs_view_read_t(entityItr, SceneVelocityComp);
+
+  // TODO: Target offset should either be based on target collision bounds or be configurable.
+  const GeoVector targetAimOffset = geo_vector(0, 1.25f, 0);
+
+  return geo_vector_add(scene_position_predict(trans, velo, timeInFuture), targetAimOffset);
+}
+
+static f32 aim_target_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
+  const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  return geo_vector_mag(geo_vector_sub(tgtTrans->position, pos));
 }
 
 static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
@@ -140,6 +146,27 @@ static TimeDuration attack_next_fire_time(const AssetWeapon* weapon, const TimeD
   TimeDuration next = timeNow;
   next += (TimeDuration)rng_sample_range(g_rng, weapon->intervalMin, weapon->intervalMax);
   return next;
+}
+
+static TimeDuration weapon_estimate_impact_time(
+    const AssetWeaponMapComp* weaponMap, const AssetWeapon* weapon, const f32 estimatedDistance) {
+  TimeDuration result = 0;
+  for (u16 i = 0; i != weapon->effectCount; ++i) {
+    const AssetWeaponEffect* effect = &weaponMap->effects[weapon->effectIndex + i];
+    switch (effect->type) {
+    case AssetWeaponEffect_Projectile: {
+      const f32          flightTimeSeconds = estimatedDistance / effect->data_proj.speed;
+      const TimeDuration flightTime        = (TimeDuration)time_seconds(flightTimeSeconds);
+      result                               = math_max(result, effect->data_proj.delay + flightTime);
+    } break;
+    case AssetWeaponEffect_Damage:
+      result = math_max(result, effect->data_dmg.delay);
+      break;
+    default:
+      break;
+    }
+  }
+  return result;
 }
 
 typedef struct {
@@ -353,9 +380,10 @@ ecs_view_define(AttackView) {
 }
 
 ecs_view_define(TargetView) {
-  ecs_access_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneVelocityComp);
+  ecs_access_read(SceneCollisionComp);
+  ecs_access_read(SceneTransformComp);
 }
 
 ecs_system_define(SceneAttackSys) {
@@ -421,7 +449,10 @@ ecs_system_define(SceneAttackSys) {
 
     // Potentially start a new attack.
     if (hasTarget) {
-      const GeoVector targetPos = aim_target_position(targetItr);
+      const f32          distEst       = aim_target_estimate_distance(trans->position, targetItr);
+      const TimeDuration impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
+
+      const GeoVector targetPos = aim_target_position(targetItr, impactTimeEst);
       aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSeconds);
 
       const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
