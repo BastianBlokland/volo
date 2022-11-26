@@ -146,7 +146,7 @@ ecs_system_define(SceneTargetUpdateSys) {
     /**
      * Update information about our target.
      */
-    finder->targetFlags &= ~SceneTarget_LineOfSight;
+    finder->flags &= ~SceneTarget_LineOfSight;
     if (ecs_view_contains(targetView, finder->target)) {
       ecs_view_jump(targetItr, finder->target);
 
@@ -154,12 +154,12 @@ ecs_system_define(SceneTargetUpdateSys) {
       finder->targetPosition                = targetTrans->position;
 
       if (target_line_of_sight_test(collisionEnv, finder->lineOfSightRadius, itr, targetItr)) {
-        finder->targetFlags |= SceneTarget_LineOfSight;
+        finder->flags |= SceneTarget_LineOfSight;
       }
     } else {
       finder->targetOverride = 0;
       finder->target         = 0;
-      if (finder->targetFlags & SceneTarget_InstantRefreshOnIdle) {
+      if (finder->flags & SceneTarget_InstantRefreshOnIdle) {
         finder->nextRefreshTime = 0;
       }
     }

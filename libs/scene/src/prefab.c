@@ -170,7 +170,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       w,
       e,
       SceneTargetFinderComp,
-      .targetFlags       = flags,
+      .flags             = flags,
       .lineOfSightRadius = t->lineOfSightRadius,
       .scoreRandomness   = t->targetScoreRandomness);
 }
