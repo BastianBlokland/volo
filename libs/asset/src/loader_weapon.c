@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
@@ -40,6 +41,7 @@ typedef struct {
 
 typedef struct {
   String originJoint;
+  f32    scale;
   f32    delay, duration;
   String assetId;
 } AssetWeaponEffectVfxDef;
@@ -102,6 +104,7 @@ static void weapon_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -224,6 +227,7 @@ static void weapon_effect_vfx_build(
     WeaponError*                   err) {
   *out = (AssetWeaponEffectVfx){
       .originJoint = string_hash(def->originJoint),
+      .scale       = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
       .delay       = (TimeDuration)time_seconds(def->delay),
       .duration    = (TimeDuration)time_seconds(def->duration),
       .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),

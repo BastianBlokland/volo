@@ -307,6 +307,9 @@ static EffectResult effect_update_vfx(
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  if (math_abs(def->scale - 1.0f) > 1e-3f) {
+    ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
+  }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
