@@ -479,7 +479,7 @@ EcsEntityId debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window) {
       panelEntity,
       DebugPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
-      .createFaction = SceneFaction_None,
+      .createFaction = SceneFaction_A,
       .idFilter      = dynstring_create(g_alloc_heap, 32),
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(0.2f, 0.3f), .size = ui_vector(500, 350)));
