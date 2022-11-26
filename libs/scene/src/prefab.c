@@ -125,7 +125,6 @@ static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
 }
 
 static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
-
   ecs_world_add_t(
       w,
       e,
@@ -277,6 +276,7 @@ static void setup_prefab(
     return;
   }
   ecs_world_add_t(w, e, SceneTransformComp, .position = spec->position, .rotation = spec->rotation);
+  ecs_world_add_t(w, e, SceneVelocityComp);
 
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & AssetPrefabFlags_Unit) {

@@ -1,12 +1,57 @@
+#include "core_float.h"
+#include "ecs_world.h"
+#include "scene_register.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 
 ecs_comp_define_public(SceneTransformComp);
-
 ecs_comp_define_public(SceneScaleComp);
+ecs_comp_define_public(SceneVelocityComp);
+
+ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+
+ecs_view_define(VelocityUpdateView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneVelocityComp);
+}
+
+ecs_system_define(SceneVelocityUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32            deltaSeconds = scene_delta_seconds(time);
+
+  if (deltaSeconds <= f32_epsilon) {
+    return;
+  }
+
+  EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    SceneVelocityComp* velo = ecs_view_write_t(itr, SceneVelocityComp);
+
+    const GeoVector pos      = ecs_view_read_t(itr, SceneTransformComp)->position;
+    const GeoVector posDelta = geo_vector_sub(pos, velo->lastPosition);
+
+    velo->velocity     = geo_vector_div(posDelta, deltaSeconds);
+    velo->lastPosition = pos;
+  }
+}
 
 ecs_module_init(scene_transform_module) {
   ecs_register_comp(SceneTransformComp);
   ecs_register_comp(SceneScaleComp);
+  ecs_register_comp(SceneVelocityComp);
+
+  ecs_register_view(GlobalView);
+  ecs_register_view(VelocityUpdateView);
+
+  ecs_register_system(
+      SceneVelocityUpdateSys, ecs_view_id(GlobalView), ecs_view_id(VelocityUpdateView));
+
+  ecs_order(SceneVelocityUpdateSys, SceneOrder_VelocityUpdate);
 }
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp* trans) {

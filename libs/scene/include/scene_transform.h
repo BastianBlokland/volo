@@ -11,6 +11,15 @@ ecs_comp_extern_public(SceneTransformComp) {
 
 ecs_comp_extern_public(SceneScaleComp) { f32 scale; };
 
+/**
+ * Velocity of the entity in the last frame.
+ * Updated automatically based on position changes.
+ */
+ecs_comp_extern_public(SceneVelocityComp) {
+  GeoVector lastPosition;
+  GeoVector velocity;
+};
+
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
 GeoMatrix scene_transform_matrix_inv(const SceneTransformComp*);
 
