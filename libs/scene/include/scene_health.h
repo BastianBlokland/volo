@@ -13,6 +13,7 @@ ecs_comp_extern_public(SceneHealthComp) {
   f32              norm;
   f32              max;
   TimeDuration     deathDestroyDelay;
+  EcsEntityId      deathVfx;
 };
 
 ecs_comp_extern_public(SceneDamageComp) {

@@ -61,8 +61,9 @@ typedef struct {
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
-  f32 amount;
-  f32 deathDestroyDelay;
+  f32    amount;
+  f32    deathDestroyDelay;
+  String deathVfxId;
 } AssetPrefabTraitHealthDef;
 
 typedef struct {
@@ -170,6 +171,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathDestroyDelay, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathVfxId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -341,6 +343,9 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
+          .deathVfx          = string_is_empty(traitDef->data_health.deathVfxId)
+                                   ? 0
+                                   : asset_lookup(ctx->world, manager, traitDef->data_health.deathVfxId),
       };
       break;
     case AssetPrefabTrait_Attack:

@@ -8,6 +8,8 @@
 #include "scene_skeleton.h"
 #include "scene_tag.h"
 #include "scene_time.h"
+#include "scene_transform.h"
+#include "scene_vfx.h"
 
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
@@ -99,6 +101,13 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
   }
 }
 
+static void health_spawn_death_vfx(EcsWorld* world, const GeoVector pos, const EcsEntityId vfx) {
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(500));
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfx);
+}
+
 /**
  * Remove various components on death.
  * TODO: Find another way to handle this, health should't know about all these components.
@@ -124,10 +133,11 @@ static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(HealthView) {
-  ecs_access_write(SceneDamageComp);
   ecs_access_maybe_read(SceneHealthAnimComp);
+  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneTagComp);
+  ecs_access_write(SceneDamageComp);
   ecs_access_write(SceneHealthComp);
 }
 
@@ -142,11 +152,12 @@ ecs_system_define(SceneHealthUpdateSys) {
   EcsView* healthView = ecs_world_view_t(world, HealthView);
   for (EcsIterator* itr = ecs_view_itr_step(healthView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
-    SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
-    SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
-    SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
-    SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     const SceneHealthAnimComp* healthAnim = ecs_view_read_t(itr, SceneHealthAnimComp);
+    const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
+    SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneDamageComp*           damage     = ecs_view_write_t(itr, SceneDamageComp);
+    SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
+    SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
 
     const f32 damageNorm = health_normalize(health, damage->amount);
     damage->amount       = 0;
@@ -175,7 +186,9 @@ ecs_system_define(SceneHealthUpdateSys) {
       if (anim && healthAnim) {
         health_anim_play_death(anim);
       }
-
+      if (trans && health->deathVfx) {
+        health_spawn_death_vfx(world, trans->position, health->deathVfx);
+      }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
     }
