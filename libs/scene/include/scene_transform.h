@@ -34,5 +34,6 @@ GeoMatrix scene_matrix_world(const SceneTransformComp*, const SceneScaleComp*);
 
 /**
  * Predict a position in the future based on the current position and velocity.
+ * NOTE: 'SceneVelocityComp' is optional, if not provided the current position will be returned.
  */
 GeoVector scene_position_predict(const SceneTransformComp*, const SceneVelocityComp*, TimeDuration);
