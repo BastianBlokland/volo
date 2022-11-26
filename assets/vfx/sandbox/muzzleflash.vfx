@@ -13,7 +13,7 @@
         "y": 0.5
       },
       "scaleInTime": 0.175,
-      "fadeOutTime": 0.1,
+      "fadeOutTime": 0.075,
       "blend": "Additive"
     },
     {
@@ -30,7 +30,7 @@
         "y": 0.5
       },
       "scaleInTime": 0.175,
-      "fadeOutTime": 0.1,
+      "fadeOutTime": 0.075,
       "blend": "Additive"
     },
     {
@@ -43,7 +43,7 @@
         "y": 0.8
       },
       "scaleInTime": 0.175,
-      "fadeOutTime": 0.1,
+      "fadeOutTime": 0.075,
       "blend": "Additive"
     }
   ]

@@ -30,7 +30,7 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.175,
+          "duration": 0.15,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
@@ -54,6 +54,42 @@
           "layer": "melee",
           "delay": 0,
           "speed": 1.75
+        }
+      ]
+    },
+    {
+      "name": "TurretGun",
+      "intervalMin": 0,
+      "intervalMax": 0,
+      "readySpeed": 2.5,
+      "readyMinTime": 3,
+      "readyAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "lifetime": 1.5,
+          "spreadAngle": 0.5,
+          "speed": 50,
+          "damage": 50,
+          "impactLifetime": 0.2,
+          "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
+          "vfxIdImpact": "vfx/sandbox/impact.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0,
+          "speed": 0.75
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "scale": 2.5,
+          "delay": 0,
+          "duration": 0.15,
+          "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
     }
