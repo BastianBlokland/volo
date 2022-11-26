@@ -394,16 +394,40 @@ static void inspector_panel_draw_target(
   if (finder) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Target"))) {
+      u32       flags    = finder->flags;
+      GeoVector tgtPos   = finder->targetPosition;
+      f32       tgtScore = math_sqrt_f32(finder->targetScoreSqr);
+      f32       tgtDist  = finder->targetDistance;
+
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Entity"));
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_entity(canvas, finder->target);
 
       inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Overriden"));
+      ui_table_next_column(canvas, table);
+      ui_toggle_flag(canvas, &flags, SceneTarget_Overriden);
+
+      inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Position"));
       ui_table_next_column(canvas, table);
-      GeoVector pos = finder->targetPosition;
-      inspector_panel_draw_editor_vec(canvas, &pos, 3);
+      inspector_panel_draw_editor_vec(canvas, &tgtPos, 3);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Distance"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_f32(canvas, &tgtDist);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Score"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_f32(canvas, &tgtScore);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Line of Sight"));
+      ui_table_next_column(canvas, table);
+      ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight);
     }
   }
 }
