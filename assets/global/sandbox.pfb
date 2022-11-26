@@ -109,7 +109,7 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "lineOfSightRadius": 0.1,
+          "lineOfSightRadius": 0.3,
           "targetScoreRandomness": 5,
           "targetInstantRefreshOnIdle": true
         },
