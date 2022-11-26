@@ -27,8 +27,8 @@ ecs_view_define(TargetFinderView) {
 
 ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_with(SceneCollisionComp);
   ecs_access_with(SceneHealthComp);
 }
 
@@ -50,10 +50,18 @@ static bool target_line_of_sight_test(
   if (UNLIKELY(dist <= f32_epsilon)) {
     return true;
   }
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
-  const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-  SceneRayHit            hit;
-  return !scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit);
+  const EcsEntityId      targetEntity = ecs_view_entity(targetItr);
+  const SceneLayer       targetLayer  = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
+  const SceneQueryFilter filter       = {.layerMask = SceneLayer_Environment | targetLayer};
+  const GeoRay           ray          = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
+
+  SceneRayHit hit;
+  if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
+    return hit.entity == targetEntity;
+  }
+
+  // Target not found in the collision query, can happen if its collider hasn't been registered yet.
+  return false;
 }
 
 static bool
