@@ -23,8 +23,10 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
 #define geo_quat_ident ((GeoQuat){0, 0, 0, 1})
 
 /**
- * 90 degree rotation over the positive x axis.
+ * Common rotation presets.
  */
+#define geo_quat_forward_to_right ((GeoQuat){0, 0.7071068f, 0, 0.7071068f})
+#define geo_quat_forward_to_left ((GeoQuat){0, -0.7071068f, 0, 0.7071068f})
 #define geo_quat_up_to_forward ((GeoQuat){0.7071068f, 0, 0, 0.7071068f})
 
 /**
