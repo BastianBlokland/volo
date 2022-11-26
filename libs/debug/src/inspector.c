@@ -1038,6 +1038,7 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_system(
       DebugInspectorVisDrawSys, ecs_view_id(GlobalVisDrawView), ecs_view_id(SubjectView));
 
+  ecs_order(DebugInspectorToolUpdateSys, DebugOrder_InspectorToolUpdate);
   ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
 }
 
