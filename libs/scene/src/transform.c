@@ -4,6 +4,8 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
+#define velocity_update_max_time_step (1.0f / 10)
+
 ecs_comp_define_public(SceneTransformComp);
 ecs_comp_define_public(SceneScaleComp);
 ecs_comp_define_public(SceneVelocityComp);
@@ -25,7 +27,10 @@ ecs_system_define(SceneVelocityUpdateSys) {
   const f32            deltaSeconds = scene_delta_seconds(time);
 
   if (deltaSeconds <= f32_epsilon) {
-    return;
+    return; // Game is paused, we cannot update the velocity.
+  }
+  if (deltaSeconds > velocity_update_max_time_step) {
+    return; // Skip very large update steps (frame spikes).
   }
 
   EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
