@@ -3,6 +3,9 @@
 #include "ecs_module.h"
 #include "geo_nav.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 /**
  * Global navigation environment.
  */
