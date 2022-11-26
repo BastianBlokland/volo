@@ -98,3 +98,18 @@ u32 geo_query_frustum_all(
     const GeoVector frustum[8],
     const GeoQueryFilter*,
     u64 out[geo_query_max_hits]);
+
+/**
+ * Query statistics.
+ */
+
+typedef enum {
+  GeoQueryStat_PrimSphereCount,
+  GeoQueryStat_PrimCapsuleCount,
+  GeoQueryStat_PrimBoxRotatedCount,
+
+  GeoQueryStat_Count,
+} GeoQueryStat;
+
+void geo_query_stats_reset(GeoQueryEnv*);
+u32* geo_query_stats(GeoQueryEnv*);

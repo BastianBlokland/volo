@@ -10,9 +10,10 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");
+ASSERT(scene_query_stat_count == GeoQueryStat_Count, "Mismatching collision query stat count");
 
 ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
-
+ecs_comp_define_public(SceneCollisionStatsComp);
 ecs_comp_define_public(SceneCollisionComp);
 
 static void ecs_destruct_collision_env_comp(void* data) {
@@ -28,12 +29,20 @@ ecs_view_define(CollisionEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static SceneCollisionEnvComp* collision_env_create(EcsWorld* world) {
-  return ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      SceneCollisionEnvComp,
-      .queryEnv = geo_query_env_create(g_alloc_heap));
+static void collision_env_create(EcsWorld* world) {
+  GeoQueryEnv* queryEnv = geo_query_env_create(g_alloc_heap);
+
+  ecs_world_add_t(world, ecs_world_global(world), SceneCollisionEnvComp, .queryEnv = queryEnv);
+  ecs_world_add_t(world, ecs_world_global(world), SceneCollisionStatsComp);
+}
+
+static void scene_collision_stats_update(SceneCollisionStatsComp* stats, GeoQueryEnv* queryEnv) {
+  const u32* statsPtr = geo_query_stats(queryEnv);
+
+  // Copy the query stats into the stats component.
+  mem_cpy(array_mem(stats->queryStats), mem_create(statsPtr, sizeof(u32) * GeoQueryStat_Count));
+
+  geo_query_stats_reset(queryEnv);
 }
 
 ecs_system_define(SceneCollisionUpdateSys) {
@@ -86,8 +95,26 @@ ecs_system_define(SceneCollisionUpdateSys) {
   }
 }
 
+ecs_view_define(UpdateStatsGlobalView) {
+  ecs_access_write(SceneCollisionEnvComp);
+  ecs_access_write(SceneCollisionStatsComp);
+}
+
+ecs_system_define(SceneCollisionUpdateStatsSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateStatsGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SceneCollisionEnvComp*   env   = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
+  SceneCollisionStatsComp* stats = ecs_view_write_t(globalItr, SceneCollisionStatsComp);
+
+  scene_collision_stats_update(stats, env->queryEnv);
+}
+
 ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionEnvComp, .destructor = ecs_destruct_collision_env_comp);
+  ecs_register_comp(SceneCollisionStatsComp);
   ecs_register_comp(SceneCollisionComp);
 
   ecs_register_view(UpdateGlobalView);
@@ -97,6 +124,14 @@ ecs_module_init(scene_collision_module) {
       SceneCollisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(CollisionEntityView));
 
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
+
+  ecs_register_system(SceneCollisionUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
+
+  enum {
+    SceneOrder_Normal               = 0,
+    SceneOrder_CollisionStatsUpdate = 1,
+  };
+  ecs_order(SceneCollisionUpdateStatsSys, SceneOrder_CollisionStatsUpdate);
 }
 
 String scene_layer_name(const SceneLayer layer) {
