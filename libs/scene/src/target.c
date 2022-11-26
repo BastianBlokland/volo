@@ -113,6 +113,9 @@ ecs_system_define(SceneTargetUpdateSys) {
 
     if (finder->targetOverride) {
       finder->target = finder->targetOverride;
+      finder->flags |= SceneTarget_Overriden;
+    } else {
+      finder->flags &= ~SceneTarget_Overriden;
     }
 
     /**
