@@ -109,7 +109,8 @@
           "aimJoint": "turret",
           "aimSpeed": 120,
           "lineOfSightRadius": 0.1,
-          "targetScoreRandomness": 5
+          "targetScoreRandomness": 5,
+          "targetInstantRefreshOnIdle": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -119,7 +120,7 @@
             "offset": {
               "y": 0.7
             },
-            "radius": 1
+            "radius": 0.8
           }
         },
         {
