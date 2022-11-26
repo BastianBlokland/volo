@@ -82,7 +82,7 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   }
 }
 
-static void app_scene_create_spawners(EcsWorld* world) {
+static void app_scene_create_units(EcsWorld* world) {
   scene_prefab_spawn(
       world,
       &(ScenePrefabSpec){
@@ -91,6 +91,22 @@ static void app_scene_create_spawners(EcsWorld* world) {
           .position = geo_vector(50),
           .rotation = geo_quat_ident,
       });
+
+  static const GeoVector g_turretLocations[] = {
+      {30, 0, -15},
+      {30, 0, 0},
+      {30, 0, 15},
+  };
+  array_for_t(g_turretLocations, GeoVector, turretLoc) {
+    scene_prefab_spawn(
+        world,
+        &(ScenePrefabSpec){
+            .prefabId = string_hash_lit("Turret"),
+            .faction  = SceneFaction_A,
+            .position = *turretLoc,
+            .rotation = geo_quat_forward_to_left,
+        });
+  }
 
   scene_prefab_spawn(
       world,
@@ -135,7 +151,7 @@ ecs_system_define(AppUpdateSys) {
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
     app_scene_create_walls(world, app->rng);
-    app_scene_create_spawners(world);
+    app_scene_create_units(world);
     app->sceneCreated = true;
   }
 
