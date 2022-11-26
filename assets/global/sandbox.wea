@@ -47,7 +47,7 @@
           "originJoint": "RightHand",
           "delay": 0.5,
           "damage": 25,
-          "radius": 1
+          "radius": 1.25
         },
         {
           "$type": "AssetWeaponEffect_Animation",
