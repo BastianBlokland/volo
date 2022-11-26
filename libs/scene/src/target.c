@@ -11,6 +11,8 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
+#define target_los_dist_min 1.0f
+#define target_los_dist_max 75.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -52,8 +54,11 @@ static TargetLineOfSightInfo target_los_query(
   const GeoVector targetPos = target_position_center(targetItr);
   const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
   const f32       dist      = geo_vector_mag(toTarget);
-  if (dist <= f32_epsilon) {
+  if (dist <= target_los_dist_min) {
     return (TargetLineOfSightInfo){.hasLos = true, .distance = dist};
+  }
+  if (dist > target_los_dist_max) {
+    return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
   }
 
   const EcsEntityId      targetEntity = ecs_view_entity(targetItr);
