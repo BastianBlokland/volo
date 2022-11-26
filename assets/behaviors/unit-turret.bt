@@ -1,0 +1,49 @@
+{
+  "$type": "AssetAiNode_Selector",
+  "$name": "Root",
+  "children": [
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Set attack target",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "script": "$user_attack_target != null;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_target_override = $user_attack_target;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$user_attack_target = null;"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Attack target",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "$name": "Find target",
+          "script": "$target_los && distance($target_position, $self_position) < 50;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "$name": "Initiate attack",
+          "script": "$cmd_attack_target = $target_entity;"
+        },
+        {
+          "$type": "AssetAiNode_Running",
+          "$name": "Attacking"
+        }
+      ]
+    },
+    {
+      "$type": "AssetAiNode_Execute",
+      "$name": "Idle",
+      "script": "$cmd_target_override = null;"
+    }
+  ]
+}
