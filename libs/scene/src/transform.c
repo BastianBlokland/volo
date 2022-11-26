@@ -5,6 +5,7 @@
 #include "scene_transform.h"
 
 #define velocity_update_max_time_step (1.0f / 10)
+#define velocity_update_max_dist 10.0f
 
 ecs_comp_define_public(SceneTransformComp);
 ecs_comp_define_public(SceneScaleComp);
@@ -33,15 +34,25 @@ ecs_system_define(SceneVelocityUpdateSys) {
     return; // Skip very large update steps (frame spikes).
   }
 
+  static const f32 g_avgWindow = 1.0f / 10.0f;
+
   EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    SceneVelocityComp* velo = ecs_view_write_t(itr, SceneVelocityComp);
+    SceneVelocityComp* veloComp = ecs_view_write_t(itr, SceneVelocityComp);
 
     const GeoVector pos      = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoVector posDelta = geo_vector_sub(pos, velo->lastPosition);
+    const GeoVector posDelta = geo_vector_sub(pos, veloComp->lastPosition);
 
-    velo->velocity     = geo_vector_div(posDelta, deltaSeconds);
-    velo->lastPosition = pos;
+    veloComp->lastPosition = pos;
+
+    if (geo_vector_mag_sqr(posDelta) > (velocity_update_max_dist * velocity_update_max_dist)) {
+      continue; // Entity moved too far this frame (teleported?).
+    }
+
+    const GeoVector newVelo      = geo_vector_div(posDelta, deltaSeconds);
+    const GeoVector oldVeloAvg   = veloComp->velocityAvg;
+    const GeoVector veloAvgDelta = geo_vector_mul(geo_vector_sub(newVelo, oldVeloAvg), g_avgWindow);
+    veloComp->velocityAvg        = geo_vector_add(oldVeloAvg, veloAvgDelta);
   }
 }
 
@@ -83,6 +94,6 @@ GeoVector scene_position_predict(
   if (!velo) {
     return trans->position;
   }
-  const GeoVector delta = geo_vector_mul(velo->velocity, time / (f32)time_second);
+  const GeoVector delta = geo_vector_mul(velo->velocityAvg, time / (f32)time_second);
   return geo_vector_add(trans->position, delta);
 }

@@ -20,7 +20,7 @@ ecs_comp_extern_public(SceneScaleComp) { f32 scale; };
  */
 ecs_comp_extern_public(SceneVelocityComp) {
   GeoVector lastPosition;
-  GeoVector velocity;
+  GeoVector velocityAvg;
 };
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
