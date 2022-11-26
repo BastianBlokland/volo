@@ -22,6 +22,7 @@
 #include "scene_selection.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -103,6 +104,7 @@ ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
 
@@ -385,6 +387,7 @@ static void inspector_panel_draw_faction(
 }
 
 static void inspector_panel_draw_target(
+    const SceneTimeComp*     time,
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
@@ -428,6 +431,11 @@ static void inspector_panel_draw_target(
       ui_label(canvas, string_lit("Line of Sight"));
       ui_table_next_column(canvas, table);
       ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Time until refresh"));
+      ui_table_next_column(canvas, table);
+      ui_label(canvas, fmt_write_scratch("{}", fmt_duration(finder->nextRefreshTime - time->time)));
     }
   }
 }
@@ -639,6 +647,7 @@ static void inspector_panel_draw_settings(
 static void inspector_panel_draw(
     EcsWorld*                   world,
     DebugStatsGlobalComp*       stats,
+    const SceneTimeComp*        time,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -671,7 +680,7 @@ static void inspector_panel_draw(
   inspector_panel_draw_faction(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
-  inspector_panel_draw_target(canvas, panelComp, &table, subject);
+  inspector_panel_draw_target(time, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
@@ -709,9 +718,10 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*       stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneTimeComp*        time      = ecs_view_read_t(globalItr, SceneTimeComp);
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
+  DebugStatsGlobalComp*       stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
@@ -723,7 +733,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(world, stats, canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(world, stats, time, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
