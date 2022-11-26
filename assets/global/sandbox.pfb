@@ -100,7 +100,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 200,
+          "amount": 300,
           "deathDestroyDelay": 0
         },
         {
