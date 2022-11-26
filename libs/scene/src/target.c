@@ -150,6 +150,9 @@ ecs_system_define(SceneTargetUpdateSys) {
     } else {
       finder->targetOverride = 0;
       finder->target         = 0;
+      if (finder->targetFlags & SceneTarget_InstantRefreshOnIdle) {
+        finder->nextRefreshTime = 0;
+      }
     }
   }
 }

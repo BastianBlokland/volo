@@ -162,10 +162,15 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         .aimSpeedRad = t->aimSpeedRad,
         .aimRotLocal = geo_quat_ident);
   }
+  SceneTargetFlags flags = 0;
+  if (t->targetInstantRefreshOnIdle) {
+    flags |= SceneTarget_InstantRefreshOnIdle;
+  }
   ecs_world_add_t(
       w,
       e,
       SceneTargetFinderComp,
+      .targetFlags       = flags,
       .lineOfSightRadius = t->lineOfSightRadius,
       .scoreRandomness   = t->targetScoreRandomness);
 }

@@ -5,7 +5,8 @@
 #include "geo_vector.h"
 
 typedef enum {
-  SceneTarget_LineOfSight = 1 << 0,
+  SceneTarget_LineOfSight          = 1 << 0,
+  SceneTarget_InstantRefreshOnIdle = 1 << 1, // Immediately refresh when current target is gone.
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
