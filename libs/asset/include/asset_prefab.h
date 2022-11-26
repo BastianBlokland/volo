@@ -69,12 +69,16 @@ typedef struct {
 typedef struct {
   f32          amount;
   TimeDuration deathDestroyDelay;
+  EcsEntityId  deathVfx; // Optional: 0 to disable.
 } AssetPrefabTraitHealth;
 
 typedef struct {
   StringHash weapon;
+  StringHash aimJoint;
+  f32        aimSpeedRad; // Radians per second.
   f32        lineOfSightRadius;
   f32        targetScoreRandomness;
+  bool       targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttack;
 
 typedef struct {

@@ -32,10 +32,11 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   res.w = cosHalfAngle;
   return res;
 #else
-  const f32 axisMag = geo_vector_mag(axis);
-  if (axisMag <= f32_epsilon) {
+  const f32 axisMagSqr = geo_vector_mag_sqr(axis);
+  if (axisMagSqr <= f32_epsilon) {
     return geo_quat_ident;
   }
+  const f32       axisMag     = intrinsic_sqrt_f32(axisMagSqr);
   const GeoVector unitVecAxis = geo_vector_div(axis, axisMag);
   const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sin_f32(angle * .5f));
   return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cos_f32(angle * .5f)};
@@ -45,12 +46,6 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
 GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
   const GeoQuat toIdentity = geo_quat_inverse(from);
   return geo_quat_mul(to, toIdentity);
-}
-
-f32 geo_quat_angle(const GeoQuat q) {
-  const GeoVector axis    = geo_vector(q.x, q.y, q.z);
-  const f32       axisMag = geo_vector_mag(axis);
-  return 2 * intrinsic_atan2_f32(axisMag, q.w);
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
@@ -193,6 +188,13 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
   };
 }
 
+bool geo_quat_towards(GeoQuat* q, const GeoQuat target, const f32 maxAngle) {
+  GeoQuat    rotDelta = geo_quat_from_to(*q, target);
+  const bool clamped  = geo_quat_clamp(&rotDelta, maxAngle);
+  *q                  = geo_quat_mul(*q, rotDelta);
+  return !clamped;
+}
+
 GeoQuat geo_quat_from_euler(const GeoVector e) {
   /**
    * Implementation based on:
@@ -241,6 +243,35 @@ GeoVector geo_quat_to_euler(const GeoQuat q) {
       .y = pitch,
       .z = yaw,
   };
+}
+
+GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
+  const GeoVector axis       = geo_vector(q.x, q.y, q.z);
+  const f32       axisMagSqr = geo_vector_mag_sqr(axis);
+  if (axisMagSqr >= f32_epsilon) {
+    const f32 axisMag = intrinsic_sqrt_f32(axisMagSqr);
+    return geo_vector_mul(axis, 2.0f * intrinsic_atan2_f32(axisMag, q.w) / axisMag);
+  }
+  return geo_vector_mul(axis, 2.0f);
+}
+
+bool geo_quat_clamp(GeoQuat* q, const f32 maxAngle) {
+  const GeoVector angleAxis = geo_quat_to_angle_axis(*q);
+  const f32       angleSqr  = geo_vector_mag_sqr(angleAxis);
+  if (angleSqr <= (maxAngle * maxAngle)) {
+    return false;
+  }
+  const f32       angle = intrinsic_sqrt_f32(angleSqr);
+  const GeoVector axis  = geo_vector_div(angleAxis, angle);
+
+  GeoQuat clamped = geo_quat_angle_axis(axis, math_min(angle, maxAngle));
+  if (geo_quat_dot(clamped, *q) < 0) {
+    // Compensate for quaternion double-cover (two quaternions representing the same rot).
+    clamped = geo_quat_flip(clamped);
+  }
+
+  *q = clamped;
+  return true;
 }
 
 void geo_quat_pack_f16(const GeoQuat quat, f16 out[4]) {

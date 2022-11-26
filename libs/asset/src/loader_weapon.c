@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
@@ -40,6 +41,7 @@ typedef struct {
 
 typedef struct {
   String originJoint;
+  f32    scale;
   f32    delay, duration;
   String assetId;
 } AssetWeaponEffectVfxDef;
@@ -57,9 +59,9 @@ typedef struct {
 typedef struct {
   String name;
   f32    intervalMin, intervalMax;
-  f32    aimSpeed;
-  f32    aimMinTime;
-  String aimAnim;
+  f32    readySpeed;
+  f32    readyMinTime;
+  String readyAnim;
   struct {
     AssetWeaponEffectDef* values;
     usize                 count;
@@ -102,6 +104,7 @@ static void weapon_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -121,9 +124,9 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetWeaponDef, aimSpeed, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetWeaponDef, aimMinTime, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetWeaponDef, aimAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetWeaponDef, readySpeed, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
 
     data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
@@ -224,6 +227,7 @@ static void weapon_effect_vfx_build(
     WeaponError*                   err) {
   *out = (AssetWeaponEffectVfx){
       .originJoint = string_hash(def->originJoint),
+      .scale       = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
       .delay       = (TimeDuration)time_seconds(def->delay),
       .duration    = (TimeDuration)time_seconds(def->duration),
       .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
@@ -240,14 +244,14 @@ static void weapon_build(
 
   *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
-      .nameHash    = stringtable_add(g_stringtable, def->name),
-      .intervalMin = (TimeDuration)time_seconds(def->intervalMin),
-      .intervalMax = (TimeDuration)time_seconds(def->intervalMax),
-      .aimSpeed    = def->aimSpeed,
-      .aimMinTime  = (TimeDuration)time_seconds(def->aimMinTime),
-      .aimAnim     = string_is_empty(def->aimAnim) ? 0 : string_hash(def->aimAnim),
-      .effectIndex = (u16)outEffects->size,
-      .effectCount = (u16)def->effects.count,
+      .nameHash     = stringtable_add(g_stringtable, def->name),
+      .intervalMin  = (TimeDuration)time_seconds(def->intervalMin),
+      .intervalMax  = (TimeDuration)time_seconds(def->intervalMax),
+      .readySpeed   = def->readySpeed,
+      .readyMinTime = (TimeDuration)time_seconds(def->readyMinTime),
+      .readyAnim    = string_is_empty(def->readyAnim) ? 0 : string_hash(def->readyAnim),
+      .effectIndex  = (u16)outEffects->size,
+      .effectCount  = (u16)def->effects.count,
   };
 
   array_ptr_for_t(def->effects, AssetWeaponEffectDef, effectDef) {

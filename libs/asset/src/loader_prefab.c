@@ -61,14 +61,18 @@ typedef struct {
 } AssetPrefabTraitMovementDef;
 
 typedef struct {
-  f32 amount;
-  f32 deathDestroyDelay;
+  f32    amount;
+  f32    deathDestroyDelay;
+  String deathVfxId;
 } AssetPrefabTraitHealthDef;
 
 typedef struct {
   String weaponId;
+  String aimJoint;
+  f32    aimSpeed; // Degrees per second.
   f32    lineOfSightRadius;
   f32    targetScoreRandomness;
+  bool   targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
@@ -167,11 +171,15 @@ static void prefab_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathDestroyDelay, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathVfxId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandomness, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetInstantRefreshOnIdle, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
     data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
@@ -335,13 +343,21 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
+          .deathVfx          = string_is_empty(traitDef->data_health.deathVfxId)
+                                   ? 0
+                                   : asset_lookup(ctx->world, manager, traitDef->data_health.deathVfxId),
       };
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon                = string_hash(traitDef->data_attack.weaponId),
-          .lineOfSightRadius     = traitDef->data_attack.lineOfSightRadius,
-          .targetScoreRandomness = traitDef->data_attack.targetScoreRandomness,
+          .weapon                     = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint                   = string_is_empty(traitDef->data_attack.aimJoint)
+                                            ? 0
+                                            : string_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad                = traitDef->data_attack.aimSpeed * math_deg_to_rad,
+          .lineOfSightRadius          = traitDef->data_attack.lineOfSightRadius,
+          .targetScoreRandomness      = traitDef->data_attack.targetScoreRandomness,
+          .targetInstantRefreshOnIdle = traitDef->data_attack.targetInstantRefreshOnIdle,
       };
       break;
     case AssetPrefabTrait_Collision:

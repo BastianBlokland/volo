@@ -23,8 +23,10 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
 #define geo_quat_ident ((GeoQuat){0, 0, 0, 1})
 
 /**
- * 90 degree rotation over the positive x axis.
+ * Common rotation presets.
  */
+#define geo_quat_forward_to_right ((GeoQuat){0, 0.7071068f, 0, 0.7071068f})
+#define geo_quat_forward_to_left ((GeoQuat){0, -0.7071068f, 0, 0.7071068f})
 #define geo_quat_up_to_forward ((GeoQuat){0.7071068f, 0, 0, 0.7071068f})
 
 /**
@@ -37,11 +39,6 @@ GeoQuat geo_quat_angle_axis(GeoVector axis, f32 angle);
  * Compute a 'difference' quaternion.
  */
 GeoQuat geo_quat_from_to(GeoQuat from, GeoQuat to);
-
-/**
- * Calculate the angle in radians that the given quaternion represents.
- */
-f32 geo_quat_angle(GeoQuat);
 
 /**
  * Compute a quaternion that combines both quaternions.
@@ -93,6 +90,12 @@ GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef);
 GeoQuat geo_quat_slerp(GeoQuat a, GeoQuat b, f32 t);
 
 /**
+ * Rotate the quaternion towards the given target with a maximum step-size of maxAngle radians.
+ * NOTE: Returns true if we've reached the target.
+ */
+bool geo_quat_towards(GeoQuat*, GeoQuat target, f32 maxAngle);
+
+/**
  * Compute a quaternion based on the given euler angles (in radians).
  */
 GeoQuat geo_quat_from_euler(GeoVector);
@@ -101,6 +104,18 @@ GeoQuat geo_quat_from_euler(GeoVector);
  * Convert the given quaternion to euler angles (in radians).
  */
 GeoVector geo_quat_to_euler(GeoQuat q);
+
+/**
+ * Convert the given quaternion to a combined angle-axis.
+ * NOTE: The angle is the magnitude of the combined angle-axis.
+ */
+GeoVector geo_quat_to_angle_axis(GeoQuat);
+
+/**
+ * Clamp the quaternion so that the angle does not exceed 'maxAngle'.
+ * NOTE: Returns 'true' if clamping applied otherwise 'false'.
+ */
+bool geo_quat_clamp(GeoQuat*, f32 maxAngle);
 
 /**
  * Pack a quaternion to 16 bit floats.

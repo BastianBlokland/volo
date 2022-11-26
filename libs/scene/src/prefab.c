@@ -146,17 +146,32 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       SceneHealthComp,
       .norm              = 1.0f,
       .max               = t->amount,
-      .deathDestroyDelay = t->deathDestroyDelay);
+      .deathDestroyDelay = t->deathDestroyDelay,
+      .deathVfx          = t->deathVfx);
 
   ecs_world_add_t(w, e, SceneDamageComp);
 }
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
-  ecs_world_add_t(w, e, SceneAttackComp, .weaponName = t->weapon);
+  ecs_world_add_t(w, e, SceneAttackComp, .weaponName = t->weapon, .lastFireTime = -time_hour);
+  if (t->aimJoint) {
+    ecs_world_add_t(
+        w,
+        e,
+        SceneAttackAimComp,
+        .aimJoint    = t->aimJoint,
+        .aimSpeedRad = t->aimSpeedRad,
+        .aimRotLocal = geo_quat_ident);
+  }
+  SceneTargetFlags flags = 0;
+  if (t->targetInstantRefreshOnIdle) {
+    flags |= SceneTarget_InstantRefreshOnIdle;
+  }
   ecs_world_add_t(
       w,
       e,
       SceneTargetFinderComp,
+      .flags             = flags,
       .lineOfSightRadius = t->lineOfSightRadius,
       .scoreRandomness   = t->targetScoreRandomness);
 }

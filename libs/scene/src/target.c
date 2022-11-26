@@ -11,6 +11,8 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
+#define target_los_dist_min 1.0f
+#define target_los_dist_max 75.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
 
@@ -27,17 +29,23 @@ ecs_view_define(TargetFinderView) {
 
 ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_with(SceneCollisionComp);
   ecs_access_with(SceneHealthComp);
 }
 
 static GeoVector target_position_center(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+  // TODO: Target position should either be based on target collision bounds or be configurable.
   return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
 }
 
-static bool target_line_of_sight_test(
+typedef struct {
+  bool hasLos;
+  f32  distance;
+} TargetLineOfSightInfo;
+
+static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
     const f32                    radius,
     EcsIterator*                 finderItr,
@@ -46,13 +54,29 @@ static bool target_line_of_sight_test(
   const GeoVector targetPos = target_position_center(targetItr);
   const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
   const f32       dist      = geo_vector_mag(toTarget);
-  if (UNLIKELY(dist <= f32_epsilon)) {
-    return true;
+  if (dist <= target_los_dist_min) {
+    return (TargetLineOfSightInfo){.hasLos = true, .distance = dist};
   }
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
-  const GeoRay           ray    = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
-  SceneRayHit            hit;
-  return !scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit);
+  if (dist > target_los_dist_max) {
+    return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
+  }
+
+  const EcsEntityId      targetEntity = ecs_view_entity(targetItr);
+  const SceneLayer       targetLayer  = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
+  const SceneQueryFilter filter       = {.layerMask = SceneLayer_Environment | targetLayer};
+  const GeoRay           ray          = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
+
+  SceneRayHit hit;
+  if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
+    const bool hasLos = hit.entity == targetEntity;
+    return (TargetLineOfSightInfo){
+        .hasLos   = hasLos,
+        .distance = hasLos ? hit.time : dist,
+    };
+  }
+
+  // Target not found in the collision query, can happen if its collider hasn't been registered yet.
+  return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
 }
 
 static bool
@@ -85,8 +109,8 @@ ecs_system_define(SceneTargetUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTimeComp*         time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* finderView = ecs_world_view_t(world, TargetFinderView);
   EcsView* targetView = ecs_world_view_t(world, TargetView);
@@ -104,6 +128,9 @@ ecs_system_define(SceneTargetUpdateSys) {
 
     if (finder->targetOverride) {
       finder->target = finder->targetOverride;
+      finder->flags |= SceneTarget_Overriden;
+    } else {
+      finder->flags &= ~SceneTarget_Overriden;
     }
 
     /**
@@ -137,19 +164,26 @@ ecs_system_define(SceneTargetUpdateSys) {
     /**
      * Update information about our target.
      */
-    finder->targetFlags &= ~SceneTarget_LineOfSight;
+    finder->flags &= ~SceneTarget_LineOfSight;
     if (ecs_view_contains(targetView, finder->target)) {
       ecs_view_jump(targetItr, finder->target);
 
+      const f32                   losRadius = finder->lineOfSightRadius;
+      const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, losRadius, itr, targetItr);
+
+      if (losInfo.hasLos) {
+        finder->flags |= SceneTarget_LineOfSight;
+      }
+
       const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
       finder->targetPosition                = targetTrans->position;
-
-      if (target_line_of_sight_test(collisionEnv, finder->lineOfSightRadius, itr, targetItr)) {
-        finder->targetFlags |= SceneTarget_LineOfSight;
-      }
+      finder->targetDistance                = losInfo.distance;
     } else {
       finder->targetOverride = 0;
       finder->target         = 0;
+      if (finder->flags & SceneTarget_InstantRefreshOnIdle) {
+        finder->nextRefreshTime = 0;
+      }
     }
   }
 }

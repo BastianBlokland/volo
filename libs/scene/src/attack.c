@@ -19,10 +19,11 @@
 #include "scene_vfx.h"
 #include "scene_weapon.h"
 
-#define attack_in_sight_threshold 0.99f
-#define attack_in_sight_min_dist 2.0f
+#define attack_in_sight_threshold 0.9995f
+#define attack_in_sight_min_dist 1.0f
 
 ecs_comp_define_public(SceneAttackComp);
+ecs_comp_define_public(SceneAttackAimComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -41,13 +42,45 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
-static bool aim_update(
-    SceneAttackComp*   attack,
-    const AssetWeapon* weapon,
-    const f32          deltaSeconds,
-    const bool         wantAim) {
+static GeoQuat aim_rot_current(const SceneTransformComp* trans, SceneAttackAimComp* attackAim) {
+  if (attackAim) {
+    return geo_quat_mul(trans->rotation, attackAim->aimRotLocal);
+  }
+  return trans->rotation;
+}
 
-  return math_towards_f32(&attack->aimNorm, wantAim ? 1.0f : 0.0f, weapon->aimSpeed * deltaSeconds);
+static void aim_face(
+    SceneAttackAimComp*           attackAim,
+    SceneSkeletonComp*            skel,
+    const SceneSkeletonTemplComp* skelTempl,
+    SceneLocomotionComp*          loco,
+    const SceneTransformComp*     trans,
+    const GeoVector               targetPos,
+    const f32                     deltaSeconds) {
+
+  const GeoVector delta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+  const f32       dist  = geo_vector_mag(delta);
+  const GeoVector dir   = dist <= f32_epsilon ? geo_forward : geo_vector_div(delta, dist);
+
+  // Face using 'SceneAttackAim' if available.
+  if (attackAim) {
+    const GeoQuat tgtRotWorld = geo_quat_look(dir, geo_up);
+    const GeoQuat tgtRotLocal = geo_quat_from_to(trans->rotation, tgtRotWorld);
+    geo_quat_towards(&attackAim->aimRotLocal, tgtRotLocal, attackAim->aimSpeedRad * deltaSeconds);
+
+    const u32 aimJointIdx = scene_skeleton_joint_by_name(skelTempl, attackAim->aimJoint);
+    if (!sentinel_check(aimJointIdx)) {
+      const GeoMatrix postTransform = geo_matrix_from_quat(attackAim->aimRotLocal);
+      scene_skeleton_post_transform(skel, aimJointIdx, &postTransform);
+    }
+    return;
+  }
+
+  // Face using 'SceneLocomotion' if available.
+  if (loco) {
+    scene_locomotion_face(loco, dir);
+    return;
+  }
 }
 
 static GeoVector aim_target_position(EcsIterator* targetItr) {
@@ -92,13 +125,13 @@ static GeoQuat proj_random_dev(const f32 spreadAngle) {
   return geo_quat_angle_axis(geo_up, angle);
 }
 
-static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
-  const GeoVector delta   = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+static bool attack_in_sight(const GeoVector pos, const GeoQuat aimRot, const GeoVector targetPos) {
+  const GeoVector delta   = geo_vector_xz(geo_vector_sub(targetPos, pos));
   const f32       sqrDist = geo_vector_mag_sqr(delta);
   if (sqrDist < (attack_in_sight_min_dist * attack_in_sight_min_dist)) {
     return true; // Target is very close, consider it always in-sight.
   }
-  const GeoVector forward     = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
+  const GeoVector forward     = geo_vector_xz(geo_quat_rotate(aimRot, geo_forward));
   const GeoVector dirToTarget = geo_vector_div(delta, math_sqrt_f32(sqrDist));
   return geo_vector_dot(forward, dirToTarget) > attack_in_sight_threshold;
 }
@@ -274,6 +307,9 @@ static EffectResult effect_update_vfx(
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  if (math_abs(def->scale - 1.0f) > 1e-3f) {
+    ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
+  }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
@@ -307,12 +343,13 @@ static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effec
 ecs_view_define(AttackView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_write(SceneAttackAimComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneRenderableComp);
-  ecs_access_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
+  ecs_access_write(SceneSkeletonComp);
 }
 
 ecs_view_define(TargetView) {
@@ -346,10 +383,11 @@ ecs_system_define(SceneAttackSys) {
     const SceneFactionComp*    faction    = ecs_view_read_t(itr, SceneFactionComp);
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
+    SceneSkeletonComp*         skel       = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
     SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
+    SceneAttackAimComp*        attackAim  = ecs_view_write_t(itr, SceneAttackAimComp);
     SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
 
     if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
@@ -368,31 +406,31 @@ ecs_system_define(SceneAttackSys) {
 
     const TimeDuration timeSinceLastFire = time->time - attack->lastFireTime;
     const bool         hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    const bool         isMoving  = (loco->flags & SceneLocomotion_Moving) != 0;
-    const bool shouldAim = !isMoving && (hasTarget || timeSinceLastFire < weapon->aimMinTime);
+    const bool         isMoving  = loco && (loco->flags & SceneLocomotion_Moving) != 0;
 
-    const bool isAiming = aim_update(attack, weapon, deltaSeconds, shouldAim);
-    if (weapon->aimAnim) {
-      scene_animation_set_weight(anim, weapon->aimAnim, attack->aimNorm);
+    bool weaponReady = false;
+    if (!isMoving && (hasTarget || timeSinceLastFire < weapon->readyMinTime)) {
+      weaponReady = math_towards_f32(&attack->readyNorm, 1, weapon->readySpeed * deltaSeconds);
+    } else {
+      math_towards_f32(&attack->readyNorm, 0, weapon->readySpeed * deltaSeconds);
+    }
+
+    if (weapon->readyAnim) {
+      scene_animation_set_weight(anim, weapon->readyAnim, attack->readyNorm);
     }
 
     // Potentially start a new attack.
     if (hasTarget) {
       const GeoVector targetPos = aim_target_position(targetItr);
-      if (loco) {
-        const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
-        const f32       faceDist  = geo_vector_mag(faceDelta);
-        if (faceDist > f32_epsilon) {
-          const GeoVector faceDir = geo_vector_div(faceDelta, faceDist);
-          scene_locomotion_face(loco, faceDir);
-        }
-      }
+      aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSeconds);
 
-      const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
-      const bool isCoolingDown = time->time < attack->nextFireTime;
+      const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
+      const bool      isCoolingDown = time->time < attack->nextFireTime;
+      const GeoVector pos           = trans->position;
+      const GeoQuat   aimRot        = aim_rot_current(trans, attackAim);
 
-      if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
-        // Start the attack..
+      if (weaponReady && !isFiring && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos)) {
+        // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;
         attack->executedEffects = 0;
@@ -428,6 +466,7 @@ ecs_system_define(SceneAttackSys) {
 
 ecs_module_init(scene_attack_module) {
   ecs_register_comp(SceneAttackComp);
+  ecs_register_comp(SceneAttackAimComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WeaponMapView);

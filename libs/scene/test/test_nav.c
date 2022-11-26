@@ -51,7 +51,9 @@ ecs_module_init(nav_test_module) {
 
 spec(nav) {
 
-  const u16  halfGridSize = 100;
+  const f32  halfGridSize = 100;
+  const f32  gridDensity  = 1.25f;
+  const f32  gridCellSize = 1.0f / gridDensity;
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
@@ -69,7 +71,8 @@ spec(nav) {
 
   it("sets the locomotion target to the destination") {
     const EcsEntityId global = ecs_world_global(world);
-    const EcsEntityId agent  = test_create_agent(world, geo_vector(-2, 0, 0), geo_vector(2, 0, 0));
+    const EcsEntityId agent  = test_create_agent(
+        world, geo_vector(gridCellSize * -2.0f, 0, 0), geo_vector(gridCellSize * 2.0f, 0, 0));
     ecs_run_sync(runner); // Tick to create the agent.
     ecs_run_sync(runner); // Tick to execute the navigation.
 
@@ -80,7 +83,7 @@ spec(nav) {
     const SceneLocomotionComp* loco =
         ecs_utils_read_t(world, LocomotionView, agent, SceneLocomotionComp);
     check(loco->flags & SceneLocomotion_Moving);
-    check_eq_float(loco->targetPos.x, 2, 1e-6f);
+    check_eq_float(loco->targetPos.x, gridCellSize * 2.0f, 1e-6f);
     check_eq_float(loco->targetPos.y, 0, 1e-6f);
     check_eq_float(loco->targetPos.z, 0, 1e-6f);
 
@@ -91,7 +94,8 @@ spec(nav) {
 
   it("can compute a path around an obstacle") {
     const EcsEntityId global = ecs_world_global(world);
-    const EcsEntityId agent  = test_create_agent(world, geo_vector(-2, 0, 0), geo_vector(2, 0, 0));
+    const EcsEntityId agent  = test_create_agent(
+        world, geo_vector(gridCellSize * -2.0f, 0, 0), geo_vector(gridCellSize * 2.0f, 0, 0));
     test_create_blocker(world, geo_vector(0, 0, 0));
     ecs_run_sync(runner); // Tick to create the agent and the blocker.
     ecs_run_sync(runner); // Tick to register the blocker.
@@ -107,18 +111,19 @@ spec(nav) {
      *   000
      */
 
-    const SceneNavPathComp* path = ecs_utils_read_t(world, PathView, agent, SceneNavPathComp);
+    const SceneNavPathComp* path       = ecs_utils_read_t(world, PathView, agent, SceneNavPathComp);
+    const u16               centerCell = (u16)(halfGridSize * gridDensity);
     test_check_path(
         _testCtx,
         path,
         (GeoNavCell[]){
-            {.x = halfGridSize - 2, .y = halfGridSize},
-            {.x = halfGridSize - 1, .y = halfGridSize},
-            {.x = halfGridSize - 1, .y = halfGridSize - 1},
-            {.x = halfGridSize + 0, .y = halfGridSize - 1},
-            {.x = halfGridSize + 1, .y = halfGridSize - 1},
-            {.x = halfGridSize + 1, .y = halfGridSize},
-            {.x = halfGridSize + 2, .y = halfGridSize},
+            {.x = centerCell - 2, .y = centerCell},
+            {.x = centerCell - 1, .y = centerCell},
+            {.x = centerCell - 1, .y = centerCell - 1},
+            {.x = centerCell + 0, .y = centerCell - 1},
+            {.x = centerCell + 1, .y = centerCell - 1},
+            {.x = centerCell + 1, .y = centerCell},
+            {.x = centerCell + 2, .y = centerCell},
         },
         7);
 

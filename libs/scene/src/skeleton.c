@@ -130,8 +130,10 @@ static void scene_skeleton_init_from_templ(
       world,
       entity,
       SceneSkeletonComp,
-      .jointCount      = tl->jointCount,
-      .jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount));
+      .jointCount        = tl->jointCount,
+      .jointTransforms   = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount),
+      .postTransJointIdx = sentinel_u32,
+      .postTransMat      = geo_matrix_ident());
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
@@ -413,6 +415,25 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   }
 }
 
+static void anim_mul_all(const SceneSkeletonTemplComp* tl, const GeoMatrix* t, GeoMatrix* out) {
+  for (u32 joint = 0; joint != tl->jointCount; ++joint) {
+    out[joint] = geo_matrix_mul(t, &out[joint]);
+  }
+}
+
+static void anim_mul_rec(
+    const SceneSkeletonTemplComp* tl, const u32 joint, const GeoMatrix* t, GeoMatrix* out) {
+  if (joint == 0) {
+    anim_mul_all(tl, t, out);
+    return;
+  }
+  out[joint]            = geo_matrix_mul(t, &out[joint]);
+  const u32 parentIndex = tl->parentIndices[joint];
+  for (u32 i = joint + 1; i != tl->jointCount && tl->parentIndices[i] > parentIndex; ++i) {
+    out[i] = geo_matrix_mul(t, &out[i]);
+  }
+}
+
 /**
  * Assign the weight based on the animation progress.
  */
@@ -489,6 +510,10 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     }
     anim_sample_def(tl, weights, poses);
     anim_apply(tl, poses, sk->jointTransforms);
+
+    if (!sentinel_check(sk->postTransJointIdx)) {
+      anim_mul_rec(tl, sk->postTransJointIdx, &sk->postTransMat, sk->jointTransforms);
+    }
   }
 }
 
@@ -568,6 +593,11 @@ bool scene_animation_set_weight(
     return true;
   }
   return false;
+}
+
+void scene_skeleton_post_transform(SceneSkeletonComp* sk, const u32 joint, const GeoMatrix* m) {
+  sk->postTransJointIdx = joint;
+  sk->postTransMat      = *m;
 }
 
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }

@@ -20,8 +20,18 @@ spec(quat) {
   }
 
   it("has preset quaternions for common rotations") {
-    check_eq_vector(geo_quat_rotate(geo_quat_up_to_forward, geo_up), geo_forward);
-    check_eq_quat(geo_quat_up_to_forward, geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f));
+    {
+      check_eq_vector(geo_quat_rotate(geo_quat_forward_to_right, geo_forward), geo_right);
+      check_eq_quat(geo_quat_forward_to_right, geo_quat_angle_axis(geo_up, math_pi_f32 * 0.5f));
+    }
+    {
+      check_eq_vector(geo_quat_rotate(geo_quat_forward_to_left, geo_forward), geo_left);
+      check_eq_quat(geo_quat_forward_to_left, geo_quat_angle_axis(geo_up, math_pi_f32 * -0.5f));
+    }
+    {
+      check_eq_vector(geo_quat_rotate(geo_quat_up_to_forward, geo_up), geo_forward);
+      check_eq_quat(geo_quat_up_to_forward, geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f));
+    }
   }
 
   it("returns the difference quaternion when computing a from-to rotation") {
@@ -30,15 +40,6 @@ spec(quat) {
 
     check_eq_quat(geo_quat_from_to(geo_quat_ident, q1), q1);
     check_eq_quat(geo_quat_from_to(q1, q2), geo_quat_mul(q2, geo_quat_angle_axis(geo_left, 42)));
-  }
-
-  it("can compute the angle of a quaternion") {
-    check_eq_float(geo_quat_angle(geo_quat_ident), 0, 1e-6);
-    check_eq_float(geo_quat_angle(geo_quat_angle_axis(geo_up, math_pi_f32)), math_pi_f32, 1e-6);
-    check_eq_float(
-        geo_quat_angle(geo_quat_angle_axis(geo_right, math_pi_f32 * .42f)),
-        math_pi_f32 * .42f,
-        1e-6);
   }
 
   it("can combine quaternions") {
@@ -140,6 +141,19 @@ spec(quat) {
     }
   }
 
+  it("can rotate towards a target rotation") {
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_forward, 1.0f);
+      check(!geo_quat_towards(&q, geo_quat_angle_axis(geo_forward, 1.5f), 0.1f));
+      check_eq_quat(q, geo_quat_angle_axis(geo_forward, 1.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_forward, 1.0f);
+      check(geo_quat_towards(&q, geo_quat_angle_axis(geo_forward, 1.5f), 1.0f));
+      check_eq_quat(q, geo_quat_angle_axis(geo_forward, 1.5f));
+    }
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_quat_fmt(geo_quat_ident)), string_lit("0, 0, 0, 1"));
@@ -173,10 +187,58 @@ spec(quat) {
         geo_vector(0.1337f, 0, 0.42f));
   }
 
-  it("roundtrips the euler conversion") {
+  it("round-trips the euler conversion") {
     const GeoQuat   q1 = geo_quat_from_euler(geo_vector(0.1337f, 1.2345f, 0.42f));
     const GeoVector e  = geo_quat_to_euler(q1);
     const GeoQuat   q2 = geo_quat_from_euler(e);
     check_eq_quat(q1, q2);
+  }
+
+  it("can be converted to an angle-axis representation") {
+    {
+      const GeoVector aa = geo_quat_to_angle_axis(geo_quat_ident);
+      check_eq_vector(aa, geo_vector(0, 0, 0));
+    }
+    {
+      const GeoVector aa = geo_quat_to_angle_axis(geo_quat_angle_axis(geo_up, math_pi_f32));
+      check_eq_vector(aa, geo_vector(0, math_pi_f32, 0));
+    }
+  }
+
+  it("round-trips the angle-axis conversion") {
+    const GeoVector orgAxis  = geo_vector_norm(geo_vector(-1, 2, 3));
+    const f32       orgAngle = math_pi_f32 * 1.337f;
+
+    const GeoQuat   q1    = geo_quat_angle_axis(orgAxis, orgAngle);
+    const GeoVector aa    = geo_quat_to_angle_axis(q1);
+    const f32       angle = geo_vector_mag(aa);
+    const GeoVector axis  = geo_vector_div(aa, angle);
+
+    check_eq_float(orgAngle, angle, 1e-6f);
+    check_eq_vector(orgAxis, axis);
+
+    const GeoQuat q2 = geo_quat_angle_axis(axis, angle);
+    check_eq_quat(q1, q2);
+  }
+
+  it("can clamp rotations") {
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      check(geo_quat_clamp(&q, 0.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      check(!geo_quat_clamp(&q, 0.84f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      geo_quat_clamp(&q, 0.1f);
+      check_eq_quat(q, geo_quat_angle_axis(geo_right, 0.1f));
+    }
+    {
+      GeoQuat q = geo_quat_angle_axis(geo_right, 0.42f);
+      geo_quat_clamp(&q, 0.0f);
+      check_eq_quat(q, geo_quat_ident);
+    }
   }
 }

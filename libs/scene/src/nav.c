@@ -15,7 +15,7 @@ ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable 
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
 static const f32       g_sceneNavSize    = 200.0f;
-static const f32       g_sceneNavDensity = 1.0f;
+static const f32       g_sceneNavDensity = 1.25f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
 #define path_max_cells 64

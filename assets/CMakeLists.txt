@@ -52,6 +52,10 @@ if(${EXTERNAL_ASSETS})
       maynard/maynard_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
+      turret/turret_diff.tga
+      turret/turret_nrm.tga
+      turret/turret.bin
+      turret/turret_big.gltf
       vfx/flash.tga
       vfx/flash_star.tga
       vfx/trail.tga

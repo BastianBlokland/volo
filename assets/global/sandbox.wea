@@ -4,9 +4,9 @@
       "name": "AssaultRifle",
       "intervalMin": 0.15,
       "intervalMax": 0.35,
-      "aimSpeed": 2.5,
-      "aimMinTime": 3,
-      "aimAnim": "aim",
+      "readySpeed": 2.5,
+      "readyMinTime": 3,
+      "readyAnim": "aim",
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
@@ -30,7 +30,7 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.175,
+          "duration": 0.15,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
@@ -39,21 +39,57 @@
       "name": "Melee",
       "intervalMin": 0,
       "intervalMax": 0,
-      "aimSpeed": 1000,
-      "aimMinTime": 0,
+      "readySpeed": 1000,
+      "readyMinTime": 0,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Damage",
           "originJoint": "RightHand",
           "delay": 0.5,
           "damage": 25,
-          "radius": 0.75
+          "radius": 1.25
         },
         {
           "$type": "AssetWeaponEffect_Animation",
           "layer": "melee",
           "delay": 0,
           "speed": 1.75
+        }
+      ]
+    },
+    {
+      "name": "TurretGun",
+      "intervalMin": 0,
+      "intervalMax": 0,
+      "readySpeed": 2.5,
+      "readyMinTime": 3,
+      "readyAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "delay": 0.025,
+          "lifetime": 1.5,
+          "spreadAngle": 0.5,
+          "speed": 50,
+          "damage": 50,
+          "impactLifetime": 0.2,
+          "vfxIdProjectile": "vfx/sandbox/projectile.vfx",
+          "vfxIdImpact": "vfx/sandbox/impact.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0,
+          "speed": 0.75
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "scale": 3,
+          "delay": 0,
+          "duration": 0.15,
+          "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
     }
