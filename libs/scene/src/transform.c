@@ -72,3 +72,9 @@ GeoMatrix scene_matrix_world(const SceneTransformComp* trans, const SceneScaleCo
   const f32       scaleMag = scale ? scale->scale : 1.0f;
   return geo_matrix_trs(pos, rot, geo_vector(scaleMag, scaleMag, scaleMag));
 }
+
+GeoVector scene_position_predict(
+    const SceneTransformComp* trans, const SceneVelocityComp* velo, const TimeDuration time) {
+  const GeoVector delta = geo_vector_mul(velo->velocity, time / (f32)time_second);
+  return geo_vector_add(trans->position, delta);
+}
