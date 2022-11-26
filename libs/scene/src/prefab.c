@@ -160,7 +160,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         SceneAttackAimComp,
         .aimJoint    = t->aimJoint,
         .aimSpeedRad = t->aimSpeedRad,
-        .aimDir      = geo_forward);
+        .aimRotLocal = geo_quat_ident);
   }
   ecs_world_add_t(
       w,

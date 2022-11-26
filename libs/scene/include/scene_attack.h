@@ -2,7 +2,7 @@
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
+#include "geo_quat.h"
 
 typedef enum {
   SceneAttackFlags_Firing = 1 << 0,
@@ -21,5 +21,5 @@ ecs_comp_extern_public(SceneAttackComp) {
 ecs_comp_extern_public(SceneAttackAimComp) {
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
-  GeoVector  aimDir;
+  GeoQuat    aimRotLocal;
 };
