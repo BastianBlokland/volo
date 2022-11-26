@@ -34,6 +34,7 @@ ecs_view_define(TargetView) {
 
 static GeoVector target_position_center(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+  // TODO: Target position should either be based on target collision bounds or be configurable.
   return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
 }
 
