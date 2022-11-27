@@ -1076,20 +1076,20 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                        // Structure
-                           ((u32)sizeof(u16) * grid->cellCountTotal) + // grid.cellBlockerCount
-                           ((u32)nav_occupancy_mem(grid).size) +       // grid.cellOccupancy
-                           ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal) + // grid.cellIslands
-                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) +     // grid.blockers
-                           bits_to_bytes(geo_nav_blockers_max) +             // grid.blockerFreeSet
-                           (sizeof(GeoNavOccupant) * geo_nav_occupants_max); // grid.occupants
+  u32 dataSizeGrid = sizeof(GeoNavGrid);
+  dataSizeGrid += ((u32)sizeof(u16) * grid->cellCountTotal);          // grid.cellBlockerCount
+  dataSizeGrid += ((u32)nav_occupancy_mem(grid).size);                // grid.cellOccupancy
+  dataSizeGrid += ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal); // grid.cellIslands
+  dataSizeGrid += (sizeof(GeoNavBlocker) * geo_nav_blockers_max);     // grid.blockers
+  dataSizeGrid += bits_to_bytes(geo_nav_blockers_max);                // grid.blockerFreeSet
+  dataSizeGrid += (sizeof(GeoNavOccupant) * geo_nav_occupants_max);   // grid.occupants
 
-  const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                   // Structure
-                                (bits_to_bytes(grid->cellCountTotal) + 1) +   // state.markedCells
-                                (sizeof(GeoNavCell) * grid->cellCountTotal) + // state.fScoreQueue
-                                (sizeof(u16) * grid->cellCountTotal) +        // state.gScores
-                                (sizeof(u16) * grid->cellCountTotal) +        // state.fScores
-                                (sizeof(GeoNavCell) * grid->cellCountTotal);  // state.cameFrom
+  u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
+  dataSizePerWorker += (bits_to_bytes(grid->cellCountTotal) + 1);   // state.markedCells
+  dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.fScoreQueue
+  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.gScores
+  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.fScores
+  dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.cameFrom
 
   grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
   grid->stats[GeoNavStat_CellCountAxis]  = grid->cellCountAxis;
