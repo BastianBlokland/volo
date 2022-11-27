@@ -94,6 +94,11 @@ bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate,
 bool            geo_nav_blocker_remove_all(GeoNavGrid*);
 
 /**
+ * (Re-)compute the islands.
+ */
+void geo_nav_compute_islands(GeoNavGrid*);
+
+/**
  * Register occupants.
  */
 typedef enum {

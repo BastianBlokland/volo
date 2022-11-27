@@ -761,6 +761,11 @@ static bool nav_blocker_release_all(GeoNavGrid* grid) {
   return false;
 }
 
+static void nav_islands_compute(GeoNavGrid* grid) {
+  // Set all cell islands to 0.
+  mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
+}
+
 GeoNavGrid* geo_nav_grid_create(
     Allocator* alloc, const GeoVector center, const f32 size, const f32 density, const f32 height) {
   diag_assert(geo_vector_mag_sqr(center) <= (1e4f * 1e4f));
@@ -788,6 +793,7 @@ GeoNavGrid* geo_nav_grid_create(
   };
 
   nav_blocker_release_all(grid);
+  nav_islands_compute(grid);
   return grid;
 }
 
@@ -1025,6 +1031,8 @@ bool geo_nav_blocker_remove_pred(
 }
 
 bool geo_nav_blocker_remove_all(GeoNavGrid* grid) { return nav_blocker_release_all(grid); }
+
+void geo_nav_compute_islands(GeoNavGrid* grid) { nav_islands_compute(grid); }
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
