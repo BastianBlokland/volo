@@ -986,8 +986,9 @@ static void inspector_vis_draw_navigation_grid(
       const GeoNavCell cell      = {.x = x, .y = y};
       const GeoVector  pos       = scene_nav_position(nav, (GeoNavCell){.x = x, .y = y});
       const bool       highlight = (x & 1) == (y & 1);
+      const bool       blocked   = scene_nav_blocked(nav, cell);
       GeoColor         color;
-      if (scene_nav_blocked(nav, cell)) {
+      if (blocked) {
         color = geo_color(1, 0, 0, highlight ? 0.5f : 0.3f);
       } else if (scene_nav_occupied_moving(nav, cell)) {
         color = geo_color(1, 0, 1, highlight ? 0.3f : 0.2f);
@@ -998,11 +999,13 @@ static void inspector_vis_draw_navigation_grid(
       }
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
 
-      const GeoNavIsland island = scene_nav_island(nav, cell);
+      if (!blocked) {
+        const GeoNavIsland island = scene_nav_island(nav, cell);
 
-      dynstring_clear(&textBuffer);
-      format_write_u64(&textBuffer, island, &format_opts_int());
-      debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
+        dynstring_clear(&textBuffer);
+        format_write_u64(&textBuffer, island, &format_opts_int());
+        debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
+      }
     }
   }
 }
