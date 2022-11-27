@@ -60,6 +60,7 @@ GeoVector    scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
 GeoBox       scene_nav_box(const SceneNavEnvComp*, GeoNavCell);
 GeoNavRegion scene_nav_region(const SceneNavEnvComp*, GeoNavCell, u16 radius);
 bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
+bool         scene_nav_reachable(const SceneNavEnvComp*, GeoNavCell from, GeoNavCell to);
 bool         scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_occupied_moving(const SceneNavEnvComp*, GeoNavCell);
 GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);

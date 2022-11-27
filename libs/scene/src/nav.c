@@ -428,6 +428,10 @@ bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->navGrid, cell);
 }
 
+bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
+  return geo_nav_reachable(env->navGrid, from, to);
+}
+
 bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_occupied(env->navGrid, cell);
 }

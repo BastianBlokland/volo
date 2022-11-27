@@ -942,6 +942,13 @@ bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const G
   return nav_any_in_line(grid, s, from, to, nav_cell_predicate_blocked);
 }
 
+bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return geo_nav_island(grid, from) == geo_nav_island(grid, to);
+}
+
 bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_predicate_occupied(grid, cell);
