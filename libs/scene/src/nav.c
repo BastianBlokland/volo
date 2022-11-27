@@ -277,12 +277,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    GeoVector  toPos     = agent->target;
-    GeoNavCell toCell    = geo_nav_at_position(env->navGrid, toPos);
-    const bool toBlocked = geo_nav_blocked(env->navGrid, toCell);
+    const GeoNavCell fromCell  = geo_nav_at_position(env->navGrid, trans->position);
+    GeoVector        toPos     = agent->target;
+    GeoNavCell       toCell    = geo_nav_at_position(env->navGrid, toPos);
+    const bool       toBlocked = geo_nav_blocked(env->navGrid, toCell);
     if (toBlocked) {
       // Target is not reachable; pick the closest reachable point.
-      toCell = geo_nav_closest_unblocked(env->navGrid, toCell);
+      toCell = geo_nav_closest_reachable(env->navGrid, fromCell, toCell);
       toPos  = geo_nav_position(env->navGrid, toCell);
     }
 
@@ -298,7 +299,6 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    const GeoNavCell fromCell = geo_nav_at_position(env->navGrid, trans->position);
     if (!geo_nav_line_blocked(env->navGrid, fromCell, toCell)) {
       // No obstacles between us and the target; move straight to the target
       scene_locomotion_move(loco, toPos);
