@@ -5,7 +5,7 @@
 #include "scene_transform.h"
 
 #define velocity_update_max_time_step (1.0f / 10)
-#define velocity_update_max_dist 10.0f
+#define velocity_update_max_dist 5.0f
 
 ecs_comp_define_public(SceneTransformComp);
 ecs_comp_define_public(SceneScaleComp);
@@ -34,7 +34,7 @@ ecs_system_define(SceneVelocityUpdateSys) {
     return; // Skip very large update steps (frame spikes).
   }
 
-  static const f32 g_avgWindow = 1.0f / 10.0f;
+  static const f32 g_avgWindow = 1.0f / 5.0f;
 
   EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
