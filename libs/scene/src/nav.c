@@ -365,6 +365,8 @@ ecs_module_init(scene_nav_module) {
       ecs_register_view(BlockerEntityView),
       ecs_register_view(OccupantEntityView));
 
+  ecs_order(SceneNavInitSys, SceneOrder_NavInit);
+
   ecs_register_system(
       SceneNavUpdateAgentsSys,
       ecs_register_view(UpdateAgentGlobalView),
