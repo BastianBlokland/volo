@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "geo_nav.h"
+#include "geo_sphere.h"
 #include "jobs_executor.h"
 #include "log_logger.h"
 
@@ -1045,11 +1046,8 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   }
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    log_e(
-        "Navigation blocker cell limit reached",
-        log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
-    // TODO: Support switching to a heap allocation for big blockers?
-    return (GeoNavBlockerId)sentinel_u16;
+    log_e("Navigation blocker cell limit reached");
+    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
@@ -1080,11 +1078,8 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    log_e(
-        "Navigation blocker cell limit reached",
-        log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
-    // TODO: Support switching to a heap allocation for big blockers?
-    return (GeoNavBlockerId)sentinel_u16;
+    log_e("Navigation blocker cell limit reached");
+    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
   }
 
   const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
@@ -1104,6 +1099,43 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
+        nav_cell_block(grid, cell);
+        nav_bit_set(blockedInRegion, indexInRegion);
+      }
+      ++indexInRegion;
+    }
+  }
+
+  ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
+  return blockerId;
+}
+
+GeoNavBlockerId
+geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* sphere) {
+  const GeoBox       bounds = geo_box_from_sphere(sphere->point, sphere->radius);
+  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
+  if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
+    log_e("Navigation blocker cell limit reached");
+    return (GeoNavBlockerId)sentinel_u16; // TODO: Switch to a heap allocation for big blockers?
+  }
+
+  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
+  if (UNLIKELY(sentinel_check(blockerId))) {
+    return (GeoNavBlockerId)sentinel_u16;
+  }
+  GeoNavBlocker* blocker = &grid->blockers[blockerId];
+  blocker->userId        = userId;
+  blocker->region        = region;
+
+  const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
+  bitset_clear_all(blockedInRegion);
+
+  u16 indexInRegion = 0;
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      const GeoNavCell cell    = {.x = x, .y = y};
+      const GeoBox     cellBox = nav_cell_box(grid, cell);
+      if (geo_sphere_overlap_box(sphere, &cellBox)) {
         nav_cell_block(grid, cell);
         nav_bit_set(blockedInRegion, indexInRegion);
       }

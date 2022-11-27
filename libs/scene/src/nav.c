@@ -52,10 +52,6 @@ static void scene_nav_env_create(EcsWorld* world) {
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
-static GeoNavBlockerId scene_nav_block_box(SceneNavEnvComp* env, const u64 id, const GeoBox* box) {
-  return geo_nav_blocker_add_box(env->navGrid, id, box);
-}
-
 static GeoNavBlockerId
 scene_nav_block_box_rotated(SceneNavEnvComp* env, const u64 id, const GeoBoxRotated* boxRot) {
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
@@ -117,15 +113,14 @@ static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
-      /**
-       * NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
-       * then sphere support should be added to GeoNavGrid.
-       */
-      const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
-      blockerComp->blockerId  = scene_nav_block_box(env, userId, &sBounds);
+      const GeoSphere s      = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      blockerComp->blockerId = geo_nav_blocker_add_sphere(env->navGrid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
+      /**
+       * NOTE: Uses the capsule bounds at the moment, if more accurate capsule blockers are
+       * needed then capsule support should be added to GeoNavGrid.
+       */
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
       blockerComp->blockerId      = scene_nav_block_box_rotated(env, userId, &cBounds);
@@ -369,6 +364,8 @@ ecs_module_init(scene_nav_module) {
       ecs_register_view(InitGlobalView),
       ecs_register_view(BlockerEntityView),
       ecs_register_view(OccupantEntityView));
+
+  ecs_order(SceneNavInitSys, SceneOrder_NavInit);
 
   ecs_register_system(
       SceneNavUpdateAgentsSys,

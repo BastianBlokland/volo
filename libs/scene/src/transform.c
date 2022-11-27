@@ -34,7 +34,7 @@ ecs_system_define(SceneVelocityUpdateSys) {
     return; // Skip very large update steps (frame spikes).
   }
 
-  static const f32 g_avgWindow = 1.0f / 5.0f;
+  static const f32 g_avgWindow = 1.0f / 2.5f;
 
   EcsView* updateView = ecs_world_view_t(world, VelocityUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {

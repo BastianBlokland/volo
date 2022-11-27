@@ -3,6 +3,7 @@
 
 enum {
   SceneOrder_TimeUpdate       = -100,
+  SceneOrder_NavInit          = -10,
   SceneOrder_SensorUpdate     = -10,
   SceneOrder_BrainUpdate      = -9,
   SceneOrder_ControllerUpdate = -8,
