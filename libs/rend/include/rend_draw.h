@@ -20,8 +20,6 @@ typedef enum {
 /**
  * Low level api for submitting draws.
  * In most cases the scene apis should be preferred (SceneRenderableComp).
- *
- * Api is not thread-safe except for 'rend_draw_add_instance' which be called in parallel.
  */
 ecs_comp_extern(RendDrawComp);
 
@@ -65,10 +63,10 @@ Mem rend_draw_set_data(RendDrawComp*, usize size);
 
 /**
  * Add a new instance to the given draw.
+ * NOTE: Invalidates pointers from previous calls to this api.
  * NOTE: All instances need to use the same data-size.
  * NOTE: Tags and bounds are used to filter the draws per camera.
  * NOTE: Data size has to be consistent between all instances and across frames.
- * NOTE: Thread-safe to be called in parallel with itself.
  * NOTE: Returned pointer is always at least 16bit aligned, stronger alignment cannot be guaranteed.
  */
 #define rend_draw_add_instance_t(_DRAW_, _TYPE_, _TAGS_, _AABB_)                                   \

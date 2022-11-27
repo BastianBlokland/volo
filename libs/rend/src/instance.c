@@ -68,14 +68,6 @@ ecs_view_define(RenderableView) {
 }
 
 ecs_view_define(DrawView) {
-  /**
-   * Here be dragons!
-   * To support parallel filling of draws we allow this view to random-write in parallel, this can
-   * be used safely as 'rend_draw_add_instance' is thread-safe. But care must be taken to use only
-   * thread-safe apis.
-   */
-  ecs_view_flags(EcsViewFlags_AllowParallelRandomWrite);
-
   ecs_access_write(RendDrawComp);
   ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
@@ -87,7 +79,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   u32 createdDraws = 0;
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
-  for (EcsIterator* itr = ecs_view_itr_step(renderables, parCount, parIndex); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (renderable->flags & SceneRenderable_Hide) {
       continue;
@@ -112,11 +104,6 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       continue;
     }
 
-    /**
-     * NOTE: This is a parallel system, so by jumping the 'drawItr' multiple tasks can get a mutable
-     * pointer to a 'RendDrawComp' at the same time. This dangerous for obvious reasons, luckily
-     * 'rend_draw_add_instance' is a thread-safe api but care should be taken.
-     */
     ecs_view_jump(drawItr, renderable->graphic);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
@@ -156,6 +143,4 @@ ecs_module_init(rend_instance_module) {
   ecs_register_system(RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(DrawView));
 
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
-
-  ecs_parallel(RendInstanceFillDrawsSys, 4);
 }
