@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
+#include "core_thread.h"
 #include "geo_box_rotated.h"
 #include "geo_query.h"
 
@@ -33,6 +34,7 @@ typedef struct {
 struct sGeoQueryEnv {
   Allocator*   alloc;
   GeoQueryPrim prims[GeoQueryPrim_Count];
+  i32          stats[GeoQueryStat_Count];
 };
 
 static usize geo_prim_entry_size(const GeoQueryPrimType type) {
@@ -237,6 +239,11 @@ static bool geo_query_filter_callback(const GeoQueryFilter* filter, const u64 sh
   return true;
 }
 
+static void geo_query_stat_add(const GeoQueryEnv* env, const GeoQueryStat stat, const i32 value) {
+  GeoQueryEnv* mutableEnv = (GeoQueryEnv*)env;
+  thread_atomic_add_i32(&mutableEnv->stats[stat], value);
+}
+
 GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
   GeoQueryEnv* env = alloc_alloc_t(alloc, GeoQueryEnv);
 
@@ -315,6 +322,8 @@ bool geo_query_ray(
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
+  geo_query_stat_add(env, GeoQueryStat_QueryRayCount, 1);
+
   const GeoLine queryLine = {
       .a = ray->point,
       .b = geo_vector_add(ray->point, geo_vector_mul(ray->dir, maxDist)),
@@ -374,6 +383,8 @@ bool geo_query_ray_fat(
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
+  geo_query_stat_add(env, GeoQueryStat_QueryRayFatCount, 1);
+
   const GeoLine queryLine = {
       .a = ray->point,
       .b = geo_vector_add(ray->point, geo_vector_mul(ray->dir, maxDist)),
@@ -424,10 +435,12 @@ u32 geo_query_sphere_all(
     const GeoSphere*      sphere,
     const GeoQueryFilter* filter,
     u64                   out[geo_query_max_hits]) {
-  u32 count = 0;
+
+  geo_query_stat_add(env, GeoQueryStat_QuerySphereAllCount, 1);
 
   const GeoBox queryBounds = geo_box_from_sphere(sphere->point, sphere->radius);
 
+  u32 count = 0;
   for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
     const GeoQueryPrim* prim = &env->prims[primIdx];
     for (u32 i = 0; i != prim->count; ++i) {
@@ -461,10 +474,12 @@ u32 geo_query_frustum_all(
     const GeoVector       frustum[8],
     const GeoQueryFilter* filter,
     u64                   out[geo_query_max_hits]) {
-  u32 count = 0;
+
+  geo_query_stat_add(env, GeoQueryStat_QueryFrustumAllCount, 1);
 
   const GeoBox queryBounds = geo_box_from_frustum(frustum);
 
+  u32 count = 0;
   for (u32 primIdx = 0; primIdx != GeoQueryPrim_Count; ++primIdx) {
     const GeoQueryPrim* prim = &env->prims[primIdx];
     for (u32 i = 0; i != prim->count; ++i) {
@@ -491,4 +506,13 @@ u32 geo_query_frustum_all(
 
 MaxCountReached:
   return count;
+}
+
+void geo_query_stats_reset(GeoQueryEnv* env) { mem_set(array_mem(env->stats), 0); }
+
+i32* geo_query_stats(GeoQueryEnv* env) {
+  env->stats[GeoQueryStat_PrimSphereCount]     = (i32)env->prims[GeoQueryPrim_Sphere].count;
+  env->stats[GeoQueryStat_PrimCapsuleCount]    = (i32)env->prims[GeoQueryPrim_Capsule].count;
+  env->stats[GeoQueryStat_PrimBoxRotatedCount] = (i32)env->prims[GeoQueryPrim_BoxRotated].count;
+  return env->stats;
 }

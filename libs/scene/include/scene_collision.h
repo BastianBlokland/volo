@@ -15,6 +15,8 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 512
 
+#define scene_query_stat_count 7
+
 typedef enum {
   SceneLayer_Debug           = 1 << 0,
   SceneLayer_Environment     = 1 << 1,
@@ -45,6 +47,7 @@ typedef struct {
  * Global collision environment.
  */
 ecs_comp_extern(SceneCollisionEnvComp);
+ecs_comp_extern_public(SceneCollisionStatsComp) { i32 queryStats[scene_query_stat_count]; };
 
 typedef enum {
   SceneCollisionType_Sphere,

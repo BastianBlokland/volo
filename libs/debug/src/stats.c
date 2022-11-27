@@ -1,13 +1,15 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
-#include "core_format.h"
 #include "gap_window.h"
+#include "geo_query.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
+#include "scene_collision.h"
 #include "scene_nav.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -315,15 +317,16 @@ stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* stats
 }
 
 static void debug_stats_draw_interface(
-    UiCanvasComp*               canvas,
-    const DebugStatsGlobalComp* statsGlobal,
-    const DebugStatsComp*       stats,
-    const RendStatsComp*        rendStats,
-    const AllocStats*           allocStats,
-    const EcsDef*               ecsDef,
-    const EcsWorldStats*        ecsStats,
-    const SceneNavStatsComp*    navStats,
-    const UiStatsComp*          uiStats) {
+    UiCanvasComp*                  canvas,
+    const DebugStatsGlobalComp*    statsGlobal,
+    const DebugStatsComp*          stats,
+    const RendStatsComp*           rendStats,
+    const AllocStats*              allocStats,
+    const EcsDef*                  ecsDef,
+    const EcsWorldStats*           ecsStats,
+    const SceneCollisionStatsComp* colStats,
+    const SceneNavStatsComp*       navStats,
+    const UiStatsComp*             uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(510, 25), UiBase_Absolute, Ui_XY);
@@ -379,6 +382,13 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
     stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
+  }
+  if(stats_draw_section(canvas, string_lit("Collision"))) {
+    stats_draw_val_entry(canvas, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
+    stats_draw_val_entry(canvas, string_lit("Prim capsules"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimCapsuleCount])));
+    stats_draw_val_entry(canvas, string_lit("Prim box-rotated"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimBoxRotatedCount])));
+    stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
+    stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} frustum: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryFrustumAllCount])));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
     stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats->gridStats[GeoNavStat_CellCountTotal]), fmt_int(navStats->gridStats[GeoNavStat_CellCountAxis])));
@@ -452,6 +462,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
 
 ecs_view_define(GlobalView) {
   ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(SceneCollisionStatsComp);
   ecs_access_read(SceneNavStatsComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -493,11 +504,11 @@ ecs_system_define(DebugStatsUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*         statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  const SceneTimeComp*          time        = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneNavStatsComp*      navStats    = ecs_view_read_t(globalItr, SceneNavStatsComp);
-  const RendGlobalSettingsComp* rendGlobalSettings =
-      ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  DebugStatsGlobalComp*          statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const SceneTimeComp*           time        = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneCollisionStatsComp* colStats    = ecs_view_read_t(globalItr, SceneCollisionStatsComp);
+  const SceneNavStatsComp*       navStats    = ecs_view_read_t(globalItr, SceneNavStatsComp);
+  const RendGlobalSettingsComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
   const AllocStats    allocStats = alloc_stats_query();
   const EcsWorldStats ecsStats   = ecs_world_stats_query(world);
@@ -513,7 +524,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     const EcsDef*        ecsDef    = ecs_world_def(world);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, rendGlobalSettings, time);
+    debug_stats_update(stats, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
@@ -528,7 +539,16 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       debug_stats_draw_interface(
-          canvas, statsGlobal, stats, rendStats, &allocStats, ecsDef, &ecsStats, navStats, uiStats);
+          canvas,
+          statsGlobal,
+          stats,
+          rendStats,
+          &allocStats,
+          ecsDef,
+          &ecsStats,
+          colStats,
+          navStats,
+          uiStats);
     }
   }
 
