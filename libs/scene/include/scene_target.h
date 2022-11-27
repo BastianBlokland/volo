@@ -7,7 +7,8 @@
 typedef enum {
   SceneTarget_LineOfSight          = 1 << 0,
   SceneTarget_Overriden            = 1 << 1,
-  SceneTarget_InstantRefreshOnIdle = 1 << 2, // Immediately refresh when current target is gone.
+  SceneTarget_ExcludeUnreachable   = 1 << 2,
+  SceneTarget_InstantRefreshOnIdle = 1 << 3, // Immediately refresh when current target is gone.
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {

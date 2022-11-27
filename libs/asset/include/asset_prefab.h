@@ -78,6 +78,7 @@ typedef struct {
   f32        aimSpeedRad; // Radians per second.
   f32        lineOfSightRadius;
   f32        targetScoreRandomness;
+  bool       targetExcludeUnreachable;
   bool       targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttack;
 
