@@ -15,6 +15,8 @@
 #define geo_nav_occupants_per_cell 5
 #define geo_nav_blockers_max 512
 #define geo_nav_blocker_max_cells 128
+#define geo_nav_island_max (u8_max - 1)
+#define geo_nav_island_blocked u8_max
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
@@ -55,6 +57,7 @@ struct sGeoNavGrid {
   u16*          cellBlockerCount; // u16[cellCountTotal]
   u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
   GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
+  u32           islandCount;
 
   GeoNavBlocker* blockers;       // GeoNavBlocker[geo_nav_blockers_max]
   BitSet         blockerFreeSet; // bit[geo_nav_blockers_max]
@@ -765,9 +768,76 @@ static bool nav_blocker_release_all(GeoNavGrid* grid) {
   return false;
 }
 
-static void nav_islands_compute(GeoNavGrid* grid) {
+static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
+  GeoNavCell queue[4096];
+  u32        queueStart = 0;
+  u32        queueEnd   = 0;
+
+  // Assign the starting cell to the island and insert it into the queue.
+  grid->cellIslands[nav_cell_index(grid, start)] = island;
+  queue[0]                                       = start;
+  queueEnd                                       = 1;
+
+  // Flood fill to all unblocked neighbors.
+  while (queueStart != queueEnd) {
+    const GeoNavCell cell = queue[queueStart++];
+
+    GeoNavCell neighbors[4];
+    const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
+    for (u32 i = 0; i != neighborCount; ++i) {
+      const GeoNavCell neighbor      = neighbors[i];
+      const u32        neighborIndex = nav_cell_index(grid, neighbor);
+      if (grid->cellIslands[neighborIndex]) {
+        continue; // Neighbour is already assigned to an island.
+      }
+      if (grid->cellBlockerCount[neighborIndex] > 0) {
+        continue; // Neighbour blocked.
+      }
+      if (UNLIKELY(queueEnd == array_elems(queue))) {
+        // Queue exhausted; reclaim the unused space at the beginning of the queue.
+        mem_move(array_mem(queue), mem_from_to(queue + queueStart, queue + queueEnd));
+        queueEnd -= queueStart;
+        queueStart = 0;
+
+        if (UNLIKELY(queueEnd == array_elems(queue))) {
+          diag_crash_msg("Queue exhausted while filling navigation island");
+        }
+      }
+      grid->cellIslands[neighborIndex] = island;
+      queue[queueEnd++]                = neighbor;
+    }
+  }
+}
+
+static u32 nav_islands_compute(GeoNavGrid* grid) {
   // Set all cell islands to 0.
   mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
+
+  // Assign an island to each cell.
+  u32                islandCount = 0;
+  const GeoNavRegion region      = geo_nav_bounds(grid);
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
+      if (grid->cellIslands[cellIndex]) {
+        continue; // Cell is already assigned to an island.
+      }
+      if (grid->cellBlockerCount[cellIndex] > 0) {
+        // Assign it to the 'blocked' island.
+        grid->cellIslands[cellIndex] = geo_nav_island_blocked;
+        continue;
+      }
+      if (++islandCount == geo_nav_island_max) {
+        log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
+        return islandCount;
+      }
+      const GeoNavCell   cell   = {.x = x, .y = y};
+      const GeoNavIsland island = (GeoNavIsland)islandCount;
+      nav_islands_fill(grid, cell, island);
+    }
+  }
+
+  return islandCount;
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -797,7 +867,7 @@ GeoNavGrid* geo_nav_grid_create(
   };
 
   nav_blocker_release_all(grid);
-  nav_islands_compute(grid);
+  grid->islandCount = nav_islands_compute(grid);
   return grid;
 }
 
@@ -1036,7 +1106,7 @@ bool geo_nav_blocker_remove_pred(
 
 bool geo_nav_blocker_remove_all(GeoNavGrid* grid) { return nav_blocker_release_all(grid); }
 
-void geo_nav_compute_islands(GeoNavGrid* grid) { nav_islands_compute(grid); }
+void geo_nav_compute_islands(GeoNavGrid* grid) { grid->islandCount = nav_islands_compute(grid); }
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
@@ -1123,6 +1193,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
   grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
   grid->stats[GeoNavStat_CellCountAxis]  = grid->cellCountAxis;
   grid->stats[GeoNavStat_BlockerCount]   = nav_blocker_count(grid);
+  grid->stats[GeoNavStat_IslandCount]    = grid->islandCount;
   grid->stats[GeoNavStat_OccupantCount]  = grid->occupantCount;
   grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
   grid->stats[GeoNavStat_WorkerDataSize] = 0;
