@@ -992,10 +992,10 @@ u32 geo_nav_path(
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
   if (nav_cell_predicate_blocked(grid, from)) {
-    return 0; // From cell is blocked, no path possible.
+    return 0; // From cell is blocked; no path possible.
   }
-  if (nav_cell_predicate_blocked(grid, to)) {
-    return 0; // To cell is blocked, no path possible.
+  if (geo_nav_island(grid, from) != geo_nav_island(grid, to)) {
+    return 0; // Cells are on different islands; no path possible.
   }
 
   GeoNavWorkerState* s = nav_worker_state(grid);
