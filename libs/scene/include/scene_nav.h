@@ -63,6 +63,7 @@ bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_occupied_moving(const SceneNavEnvComp*, GeoNavCell);
 GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
+GeoNavIsland scene_nav_island(const SceneNavEnvComp*, GeoNavCell);
 
 /**
  * Compute a vector to separate the given position from blockers and other agents.

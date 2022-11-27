@@ -973,7 +973,11 @@ static void inspector_vis_draw_subject(
   }
 }
 
-static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const SceneNavEnvComp* nav) {
+static void inspector_vis_draw_navigation_grid(
+    DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav) {
+
+  DynString textBuffer = dynstring_create_over(mem_stack(64));
+
   const GeoNavRegion   bounds    = scene_nav_bounds(nav);
   const GeoVector      cellSize  = scene_nav_cell_size(nav);
   const DebugShapeMode shapeMode = DebugShape_Overlay;
@@ -990,9 +994,16 @@ static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const Scen
       } else if (scene_nav_occupied(nav, cell)) {
         color = geo_color(0, 0, 1, highlight ? 0.2f : 0.1f);
       } else {
+        continue;
         color = geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
       }
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
+
+      const GeoNavIsland island = scene_nav_island(nav, cell);
+
+      dynstring_clear(&textBuffer);
+      format_write_u64(&textBuffer, island, &format_opts_int());
+      debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
     }
   }
 }
@@ -1050,7 +1061,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    inspector_vis_draw_navigation_grid(shape, nav);
+    inspector_vis_draw_navigation_grid(shape, text, nav);
   }
 }
 

@@ -72,6 +72,7 @@ bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
+GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
 
 /**
  * Compute a path between the given two cells.

@@ -889,6 +889,11 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
   return nav_cell_map(grid, pos).cell;
 }
 
+GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return grid->cellIslands[nav_cell_index(grid, cell)];
+}
+
 u32 geo_nav_path(
     const GeoNavGrid*       grid,
     const GeoNavCell        from,

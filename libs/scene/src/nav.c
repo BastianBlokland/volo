@@ -424,6 +424,10 @@ GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos
   return geo_nav_at_position(env->navGrid, pos);
 }
 
+GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
+  return geo_nav_island(env->navGrid, cell);
+}
+
 GeoVector scene_nav_separate(
     const SceneNavEnvComp* env,
     const EcsEntityId      entity,
