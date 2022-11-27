@@ -63,14 +63,13 @@ static TargetLineOfSightInfo target_los_query(
     return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
   }
 
-  const EcsEntityId      targetEntity = ecs_view_entity(targetItr);
-  const SceneLayer       targetLayer  = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
-  const SceneQueryFilter filter       = {.layerMask = SceneLayer_Environment | targetLayer};
-  const GeoRay           ray          = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
+  const SceneLayer       targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
+  const SceneQueryFilter filter      = {.layerMask = SceneLayer_Environment | targetLayer};
+  const GeoRay           ray         = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
 
   SceneRayHit hit;
   if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
-    const bool hasLos = hit.entity == targetEntity;
+    const bool hasLos = (hit.layer & targetLayer) != 0;
     return (TargetLineOfSightInfo){
         .hasLos   = hasLos,
         .distance = hasLos ? hit.time : dist,

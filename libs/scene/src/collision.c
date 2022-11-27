@@ -222,10 +222,11 @@ bool scene_query_ray(
   };
   if (geo_query_ray(env->queryEnv, ray, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
+        .time     = hit.time,
         .entity   = (EcsEntityId)hit.shapeId,
         .position = geo_ray_position(ray, hit.time),
         .normal   = hit.normal,
-        .time     = hit.time,
+        .layer    = (SceneLayer)hit.layer,
     };
     return true;
   }
@@ -249,6 +250,7 @@ bool scene_query_ray_fat(
   };
   if (geo_query_ray_fat(env->queryEnv, ray, radius, maxDist, &geoFilter, &hit)) {
     *out = (SceneRayHit){
+        .time   = hit.time,
         .entity = (EcsEntityId)hit.shapeId,
         /**
          * TODO: Instead of always outputting positions on the ray we should find the actual
@@ -256,7 +258,7 @@ bool scene_query_ray_fat(
          */
         .position = geo_ray_position(ray, hit.time),
         .normal   = hit.normal,
-        .time     = hit.time,
+        .layer    = (SceneLayer)hit.layer,
     };
     return true;
   }
