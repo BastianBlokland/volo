@@ -313,9 +313,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->destination               = toPos;
       --pathQueriesRemaining;
 
-      // Stop if no path is possible.
+      // Stop if no path is possible at this time.
       if (!path->cellCount) {
-        agent->flags |= SceneNavAgent_Stop;
         goto Done;
       }
     }
