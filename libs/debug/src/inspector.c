@@ -994,7 +994,6 @@ static void inspector_vis_draw_navigation_grid(
       } else if (scene_nav_occupied(nav, cell)) {
         color = geo_color(0, 0, 1, highlight ? 0.2f : 0.1f);
       } else {
-        continue;
         color = geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
       }
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
