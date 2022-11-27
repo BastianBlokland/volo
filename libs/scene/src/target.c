@@ -103,7 +103,7 @@ static f32 target_score_sqr(
   if (finder->flags & SceneTarget_ExcludeUnreachable) {
     const GeoNavCell navCellA = scene_nav_at_position(nav, transA->position);
     const GeoNavCell navCellB = scene_nav_at_position(nav, transB->position);
-    if (!scene_nav_reachable(nav, navCellB, navCellA)) {
+    if (!scene_nav_reachable(nav, navCellA, navCellB)) {
       return -1.0f;
     }
   }
