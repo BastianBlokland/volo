@@ -80,7 +80,7 @@ jobs:
           }
     env:
       CC: ${{matrix.config.cc}}
-      CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DFAST=${{matrix.config.fast}} -DLTO=${{matrix.config.lto}}"
+      CMAKE_OPTS: "-DEXTERNAL_ASSETS=Off -DSANITIZE=On -DFAST=${{matrix.config.fast}} -DLTO=${{matrix.config.lto}}"
     steps:
     - name: checkout
       uses: actions/checkout@v3
