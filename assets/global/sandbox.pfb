@@ -70,7 +70,8 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
           "lineOfSightRadius": 0.2,
-          "targetScoreRandomness": 2
+          "targetScoreRandomness": 2,
+          "targetExcludeUnreachable": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",

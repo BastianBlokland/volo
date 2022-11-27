@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_brain.h"
+#include "scene_register.h"
 #include "script_mem.h"
 
 #define scene_brain_max_behavior_loads 8
@@ -146,6 +147,7 @@ ecs_module_init(scene_brain_module) {
 
   ecs_register_system(SceneBrainUpdateSys, ecs_view_id(BrainEntityView), ecs_view_id(BehaviorView));
 
+  ecs_order(SceneBrainUpdateSys, SceneOrder_BrainUpdate);
   ecs_parallel(SceneBrainUpdateSys, 4);
 }
 

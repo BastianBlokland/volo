@@ -15,13 +15,15 @@
 #define geo_nav_occupants_per_cell 5
 #define geo_nav_blockers_max 512
 #define geo_nav_blocker_max_cells 128
+#define geo_nav_island_max (u8_max - 1)
+#define geo_nav_island_blocked u8_max
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 ASSERT(geo_nav_blockers_max < u16_max, "Nav blocker has to be indexable by a u16");
 ASSERT((geo_nav_blockers_max & (geo_nav_blockers_max - 1u)) == 0, "Has to be a pow2");
 ASSERT((geo_nav_blocker_max_cells & (geo_nav_blocker_max_cells - 1u)) == 0, "Has to be a pow2");
 
-typedef bool (*NavCellPredicate)(const GeoNavGrid*, GeoNavCell);
+typedef bool (*NavCellPredicate)(const GeoNavGrid*, const void* ctx, GeoNavCell);
 
 typedef struct {
   u64                 userId;
@@ -48,12 +50,14 @@ typedef struct {
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
-  u32       cellCountAxis, cellCountTotal;
-  f32       cellDensity, cellSize;
-  f32       cellHeight;
-  GeoVector cellOffset;
-  u16*      cellBlockerCount; // u16[cellCountTotal]
-  u16*      cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
+  u32           cellCountAxis, cellCountTotal;
+  f32           cellDensity, cellSize;
+  f32           cellHeight;
+  GeoVector     cellOffset;
+  u16*          cellBlockerCount; // u16[cellCountTotal]
+  u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
+  GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
+  u32           islandCount;
 
   GeoNavBlocker* blockers;       // GeoNavBlocker[geo_nav_blockers_max]
   BitSet         blockerFreeSet; // bit[geo_nav_blockers_max]
@@ -426,6 +430,7 @@ typedef enum {
 static bool nav_find(
     const GeoNavGrid*  grid,
     GeoNavWorkerState* s,
+    const void*        ctx,
     const GeoNavCell   from,
     NavCellPredicate   predicate,
     GeoNavCell*        outResult) {
@@ -433,9 +438,13 @@ static bool nav_find(
   ++s->stats[GeoNavStat_FindCount];       // Track amount of find queries.
   ++s->stats[GeoNavStat_FindItrEnqueues]; // Include the initial enqueue in the tracking.
 
-  GeoNavCell queue[512] = {from};
+  GeoNavCell queue[512];
   u32        queueStart = 0;
-  u32        queueEnd   = 1;
+  u32        queueEnd   = 0;
+
+  // Insert the first cell.
+  queue[0] = from;
+  queueEnd = 1;
 
   mem_set(s->markedCells, 0);
   nav_bit_set(s->markedCells, nav_cell_index(grid, from));
@@ -444,7 +453,7 @@ static bool nav_find(
     ++s->stats[GeoNavStat_FindItrCells]; // Track total amount of find iterations.
 
     const GeoNavCell cell = queue[queueStart++];
-    if (predicate(grid, cell)) {
+    if (predicate(grid, ctx, cell)) {
       *outResult = cell;
       return NavFindResult_Found;
     }
@@ -474,6 +483,7 @@ static bool nav_find(
 INLINE_HINT static bool nav_any_in_line(
     const GeoNavGrid*  grid,
     GeoNavWorkerState* s,
+    const void*        ctx,
     GeoNavCell         a,
     GeoNavCell         b,
     NavCellPredicate   predicate) {
@@ -495,7 +505,7 @@ INLINE_HINT static bool nav_any_in_line(
 
 #define check_cell(_X_, _Y_)                                                                       \
   do {                                                                                             \
-    if (predicate(grid, (GeoNavCell){.x = (_X_), .y = (_Y_)})) {                                   \
+    if (predicate(grid, ctx, (GeoNavCell){.x = (_X_), .y = (_Y_)})) {                              \
       return true;                                                                                 \
     }                                                                                              \
   } while (false)
@@ -550,23 +560,27 @@ INLINE_HINT static bool nav_any_in_line(
   return false; // No cell in the line matched the predicate.
 }
 
-static bool nav_cell_predicate_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return grid->cellBlockerCount[nav_cell_index(grid, cell)] > 0;
+static bool nav_pred_blocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
+  return g->cellBlockerCount[nav_cell_index(g, cell)] > 0;
 }
 
-static bool nav_cell_predicate_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return grid->cellBlockerCount[nav_cell_index(grid, cell)] == 0;
+static bool nav_pred_unblocked(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
+  return g->cellBlockerCount[nav_cell_index(g, cell)] == 0;
 }
 
-static bool nav_cell_predicate_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
+static bool nav_pred_occupied(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
   return occupantCount != 0;
 }
 
-static bool nav_cell_predicate_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
+static bool nav_pred_occupied_moving(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (occupants[i]->flags & GeoNavOccupantFlags_Moving) {
       return true;
@@ -575,21 +589,27 @@ static bool nav_cell_predicate_occupied_moving(const GeoNavGrid* grid, const Geo
   return false;
 }
 
-static bool nav_cell_predicate_free(const GeoNavGrid* grid, const GeoNavCell cell) {
+static bool nav_pred_free(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  (void)ctx;
   /**
    * Test if the cell is not blocked and has no stationary occupant.
    */
-  if (grid->cellBlockerCount[nav_cell_index(grid, cell)] > 0) {
+  if (g->cellBlockerCount[nav_cell_index(g, cell)] > 0) {
     return false;
   }
   const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
-  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  const u32             occupantCount = nav_cell_occupants(g, cell, occupants);
   for (u32 i = 0; i != occupantCount; ++i) {
     if (!(occupants[i]->flags & GeoNavOccupantFlags_Moving)) {
       return false;
     }
   }
   return true;
+}
+
+static bool nav_pred_reachable(const GeoNavGrid* g, const void* ctx, const GeoNavCell cell) {
+  const GeoNavIsland* refIsland = ctx;
+  return g->cellIslands[nav_cell_index(g, cell)] == *refIsland;
 }
 
 /**
@@ -638,7 +658,7 @@ static GeoVector nav_separate_from_blockers(
     for (u32 x = reg.min.x; x != reg.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
       // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      if (!nav_cell_predicate_blocked(grid, cell)) {
+      if (!nav_pred_blocked(grid, null, cell)) {
         continue; // Cell not blocked.
       }
       const f32 distSqr = nav_cell_dist_sqr(grid, cell, pos);
@@ -707,10 +727,12 @@ static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
   ++grid->cellBlockerCount[nav_cell_index(grid, cell)];
 }
 
-static void nav_cell_unblock(GeoNavGrid* grid, const GeoNavCell cell) {
+static bool nav_cell_unblock(GeoNavGrid* grid, const GeoNavCell cell) {
   const u32 index = nav_cell_index(grid, cell);
   diag_assert_msg(grid->cellBlockerCount[index], "Cell not currently blocked");
+
   --grid->cellBlockerCount[index];
+  return grid->cellBlockerCount[index] == 0;
 }
 
 static u32 nav_blocker_count(GeoNavGrid* grid) {
@@ -727,28 +749,107 @@ static GeoNavBlockerId nav_blocker_acquire(GeoNavGrid* grid) {
   return (GeoNavBlockerId)index;
 }
 
-static void nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
+static bool nav_blocker_release(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   diag_assert_msg(!nav_bit_test(grid->blockerFreeSet, blockerId), "Blocker double free");
 
   const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
   const GeoNavRegion   region          = blocker->region;
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
 
+  bool anyBecameUnblocked = false;
+
   u32 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       if (nav_bit_test(blockedInRegion, indexInRegion)) {
-        nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
+        anyBecameUnblocked |= nav_cell_unblock(grid, (GeoNavCell){.x = x, .y = y});
       }
       ++indexInRegion;
     }
   }
   nav_bit_set(grid->blockerFreeSet, blockerId);
+  return anyBecameUnblocked;
 }
 
-static void nav_blocker_release_all(GeoNavGrid* grid) {
-  bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max); // All blockers free again.
-  mem_set(mem_create(grid->cellBlockerCount, sizeof(u16) * grid->cellCountTotal), 0);
+static bool nav_blocker_release_all(GeoNavGrid* grid) {
+  if (nav_blocker_count(grid) != 0) {
+    bitset_set_all(grid->blockerFreeSet, geo_nav_blockers_max); // All blockers free again.
+    mem_set(mem_create(grid->cellBlockerCount, sizeof(u16) * grid->cellCountTotal), 0);
+    return true;
+  }
+  return false;
+}
+
+static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
+  GeoNavCell queue[4096];
+  u32        queueStart = 0;
+  u32        queueEnd   = 0;
+
+  // Assign the starting cell to the island and insert it into the queue.
+  grid->cellIslands[nav_cell_index(grid, start)] = island;
+  queue[0]                                       = start;
+  queueEnd                                       = 1;
+
+  // Flood fill to all unblocked neighbors.
+  while (queueStart != queueEnd) {
+    const GeoNavCell cell = queue[queueStart++];
+
+    GeoNavCell neighbors[4];
+    const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
+    for (u32 i = 0; i != neighborCount; ++i) {
+      const GeoNavCell neighbor      = neighbors[i];
+      const u32        neighborIndex = nav_cell_index(grid, neighbor);
+      if (grid->cellIslands[neighborIndex]) {
+        continue; // Neighbour is already assigned to an island.
+      }
+      if (grid->cellBlockerCount[neighborIndex] > 0) {
+        continue; // Neighbour blocked.
+      }
+      if (UNLIKELY(queueEnd == array_elems(queue))) {
+        // Queue exhausted; reclaim the unused space at the beginning of the queue.
+        mem_move(array_mem(queue), mem_from_to(queue + queueStart, queue + queueEnd));
+        queueEnd -= queueStart;
+        queueStart = 0;
+
+        if (UNLIKELY(queueEnd == array_elems(queue))) {
+          diag_crash_msg("Queue exhausted while filling navigation island");
+        }
+      }
+      grid->cellIslands[neighborIndex] = island;
+      queue[queueEnd++]                = neighbor;
+    }
+  }
+}
+
+static u32 nav_islands_compute(GeoNavGrid* grid) {
+  // Set all cell islands to 0.
+  mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
+
+  // Assign an island to each cell.
+  u32                islandCount = 0;
+  const GeoNavRegion region      = geo_nav_bounds(grid);
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
+    for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
+      if (grid->cellIslands[cellIndex]) {
+        continue; // Cell is already assigned to an island.
+      }
+      if (grid->cellBlockerCount[cellIndex] > 0) {
+        // Assign it to the 'blocked' island.
+        grid->cellIslands[cellIndex] = geo_nav_island_blocked;
+        continue;
+      }
+      if (++islandCount == geo_nav_island_max) {
+        log_e("Navigation island limit reached", log_param("limit", fmt_int(geo_nav_island_max)));
+        return islandCount;
+      }
+      const GeoNavCell   cell   = {.x = x, .y = y};
+      const GeoNavIsland island = (GeoNavIsland)islandCount;
+      nav_islands_fill(grid, cell, island);
+    }
+  }
+
+  return islandCount;
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -770,6 +871,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellOffset       = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
       .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
+      .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
       .blockers         = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
       .blockerFreeSet   = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max), 1),
       .occupants        = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
@@ -777,11 +879,13 @@ GeoNavGrid* geo_nav_grid_create(
   };
 
   nav_blocker_release_all(grid);
+  grid->islandCount = nav_islands_compute(grid);
   return grid;
 }
 
 void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free_array_t(grid->alloc, grid->cellBlockerCount, grid->cellCountTotal);
+  alloc_free_array_t(grid->alloc, grid->cellIslands, grid->cellCountTotal);
   alloc_free(grid->alloc, nav_occupancy_mem(grid));
   alloc_free_array_t(grid->alloc, grid->blockers, geo_nav_blockers_max);
   alloc_free(grid->alloc, grid->blockerFreeSet);
@@ -837,7 +941,7 @@ GeoNavRegion geo_nav_region(const GeoNavGrid* grid, const GeoNavCell cell, const
 
 bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_cell_predicate_blocked(grid, cell);
+  return nav_pred_blocked(grid, null, cell);
 }
 
 bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
@@ -847,17 +951,24 @@ bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const G
    * Check if any cell in a rasterized line between the two points is blocked.
    */
   GeoNavWorkerState* s = nav_worker_state(grid);
-  return nav_any_in_line(grid, s, from, to, nav_cell_predicate_blocked);
+  return nav_any_in_line(grid, s, null, from, to, nav_pred_blocked);
+}
+
+bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  return geo_nav_island(grid, from) == geo_nav_island(grid, to);
 }
 
 bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_cell_predicate_occupied(grid, cell);
+  return nav_pred_occupied(grid, null, cell);
 }
 
 bool geo_nav_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return nav_cell_predicate_occupied_moving(grid, cell);
+  return nav_pred_occupied_moving(grid, null, cell);
 }
 
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -865,7 +976,7 @@ GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell ce
 
   GeoNavWorkerState* s = nav_worker_state(grid);
   GeoNavCell         res;
-  if (nav_find(grid, s, cell, nav_cell_predicate_unblocked, &res) == NavFindResult_Found) {
+  if (nav_find(grid, s, null, cell, nav_pred_unblocked, &res) == NavFindResult_Found) {
     return res;
   }
   return cell; // No unblocked cell found.
@@ -876,14 +987,33 @@ GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
 
   GeoNavWorkerState* s = nav_worker_state(grid);
   GeoNavCell         res;
-  if (nav_find(grid, s, cell, nav_cell_predicate_free, &res) == NavFindResult_Found) {
+  if (nav_find(grid, s, null, cell, nav_pred_free, &res) == NavFindResult_Found) {
     return res;
   }
   return cell; // No free cell found.
 }
 
+GeoNavCell
+geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s          = nav_worker_state(grid);
+  const GeoNavIsland fromIsland = geo_nav_island(grid, from);
+  GeoNavCell         res;
+  if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, &res) == NavFindResult_Found) {
+    return res;
+  }
+  return from; // No reachable cell found.
+}
+
 GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
   return nav_cell_map(grid, pos).cell;
+}
+
+GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return grid->cellIslands[nav_cell_index(grid, cell)];
 }
 
 u32 geo_nav_path(
@@ -894,11 +1024,11 @@ u32 geo_nav_path(
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  if (nav_cell_predicate_blocked(grid, from)) {
-    return 0; // From cell is blocked, no path possible.
+  if (nav_pred_blocked(grid, null, from)) {
+    return 0; // From cell is blocked; no path possible.
   }
-  if (nav_cell_predicate_blocked(grid, to)) {
-    return 0; // To cell is blocked, no path possible.
+  if (geo_nav_island(grid, from) != geo_nav_island(grid, to)) {
+    return 0; // Cells are on different islands; no path possible.
   }
 
   GeoNavWorkerState* s = nav_worker_state(grid);
@@ -985,26 +1115,31 @@ GeoNavBlockerId geo_nav_blocker_add_box_rotated(
   return blockerId;
 }
 
-void geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
+bool geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   if (sentinel_check(blockerId)) {
-    return; // Blocker as never actually added so no need to remove it.
+    return false; // Blocker as never actually added so no need to remove it.
   }
-  nav_blocker_release(grid, blockerId);
+  return nav_blocker_release(grid, blockerId);
 }
 
-void geo_nav_blocker_remove_pred(
+bool geo_nav_blocker_remove_pred(
     GeoNavGrid* grid, const GeoNavBlockerPredicate predicate, void* ctx) {
+
+  bool anyBecameUnblocked = false;
   for (GeoNavBlockerId blockerId = 0; blockerId != geo_nav_blockers_max; ++blockerId) {
     if (nav_bit_test(grid->blockerFreeSet, blockerId)) {
       continue; // Blocker is unused.
     }
     if (predicate(ctx, grid->blockers[blockerId].userId)) {
-      nav_blocker_release(grid, blockerId);
+      anyBecameUnblocked |= nav_blocker_release(grid, blockerId);
     }
   }
+  return anyBecameUnblocked;
 }
 
-void geo_nav_blocker_remove_all(GeoNavGrid* grid) { nav_blocker_release_all(grid); }
+bool geo_nav_blocker_remove_all(GeoNavGrid* grid) { return nav_blocker_release_all(grid); }
+
+void geo_nav_compute_islands(GeoNavGrid* grid) { grid->islandCount = nav_islands_compute(grid); }
 
 void geo_nav_occupant_add(
     GeoNavGrid*               grid,
@@ -1047,7 +1182,7 @@ GeoVector geo_nav_separate(
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
   }
-  if (nav_cell_predicate_blocked(grid, mapRes.cell)) {
+  if (nav_pred_blocked(grid, null, mapRes.cell)) {
     // Position is currently in a blocked cell; push it into the closest unblocked cell.
     const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, mapRes.cell);
     return geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
@@ -1073,23 +1208,25 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                             // Structure
-                           ((u32)sizeof(u16) * grid->cellCountTotal) +      // grid.cellBlockerCount
-                           ((u32)nav_occupancy_mem(grid).size) +            // grid.cellOccupancy
-                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) + // grid.blockers
-                           bits_to_bytes(geo_nav_blockers_max) +            // grid.blockerFreeSet
-                           (sizeof(GeoNavOccupant) * geo_nav_occupants_max); // grid.occupants
+  u32 dataSizeGrid = sizeof(GeoNavGrid);
+  dataSizeGrid += ((u32)sizeof(u16) * grid->cellCountTotal);          // grid.cellBlockerCount
+  dataSizeGrid += ((u32)nav_occupancy_mem(grid).size);                // grid.cellOccupancy
+  dataSizeGrid += ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal); // grid.cellIslands
+  dataSizeGrid += (sizeof(GeoNavBlocker) * geo_nav_blockers_max);     // grid.blockers
+  dataSizeGrid += bits_to_bytes(geo_nav_blockers_max);                // grid.blockerFreeSet
+  dataSizeGrid += (sizeof(GeoNavOccupant) * geo_nav_occupants_max);   // grid.occupants
 
-  const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                   // Structure
-                                (bits_to_bytes(grid->cellCountTotal) + 1) +   // state.markedCells
-                                (sizeof(GeoNavCell) * grid->cellCountTotal) + // state.fScoreQueue
-                                (sizeof(u16) * grid->cellCountTotal) +        // state.gScores
-                                (sizeof(u16) * grid->cellCountTotal) +        // state.fScores
-                                (sizeof(GeoNavCell) * grid->cellCountTotal);  // state.cameFrom
+  u32 dataSizePerWorker = sizeof(GeoNavWorkerState);
+  dataSizePerWorker += (bits_to_bytes(grid->cellCountTotal) + 1);   // state.markedCells
+  dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.fScoreQueue
+  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.gScores
+  dataSizePerWorker += (sizeof(u16) * grid->cellCountTotal);        // state.fScores
+  dataSizePerWorker += (sizeof(GeoNavCell) * grid->cellCountTotal); // state.cameFrom
 
   grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
   grid->stats[GeoNavStat_CellCountAxis]  = grid->cellCountAxis;
   grid->stats[GeoNavStat_BlockerCount]   = nav_blocker_count(grid);
+  grid->stats[GeoNavStat_IslandCount]    = grid->islandCount;
   grid->stats[GeoNavStat_OccupantCount]  = grid->occupantCount;
   grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
   grid->stats[GeoNavStat_WorkerDataSize] = 0;

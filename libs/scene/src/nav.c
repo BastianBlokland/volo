@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "core_sentinel.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_locomotion.h"
@@ -88,8 +89,11 @@ static u32 scene_nav_blocker_hash(
   return hash;
 }
 
-static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
-  geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities);
+static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+  bool blockersChanged = false;
+  if (geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities)) {
+    blockersChanged = true;
+  }
 
   for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision   = ecs_view_read_t(itr, SceneCollisionComp);
@@ -102,7 +106,7 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
 
     if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
       if (dirty) {
-        geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
+        blockersChanged |= geo_nav_blocker_remove(env->navGrid, blockerComp->blockerId);
       } else {
         continue; // Not dirty and already registered; nothing to do.
       }
@@ -113,8 +117,10 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     const u64 userId = (u64)ecs_view_entity(itr);
     switch (collision->type) {
     case SceneCollisionType_Sphere: {
-      // NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
-      // then sphere support should be added to GeoNavGrid.
+      /**
+       * NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
+       * then sphere support should be added to GeoNavGrid.
+       */
       const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
       const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
       blockerComp->blockerId  = scene_nav_block_box(env, userId, &sBounds);
@@ -131,7 +137,16 @@ static void scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     case SceneCollisionType_Count:
       UNREACHABLE
     }
+    if (!sentinel_check(blockerComp->blockerId)) {
+      /**
+       * A new blocker was registered.
+       * NOTE: This doesn't necessarily mean any new cell get blocked that wasn't before so this
+       * dirtying is a conservative at the moment.
+       */
+      blockersChanged = true;
+    }
   }
+  return blockersChanged;
 }
 
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
@@ -190,7 +205,9 @@ ecs_system_define(SceneNavInitSys) {
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  scene_nav_refresh_blockers(env, blockerEntities);
+  if (scene_nav_refresh_blockers(env, blockerEntities)) {
+    geo_nav_compute_islands(env->navGrid);
+  }
 
   geo_nav_occupant_remove_all(env->navGrid);
   EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
@@ -260,12 +277,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    GeoVector  toPos     = agent->target;
-    GeoNavCell toCell    = geo_nav_at_position(env->navGrid, toPos);
-    const bool toBlocked = geo_nav_blocked(env->navGrid, toCell);
+    const GeoNavCell fromCell  = geo_nav_at_position(env->navGrid, trans->position);
+    GeoVector        toPos     = agent->target;
+    GeoNavCell       toCell    = geo_nav_at_position(env->navGrid, toPos);
+    const bool       toBlocked = geo_nav_blocked(env->navGrid, toCell);
     if (toBlocked) {
       // Target is not reachable; pick the closest reachable point.
-      toCell = geo_nav_closest_unblocked(env->navGrid, toCell);
+      toCell = geo_nav_closest_reachable(env->navGrid, fromCell, toCell);
       toPos  = geo_nav_position(env->navGrid, toCell);
     }
 
@@ -281,7 +299,6 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    const GeoNavCell fromCell = geo_nav_at_position(env->navGrid, trans->position);
     if (!geo_nav_line_blocked(env->navGrid, fromCell, toCell)) {
       // No obstacles between us and the target; move straight to the target
       scene_locomotion_move(loco, toPos);
@@ -296,9 +313,8 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->destination               = toPos;
       --pathQueriesRemaining;
 
-      // Stop if no path is possible.
+      // Stop if no path is possible at this time.
       if (!path->cellCount) {
-        agent->flags |= SceneNavAgent_Stop;
         goto Done;
       }
     }
@@ -412,6 +428,14 @@ bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->navGrid, cell);
 }
 
+bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
+  /**
+   * NOTE: If the given 'to' cell is not reachable we use the closest unblocked cell.
+   * TODO: Should this be handled at this level?
+   */
+  return geo_nav_reachable(env->navGrid, from, geo_nav_closest_unblocked(env->navGrid, to));
+}
+
 bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_occupied(env->navGrid, cell);
 }
@@ -422,6 +446,10 @@ bool scene_nav_occupied_moving(const SceneNavEnvComp* env, const GeoNavCell cell
 
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
   return geo_nav_at_position(env->navGrid, pos);
+}
+
+GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
+  return geo_nav_island(env->navGrid, cell);
 }
 
 GeoVector scene_nav_separate(

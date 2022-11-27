@@ -405,7 +405,7 @@ void format_write_arg(DynString*, const FormatArg*);
 /**
  * Write a type-erased argument to a scratch buffer.
  *
- * Pre-condition: Formatted string fits in 1KiB.
+ * Pre-condition: Formatted string fits in 8KiB.
  */
 String format_write_arg_scratch(const FormatArg*);
 

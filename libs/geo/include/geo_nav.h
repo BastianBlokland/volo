@@ -37,6 +37,11 @@ typedef struct {
 } GeoNavPathStorage;
 
 /**
+ * A NavIsland is a reachable area in the grid.
+ */
+typedef u8 GeoNavIsland;
+
+/**
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
@@ -62,11 +67,14 @@ GeoBox       geo_nav_box(const GeoNavGrid*, GeoNavCell);
 GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
+bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
+GeoNavCell   geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
+GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
 
 /**
  * Compute a path between the given two cells.
@@ -83,9 +91,14 @@ typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
 
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
-void            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
-void            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
-void            geo_nav_blocker_remove_all(GeoNavGrid*);
+bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
+bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
+bool            geo_nav_blocker_remove_all(GeoNavGrid*);
+
+/**
+ * (Re-)compute the islands.
+ */
+void geo_nav_compute_islands(GeoNavGrid*);
 
 /**
  * Register occupants.
@@ -114,6 +127,7 @@ typedef enum {
   GeoNavStat_BlockerCount,
   GeoNavStat_BlockerAddCount,
   GeoNavStat_OccupantCount,
+  GeoNavStat_IslandCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,

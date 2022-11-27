@@ -6,6 +6,7 @@
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_nav.h"
+#include "scene_register.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -122,5 +123,6 @@ ecs_module_init(scene_sensor_module) {
 
   ecs_register_system(SceneSensorUpdateSys, ecs_view_id(SensorGlobalView), ecs_view_id(BrainView));
 
+  ecs_order(SceneSensorUpdateSys, SceneOrder_SensorUpdate);
   ecs_parallel(SceneSensorUpdateSys, 2);
 }

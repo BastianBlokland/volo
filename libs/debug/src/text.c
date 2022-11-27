@@ -56,7 +56,10 @@ static GeoMatrix debug_text_view_proj(
 }
 
 static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVector pos) {
-  const GeoVector ndcPos     = geo_matrix_transform(viewProj, geo_vector(pos.x, pos.y, pos.z, 1));
+  const GeoVector ndcPos = geo_matrix_transform(viewProj, geo_vector(pos.x, pos.y, pos.z, 1));
+  if (UNLIKELY(ndcPos.w == 0)) {
+    return geo_vector(-1, -1, -1, -1); // Not a valid position on screen.
+  }
   const GeoVector persDivPos = geo_vector_perspective_div(ndcPos);
   const GeoVector normPos    = geo_vector_mul(geo_vector_add(persDivPos, geo_vector(1, 1)), 0.5f);
   return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);

@@ -72,6 +72,7 @@ typedef struct {
   f32    aimSpeed; // Degrees per second.
   f32    lineOfSightRadius;
   f32    targetScoreRandomness;
+  bool   targetExcludeUnreachable;
   bool   targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttackDef;
 
@@ -179,6 +180,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandomness, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetInstantRefreshOnIdle, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
@@ -357,6 +359,7 @@ static void prefab_build(
           .aimSpeedRad                = traitDef->data_attack.aimSpeed * math_deg_to_rad,
           .lineOfSightRadius          = traitDef->data_attack.lineOfSightRadius,
           .targetScoreRandomness      = traitDef->data_attack.targetScoreRandomness,
+          .targetExcludeUnreachable   = traitDef->data_attack.targetExcludeUnreachable,
           .targetInstantRefreshOnIdle = traitDef->data_attack.targetInstantRefreshOnIdle,
       };
       break;

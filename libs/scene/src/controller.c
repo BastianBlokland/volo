@@ -3,6 +3,7 @@
 #include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_nav.h"
+#include "scene_register.h"
 #include "scene_target.h"
 
 // clang-format off
@@ -34,12 +35,8 @@ ecs_system_define(SceneControllerUpdateSys) {
       // Start moving when the nav-target value is set.
       const ScriptVal navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
       if (script_val_has(navTarget)) {
-        const GeoVector navTargetPos = script_get_vector3(navTarget, geo_vector(0));
-        if (!geo_vector_equal3(navAgent->target, navTargetPos, 1e-4f)) {
-          scene_nav_move_to(navAgent, navTargetPos);
-        } else if (!(navAgent->flags & SceneNavAgent_Traveling)) {
-          scene_brain_set_null(brain, g_brainKeyNavTarget);
-        }
+        scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
+        scene_brain_set_null(brain, g_brainKeyNavTarget);
       }
 
       // Stop moving when nav-stop value is set.
@@ -76,4 +73,6 @@ ecs_module_init(scene_controller_module) {
   ecs_register_view(BrainView);
 
   ecs_register_system(SceneControllerUpdateSys, ecs_view_id(BrainView));
+
+  ecs_order(SceneControllerUpdateSys, SceneOrder_ControllerUpdate);
 }
