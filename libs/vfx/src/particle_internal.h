@@ -36,6 +36,5 @@ void vfx_particle_init(RendDrawComp*, const AssetAtlasComp*);
 
 /**
  * Output a particle to the given draw.
- * NOTE: Thread-safe, multiple particles can be added to the same draw in parallel.
  */
 void vfx_particle_output(RendDrawComp*, const VfxParticle*);

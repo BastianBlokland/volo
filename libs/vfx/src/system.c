@@ -15,7 +15,7 @@
 
 #include "particle_internal.h"
 
-#define vfx_max_asset_requests_per_task 4
+#define vfx_max_asset_requests 4
 
 typedef struct {
   u8           emitter;
@@ -52,18 +52,7 @@ static void ecs_combine_asset_request(void* dataA, void* dataB) {
   compA->flags |= compB->flags;
 }
 
-ecs_view_define(DrawView) {
-  /**
-   * Here be dragons!
-   * To support parallel outputting of particles allow this view to random-write in parallel, this
-   * can be used safely as 'rend_draw_add_instance' is thread-safe. But care must be taken to use
-   * only thread-safe apis.
-   */
-  ecs_view_flags(EcsViewFlags_AllowParallelRandomWrite);
-
-  ecs_access_write(RendDrawComp);
-}
-
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetVfxComp); }
 
@@ -286,10 +275,6 @@ ecs_system_define(VfxSystemUpdateSys) {
   const VfxParticleRendererComp* rend = ecs_view_read_t(globalItr, VfxParticleRendererComp);
   const SceneTimeComp*           time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  /**
-   * NOTE: This is a parallel system, so multiple tasks can get a mutable pointer to a
-   * 'RendDrawComp' at the same time. Care should be taken to only use thread-safe apis.
-   */
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
   const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
   if (!atlas) {
@@ -299,12 +284,10 @@ ecs_system_define(VfxSystemUpdateSys) {
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
   u32          numAssetRequests = 0;
 
-  if (parIndex == 0) {
-    vfx_particle_init(draw, atlas);
-  }
+  vfx_particle_init(draw, atlas);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
-  for (EcsIterator* itr = ecs_view_itr_step(updateView, parCount, parIndex); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
@@ -318,7 +301,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
-      if (vfx->asset && ++numAssetRequests < vfx_max_asset_requests_per_task) {
+      if (vfx->asset && ++numAssetRequests < vfx_max_asset_requests) {
         vfx_asset_request(world, vfx->asset);
       }
       continue;
@@ -354,6 +337,4 @@ ecs_module_init(vfx_system_module) {
       ecs_view_id(AtlasView));
 
   ecs_order(VfxSystemUpdateSys, VfxOrder_Update);
-
-  ecs_parallel(VfxSystemUpdateSys, 4);
 }

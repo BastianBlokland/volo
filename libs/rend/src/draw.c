@@ -2,7 +2,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_sort.h"
-#include "core_thread.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 
@@ -32,10 +31,8 @@ ecs_comp_define(RendDrawComp) {
 
   RendDrawFlags flags;
   u32           vertexCountOverride;
-  i32           instCount;
+  u32           instCount;
   u32           outputInstCount;
-
-  ThreadSpinLock lock; // Used for parallel instance insertion.
 
   u32 dataSize;     // Size of the 'per draw' data.
   u32 instDataSize; // Size of the 'per instance' data.
@@ -95,15 +92,6 @@ INLINE_HINT static void buf_ensure(Mem* mem, const usize size, const usize align
       alloc_free(g_alloc_heap, *mem);
     }
     *mem = newMem;
-  }
-}
-
-INLINE_HINT static void
-buf_ensure_locked(Mem* mem, const usize size, const usize align, ThreadSpinLock* lock) {
-  if (UNLIKELY(mem->size < size)) {
-    thread_spinlock_lock(lock);
-    buf_ensure(mem, size, align);
-    thread_spinlock_unlock(lock);
   }
 }
 
@@ -205,16 +193,10 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags 
 }
 
 RendDrawFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
-
-EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
-
-u32 rend_draw_instance_count(const RendDrawComp* draw) {
-  return (u32)thread_atomic_load_i64((i64*)&draw->instCount);
-}
-
-u32 rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
-
-u32 rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
+EcsEntityId   rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
+u32           rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
+u32           rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
+u32           rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
 
 static RendDrawSortKey* rend_draw_sort_key(const RendDrawComp* draw, const u32 outputIndex) {
   return bits_ptr_offset(draw->sortKeyMem.ptr, outputIndex * sizeof(RendDrawSortKey));
@@ -353,17 +335,14 @@ Mem rend_draw_add_instance(
 
   /**
    * Add a new instance and return instance memory for the caller to write into.
-   * NOTE: Can be called in parallel with itself.
    */
 
-  ThreadSpinLock* lock = &draw->lock;
-
-  const u32 drawIndex = (u32)thread_atomic_add_i32(&draw->instCount, 1);
-  buf_ensure_locked(&draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align, lock);
+  const u32 drawIndex = draw->instCount++;
+  buf_ensure(&draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
-    buf_ensure_locked(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1, lock);
-    buf_ensure_locked(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox), lock);
+    buf_ensure(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
+    buf_ensure(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
 
     ((SceneTags*)draw->instTagsMem.ptr)[drawIndex] = tags;
     ((GeoBox*)draw->instAabbMem.ptr)[drawIndex]    = aabb;
