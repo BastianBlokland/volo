@@ -114,10 +114,11 @@ void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLay
  */
 
 typedef struct {
+  f32         time;
   EcsEntityId entity;
   GeoVector   position;
   GeoVector   normal;
-  f32         time;
+  SceneLayer  layer;
 } SceneRayHit;
 
 bool scene_query_ray(

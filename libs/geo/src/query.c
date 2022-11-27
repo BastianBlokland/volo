@@ -358,6 +358,7 @@ bool geo_query_ray(
       bestHit.time    = hitT;
       bestHit.shapeId = prim->ids[i];
       bestHit.normal  = normal;
+      bestHit.layer   = prim->layers[i];
       foundHit        = true;
     }
   }
@@ -420,6 +421,7 @@ bool geo_query_ray_fat(
       bestHit.time    = hitT;
       bestHit.shapeId = prim->ids[i];
       bestHit.normal  = normal;
+      bestHit.layer   = prim->layers[i];
       foundHit        = true;
     }
   }

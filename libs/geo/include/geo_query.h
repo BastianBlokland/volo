@@ -56,9 +56,10 @@ void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id, GeoQueryLayer);
 void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id, GeoQueryLayer);
 
 typedef struct {
-  f32       time;
-  u64       shapeId;
-  GeoVector normal;
+  f32           time;
+  u64           shapeId;
+  GeoVector     normal;
+  GeoQueryLayer layer;
 } GeoQueryRayHit;
 
 /**
