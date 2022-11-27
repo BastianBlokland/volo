@@ -434,9 +434,13 @@ static bool nav_find(
   ++s->stats[GeoNavStat_FindCount];       // Track amount of find queries.
   ++s->stats[GeoNavStat_FindItrEnqueues]; // Include the initial enqueue in the tracking.
 
-  GeoNavCell queue[512] = {from};
+  GeoNavCell queue[512];
   u32        queueStart = 0;
-  u32        queueEnd   = 1;
+  u32        queueEnd   = 0;
+
+  // Insert the first cell.
+  queue[0] = from;
+  queueEnd = 1;
 
   mem_set(s->markedCells, 0);
   nav_bit_set(s->markedCells, nav_cell_index(grid, from));
