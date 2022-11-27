@@ -126,7 +126,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Brain",
-          "behaviorId": "behaviors/unit-ranged-manual.bt"
+          "behaviorId": "behaviors/unit-turret.bt"
         }
       ]
     },
