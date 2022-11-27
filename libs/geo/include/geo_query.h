@@ -107,6 +107,10 @@ typedef enum {
   GeoQueryStat_PrimSphereCount,
   GeoQueryStat_PrimCapsuleCount,
   GeoQueryStat_PrimBoxRotatedCount,
+  GeoQueryStat_QueryRayCount,
+  GeoQueryStat_QueryRayFatCount,
+  GeoQueryStat_QuerySphereAllCount,
+  GeoQueryStat_QueryFrustumAllCount,
 
   GeoQueryStat_Count,
 } GeoQueryStat;

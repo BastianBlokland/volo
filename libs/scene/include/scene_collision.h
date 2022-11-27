@@ -15,7 +15,7 @@ ecs_comp_extern(SceneScaleComp);
  */
 #define scene_query_max_hits 512
 
-#define scene_query_stat_count 3
+#define scene_query_stat_count 7
 
 typedef enum {
   SceneLayer_Debug           = 1 << 0,
