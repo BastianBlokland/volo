@@ -37,6 +37,11 @@ typedef struct {
 } GeoNavPathStorage;
 
 /**
+ * A NavIsland is a reachable area in the grid.
+ */
+typedef u8 GeoNavIsland;
+
+/**
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
@@ -114,6 +119,7 @@ typedef enum {
   GeoNavStat_BlockerCount,
   GeoNavStat_BlockerAddCount,
   GeoNavStat_OccupantCount,
+  GeoNavStat_IslandCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,

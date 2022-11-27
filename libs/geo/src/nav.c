@@ -48,12 +48,13 @@ typedef struct {
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
-  u32       cellCountAxis, cellCountTotal;
-  f32       cellDensity, cellSize;
-  f32       cellHeight;
-  GeoVector cellOffset;
-  u16*      cellBlockerCount; // u16[cellCountTotal]
-  u16*      cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
+  u32           cellCountAxis, cellCountTotal;
+  f32           cellDensity, cellSize;
+  f32           cellHeight;
+  GeoVector     cellOffset;
+  u16*          cellBlockerCount; // u16[cellCountTotal]
+  u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
+  GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
 
   GeoNavBlocker* blockers;       // GeoNavBlocker[geo_nav_blockers_max]
   BitSet         blockerFreeSet; // bit[geo_nav_blockers_max]
@@ -770,6 +771,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellOffset       = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
       .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
+      .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
       .blockers         = alloc_array_t(alloc, GeoNavBlocker, geo_nav_blockers_max),
       .blockerFreeSet   = alloc_alloc(alloc, bits_to_bytes(geo_nav_blockers_max), 1),
       .occupants        = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
@@ -782,6 +784,7 @@ GeoNavGrid* geo_nav_grid_create(
 
 void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free_array_t(grid->alloc, grid->cellBlockerCount, grid->cellCountTotal);
+  alloc_free_array_t(grid->alloc, grid->cellIslands, grid->cellCountTotal);
   alloc_free(grid->alloc, nav_occupancy_mem(grid));
   alloc_free_array_t(grid->alloc, grid->blockers, geo_nav_blockers_max);
   alloc_free(grid->alloc, grid->blockerFreeSet);
@@ -1073,11 +1076,12 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                             // Structure
-                           ((u32)sizeof(u16) * grid->cellCountTotal) +      // grid.cellBlockerCount
-                           ((u32)nav_occupancy_mem(grid).size) +            // grid.cellOccupancy
-                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) + // grid.blockers
-                           bits_to_bytes(geo_nav_blockers_max) +            // grid.blockerFreeSet
+  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                        // Structure
+                           ((u32)sizeof(u16) * grid->cellCountTotal) + // grid.cellBlockerCount
+                           ((u32)nav_occupancy_mem(grid).size) +       // grid.cellOccupancy
+                           ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal) + // grid.cellIslands
+                           (sizeof(GeoNavBlocker) * geo_nav_blockers_max) +     // grid.blockers
+                           bits_to_bytes(geo_nav_blockers_max) +             // grid.blockerFreeSet
                            (sizeof(GeoNavOccupant) * geo_nav_occupants_max); // grid.occupants
 
   const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                   // Structure
