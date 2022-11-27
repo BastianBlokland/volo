@@ -916,7 +916,9 @@ static void inspector_vis_draw_navigation_path(
 
 static void
 inspector_vis_draw_target(DebugShapeComp* shape, const SceneTargetFinderComp* targetFinder) {
-  debug_sphere(shape, targetFinder->targetPosition, 0.1f, geo_color_lime, DebugShape_Overlay);
+  if (targetFinder->target) {
+    debug_sphere(shape, targetFinder->targetPosition, 0.1f, geo_color_lime, DebugShape_Overlay);
+  }
 }
 
 static void inspector_vis_draw_subject(
