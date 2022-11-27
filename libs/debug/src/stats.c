@@ -387,8 +387,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
     stats_draw_val_entry(canvas, string_lit("Prim capsules"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimCapsuleCount])));
     stats_draw_val_entry(canvas, string_lit("Prim box-rotated"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimBoxRotatedCount])));
-    stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<4} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
-    stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<4} frustum: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryFrustumAllCount])));
+    stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
+    stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} frustum: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryFrustumAllCount])));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
     stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats->gridStats[GeoNavStat_CellCountTotal]), fmt_int(navStats->gridStats[GeoNavStat_CellCountAxis])));
