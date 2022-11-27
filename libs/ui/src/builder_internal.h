@@ -19,6 +19,7 @@ typedef struct {
 } UiGlyphData;
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(alignof(UiGlyphData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef struct {
   u32 lineCount;

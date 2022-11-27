@@ -222,6 +222,7 @@ ecs_system_define(DebugShapeRenderSys) {
         GeoColor  color;
       } DrawMeshData;
       ASSERT(sizeof(DrawMeshData) == 64, "Size needs to match the size defined in glsl");
+      ASSERT(alignof(DrawMeshData) == 16, "Alignment needs to match the glsl alignment");
 
       typedef struct {
         ALIGNAS(16)
@@ -229,6 +230,7 @@ ecs_system_define(DebugShapeRenderSys) {
         GeoColor  color;
       } DrawLineData;
       ASSERT(sizeof(DrawLineData) == 48, "Size needs to match the size defined in glsl");
+      ASSERT(alignof(DrawLineData) == 16, "Alignment needs to match the glsl alignment");
 
       switch (entry->type) {
       case DebugShapeType_BoxFill:

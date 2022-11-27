@@ -31,6 +31,7 @@ typedef struct {
 } DebugGridData;
 
 ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(alignof(DebugGridData) == 16, "Alignment needs to match the glsl alignment");
 
 ecs_comp_define(DebugGridComp) {
   EcsEntityId drawEntity;

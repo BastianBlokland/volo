@@ -69,6 +69,7 @@ Mem rend_draw_set_data(RendDrawComp*, usize size);
  * NOTE: Tags and bounds are used to filter the draws per camera.
  * NOTE: Data size has to be consistent between all instances and across frames.
  * NOTE: Thread-safe to be called in parallel with itself.
+ * NOTE: Returned pointer is always at least 16bit aligned, stronger alignment cannot be guaranteed.
  */
 #define rend_draw_add_instance_t(_DRAW_, _TYPE_, _TAGS_, _AABB_)                                   \
   ((_TYPE_*)rend_draw_add_instance((_DRAW_), sizeof(_TYPE_), (_TAGS_), (_AABB_)).ptr)

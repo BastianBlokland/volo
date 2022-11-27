@@ -20,6 +20,7 @@ typedef struct {
 } RendInstanceData;
 
 ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in glsl");
+ASSERT(alignof(RendInstanceData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef struct {
   ALIGNAS(16)
@@ -39,6 +40,7 @@ typedef struct {
 } RendInstanceSkinnedData;
 
 ASSERT(sizeof(RendInstanceSkinnedData) == 3648, "Size needs to match the size defined in glsl");
+ASSERT(alignof(RendInstanceSkinnedData) == 16, "Alignment needs to match the glsl alignment");
 
 /**
  * Convert the given 4x4 matrix to a 4x3 matrix (dropping the last row) and then transpose to a 3x4.
