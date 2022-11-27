@@ -26,7 +26,7 @@
               "children": [
                 {
                   "$type": "AssetAiNode_Condition",
-                  "script": "$target_distance < 1.5;"
+                  "script": "$target_distance < 1.25;"
                 },
                 {
                   "$type": "AssetAiNode_Repeat",
