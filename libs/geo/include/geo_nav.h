@@ -89,9 +89,9 @@ typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
 
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
 GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
-void            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
-void            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
-void            geo_nav_blocker_remove_all(GeoNavGrid*);
+bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
+bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
+bool            geo_nav_blocker_remove_all(GeoNavGrid*);
 
 /**
  * Register occupants.
