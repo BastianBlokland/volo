@@ -33,7 +33,7 @@ typedef struct {
 struct sGeoQueryEnv {
   Allocator*   alloc;
   GeoQueryPrim prims[GeoQueryPrim_Count];
-  u32          stats[GeoQueryStat_Count];
+  i32          stats[GeoQueryStat_Count];
 };
 
 static usize geo_prim_entry_size(const GeoQueryPrimType type) {
@@ -496,9 +496,9 @@ MaxCountReached:
 
 void geo_query_stats_reset(GeoQueryEnv* env) { mem_set(array_mem(env->stats), 0); }
 
-u32* geo_query_stats(GeoQueryEnv* env) {
-  env->stats[GeoQueryStat_PrimSphereCount]     = env->prims[GeoQueryPrim_Sphere].count;
-  env->stats[GeoQueryStat_PrimCapsuleCount]    = env->prims[GeoQueryPrim_Capsule].count;
-  env->stats[GeoQueryStat_PrimBoxRotatedCount] = env->prims[GeoQueryPrim_BoxRotated].count;
+i32* geo_query_stats(GeoQueryEnv* env) {
+  env->stats[GeoQueryStat_PrimSphereCount]     = (i32)env->prims[GeoQueryPrim_Sphere].count;
+  env->stats[GeoQueryStat_PrimCapsuleCount]    = (i32)env->prims[GeoQueryPrim_Capsule].count;
+  env->stats[GeoQueryStat_PrimBoxRotatedCount] = (i32)env->prims[GeoQueryPrim_BoxRotated].count;
   return env->stats;
 }

@@ -37,10 +37,10 @@ static void collision_env_create(EcsWorld* world) {
 }
 
 static void scene_collision_stats_update(SceneCollisionStatsComp* stats, GeoQueryEnv* queryEnv) {
-  const u32* statsPtr = geo_query_stats(queryEnv);
+  const i32* statsPtr = geo_query_stats(queryEnv);
 
   // Copy the query stats into the stats component.
-  mem_cpy(array_mem(stats->queryStats), mem_create(statsPtr, sizeof(u32) * GeoQueryStat_Count));
+  mem_cpy(array_mem(stats->queryStats), mem_create(statsPtr, sizeof(i32) * GeoQueryStat_Count));
 
   geo_query_stats_reset(queryEnv);
 }

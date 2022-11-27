@@ -47,7 +47,7 @@ typedef struct {
  * Global collision environment.
  */
 ecs_comp_extern(SceneCollisionEnvComp);
-ecs_comp_extern_public(SceneCollisionStatsComp) { u32 queryStats[scene_query_stat_count]; };
+ecs_comp_extern_public(SceneCollisionStatsComp) { i32 queryStats[scene_query_stat_count]; };
 
 typedef enum {
   SceneCollisionType_Sphere,

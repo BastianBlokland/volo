@@ -112,4 +112,4 @@ typedef enum {
 } GeoQueryStat;
 
 void geo_query_stats_reset(GeoQueryEnv*);
-u32* geo_query_stats(GeoQueryEnv*);
+i32* geo_query_stats(GeoQueryEnv*);
