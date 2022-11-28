@@ -136,7 +136,7 @@ macro(set_clang_compile_options)
 
   # Enable various clang sanitizers on supported platforms.
   if(${SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
-    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero")
+    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,undefined")
 
     message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")
     add_compile_options(-fsanitize=${SANITIZERS})
