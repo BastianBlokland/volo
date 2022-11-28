@@ -58,6 +58,12 @@ static f16 float_f32_to_f16_soft(const f32 val) {
   const u32 e = (b & 0x7F800000) >> 23; // exponent
   const u32 m = b & 0x007FFFFF; // Mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000
                                 // = decimal indicator flag - initial rounding
+
+  /**
+   * TODO: The following code contains UB as some of the intermediate values can be shifted more
+   * then their type allows. The resulting (overflowed) value is not actually used in that case but
+   * strictly speaking it is UB.
+   */
   return (b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) |
          ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) |
          (e > 143) * 0x7FFF; // Sign : normalized : denormalized : saturate
@@ -84,13 +90,17 @@ static f32 float_f16_to_f32_soft(const f16 val) {
    * Source: Awnser of user 'ProjectPhysX' on the following StackOverflow question:
    * https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
    */
-
   const u32 e = (val & 0x7C00) >> 10; // Exponent
   const u32 m = (val & 0x03FF) << 13; // Mantissa
 
   // Evil log2 bit hack to count leading zeros in denormalized format:
   const u32 v = bits_f32_as_u32((f32)m) >> 23;
 
+  /**
+   * TODO: The following code contains UB as some of the intermediate values can be shifted more
+   * then their type allows. The resulting (overflowed) value is not actually used in that case but
+   * strictly speaking it is UB.
+   */
   return bits_u32_as_f32(
       (val & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) |
       ((e == 0) & (m != 0)) *
