@@ -125,7 +125,7 @@ spec(format) {
         {-1, format_opts_int(), string_lit("-1")},
         {-42, format_opts_int(), string_lit("-42")},
         {1337, format_opts_int(), string_lit("1337")},
-        {i64_min, format_opts_int(), string_lit("-9223372036854775808")},
+        {i64_min + 1, format_opts_int(), string_lit("-9223372036854775807")},
         {i64_max, format_opts_int(), string_lit("9223372036854775807")},
     };
 
