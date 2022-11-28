@@ -31,6 +31,7 @@ ecs_view_define(TargetFinderView) {
 
 ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneNavBlockerComp);
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
@@ -94,23 +95,34 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
+static bool target_reachable(
+    const SceneNavEnvComp* nav, const SceneTransformComp* finderTrans, EcsIterator* targetItr) {
+
+  const GeoNavCell           finderNavCell    = scene_nav_at_position(nav, finderTrans->position);
+  const SceneNavBlockerComp* targetNavBlocker = ecs_view_read_t(targetItr, SceneNavBlockerComp);
+  if (targetNavBlocker) {
+    return scene_nav_reachable_blocker(nav, finderNavCell, targetNavBlocker);
+  }
+  const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  return scene_nav_reachable(nav, finderNavCell, scene_nav_at_position(nav, targetTrans->position));
+}
+
 static f32 target_score_sqr(
-    const SceneTargetFinderComp* finder,
     const SceneNavEnvComp*       nav,
-    const SceneTransformComp*    transA,
-    const SceneTransformComp*    transB) {
-  if (finder->flags & SceneTarget_ExcludeUnreachable) {
-    const GeoNavCell navCellA = scene_nav_at_position(nav, transA->position);
-    const GeoNavCell navCellB = scene_nav_at_position(nav, transB->position);
-    if (!scene_nav_reachable(nav, navCellA, navCellB)) {
-      return -1.0f;
-    }
+    const SceneTargetFinderComp* finder,
+    const SceneTransformComp*    finderTrans,
+    EcsIterator*                 targetItr) {
+
+  const bool excludeUnreachable = (finder->flags & SceneTarget_ExcludeUnreachable) != 0;
+  if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
+    return -1.0f;
   }
 
   // Score based on distance.
-  const GeoVector posDelta        = geo_vector_sub(transA->position, transB->position);
-  const f32       distSqr         = geo_vector_mag_sqr(posDelta);
-  const f32       maxDeviationSqr = finder->scoreRandomness * finder->scoreRandomness;
+  const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  const GeoVector           posDelta = geo_vector_sub(finderTrans->position, targetTrans->position);
+  const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
+  const f32                 maxDeviationSqr = finder->scoreRandomness * finder->scoreRandomness;
   return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
 }
 
@@ -162,8 +174,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, targetFaction)) {
           continue; // Do not target friendlies.
         }
-        const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-        const f32                 scoreSqr = target_score_sqr(finder, navEnv, trans, targetTrans);
+        const f32 scoreSqr = target_score_sqr(navEnv, finder, trans, targetItr);
         if (scoreSqr >= 0 && scoreSqr < finder->targetScoreSqr) {
           finder->target         = targetEntity;
           finder->targetScoreSqr = scoreSqr;
