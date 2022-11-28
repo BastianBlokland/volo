@@ -391,7 +391,7 @@ void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
 void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_empty_t(world, entity, SceneNavBlockerComp);
+  ecs_world_add_t(world, entity, SceneNavBlockerComp);
 }
 
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity) {
