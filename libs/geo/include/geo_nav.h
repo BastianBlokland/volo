@@ -95,6 +95,7 @@ GeoNavBlockerId geo_nav_blocker_add_sphere(GeoNavGrid*, u64 userId, const GeoSph
 bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
 bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
 bool            geo_nav_blocker_remove_all(GeoNavGrid*);
+bool            geo_nav_blocker_reachable(const GeoNavGrid*, GeoNavBlockerId, GeoNavCell from);
 
 /**
  * (Re-)compute the islands.
