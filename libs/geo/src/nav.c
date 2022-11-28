@@ -781,6 +781,34 @@ static bool nav_blocker_release_all(GeoNavGrid* grid) {
   return false;
 }
 
+static bool nav_blocker_neighbors_island(
+    const GeoNavGrid* grid, const GeoNavBlockerId blockerId, const GeoNavIsland island) {
+
+  const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
+  const GeoNavRegion   region          = blocker->region;
+  const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
+
+  u32 indexInRegion = 0;
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      if (nav_bit_test(blockedInRegion, indexInRegion)) {
+        const GeoNavCell cell = {.x = x, .y = y};
+
+        // Test if any neighbor belongs to the given island.
+        GeoNavCell neighbors[4];
+        const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
+        for (u32 i = 0; i != neighborCount; ++i) {
+          if (grid->cellIslands[nav_cell_index(grid, neighbors[i])] == island) {
+            return true;
+          }
+        }
+      }
+      ++indexInRegion;
+    }
+  }
+  return false;
+}
+
 static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
   GeoNavCell queue[4096];
   u32        queueStart = 0;
@@ -801,10 +829,10 @@ static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const Geo
       const GeoNavCell neighbor      = neighbors[i];
       const u32        neighborIndex = nav_cell_index(grid, neighbor);
       if (grid->cellIslands[neighborIndex]) {
-        continue; // Neighbour is already assigned to an island.
+        continue; // Neighbor is already assigned to an island.
       }
       if (grid->cellBlockerCount[neighborIndex] > 0) {
-        continue; // Neighbour blocked.
+        continue; // Neighbor blocked.
       }
       if (UNLIKELY(queueEnd == array_elems(queue))) {
         // Queue exhausted; reclaim the unused space at the beginning of the queue.
@@ -1149,7 +1177,7 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
 
 bool geo_nav_blocker_remove(GeoNavGrid* grid, const GeoNavBlockerId blockerId) {
   if (sentinel_check(blockerId)) {
-    return false; // Blocker as never actually added so no need to remove it.
+    return false; // Blocker was never actually added; no need to remove it.
   }
   return nav_blocker_release(grid, blockerId);
 }
@@ -1170,6 +1198,23 @@ bool geo_nav_blocker_remove_pred(
 }
 
 bool geo_nav_blocker_remove_all(GeoNavGrid* grid) { return nav_blocker_release_all(grid); }
+
+bool geo_nav_blocker_reachable(
+    const GeoNavGrid* grid, const GeoNavBlockerId blockerId, const GeoNavCell from) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+
+  if (sentinel_check(blockerId)) {
+    return false; // Blocker was never actually added; not reachable.
+  }
+  const GeoNavIsland island = geo_nav_island(grid, from);
+  if (island == geo_nav_island_blocked) {
+    return false; // From cell is blocked; not reachable.
+  }
+
+  ++nav_worker_state(grid)->stats[GeoNavStat_BlockerReachableQueries]; // Track query count.
+
+  return nav_blocker_neighbors_island(grid, blockerId, island);
+}
 
 void geo_nav_compute_islands(GeoNavGrid* grid) { grid->islandCount = nav_islands_compute(grid); }
 

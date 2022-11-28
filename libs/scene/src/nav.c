@@ -391,7 +391,7 @@ void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
 void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_empty_t(world, entity, SceneNavBlockerComp);
+  ecs_world_add_t(world, entity, SceneNavBlockerComp);
 }
 
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity) {
@@ -425,14 +425,6 @@ bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->navGrid, cell);
 }
 
-bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
-  /**
-   * NOTE: If the given 'to' cell is not reachable we use the closest unblocked cell.
-   * TODO: Should this be handled at this level?
-   */
-  return geo_nav_reachable(env->navGrid, from, geo_nav_closest_unblocked(env->navGrid, to));
-}
-
 bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_occupied(env->navGrid, cell);
 }
@@ -447,6 +439,18 @@ GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos
 
 GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_island(env->navGrid, cell);
+}
+
+bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
+  return geo_nav_reachable(env->navGrid, from, to);
+}
+
+bool scene_nav_reachable_blocker(
+    const SceneNavEnvComp* env, const GeoNavCell from, const SceneNavBlockerComp* blocker) {
+  if (!(blocker->flags & SceneNavBlockerFlags_RegisteredBlocker)) {
+    return false;
+  }
+  return geo_nav_blocker_reachable(env->navGrid, blocker->blockerId, from);
 }
 
 GeoVector scene_nav_separate(
