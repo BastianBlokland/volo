@@ -1210,6 +1210,9 @@ bool geo_nav_blocker_reachable(
   if (island == geo_nav_island_blocked) {
     return false; // From cell is blocked; not reachable.
   }
+
+  ++nav_worker_state(grid)->stats[GeoNavStat_BlockerReachableQueries]; // Track query count.
+
   return nav_blocker_neighbors_island(grid, blockerId, island);
 }
 
