@@ -257,12 +257,15 @@ void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   dynstring_append(str, mem_create(ptr, numDigits));
 }
 
-void format_write_i64(DynString* str, i64 val, const FormatOptsInt* opts) {
+void format_write_i64(DynString* str, const i64 val, const FormatOptsInt* opts) {
+  u64 valAbs;
   if (val < 0) {
     dynstring_append_char(str, '-');
-    val = -val;
+    valAbs = (u64)-val;
+  } else {
+    valAbs = (u64)val;
   }
-  format_write_u64(str, val, opts);
+  format_write_u64(str, valAbs, opts);
 }
 
 struct FormatF64Exp {
