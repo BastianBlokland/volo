@@ -149,6 +149,8 @@ ecs_view_define(SubjectView) {
   ecs_access_write(SceneTransformComp);
 }
 
+ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
+
 static void inspector_notify_tool(DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats) {
   debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
 }
@@ -916,15 +918,29 @@ static void inspector_vis_draw_navigation_path(
 }
 
 static void inspector_vis_draw_target(
-    DebugShapeComp*              shape,
+    DebugTextComp*               text,
     const SceneTargetFinderComp* tgtFinder,
-    const SceneTargetTraceComp*  tgtTrace) {
+    const SceneTargetTraceComp*  tgtTrace,
+    EcsView*                     transformView) {
 
-  if (tgtFinder->target) {
-    debug_sphere(shape, tgtFinder->targetPosition, 0.1f, geo_color_lime, DebugShape_Overlay);
-  }
-  if (tgtTrace) {
-    // TODO:
+  DynString             textBuf         = dynstring_create_over(mem_stack(32));
+  const FormatOptsFloat formatOptsFloat = format_opts_float(.minDecDigits = 1, .maxDecDigits = 1);
+
+  EcsIterator* transformItr = ecs_view_itr(transformView);
+
+  const SceneTargetScore* scoresBegin = scene_target_trace_begin(tgtTrace);
+  const SceneTargetScore* scoresEnd   = scene_target_trace_end(tgtTrace);
+
+  for (const SceneTargetScore* itr = scoresBegin; itr != scoresEnd; ++itr) {
+    if (ecs_view_maybe_jump(transformItr, itr->entity)) {
+      const GeoVector pos      = ecs_view_read_t(transformItr, SceneTransformComp)->position;
+      const bool      selected = itr->entity == tgtFinder->target;
+
+      dynstring_clear(&textBuf);
+      format_write_f64(&textBuf, itr->value, &formatOptsFloat);
+
+      debug_text(text, pos, dynstring_view(&textBuf), selected ? geo_color_lime : geo_color_white);
+    }
   }
 }
 
@@ -981,7 +997,7 @@ static void inspector_vis_draw_subject(
 static void inspector_vis_draw_navigation_grid(
     DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav) {
 
-  DynString textBuffer = dynstring_create_over(mem_stack(64));
+  DynString textBuf = dynstring_create_over(mem_stack(32));
 
   const GeoNavRegion   bounds    = scene_nav_bounds(nav);
   const GeoVector      cellSize  = scene_nav_cell_size(nav);
@@ -1009,9 +1025,9 @@ static void inspector_vis_draw_navigation_grid(
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
 
       if (!blocked) {
-        dynstring_clear(&textBuffer);
-        format_write_u64(&textBuffer, island, &format_opts_int());
-        debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
+        dynstring_clear(&textBuf);
+        format_write_u64(&textBuf, island, &format_opts_int());
+        debug_text(text, pos, dynstring_view(&textBuf), geo_color_white);
       }
     }
   }
@@ -1050,8 +1066,9 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   DebugShapeComp*           shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*            text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_itr(subjectView);
+  EcsView*     transformView = ecs_world_view_t(world, TransformView);
+  EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
+  EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
@@ -1072,11 +1089,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   if (set->visFlags & (1 << DebugInspectorVis_Target)) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
-      SceneTargetFinderComp*      tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
-      const SceneTargetTraceComp* tgtTrace  = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
+      SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
         tgtFinder->flags |= SceneTarget_Trace;
-        inspector_vis_draw_target(shape, tgtFinder, tgtTrace);
+
+        const SceneTargetTraceComp* tgtTrace = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
+        if (tgtTrace) {
+          inspector_vis_draw_target(text, tgtFinder, tgtTrace, transformView);
+        }
       }
     }
   }
@@ -1095,6 +1115,7 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(GlobalToolUpdateView);
   ecs_register_view(GlobalVisDrawView);
   ecs_register_view(SubjectView);
+  ecs_register_view(TransformView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
@@ -1107,7 +1128,10 @@ ecs_module_init(debug_inspector_module) {
       DebugInspectorToolUpdateSys, ecs_view_id(GlobalToolUpdateView), ecs_view_id(SubjectView));
 
   ecs_register_system(
-      DebugInspectorVisDrawSys, ecs_view_id(GlobalVisDrawView), ecs_view_id(SubjectView));
+      DebugInspectorVisDrawSys,
+      ecs_view_id(GlobalVisDrawView),
+      ecs_view_id(SubjectView),
+      ecs_view_id(TransformView));
 
   ecs_order(DebugInspectorToolUpdateSys, DebugOrder_InspectorToolUpdate);
   ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
