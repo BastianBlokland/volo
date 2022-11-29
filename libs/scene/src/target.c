@@ -154,7 +154,11 @@ static f32 target_score(
   // Score based on distance.
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const GeoVector           toTarget = geo_vector_sub(targetTrans->position, finderTrans->position);
-  return geo_vector_mag(toTarget) + rng_sample_f32(g_rng) * finder->scoreRandomness;
+  const f32                 distance = geo_vector_mag(toTarget);
+  if (distance > finder->distanceMax) {
+    return -1.0f;
+  }
+  return distance + rng_sample_f32(g_rng) * finder->scoreRandom;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {

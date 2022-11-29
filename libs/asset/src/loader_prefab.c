@@ -70,8 +70,9 @@ typedef struct {
   String weaponId;
   String aimJoint;
   f32    aimSpeed; // Degrees per second.
-  f32    lineOfSightRadius;
-  f32    targetScoreRandomness;
+  f32    targetDistanceMax;
+  f32    targetLineOfSightRadius;
+  f32    targetScoreRandom;
   bool   targetExcludeUnreachable;
   bool   targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttackDef;
@@ -178,8 +179,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, lineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandomness, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetDistanceMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandom, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetInstantRefreshOnIdle, data_prim_t(bool), .flags = DataFlags_Opt);
 
@@ -357,8 +359,9 @@ static void prefab_build(
                                             ? 0
                                             : string_hash(traitDef->data_attack.aimJoint),
           .aimSpeedRad                = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .lineOfSightRadius          = traitDef->data_attack.lineOfSightRadius,
-          .targetScoreRandomness      = traitDef->data_attack.targetScoreRandomness,
+          .targetDistanceMax          = traitDef->data_attack.targetDistanceMax,
+          .targetLineOfSightRadius    = traitDef->data_attack.targetLineOfSightRadius,
+          .targetScoreRandom          = traitDef->data_attack.targetScoreRandom,
           .targetExcludeUnreachable   = traitDef->data_attack.targetExcludeUnreachable,
           .targetInstantRefreshOnIdle = traitDef->data_attack.targetInstantRefreshOnIdle,
       };

@@ -16,10 +16,11 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   EcsEntityId      target;
   EcsEntityId      targetOverride;
   SceneTargetFlags flags;
+  f32              distanceMax;
+  f32              lineOfSightRadius;
+  f32              scoreRandom; // Maximum target score to add randomly.
   f32              targetScore;
   f32              targetDistance;
-  f32              lineOfSightRadius;
-  f32              scoreRandomness; // Maximum target score to add randomly.
   TimeDuration     nextRefreshTime;
   GeoVector        targetPosition;
 };

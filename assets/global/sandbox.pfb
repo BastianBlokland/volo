@@ -24,8 +24,9 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "AssaultRifle",
-          "lineOfSightRadius": 0.4,
-          "targetScoreRandomness": 10
+          "targetDistanceMax": 35,
+          "targetLineOfSightRadius": 0.4,
+          "targetScoreRandom": 10
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -69,8 +70,9 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
-          "lineOfSightRadius": 0.2,
-          "targetScoreRandomness": 2,
+          "targetDistanceMax": 150,
+          "targetLineOfSightRadius": 0.2,
+          "targetScoreRandom": 2,
           "targetExcludeUnreachable": true
         },
         {
@@ -110,8 +112,9 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "lineOfSightRadius": 0.4,
-          "targetScoreRandomness": 5,
+          "targetDistanceMax": 50,
+          "targetLineOfSightRadius": 0.4,
+          "targetScoreRandom": 5,
           "targetInstantRefreshOnIdle": true
         },
         {

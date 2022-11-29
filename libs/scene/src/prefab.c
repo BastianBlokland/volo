@@ -174,8 +174,9 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       e,
       SceneTargetFinderComp,
       .flags             = flags,
-      .lineOfSightRadius = t->lineOfSightRadius,
-      .scoreRandomness   = t->targetScoreRandomness);
+      .distanceMax       = t->targetDistanceMax,
+      .lineOfSightRadius = t->targetLineOfSightRadius,
+      .scoreRandom       = t->targetScoreRandom);
 }
 
 static void setup_collision(
