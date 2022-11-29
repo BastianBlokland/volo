@@ -15,6 +15,7 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
+#define target_score_bonus_current 0.1f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
@@ -145,6 +146,7 @@ static f32 target_score(
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
     const SceneTransformComp*    finderTrans,
+    const EcsEntityId            targetOld,
     EcsIterator*                 targetItr) {
 
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
@@ -160,7 +162,7 @@ static f32 target_score(
   }
   const f32 distance = math_sqrt_f32(distanceSqr);
 
-  f32 score = 0.0f;
+  f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_bonus_current : 0.0f;
   score += 1.0f - distance / finder->distanceMax;       // Distance score.
   score += rng_sample_f32(g_rng) * finder->scoreRandom; // Random score.
   return score;
@@ -213,9 +215,9 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
-
-      finder->targetScore = 0.0f;
-      finder->target      = 0;
+      const EcsEntityId targetOld = finder->target;
+      finder->targetScore         = 0.0f;
+      finder->target              = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
         if (entity == targetEntity) {
@@ -224,7 +226,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
-        const f32 score = target_score(navEnv, finder, trans, targetItr);
+        const f32 score = target_score(navEnv, finder, trans, targetOld, targetItr);
         if (score > finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
