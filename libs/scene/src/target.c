@@ -49,12 +49,16 @@ ecs_view_define(TargetView) {
   ecs_access_with(SceneHealthComp);
 }
 
-static void target_trace_init(EcsWorld* world, const EcsEntityId entity) {
+static void target_trace_start(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(
       world,
       entity,
       SceneTargetTraceComp,
       .scores = dynarray_create_t(g_alloc_heap, SceneTargetScore, 128));
+}
+
+static void target_trace_stop(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_remove_t(world, entity, SceneTargetTraceComp);
 }
 
 static void target_trace_clear(SceneTargetTraceComp* trace) { dynarray_clear(&trace->scores); }
@@ -179,7 +183,9 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetTraceComp*     trace   = ecs_view_write_t(itr, SceneTargetTraceComp);
 
     if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
-      target_trace_init(world, entity);
+      target_trace_start(world, entity);
+    } else if (trace && !(finder->flags & SceneTarget_ConfigTrace)) {
+      target_trace_stop(world, entity);
     }
 
     if (finder->targetOverride) {
