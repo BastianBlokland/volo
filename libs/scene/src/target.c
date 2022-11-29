@@ -16,6 +16,7 @@
 #define target_los_dist_max 50.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
+ecs_comp_define_public(SceneTargetTraceComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -25,6 +26,7 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(TargetFinderView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_write(SceneTargetTraceComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneTargetFinderComp);
 }
@@ -35,6 +37,16 @@ ecs_view_define(TargetView) {
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
+}
+
+static void target_trace_init(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_add_t(world, entity, SceneTargetTraceComp);
+}
+
+static void target_trace_clear(SceneTargetTraceComp* trace) { trace->dummy = 0; }
+
+static void target_trace_add(SceneTargetTraceComp* trace, const f32 score) {
+  trace->dummy += score > 0;
 }
 
 static GeoVector target_position_center(EcsIterator* entityItr) {
@@ -147,6 +159,14 @@ ecs_system_define(SceneTargetUpdateSys) {
     const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
     SceneTargetFinderComp*    finder  = ecs_view_write_t(itr, SceneTargetFinderComp);
+    SceneTargetTraceComp*     trace   = ecs_view_write_t(itr, SceneTargetTraceComp);
+
+    if ((finder->flags & SceneTarget_Trace) && !trace) {
+      target_trace_init(world, entity);
+    }
+    if (trace) {
+      target_trace_clear(trace);
+    }
 
     if (finder->targetOverride) {
       finder->target = finder->targetOverride;
@@ -168,14 +188,16 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (entity == targetEntity) {
           continue; // Do not target ourselves.
         }
-        const SceneFactionComp* targetFaction = ecs_view_read_t(targetItr, SceneFactionComp);
-        if (scene_is_friendly(faction, targetFaction)) {
+        if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
         const f32 score = target_score(navEnv, finder, trans, targetItr);
         if (score >= 0 && score < finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
+        }
+        if (trace) {
+          target_trace_add(trace, score);
         }
       }
       finder->nextRefreshTime = target_next_refresh_time(time);
@@ -211,6 +233,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
 ecs_module_init(scene_target_module) {
   ecs_register_comp(SceneTargetFinderComp);
+  ecs_register_comp(SceneTargetTraceComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(TargetFinderView);

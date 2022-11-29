@@ -136,7 +136,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
-  ecs_access_maybe_read(SceneTargetFinderComp);
+  ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
@@ -145,6 +145,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
+  ecs_access_maybe_write(SceneTargetFinderComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -914,10 +915,16 @@ static void inspector_vis_draw_navigation_path(
   }
 }
 
-static void
-inspector_vis_draw_target(DebugShapeComp* shape, const SceneTargetFinderComp* targetFinder) {
-  if (targetFinder->target) {
-    debug_sphere(shape, targetFinder->targetPosition, 0.1f, geo_color_lime, DebugShape_Overlay);
+static void inspector_vis_draw_target(
+    DebugShapeComp*              shape,
+    const SceneTargetFinderComp* tgtFinder,
+    const SceneTargetTraceComp*  tgtTrace) {
+
+  if (tgtFinder->target) {
+    debug_sphere(shape, tgtFinder->targetPosition, 0.1f, geo_color_lime, DebugShape_Overlay);
+  }
+  if (tgtTrace) {
+    // TODO:
   }
 }
 
@@ -1065,9 +1072,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 
   if (set->visFlags & (1 << DebugInspectorVis_Target)) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
-      const SceneTargetFinderComp* tgtFinder = ecs_view_read_t(subjectItr, SceneTargetFinderComp);
+      SceneTargetFinderComp*      tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
+      const SceneTargetTraceComp* tgtTrace  = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
       if (tgtFinder) {
-        inspector_vis_draw_target(shape, tgtFinder);
+        tgtFinder->flags |= SceneTarget_Trace;
+        inspector_vis_draw_target(shape, tgtFinder, tgtTrace);
       }
     }
   }

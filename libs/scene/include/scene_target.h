@@ -9,6 +9,7 @@ typedef enum {
   SceneTarget_Overriden            = 1 << 1,
   SceneTarget_ExcludeUnreachable   = 1 << 2,
   SceneTarget_InstantRefreshOnIdle = 1 << 3, // Immediately refresh when current target is gone.
+  SceneTarget_Trace                = 1 << 4, // Enable diagnostic tracing.
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
@@ -22,3 +23,5 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   TimeDuration     nextRefreshTime;
   GeoVector        targetPosition;
 };
+
+ecs_comp_extern_public(SceneTargetTraceComp) { u32 dummy; };
