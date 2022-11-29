@@ -938,6 +938,8 @@ static void inspector_vis_draw_target(
       GeoColor color;
       if (itr->entity == tgtFinder->target) {
         color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
+      } else if (itr->value <= 0) {
+        color = geo_color(1, 1, 1, 0.25f);
       } else {
         color = geo_color_white;
       }
