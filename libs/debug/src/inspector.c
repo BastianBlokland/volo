@@ -924,7 +924,7 @@ static void inspector_vis_draw_target(
     EcsView*                     transformView) {
 
   DynString             textBuffer      = dynstring_create_over(mem_stack(32));
-  const FormatOptsFloat formatOptsFloat = format_opts_float(.minDecDigits = 1, .maxDecDigits = 1);
+  const FormatOptsFloat formatOptsFloat = format_opts_float(.minDecDigits = 0, .maxDecDigits = 2);
 
   EcsIterator* transformItr = ecs_view_itr(transformView);
 
