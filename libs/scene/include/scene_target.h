@@ -24,4 +24,12 @@ ecs_comp_extern_public(SceneTargetFinderComp) {
   GeoVector        targetPosition;
 };
 
-ecs_comp_extern_public(SceneTargetTraceComp) { u32 dummy; };
+typedef struct {
+  EcsEntityId entity;
+  f32         value;
+} SceneTargetScore;
+
+ecs_comp_extern(SceneTargetTraceComp);
+
+const SceneTargetScore* scene_target_trace_begin(const SceneTargetTraceComp*);
+const SceneTargetScore* scene_target_trace_end(const SceneTargetTraceComp*);

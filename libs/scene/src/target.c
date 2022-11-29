@@ -1,3 +1,5 @@
+#include "core_alloc.h"
+#include "core_dynarray.h"
 #include "core_float.h"
 #include "core_rng.h"
 #include "ecs_world.h"
@@ -16,7 +18,15 @@
 #define target_los_dist_max 50.0f
 
 ecs_comp_define_public(SceneTargetFinderComp);
-ecs_comp_define_public(SceneTargetTraceComp);
+
+ecs_comp_define(SceneTargetTraceComp) {
+  DynArray scores; // SceneTargetScore[].
+};
+
+static void ecs_destruct_target_trace(void* data) {
+  SceneTargetTraceComp* comp = data;
+  dynarray_destroy(&comp->scores);
+}
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -40,13 +50,20 @@ ecs_view_define(TargetView) {
 }
 
 static void target_trace_init(EcsWorld* world, const EcsEntityId entity) {
-  ecs_world_add_t(world, entity, SceneTargetTraceComp);
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneTargetTraceComp,
+      .scores = dynarray_create_t(g_alloc_heap, SceneTargetScore, 128));
 }
 
-static void target_trace_clear(SceneTargetTraceComp* trace) { trace->dummy = 0; }
+static void target_trace_clear(SceneTargetTraceComp* trace) { dynarray_clear(&trace->scores); }
 
-static void target_trace_add(SceneTargetTraceComp* trace, const f32 score) {
-  trace->dummy += score > 0;
+static void target_trace_add(SceneTargetTraceComp* trace, const EcsEntityId e, const f32 score) {
+  *dynarray_push_t(&trace->scores, SceneTargetScore) = (SceneTargetScore){
+      .entity = e,
+      .value  = score,
+  };
 }
 
 static GeoVector target_position_center(EcsIterator* entityItr) {
@@ -164,9 +181,6 @@ ecs_system_define(SceneTargetUpdateSys) {
     if ((finder->flags & SceneTarget_Trace) && !trace) {
       target_trace_init(world, entity);
     }
-    if (trace) {
-      target_trace_clear(trace);
-    }
 
     if (finder->targetOverride) {
       finder->target = finder->targetOverride;
@@ -181,6 +195,10 @@ ecs_system_define(SceneTargetUpdateSys) {
      * using an acceleration structure, for example the collision environment.
      */
     if (refreshesRemaining && target_finder_needs_refresh(finder, time)) {
+      if (trace) {
+        target_trace_clear(trace);
+      }
+
       finder->targetScore = f32_max;
       finder->target      = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
@@ -197,7 +215,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           finder->targetScore = score;
         }
         if (trace) {
-          target_trace_add(trace, score);
+          target_trace_add(trace, targetEntity, score);
         }
       }
       finder->nextRefreshTime = target_next_refresh_time(time);
@@ -233,7 +251,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
 ecs_module_init(scene_target_module) {
   ecs_register_comp(SceneTargetFinderComp);
-  ecs_register_comp(SceneTargetTraceComp);
+  ecs_register_comp(SceneTargetTraceComp, .destructor = ecs_destruct_target_trace);
 
   ecs_register_view(GlobalView);
   ecs_register_view(TargetFinderView);
@@ -246,4 +264,12 @@ ecs_module_init(scene_target_module) {
       ecs_view_id(TargetView));
 
   ecs_parallel(SceneTargetUpdateSys, 4);
+}
+
+const SceneTargetScore* scene_target_trace_begin(const SceneTargetTraceComp* comp) {
+  return dynarray_begin_t(&comp->scores, SceneTargetScore);
+}
+
+const SceneTargetScore* scene_target_trace_end(const SceneTargetTraceComp* comp) {
+  return dynarray_end_t(&comp->scores, SceneTargetScore);
 }
