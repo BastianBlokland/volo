@@ -923,7 +923,7 @@ static void inspector_vis_draw_target(
     const SceneTargetTraceComp*  tgtTrace,
     EcsView*                     transformView) {
 
-  DynString             textBuf         = dynstring_create_over(mem_stack(32));
+  DynString             textBuffer      = dynstring_create_over(mem_stack(32));
   const FormatOptsFloat formatOptsFloat = format_opts_float(.minDecDigits = 1, .maxDecDigits = 1);
 
   EcsIterator* transformItr = ecs_view_itr(transformView);
@@ -933,13 +933,19 @@ static void inspector_vis_draw_target(
 
   for (const SceneTargetScore* itr = scoresBegin; itr != scoresEnd; ++itr) {
     if (ecs_view_maybe_jump(transformItr, itr->entity)) {
-      const GeoVector pos      = ecs_view_read_t(transformItr, SceneTransformComp)->position;
-      const bool      selected = itr->entity == tgtFinder->target;
+      const GeoVector pos = ecs_view_read_t(transformItr, SceneTransformComp)->position;
 
-      dynstring_clear(&textBuf);
-      format_write_f64(&textBuf, itr->value, &formatOptsFloat);
+      GeoColor color;
+      if (itr->entity == tgtFinder->target) {
+        color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
+      } else {
+        color = geo_color_white;
+      }
 
-      debug_text(text, pos, dynstring_view(&textBuf), selected ? geo_color_lime : geo_color_white);
+      dynstring_clear(&textBuffer);
+      format_write_f64(&textBuffer, itr->value, &formatOptsFloat);
+
+      debug_text(text, pos, dynstring_view(&textBuffer), color);
     }
   }
 }
@@ -997,7 +1003,7 @@ static void inspector_vis_draw_subject(
 static void inspector_vis_draw_navigation_grid(
     DebugShapeComp* shape, DebugTextComp* text, const SceneNavEnvComp* nav) {
 
-  DynString textBuf = dynstring_create_over(mem_stack(32));
+  DynString textBuffer = dynstring_create_over(mem_stack(32));
 
   const GeoNavRegion   bounds    = scene_nav_bounds(nav);
   const GeoVector      cellSize  = scene_nav_cell_size(nav);
@@ -1025,9 +1031,9 @@ static void inspector_vis_draw_navigation_grid(
       debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
 
       if (!blocked) {
-        dynstring_clear(&textBuf);
-        format_write_u64(&textBuf, island, &format_opts_int());
-        debug_text(text, pos, dynstring_view(&textBuf), geo_color_white);
+        dynstring_clear(&textBuffer);
+        format_write_u64(&textBuffer, island, &format_opts_int());
+        debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
       }
     }
   }
