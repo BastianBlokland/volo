@@ -927,16 +927,15 @@ static void inspector_vis_draw_subject(
     const DebugInspectorSettingsComp* set,
     const SceneNavEnvComp*            nav,
     EcsIterator*                      subject) {
-  const SceneBoundsComp*       boundsComp       = ecs_view_read_t(subject, SceneBoundsComp);
-  const SceneCollisionComp*    collisionComp    = ecs_view_read_t(subject, SceneCollisionComp);
-  const SceneLocomotionComp*   locoComp         = ecs_view_read_t(subject, SceneLocomotionComp);
-  const SceneNameComp*         nameComp         = ecs_view_read_t(subject, SceneNameComp);
-  const SceneNavAgentComp*     navAgentComp     = ecs_view_read_t(subject, SceneNavAgentComp);
-  const SceneNavPathComp*      navPathComp      = ecs_view_read_t(subject, SceneNavPathComp);
-  const SceneScaleComp*        scaleComp        = ecs_view_read_t(subject, SceneScaleComp);
-  const SceneTargetFinderComp* targetFinderComp = ecs_view_read_t(subject, SceneTargetFinderComp);
-  const SceneTransformComp*    transformComp    = ecs_view_read_t(subject, SceneTransformComp);
-  const SceneVelocityComp*     veloComp         = ecs_view_read_t(subject, SceneVelocityComp);
+  const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
+  const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
+  const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavAgentComp*   navAgentComp  = ecs_view_read_t(subject, SceneNavAgentComp);
+  const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
+  const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneTransformComp*  transformComp = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -969,9 +968,6 @@ static void inspector_vis_draw_subject(
   }
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
-  }
-  if (targetFinderComp && set->visFlags & (1 << DebugInspectorVis_Target)) {
-    inspector_vis_draw_target(shape, targetFinderComp);
   }
 }
 
@@ -1047,10 +1043,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   DebugShapeComp*           shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*            text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  EcsView* subjectView = ecs_world_view_t(world, SubjectView);
+  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
+  EcsIterator* subjectItr  = ecs_view_itr(subjectView);
+
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
-    EcsIterator* subjectItr = ecs_view_itr(subjectView);
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
         inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
@@ -1066,6 +1063,14 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     UNREACHABLE
   }
 
+  if (set->visFlags & (1 << DebugInspectorVis_Target)) {
+    if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
+      const SceneTargetFinderComp* tgtFinder = ecs_view_read_t(subjectItr, SceneTargetFinderComp);
+      if (tgtFinder) {
+        inspector_vis_draw_target(shape, tgtFinder);
+      }
+    }
+  }
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
     inspector_vis_draw_navigation_grid(shape, text, nav);
   }
