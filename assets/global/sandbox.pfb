@@ -26,7 +26,7 @@
           "weaponId": "AssaultRifle",
           "targetDistanceMax": 35,
           "targetLineOfSightRadius": 0.4,
-          "targetScoreRandom": 10
+          "targetScoreRandom": 0.2
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -72,7 +72,7 @@
           "weaponId": "Melee",
           "targetDistanceMax": 150,
           "targetLineOfSightRadius": 0.2,
-          "targetScoreRandom": 2,
+          "targetScoreRandom": 0.1,
           "targetExcludeUnreachable": true
         },
         {
@@ -114,7 +114,7 @@
           "aimSpeed": 120,
           "targetDistanceMax": 50,
           "targetLineOfSightRadius": 0.4,
-          "targetScoreRandom": 5,
+          "targetScoreRandom": 0.1,
           "targetInstantRefreshOnIdle": true
         },
         {

@@ -148,7 +148,7 @@ static f32 target_score(
 
   const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
   if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
-    return -1.0f;
+    return 0.0f;
   }
 
   // Score based on distance.
@@ -156,9 +156,10 @@ static f32 target_score(
   const GeoVector           toTarget = geo_vector_sub(targetTrans->position, finderTrans->position);
   const f32                 distance = geo_vector_mag(toTarget);
   if (distance > finder->distanceMax) {
-    return -1.0f;
+    return 0.0f;
   }
-  return distance + rng_sample_f32(g_rng) * finder->scoreRandom;
+  const f32 distanceScore = 1.0f - distance / finder->distanceMax;
+  return distanceScore + rng_sample_f32(g_rng) * finder->scoreRandom;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
@@ -209,7 +210,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         target_trace_clear(trace);
       }
 
-      finder->targetScore = f32_max;
+      finder->targetScore = 0.0f;
       finder->target      = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
@@ -220,7 +221,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const f32 score = target_score(navEnv, finder, trans, targetItr);
-        if (score >= 0 && score < finder->targetScore) {
+        if (score > finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
         }
