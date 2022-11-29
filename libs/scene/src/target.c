@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
@@ -146,20 +147,23 @@ static f32 target_score(
     const SceneTransformComp*    finderTrans,
     EcsIterator*                 targetItr) {
 
-  const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
-  if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
-    return 0.0f;
-  }
-
-  // Score based on distance.
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const GeoVector           toTarget = geo_vector_sub(targetTrans->position, finderTrans->position);
-  const f32                 distance = geo_vector_mag(toTarget);
-  if (distance > finder->distanceMax) {
-    return 0.0f;
+  const f32                 distanceSqr = geo_vector_mag_sqr(toTarget);
+  if (distanceSqr > (finder->distanceMax * finder->distanceMax)) {
+    return 0.0f; // Target too far away.
   }
-  const f32 distanceScore = 1.0f - distance / finder->distanceMax;
-  return distanceScore + rng_sample_f32(g_rng) * finder->scoreRandom;
+
+  const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
+  if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
+    return 0.0f; // Target unreachable.
+  }
+  const f32 distance = math_sqrt_f32(distanceSqr);
+
+  f32 score = 0.0f;
+  score += 1.0f - distance / finder->distanceMax;       // Distance score.
+  score += rng_sample_f32(g_rng) * finder->scoreRandom; // Random score.
+  return score;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
