@@ -11,7 +11,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define target_max_refresh_per_task 50
+#define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
 #define target_los_dist_min 1.0f
