@@ -142,7 +142,7 @@ static f32 target_score(
     const SceneTransformComp*    finderTrans,
     EcsIterator*                 targetItr) {
 
-  const bool excludeUnreachable = (finder->flags & SceneTarget_ExcludeUnreachable) != 0;
+  const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
   if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
     return -1.0f;
   }
@@ -178,7 +178,7 @@ ecs_system_define(SceneTargetUpdateSys) {
     SceneTargetFinderComp*    finder  = ecs_view_write_t(itr, SceneTargetFinderComp);
     SceneTargetTraceComp*     trace   = ecs_view_write_t(itr, SceneTargetTraceComp);
 
-    if ((finder->flags & SceneTarget_Trace) && !trace) {
+    if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
       target_trace_init(world, entity);
     }
 
@@ -242,7 +242,7 @@ ecs_system_define(SceneTargetUpdateSys) {
     } else {
       finder->targetOverride = 0;
       finder->target         = 0;
-      if (finder->flags & SceneTarget_InstantRefreshOnIdle) {
+      if (finder->flags & SceneTarget_ConfigInstantRefreshOnIdle) {
         finder->nextRefreshTime = 0;
       }
     }

@@ -1097,7 +1097,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     if (ecs_view_maybe_jump(subjectItr, scene_selection_main(sel))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
-        tgtFinder->flags |= SceneTarget_Trace;
+        tgtFinder->flags |= SceneTarget_ConfigTrace;
 
         const SceneTargetTraceComp* tgtTrace = ecs_view_read_t(subjectItr, SceneTargetTraceComp);
         if (tgtTrace) {

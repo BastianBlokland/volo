@@ -164,10 +164,10 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   }
   SceneTargetFlags flags = 0;
   if (t->targetExcludeUnreachable) {
-    flags |= SceneTarget_ExcludeUnreachable;
+    flags |= SceneTarget_ConfigExcludeUnreachable;
   }
   if (t->targetInstantRefreshOnIdle) {
-    flags |= SceneTarget_InstantRefreshOnIdle;
+    flags |= SceneTarget_ConfigInstantRefreshOnIdle;
   }
   ecs_world_add_t(
       w,
