@@ -400,7 +400,7 @@ static void inspector_panel_draw_target(
     if (inspector_panel_section(canvas, string_lit("Target"))) {
       u32       flags    = finder->flags;
       GeoVector tgtPos   = finder->targetPosition;
-      f32       tgtScore = math_sqrt_f32(finder->targetScoreSqr);
+      f32       tgtScore = finder->targetScore;
       f32       tgtDist  = finder->targetDistance;
 
       inspector_panel_next(canvas, panelComp, table);

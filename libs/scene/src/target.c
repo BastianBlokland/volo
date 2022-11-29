@@ -107,7 +107,7 @@ static bool target_reachable(
   return scene_nav_reachable(nav, finderNavCell, scene_nav_at_position(nav, targetTrans->position));
 }
 
-static f32 target_score_sqr(
+static f32 target_score(
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
     const SceneTransformComp*    finderTrans,
@@ -120,10 +120,8 @@ static f32 target_score_sqr(
 
   // Score based on distance.
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  const GeoVector           posDelta = geo_vector_sub(finderTrans->position, targetTrans->position);
-  const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
-  const f32                 maxDeviationSqr = finder->scoreRandomness * finder->scoreRandomness;
-  return distSqr + rng_sample_f32(g_rng) * maxDeviationSqr;
+  const GeoVector           toTarget = geo_vector_sub(targetTrans->position, finderTrans->position);
+  return geo_vector_mag(toTarget) + rng_sample_f32(g_rng) * finder->scoreRandomness;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
@@ -163,8 +161,8 @@ ecs_system_define(SceneTargetUpdateSys) {
      * using an acceleration structure, for example the collision environment.
      */
     if (refreshesRemaining && target_finder_needs_refresh(finder, time)) {
-      finder->targetScoreSqr = f32_max;
-      finder->target         = 0;
+      finder->targetScore = f32_max;
+      finder->target      = 0;
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
         if (entity == targetEntity) {
@@ -174,10 +172,10 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, targetFaction)) {
           continue; // Do not target friendlies.
         }
-        const f32 scoreSqr = target_score_sqr(navEnv, finder, trans, targetItr);
-        if (scoreSqr >= 0 && scoreSqr < finder->targetScoreSqr) {
-          finder->target         = targetEntity;
-          finder->targetScoreSqr = scoreSqr;
+        const f32 score = target_score(navEnv, finder, trans, targetItr);
+        if (score >= 0 && score < finder->targetScore) {
+          finder->target      = targetEntity;
+          finder->targetScore = score;
         }
       }
       finder->nextRefreshTime = target_next_refresh_time(time);
