@@ -74,6 +74,7 @@ typedef struct {
   f32    targetLineOfSightRadius;
   f32    targetScoreRandom;
   bool   targetExcludeUnreachable;
+  bool   targetExcludeObscured;
   bool   targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttackDef;
 
@@ -183,6 +184,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetScoreRandom, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeObscured, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetInstantRefreshOnIdle, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
@@ -363,6 +365,7 @@ static void prefab_build(
           .targetLineOfSightRadius    = traitDef->data_attack.targetLineOfSightRadius,
           .targetScoreRandom          = traitDef->data_attack.targetScoreRandom,
           .targetExcludeUnreachable   = traitDef->data_attack.targetExcludeUnreachable,
+          .targetExcludeObscured      = traitDef->data_attack.targetExcludeObscured,
           .targetInstantRefreshOnIdle = traitDef->data_attack.targetInstantRefreshOnIdle,
       };
       break;

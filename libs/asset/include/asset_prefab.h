@@ -80,6 +80,7 @@ typedef struct {
   f32        targetLineOfSightRadius;
   f32        targetScoreRandom;
   bool       targetExcludeUnreachable;
+  bool       targetExcludeObscured;
   bool       targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttack;
 

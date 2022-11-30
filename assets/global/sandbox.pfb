@@ -26,7 +26,8 @@
           "weaponId": "AssaultRifle",
           "targetDistanceMax": 35,
           "targetLineOfSightRadius": 0.4,
-          "targetScoreRandom": 0.2
+          "targetScoreRandom": 0.2,
+          "targetExcludeObscured": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -115,6 +116,7 @@
           "targetDistanceMax": 50,
           "targetLineOfSightRadius": 0.4,
           "targetScoreRandom": 0.1,
+          "targetExcludeObscured": true,
           "targetInstantRefreshOnIdle": true
         },
         {

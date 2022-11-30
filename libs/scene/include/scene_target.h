@@ -6,10 +6,11 @@
 
 typedef enum {
   SceneTarget_ConfigExcludeUnreachable   = 1 << 0,
-  SceneTarget_ConfigInstantRefreshOnIdle = 1 << 1, // Instant refresh when target is gone.
-  SceneTarget_ConfigTrace                = 1 << 2, // Enable diagnostic tracing.
-  SceneTarget_LineOfSight                = 1 << 3, // Set while we have los to target.
-  SceneTarget_Overriden                  = 1 << 4, // Set while we use an overriden target.
+  SceneTarget_ConfigExcludeObscured      = 1 << 1,
+  SceneTarget_ConfigInstantRefreshOnIdle = 1 << 2, // Instant refresh when target is gone.
+  SceneTarget_ConfigTrace                = 1 << 3, // Enable diagnostic tracing.
+  SceneTarget_LineOfSight                = 1 << 4, // Set while we have los to target.
+  SceneTarget_Overriden                  = 1 << 5, // Set while we use an overriden target.
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {

@@ -166,6 +166,9 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   if (t->targetExcludeUnreachable) {
     flags |= SceneTarget_ConfigExcludeUnreachable;
   }
+  if (t->targetExcludeObscured) {
+    flags |= SceneTarget_ConfigExcludeObscured;
+  }
   if (t->targetInstantRefreshOnIdle) {
     flags |= SceneTarget_ConfigInstantRefreshOnIdle;
   }
