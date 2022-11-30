@@ -16,7 +16,7 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
-#define target_score_current_entity 0.2f
+#define target_score_current_entity 0.1f
 #define target_score_distance 1.0f
 #define target_score_direction 0.3f
 #define target_los_dist_min 1.0f
