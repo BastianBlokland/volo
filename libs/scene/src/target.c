@@ -17,8 +17,8 @@
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
 #define target_score_current_entity 0.1f
-#define target_score_distance 1.0f
-#define target_score_direction 0.25f
+#define target_score_dist 1.0f
+#define target_score_dir 0.25f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
@@ -147,6 +147,7 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
 }
 
 static f32 target_score(
+    const SceneCollisionEnvComp* collisionEnv,
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
     const GeoVector              finderPosCenter,
@@ -157,8 +158,8 @@ static f32 target_score(
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
   const GeoVector           targetPosCenter = target_position_center(targetTrans);
   const GeoVector           toTarget        = geo_vector_sub(targetPosCenter, finderPosCenter);
-  const f32                 distanceSqr     = geo_vector_mag_sqr(toTarget);
-  if (distanceSqr > (finder->distanceMax * finder->distanceMax)) {
+  const f32                 distSqr         = geo_vector_mag_sqr(toTarget);
+  if (distSqr > (finder->distanceMax * finder->distanceMax)) {
     return 0.0f; // Target too far away.
   }
 
@@ -166,20 +167,22 @@ static f32 target_score(
   if (excludeUnreachable && !target_reachable(nav, finderPosCenter, targetItr)) {
     return 0.0f; // Target unreachable.
   }
+  const f32       dist = math_sqrt_f32(distSqr);
+  const GeoVector dir  = dist > f32_epsilon ? geo_vector_div(toTarget, dist) : geo_forward;
 
-  const f32 distance = math_sqrt_f32(distanceSqr);
-
-  f32 aimDirDot;
-  if (distance > f32_epsilon) {
-    aimDirDot = geo_vector_dot(finderAimDir, geo_vector_div(toTarget, distance));
-  } else {
-    aimDirDot = 1.0f;
+  if (finder->flags & SceneTarget_ConfigExcludeObscured) {
+    const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
+    const GeoRay           ray    = {.point = finderPosCenter, .dir = dir};
+    SceneRayHit            hit;
+    if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit)) {
+      return 0.0f; // Target obscured.
+    }
   }
 
   f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
-  score += (1.0f - distance / finder->distanceMax) * target_score_distance; // Distance score.
-  score += math_max(0, aimDirDot) * target_score_direction;                 // Direction score.
-  score += rng_sample_f32(g_rng) * finder->scoreRandom;                     // Random score.
+  score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
+  score += math_max(0, geo_vector_dot(finderAimDir, dir)) * target_score_dir; // Direction score.
+  score += rng_sample_f32(g_rng) * finder->scoreRandom;                       // Random score.
   return score;
 }
 
@@ -231,7 +234,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
-      const GeoVector   posCenter = target_position_center(trans);
+      const GeoVector   pos       = target_position_center(trans);
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = finder->target;
       finder->targetScore         = 0.0f;
@@ -244,7 +247,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
-        const f32 score = target_score(navEnv, finder, posCenter, aimDir, targetOld, targetItr);
+        const f32 score = target_score(colEnv, navEnv, finder, pos, aimDir, targetOld, targetItr);
         if (score > finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
