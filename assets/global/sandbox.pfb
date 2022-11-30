@@ -24,8 +24,10 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "AssaultRifle",
-          "lineOfSightRadius": 0.4,
-          "targetScoreRandomness": 10
+          "targetDistanceMax": 35,
+          "targetLineOfSightRadius": 0.4,
+          "targetScoreRandom": 0.2,
+          "targetExcludeObscured": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -69,8 +71,9 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
-          "lineOfSightRadius": 0.2,
-          "targetScoreRandomness": 2,
+          "targetDistanceMax": 150,
+          "targetLineOfSightRadius": 0.2,
+          "targetScoreRandom": 0.1,
           "targetExcludeUnreachable": true
         },
         {
@@ -101,7 +104,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 300,
+          "amount": 500,
           "deathDestroyDelay": 0,
           "deathVfxId": "vfx/sandbox/explosion.vfx"
         },
@@ -110,8 +113,10 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "lineOfSightRadius": 0.4,
-          "targetScoreRandomness": 5,
+          "targetDistanceMax": 50,
+          "targetLineOfSightRadius": 0.4,
+          "targetScoreRandom": 0.1,
+          "targetExcludeObscured": true,
           "targetInstantRefreshOnIdle": true
         },
         {
@@ -163,8 +168,8 @@
         {
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitRifle",
-          "radius": 25,
-          "count": 100
+          "radius": 35,
+          "count": 150
         }
       ]
     },

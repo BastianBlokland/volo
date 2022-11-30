@@ -76,9 +76,11 @@ typedef struct {
   StringHash weapon;
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
-  f32        lineOfSightRadius;
-  f32        targetScoreRandomness;
+  f32        targetDistanceMax;
+  f32        targetLineOfSightRadius;
+  f32        targetScoreRandom;
   bool       targetExcludeUnreachable;
+  bool       targetExcludeObscured;
   bool       targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttack;
 

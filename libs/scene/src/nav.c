@@ -24,8 +24,6 @@ static const f32       g_sceneNavHeight  = 2.0f;
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 2.0f
-#define nav_arrive_threshold_occupied_cell_mult 1.25f
-#define nav_arrive_threshold_min 0.1f
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
 ecs_comp_define_public(SceneNavStatsComp);
@@ -240,13 +238,11 @@ static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
 }
 
 /**
- * Compute a rough estimate on how close we can get to our target based on the blocked and occupied
- * cells around the target.
+ * Compute a rough estimate on how close to the target we can get based on the occupied cells.
  */
 static f32 scene_nav_arrive_threshold(const SceneNavEnvComp* env, const GeoNavCell toCell) {
   const GeoNavCell closestFree = geo_nav_closest_free(env->navGrid, toCell);
-  const f32 occupiedDist = math_max(geo_nav_distance(env->navGrid, toCell, closestFree) - 0.5f, 0);
-  return occupiedDist * nav_arrive_threshold_occupied_cell_mult + nav_arrive_threshold_min;
+  return math_max(geo_nav_distance(env->navGrid, toCell, closestFree), 0.1f);
 }
 
 ecs_system_define(SceneNavUpdateAgentsSys) {
@@ -284,7 +280,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const f32 distToTarget    = geo_vector_mag(geo_vector_sub(toPos, trans->position));
     const f32 arriveThreshold = scene_nav_arrive_threshold(env, toCell);
-    if (distToTarget <= (loco->radius + arriveThreshold)) {
+    if (distToTarget <= arriveThreshold) {
       agent->flags |= SceneNavAgent_Stop; // Arrived at destination.
     }
 

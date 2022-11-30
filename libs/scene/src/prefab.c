@@ -164,18 +164,22 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   }
   SceneTargetFlags flags = 0;
   if (t->targetExcludeUnreachable) {
-    flags |= SceneTarget_ExcludeUnreachable;
+    flags |= SceneTarget_ConfigExcludeUnreachable;
+  }
+  if (t->targetExcludeObscured) {
+    flags |= SceneTarget_ConfigExcludeObscured;
   }
   if (t->targetInstantRefreshOnIdle) {
-    flags |= SceneTarget_InstantRefreshOnIdle;
+    flags |= SceneTarget_ConfigInstantRefreshOnIdle;
   }
   ecs_world_add_t(
       w,
       e,
       SceneTargetFinderComp,
       .flags             = flags,
-      .lineOfSightRadius = t->lineOfSightRadius,
-      .scoreRandomness   = t->targetScoreRandomness);
+      .distanceMax       = t->targetDistanceMax,
+      .lineOfSightRadius = t->targetLineOfSightRadius,
+      .scoreRandom       = t->targetScoreRandom);
 }
 
 static void setup_collision(

@@ -4,6 +4,9 @@
 #include "ecs_module.h"
 #include "geo_quat.h"
 
+// Forward declare from 'scene_transform.h'.
+ecs_comp_extern(SceneTransformComp);
+
 typedef enum {
   SceneAttackFlags_Firing = 1 << 0,
 } SceneAttackFlags;
@@ -23,3 +26,10 @@ ecs_comp_extern_public(SceneAttackAimComp) {
   f32        aimSpeedRad; // Radians per second.
   GeoQuat    aimRotLocal;
 };
+
+/**
+ * Compute the world-space aim rotation.
+ * NOTE: 'SceneAttackAimComp' is optional, when null the raw transform rotation is returned.
+ */
+GeoQuat   scene_attack_aim_rot(const SceneTransformComp*, const SceneAttackAimComp*);
+GeoVector scene_attack_aim_dir(const SceneTransformComp*, const SceneAttackAimComp*);
