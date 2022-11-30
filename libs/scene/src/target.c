@@ -18,7 +18,7 @@
 #define target_refresh_time_max time_seconds(2.5)
 #define target_score_current_entity 0.1f
 #define target_score_distance 1.0f
-#define target_score_direction 0.3f
+#define target_score_direction 0.25f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
