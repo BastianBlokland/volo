@@ -76,8 +76,7 @@ static void target_trace_add(SceneTargetTraceComp* trace, const EcsEntityId e, c
   };
 }
 
-static GeoVector target_position_center(EcsIterator* entityItr) {
-  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+static GeoVector target_position_center(const SceneTransformComp* trans) {
   // TODO: Target position should either be based on target collision bounds or be configurable.
   return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
 }
@@ -89,13 +88,14 @@ typedef struct {
 
 static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
+    const SceneTransformComp*    finderTrans,
     const f32                    radius,
-    EcsIterator*                 finderItr,
     EcsIterator*                 targetItr) {
-  const GeoVector sourcePos = target_position_center(finderItr);
-  const GeoVector targetPos = target_position_center(targetItr);
-  const GeoVector toTarget  = geo_vector_sub(targetPos, sourcePos);
-  const f32       dist      = geo_vector_mag(toTarget);
+  const GeoVector           sourcePos   = target_position_center(finderTrans);
+  const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  const GeoVector           targetPos   = target_position_center(targetTrans);
+  const GeoVector           toTarget    = geo_vector_sub(targetPos, sourcePos);
+  const f32                 dist        = geo_vector_mag(toTarget);
   if (dist <= target_los_dist_min) {
     return (TargetLineOfSightInfo){.hasLos = true, .distance = dist};
   }
@@ -134,10 +134,10 @@ static TimeDuration target_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
-static bool target_reachable(
-    const SceneNavEnvComp* nav, const SceneTransformComp* finderTrans, EcsIterator* targetItr) {
+static bool
+target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsIterator* targetItr) {
 
-  const GeoNavCell           finderNavCell    = scene_nav_at_position(nav, finderTrans->position);
+  const GeoNavCell           finderNavCell    = scene_nav_at_position(nav, finderPos);
   const SceneNavBlockerComp* targetNavBlocker = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (targetNavBlocker) {
     return scene_nav_reachable_blocker(nav, finderNavCell, targetNavBlocker);
@@ -149,20 +149,21 @@ static bool target_reachable(
 static f32 target_score(
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
-    const SceneTransformComp*    finderTrans,
+    const GeoVector              finderPosCenter,
     const GeoVector              finderAimDir,
     const EcsEntityId            targetOld,
     EcsIterator*                 targetItr) {
 
-  const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  const GeoVector           toTarget = geo_vector_sub(targetTrans->position, finderTrans->position);
-  const f32                 distanceSqr = geo_vector_mag_sqr(toTarget);
+  const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
+  const GeoVector           targetPosCenter = target_position_center(targetTrans);
+  const GeoVector           toTarget        = geo_vector_sub(targetPosCenter, finderPosCenter);
+  const f32                 distanceSqr     = geo_vector_mag_sqr(toTarget);
   if (distanceSqr > (finder->distanceMax * finder->distanceMax)) {
     return 0.0f; // Target too far away.
   }
 
   const bool excludeUnreachable = (finder->flags & SceneTarget_ConfigExcludeUnreachable) != 0;
-  if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
+  if (excludeUnreachable && !target_reachable(nav, finderPosCenter, targetItr)) {
     return 0.0f; // Target unreachable.
   }
 
@@ -230,6 +231,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
+      const GeoVector   posCenter = target_position_center(trans);
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = finder->target;
       finder->targetScore         = 0.0f;
@@ -242,7 +244,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
-        const f32 score = target_score(navEnv, finder, trans, aimDir, targetOld, targetItr);
+        const f32 score = target_score(navEnv, finder, posCenter, aimDir, targetOld, targetItr);
         if (score > finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
@@ -263,7 +265,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       ecs_view_jump(targetItr, finder->target);
 
       const f32                   losRadius = finder->lineOfSightRadius;
-      const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, losRadius, itr, targetItr);
+      const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, trans, losRadius, targetItr);
 
       if (losInfo.hasLos) {
         finder->flags |= SceneTarget_LineOfSight;
