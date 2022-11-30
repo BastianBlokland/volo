@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
+#include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
@@ -15,7 +16,9 @@
 #define target_max_refresh_per_task 25
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2.5)
-#define target_score_bonus_current 0.1f
+#define target_score_current_entity 0.2f
+#define target_score_distance 1.0f
+#define target_score_direction 0.3f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
@@ -37,6 +40,7 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(TargetFinderView) {
+  ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_write(SceneTargetTraceComp);
   ecs_access_read(SceneTransformComp);
@@ -146,6 +150,7 @@ static f32 target_score(
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
     const SceneTransformComp*    finderTrans,
+    const GeoVector              finderAimDir,
     const EcsEntityId            targetOld,
     EcsIterator*                 targetItr) {
 
@@ -160,11 +165,20 @@ static f32 target_score(
   if (excludeUnreachable && !target_reachable(nav, finderTrans, targetItr)) {
     return 0.0f; // Target unreachable.
   }
+
   const f32 distance = math_sqrt_f32(distanceSqr);
 
-  f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_bonus_current : 0.0f;
-  score += 1.0f - distance / finder->distanceMax;       // Distance score.
-  score += rng_sample_f32(g_rng) * finder->scoreRandom; // Random score.
+  f32 aimDirDot;
+  if (distance > f32_epsilon) {
+    aimDirDot = geo_vector_dot(finderAimDir, geo_vector_div(toTarget, distance));
+  } else {
+    aimDirDot = 1.0f;
+  }
+
+  f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
+  score += (1.0f - distance / finder->distanceMax) * target_score_distance; // Distance score.
+  score += math_max(0, aimDirDot) * target_score_direction;                 // Direction score.
+  score += rng_sample_f32(g_rng) * finder->scoreRandom;                     // Random score.
   return score;
 }
 
@@ -187,11 +201,12 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
   for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId         entity  = ecs_view_entity(itr);
-    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
-    SceneTargetFinderComp*    finder  = ecs_view_write_t(itr, SceneTargetFinderComp);
-    SceneTargetTraceComp*     trace   = ecs_view_write_t(itr, SceneTargetTraceComp);
+    const EcsEntityId         entity    = ecs_view_entity(itr);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneAttackAimComp* attackAim = ecs_view_read_t(itr, SceneAttackAimComp);
+    const SceneFactionComp*   faction   = ecs_view_read_t(itr, SceneFactionComp);
+    SceneTargetFinderComp*    finder    = ecs_view_write_t(itr, SceneTargetFinderComp);
+    SceneTargetTraceComp*     trace     = ecs_view_write_t(itr, SceneTargetTraceComp);
 
     if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
       target_trace_start(world, entity);
@@ -215,6 +230,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
+      const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = finder->target;
       finder->targetScore         = 0.0f;
       finder->target              = 0;
@@ -226,7 +242,7 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
-        const f32 score = target_score(navEnv, finder, trans, targetOld, targetItr);
+        const f32 score = target_score(navEnv, finder, trans, aimDir, targetOld, targetItr);
         if (score > finder->targetScore) {
           finder->target      = targetEntity;
           finder->targetScore = score;
