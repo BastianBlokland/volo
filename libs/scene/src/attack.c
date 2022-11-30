@@ -42,13 +42,6 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
-static GeoQuat aim_rot_current(const SceneTransformComp* trans, SceneAttackAimComp* attackAim) {
-  if (attackAim) {
-    return geo_quat_mul(trans->rotation, attackAim->aimRotLocal);
-  }
-  return trans->rotation;
-}
-
 static void aim_face(
     SceneAttackAimComp*           attackAim,
     SceneSkeletonComp*            skel,
@@ -458,7 +451,7 @@ ecs_system_define(SceneAttackSys) {
       const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
       const bool      isCoolingDown = time->time < attack->nextFireTime;
       const GeoVector pos           = trans->position;
-      const GeoQuat   aimRot        = aim_rot_current(trans, attackAim);
+      const GeoQuat   aimRot        = scene_attack_aim_rot(trans, attackAim);
 
       if (weaponReady && !isFiring && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos)) {
         // Start the attack.
@@ -512,4 +505,16 @@ ecs_module_init(scene_attack_module) {
       ecs_register_view(TargetView));
 
   ecs_parallel(SceneAttackSys, 4);
+}
+
+GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
+  if (aimComp) {
+    return geo_quat_mul(trans->rotation, aimComp->aimRotLocal);
+  }
+  return trans->rotation;
+}
+
+GeoVector scene_attack_aim_dir(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
+  const GeoQuat aimRot = scene_attack_aim_rot(trans, aimComp);
+  return geo_quat_rotate(aimRot, geo_forward);
 }
