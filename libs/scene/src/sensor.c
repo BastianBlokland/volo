@@ -89,10 +89,11 @@ ecs_system_define(SceneSensorUpdateSys) {
     }
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
-    if (targetFinder && targetFinder->target) {
+    const EcsEntityId            target = targetFinder ? scene_target_primary(targetFinder) : 0;
+    if (target) {
       const bool los = (targetFinder->flags & SceneTarget_LineOfSight) != 0;
 
-      scene_brain_set(brain, g_brainKeyTargetEntity, script_entity(targetFinder->target));
+      scene_brain_set(brain, g_brainKeyTargetEntity, script_entity(target));
       scene_brain_set(brain, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
       scene_brain_set(brain, g_brainKeyTargetDist, script_number(targetFinder->targetDistance));
       scene_brain_set(brain, g_brainKeyTargetLos, script_bool(los));

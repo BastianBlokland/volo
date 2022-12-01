@@ -169,17 +169,13 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   if (t->targetExcludeObscured) {
     flags |= SceneTarget_ConfigExcludeObscured;
   }
-  if (t->targetInstantRefreshOnIdle) {
-    flags |= SceneTarget_ConfigInstantRefreshOnIdle;
-  }
   ecs_world_add_t(
       w,
       e,
       SceneTargetFinderComp,
       .flags             = flags,
       .distanceMax       = t->targetDistanceMax,
-      .lineOfSightRadius = t->targetLineOfSightRadius,
-      .scoreRandom       = t->targetScoreRandom);
+      .lineOfSightRadius = t->targetLineOfSightRadius);
 }
 
 static void setup_collision(

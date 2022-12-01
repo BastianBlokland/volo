@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_dynarray.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -13,12 +14,13 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define target_max_refresh_per_task 25
+#define target_max_refresh_per_task 10
 #define target_refresh_time_min time_seconds(1)
-#define target_refresh_time_max time_seconds(2.5)
+#define target_refresh_time_max time_seconds(2)
 #define target_score_current_entity 0.1f
 #define target_score_dist 1.0f
 #define target_score_dir 0.25f
+#define target_score_random 0.1f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
@@ -182,8 +184,23 @@ static f32 target_score(
   f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
   score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
   score += math_max(0, geo_vector_dot(finderAimDir, dir)) * target_score_dir; // Direction score.
-  score += rng_sample_f32(g_rng) * finder->scoreRandom;                       // Random score.
+  score += rng_sample_f32(g_rng) * target_score_random;                       // Random score.
   return score;
+}
+
+static void target_queue_set(SceneTargetFinderComp* finder, const EcsEntityId target) {
+  mem_set(array_mem(finder->targetQueue), 0);
+  finder->targetQueue[0] = target;
+}
+
+static bool target_queue_pop(SceneTargetFinderComp* finder) {
+  array_for_t(finder->targetQueue, EcsEntityId, target) {
+    if (*target) {
+      *target = 0;
+      return true;
+    }
+  }
+  return false;
 }
 
 ecs_system_define(SceneTargetUpdateSys) {
@@ -219,7 +236,7 @@ ecs_system_define(SceneTargetUpdateSys) {
     }
 
     if (finder->targetOverride) {
-      finder->target = finder->targetOverride;
+      target_queue_set(finder, finder->targetOverride);
       finder->flags |= SceneTarget_Overriden;
     } else {
       finder->flags &= ~SceneTarget_Overriden;
@@ -236,9 +253,9 @@ ecs_system_define(SceneTargetUpdateSys) {
       }
       const GeoVector   pos       = target_position_center(trans);
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
-      const EcsEntityId targetOld = finder->target;
-      finder->targetScore         = 0.0f;
-      finder->target              = 0;
+      const EcsEntityId targetOld = scene_target_primary(finder);
+
+      f32 scores[scene_target_queue_size] = {0};
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
         if (entity == targetEntity) {
@@ -248,9 +265,14 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Do not target friendlies.
         }
         const f32 score = target_score(colEnv, navEnv, finder, pos, aimDir, targetOld, targetItr);
-        if (score > finder->targetScore) {
-          finder->target      = targetEntity;
-          finder->targetScore = score;
+
+        // Insert into the target queue.
+        for (u32 i = 0; i != scene_target_queue_size; ++i) {
+          if (score > scores[i]) {
+            scores[i]              = score;
+            finder->targetQueue[i] = targetEntity;
+            break;
+          }
         }
         if (trace) {
           target_trace_add(trace, targetEntity, score);
@@ -263,9 +285,10 @@ ecs_system_define(SceneTargetUpdateSys) {
     /**
      * Update information about our target.
      */
+    const EcsEntityId primaryTarget = scene_target_primary(finder);
     finder->flags &= ~SceneTarget_LineOfSight;
-    if (ecs_view_contains(targetView, finder->target)) {
-      ecs_view_jump(targetItr, finder->target);
+    if (ecs_view_contains(targetView, primaryTarget)) {
+      ecs_view_jump(targetItr, primaryTarget);
 
       const f32                   losRadius = finder->lineOfSightRadius;
       const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, trans, losRadius, targetItr);
@@ -278,11 +301,8 @@ ecs_system_define(SceneTargetUpdateSys) {
       finder->targetPosition                = targetTrans->position;
       finder->targetDistance                = losInfo.distance;
     } else {
+      target_queue_pop(finder);
       finder->targetOverride = 0;
-      finder->target         = 0;
-      if (finder->flags & SceneTarget_ConfigInstantRefreshOnIdle) {
-        finder->nextRefreshTime = 0;
-      }
     }
   }
 }
@@ -302,6 +322,24 @@ ecs_module_init(scene_target_module) {
       ecs_view_id(TargetView));
 
   ecs_parallel(SceneTargetUpdateSys, 4);
+}
+
+EcsEntityId scene_target_primary(const SceneTargetFinderComp* finder) {
+  for (u32 i = 0; i != (scene_target_queue_size - 1); ++i) {
+    if (finder->targetQueue[i]) {
+      return finder->targetQueue[i];
+    }
+  }
+  return finder->targetQueue[scene_target_queue_size - 1];
+}
+
+bool scene_target_contains(const SceneTargetFinderComp* finder, const EcsEntityId entity) {
+  array_for_t(finder->targetQueue, EcsEntityId, target) {
+    if (*target == entity) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const SceneTargetScore* scene_target_trace_begin(const SceneTargetTraceComp* comp) {

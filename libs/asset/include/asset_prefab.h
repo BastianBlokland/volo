@@ -78,10 +78,8 @@ typedef struct {
   f32        aimSpeedRad; // Radians per second.
   f32        targetDistanceMax;
   f32        targetLineOfSightRadius;
-  f32        targetScoreRandom;
   bool       targetExcludeUnreachable;
   bool       targetExcludeObscured;
-  bool       targetInstantRefreshOnIdle;
 } AssetPrefabTraitAttack;
 
 typedef struct {
