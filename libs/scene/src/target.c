@@ -20,6 +20,7 @@
 #define target_score_current_entity 0.1f
 #define target_score_dist 1.0f
 #define target_score_dir 0.25f
+#define target_score_random 0.1f
 #define target_los_dist_min 1.0f
 #define target_los_dist_max 50.0f
 
@@ -183,7 +184,7 @@ static f32 target_score(
   f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
   score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
   score += math_max(0, geo_vector_dot(finderAimDir, dir)) * target_score_dir; // Direction score.
-  score += rng_sample_f32(g_rng) * finder->scoreRandom;                       // Random score.
+  score += rng_sample_f32(g_rng) * target_score_random;                       // Random score.
   return score;
 }
 

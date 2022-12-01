@@ -4,7 +4,7 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
-#define scene_target_queue_size 5
+#define scene_target_queue_size 4
 
 typedef enum {
   SceneTarget_ConfigExcludeUnreachable = 1 << 0,
@@ -15,14 +15,13 @@ typedef enum {
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
-  EcsEntityId      targetQueue[scene_target_queue_size];
-  EcsEntityId      targetOverride;
   SceneTargetFlags flags;
   f32              distanceMax;
   f32              lineOfSightRadius;
-  f32              scoreRandom; // Maximum target score to add randomly.
   f32              targetDistance;
   TimeDuration     nextRefreshTime;
+  EcsEntityId      targetOverride;
+  EcsEntityId      targetQueue[scene_target_queue_size];
   GeoVector        targetPosition;
 };
 
