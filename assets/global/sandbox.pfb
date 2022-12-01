@@ -25,7 +25,7 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "AssaultRifle",
           "targetDistanceMax": 35,
-          "targetLineOfSightRadius": 0.4,
+          "targetLineOfSightRadius": 0.5,
           "targetScoreRandom": 0.2,
           "targetExcludeObscured": true
         },
@@ -114,10 +114,9 @@
           "aimJoint": "turret",
           "aimSpeed": 120,
           "targetDistanceMax": 50,
-          "targetLineOfSightRadius": 0.4,
+          "targetLineOfSightRadius": 0.5,
           "targetScoreRandom": 0.1,
-          "targetExcludeObscured": true,
-          "targetInstantRefreshOnIdle": true
+          "targetExcludeObscured": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",

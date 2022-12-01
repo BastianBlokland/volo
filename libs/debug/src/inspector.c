@@ -401,15 +401,14 @@ static void inspector_panel_draw_target(
   if (finder) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Target"))) {
-      u32       flags    = finder->flags;
-      GeoVector tgtPos   = finder->targetPosition;
-      f32       tgtScore = finder->targetScore;
-      f32       tgtDist  = finder->targetDistance;
+      u32       flags   = finder->flags;
+      GeoVector tgtPos  = finder->targetPosition;
+      f32       tgtDist = finder->targetDistance;
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Entity"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_entity(canvas, finder->target);
+      inspector_panel_draw_value_entity(canvas, scene_target_primary(finder));
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Overriden"));
@@ -425,11 +424,6 @@ static void inspector_panel_draw_target(
       ui_label(canvas, string_lit("Distance"));
       ui_table_next_column(canvas, table);
       inspector_panel_draw_editor_f32(canvas, &tgtDist);
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Score"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_f32(canvas, &tgtScore);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Line of Sight"));
@@ -936,10 +930,12 @@ static void inspector_vis_draw_target(
       const GeoVector pos = ecs_view_read_t(transformItr, SceneTransformComp)->position;
 
       GeoColor color;
-      if (itr->entity == tgtFinder->target) {
-        color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
-      } else if (itr->value <= 0) {
+      if (itr->value <= 0) {
         color = geo_color(1, 1, 1, 0.25f);
+      } else if (itr->entity == scene_target_primary(tgtFinder)) {
+        color = tgtFinder->flags & SceneTarget_LineOfSight ? geo_color_lime : geo_color_yellow;
+      } else if (scene_target_contains(tgtFinder, itr->entity)) {
+        color = geo_color_fuchsia;
       } else {
         color = geo_color_white;
       }

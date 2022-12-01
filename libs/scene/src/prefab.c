@@ -169,9 +169,6 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   if (t->targetExcludeObscured) {
     flags |= SceneTarget_ConfigExcludeObscured;
   }
-  if (t->targetInstantRefreshOnIdle) {
-    flags |= SceneTarget_ConfigInstantRefreshOnIdle;
-  }
   ecs_world_add_t(
       w,
       e,
