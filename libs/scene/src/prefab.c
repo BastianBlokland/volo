@@ -9,6 +9,7 @@
 #include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -123,6 +124,10 @@ static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitR
 
 static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
   ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset);
+}
+
+static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
+  ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScale* t) {
@@ -249,6 +254,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Vfx:
     setup_vfx(w, e, &t->data_vfx);
+    return;
+  case AssetPrefabTrait_Lifetime:
+    setup_lifetime(w, e, &t->data_lifetime);
     return;
   case AssetPrefabTrait_Scale:
     setup_scale(w, e, &t->data_scale);

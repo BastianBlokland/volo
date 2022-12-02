@@ -40,6 +40,7 @@ typedef struct {
 typedef enum {
   AssetPrefabTrait_Renderable,
   AssetPrefabTrait_Vfx,
+  AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Scale,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Health,
@@ -58,6 +59,10 @@ typedef struct {
 typedef struct {
   EcsEntityId asset;
 } AssetPrefabTraitVfx;
+
+typedef struct {
+  TimeDuration duration;
+} AssetPrefabTraitLifetime;
 
 typedef struct {
   f32 scale;
@@ -109,6 +114,7 @@ typedef struct {
   union {
     AssetPrefabTraitRenderable data_renderable;
     AssetPrefabTraitVfx        data_vfx;
+    AssetPrefabTraitLifetime   data_lifetime;
     AssetPrefabTraitScale      data_scale;
     AssetPrefabTraitMovement   data_movement;
     AssetPrefabTraitHealth     data_health;
