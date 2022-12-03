@@ -88,6 +88,26 @@ f64 math_clamp_f64(const f64 val, const f64 min, const f64 max) {
   return val;
 }
 
+i32 math_clamp_i32(const i32 val, const i32 min, const i32 max) {
+  if (val <= min) {
+    return min;
+  }
+  if (val >= max) {
+    return max;
+  }
+  return val;
+}
+
+i64 math_clamp_i64(const i64 val, const i64 min, const i64 max) {
+  if (val <= min) {
+    return min;
+  }
+  if (val >= max) {
+    return max;
+  }
+  return val;
+}
+
 bool math_towards_f32(f32* val, const f32 target, const f32 maxDelta) {
   if (math_abs(target - *val) <= maxDelta) {
     *val = target;

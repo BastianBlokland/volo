@@ -136,6 +136,8 @@ f64 math_round_up_f64(f64);
  */
 f32 math_clamp_f32(f32 val, f32 min, f32 max);
 f64 math_clamp_f64(f64 val, f64 min, f64 max);
+i32 math_clamp_i32(i32 val, i32 min, i32 max);
+i64 math_clamp_i64(i64 val, i64 min, i64 max);
 
 /**
  * Moves the given value towards the target with a maximum step-size of maxDelta.
