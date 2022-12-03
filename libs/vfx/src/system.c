@@ -19,7 +19,7 @@
 
 typedef struct {
   u8           emitter;
-  u32          atlasIndex;
+  u16          atlasIndex;
   TimeDuration age;
 } VfxInstance;
 
@@ -175,10 +175,11 @@ static void vfx_system_spawn(
     log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
     return;
   }
+  diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter    = emitter,
-      .atlasIndex = atlasEntry->atlasIndex,
+      .atlasIndex = (u16)atlasEntry->atlasIndex,
   };
 }
 

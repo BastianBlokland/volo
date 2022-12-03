@@ -14,10 +14,10 @@ ecs_comp_extern(AssetAtlasComp);
 typedef struct {
   GeoVector position;
   GeoQuat   rotation;
-  u32       atlasIndex;
+  u16       atlasIndex;
   f32       sizeX, sizeY;
-  GeoColor  color;
   f32       opacity;
+  GeoColor  color;
 } VfxParticle;
 
 /**
