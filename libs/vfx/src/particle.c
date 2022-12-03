@@ -1,6 +1,7 @@
 #include "asset_atlas.h"
 #include "asset_manager.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
@@ -139,7 +140,12 @@ void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
 }
 
 void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
-  const GeoBox bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
+  GeoBox bounds;
+  if (p->flags & VfxParticle_Billboard) {
+    bounds = geo_box_from_sphere(p->position, math_max(p->sizeX, p->sizeY));
+  } else {
+    bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
+  }
 
   VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, SceneTags_Vfx, bounds);
   data->data1           = p->position;

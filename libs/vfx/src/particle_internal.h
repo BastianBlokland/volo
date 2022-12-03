@@ -17,6 +17,7 @@ ecs_comp_extern(AssetAtlasComp);
 typedef enum {
   VfxParticle_BillboardSphere   = 1 << 0,
   VfxParticle_BillboardCylinder = 1 << 1,
+  VfxParticle_Billboard         = VfxParticle_BillboardSphere | VfxParticle_BillboardCylinder,
 } VfxParticleFlags;
 
 typedef struct {
