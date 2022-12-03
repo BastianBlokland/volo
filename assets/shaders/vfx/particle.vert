@@ -49,8 +49,11 @@ bind_internal(2) out f32v2 out_texcoord;
 /**
  * Compute the x and y position in the texture atlas based on the atlas-index.
  */
-f32v2 atlas_entry_origin(
-    const f32 index, const f32 entriesPerDim, const f32 entrySize, const f32 entryPadding) {
+f32v2 atlas_entry_origin(const f32 index) {
+  const f32 entriesPerDim = u_meta.atlasEntriesPerDim;
+  const f32 entrySize     = u_meta.atlasEntrySize;
+  const f32 entryPadding  = u_meta.atlasEntryPadding;
+
   // NOTE: '* entrySize' is equivalent to '/ entriesPerDim'.
   const f32 entryX = mod(index, entriesPerDim) * entrySize + entryPadding;
   const f32 entryY = floor(index * entrySize) * entrySize + entryPadding;
@@ -58,8 +61,6 @@ f32v2 atlas_entry_origin(
 }
 
 void main() {
-  const f32v2 unitPos = c_unitPositions[in_vertexIndex];
-
   const f32v3 instancePos        = u_instances[in_instanceIndex].data1.xyz;
   const f32   instanceAtlasIndex = u_instances[in_instanceIndex].data1.w;
   const f32v4 instanceQuat       = f32v4(u_instances[in_instanceIndex].data2);
@@ -67,13 +68,15 @@ void main() {
   const f32v4 instanceColor      = f32v4(u_instances[in_instanceIndex].data4);
   const f32   instanceOpacity    = f32(u_instances[in_instanceIndex].data3.z);
 
-  const f32v3 worldPos = quat_rotate(instanceQuat, f32v3(unitPos * instanceScale, 0)) + instancePos;
+  const f32v2 scaledPos = c_unitPositions[in_vertexIndex] * instanceScale;
 
-  const f32v2 texOrigin = atlas_entry_origin(
-      instanceAtlasIndex,
-      u_meta.atlasEntriesPerDim,
-      u_meta.atlasEntrySize,
-      u_meta.atlasEntryPadding);
+  const f32m4 viewProj2 = transpose(u_global.viewProj);
+  const f32v3 camRight  = normalize(viewProj2[0].xyz);
+  const f32v3 camUp     = normalize(viewProj2[1].xyz);
+  const f32v3 vertPos   = camRight * scaledPos.x + camUp * -scaledPos.y;
+
+  const f32v3 worldPos  = quat_rotate(instanceQuat, vertPos) + instancePos;
+  const f32v2 texOrigin = atlas_entry_origin(instanceAtlasIndex);
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
