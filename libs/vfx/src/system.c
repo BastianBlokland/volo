@@ -161,6 +161,9 @@ static void vfx_blend_mode_apply(
   case AssetVfxBlend_AdditiveDouble:
     *outColor = geo_color(color.r * 2, color.g * 2, color.b * 2, color.a * 2), *outOpacity = 0.0f;
     return;
+  case AssetVfxBlend_AdditiveQuad:
+    *outColor = geo_color(color.r * 4, color.g * 4, color.b * 4, color.a * 4), *outOpacity = 0.0f;
+    return;
   }
   UNREACHABLE
 }
