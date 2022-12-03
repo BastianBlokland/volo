@@ -23,6 +23,7 @@ static const AssetMemRecord g_testData[] = {
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"entrySize\": 32,"
+                              "  \"entryPadding\": 1,"
                               "  \"mipmaps\": true,"
                               "  \"srgb\": true,"
                               "  \"entries\": ["
