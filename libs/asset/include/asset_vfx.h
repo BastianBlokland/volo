@@ -12,19 +12,27 @@ typedef enum {
   AssetVfxBlend_Alpha,
   AssetVfxBlend_Additive,
   AssetVfxBlend_AdditiveDouble,
+  AssetVfxBlend_AdditiveQuad,
 } AssetVfxBlend;
 
+typedef enum {
+  AssetVfxFacing_World,
+  AssetVfxFacing_BillboardSphere,
+  AssetVfxFacing_BillboardCylinder,
+} AssetVfxFacing;
+
 typedef struct {
-  GeoVector     position;
-  GeoQuat       rotation;
-  GeoColor      color;
-  TimeDuration  fadeInTime, fadeOutTime;
-  StringHash    atlasEntry;
-  f32           sizeX, sizeY;
-  TimeDuration  scaleInTime, scaleOutTime;
-  AssetVfxBlend blend;
-  u32           count;
-  TimeDuration  interval, lifetime;
+  GeoVector      position;
+  GeoQuat        rotation;
+  GeoColor       color;
+  TimeDuration   fadeInTime, fadeOutTime;
+  StringHash     atlasEntry;
+  f32            sizeX, sizeY;
+  TimeDuration   scaleInTime, scaleOutTime;
+  AssetVfxBlend  blend;
+  AssetVfxFacing facing;
+  u32            count;
+  TimeDuration   interval, lifetime;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {

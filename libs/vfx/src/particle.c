@@ -1,5 +1,7 @@
 #include "asset_atlas.h"
 #include "asset_manager.h"
+#include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
@@ -24,7 +26,7 @@ typedef struct {
   ALIGNAS(16)
   GeoVector data1;    // xyz: position, w: atlasIndex.
   f16       data2[4]; // xyzw: rotation quaternion.
-  f16       data3[4]; // xy: scale, z: opacity.
+  f16       data3[4]; // xy: scale, z: opacity, w: flags.
   f16       data4[4]; // xyzw: color.
 } VfxParticleData;
 
@@ -138,14 +140,24 @@ void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
 }
 
 void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
-  const GeoBox bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
+  GeoBox bounds;
+  if (p->flags & VfxParticle_Billboard) {
+    bounds = geo_box_from_sphere(p->position, math_max(p->sizeX, p->sizeY));
+  } else {
+    bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
+  }
 
   VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, SceneTags_Vfx, bounds);
   data->data1           = p->position;
   data->data1.w         = (f32)p->atlasIndex;
+
   geo_quat_pack_f16(p->rotation, data->data2);
   data->data3[0] = float_f32_to_f16(p->sizeX);
   data->data3[1] = float_f32_to_f16(p->sizeY);
   data->data3[2] = float_f32_to_f16(p->opacity);
+
+  diag_assert_msg(p->flags <= 1024, "Flags are not exactly representable by a 16 bit float");
+  data->data3[3] = float_f32_to_f16((f32)p->flags);
+
   geo_color_pack_f16(p->color, data->data4);
 }

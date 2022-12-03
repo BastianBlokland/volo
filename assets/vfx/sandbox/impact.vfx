@@ -6,8 +6,8 @@
         "z": 0.05
       },
       "size": {
-        "x": 1.5,
-        "y": 1.5
+        "x": 1.25,
+        "y": 1.25
       },
       "color": {
         "r": 1,
@@ -17,26 +17,8 @@
       },
       "fadeInTime": 0.05,
       "scaleOutTime": 0.2,
-      "blend": "AdditiveDouble"
-    },
-    {
-      "atlasEntry": "glow",
-      "rotation": {
-        "x": 90
-      },
-      "size": {
-        "x": 1.5,
-        "y": 1.5
-      },
-      "color": {
-        "r": 1,
-        "g": 0.25,
-        "b": 0.1,
-        "a": 1
-      },
-      "fadeInTime": 0.05,
-      "scaleOutTime": 0.2,
-      "blend": "AdditiveDouble"
+      "blend": "AdditiveDouble",
+      "facing": "BillboardSphere"
     }
   ]
 }

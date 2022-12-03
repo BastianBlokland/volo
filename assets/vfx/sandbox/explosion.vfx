@@ -14,45 +14,8 @@
       },
       "scaleInTime": 0.2,
       "fadeOutTime": 0.5,
-      "blend": "AdditiveDouble"
-    },
-    {
-      "atlasEntry": "glow",
-      "rotation": {
-        "x": 90
-      },
-      "size": {
-        "x": 10,
-        "y": 10
-      },
-      "color": {
-        "r": 1,
-        "g": 0.25,
-        "b": 0.1,
-        "a": 1
-      },
-      "scaleInTime": 0.2,
-      "fadeOutTime": 0.5,
-      "blend": "AdditiveDouble"
-    },
-    {
-      "atlasEntry": "glow",
-      "rotation": {
-        "y": 90
-      },
-      "size": {
-        "x": 10,
-        "y": 10
-      },
-      "color": {
-        "r": 1,
-        "g": 0.25,
-        "b": 0.1,
-        "a": 1
-      },
-      "scaleInTime": 0.2,
-      "fadeOutTime": 0.5,
-      "blend": "AdditiveDouble"
+      "blend": "AdditiveQuad",
+      "facing": "BillboardSphere"
     }
   ]
 }

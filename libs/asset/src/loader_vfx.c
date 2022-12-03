@@ -32,16 +32,17 @@ typedef struct {
 } VfxColorDef;
 
 typedef struct {
-  String        atlasEntry;
-  VfxVec3Def    position;
-  VfxRotDef     rotation;
-  VfxVec2Def    size;
-  f32           scaleInTime, scaleOutTime;
-  VfxColorDef*  color;
-  f32           fadeInTime, fadeOutTime;
-  AssetVfxBlend blend;
-  u32           count;
-  f32           interval, lifetime;
+  String         atlasEntry;
+  VfxVec3Def     position;
+  VfxRotDef      rotation;
+  VfxVec2Def     size;
+  f32            scaleInTime, scaleOutTime;
+  VfxColorDef*   color;
+  f32            fadeInTime, fadeOutTime;
+  AssetVfxBlend  blend;
+  AssetVfxFacing facing;
+  u32            count;
+  f32            interval, lifetime;
 } VfxEmitterDef;
 
 typedef struct {
@@ -86,6 +87,12 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Additive);
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveDouble);
+    data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveQuad);
+
+    data_reg_enum_t(g_dataReg, AssetVfxFacing);
+    data_reg_const_t(g_dataReg, AssetVfxFacing, World);
+    data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardSphere);
+    data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -98,6 +105,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -170,6 +178,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->fadeInTime   = (TimeDuration)time_seconds(def->fadeInTime);
   out->fadeOutTime  = (TimeDuration)time_seconds(def->fadeOutTime);
   out->blend        = def->blend;
+  out->facing       = def->facing;
   out->count        = math_max(1, def->count);
   out->interval     = (TimeDuration)time_seconds(def->interval);
   out->lifetime     = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;

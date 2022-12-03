@@ -19,7 +19,7 @@
 
 typedef struct {
   u8           emitter;
-  u32          atlasIndex;
+  u16          atlasIndex;
   TimeDuration age;
 } VfxInstance;
 
@@ -161,6 +161,21 @@ static void vfx_blend_mode_apply(
   case AssetVfxBlend_AdditiveDouble:
     *outColor = geo_color(color.r * 2, color.g * 2, color.b * 2, color.a * 2), *outOpacity = 0.0f;
     return;
+  case AssetVfxBlend_AdditiveQuad:
+    *outColor = geo_color(color.r * 4, color.g * 4, color.b * 4, color.a * 4), *outOpacity = 0.0f;
+    return;
+  }
+  UNREACHABLE
+}
+
+static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
+  switch (facing) {
+  case AssetVfxFacing_World:
+    return 0;
+  case AssetVfxFacing_BillboardSphere:
+    return VfxParticle_BillboardSphere;
+  case AssetVfxFacing_BillboardCylinder:
+    return VfxParticle_BillboardCylinder;
   }
   UNREACHABLE
 }
@@ -175,10 +190,11 @@ static void vfx_system_spawn(
     log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
     return;
   }
+  diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter    = emitter,
-      .atlasIndex = atlasEntry->atlasIndex,
+      .atlasIndex = (u16)atlasEntry->atlasIndex,
   };
 }
 
@@ -225,8 +241,8 @@ static void vfx_system_simulate(
   }
 }
 
-static void vfx_system_output(
-    VfxStateComp*       state,
+static void vfx_instance_output(
+    const VfxInstance*  instance,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
     const GeoVector     sysPos,
@@ -234,36 +250,36 @@ static void vfx_system_output(
     const f32           sysScale,
     const TimeDuration  sysTimeRem) {
 
-  dynarray_for_t(&state->instances, VfxInstance, instance) {
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
-    const TimeDuration     timeRem = math_min(emitterAsset->lifetime - instance->age, sysTimeRem);
+  const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+  const TimeDuration     timeRem = math_min(emitterAsset->lifetime - instance->age, sysTimeRem);
 
-    f32 scale = sysScale;
-    scale *= math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
-    scale *= math_min(timeRem / (f32)emitterAsset->scaleOutTime, 1.0f);
+  f32 scale = sysScale;
+  scale *= math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
+  scale *= math_min(timeRem / (f32)emitterAsset->scaleOutTime, 1.0f);
 
-    const GeoQuat   rot    = geo_quat_mul(sysRot, emitterAsset->rotation);
-    const GeoVector tmpPos = geo_quat_rotate(rot, geo_vector_mul(emitterAsset->position, scale));
-    const GeoVector pos    = geo_vector_add(sysPos, tmpPos);
+  const GeoVector posLoc = emitterAsset->position;
+  const GeoQuat   rotLoc = emitterAsset->rotation;
+  const GeoQuat   rot    = geo_quat_mul(sysRot, rotLoc);
+  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(rot, geo_vector_mul(posLoc, scale)));
 
-    GeoColor color = emitterAsset->color;
-    color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
-    color.a *= math_min(timeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
+  GeoColor color = emitterAsset->color;
+  color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
+  color.a *= math_min(timeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
 
-    f32 opacity;
-    vfx_blend_mode_apply(color, emitterAsset->blend, &color, &opacity);
-    vfx_particle_output(
-        draw,
-        &(VfxParticle){
-            .position   = pos,
-            .rotation   = rot,
-            .atlasIndex = instance->atlasIndex,
-            .sizeX      = scale * emitterAsset->sizeX,
-            .sizeY      = scale * emitterAsset->sizeY,
-            .color      = color,
-            .opacity    = opacity,
-        });
-  }
+  f32 opacity;
+  vfx_blend_mode_apply(color, emitterAsset->blend, &color, &opacity);
+  vfx_particle_output(
+      draw,
+      &(VfxParticle){
+          .position   = pos,
+          .rotation   = emitterAsset->facing == AssetVfxFacing_World ? rot : rotLoc,
+          .flags      = vfx_facing_particle_flags(emitterAsset->facing),
+          .atlasIndex = instance->atlasIndex,
+          .sizeX      = scale * emitterAsset->sizeX,
+          .sizeY      = scale * emitterAsset->sizeY,
+          .color      = color,
+          .opacity    = opacity,
+      });
 }
 
 ecs_system_define(VfxSystemUpdateSys) {
@@ -309,7 +325,10 @@ ecs_system_define(VfxSystemUpdateSys) {
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
     vfx_system_simulate(state, asset, atlas, time);
-    vfx_system_output(state, draw, asset, pos, rot, scale, timeRem);
+
+    dynarray_for_t(&state->instances, VfxInstance, instance) {
+      vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
+    }
 
     state->prevPos = pos;
   }

@@ -9,6 +9,7 @@
 #include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -18,6 +19,7 @@
 #include "scene_target.h"
 #include "scene_transform.h"
 #include "scene_unit.h"
+#include "scene_vfx.h"
 
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,
@@ -118,6 +120,14 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
   ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic);
+}
+
+static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
+  ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset);
+}
+
+static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
+  ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScale* t) {
@@ -241,6 +251,12 @@ static void setup_trait(
   switch (t->type) {
   case AssetPrefabTrait_Renderable:
     setup_renderable(w, e, &t->data_renderable);
+    return;
+  case AssetPrefabTrait_Vfx:
+    setup_vfx(w, e, &t->data_vfx);
+    return;
+  case AssetPrefabTrait_Lifetime:
+    setup_lifetime(w, e, &t->data_lifetime);
     return;
   case AssetPrefabTrait_Scale:
     setup_scale(w, e, &t->data_scale);
