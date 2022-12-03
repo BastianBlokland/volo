@@ -19,7 +19,7 @@
 
 typedef struct {
   u8           emitter;
-  u16          atlasIndex;
+  u16          atlasBaseIndex;
   TimeDuration age;
 } VfxInstance;
 
@@ -190,11 +190,19 @@ static void vfx_system_spawn(
     log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
     return;
   }
+  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->flipbookCount > atlas->entryCount)) {
+    log_e(
+        "Vfx atlas has not enough entries for flipbook",
+        log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
+        log_param("flipbook-count", fmt_int(emitterAsset->flipbookCount)));
+    return;
+  }
+
   diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
-      .emitter    = emitter,
-      .atlasIndex = (u16)atlasEntry->atlasIndex,
+      .emitter        = emitter,
+      .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
   };
 }
 
@@ -250,33 +258,37 @@ static void vfx_instance_output(
     const f32           sysScale,
     const TimeDuration  sysTimeRem) {
 
-  const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
-  const TimeDuration     timeRem = math_min(emitterAsset->lifetime - instance->age, sysTimeRem);
+  const AssetVfxEmitter* emitAsset = &asset->emitters[instance->emitter];
+  const TimeDuration timeRem = math_clamp_i64(emitAsset->lifetime - instance->age, 0, sysTimeRem);
 
   f32 scale = sysScale;
-  scale *= math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
-  scale *= math_min(timeRem / (f32)emitterAsset->scaleOutTime, 1.0f);
+  scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
+  scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
 
-  const GeoVector posLoc = emitterAsset->position;
-  const GeoQuat   rotLoc = emitterAsset->rotation;
+  const GeoVector posLoc = emitAsset->position;
+  const GeoQuat   rotLoc = emitAsset->rotation;
   const GeoQuat   rot    = geo_quat_mul(sysRot, rotLoc);
   const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(rot, geo_vector_mul(posLoc, scale)));
 
-  GeoColor color = emitterAsset->color;
-  color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
-  color.a *= math_min(timeRem / (f32)emitterAsset->fadeOutTime, 1.0f);
+  GeoColor color = emitAsset->color;
+  color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
+  color.a *= math_min(timeRem / (f32)emitAsset->fadeOutTime, 1.0f);
+
+  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)emitAsset->flipbookTime, 1.0f);
+  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)emitAsset->flipbookCount);
+  diag_assert(flipbookIndex < emitAsset->flipbookCount);
 
   f32 opacity;
-  vfx_blend_mode_apply(color, emitterAsset->blend, &color, &opacity);
+  vfx_blend_mode_apply(color, emitAsset->blend, &color, &opacity);
   vfx_particle_output(
       draw,
       &(VfxParticle){
           .position   = pos,
-          .rotation   = emitterAsset->facing == AssetVfxFacing_World ? rot : rotLoc,
-          .flags      = vfx_facing_particle_flags(emitterAsset->facing),
-          .atlasIndex = instance->atlasIndex,
-          .sizeX      = scale * emitterAsset->sizeX,
-          .sizeY      = scale * emitterAsset->sizeY,
+          .rotation   = emitAsset->facing == AssetVfxFacing_World ? rot : rotLoc,
+          .flags      = vfx_facing_particle_flags(emitAsset->facing),
+          .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
+          .sizeX      = scale * emitAsset->sizeX,
+          .sizeY      = scale * emitAsset->sizeY,
           .color      = color,
           .opacity    = opacity,
       });

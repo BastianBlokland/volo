@@ -27,6 +27,8 @@ typedef struct {
   GeoColor       color;
   TimeDuration   fadeInTime, fadeOutTime;
   StringHash     atlasEntry;
+  u32            flipbookCount;
+  TimeDuration   flipbookTime;
   f32            sizeX, sizeY;
   TimeDuration   scaleInTime, scaleOutTime;
   AssetVfxBlend  blend;

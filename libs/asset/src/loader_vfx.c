@@ -33,6 +33,8 @@ typedef struct {
 
 typedef struct {
   String         atlasEntry;
+  u32            flipbookCount;
+  f32            flipbookTime;
   VfxVec3Def     position;
   VfxRotDef      rotation;
   VfxVec2Def     size;
@@ -96,6 +98,8 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
@@ -167,21 +171,23 @@ static GeoColor vfx_build_color(const VfxColorDef* def) {
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
-  out->atlasEntry   = string_hash(def->atlasEntry);
-  out->position     = vfx_build_vec3(&def->position);
-  out->rotation     = vfx_build_rot(&def->rotation);
-  out->sizeX        = def->size.x;
-  out->sizeY        = def->size.y;
-  out->scaleInTime  = (TimeDuration)time_seconds(def->scaleInTime);
-  out->scaleOutTime = (TimeDuration)time_seconds(def->scaleOutTime);
-  out->color        = def->color ? vfx_build_color(def->color) : geo_color_white;
-  out->fadeInTime   = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime  = (TimeDuration)time_seconds(def->fadeOutTime);
-  out->blend        = def->blend;
-  out->facing       = def->facing;
-  out->count        = math_max(1, def->count);
-  out->interval     = (TimeDuration)time_seconds(def->interval);
-  out->lifetime     = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
+  out->atlasEntry    = string_hash(def->atlasEntry);
+  out->flipbookCount = math_max(1, def->flipbookCount);
+  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+  out->position      = vfx_build_vec3(&def->position);
+  out->rotation      = vfx_build_rot(&def->rotation);
+  out->sizeX         = def->size.x;
+  out->sizeY         = def->size.y;
+  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
+  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
+  out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
+  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->blend         = def->blend;
+  out->facing        = def->facing;
+  out->count         = math_max(1, def->count);
+  out->interval      = (TimeDuration)time_seconds(def->interval);
+  out->lifetime      = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
