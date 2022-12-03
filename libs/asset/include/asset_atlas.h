@@ -12,7 +12,8 @@ typedef struct {
 
 ecs_comp_extern_public(AssetAtlasComp) {
   u32              entriesPerDim;
-  AssetAtlasEntry* entries; // Sorted on the name hash.
+  f32              entryPadding; // Entry padding in fractions of the atlas size.
+  AssetAtlasEntry* entries;      // Sorted on the name hash.
   usize            entryCount;
 };
 

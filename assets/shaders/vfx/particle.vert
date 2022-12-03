@@ -25,8 +25,10 @@ const f32v2 c_unitTexCoords[c_verticesPerParticle] = {
 };
 
 struct MetaData {
-  f32 entriesPerDim;
-  f32 invEntriesPerDim; // 1.0 / entriesPerDim
+  f32 atlasEntriesPerDim;
+  f32 atlasEntrySize;             // 1.0 / atlasEntriesPerDim
+  f32 atlasEntrySizeMinusPadding; // 1.0 / atlasEntriesPerDim - atlasEntryPadding * 2.
+  f32 atlasEntryPadding;
 };
 
 struct ParticleData {
@@ -44,6 +46,17 @@ bind_internal(0) out flat f32v4 out_color;
 bind_internal(1) out flat f32 out_opacity;
 bind_internal(2) out f32v2 out_texcoord;
 
+/**
+ * Compute the x and y position in the texture atlas based on the atlas-index.
+ */
+f32v2 atlas_entry_origin(
+    const f32 index, const f32 entriesPerDim, const f32 entrySize, const f32 entryPadding) {
+  // NOTE: '* entrySize' is equivalent to '/ entriesPerDim'.
+  const f32 entryX = mod(index, entriesPerDim) * entrySize + entryPadding;
+  const f32 entryY = floor(index * entrySize) * entrySize + entryPadding;
+  return f32v2(entryX, entryY);
+}
+
 void main() {
   const f32v2 unitPos = c_unitPositions[in_vertexIndex];
 
@@ -56,15 +69,14 @@ void main() {
 
   const f32v3 worldPos = quat_rotate(instanceQuat, f32v3(unitPos * instanceScale, 0)) + instancePos;
 
-  /**
-   * Compute the x and y position in the texture atlas based on the atlasIndex.
-   */
-  const f32v2 texOrigin = f32v2(
-      mod(instanceAtlasIndex, u_meta.entriesPerDim),
-      floor(instanceAtlasIndex * u_meta.invEntriesPerDim));
+  const f32v2 texOrigin = atlas_entry_origin(
+      instanceAtlasIndex,
+      u_meta.atlasEntriesPerDim,
+      u_meta.atlasEntrySize,
+      u_meta.atlasEntryPadding);
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
   out_opacity        = instanceOpacity;
-  out_texcoord       = (texOrigin + c_unitTexCoords[in_vertexIndex]) * u_meta.invEntriesPerDim;
+  out_texcoord = texOrigin + c_unitTexCoords[in_vertexIndex] * u_meta.atlasEntrySizeMinusPadding;
 }
