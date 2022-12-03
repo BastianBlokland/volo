@@ -185,7 +185,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
   out->blend         = def->blend;
   out->facing        = def->facing;
-  out->count         = math_max(1, def->count);
+  out->count         = def->count;
   out->interval      = (TimeDuration)time_seconds(def->interval);
   out->lifetime      = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
 }
