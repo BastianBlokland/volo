@@ -165,6 +165,18 @@ static void vfx_blend_mode_apply(
   UNREACHABLE
 }
 
+static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
+  switch (facing) {
+  case AssetVfxFacing_World:
+    return 0;
+  case AssetVfxFacing_BillboardSphere:
+    return VfxParticle_BillboardSphere;
+  case AssetVfxFacing_BillboardCylinder:
+    return VfxParticle_BillboardCylinder;
+  }
+  UNREACHABLE
+}
+
 static void vfx_system_spawn(
     VfxStateComp* state, const AssetVfxComp* asset, const AssetAtlasComp* atlas, const u8 emitter) {
   diag_assert(emitter < asset->emitterCount);
@@ -258,6 +270,7 @@ static void vfx_system_output(
         &(VfxParticle){
             .position   = pos,
             .rotation   = rot,
+            .flags      = vfx_facing_particle_flags(emitterAsset->facing),
             .atlasIndex = instance->atlasIndex,
             .sizeX      = scale * emitterAsset->sizeX,
             .sizeY      = scale * emitterAsset->sizeY,

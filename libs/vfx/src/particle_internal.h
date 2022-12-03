@@ -11,13 +11,22 @@ ecs_comp_extern(RendDrawComp);
 // Forward declare from 'asset_atlas.h'.
 ecs_comp_extern(AssetAtlasComp);
 
+/**
+ * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
+ */
+typedef enum {
+  VfxParticle_BillboardSphere   = 1 << 0,
+  VfxParticle_BillboardCylinder = 1 << 1,
+} VfxParticleFlags;
+
 typedef struct {
-  GeoVector position;
-  GeoQuat   rotation;
-  u16       atlasIndex;
-  f32       sizeX, sizeY;
-  f32       opacity;
-  GeoColor  color;
+  GeoVector        position;
+  GeoQuat          rotation;
+  VfxParticleFlags flags : 16;
+  u16              atlasIndex;
+  f32              sizeX, sizeY;
+  f32              opacity;
+  GeoColor         color;
 } VfxParticle;
 
 /**
