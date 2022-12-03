@@ -13,7 +13,9 @@ static const String g_vfxParticleAtlas   = string_static("textures/vfx/particle.
 typedef struct {
   ALIGNAS(16)
   f32 atlasEntriesPerDim;
-  f32 invAtlasEntriesPerDim;
+  f32 atlasEntrySize;
+  f32 atlasEntrySizeMinusPadding;
+  f32 atlasEntryPadding;
 } VfxParticleMetaData;
 
 ASSERT(sizeof(VfxParticleMetaData) == 16, "Size needs to match the size defined in glsl");
@@ -124,9 +126,14 @@ EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer) {
 }
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
+  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
+  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
+
   *rend_draw_set_data_t(draw, VfxParticleMetaData) = (VfxParticleMetaData){
-      .atlasEntriesPerDim    = atlas->entriesPerDim,
-      .invAtlasEntriesPerDim = 1.0f / atlas->entriesPerDim,
+      .atlasEntriesPerDim         = atlas->entriesPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
+      .atlasEntryPadding          = atlas->entryPadding,
   };
 }
 

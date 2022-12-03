@@ -32,7 +32,7 @@ typedef struct {
 } AtlasEntryDef;
 
 typedef struct {
-  u32  size, entrySize;
+  u32  size, entrySize, entryPadding;
   bool mipmaps, srgb;
   struct {
     AtlasEntryDef* values;
@@ -57,6 +57,7 @@ static void atlas_datareg_init() {
     data_reg_struct_t(g_dataReg, AtlasDef);
     data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AtlasDef, entryPadding, data_prim_t(u32));
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
@@ -94,6 +95,7 @@ typedef enum {
   AtlasError_SizeNonPow2,
   AtlasError_SizeTooBig,
   AtlasError_EntrySizeNonPow2,
+  AtlasError_EntryPaddingTooBig,
   AtlasError_EntryTextureTypeUnsupported,
   AtlasError_EntryTextureChannelCountUnsupported,
   AtlasError_EntryTextureLayerCountUnsupported,
@@ -110,6 +112,7 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies a non power-of-two texture size"),
       string_static("Atlas specifies a texture size larger then is supported"),
       string_static("Atlas specifies a non power-of-two entry size"),
+      string_static("Atlas specifies an entry padding size that leaves no space for the texture"),
       string_static("Atlas entry specifies texture with a non-supported type"),
       string_static("Atlas entry specifies texture with a non-supported channel count"),
       string_static("Atlas entry specifies texture with a non-supported layer count"),
@@ -160,17 +163,18 @@ static void atlas_generate_entry(
     const u32               index,
     AssetTexturePixelB4*    out) {
 
-  const u32 texY = index * def->entrySize / def->size * def->entrySize;
-  const u32 texX = index * def->entrySize % def->size;
+  const u32 texY    = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
+  const u32 texX    = index * def->entrySize % def->size + def->entryPadding;
+  const u32 texSize = def->entrySize - def->entryPadding * 2;
 
-  diag_assert(texY + def->entrySize <= def->size);
-  diag_assert(texX + def->entrySize <= def->size);
+  diag_assert(texY + texSize <= def->size);
+  diag_assert(texX + texSize <= def->size);
 
-  for (usize entryPixelY = 0; entryPixelY != def->entrySize; ++entryPixelY) {
-    for (usize entryPixelX = 0; entryPixelX != def->entrySize; ++entryPixelX) {
+  for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
+    for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
       const u32           layer = 0;
-      const f32           xNorm = (f32)entryPixelX / (def->entrySize - 1.0f);
-      const f32           yNorm = (f32)entryPixelY / (def->entrySize - 1.0f);
+      const f32           xNorm = (f32)entryPixelX / (texSize - 1.0f);
+      const f32           yNorm = (f32)entryPixelY / (texSize - 1.0f);
       AssetTexturePixelB4 sample;
       switch (texture->channels) {
       case AssetTextureChannels_One:
@@ -244,6 +248,7 @@ static void atlas_generate(
 
   *outAtlas = (AssetAtlasComp){
       .entriesPerDim = def->size / def->entrySize,
+      .entryPadding  = def->entryPadding / (f32)def->size,
       .entries       = entries,
       .entryCount    = entryCount,
   };
@@ -390,6 +395,10 @@ void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
   if (UNLIKELY(!bits_ispow2(def.entrySize))) {
     errMsg = atlas_error_str(AtlasError_EntrySizeNonPow2);
+    goto Error;
+  }
+  if (UNLIKELY(def.entryPadding * 2 >= def.entrySize)) {
+    errMsg = atlas_error_str(AtlasError_EntryPaddingTooBig);
     goto Error;
   }
   if (UNLIKELY(!def.entries.count)) {
