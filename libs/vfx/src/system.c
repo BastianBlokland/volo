@@ -226,6 +226,7 @@ static void vfx_system_spawn(
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
+      .pos            = emitterAsset->cone.position,
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
 }

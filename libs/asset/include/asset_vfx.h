@@ -22,8 +22,9 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
-  f32     angle;
-  GeoQuat rotation;
+  f32       angle;
+  GeoVector position;
+  GeoQuat   rotation;
 } AssetVfxCone;
 
 typedef struct {
