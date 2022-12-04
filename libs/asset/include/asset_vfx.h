@@ -27,20 +27,25 @@ typedef struct {
 } AssetVfxCone;
 
 typedef struct {
-  AssetVfxCone   emitCone;
-  GeoVector      position;
-  GeoQuat        rotation;
-  GeoColor       color;
-  TimeDuration   fadeInTime, fadeOutTime;
-  StringHash     atlasEntry;
-  u32            flipbookCount;
-  TimeDuration   flipbookTime;
-  f32            sizeX, sizeY;
-  TimeDuration   scaleInTime, scaleOutTime;
-  AssetVfxBlend  blend;
-  AssetVfxFacing facing;
-  u32            count;
-  TimeDuration   interval, lifetime;
+  f32 min, max;
+} AssetVfxRangeScalar;
+
+typedef struct {
+  AssetVfxCone        emitCone;
+  GeoVector           position;
+  GeoQuat             rotation;
+  GeoColor            color;
+  TimeDuration        fadeInTime, fadeOutTime;
+  StringHash          atlasEntry;
+  u32                 flipbookCount;
+  TimeDuration        flipbookTime;
+  f32                 sizeX, sizeY;
+  TimeDuration        scaleInTime, scaleOutTime;
+  AssetVfxBlend       blend;
+  AssetVfxFacing      facing;
+  AssetVfxRangeScalar speed;
+  u32                 count;
+  TimeDuration        interval, lifetime;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {
