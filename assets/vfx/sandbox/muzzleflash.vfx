@@ -8,7 +8,11 @@
       },
       "sprite": {
         "atlasEntry": "flash",
-        "blend": "Additive"
+        "blend": "Additive",
+        "size": {
+          "x": 1.2,
+          "y": 0.5
+        }
       },
       "rotation": {
         "z": 90
@@ -17,10 +21,6 @@
       "scaleInTime": 0.175,
       "speed": {
         "min": 2.5
-      },
-      "size": {
-        "x": 1.2,
-        "y": 0.5
       }
     },
     {
@@ -31,7 +31,11 @@
       },
       "sprite": {
         "atlasEntry": "flash",
-        "blend": "Additive"
+        "blend": "Additive",
+        "size": {
+          "x": 1.2,
+          "y": 0.5
+        }
       },
       "rotation": {
         "x": 90,
@@ -41,26 +45,22 @@
       "scaleInTime": 0.175,
       "speed": {
         "min": 2.5
-      },
-      "size": {
-        "x": 1.2,
-        "y": 0.5
       }
     },
     {
       "sprite": {
         "atlasEntry": "flash-star",
-        "blend": "Additive"
+        "blend": "Additive",
+        "size": {
+          "x": 0.8,
+          "y": 0.8
+        }
       },
       "rotation": {
         "x": 90
       },
       "fadeOutTime": 0.075,
-      "scaleInTime": 0.175,
-      "size": {
-        "x": 0.8,
-        "y": 0.8
-      }
+      "scaleInTime": 0.175
     }
   ]
 }

@@ -329,8 +329,8 @@ static void vfx_instance_output(
           .rotation   = rot,
           .flags      = vfx_facing_particle_flags(emitAsset->sprite.facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
-          .sizeX      = scale * emitAsset->sizeX,
-          .sizeY      = scale * emitAsset->sizeY,
+          .sizeX      = scale * emitAsset->sprite.sizeX,
+          .sizeY      = scale * emitAsset->sprite.sizeY,
           .color      = color,
           .opacity    = opacity,
       });

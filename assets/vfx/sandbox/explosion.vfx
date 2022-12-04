@@ -10,14 +10,14 @@
           "a": 1
         },
         "blend": "AdditiveQuad",
-        "facing": "BillboardSphere"
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 10,
+          "y": 10
+        }
       },
       "fadeOutTime": 0.5,
-      "scaleInTime": 0.2,
-      "size": {
-        "x": 10,
-        "y": 10
-      }
+      "scaleInTime": 0.2
     }
   ]
 }

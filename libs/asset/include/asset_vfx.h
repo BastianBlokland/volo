@@ -28,6 +28,7 @@ typedef struct {
   AssetVfxFacing facing : 8;
   u16            flipbookCount;
   TimeDuration   flipbookTime;
+  f32            sizeX, sizeY;
 } AssetVfxSprite;
 
 typedef struct {
@@ -51,7 +52,6 @@ typedef struct {
   TimeDuration          fadeInTime, fadeOutTime;
   TimeDuration          scaleInTime, scaleOutTime;
   AssetVfxRangeScalar   speed;
-  f32                   sizeX, sizeY;
   u32                   count;
   TimeDuration          interval;
   AssetVfxRangeDuration lifetime;

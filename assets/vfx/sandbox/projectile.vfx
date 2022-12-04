@@ -8,18 +8,18 @@
       },
       "sprite": {
         "atlasEntry": "trail",
-        "blend": "Additive"
+        "blend": "Additive",
+        "size": {
+          "x": 3.5,
+          "y": 0.1
+        }
       },
       "rotation": {
         "y": -90
       },
       "fadeInTime": 0,
       "fadeOutTime": 0.1,
-      "scaleInTime": 0.05,
-      "size": {
-        "x": 3.5,
-        "y": 0.1
-      }
+      "scaleInTime": 0.05
     },
     {
       "cone": {
@@ -29,7 +29,11 @@
       },
       "sprite": {
         "atlasEntry": "trail",
-        "blend": "Additive"
+        "blend": "Additive",
+        "size": {
+          "x": 3.5,
+          "y": 0.1
+        }
       },
       "rotation": {
         "x": 90,
@@ -37,11 +41,7 @@
       },
       "fadeInTime": 0,
       "fadeOutTime": 0.1,
-      "scaleInTime": 0.05,
-      "size": {
-        "x": 3.5,
-        "y": 0.1
-      }
+      "scaleInTime": 0.05
     }
   ]
 }

@@ -15,14 +15,14 @@
           "a": 1
         },
         "blend": "AdditiveDouble",
-        "facing": "BillboardSphere"
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 1.25,
+          "y": 1.25
+        }
       },
       "fadeInTime": 0.05,
-      "scaleOutTime": 0.2,
-      "size": {
-        "x": 1.25,
-        "y": 1.25
-      }
+      "scaleOutTime": 0.2
     }
   ]
 }

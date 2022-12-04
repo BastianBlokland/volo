@@ -54,6 +54,7 @@ typedef struct {
   AssetVfxFacing facing;
   u16            flipbookCount;
   f32            flipbookTime;
+  VfxVec2Def     size;
 } VfxSpriteDef;
 
 typedef struct {
@@ -63,7 +64,6 @@ typedef struct {
   f32                 fadeInTime, fadeOutTime;
   f32                 scaleInTime, scaleOutTime;
   VfxRangeScalarDef   speed;
-  VfxVec2Def          size;
   u32                 count;
   f32                 interval;
   VfxRangeDurationDef lifetime;
@@ -138,6 +138,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, size, t_VfxVec2Def);
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
@@ -148,7 +149,6 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
@@ -238,6 +238,8 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->facing        = def->facing;
   out->flipbookCount = math_max(1, def->flipbookCount);
   out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+  out->sizeX         = def->size.x;
+  out->sizeY         = def->size.y;
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
@@ -250,8 +252,6 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->scaleInTime  = (TimeDuration)time_seconds(def->scaleInTime);
   out->scaleOutTime = (TimeDuration)time_seconds(def->scaleOutTime);
   out->speed        = vfx_build_range_scalar(&def->speed);
-  out->sizeX        = def->size.x;
-  out->sizeY        = def->size.y;
   out->count        = def->count;
   out->interval     = (TimeDuration)time_seconds(def->interval);
 
