@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -20,7 +21,9 @@
 typedef struct {
   u8           emitter;
   u16          atlasBaseIndex;
+  f32          speed;
   TimeDuration age;
+  GeoVector    dir;
 } VfxInstance;
 
 typedef struct {
@@ -143,6 +146,24 @@ ecs_view_define(UpdateView) {
   ecs_access_write(VfxStateComp);
 }
 
+static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
+  /**
+   * Compute a uniformly distributed direction inside the given cone.
+   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
+   */
+  const f32 coneAngleCos = math_cos_f32(cone->angle);
+  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(g_rng);
+  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(g_rng);
+  const f32 sinT         = math_sqrt_f32(1 - z * z);
+  const f32 x            = math_cos_f32(phi) * sinT;
+  const f32 y            = math_sin_f32(phi) * sinT;
+  return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
+}
+
+static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {
+  return rng_sample_range(g_rng, scalar->min, scalar->max);
+}
+
 static void vfx_blend_mode_apply(
     const GeoColor color, const AssetVfxBlend mode, GeoColor* outColor, f32* outOpacity) {
   switch (mode) {
@@ -203,6 +224,8 @@ static void vfx_system_spawn(
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
+      .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
+      .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
 }
 
@@ -266,10 +289,14 @@ static void vfx_instance_output(
   scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
 
-  const GeoVector posLoc = emitAsset->position;
-  const GeoQuat   rotLoc = emitAsset->rotation;
-  const GeoQuat   rot    = geo_quat_mul(sysRot, rotLoc);
-  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(rot, geo_vector_mul(posLoc, scale)));
+  const f32 moveDist = instance->age / (f32)time_second * instance->speed;
+
+  const GeoVector posLo   = emitAsset->position;
+  const GeoQuat   rotLo   = emitAsset->rotation;
+  const GeoVector moveDir = geo_quat_rotate(sysRot, instance->dir);
+  const GeoQuat   rot     = geo_quat_mul(sysRot, rotLo);
+  const GeoVector posBase = geo_vector_add(sysPos, geo_vector_mul(moveDir, moveDist));
+  const GeoVector pos = geo_vector_add(posBase, geo_quat_rotate(rot, geo_vector_mul(posLo, scale)));
 
   GeoColor color = emitAsset->color;
   color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
@@ -285,7 +312,7 @@ static void vfx_instance_output(
       draw,
       &(VfxParticle){
           .position   = pos,
-          .rotation   = emitAsset->facing == AssetVfxFacing_World ? rot : rotLoc,
+          .rotation   = emitAsset->facing == AssetVfxFacing_World ? rot : rotLo,
           .flags      = vfx_facing_particle_flags(emitAsset->facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
           .sizeX      = scale * emitAsset->sizeX,
