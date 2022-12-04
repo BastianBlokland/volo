@@ -23,6 +23,7 @@ typedef struct {
   u16          atlasBaseIndex;
   f32          speed;
   TimeDuration age;
+  GeoVector    pos;
   GeoVector    dir;
 } VfxInstance;
 
@@ -243,6 +244,8 @@ static void vfx_system_simulate(
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time) {
 
+  const f32 timeDeltaSec = scene_delta_seconds(time);
+
   state->age += time->delta;
 
   // Update emitters.
@@ -261,6 +264,10 @@ static void vfx_system_simulate(
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
     VfxInstance*           instance     = instances + i;
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+
+    // Apply movement.
+    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * timeDeltaSec);
+    instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
     if ((instance->age += time->delta) > emitterAsset->lifetime) {
@@ -289,13 +296,10 @@ static void vfx_instance_output(
   scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
 
-  const f32 moveDist = instance->age / (f32)time_second * instance->speed;
-
   const GeoVector posLo   = emitAsset->position;
   const GeoQuat   rotLo   = emitAsset->rotation;
-  const GeoVector moveDir = geo_quat_rotate(sysRot, instance->dir);
   const GeoQuat   rot     = geo_quat_mul(sysRot, rotLo);
-  const GeoVector posBase = geo_vector_add(sysPos, geo_vector_mul(moveDir, moveDist));
+  const GeoVector posBase = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
   const GeoVector pos = geo_vector_add(posBase, geo_quat_rotate(rot, geo_vector_mul(posLo, scale)));
 
   GeoColor color = emitAsset->color;
