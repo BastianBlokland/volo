@@ -243,10 +243,12 @@ static void vfx_system_simulate(
     VfxStateComp*         state,
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
-    const SceneTimeComp*  time) {
+    const SceneTimeComp*  time,
+    const f32             sysScale) {
 
-  const f32 timeDeltaSec = scene_delta_seconds(time);
+  const f32 deltaSec = scene_delta_seconds(time);
 
+  // Update shared state.
   state->age += time->delta;
 
   // Update emitters.
@@ -267,7 +269,7 @@ static void vfx_system_simulate(
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
 
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * timeDeltaSec);
+    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * sysScale * deltaSec);
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
@@ -369,7 +371,7 @@ ecs_system_define(VfxSystemUpdateSys) {
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    vfx_system_simulate(state, asset, atlas, time);
+    vfx_system_simulate(state, asset, atlas, time, scale);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
       vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
