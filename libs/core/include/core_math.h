@@ -65,6 +65,11 @@ f32 math_sqrt_f32(f32);
 f64 math_sqrt_f64(f64);
 
 /**
+ * Return the cube-root of the given value.
+ */
+f32 math_cbrt_f32(f32);
+
+/**
  * Return the natural (base e) logarithm of the given value.
  */
 f32 math_log_f32(f32);

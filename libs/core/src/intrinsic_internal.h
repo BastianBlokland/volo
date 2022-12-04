@@ -1,4 +1,7 @@
 #pragma once
+#include "core_annotation.h"
+#include "core_types.h"
+
 #include <immintrin.h>
 
 #if defined(VOLO_MSVC)
@@ -19,6 +22,7 @@ float  powf(float, float);
 float  sinf(float);
 double sqrt(double);
 float  sqrtf(float);
+float  cbrtf(float);
 float  tanf(float);
 double round(double);
 float  roundf(float);
@@ -63,6 +67,7 @@ float  roundf(float);
 #define intrinsic_sin_f32 sinf
 #define intrinsic_sqrt_f32 sqrtf
 #define intrinsic_sqrt_f64 sqrt
+#define intrinsic_cbrt_f32 cbrtf
 #define intrinsic_tan_f32 tanf
 
 #else
@@ -85,6 +90,7 @@ float  roundf(float);
 #define intrinsic_sin_f32 __builtin_sinf
 #define intrinsic_sqrt_f32 __builtin_sqrtf
 #define intrinsic_sqrt_f64 __builtin_sqrt
+#define intrinsic_cbrt_f32 __builtin_cbrtf
 #define intrinsic_tan_f32 __builtin_tanf
 
 #endif
