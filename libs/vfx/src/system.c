@@ -25,6 +25,7 @@ typedef struct {
   TimeDuration lifetime;
   TimeDuration age;
   GeoVector    pos;
+  GeoQuat      rot;
   GeoVector    dir;
 } VfxInstance;
 
@@ -234,6 +235,7 @@ static void vfx_system_spawn(
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
       .lifetime       = vfx_sample_range_duration(&emitterAsset->lifetime),
       .pos            = emitterAsset->cone.position,
+      .rot            = emitterAsset->rotation,
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
 }
@@ -305,7 +307,7 @@ static void vfx_instance_output(
   scale *= math_min(instance->age / (f32)sprite->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
-  GeoQuat rot = asset->emitters[instance->emitter].rotation;
+  GeoQuat rot = instance->rot;
   if (sprite->facing == AssetVfxFacing_World) {
     rot = geo_quat_mul(sysRot, rot);
   }
