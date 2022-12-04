@@ -19,14 +19,13 @@
 #define vfx_max_asset_requests 4
 
 typedef struct {
-  u8           emitter;
-  u16          atlasBaseIndex;
-  f32          speed;
-  TimeDuration lifetime;
-  TimeDuration age;
-  GeoVector    pos;
-  GeoQuat      rot;
-  GeoVector    dir;
+  u8        emitter;
+  u16       atlasBaseIndex;
+  f32       speed;
+  f32       lifetimeSec, ageSec;
+  GeoVector pos;
+  GeoQuat   rot;
+  GeoVector dir;
 } VfxInstance;
 
 typedef struct {
@@ -233,7 +232,7 @@ static void vfx_system_spawn(
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
-      .lifetime       = vfx_sample_range_duration(&emitterAsset->lifetime),
+      .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
       .pos            = emitterAsset->cone.position,
       .rot            = emitterAsset->rotation,
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
@@ -281,7 +280,7 @@ static void vfx_system_simulate(
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
-    if ((instance->age += time->delta) > instance->lifetime) {
+    if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
       goto Destruct;
     }
     continue;
@@ -300,11 +299,13 @@ static void vfx_instance_output(
     const f32           sysScale,
     const TimeDuration  sysTimeRem) {
 
-  const AssetVfxSprite* sprite  = &asset->emitters[instance->emitter].sprite;
-  const TimeDuration    timeRem = math_min(instance->lifetime - instance->age, sysTimeRem);
+  const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
+  const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
+  const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
+  const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
 
   f32 scale = sysScale;
-  scale *= math_min(instance->age / (f32)sprite->scaleInTime, 1.0f);
+  scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
   GeoQuat rot = instance->rot;
@@ -315,10 +316,10 @@ static void vfx_instance_output(
   const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
 
   GeoColor color = sprite->color;
-  color.a *= math_min(instance->age / (f32)sprite->fadeInTime, 1.0f);
+  color.a *= math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f);
   color.a *= math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f);
 
-  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)sprite->flipbookTime, 1.0f);
+  const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
   diag_assert(flipbookIndex < sprite->flipbookCount);
 
