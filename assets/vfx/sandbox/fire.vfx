@@ -3,6 +3,7 @@
     {
       "cone": {
         "angle": 20,
+        "radius": 0.2,
         "rotation": {
           "x": -90
         }

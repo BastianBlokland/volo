@@ -162,6 +162,30 @@ static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
   return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
 }
 
+static GeoVector vfx_random_dir() {
+  /**
+   * Generate a random point on a unit sphere (radius of 1, aka a direction vector).
+   */
+Retry:;
+  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(g_rng);
+  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(g_rng);
+  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
+  const f32             magSqr = geo_vector_mag_sqr(vec);
+  if (UNLIKELY(magSqr <= f32_epsilon)) {
+    goto Retry; // Reject zero vectors (rare case).
+  }
+  return geo_vector_div(vec, math_sqrt_f32(magSqr));
+}
+
+static GeoVector vfx_random_in_sphere(const f32 radius) {
+  /**
+   * Generate a random point inside a sphere.
+   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
+   */
+  const GeoVector dir = vfx_random_dir();
+  return geo_vector_mul(dir, radius * math_cbrt_f32(rng_sample_f32(g_rng)));
+}
+
 static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {
   return rng_sample_range(g_rng, scalar->min, scalar->max);
 }
@@ -234,12 +258,15 @@ static void vfx_system_spawn(
 
   diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
+  const GeoVector conePos    = emitterAsset->cone.position;
+  const f32       coneRadius = emitterAsset->cone.radius;
+
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
       .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
-      .pos            = emitterAsset->cone.position,
+      .pos            = geo_vector_add(conePos, vfx_random_in_sphere(coneRadius)),
       .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };

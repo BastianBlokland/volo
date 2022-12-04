@@ -35,6 +35,7 @@ typedef struct {
 
 typedef struct {
   f32       angle;
+  f32       radius;
   GeoVector position;
   GeoQuat   rotation;
 } AssetVfxCone;

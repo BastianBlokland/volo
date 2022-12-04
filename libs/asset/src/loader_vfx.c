@@ -35,6 +35,7 @@ typedef struct {
 
 typedef struct {
   f32        angle;
+  f32        radius;
   VfxVec3Def position;
   VfxRotDef  rotation;
 } VfxConeDef;
@@ -112,6 +113,7 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, VfxConeDef);
     data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
 
@@ -220,6 +222,7 @@ static GeoColor vfx_build_color(const VfxColorDef* def) {
 static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   return (AssetVfxCone){
       .angle    = def->angle * math_deg_to_rad,
+      .radius   = def->radius,
       .position = vfx_build_vec3(&def->position),
       .rotation = vfx_build_rot(&def->rotation),
   };
