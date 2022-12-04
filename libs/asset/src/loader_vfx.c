@@ -32,6 +32,12 @@ typedef struct {
 } VfxColorDef;
 
 typedef struct {
+  f32       angle;
+  VfxRotDef rotation;
+} VfxConeDef;
+
+typedef struct {
+  VfxConeDef     emitCone;
   String         atlasEntry;
   u32            flipbookCount;
   f32            flipbookTime;
@@ -84,6 +90,10 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxColorDef, b, data_prim_t(f32));
     data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
 
+    data_reg_struct_t(g_dataReg, VfxConeDef);
+    data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
@@ -97,6 +107,7 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, emitCone, t_VfxConeDef, .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -170,7 +181,15 @@ static GeoColor vfx_build_color(const VfxColorDef* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
+static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
+  return (AssetVfxCone){
+      .angle    = def->angle * math_deg_to_rad,
+      .rotation = vfx_build_rot(&def->rotation),
+  };
+}
+
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
+  out->emitCone      = vfx_build_cone(&def->emitCone);
   out->atlasEntry    = string_hash(def->atlasEntry);
   out->flipbookCount = math_max(1, def->flipbookCount);
   out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));

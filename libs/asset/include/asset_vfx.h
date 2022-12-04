@@ -5,7 +5,7 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define asset_vfx_max_emitters 6
+#define asset_vfx_max_emitters 5
 
 typedef enum {
   AssetVfxBlend_None,
@@ -22,6 +22,12 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
+  f32     angle;
+  GeoQuat rotation;
+} AssetVfxCone;
+
+typedef struct {
+  AssetVfxCone   emitCone;
   GeoVector      position;
   GeoQuat        rotation;
   GeoColor       color;
