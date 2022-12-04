@@ -22,6 +22,10 @@
       "texture": "external/vfx/trail.tga"
     },
     {
+      "name": "smoke",
+      "texture": "external/vfx/smoke.tga"
+    },
+    {
       "name": "fire_0",
       "texture": "external/fire/fire_0.tga"
     },

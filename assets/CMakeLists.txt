@@ -59,6 +59,7 @@ if(${EXTERNAL_ASSETS})
       vfx/flash.tga
       vfx/flash_star.tga
       vfx/trail.tga
+      vfx/smoke.tga
       fire/fire_0.tga
       fire/fire_1.tga
       fire/fire_2.tga
