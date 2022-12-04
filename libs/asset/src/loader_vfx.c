@@ -12,6 +12,8 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define vfx_time_max time_days(9999)
+
 static DataReg* g_dataReg;
 static DataMeta g_dataVfxDefMeta;
 
@@ -42,20 +44,25 @@ typedef struct {
 } VfxRangeScalarDef;
 
 typedef struct {
-  VfxConeDef        cone;
-  String            atlasEntry;
-  u32               flipbookCount;
-  f32               flipbookTime;
-  VfxRotDef         rotation;
-  VfxVec2Def        size;
-  f32               scaleInTime, scaleOutTime;
-  VfxColorDef*      color;
-  f32               fadeInTime, fadeOutTime;
-  AssetVfxBlend     blend;
-  AssetVfxFacing    facing;
-  VfxRangeScalarDef speed;
-  u32               count;
-  f32               interval, lifetime;
+  f32 min, max;
+} VfxRangeDurationDef;
+
+typedef struct {
+  VfxConeDef          cone;
+  String              atlasEntry;
+  u32                 flipbookCount;
+  f32                 flipbookTime;
+  VfxRotDef           rotation;
+  VfxVec2Def          size;
+  f32                 scaleInTime, scaleOutTime;
+  VfxColorDef*        color;
+  f32                 fadeInTime, fadeOutTime;
+  AssetVfxBlend       blend;
+  AssetVfxFacing      facing;
+  VfxRangeScalarDef   speed;
+  u32                 count;
+  f32                 interval;
+  VfxRangeDurationDef lifetime;
 } VfxEmitterDef;
 
 typedef struct {
@@ -104,6 +111,10 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxRangeScalarDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxRangeScalarDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
 
+    data_reg_struct_t(g_dataReg, VfxRangeDurationDef);
+    data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
@@ -133,7 +144,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
@@ -206,6 +217,13 @@ static AssetVfxRangeScalar vfx_build_range_scalar(const VfxRangeScalarDef* def) 
   };
 }
 
+static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef* def) {
+  return (AssetVfxRangeDuration){
+      .min = (TimeDuration)time_seconds(def->min),
+      .max = (TimeDuration)time_seconds(math_max(def->min, def->max)),
+  };
+}
+
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone          = vfx_build_cone(&def->cone);
   out->atlasEntry    = string_hash(def->atlasEntry);
@@ -224,7 +242,12 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->speed         = vfx_build_range_scalar(&def->speed);
   out->count         = def->count;
   out->interval      = (TimeDuration)time_seconds(def->interval);
-  out->lifetime      = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
+
+  out->lifetime = vfx_build_range_duration(&def->lifetime);
+  if (out->lifetime.max <= 0) {
+    out->lifetime.min = vfx_time_max;
+    out->lifetime.max = vfx_time_max;
+  }
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {

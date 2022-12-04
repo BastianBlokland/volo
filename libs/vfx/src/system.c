@@ -22,6 +22,7 @@ typedef struct {
   u8           emitter;
   u16          atlasBaseIndex;
   f32          speed;
+  TimeDuration lifetime;
   TimeDuration age;
   GeoVector    pos;
   GeoVector    dir;
@@ -165,6 +166,10 @@ static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {
   return rng_sample_range(g_rng, scalar->min, scalar->max);
 }
 
+static TimeDuration vfx_sample_range_duration(const AssetVfxRangeDuration* duration) {
+  return (TimeDuration)rng_sample_range(g_rng, duration->min, duration->max);
+}
+
 static void vfx_blend_mode_apply(
     const GeoColor color, const AssetVfxBlend mode, GeoColor* outColor, f32* outOpacity) {
   switch (mode) {
@@ -226,6 +231,7 @@ static void vfx_system_spawn(
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
+      .lifetime       = vfx_sample_range_duration(&emitterAsset->lifetime),
       .pos            = emitterAsset->cone.position,
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
@@ -265,15 +271,14 @@ static void vfx_system_simulate(
   // Update instances.
   VfxInstance* instances = dynarray_begin_t(&state->instances, VfxInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxInstance*           instance     = instances + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+    VfxInstance* instance = instances + i;
 
     // Apply movement.
     const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * sysScale * deltaSec);
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
-    if ((instance->age += time->delta) > emitterAsset->lifetime) {
+    if ((instance->age += time->delta) > instance->lifetime) {
       goto Destruct;
     }
     continue;
@@ -293,7 +298,7 @@ static void vfx_instance_output(
     const TimeDuration  sysTimeRem) {
 
   const AssetVfxEmitter* emitAsset = &asset->emitters[instance->emitter];
-  const TimeDuration timeRem = math_clamp_i64(emitAsset->lifetime - instance->age, 0, sysTimeRem);
+  const TimeDuration     timeRem   = math_min(instance->lifetime - instance->age, sysTimeRem);
 
   f32 scale = sysScale;
   scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);

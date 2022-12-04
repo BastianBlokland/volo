@@ -8,7 +8,9 @@
       },
       "scaleInTime": 0.15,
       "fadeOutTime": 0.15,
-      "lifetime": 0.2,
+      "lifetime": {
+        "min": 0.2
+      },
       "blend": "Additive",
       "facing": "BillboardSphere"
     }
