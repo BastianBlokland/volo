@@ -97,7 +97,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
 
     data_reg_struct_t(g_dataReg, VfxConeDef);
-    data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
 
