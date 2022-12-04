@@ -21,11 +21,10 @@
 typedef struct {
   u8        emitter;
   u16       atlasBaseIndex;
-  f32       speed;
   f32       lifetimeSec, ageSec;
   GeoVector pos;
   GeoQuat   rot;
-  GeoVector dir;
+  GeoVector velo;
 } VfxInstance;
 
 typedef struct {
@@ -260,15 +259,16 @@ static void vfx_system_spawn(
 
   const GeoVector conePos    = emitterAsset->cone.position;
   const f32       coneRadius = emitterAsset->cone.radius;
+  const GeoVector dir        = vfx_random_dir_in_cone(&emitterAsset->cone);
+  const f32       speed      = vfx_sample_range_scalar(&emitterAsset->speed);
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
-      .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
       .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
       .pos            = geo_vector_add(conePos, vfx_random_in_sphere(coneRadius)),
       .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
-      .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
+      .velo           = geo_vector_mul(dir, speed),
   };
 }
 
@@ -306,10 +306,14 @@ static void vfx_system_simulate(
   // Update instances.
   VfxInstance* instances = dynarray_begin_t(&state->instances, VfxInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxInstance* instance = instances + i;
+    VfxInstance*           instance     = instances + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+
+    // Apply force.
+    instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * sysScale * deltaSec);
+    const GeoVector posDelta = geo_vector_mul(instance->velo, sysScale * deltaSec);
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.

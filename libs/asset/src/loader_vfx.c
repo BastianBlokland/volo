@@ -66,6 +66,7 @@ typedef struct {
 
 typedef struct {
   VfxConeDef          cone;
+  VfxVec3Def          force;
   VfxSpriteDef        sprite;
   VfxRangeScalarDef   speed;
   u32                 count;
@@ -158,6 +159,7 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
@@ -268,7 +270,9 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
-  out->cone = vfx_build_cone(&def->cone);
+  out->cone  = vfx_build_cone(&def->cone);
+  out->force = vfx_build_vec3(&def->force);
+
   vfx_build_sprite(&def->sprite, &out->sprite);
 
   out->speed    = vfx_build_range_scalar(&def->speed);

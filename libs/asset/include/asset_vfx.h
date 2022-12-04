@@ -57,6 +57,7 @@ typedef struct {
 
 typedef struct {
   AssetVfxCone          cone;
+  GeoVector             force;
   AssetVfxSprite        sprite;
   AssetVfxRangeScalar   speed;
   u32                   count;
