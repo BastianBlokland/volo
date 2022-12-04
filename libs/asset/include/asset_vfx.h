@@ -33,7 +33,6 @@ typedef struct {
 
 typedef struct {
   AssetVfxCone        cone;
-  GeoVector           position;
   GeoQuat             rotation;
   GeoColor            color;
   TimeDuration        fadeInTime, fadeOutTime;

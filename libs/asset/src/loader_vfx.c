@@ -46,7 +46,6 @@ typedef struct {
   String            atlasEntry;
   u32               flipbookCount;
   f32               flipbookTime;
-  VfxVec3Def        position;
   VfxRotDef         rotation;
   VfxVec2Def        size;
   f32               scaleInTime, scaleOutTime;
@@ -122,7 +121,6 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
     data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -213,7 +211,6 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->atlasEntry    = string_hash(def->atlasEntry);
   out->flipbookCount = math_max(1, def->flipbookCount);
   out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
-  out->position      = vfx_build_vec3(&def->position);
   out->rotation      = vfx_build_rot(&def->rotation);
   out->sizeX         = def->size.x;
   out->sizeY         = def->size.y;

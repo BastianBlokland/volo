@@ -299,11 +299,12 @@ static void vfx_instance_output(
   scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
 
-  const GeoVector posLo   = emitAsset->position;
-  const GeoQuat   rotLo   = emitAsset->rotation;
-  const GeoQuat   rot     = geo_quat_mul(sysRot, rotLo);
-  const GeoVector posBase = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
-  const GeoVector pos = geo_vector_add(posBase, geo_quat_rotate(rot, geo_vector_mul(posLo, scale)));
+  GeoQuat rot = emitAsset->rotation;
+  if (emitAsset->facing == AssetVfxFacing_World) {
+    rot = geo_quat_mul(sysRot, rot);
+  }
+
+  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
 
   GeoColor color = emitAsset->color;
   color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
@@ -319,7 +320,7 @@ static void vfx_instance_output(
       draw,
       &(VfxParticle){
           .position   = pos,
-          .rotation   = emitAsset->facing == AssetVfxFacing_World ? rot : rotLo,
+          .rotation   = rot,
           .flags      = vfx_facing_particle_flags(emitAsset->facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
           .sizeX      = scale * emitAsset->sizeX,
