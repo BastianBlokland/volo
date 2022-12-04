@@ -17,7 +17,9 @@
         "scaleInTime": 0.175
       },
       "rotation": {
-        "z": 90
+        "base": {
+          "z": 90
+        }
       },
       "speed": {
         "min": 2.5
@@ -40,8 +42,10 @@
         "scaleInTime": 0.175
       },
       "rotation": {
-        "x": 90,
-        "z": 90
+        "base": {
+          "x": 90,
+          "z": 90
+        }
       },
       "speed": {
         "min": 2.5
@@ -59,7 +63,9 @@
         "scaleInTime": 0.175
       },
       "rotation": {
-        "x": 90
+        "base": {
+          "x": 90
+        }
       }
     }
   ]

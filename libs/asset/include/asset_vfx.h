@@ -48,13 +48,18 @@ typedef struct {
 } AssetVfxRangeDuration;
 
 typedef struct {
+  GeoQuat   base;
+  GeoVector randomEulerAngles;
+} AssetVfxRangeRotation;
+
+typedef struct {
   AssetVfxCone          cone;
   AssetVfxSprite        sprite;
-  GeoQuat               rotation;
   AssetVfxRangeScalar   speed;
   u32                   count;
   TimeDuration          interval;
   AssetVfxRangeDuration lifetime;
+  AssetVfxRangeRotation rotation;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {

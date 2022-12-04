@@ -18,7 +18,9 @@
         "scaleInTime": 0.05
       },
       "rotation": {
-        "y": -90
+        "base": {
+          "y": -90
+        }
       }
     },
     {
@@ -39,8 +41,10 @@
         "scaleInTime": 0.05
       },
       "rotation": {
-        "x": 90,
-        "y": -90
+        "base": {
+          "x": 90,
+          "y": -90
+        }
       }
     }
   ]

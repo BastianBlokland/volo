@@ -48,6 +48,10 @@ typedef struct {
 } VfxRangeDurationDef;
 
 typedef struct {
+  VfxRotDef base, random;
+} VfxRangeRotationDef;
+
+typedef struct {
   String         atlasEntry;
   VfxColorDef*   color;
   AssetVfxBlend  blend;
@@ -62,11 +66,11 @@ typedef struct {
 typedef struct {
   VfxConeDef          cone;
   VfxSpriteDef        sprite;
-  VfxRotDef           rotation;
   VfxRangeScalarDef   speed;
   u32                 count;
   f32                 interval;
   VfxRangeDurationDef lifetime;
+  VfxRangeRotationDef rotation;
 } VfxEmitterDef;
 
 typedef struct {
@@ -119,6 +123,10 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
 
+    data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
+    data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
@@ -147,11 +155,11 @@ static void vfx_datareg_init() {
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
@@ -231,6 +239,14 @@ static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef*
   };
 }
 
+static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef* def) {
+  const GeoVector randomEulerAnglesDeg = geo_vector(def->random.x, def->random.y, def->random.z);
+  return (AssetVfxRangeRotation){
+      .base              = vfx_build_rot(&def->base),
+      .randomEulerAngles = geo_vector_mul(randomEulerAnglesDeg, math_deg_to_rad),
+  };
+}
+
 static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->atlasEntry    = string_hash(def->atlasEntry);
   out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
@@ -250,7 +266,6 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone = vfx_build_cone(&def->cone);
   vfx_build_sprite(&def->sprite, &out->sprite);
 
-  out->rotation = vfx_build_rot(&def->rotation);
   out->speed    = vfx_build_range_scalar(&def->speed);
   out->count    = def->count;
   out->interval = (TimeDuration)time_seconds(def->interval);
@@ -260,6 +275,8 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
     out->lifetime.min = vfx_time_max;
     out->lifetime.max = vfx_time_max;
   }
+
+  out->rotation = vfx_build_range_rotation(&def->rotation);
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {

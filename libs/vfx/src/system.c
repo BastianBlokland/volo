@@ -170,6 +170,12 @@ static TimeDuration vfx_sample_range_duration(const AssetVfxRangeDuration* durat
   return (TimeDuration)rng_sample_range(g_rng, duration->min, duration->max);
 }
 
+static GeoQuat vfx_sample_range_rotation(const AssetVfxRangeRotation* rotation) {
+  const f32       rand              = rng_sample_f32(g_rng);
+  const GeoVector randomEulerAngles = geo_vector_mul(rotation->randomEulerAngles, rand);
+  return geo_quat_mul(rotation->base, geo_quat_from_euler(randomEulerAngles));
+}
+
 static void vfx_blend_mode_apply(
     const GeoColor color, const AssetVfxBlend mode, GeoColor* outColor, f32* outOpacity) {
   switch (mode) {
@@ -234,7 +240,7 @@ static void vfx_system_spawn(
       .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
       .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
       .pos            = emitterAsset->cone.position,
-      .rot            = emitterAsset->rotation,
+      .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
       .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
 }
