@@ -116,7 +116,7 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
