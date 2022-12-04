@@ -22,6 +22,15 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
+  StringHash     atlasEntry;
+  GeoColor       color;
+  AssetVfxBlend  blend : 8;
+  AssetVfxFacing facing : 8;
+  u16            flipbookCount;
+  TimeDuration   flipbookTime;
+} AssetVfxSprite;
+
+typedef struct {
   f32       angle;
   GeoVector position;
   GeoQuat   rotation;
@@ -37,17 +46,12 @@ typedef struct {
 
 typedef struct {
   AssetVfxCone          cone;
+  AssetVfxSprite        sprite;
   GeoQuat               rotation;
-  GeoColor              color;
   TimeDuration          fadeInTime, fadeOutTime;
-  StringHash            atlasEntry;
-  u32                   flipbookCount;
-  TimeDuration          flipbookTime;
-  f32                   sizeX, sizeY;
   TimeDuration          scaleInTime, scaleOutTime;
-  AssetVfxBlend         blend;
-  AssetVfxFacing        facing;
   AssetVfxRangeScalar   speed;
+  f32                   sizeX, sizeY;
   u32                   count;
   TimeDuration          interval;
   AssetVfxRangeDuration lifetime;

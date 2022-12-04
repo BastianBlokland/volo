@@ -6,21 +6,23 @@
           "z": 0.05
         }
       },
-      "atlasEntry": "glow",
-      "size": {
-        "x": 1.25,
-        "y": 1.25
-      },
-      "color": {
-        "r": 1,
-        "g": 0.25,
-        "b": 0.1,
-        "a": 1
+      "sprite": {
+        "atlasEntry": "glow",
+        "color": {
+          "r": 1,
+          "g": 0.25,
+          "b": 0.1,
+          "a": 1
+        },
+        "blend": "AdditiveDouble",
+        "facing": "BillboardSphere"
       },
       "fadeInTime": 0.05,
       "scaleOutTime": 0.2,
-      "blend": "AdditiveDouble",
-      "facing": "BillboardSphere"
+      "size": {
+        "x": 1.25,
+        "y": 1.25
+      }
     }
   ]
 }

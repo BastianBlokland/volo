@@ -212,16 +212,17 @@ static void vfx_system_spawn(
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-  const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitterAsset->atlasEntry);
+  const StringHash       atlasEntryName = emitterAsset->sprite.atlasEntry;
+  const AssetAtlasEntry* atlasEntry     = asset_atlas_lookup(atlas, atlasEntryName);
   if (UNLIKELY(!atlasEntry)) {
-    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
+    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(atlasEntryName)));
     return;
   }
-  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->flipbookCount > atlas->entryCount)) {
+  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
     log_e(
         "Vfx atlas has not enough entries for flipbook",
         log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
-        log_param("flipbook-count", fmt_int(emitterAsset->flipbookCount)));
+        log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
     return;
   }
 
@@ -305,28 +306,28 @@ static void vfx_instance_output(
   scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
 
   GeoQuat rot = emitAsset->rotation;
-  if (emitAsset->facing == AssetVfxFacing_World) {
+  if (emitAsset->sprite.facing == AssetVfxFacing_World) {
     rot = geo_quat_mul(sysRot, rot);
   }
 
   const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
 
-  GeoColor color = emitAsset->color;
+  GeoColor color = emitAsset->sprite.color;
   color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
   color.a *= math_min(timeRem / (f32)emitAsset->fadeOutTime, 1.0f);
 
-  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)emitAsset->flipbookTime, 1.0f);
-  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)emitAsset->flipbookCount);
-  diag_assert(flipbookIndex < emitAsset->flipbookCount);
+  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)emitAsset->sprite.flipbookTime, 1.0f);
+  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)emitAsset->sprite.flipbookCount);
+  diag_assert(flipbookIndex < emitAsset->sprite.flipbookCount);
 
   f32 opacity;
-  vfx_blend_mode_apply(color, emitAsset->blend, &color, &opacity);
+  vfx_blend_mode_apply(color, emitAsset->sprite.blend, &color, &opacity);
   vfx_particle_output(
       draw,
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
-          .flags      = vfx_facing_particle_flags(emitAsset->facing),
+          .flags      = vfx_facing_particle_flags(emitAsset->sprite.facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
           .sizeX      = scale * emitAsset->sizeX,
           .sizeY      = scale * emitAsset->sizeY,

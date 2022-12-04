@@ -48,18 +48,22 @@ typedef struct {
 } VfxRangeDurationDef;
 
 typedef struct {
+  String         atlasEntry;
+  VfxColorDef*   color;
+  AssetVfxBlend  blend;
+  AssetVfxFacing facing;
+  u16            flipbookCount;
+  f32            flipbookTime;
+} VfxSpriteDef;
+
+typedef struct {
   VfxConeDef          cone;
-  String              atlasEntry;
-  u32                 flipbookCount;
-  f32                 flipbookTime;
+  VfxSpriteDef        sprite;
   VfxRotDef           rotation;
-  VfxVec2Def          size;
-  f32                 scaleInTime, scaleOutTime;
-  VfxColorDef*        color;
   f32                 fadeInTime, fadeOutTime;
-  AssetVfxBlend       blend;
-  AssetVfxFacing      facing;
+  f32                 scaleInTime, scaleOutTime;
   VfxRangeScalarDef   speed;
+  VfxVec2Def          size;
   u32                 count;
   f32                 interval;
   VfxRangeDurationDef lifetime;
@@ -127,21 +131,24 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardSphere);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
+    data_reg_struct_t(g_dataReg, VfxSpriteDef);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
@@ -224,24 +231,29 @@ static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef*
   };
 }
 
-static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
-  out->cone          = vfx_build_cone(&def->cone);
+static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->atlasEntry    = string_hash(def->atlasEntry);
-  out->flipbookCount = math_max(1, def->flipbookCount);
-  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
-  out->rotation      = vfx_build_rot(&def->rotation);
-  out->sizeX         = def->size.x;
-  out->sizeY         = def->size.y;
-  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
-  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
   out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
-  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
   out->blend         = def->blend;
   out->facing        = def->facing;
-  out->speed         = vfx_build_range_scalar(&def->speed);
-  out->count         = def->count;
-  out->interval      = (TimeDuration)time_seconds(def->interval);
+  out->flipbookCount = math_max(1, def->flipbookCount);
+  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+}
+
+static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
+  out->cone = vfx_build_cone(&def->cone);
+  vfx_build_sprite(&def->sprite, &out->sprite);
+
+  out->rotation     = vfx_build_rot(&def->rotation);
+  out->fadeInTime   = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime  = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->scaleInTime  = (TimeDuration)time_seconds(def->scaleInTime);
+  out->scaleOutTime = (TimeDuration)time_seconds(def->scaleOutTime);
+  out->speed        = vfx_build_range_scalar(&def->speed);
+  out->sizeX        = def->size.x;
+  out->sizeY        = def->size.y;
+  out->count        = def->count;
+  out->interval     = (TimeDuration)time_seconds(def->interval);
 
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {
