@@ -34,7 +34,6 @@ typedef struct {
 
 ecs_comp_define(VfxStateComp) {
   TimeDuration    age;
-  GeoVector       prevPos;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxInstance[].
 };
@@ -75,7 +74,6 @@ static bool vfx_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
 }
 
 ecs_view_define(InitView) {
-  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_with(SceneVfxComp);
   ecs_access_without(VfxStateComp);
 }
@@ -83,16 +81,10 @@ ecs_view_define(InitView) {
 ecs_system_define(VfxStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId         e     = ecs_view_entity(itr);
-    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
-    const GeoVector           pos   = LIKELY(trans) ? trans->position : geo_vector(0);
+    const EcsEntityId e = ecs_view_entity(itr);
 
     ecs_world_add_t(
-        world,
-        e,
-        VfxStateComp,
-        .prevPos   = pos,
-        .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
+        world, e, VfxStateComp, .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
   }
 }
 
@@ -419,8 +411,6 @@ ecs_system_define(VfxSystemUpdateSys) {
     dynarray_for_t(&state->instances, VfxInstance, instance) {
       vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
     }
-
-    state->prevPos = pos;
   }
 }
 
