@@ -31,7 +31,7 @@ typedef struct {
 } AssetVfxRangeScalar;
 
 typedef struct {
-  AssetVfxCone        emitCone;
+  AssetVfxCone        cone;
   GeoVector           position;
   GeoQuat             rotation;
   GeoColor            color;
