@@ -5,7 +5,7 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define asset_vfx_max_emitters 5
+#define asset_vfx_max_emitters 4
 
 typedef enum {
   AssetVfxBlend_None,
