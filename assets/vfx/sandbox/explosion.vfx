@@ -1,21 +1,23 @@
 {
   "emitters": [
     {
-      "atlasEntry": "glow",
-      "size": {
-        "x": 10,
-        "y": 10
-      },
-      "color": {
-        "r": 1,
-        "g": 0.25,
-        "b": 0.1,
-        "a": 1
-      },
-      "scaleInTime": 0.2,
-      "fadeOutTime": 0.5,
-      "blend": "AdditiveQuad",
-      "facing": "BillboardSphere"
+      "sprite": {
+        "atlasEntry": "glow",
+        "color": {
+          "r": 1,
+          "g": 0.25,
+          "b": 0.1,
+          "a": 1
+        },
+        "blend": "AdditiveQuad",
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 10,
+          "y": 10
+        },
+        "fadeOutTime": 0.5,
+        "scaleInTime": 0.2
+      }
     }
   ]
 }

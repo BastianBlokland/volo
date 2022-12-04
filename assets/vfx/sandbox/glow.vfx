@@ -1,16 +1,20 @@
 {
   "emitters": [
     {
-      "atlasEntry": "glow",
-      "size": {
-        "x": 1,
-        "y": 1
+      "sprite": {
+        "atlasEntry": "glow",
+        "blend": "Additive",
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 1,
+          "y": 1
+        },
+        "fadeOutTime": 0.15,
+        "scaleInTime": 0.15
       },
-      "scaleInTime": 0.15,
-      "fadeOutTime": 0.15,
-      "lifetime": 0.2,
-      "blend": "Additive",
-      "facing": "BillboardSphere"
+      "lifetime": {
+        "min": 0.2
+      }
     }
   ]
 }

@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -18,9 +19,13 @@
 #define vfx_max_asset_requests 4
 
 typedef struct {
-  u8           emitter;
-  u16          atlasBaseIndex;
-  TimeDuration age;
+  u8        emitter;
+  u16       atlasBaseIndex;
+  f32       speed;
+  f32       lifetimeSec, ageSec;
+  GeoVector pos;
+  GeoQuat   rot;
+  GeoVector dir;
 } VfxInstance;
 
 typedef struct {
@@ -29,7 +34,6 @@ typedef struct {
 
 ecs_comp_define(VfxStateComp) {
   TimeDuration    age;
-  GeoVector       prevPos;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxInstance[].
 };
@@ -70,7 +74,6 @@ static bool vfx_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
 }
 
 ecs_view_define(InitView) {
-  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_with(SceneVfxComp);
   ecs_access_without(VfxStateComp);
 }
@@ -78,16 +81,10 @@ ecs_view_define(InitView) {
 ecs_system_define(VfxStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId         e     = ecs_view_entity(itr);
-    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
-    const GeoVector           pos   = LIKELY(trans) ? trans->position : geo_vector(0);
+    const EcsEntityId e = ecs_view_entity(itr);
 
     ecs_world_add_t(
-        world,
-        e,
-        VfxStateComp,
-        .prevPos   = pos,
-        .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
+        world, e, VfxStateComp, .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
   }
 }
 
@@ -143,6 +140,58 @@ ecs_view_define(UpdateView) {
   ecs_access_write(VfxStateComp);
 }
 
+static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
+  /**
+   * Compute a uniformly distributed direction inside the given cone.
+   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
+   */
+  const f32 coneAngleCos = math_cos_f32(cone->angle);
+  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(g_rng);
+  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(g_rng);
+  const f32 sinT         = math_sqrt_f32(1 - z * z);
+  const f32 x            = math_cos_f32(phi) * sinT;
+  const f32 y            = math_sin_f32(phi) * sinT;
+  return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
+}
+
+static GeoVector vfx_random_dir() {
+  /**
+   * Generate a random point on a unit sphere (radius of 1, aka a direction vector).
+   */
+Retry:;
+  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(g_rng);
+  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(g_rng);
+  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
+  const f32             magSqr = geo_vector_mag_sqr(vec);
+  if (UNLIKELY(magSqr <= f32_epsilon)) {
+    goto Retry; // Reject zero vectors (rare case).
+  }
+  return geo_vector_div(vec, math_sqrt_f32(magSqr));
+}
+
+static GeoVector vfx_random_in_sphere(const f32 radius) {
+  /**
+   * Generate a random point inside a sphere.
+   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
+   */
+  const GeoVector dir = vfx_random_dir();
+  return geo_vector_mul(dir, radius * math_cbrt_f32(rng_sample_f32(g_rng)));
+}
+
+static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {
+  return rng_sample_range(g_rng, scalar->min, scalar->max);
+}
+
+static TimeDuration vfx_sample_range_duration(const AssetVfxRangeDuration* duration) {
+  return (TimeDuration)rng_sample_range(g_rng, duration->min, duration->max);
+}
+
+static GeoQuat vfx_sample_range_rotation(const AssetVfxRangeRotation* rotation) {
+  const f32       rand              = rng_sample_f32(g_rng);
+  const GeoVector randomEulerAngles = geo_vector_mul(rotation->randomEulerAngles, rand);
+  return geo_quat_mul(rotation->base, geo_quat_from_euler(randomEulerAngles));
+}
+
 static void vfx_blend_mode_apply(
     const GeoColor color, const AssetVfxBlend mode, GeoColor* outColor, f32* outOpacity) {
   switch (mode) {
@@ -153,6 +202,14 @@ static void vfx_blend_mode_apply(
   case AssetVfxBlend_Alpha:
     *outColor   = color;
     *outOpacity = color.a;
+    return;
+  case AssetVfxBlend_AlphaDouble:
+    *outColor   = color;
+    *outOpacity = color.a * 2;
+    return;
+  case AssetVfxBlend_AlphaQuad:
+    *outColor   = color;
+    *outOpacity = color.a * 4;
     return;
   case AssetVfxBlend_Additive:
     *outColor   = color;
@@ -185,40 +242,54 @@ static void vfx_system_spawn(
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-  const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitterAsset->atlasEntry);
+  const StringHash       atlasEntryName = emitterAsset->sprite.atlasEntry;
+  const AssetAtlasEntry* atlasEntry     = asset_atlas_lookup(atlas, atlasEntryName);
   if (UNLIKELY(!atlasEntry)) {
-    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
+    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(atlasEntryName)));
     return;
   }
-  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->flipbookCount > atlas->entryCount)) {
+  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
     log_e(
         "Vfx atlas has not enough entries for flipbook",
         log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
-        log_param("flipbook-count", fmt_int(emitterAsset->flipbookCount)));
+        log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
     return;
   }
 
   diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
+  const GeoVector conePos    = emitterAsset->cone.position;
+  const f32       coneRadius = emitterAsset->cone.radius;
+
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
+      .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
+      .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
+      .pos            = geo_vector_add(conePos, vfx_random_in_sphere(coneRadius)),
+      .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
+      .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
   };
 }
 
 static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
   if (emitterAsset->interval) {
-    return math_min(1 + (u32)(age / emitterAsset->interval), emitterAsset->count);
+    const u32 maxCount = emitterAsset->count ? emitterAsset->count : u32_max;
+    return math_min(1 + (u32)(age / emitterAsset->interval), maxCount);
   }
-  return emitterAsset->count;
+  return math_max(1, emitterAsset->count);
 }
 
 static void vfx_system_simulate(
     VfxStateComp*         state,
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
-    const SceneTimeComp*  time) {
+    const SceneTimeComp*  time,
+    const f32             sysScale) {
 
+  const f32 deltaSec = scene_delta_seconds(time);
+
+  // Update shared state.
   state->age += time->delta;
 
   // Update emitters.
@@ -235,11 +306,14 @@ static void vfx_system_simulate(
   // Update instances.
   VfxInstance* instances = dynarray_begin_t(&state->instances, VfxInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxInstance*           instance     = instances + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+    VfxInstance* instance = instances + i;
+
+    // Apply movement.
+    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * sysScale * deltaSec);
+    instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
-    if ((instance->age += time->delta) > emitterAsset->lifetime) {
+    if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
       goto Destruct;
     }
     continue;
@@ -258,37 +332,41 @@ static void vfx_instance_output(
     const f32           sysScale,
     const TimeDuration  sysTimeRem) {
 
-  const AssetVfxEmitter* emitAsset = &asset->emitters[instance->emitter];
-  const TimeDuration timeRem = math_clamp_i64(emitAsset->lifetime - instance->age, 0, sysTimeRem);
+  const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
+  const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
+  const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
+  const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
 
   f32 scale = sysScale;
-  scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
-  scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
+  scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
+  scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
-  const GeoVector posLoc = emitAsset->position;
-  const GeoQuat   rotLoc = emitAsset->rotation;
-  const GeoQuat   rot    = geo_quat_mul(sysRot, rotLoc);
-  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(rot, geo_vector_mul(posLoc, scale)));
+  GeoQuat rot = instance->rot;
+  if (sprite->facing == AssetVfxFacing_World) {
+    rot = geo_quat_mul(sysRot, rot);
+  }
 
-  GeoColor color = emitAsset->color;
-  color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
-  color.a *= math_min(timeRem / (f32)emitAsset->fadeOutTime, 1.0f);
+  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
 
-  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)emitAsset->flipbookTime, 1.0f);
-  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)emitAsset->flipbookCount);
-  diag_assert(flipbookIndex < emitAsset->flipbookCount);
+  GeoColor color = sprite->color;
+  color.a *= math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f);
+  color.a *= math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f);
+
+  const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
+  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
+  diag_assert(flipbookIndex < sprite->flipbookCount);
 
   f32 opacity;
-  vfx_blend_mode_apply(color, emitAsset->blend, &color, &opacity);
+  vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(
       draw,
       &(VfxParticle){
           .position   = pos,
-          .rotation   = emitAsset->facing == AssetVfxFacing_World ? rot : rotLoc,
-          .flags      = vfx_facing_particle_flags(emitAsset->facing),
+          .rotation   = rot,
+          .flags      = vfx_facing_particle_flags(sprite->facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
-          .sizeX      = scale * emitAsset->sizeX,
-          .sizeY      = scale * emitAsset->sizeY,
+          .sizeX      = scale * sprite->sizeX,
+          .sizeY      = scale * sprite->sizeY,
           .color      = color,
           .opacity    = opacity,
       });
@@ -336,13 +414,11 @@ ecs_system_define(VfxSystemUpdateSys) {
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    vfx_system_simulate(state, asset, atlas, time);
+    vfx_system_simulate(state, asset, atlas, time, scale);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
       vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
     }
-
-    state->prevPos = pos;
   }
 }
 

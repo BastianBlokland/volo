@@ -59,6 +59,23 @@ if(${EXTERNAL_ASSETS})
       vfx/flash.tga
       vfx/flash_star.tga
       vfx/trail.tga
+      vfx/smoke.tga
+      fire/fire_0.tga
+      fire/fire_1.tga
+      fire/fire_2.tga
+      fire/fire_3.tga
+      fire/fire_4.tga
+      fire/fire_5.tga
+      fire/fire_6.tga
+      fire/fire_7.tga
+      fire/fire_8.tga
+      fire/fire_9.tga
+      fire/fire_10.tga
+      fire/fire_11.tga
+      fire/fire_12.tga
+      fire/fire_13.tga
+      fire/fire_14.tga
+      fire/fire_15.tga
     )
 endif()
 

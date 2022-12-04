@@ -12,6 +12,8 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define vfx_time_max time_days(9999)
+
 static DataReg* g_dataReg;
 static DataMeta g_dataVfxDefMeta;
 
@@ -32,19 +34,44 @@ typedef struct {
 } VfxColorDef;
 
 typedef struct {
+  f32        angle;
+  f32        radius;
+  VfxVec3Def position;
+  VfxRotDef  rotation;
+} VfxConeDef;
+
+typedef struct {
+  f32 min, max;
+} VfxRangeScalarDef;
+
+typedef struct {
+  f32 min, max;
+} VfxRangeDurationDef;
+
+typedef struct {
+  VfxRotDef base, random;
+} VfxRangeRotationDef;
+
+typedef struct {
   String         atlasEntry;
-  u32            flipbookCount;
-  f32            flipbookTime;
-  VfxVec3Def     position;
-  VfxRotDef      rotation;
-  VfxVec2Def     size;
-  f32            scaleInTime, scaleOutTime;
   VfxColorDef*   color;
-  f32            fadeInTime, fadeOutTime;
   AssetVfxBlend  blend;
   AssetVfxFacing facing;
-  u32            count;
-  f32            interval, lifetime;
+  u16            flipbookCount;
+  f32            flipbookTime;
+  VfxVec2Def     size;
+  f32            fadeInTime, fadeOutTime;
+  f32            scaleInTime, scaleOutTime;
+} VfxSpriteDef;
+
+typedef struct {
+  VfxConeDef          cone;
+  VfxSpriteDef        sprite;
+  VfxRangeScalarDef   speed;
+  u32                 count;
+  f32                 interval;
+  VfxRangeDurationDef lifetime;
+  VfxRangeRotationDef rotation;
 } VfxEmitterDef;
 
 typedef struct {
@@ -84,9 +111,29 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxColorDef, b, data_prim_t(f32));
     data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
 
+    data_reg_struct_t(g_dataReg, VfxConeDef);
+    data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+
+    data_reg_struct_t(g_dataReg, VfxRangeScalarDef);
+    data_reg_field_t(g_dataReg, VfxRangeScalarDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRangeScalarDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
+
+    data_reg_struct_t(g_dataReg, VfxRangeDurationDef);
+    data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
+
+    data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
+    data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
+    data_reg_const_t(g_dataReg, AssetVfxBlend, AlphaDouble);
+    data_reg_const_t(g_dataReg, AssetVfxBlend, AlphaQuad);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Additive);
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveDouble);
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveQuad);
@@ -96,23 +143,27 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardSphere);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
+    data_reg_struct_t(g_dataReg, VfxSpriteDef);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, size, t_VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookCount, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
@@ -170,24 +221,67 @@ static GeoColor vfx_build_color(const VfxColorDef* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
-static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
+static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
+  return (AssetVfxCone){
+      .angle    = def->angle * math_deg_to_rad,
+      .radius   = def->radius,
+      .position = vfx_build_vec3(&def->position),
+      .rotation = vfx_build_rot(&def->rotation),
+  };
+}
+
+static AssetVfxRangeScalar vfx_build_range_scalar(const VfxRangeScalarDef* def) {
+  return (AssetVfxRangeScalar){
+      .min = def->min,
+      .max = math_max(def->min, def->max),
+  };
+}
+
+static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef* def) {
+  return (AssetVfxRangeDuration){
+      .min = (TimeDuration)time_seconds(def->min),
+      .max = (TimeDuration)time_seconds(math_max(def->min, def->max)),
+  };
+}
+
+static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef* def) {
+  const GeoVector randomEulerAnglesDeg = geo_vector(def->random.x, def->random.y, def->random.z);
+  return (AssetVfxRangeRotation){
+      .base              = vfx_build_rot(&def->base),
+      .randomEulerAngles = geo_vector_mul(randomEulerAnglesDeg, math_deg_to_rad),
+  };
+}
+
+static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->atlasEntry    = string_hash(def->atlasEntry);
-  out->flipbookCount = math_max(1, def->flipbookCount);
-  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
-  out->position      = vfx_build_vec3(&def->position);
-  out->rotation      = vfx_build_rot(&def->rotation);
-  out->sizeX         = def->size.x;
-  out->sizeY         = def->size.y;
-  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
-  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
   out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
-  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
   out->blend         = def->blend;
   out->facing        = def->facing;
-  out->count         = math_max(1, def->count);
-  out->interval      = (TimeDuration)time_seconds(def->interval);
-  out->lifetime      = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
+  out->flipbookCount = math_max(1, def->flipbookCount);
+  out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
+  out->sizeX         = def->size.x;
+  out->sizeY         = def->size.y;
+  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
+  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
+}
+
+static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
+  out->cone = vfx_build_cone(&def->cone);
+  vfx_build_sprite(&def->sprite, &out->sprite);
+
+  out->speed    = vfx_build_range_scalar(&def->speed);
+  out->count    = def->count;
+  out->interval = (TimeDuration)time_seconds(def->interval);
+
+  out->lifetime = vfx_build_range_duration(&def->lifetime);
+  if (out->lifetime.max <= 0) {
+    out->lifetime.min = vfx_time_max;
+    out->lifetime.max = vfx_time_max;
+  }
+
+  out->rotation = vfx_build_range_rotation(&def->rotation);
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {

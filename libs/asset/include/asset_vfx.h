@@ -5,11 +5,13 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define asset_vfx_max_emitters 6
+#define asset_vfx_max_emitters 4
 
 typedef enum {
   AssetVfxBlend_None,
   AssetVfxBlend_Alpha,
+  AssetVfxBlend_AlphaDouble,
+  AssetVfxBlend_AlphaQuad,
   AssetVfxBlend_Additive,
   AssetVfxBlend_AdditiveDouble,
   AssetVfxBlend_AdditiveQuad,
@@ -22,19 +24,45 @@ typedef enum {
 } AssetVfxFacing;
 
 typedef struct {
-  GeoVector      position;
-  GeoQuat        rotation;
-  GeoColor       color;
-  TimeDuration   fadeInTime, fadeOutTime;
   StringHash     atlasEntry;
-  u32            flipbookCount;
+  GeoColor       color;
+  AssetVfxBlend  blend : 8;
+  AssetVfxFacing facing : 8;
+  u16            flipbookCount;
   TimeDuration   flipbookTime;
   f32            sizeX, sizeY;
+  TimeDuration   fadeInTime, fadeOutTime;
   TimeDuration   scaleInTime, scaleOutTime;
-  AssetVfxBlend  blend;
-  AssetVfxFacing facing;
-  u32            count;
-  TimeDuration   interval, lifetime;
+} AssetVfxSprite;
+
+typedef struct {
+  f32       angle;
+  f32       radius;
+  GeoVector position;
+  GeoQuat   rotation;
+} AssetVfxCone;
+
+typedef struct {
+  f32 min, max;
+} AssetVfxRangeScalar;
+
+typedef struct {
+  TimeDuration min, max;
+} AssetVfxRangeDuration;
+
+typedef struct {
+  GeoQuat   base;
+  GeoVector randomEulerAngles;
+} AssetVfxRangeRotation;
+
+typedef struct {
+  AssetVfxCone          cone;
+  AssetVfxSprite        sprite;
+  AssetVfxRangeScalar   speed;
+  u32                   count;
+  TimeDuration          interval;
+  AssetVfxRangeDuration lifetime;
+  AssetVfxRangeRotation rotation;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {

@@ -36,6 +36,8 @@ f32 math_mod_f32(const f32 x, const f32 y) { return intrinsic_fmod_f32(x, y); }
 f32 math_sqrt_f32(const f32 val) { return intrinsic_sqrt_f32(val); }
 f64 math_sqrt_f64(const f64 val) { return intrinsic_sqrt_f64(val); }
 
+f32 math_cbrt_f32(const f32 val) { return intrinsic_cbrt_f32(val); }
+
 f32 math_log_f32(const f32 val) { return intrinsic_log_f32(val); }
 
 f32 math_sin_f32(const f32 val) { return intrinsic_sin_f32(val); }

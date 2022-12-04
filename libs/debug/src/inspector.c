@@ -966,6 +966,8 @@ static void inspector_vis_draw_subject(
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
+    debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
+
     if (veloComp && geo_vector_mag(veloComp->velocityAvg) > 1e-3f) {
       const GeoVector posOneSecAway = scene_position_predict(transformComp, veloComp, time_second);
       debug_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
