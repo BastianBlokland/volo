@@ -55,14 +55,14 @@ typedef struct {
   u16            flipbookCount;
   f32            flipbookTime;
   VfxVec2Def     size;
+  f32            fadeInTime, fadeOutTime;
+  f32            scaleInTime, scaleOutTime;
 } VfxSpriteDef;
 
 typedef struct {
   VfxConeDef          cone;
   VfxSpriteDef        sprite;
   VfxRotDef           rotation;
-  f32                 fadeInTime, fadeOutTime;
-  f32                 scaleInTime, scaleOutTime;
   VfxRangeScalarDef   speed;
   u32                 count;
   f32                 interval;
@@ -139,15 +139,15 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxSpriteDef, size, t_VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -240,20 +240,20 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->flipbookTime  = math_max(time_millisecond, (TimeDuration)time_seconds(def->flipbookTime));
   out->sizeX         = def->size.x;
   out->sizeY         = def->size.y;
+  out->fadeInTime    = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime   = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
+  out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone = vfx_build_cone(&def->cone);
   vfx_build_sprite(&def->sprite, &out->sprite);
 
-  out->rotation     = vfx_build_rot(&def->rotation);
-  out->fadeInTime   = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime  = (TimeDuration)time_seconds(def->fadeOutTime);
-  out->scaleInTime  = (TimeDuration)time_seconds(def->scaleInTime);
-  out->scaleOutTime = (TimeDuration)time_seconds(def->scaleOutTime);
-  out->speed        = vfx_build_range_scalar(&def->speed);
-  out->count        = def->count;
-  out->interval     = (TimeDuration)time_seconds(def->interval);
+  out->rotation = vfx_build_rot(&def->rotation);
+  out->speed    = vfx_build_range_scalar(&def->speed);
+  out->count    = def->count;
+  out->interval = (TimeDuration)time_seconds(def->interval);
 
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {

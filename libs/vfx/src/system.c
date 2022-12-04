@@ -298,39 +298,39 @@ static void vfx_instance_output(
     const f32           sysScale,
     const TimeDuration  sysTimeRem) {
 
-  const AssetVfxEmitter* emitAsset = &asset->emitters[instance->emitter];
-  const TimeDuration     timeRem   = math_min(instance->lifetime - instance->age, sysTimeRem);
+  const AssetVfxSprite* sprite  = &asset->emitters[instance->emitter].sprite;
+  const TimeDuration    timeRem = math_min(instance->lifetime - instance->age, sysTimeRem);
 
   f32 scale = sysScale;
-  scale *= math_min(instance->age / (f32)emitAsset->scaleInTime, 1.0f);
-  scale *= math_min(timeRem / (f32)emitAsset->scaleOutTime, 1.0f);
+  scale *= math_min(instance->age / (f32)sprite->scaleInTime, 1.0f);
+  scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
-  GeoQuat rot = emitAsset->rotation;
-  if (emitAsset->sprite.facing == AssetVfxFacing_World) {
+  GeoQuat rot = asset->emitters[instance->emitter].rotation;
+  if (sprite->facing == AssetVfxFacing_World) {
     rot = geo_quat_mul(sysRot, rot);
   }
 
   const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
 
-  GeoColor color = emitAsset->sprite.color;
-  color.a *= math_min(instance->age / (f32)emitAsset->fadeInTime, 1.0f);
-  color.a *= math_min(timeRem / (f32)emitAsset->fadeOutTime, 1.0f);
+  GeoColor color = sprite->color;
+  color.a *= math_min(instance->age / (f32)sprite->fadeInTime, 1.0f);
+  color.a *= math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f);
 
-  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)emitAsset->sprite.flipbookTime, 1.0f);
-  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)emitAsset->sprite.flipbookCount);
-  diag_assert(flipbookIndex < emitAsset->sprite.flipbookCount);
+  const f32 flipbookFrac  = math_mod_f32(instance->age / (f32)sprite->flipbookTime, 1.0f);
+  const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
+  diag_assert(flipbookIndex < sprite->flipbookCount);
 
   f32 opacity;
-  vfx_blend_mode_apply(color, emitAsset->sprite.blend, &color, &opacity);
+  vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(
       draw,
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
-          .flags      = vfx_facing_particle_flags(emitAsset->sprite.facing),
+          .flags      = vfx_facing_particle_flags(sprite->facing),
           .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
-          .sizeX      = scale * emitAsset->sprite.sizeX,
-          .sizeY      = scale * emitAsset->sprite.sizeY,
+          .sizeX      = scale * sprite->sizeX,
+          .sizeY      = scale * sprite->sizeY,
           .color      = color,
           .opacity    = opacity,
       });

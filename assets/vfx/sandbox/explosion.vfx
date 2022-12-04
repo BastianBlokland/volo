@@ -14,10 +14,10 @@
         "size": {
           "x": 10,
           "y": 10
-        }
-      },
-      "fadeOutTime": 0.5,
-      "scaleInTime": 0.2
+        },
+        "fadeOutTime": 0.5,
+        "scaleInTime": 0.2
+      }
     }
   ]
 }

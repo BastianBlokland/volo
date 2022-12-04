@@ -8,10 +8,10 @@
         "size": {
           "x": 1,
           "y": 1
-        }
+        },
+        "fadeOutTime": 0.15,
+        "scaleInTime": 0.15
       },
-      "fadeOutTime": 0.15,
-      "scaleInTime": 0.15,
       "lifetime": {
         "min": 0.2
       }

@@ -12,14 +12,14 @@
         "size": {
           "x": 3.5,
           "y": 0.1
-        }
+        },
+        "fadeInTime": 0,
+        "fadeOutTime": 0.1,
+        "scaleInTime": 0.05
       },
       "rotation": {
         "y": -90
-      },
-      "fadeInTime": 0,
-      "fadeOutTime": 0.1,
-      "scaleInTime": 0.05
+      }
     },
     {
       "cone": {
@@ -33,15 +33,15 @@
         "size": {
           "x": 3.5,
           "y": 0.1
-        }
+        },
+        "fadeInTime": 0,
+        "fadeOutTime": 0.1,
+        "scaleInTime": 0.05
       },
       "rotation": {
         "x": 90,
         "y": -90
-      },
-      "fadeInTime": 0,
-      "fadeOutTime": 0.1,
-      "scaleInTime": 0.05
+      }
     }
   ]
 }

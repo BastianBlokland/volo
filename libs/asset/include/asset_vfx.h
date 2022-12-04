@@ -29,6 +29,8 @@ typedef struct {
   u16            flipbookCount;
   TimeDuration   flipbookTime;
   f32            sizeX, sizeY;
+  TimeDuration   fadeInTime, fadeOutTime;
+  TimeDuration   scaleInTime, scaleOutTime;
 } AssetVfxSprite;
 
 typedef struct {
@@ -49,8 +51,6 @@ typedef struct {
   AssetVfxCone          cone;
   AssetVfxSprite        sprite;
   GeoQuat               rotation;
-  TimeDuration          fadeInTime, fadeOutTime;
-  TimeDuration          scaleInTime, scaleOutTime;
   AssetVfxRangeScalar   speed;
   u32                   count;
   TimeDuration          interval;

@@ -12,13 +12,13 @@
         "size": {
           "x": 1.2,
           "y": 0.5
-        }
+        },
+        "fadeOutTime": 0.075,
+        "scaleInTime": 0.175
       },
       "rotation": {
         "z": 90
       },
-      "fadeOutTime": 0.075,
-      "scaleInTime": 0.175,
       "speed": {
         "min": 2.5
       }
@@ -35,14 +35,14 @@
         "size": {
           "x": 1.2,
           "y": 0.5
-        }
+        },
+        "fadeOutTime": 0.075,
+        "scaleInTime": 0.175
       },
       "rotation": {
         "x": 90,
         "z": 90
       },
-      "fadeOutTime": 0.075,
-      "scaleInTime": 0.175,
       "speed": {
         "min": 2.5
       }
@@ -54,13 +54,13 @@
         "size": {
           "x": 0.8,
           "y": 0.8
-        }
+        },
+        "fadeOutTime": 0.075,
+        "scaleInTime": 0.175
       },
       "rotation": {
         "x": 90
-      },
-      "fadeOutTime": 0.075,
-      "scaleInTime": 0.175
+      }
     }
   ]
 }
