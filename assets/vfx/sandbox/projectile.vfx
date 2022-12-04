@@ -1,10 +1,12 @@
 {
   "emitters": [
     {
-      "atlasEntry": "trail",
-      "position": {
-        "x": -1.5
+      "cone": {
+        "position": {
+          "z": -1.5
+        }
       },
+      "atlasEntry": "trail",
       "rotation": {
         "y": -90
       },
@@ -14,15 +16,16 @@
       },
       "fadeInTime": 0,
       "scaleInTime": 0.05,
-      "scaleOutTime": 0.15,
-      "fadeOutTime": 0.15,
+      "fadeOutTime": 0.1,
       "blend": "Additive"
     },
     {
-      "atlasEntry": "trail",
-      "position": {
-        "x": -1.5
+      "cone": {
+        "position": {
+          "z": -1.5
+        }
       },
+      "atlasEntry": "trail",
       "rotation": {
         "x": 90,
         "y": -90
@@ -33,8 +36,7 @@
       },
       "fadeInTime": 0,
       "scaleInTime": 0.05,
-      "scaleOutTime": 0.15,
-      "fadeOutTime": 0.15,
+      "fadeOutTime": 0.1,
       "blend": "Additive"
     }
   ]

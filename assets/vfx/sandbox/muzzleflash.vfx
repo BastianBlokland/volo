@@ -1,10 +1,15 @@
 {
   "emitters": [
     {
-      "atlasEntry": "flash",
-      "position": {
-        "x": 0.4
+      "cone": {
+        "rotation": {
+          "x": -90
+        }
       },
+      "speed": {
+        "min": 2.5
+      },
+      "atlasEntry": "flash",
       "rotation": {
         "z": 90
       },
@@ -18,8 +23,13 @@
     },
     {
       "atlasEntry": "flash",
-      "position": {
-        "x": 0.4
+      "cone": {
+        "rotation": {
+          "x": -90
+        }
+      },
+      "speed": {
+        "min": 2.5
       },
       "rotation": {
         "x": 90,

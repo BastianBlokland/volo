@@ -1,10 +1,12 @@
 {
   "emitters": [
     {
-      "atlasEntry": "glow",
-      "position": {
-        "z": 0.05
+      "cone": {
+        "position": {
+          "z": 0.05
+        }
       },
+      "atlasEntry": "glow",
       "size": {
         "x": 1.25,
         "y": 1.25
