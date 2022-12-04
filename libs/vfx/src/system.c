@@ -203,6 +203,14 @@ static void vfx_blend_mode_apply(
     *outColor   = color;
     *outOpacity = color.a;
     return;
+  case AssetVfxBlend_AlphaDouble:
+    *outColor   = color;
+    *outOpacity = color.a * 2;
+    return;
+  case AssetVfxBlend_AlphaQuad:
+    *outColor   = color;
+    *outOpacity = color.a * 4;
+    return;
   case AssetVfxBlend_Additive:
     *outColor   = color;
     *outOpacity = 0.0f;

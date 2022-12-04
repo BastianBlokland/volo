@@ -132,6 +132,8 @@ static void vfx_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
+    data_reg_const_t(g_dataReg, AssetVfxBlend, AlphaDouble);
+    data_reg_const_t(g_dataReg, AssetVfxBlend, AlphaQuad);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Additive);
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveDouble);
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveQuad);

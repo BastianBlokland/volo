@@ -10,6 +10,8 @@
 typedef enum {
   AssetVfxBlend_None,
   AssetVfxBlend_Alpha,
+  AssetVfxBlend_AlphaDouble,
+  AssetVfxBlend_AlphaQuad,
   AssetVfxBlend_Additive,
   AssetVfxBlend_AdditiveDouble,
   AssetVfxBlend_AdditiveQuad,
