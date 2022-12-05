@@ -8,6 +8,11 @@
 #define asset_vfx_max_emitters 4
 
 typedef enum {
+  AssetVfxSpace_Local,
+  AssetVfxSpace_World,
+} AssetVfxSpace;
+
+typedef enum {
   AssetVfxBlend_None,
   AssetVfxBlend_Alpha,
   AssetVfxBlend_AlphaDouble,
@@ -58,6 +63,7 @@ typedef struct {
 typedef struct {
   AssetVfxCone          cone;
   GeoVector             force;
+  AssetVfxSpace         space;
   AssetVfxSprite        sprite;
   AssetVfxRangeScalar   speed;
   u32                   count;

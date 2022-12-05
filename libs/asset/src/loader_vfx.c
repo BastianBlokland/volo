@@ -67,6 +67,7 @@ typedef struct {
 typedef struct {
   VfxConeDef          cone;
   VfxVec3Def          force;
+  AssetVfxSpace       space;
   VfxSpriteDef        sprite;
   VfxRangeScalarDef   speed;
   u32                 count;
@@ -131,6 +132,10 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
 
+    data_reg_enum_t(g_dataReg, AssetVfxSpace);
+    data_reg_const_t(g_dataReg, AssetVfxSpace, Local);
+    data_reg_const_t(g_dataReg, AssetVfxSpace, World);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
@@ -161,6 +166,7 @@ static void vfx_datareg_init() {
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
@@ -274,6 +280,7 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone  = vfx_build_cone(&def->cone);
   out->force = vfx_build_vec3(&def->force);
+  out->space = def->space;
 
   vfx_build_sprite(&def->sprite, &out->sprite);
 
