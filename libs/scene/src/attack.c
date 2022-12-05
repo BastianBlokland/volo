@@ -315,7 +315,10 @@ static EffectResult effect_update_vfx(
     return EffectResult_Running; // Waiting to execute.
   }
   if (!effect_execute_once(ctx, effectIndex)) {
-    return (effectTime - def->delay) < def->duration ? EffectResult_Running : EffectResult_Done;
+    if (def->waitUntilFinished && (effectTime - def->delay) < def->duration) {
+      return EffectResult_Running;
+    }
+    return EffectResult_Done;
   }
 
   const EcsEntityId inst           = ctx->instigator;

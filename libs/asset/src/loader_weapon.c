@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
   String originJoint;
   f32    scale;
+  bool   waitUntilFinished;
   f32    delay, duration;
   String assetId;
 } AssetWeaponEffectVfxDef;
@@ -105,6 +106,7 @@ static void weapon_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, waitUntilFinished, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -226,11 +228,12 @@ static void weapon_effect_vfx_build(
     AssetWeaponEffectVfx*          out,
     WeaponError*                   err) {
   *out = (AssetWeaponEffectVfx){
-      .originJoint = string_hash(def->originJoint),
-      .scale       = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
-      .delay       = (TimeDuration)time_seconds(def->delay),
-      .duration    = (TimeDuration)time_seconds(def->duration),
-      .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
+      .originJoint       = string_hash(def->originJoint),
+      .scale             = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
+      .waitUntilFinished = def->waitUntilFinished,
+      .delay             = (TimeDuration)time_seconds(def->delay),
+      .duration          = (TimeDuration)time_seconds(def->duration),
+      .asset             = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
   };
   *err = WeaponError_None;
 }
