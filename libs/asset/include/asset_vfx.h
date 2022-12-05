@@ -18,7 +18,7 @@ typedef enum {
 } AssetVfxBlend;
 
 typedef enum {
-  AssetVfxFacing_World,
+  AssetVfxFacing_Local,
   AssetVfxFacing_BillboardSphere,
   AssetVfxFacing_BillboardCylinder,
 } AssetVfxFacing;

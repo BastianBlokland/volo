@@ -227,7 +227,7 @@ static void vfx_blend_mode_apply(
 
 static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   switch (facing) {
-  case AssetVfxFacing_World:
+  case AssetVfxFacing_Local:
     return 0;
   case AssetVfxFacing_BillboardSphere:
     return VfxParticle_BillboardSphere;
@@ -355,7 +355,7 @@ static void vfx_instance_output(
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
   GeoQuat rot = instance->rot;
-  if (sprite->facing == AssetVfxFacing_World) {
+  if (sprite->facing == AssetVfxFacing_Local) {
     rot = geo_quat_mul(sysTrans->rot, rot);
   }
 

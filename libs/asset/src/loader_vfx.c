@@ -141,7 +141,7 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveQuad);
 
     data_reg_enum_t(g_dataReg, AssetVfxFacing);
-    data_reg_const_t(g_dataReg, AssetVfxFacing, World);
+    data_reg_const_t(g_dataReg, AssetVfxFacing, Local);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardSphere);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
