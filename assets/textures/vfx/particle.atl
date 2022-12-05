@@ -26,6 +26,10 @@
       "texture": "external/vfx/smoke.tga"
     },
     {
+      "name": "rock",
+      "texture": "external/vfx/rock.tga"
+    },
+    {
       "name": "fire_0",
       "texture": "external/fire/fire_0.tga"
     },

@@ -66,10 +66,13 @@ typedef struct {
 
 typedef struct {
   VfxConeDef          cone;
+  VfxVec3Def          force;
+  AssetVfxSpace       space;
   VfxSpriteDef        sprite;
   VfxRangeScalarDef   speed;
   u32                 count;
   f32                 interval;
+  VfxRangeScalarDef   scale;
   VfxRangeDurationDef lifetime;
   VfxRangeRotationDef rotation;
 } VfxEmitterDef;
@@ -129,6 +132,10 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
 
+    data_reg_enum_t(g_dataReg, AssetVfxSpace);
+    data_reg_const_t(g_dataReg, AssetVfxSpace, Local);
+    data_reg_const_t(g_dataReg, AssetVfxSpace, World);
+
     data_reg_enum_t(g_dataReg, AssetVfxBlend);
     data_reg_const_t(g_dataReg, AssetVfxBlend, None);
     data_reg_const_t(g_dataReg, AssetVfxBlend, Alpha);
@@ -139,7 +146,7 @@ static void vfx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetVfxBlend, AdditiveQuad);
 
     data_reg_enum_t(g_dataReg, AssetVfxFacing);
-    data_reg_const_t(g_dataReg, AssetVfxFacing, World);
+    data_reg_const_t(g_dataReg, AssetVfxFacing, Local);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardSphere);
     data_reg_const_t(g_dataReg, AssetVfxFacing, BillboardCylinder);
 
@@ -158,10 +165,13 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
 
@@ -268,17 +278,24 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
 }
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
-  out->cone = vfx_build_cone(&def->cone);
+  out->cone  = vfx_build_cone(&def->cone);
+  out->force = vfx_build_vec3(&def->force);
+  out->space = def->space;
+
   vfx_build_sprite(&def->sprite, &out->sprite);
 
   out->speed    = vfx_build_range_scalar(&def->speed);
   out->count    = def->count;
   out->interval = (TimeDuration)time_seconds(def->interval);
 
+  out->scale = vfx_build_range_scalar(&def->scale);
+  if (out->scale.max <= 0) {
+    out->scale.min = out->scale.max = 1.0f;
+  }
+
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {
-    out->lifetime.min = vfx_time_max;
-    out->lifetime.max = vfx_time_max;
+    out->lifetime.min = out->lifetime.max = vfx_time_max;
   }
 
   out->rotation = vfx_build_range_rotation(&def->rotation);

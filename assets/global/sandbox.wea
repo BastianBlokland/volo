@@ -30,7 +30,7 @@
           "$type": "AssetWeaponEffect_Vfx",
           "originJoint": "muzzle",
           "delay": 0,
-          "duration": 0.15,
+          "duration": 0.5,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
@@ -88,7 +88,7 @@
           "originJoint": "muzzle",
           "scale": 4,
           "delay": 0,
-          "duration": 0.125,
+          "duration": 0.5,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]

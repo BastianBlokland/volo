@@ -39,6 +39,7 @@ typedef struct {
 typedef struct {
   StringHash   originJoint;
   f32          scale;
+  bool         waitUntilFinished;
   TimeDuration delay, duration;
   EcsEntityId  asset;
 } AssetWeaponEffectVfx;

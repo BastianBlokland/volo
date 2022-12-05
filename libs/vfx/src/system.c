@@ -21,11 +21,11 @@
 typedef struct {
   u8        emitter;
   u16       atlasBaseIndex;
-  f32       speed;
   f32       lifetimeSec, ageSec;
+  f32       scale;
   GeoVector pos;
   GeoQuat   rot;
-  GeoVector dir;
+  GeoVector velo;
 } VfxInstance;
 
 typedef struct {
@@ -227,7 +227,7 @@ static void vfx_blend_mode_apply(
 
 static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   switch (facing) {
-  case AssetVfxFacing_World:
+  case AssetVfxFacing_Local:
     return 0;
   case AssetVfxFacing_BillboardSphere:
     return VfxParticle_BillboardSphere;
@@ -237,8 +237,27 @@ static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   UNREACHABLE
 }
 
+typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       scale;
+} VfxTrans;
+
+static GeoVector vfx_world_pos(const VfxTrans* t, const GeoVector pos) {
+  return geo_vector_add(t->pos, geo_quat_rotate(t->rot, geo_vector_mul(pos, t->scale)));
+}
+
+static GeoVector vfx_world_dir(const VfxTrans* t, const GeoVector dir) {
+  return geo_quat_rotate(t->rot, dir);
+}
+
 static void vfx_system_spawn(
-    VfxStateComp* state, const AssetVfxComp* asset, const AssetAtlasComp* atlas, const u8 emitter) {
+    VfxStateComp*         state,
+    const AssetVfxComp*   asset,
+    const AssetAtlasComp* atlas,
+    const u8              emitter,
+    const VfxTrans*       sysTrans) {
+
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
@@ -258,17 +277,27 @@ static void vfx_system_spawn(
 
   diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
-  const GeoVector conePos    = emitterAsset->cone.position;
-  const f32       coneRadius = emitterAsset->cone.radius;
+  GeoVector spawnPos    = emitterAsset->cone.position;
+  f32       spawnRadius = emitterAsset->cone.radius;
+  GeoVector spawnDir    = vfx_random_dir_in_cone(&emitterAsset->cone);
+  f32       spawnScale  = vfx_sample_range_scalar(&emitterAsset->scale);
+  f32       spawnSpeed  = vfx_sample_range_scalar(&emitterAsset->speed);
+  if (emitterAsset->space == AssetVfxSpace_World) {
+    spawnPos = vfx_world_pos(sysTrans, spawnPos);
+    spawnRadius *= sysTrans->scale;
+    spawnDir = vfx_world_dir(sysTrans, spawnDir);
+    spawnScale *= sysTrans->scale;
+    spawnSpeed *= sysTrans->scale;
+  }
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
-      .speed          = vfx_sample_range_scalar(&emitterAsset->speed),
       .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
-      .pos            = geo_vector_add(conePos, vfx_random_in_sphere(coneRadius)),
+      .scale          = spawnScale,
+      .pos            = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
       .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
-      .dir            = vfx_random_dir_in_cone(&emitterAsset->cone),
+      .velo           = geo_vector_mul(spawnDir, spawnSpeed),
   };
 }
 
@@ -285,7 +314,7 @@ static void vfx_system_simulate(
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time,
-    const f32             sysScale) {
+    const VfxTrans*       sysTrans) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
@@ -299,17 +328,21 @@ static void vfx_system_simulate(
 
     const u32 count = vfx_emitter_count(emitterAsset, state->age);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
-      vfx_system_spawn(state, asset, atlas, emitter);
+      vfx_system_spawn(state, asset, atlas, emitter, sysTrans);
     }
   }
 
   // Update instances.
   VfxInstance* instances = dynarray_begin_t(&state->instances, VfxInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
-    VfxInstance* instance = instances + i;
+    VfxInstance*           instance     = instances + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
+
+    // Apply force.
+    instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->dir, instance->speed * sysScale * deltaSec);
+    const GeoVector posDelta = geo_vector_mul(instance->velo, deltaSec);
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
@@ -327,26 +360,31 @@ static void vfx_instance_output(
     const VfxInstance*  instance,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
-    const GeoVector     sysPos,
-    const GeoQuat       sysRot,
-    const f32           sysScale,
+    const VfxTrans*     sysTrans,
     const TimeDuration  sysTimeRem) {
 
+  const AssetVfxSpace   space            = asset->emitters[instance->emitter].space;
   const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
   const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
   const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
   const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
 
-  f32 scale = sysScale;
+  f32 scale = instance->scale;
+  if (space == AssetVfxSpace_Local) {
+    scale *= sysTrans->scale;
+  }
   scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
   GeoQuat rot = instance->rot;
-  if (sprite->facing == AssetVfxFacing_World) {
-    rot = geo_quat_mul(sysRot, rot);
+  if (sprite->facing == AssetVfxFacing_Local) {
+    rot = geo_quat_mul(sysTrans->rot, rot);
   }
 
-  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
+  GeoVector pos = instance->pos;
+  if (space == AssetVfxSpace_Local) {
+    pos = vfx_world_pos(sysTrans, pos);
+  }
 
   GeoColor color = sprite->color;
   color.a *= math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f);
@@ -400,10 +438,12 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const GeoVector    pos     = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoQuat      rot     = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32          scale   = scaleComp ? scaleComp->scale : 1.0f;
-    const TimeDuration timeRem = lifetime ? lifetime->duration : i64_max;
+    const VfxTrans sysTrans = {
+        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
+        .rot   = LIKELY(trans) ? trans->rotation : geo_quat_ident,
+        .scale = scaleComp ? scaleComp->scale : 1.0f,
+    };
+    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
     diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
@@ -414,10 +454,10 @@ ecs_system_define(VfxSystemUpdateSys) {
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    vfx_system_simulate(state, asset, atlas, time, scale);
+    vfx_system_simulate(state, asset, atlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
+      vfx_instance_output(instance, draw, asset, &sysTrans, sysTimeRem);
     }
   }
 }
