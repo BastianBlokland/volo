@@ -236,6 +236,16 @@ static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   UNREACHABLE
 }
 
+typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       scale;
+} VfxTrans;
+
+static GeoVector vfx_world_pos(const VfxTrans* t, const GeoVector pos) {
+  return geo_vector_add(t->pos, geo_quat_rotate(t->rot, geo_vector_mul(pos, t->scale)));
+}
+
 static void vfx_system_spawn(
     VfxStateComp* state, const AssetVfxComp* asset, const AssetAtlasComp* atlas, const u8 emitter) {
   diag_assert(emitter < asset->emitterCount);
@@ -284,8 +294,7 @@ static void vfx_system_simulate(
     VfxStateComp*         state,
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
-    const SceneTimeComp*  time,
-    const f32             sysScale) {
+    const SceneTimeComp*  time) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
@@ -313,7 +322,7 @@ static void vfx_system_simulate(
     instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->velo, sysScale * deltaSec);
+    const GeoVector posDelta = geo_vector_mul(instance->velo, deltaSec);
     instance->pos            = geo_vector_add(instance->pos, posDelta);
 
     // Update age and destruct if too old.
@@ -331,9 +340,7 @@ static void vfx_instance_output(
     const VfxInstance*  instance,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
-    const GeoVector     sysPos,
-    const GeoQuat       sysRot,
-    const f32           sysScale,
+    const VfxTrans*     sysTrans,
     const TimeDuration  sysTimeRem) {
 
   const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
@@ -341,16 +348,16 @@ static void vfx_instance_output(
   const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
   const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
 
-  f32 scale = sysScale;
+  f32 scale = sysTrans->scale;
   scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
   GeoQuat rot = instance->rot;
   if (sprite->facing == AssetVfxFacing_World) {
-    rot = geo_quat_mul(sysRot, rot);
+    rot = geo_quat_mul(sysTrans->rot, rot);
   }
 
-  const GeoVector pos = geo_vector_add(sysPos, geo_quat_rotate(sysRot, instance->pos));
+  const GeoVector pos = vfx_world_pos(sysTrans, instance->pos);
 
   GeoColor color = sprite->color;
   color.a *= math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f);
@@ -404,10 +411,12 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const GeoVector    pos     = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoQuat      rot     = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32          scale   = scaleComp ? scaleComp->scale : 1.0f;
-    const TimeDuration timeRem = lifetime ? lifetime->duration : i64_max;
+    const VfxTrans sysTrans = {
+        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
+        .rot   = LIKELY(trans) ? trans->rotation : geo_quat_ident,
+        .scale = scaleComp ? scaleComp->scale : 1.0f,
+    };
+    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
     diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
@@ -418,10 +427,10 @@ ecs_system_define(VfxSystemUpdateSys) {
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    vfx_system_simulate(state, asset, atlas, time, scale);
+    vfx_system_simulate(state, asset, atlas, time);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output(instance, draw, asset, pos, rot, scale, timeRem);
+      vfx_instance_output(instance, draw, asset, &sysTrans, sysTimeRem);
     }
   }
 }
