@@ -62,6 +62,7 @@ typedef struct {
   AssetVfxRangeScalar   speed;
   u32                   count;
   TimeDuration          interval;
+  AssetVfxRangeScalar   scale;
   AssetVfxRangeDuration lifetime;
   AssetVfxRangeRotation rotation;
 } AssetVfxEmitter;

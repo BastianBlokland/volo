@@ -71,6 +71,7 @@ typedef struct {
   VfxRangeScalarDef   speed;
   u32                 count;
   f32                 interval;
+  VfxRangeScalarDef   scale;
   VfxRangeDurationDef lifetime;
   VfxRangeRotationDef rotation;
 } VfxEmitterDef;
@@ -164,6 +165,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
 
@@ -279,10 +281,14 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->count    = def->count;
   out->interval = (TimeDuration)time_seconds(def->interval);
 
+  out->scale = vfx_build_range_scalar(&def->scale);
+  if (out->scale.max <= 0) {
+    out->scale.min = out->scale.max = 1.0f;
+  }
+
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {
-    out->lifetime.min = vfx_time_max;
-    out->lifetime.max = vfx_time_max;
+    out->lifetime.min = out->lifetime.max = vfx_time_max;
   }
 
   out->rotation = vfx_build_range_rotation(&def->rotation);

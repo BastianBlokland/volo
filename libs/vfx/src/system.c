@@ -22,6 +22,7 @@ typedef struct {
   u8        emitter;
   u16       atlasBaseIndex;
   f32       lifetimeSec, ageSec;
+  f32       scale;
   GeoVector pos;
   GeoQuat   rot;
   GeoVector velo;
@@ -276,6 +277,7 @@ static void vfx_system_spawn(
       .emitter        = emitter,
       .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
       .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
+      .scale          = vfx_sample_range_scalar(&emitterAsset->scale),
       .pos            = geo_vector_add(conePos, vfx_random_in_sphere(coneRadius)),
       .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
       .velo           = geo_vector_mul(dir, speed),
@@ -348,7 +350,7 @@ static void vfx_instance_output(
   const TimeDuration    instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
   const TimeDuration    timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
 
-  f32 scale = sysTrans->scale;
+  f32 scale = sysTrans->scale * instance->scale;
   scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
   scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
 
