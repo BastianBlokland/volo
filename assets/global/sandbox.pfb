@@ -103,7 +103,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
-          "deathDestroyDelay": 0,
+          "deathDestroyDelay": 0.25,
           "deathVfxId": "vfx/sandbox/explosion.vfx"
         },
         {
@@ -189,6 +189,19 @@
         {
           "$type": "AssetPrefabTrait_Vfx",
           "assetId": "vfx/sandbox/fire.vfx"
+        }
+      ]
+    },
+    {
+      "name": "VfxExplosion",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Vfx",
+          "assetId": "vfx/sandbox/explosion.vfx"
+        },
+        {
+          "$type": "AssetPrefabTrait_Lifetime",
+          "duration": 3
         }
       ]
     }
