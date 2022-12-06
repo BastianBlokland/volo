@@ -218,7 +218,6 @@ static EffectResult effect_update_proj(
     // HACK: Using up instead of forward because the joints created by blender use that orientation.
     dir = geo_matrix_transform3(&orgMat, geo_up);
   }
-
   const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
@@ -239,6 +238,7 @@ static EffectResult effect_update_proj(
       .destroyDelay   = def->destroyDelay,
       .impactLifetime = def->impactLifetime,
       .instigator     = ctx->instigator,
+      .seekTarget     = def->seekTowardsTarget ? ctx->attack->targetEntity : 0,
       .impactVfx      = def->vfxImpact);
 
   return EffectResult_Done;

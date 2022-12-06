@@ -18,7 +18,7 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   String originJoint;
-  bool   launchTowardsTarget;
+  bool   launchTowardsTarget, seekTowardsTarget;
   f32    delay, lifetime;
   f32    spreadAngle;
   f32    speed;
@@ -91,6 +91,7 @@ static void weapon_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetWeaponEffectProjDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, lifetime, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
@@ -181,6 +182,7 @@ static void weapon_effect_proj_build(
   *out = (AssetWeaponEffectProj){
       .originJoint         = string_hash(def->originJoint),
       .launchTowardsTarget = def->launchTowardsTarget,
+      .seekTowardsTarget   = def->seekTowardsTarget,
       .delay               = (TimeDuration)time_seconds(def->delay),
       .lifetime            = (TimeDuration)time_seconds(def->lifetime),
       .spreadAngle         = def->spreadAngle,
