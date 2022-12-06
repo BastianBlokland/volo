@@ -1,0 +1,111 @@
+{
+  "emitters": [
+    {
+      "space": "World",
+      "cone": {
+        "angle": 10,
+        "radius": 0.1,
+        "rotation": {
+          "x": -90
+        }
+      },
+      "force": {
+        "y": 1
+      },
+      "sprite": {
+        "atlasEntry": "fire_0",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 0.9
+        },
+        "blend": "Additive",
+        "facing": "BillboardSphere",
+        "flipbookCount": 16,
+        "flipbookTime": 1.5,
+        "size": {
+          "x": 1,
+          "y": 1
+        },
+        "fadeInTime": 0.025,
+        "fadeOutTime": 0.2,
+        "scaleInTime": 0.025,
+        "scaleOutTime": 0.2
+      },
+      "speed": {
+        "min": 15,
+        "max": 20
+      },
+      "scale": {
+        "min": 0.5,
+        "max": 1.5
+      },
+      "count": 40,
+      "interval": 0.0025,
+      "lifetime": {
+        "min": 0.25,
+        "max": 0.3
+      },
+      "rotation": {
+        "random": {
+          "z": 360
+        }
+      }
+    },
+    {
+      "space": "World",
+      "cone": {
+        "angle": 40,
+        "radius": 0.1,
+        "position": {
+          "y": 1
+        },
+        "rotation": {
+          "x": 90
+        }
+      },
+      "force": {
+        "y": -0.8
+      },
+      "sprite": {
+        "atlasEntry": "smoke",
+        "color": {
+          "r": 0.1,
+          "g": 0.1,
+          "b": 0.1,
+          "a": 1.5
+        },
+        "blend": "Alpha",
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 1,
+          "y": 1
+        },
+        "fadeInTime": 0.05,
+        "fadeOutTime": 0.5,
+        "scaleInTime": 0.05
+      },
+      "speed": {
+        "min": 3,
+        "max": 5
+      },
+      "expandForce": 3,
+      "count": 5,
+      "interval": 0.025,
+      "scale": {
+        "min": 0.75,
+        "max": 1.75
+      },
+      "lifetime": {
+        "min": 0.75,
+        "max": 1
+      },
+      "rotation": {
+        "random": {
+          "z": 360
+        }
+      }
+    }
+  ]
+}

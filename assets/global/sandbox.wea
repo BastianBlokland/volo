@@ -101,8 +101,8 @@
     },
     {
       "name": "TurretMissile",
-      "intervalMin": 2.5,
-      "intervalMax": 3.5,
+      "intervalMin": 2,
+      "intervalMax": 2.5,
       "readySpeed": 2,
       "readyMinTime": 5,
       "readyAnim": "aim",
@@ -111,10 +111,10 @@
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
           "seekTowardsTarget": true,
-          "delay": 0.025,
+          "delay": 0.075,
           "lifetime": 7,
-          "spreadAngle": 5,
-          "speed": 15,
+          "spreadAngle": 10,
+          "speed": 20,
           "damage": 250,
           "damageRadius": 3,
           "destroyDelay": 0.5,
@@ -125,8 +125,16 @@
         {
           "$type": "AssetWeaponEffect_Animation",
           "layer": "fire",
-          "delay": 0,
+          "delay": 0.05,
           "speed": 0.75
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "scale": 1,
+          "delay": 0,
+          "duration": 2,
+          "assetId": "vfx/sandbox/launch.vfx"
         }
       ]
     }
