@@ -56,6 +56,8 @@ if(${EXTERNAL_ASSETS})
       turret/turret_nrm.tga
       turret/turret.bin
       turret/turret_big.gltf
+      turret/turret_missile.bin
+      turret/turret_missile.gltf
       vfx/flash.tga
       vfx/flash_star.tga
       vfx/trail.tga
