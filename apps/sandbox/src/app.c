@@ -101,7 +101,7 @@ static void app_scene_create_units(EcsWorld* world) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
-            .prefabId = string_hash_lit("Turret"),
+            .prefabId = string_hash_lit("TurretGun"),
             .faction  = SceneFaction_A,
             .position = *turretLoc,
             .rotation = geo_quat_forward_to_left,
