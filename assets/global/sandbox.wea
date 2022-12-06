@@ -111,11 +111,11 @@
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
           "delay": 0.025,
-          "lifetime": 5,
+          "lifetime": 7,
           "spreadAngle": 2,
           "speed": 15,
           "damage": 250,
-          "destroyDelay": 0.05,
+          "destroyDelay": 1,
           "impactLifetime": 1,
           "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",
           "vfxIdImpact": "vfx/sandbox/impact.vfx"
