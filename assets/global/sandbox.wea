@@ -103,8 +103,8 @@
       "name": "TurretMissile",
       "intervalMin": 5,
       "intervalMax": 5,
-      "readySpeed": 2.5,
-      "readyMinTime": 3,
+      "readySpeed": 2,
+      "readyMinTime": 5,
       "readyAnim": "aim",
       "effects": [
         {
@@ -113,13 +113,13 @@
           "seekTowardsTarget": true,
           "delay": 0.025,
           "lifetime": 7,
-          "spreadAngle": 2,
+          "spreadAngle": 5,
           "speed": 15,
           "damage": 250,
           "destroyDelay": 1,
-          "impactLifetime": 1,
+          "impactLifetime": 3,
           "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",
-          "vfxIdImpact": "vfx/sandbox/impact.vfx"
+          "vfxIdImpact": "vfx/sandbox/explosion.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
