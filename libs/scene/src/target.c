@@ -86,11 +86,10 @@ static GeoVector target_position_center(const SceneTransformComp* trans) {
 typedef struct {
   bool hasLos;
   f32  distance;
-} TargetLosInfo;
+} TargetLineOfSightInfo;
 
-static TargetLosInfo target_los_query(
+static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
-    const SceneTargetFinderComp* finder,
     const SceneTransformComp*    finderTrans,
     const f32                    radius,
     EcsIterator*                 targetItr) {
@@ -99,11 +98,11 @@ static TargetLosInfo target_los_query(
   const GeoVector           targetPos   = target_position_center(targetTrans);
   const GeoVector           toTarget    = geo_vector_sub(targetPos, sourcePos);
   const f32                 dist        = geo_vector_mag(toTarget);
-  if (dist <= target_los_dist_min || (finder->flags & SceneTarget_ConfigAlwaysLineOfSight)) {
-    return (TargetLosInfo){.hasLos = true, .distance = dist};
+  if (dist <= target_los_dist_min || radius <= f32_epsilon) {
+    return (TargetLineOfSightInfo){.hasLos = true, .distance = dist};
   }
   if (dist > target_los_dist_max) {
-    return (TargetLosInfo){.hasLos = false, .distance = dist};
+    return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
   }
 
   const SceneLayer       targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
@@ -113,14 +112,14 @@ static TargetLosInfo target_los_query(
   SceneRayHit hit;
   if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
     const bool hasLos = (hit.layer & targetLayer) != 0;
-    return (TargetLosInfo){
+    return (TargetLineOfSightInfo){
         .hasLos   = hasLos,
         .distance = hasLos ? hit.time : dist,
     };
   }
 
   // Target not found in the collision query, can happen if its collider hasn't been registered yet.
-  return (TargetLosInfo){.hasLos = false, .distance = dist};
+  return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
 }
 
 static bool
@@ -294,8 +293,8 @@ ecs_system_define(SceneTargetUpdateSys) {
     if (ecs_view_contains(targetView, primaryTarget)) {
       ecs_view_jump(targetItr, primaryTarget);
 
-      const f32           losRadius = finder->lineOfSightRadius;
-      const TargetLosInfo losInfo   = target_los_query(colEnv, finder, trans, losRadius, targetItr);
+      const f32                   losRadius = finder->lineOfSightRadius;
+      const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, trans, losRadius, targetItr);
 
       if (losInfo.hasLos) {
         finder->flags |= SceneTarget_LineOfSight;

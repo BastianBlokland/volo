@@ -80,7 +80,6 @@ typedef struct {
   f32    aimSpeed; // Degrees per second.
   f32    targetDistanceMin, targetDistanceMax;
   f32    targetLineOfSightRadius;
-  bool   targetAlwaysLineOfSight;
   bool   targetExcludeUnreachable;
   bool   targetExcludeObscured;
 } AssetPrefabTraitAttackDef;
@@ -197,8 +196,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetDistanceMin, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetDistanceMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetAlwaysLineOfSight, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeObscured, data_prim_t(bool), .flags = DataFlags_Opt);
 
@@ -391,7 +389,6 @@ static void prefab_build(
           .targetDistanceMin        = traitDef->data_attack.targetDistanceMin,
           .targetDistanceMax        = traitDef->data_attack.targetDistanceMax,
           .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
-          .targetAlwaysLineOfSight  = traitDef->data_attack.targetAlwaysLineOfSight,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,
       };

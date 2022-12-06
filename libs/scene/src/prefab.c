@@ -173,9 +173,6 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         .aimRotLocal = geo_quat_ident);
   }
   SceneTargetFlags flags = 0;
-  if (t->targetAlwaysLineOfSight) {
-    flags |= SceneTarget_ConfigAlwaysLineOfSight;
-  }
   if (t->targetExcludeUnreachable) {
     flags |= SceneTarget_ConfigExcludeUnreachable;
   }

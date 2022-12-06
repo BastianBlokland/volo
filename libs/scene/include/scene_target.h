@@ -9,10 +9,9 @@
 typedef enum {
   SceneTarget_ConfigExcludeUnreachable = 1 << 0,
   SceneTarget_ConfigExcludeObscured    = 1 << 1,
-  SceneTarget_ConfigAlwaysLineOfSight  = 1 << 2, // Skip the target los test.
-  SceneTarget_ConfigTrace              = 1 << 3, // Enable diagnostic tracing.
-  SceneTarget_LineOfSight              = 1 << 4, // Set while we have los to target.
-  SceneTarget_Overriden                = 1 << 5, // Set while we use an overriden target.
+  SceneTarget_ConfigTrace              = 1 << 2, // Enable diagnostic tracing.
+  SceneTarget_LineOfSight              = 1 << 3, // Set while we have los to target.
+  SceneTarget_Overriden                = 1 << 4, // Set while we use an overriden target.
 } SceneTargetFlags;
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
