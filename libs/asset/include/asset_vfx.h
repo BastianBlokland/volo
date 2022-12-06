@@ -66,6 +66,7 @@ typedef struct {
   AssetVfxSpace         space;
   AssetVfxSprite        sprite;
   AssetVfxRangeScalar   speed;
+  f32                   expandForce;
   u32                   count;
   TimeDuration          interval;
   AssetVfxRangeScalar   scale;

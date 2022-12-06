@@ -6,6 +6,7 @@
 ecs_comp_extern_public(SceneProjectileComp) {
   f32          speed;
   f32          damage;
+  TimeDuration destroyDelay;
   TimeDuration impactLifetime;
   EcsEntityId  instigator;
   EcsEntityId  impactVfx;

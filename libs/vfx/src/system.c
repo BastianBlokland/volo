@@ -341,9 +341,11 @@ static void vfx_system_simulate(
     // Apply force.
     instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
+    // Apply expanding.
+    instance->scale += emitterAsset->expandForce * deltaSec;
+
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->velo, deltaSec);
-    instance->pos            = geo_vector_add(instance->pos, posDelta);
+    instance->pos = geo_vector_add(instance->pos, geo_vector_mul(instance->velo, deltaSec));
 
     // Update age and destruct if too old.
     if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
@@ -392,7 +394,9 @@ static void vfx_instance_output(
 
   const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
-  diag_assert(flipbookIndex < sprite->flipbookCount);
+  if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
+    return; // NOTE: This can happen momentarily when hot-loading vfx.
+  }
 
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);

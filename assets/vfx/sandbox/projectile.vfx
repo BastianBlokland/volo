@@ -3,7 +3,7 @@
     {
       "cone": {
         "position": {
-          "z": -1.5
+          "z": -1.7
         }
       },
       "sprite": {
@@ -11,10 +11,10 @@
         "blend": "Additive",
         "size": {
           "x": 3.5,
-          "y": 0.1
+          "y": 0.08
         },
-        "fadeInTime": 0,
-        "fadeOutTime": 0.1,
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.05,
         "scaleInTime": 0.05
       },
       "rotation": {
@@ -26,7 +26,7 @@
     {
       "cone": {
         "position": {
-          "z": -1.5
+          "z": -1.7
         }
       },
       "sprite": {
@@ -34,10 +34,10 @@
         "blend": "Additive",
         "size": {
           "x": 3.5,
-          "y": 0.1
+          "y": 0.08
         },
-        "fadeInTime": 0,
-        "fadeOutTime": 0.1,
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.05,
         "scaleInTime": 0.05
       },
       "rotation": {
