@@ -446,9 +446,11 @@ ecs_system_define(SceneAttackSys) {
 
     // Potentially start a new attack.
     if (hasTarget) {
-      const f32          distEst       = aim_target_estimate_distance(trans->position, targetItr);
-      const TimeDuration impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
-
+      const f32    distEst       = aim_target_estimate_distance(trans->position, targetItr);
+      TimeDuration impactTimeEst = 0;
+      if (weapon->flags & AssetWeapon_PredictiveAim) {
+        impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
+      }
       const GeoVector targetPos = aim_target_position(targetItr, impactTimeEst);
       aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSeconds);
 
