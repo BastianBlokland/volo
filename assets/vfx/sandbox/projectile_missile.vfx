@@ -12,8 +12,8 @@
         "blend": "AdditiveDouble",
         "facing": "BillboardSphere",
         "size": {
-          "x": 0.75,
-          "y": 0.75
+          "x": 0.85,
+          "y": 0.85
         },
         "fadeInTime": 0.025,
         "scaleInTime": 0.05,
@@ -47,22 +47,22 @@
           "y": 0.35
         },
         "fadeInTime": 0.01,
-        "fadeOutTime": 0.5,
+        "fadeOutTime": 0.8,
         "scaleInTime": 0.02
       },
       "speed": {
         "min": 3,
         "max": 5
       },
-      "expandForce": 5,
+      "expandForce": 3,
       "interval": 0.006,
       "scale": {
         "min": 0.75,
         "max": 1.25
       },
       "lifetime": {
-        "min": 0.6,
-        "max": 0.8
+        "min": 0.8,
+        "max": 1.25
       },
       "rotation": {
         "random": {
