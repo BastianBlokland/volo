@@ -192,6 +192,7 @@ bool geo_quat_towards(GeoQuat* q, const GeoQuat target, const f32 maxAngle) {
   GeoQuat    rotDelta = geo_quat_from_to(*q, target);
   const bool clamped  = geo_quat_clamp(&rotDelta, maxAngle);
   *q                  = geo_quat_mul(*q, rotDelta);
+  *q                  = geo_quat_norm(*q);
   return !clamped;
 }
 
