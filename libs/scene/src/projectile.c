@@ -10,7 +10,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
-#define projectile_seek_angle_max (50.0f * math_deg_to_rad)
+#define projectile_seek_angle_max (55.0f * math_deg_to_rad)
 
 ecs_comp_define_public(SceneProjectileComp);
 
@@ -97,6 +97,27 @@ static void projectile_impact_spawn(
   ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx);
 }
 
+static void projectile_hit(
+    EcsWorld*                  world,
+    const EcsEntityId          projEntity,
+    const SceneProjectileComp* proj,
+    SceneTransformComp*        projTrans,
+    const GeoVector            hitPos,
+    const GeoVector            hitNormal,
+    const EcsEntityId          hitEntity) {
+  ecs_world_remove_t(world, projEntity, SceneProjectileComp);
+  ecs_world_add_t(world, projEntity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
+  projTrans->position = hitPos;
+
+  if (proj->impactVfx) {
+    projectile_impact_spawn(world, proj, hitPos, hitNormal);
+  }
+  const bool hitEntityExists = hitEntity && ecs_world_exists(world, hitEntity);
+  if (hitEntityExists && ecs_world_has_t(world, hitEntity, SceneHealthComp)) {
+    scene_health_damage(world, hitEntity, proj->damage);
+  }
+}
+
 ecs_system_define(SceneProjectileSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -133,17 +154,16 @@ ecs_system_define(SceneProjectileSys) {
 
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, deltaDist, &filter, &hit)) {
-      ecs_world_remove_t(world, entity, SceneProjectileComp);
-      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
-      trans->position = hit.position;
+      projectile_hit(world, entity, proj, trans, hit.position, hit.normal, hit.entity);
+      continue;
+    }
 
-      if (proj->impactVfx) {
-        projectile_impact_spawn(world, proj, hit.position, hit.normal);
-      }
-      const bool hitEntityExists = ecs_world_exists(world, hit.entity);
-      if (hitEntityExists && ecs_world_has_t(world, hit.entity, SceneHealthComp)) {
-        scene_health_damage(world, hit.entity, proj->damage);
-      }
+    const GeoPlane groundPlane = {.normal = geo_up};
+    const f32      groundHitT  = geo_plane_intersect_ray(&groundPlane, &ray);
+    if (groundHitT >= 0 && groundHitT <= deltaDist) {
+      const EcsEntityId hitEntity = 0;
+      const GeoVector   hitPos    = geo_ray_position(&ray, groundHitT);
+      projectile_hit(world, entity, proj, trans, hitPos, groundPlane.normal, hitEntity);
       continue;
     }
 
