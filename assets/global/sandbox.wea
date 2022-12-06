@@ -7,6 +7,7 @@
       "readySpeed": 2.5,
       "readyMinTime": 3,
       "readyAnim": "aim",
+      "predictiveAim": true,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
@@ -65,6 +66,7 @@
       "readySpeed": 2.5,
       "readyMinTime": 3,
       "readyAnim": "aim",
+      "predictiveAim": true,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
