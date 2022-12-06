@@ -86,7 +86,7 @@ typedef struct {
   StringHash weapon;
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
-  f32        targetDistanceMax;
+  f32        targetDistanceMin, targetDistanceMax;
   f32        targetLineOfSightRadius;
   bool       targetAlwaysLineOfSight;
   bool       targetExcludeUnreachable;

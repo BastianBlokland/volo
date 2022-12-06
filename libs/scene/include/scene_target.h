@@ -17,7 +17,7 @@ typedef enum {
 
 ecs_comp_extern_public(SceneTargetFinderComp) {
   SceneTargetFlags flags;
-  f32              distanceMax;
+  f32              distanceMin, distanceMax;
   f32              lineOfSightRadius;
   f32              targetDistance;
   TimeDuration     nextRefreshTime;

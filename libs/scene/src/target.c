@@ -162,6 +162,9 @@ static f32 target_score(
   const GeoVector           targetPosCenter = target_position_center(targetTrans);
   const GeoVector           toTarget        = geo_vector_sub(targetPosCenter, finderPosCenter);
   const f32                 distSqr         = geo_vector_mag_sqr(toTarget);
+  if (distSqr < (finder->distanceMin * finder->distanceMin)) {
+    return 0.0f; // Target too close.
+  }
   if (distSqr > (finder->distanceMax * finder->distanceMax)) {
     return 0.0f; // Target too far away.
   }
