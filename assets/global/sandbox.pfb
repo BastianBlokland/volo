@@ -111,7 +111,7 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "targetDistanceMax": 50,
+          "targetDistanceMax": 40,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -151,9 +151,8 @@
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
           "aimSpeed": 100,
-          "targetDistanceMax": 50,
-          "targetLineOfSightRadius": 0.5,
-          "targetAlwaysLineOfSight": true
+          "targetDistanceMin": 25,
+          "targetDistanceMax": 60
         },
         {
           "$type": "AssetPrefabTrait_Collision",
