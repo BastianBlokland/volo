@@ -92,16 +92,31 @@ static void app_scene_create_units(EcsWorld* world) {
           .rotation = geo_quat_ident,
       });
 
-  static const GeoVector g_turretLocations[] = {
+  static const GeoVector g_turretGunLocations[] = {
       {30, 0, -15},
       {30, 0, 0},
       {30, 0, 15},
   };
-  array_for_t(g_turretLocations, GeoVector, turretLoc) {
+  array_for_t(g_turretGunLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
-            .prefabId = string_hash_lit("Turret"),
+            .prefabId = string_hash_lit("TurretGun"),
+            .faction  = SceneFaction_A,
+            .position = *turretLoc,
+            .rotation = geo_quat_forward_to_left,
+        });
+  }
+
+  static const GeoVector g_turretMissileLocations[] = {
+      {40, 0, -10},
+      {40, 0, 10},
+  };
+  array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
+    scene_prefab_spawn(
+        world,
+        &(ScenePrefabSpec){
+            .prefabId = string_hash_lit("TurretMissile"),
             .faction  = SceneFaction_A,
             .position = *turretLoc,
             .rotation = geo_quat_forward_to_left,

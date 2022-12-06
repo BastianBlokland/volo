@@ -442,13 +442,6 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const VfxTrans sysTrans = {
-        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
-        .rot   = LIKELY(trans) ? trans->rotation : geo_quat_ident,
-        .scale = scaleComp ? scaleComp->scale : 1.0f,
-    };
-    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
-
     diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
       if (vfx->asset && ++numAssetRequests < vfx_max_asset_requests) {
@@ -457,6 +450,17 @@ ecs_system_define(VfxSystemUpdateSys) {
       continue;
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
+
+    VfxTrans sysTrans = {
+        .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
+        .rot   = geo_quat_ident,
+        .scale = scaleComp ? scaleComp->scale : 1.0f,
+    };
+    if (!(asset->flags & AssetVfx_IgnoreTransformRotation)) {
+      sysTrans.rot = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+    }
+
+    const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
     vfx_system_simulate(state, asset, atlas, time, &sysTrans);
 

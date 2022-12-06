@@ -210,8 +210,15 @@ static EffectResult effect_update_proj(
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
   const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
-  const GeoVector dir    = geo_vector_norm(geo_vector_sub(ctx->attack->targetPos, orgPos));
-  const GeoQuat   rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
+
+  GeoVector dir;
+  if (def->launchTowardsTarget) {
+    dir = geo_vector_norm(geo_vector_sub(ctx->attack->targetPos, orgPos));
+  } else {
+    // HACK: Using up instead of forward because the joints created by blender use that orientation.
+    dir = geo_matrix_transform3(&orgMat, geo_up);
+  }
+  const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   if (def->vfxProjectile) {
@@ -222,16 +229,25 @@ static EffectResult effect_update_proj(
   }
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = orgPos, .rotation = rot);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->lifetime);
+
+  SceneProjectileFlags projectileFlags = 0;
+  if (def->seekTowardsTarget) {
+    projectileFlags |= SceneProjectile_Seek;
+  }
   ecs_world_add_t(
       ctx->world,
       e,
       SceneProjectileComp,
+      .flags          = projectileFlags,
       .speed          = def->speed,
       .damage         = def->damage,
+      .damageRadius   = def->damageRadius,
       .destroyDelay   = def->destroyDelay,
       .impactLifetime = def->impactLifetime,
       .instigator     = ctx->instigator,
-      .impactVfx      = def->vfxImpact);
+      .impactVfx      = def->vfxImpact,
+      .seekEntity     = ctx->attack->targetEntity,
+      .seekPos        = ctx->attack->targetPos);
 
   return EffectResult_Done;
 }
@@ -446,9 +462,11 @@ ecs_system_define(SceneAttackSys) {
 
     // Potentially start a new attack.
     if (hasTarget) {
-      const f32          distEst       = aim_target_estimate_distance(trans->position, targetItr);
-      const TimeDuration impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
-
+      const f32    distEst       = aim_target_estimate_distance(trans->position, targetItr);
+      TimeDuration impactTimeEst = 0;
+      if (weapon->flags & AssetWeapon_PredictiveAim) {
+        impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
+      }
       const GeoVector targetPos = aim_target_position(targetItr, impactTimeEst);
       aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSeconds);
 

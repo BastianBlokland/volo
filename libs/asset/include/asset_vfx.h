@@ -74,7 +74,12 @@ typedef struct {
   AssetVfxRangeRotation rotation;
 } AssetVfxEmitter;
 
+typedef enum {
+  AssetVfx_IgnoreTransformRotation = 1 << 0,
+} AssetVfxFlags;
+
 ecs_comp_extern_public(AssetVfxComp) {
+  AssetVfxFlags   flags;
   u32             emitterCount;
   AssetVfxEmitter emitters[asset_vfx_max_emitters];
 };

@@ -7,10 +7,12 @@
       "readySpeed": 2.5,
       "readyMinTime": 3,
       "readyAnim": "aim",
+      "predictiveAim": true,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
+          "launchTowardsTarget": true,
           "delay": 0.035,
           "lifetime": 2,
           "spreadAngle": 1,
@@ -65,10 +67,12 @@
       "readySpeed": 2.5,
       "readyMinTime": 3,
       "readyAnim": "aim",
+      "predictiveAim": true,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
+          "launchTowardsTarget": true,
           "delay": 0.025,
           "lifetime": 1.5,
           "spreadAngle": 0.5,
@@ -92,6 +96,45 @@
           "delay": 0,
           "duration": 0.5,
           "assetId": "vfx/sandbox/muzzleflash.vfx"
+        }
+      ]
+    },
+    {
+      "name": "TurretMissile",
+      "intervalMin": 2,
+      "intervalMax": 2.5,
+      "readySpeed": 2,
+      "readyMinTime": 5,
+      "readyAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "seekTowardsTarget": true,
+          "delay": 0.075,
+          "lifetime": 7,
+          "spreadAngle": 10,
+          "speed": 20,
+          "damage": 250,
+          "damageRadius": 3,
+          "destroyDelay": 0.5,
+          "impactLifetime": 3,
+          "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",
+          "vfxIdImpact": "vfx/sandbox/explosion.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0,
+          "speed": 0.5
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "scale": 1,
+          "delay": 0,
+          "duration": 2,
+          "assetId": "vfx/sandbox/launch.vfx"
         }
       ]
     }

@@ -93,12 +93,12 @@
       ]
     },
     {
-      "name": "Turret",
+      "name": "TurretGun",
       "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/turret.gra"
+          "graphicId": "graphics/sandbox/turret_gun.gra"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -111,9 +111,48 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
-          "targetDistanceMax": 50,
+          "targetDistanceMax": 40,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Sphere",
+            "offset": {
+              "y": 0.7
+            },
+            "radius": 0.95
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Brain",
+          "behaviorId": "behaviors/unit-turret.bt"
+        }
+      ]
+    },
+    {
+      "name": "TurretMissile",
+      "isUnit": true,
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/turret_missile.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 500,
+          "deathDestroyDelay": 0.25,
+          "deathVfxId": "vfx/sandbox/explosion.vfx"
+        },
+        {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "TurretMissile",
+          "aimJoint": "turret",
+          "aimSpeed": 90,
+          "targetDistanceMin": 30,
+          "targetDistanceMax": 75
         },
         {
           "$type": "AssetPrefabTrait_Collision",

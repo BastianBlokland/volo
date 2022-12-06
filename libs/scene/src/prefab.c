@@ -184,6 +184,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       e,
       SceneTargetFinderComp,
       .flags             = flags,
+      .distanceMin       = t->targetDistanceMin,
       .distanceMax       = t->targetDistanceMax,
       .lineOfSightRadius = t->targetLineOfSightRadius);
 }

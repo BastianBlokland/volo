@@ -18,10 +18,11 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   String originJoint;
+  bool   launchTowardsTarget, seekTowardsTarget;
   f32    delay, lifetime;
   f32    spreadAngle;
   f32    speed;
-  f32    damage;
+  f32    damage, damageRadius;
   f32    destroyDelay, impactLifetime;
   String vfxIdProjectile, vfxIdImpact;
 } AssetWeaponEffectProjDef;
@@ -63,6 +64,7 @@ typedef struct {
   f32    readySpeed;
   f32    readyMinTime;
   String readyAnim;
+  bool   predictiveAim;
   struct {
     AssetWeaponEffectDef* values;
     usize                 count;
@@ -88,11 +90,14 @@ static void weapon_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, AssetWeaponEffectProjDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, lifetime, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, impactLifetime, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -130,6 +135,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponDef, readySpeed, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_Array);
 
     data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
@@ -175,16 +181,19 @@ static void weapon_effect_proj_build(
     AssetWeaponEffectProj*          out,
     WeaponError*                    err) {
   *out = (AssetWeaponEffectProj){
-      .originJoint    = string_hash(def->originJoint),
-      .delay          = (TimeDuration)time_seconds(def->delay),
-      .lifetime       = (TimeDuration)time_seconds(def->lifetime),
-      .spreadAngle    = def->spreadAngle,
-      .speed          = def->speed,
-      .damage         = def->damage,
-      .destroyDelay   = (TimeDuration)time_seconds(def->destroyDelay),
-      .impactLifetime = (TimeDuration)time_seconds(def->impactLifetime),
-      .vfxProjectile  = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
-      .vfxImpact      = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
+      .originJoint         = string_hash(def->originJoint),
+      .launchTowardsTarget = def->launchTowardsTarget,
+      .seekTowardsTarget   = def->seekTowardsTarget,
+      .delay               = (TimeDuration)time_seconds(def->delay),
+      .lifetime            = (TimeDuration)time_seconds(def->lifetime),
+      .spreadAngle         = def->spreadAngle,
+      .speed               = def->speed,
+      .damage              = def->damage,
+      .damageRadius        = def->damageRadius,
+      .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
+      .impactLifetime      = (TimeDuration)time_seconds(def->impactLifetime),
+      .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
+      .vfxImpact           = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
   };
   *err = WeaponError_None;
 }
@@ -247,9 +256,15 @@ static void weapon_build(
     AssetWeapon*          outWeapon,
     WeaponError*          err) {
 
+  AssetWeaponFlags flags = 0;
+  if (def->predictiveAim) {
+    flags |= AssetWeapon_PredictiveAim;
+  }
+
   *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
       .nameHash     = stringtable_add(g_stringtable, def->name),
+      .flags        = flags,
       .intervalMin  = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax  = (TimeDuration)time_seconds(def->intervalMax),
       .readySpeed   = def->readySpeed,
