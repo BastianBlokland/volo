@@ -191,8 +191,12 @@ static f32 target_score(
   return score;
 }
 
-static void target_queue_set(SceneTargetFinderComp* finder, const EcsEntityId target) {
+static void target_queue_clear(SceneTargetFinderComp* finder) {
   mem_set(array_mem(finder->targetQueue), 0);
+}
+
+static void target_queue_set(SceneTargetFinderComp* finder, const EcsEntityId target) {
+  target_queue_clear(finder);
   finder->targetQueue[0] = target;
 }
 
@@ -258,6 +262,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = scene_target_primary(finder);
 
+      target_queue_clear(finder);
       f32 scores[scene_target_queue_size] = {0};
       for (ecs_view_itr_reset(targetItr); ecs_view_walk(targetItr);) {
         const EcsEntityId targetEntity = ecs_view_entity(targetItr);
