@@ -10,7 +10,8 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
-#define projectile_seek_angle_max (45.0f * math_deg_to_rad)
+#define proj_seek_angle_max (210.0f * math_deg_to_rad)
+#define proj_seek_buildup_time time_milliseconds(750)
 
 ecs_comp_define_public(SceneProjectileComp);
 
@@ -35,16 +36,21 @@ static GeoVector seek_target_position(EcsIterator* entityItr) {
   return geo_vector_add(trans->position, targetAimOffset);
 }
 
-static void seek_apply(SceneTransformComp* trans, EcsIterator* seekTargetItr, const f32 deltaSec) {
+static void seek_apply(
+    const SceneProjectileComp* proj,
+    SceneTransformComp*        projTrans,
+    EcsIterator*               seekTargetItr,
+    const f32                  deltaSec) {
   const GeoVector seekPos   = seek_target_position(seekTargetItr);
-  const GeoVector seekDelta = geo_vector_sub(seekPos, trans->position);
+  const GeoVector seekDelta = geo_vector_sub(seekPos, projTrans->position);
   const f32       seekDist  = geo_vector_mag(seekDelta);
   if (seekDist <= f32_epsilon) {
     return;
   }
-  const GeoVector seekDir = geo_vector_div(seekDelta, seekDist);
-  const GeoQuat   seekRot = geo_quat_look(seekDir, geo_up);
-  geo_quat_towards(&trans->rotation, seekRot, projectile_seek_angle_max * deltaSec);
+  const GeoVector seekDir      = geo_vector_div(seekDelta, seekDist);
+  const GeoQuat   seekRot      = geo_quat_look(seekDir, geo_up);
+  const f32       seekStrength = math_min(1.0f, proj->age / (f32)proj_seek_buildup_time);
+  geo_quat_towards(&projTrans->rotation, seekRot, seekStrength * proj_seek_angle_max * deltaSec);
 }
 
 typedef struct {
@@ -146,9 +152,9 @@ ecs_system_define(SceneProjectileSys) {
   if (!globalItr) {
     return;
   }
-  const SceneCollisionEnvComp* colEnv       = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32                    deltaSeconds = scene_delta_seconds(time);
+  const SceneCollisionEnvComp* colEnv   = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTimeComp*         time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32                    deltaSec = scene_delta_seconds(time);
 
   EcsIterator* seekTargetItr = ecs_view_itr(ecs_world_view_t(world, SeekTargetView));
 
@@ -159,21 +165,25 @@ ecs_system_define(SceneProjectileSys) {
     SceneTransformComp*     trans   = ecs_view_write_t(itr, SceneTransformComp);
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
 
+    // Update age.
+    proj->age += time->delta;
+
+    // Optionally seek towards target.
     if (ecs_view_maybe_jump(seekTargetItr, proj->seekTarget)) {
-      seek_apply(trans, seekTargetItr, deltaSeconds);
+      seek_apply(proj, trans, seekTargetItr, deltaSec);
     }
 
-    const GeoVector dir       = geo_quat_rotate(trans->rotation, geo_forward);
-    const f32       deltaDist = proj->speed * deltaSeconds;
-    const GeoRay    ray       = {.point = trans->position, .dir = dir};
-
+    const GeoVector        dir       = geo_quat_rotate(trans->rotation, geo_forward);
+    const f32              deltaDist = proj->speed * deltaSec;
+    const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
+    // Test collisions with other entities.
     SceneRayHit hit;
     if (scene_query_ray(colEnv, &ray, deltaDist, &filter, &hit)) {
       trans->position = hit.position;
@@ -181,6 +191,7 @@ ecs_system_define(SceneProjectileSys) {
       continue;
     }
 
+    // Test collision with the ground.
     const GeoPlane groundPlane = {.normal = geo_up};
     const f32      groundHitT  = geo_plane_intersect_ray(&groundPlane, &ray);
     if (groundHitT >= 0 && groundHitT <= deltaDist) {
@@ -191,6 +202,7 @@ ecs_system_define(SceneProjectileSys) {
       continue;
     }
 
+    // Update position.
     const GeoVector deltaPos = geo_vector_mul(dir, deltaDist);
     trans->position          = geo_vector_add(trans->position, deltaPos);
   }
