@@ -12,6 +12,7 @@
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
+          "launchTowardsTarget": true,
           "delay": 0.035,
           "lifetime": 2,
           "spreadAngle": 1,
@@ -71,6 +72,7 @@
         {
           "$type": "AssetWeaponEffect_Projectile",
           "originJoint": "muzzle",
+          "launchTowardsTarget": true,
           "delay": 0.025,
           "lifetime": 1.5,
           "spreadAngle": 0.5,

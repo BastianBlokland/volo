@@ -210,8 +210,16 @@ static EffectResult effect_update_proj(
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
   const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
-  const GeoVector dir    = geo_vector_norm(geo_vector_sub(ctx->attack->targetPos, orgPos));
-  const GeoQuat   rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
+
+  GeoVector dir;
+  if (def->launchTowardsTarget) {
+    dir = geo_vector_norm(geo_vector_sub(ctx->attack->targetPos, orgPos));
+  } else {
+    // HACK: Using up instead of forward because the joints created by blender use that orientation.
+    dir = geo_matrix_transform3(&orgMat, geo_up);
+  }
+
+  const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   if (def->vfxProjectile) {

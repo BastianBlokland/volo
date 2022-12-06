@@ -18,6 +18,7 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   String originJoint;
+  bool   launchTowardsTarget;
   f32    delay, lifetime;
   f32    spreadAngle;
   f32    speed;
@@ -89,6 +90,7 @@ static void weapon_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, AssetWeaponEffectProjDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, lifetime, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
@@ -177,16 +179,17 @@ static void weapon_effect_proj_build(
     AssetWeaponEffectProj*          out,
     WeaponError*                    err) {
   *out = (AssetWeaponEffectProj){
-      .originJoint    = string_hash(def->originJoint),
-      .delay          = (TimeDuration)time_seconds(def->delay),
-      .lifetime       = (TimeDuration)time_seconds(def->lifetime),
-      .spreadAngle    = def->spreadAngle,
-      .speed          = def->speed,
-      .damage         = def->damage,
-      .destroyDelay   = (TimeDuration)time_seconds(def->destroyDelay),
-      .impactLifetime = (TimeDuration)time_seconds(def->impactLifetime),
-      .vfxProjectile  = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
-      .vfxImpact      = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
+      .originJoint         = string_hash(def->originJoint),
+      .launchTowardsTarget = def->launchTowardsTarget,
+      .delay               = (TimeDuration)time_seconds(def->delay),
+      .lifetime            = (TimeDuration)time_seconds(def->lifetime),
+      .spreadAngle         = def->spreadAngle,
+      .speed               = def->speed,
+      .damage              = def->damage,
+      .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
+      .impactLifetime      = (TimeDuration)time_seconds(def->impactLifetime),
+      .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
+      .vfxImpact           = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
   };
   *err = WeaponError_None;
 }
