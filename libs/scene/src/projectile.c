@@ -103,7 +103,7 @@ ecs_system_define(SceneProjectileSys) {
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, deltaDist, &filter, &hit)) {
       ecs_world_remove_t(world, entity, SceneProjectileComp);
-      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(150));
+      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(50));
       trans->position = hit.position;
 
       if (projectile->impactVfx) {
