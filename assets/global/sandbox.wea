@@ -94,6 +94,35 @@
           "assetId": "vfx/sandbox/muzzleflash.vfx"
         }
       ]
+    },
+    {
+      "name": "TurretMissile",
+      "intervalMin": 5,
+      "intervalMax": 5,
+      "readySpeed": 2.5,
+      "readyMinTime": 3,
+      "readyAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "delay": 0.025,
+          "lifetime": 5,
+          "spreadAngle": 2,
+          "speed": 15,
+          "damage": 250,
+          "destroyDelay": 0.05,
+          "impactLifetime": 1,
+          "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",
+          "vfxIdImpact": "vfx/sandbox/impact.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0,
+          "speed": 0.75
+        }
+      ]
     }
   ]
 }
