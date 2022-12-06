@@ -1,4 +1,5 @@
 {
+  "ignoreTransformRotation": true,
   "emitters": [
     {
       "space": "World",
