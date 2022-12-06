@@ -392,7 +392,9 @@ static void vfx_instance_output(
 
   const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
-  diag_assert(flipbookIndex < sprite->flipbookCount);
+  if (UNLIKELY(flipbookIndex >= sprite->flipbookCount)) {
+    return; // NOTE: This can happen momentarily when hot-loading vfx.
+  }
 
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
