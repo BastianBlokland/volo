@@ -27,7 +27,7 @@
         {
           "$type": "AssetAiNode_Condition",
           "$name": "Find target",
-          "script": "$target_los && distance($target_position, $self_position) < 50;"
+          "script": "$target_los"
         },
         {
           "$type": "AssetAiNode_Execute",
