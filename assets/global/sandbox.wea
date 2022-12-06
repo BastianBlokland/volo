@@ -101,8 +101,8 @@
     },
     {
       "name": "TurretMissile",
-      "intervalMin": 5,
-      "intervalMax": 5,
+      "intervalMin": 2,
+      "intervalMax": 3,
       "readySpeed": 2,
       "readyMinTime": 5,
       "readyAnim": "aim",
@@ -116,6 +116,7 @@
           "spreadAngle": 5,
           "speed": 15,
           "damage": 250,
+          "damageRadius": 4,
           "destroyDelay": 1,
           "impactLifetime": 3,
           "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",

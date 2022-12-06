@@ -151,7 +151,7 @@
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
           "aimSpeed": 100,
-          "targetDistanceMin": 25,
+          "targetDistanceMin": 15,
           "targetDistanceMax": 60
         },
         {
