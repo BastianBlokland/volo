@@ -10,7 +10,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
-#define projectile_seek_angle_max (55.0f * math_deg_to_rad)
+#define projectile_seek_angle_max (45.0f * math_deg_to_rad)
 
 ecs_comp_define_public(SceneProjectileComp);
 
