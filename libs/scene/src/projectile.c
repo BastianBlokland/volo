@@ -26,7 +26,10 @@ ecs_view_define(ProjectileView) {
   ecs_access_write(SceneTransformComp);
 }
 
-ecs_view_define(SeekTargetView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(SeekTargetView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_with(SceneCollisionComp);
+}
 
 static GeoVector seek_target_position(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
