@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
@@ -8,6 +9,8 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+
+#define projectile_seek_angle_max (50.0f * math_deg_to_rad)
 
 ecs_comp_define_public(SceneProjectileComp);
 
@@ -20,6 +23,28 @@ ecs_view_define(ProjectileView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_write(SceneProjectileComp);
   ecs_access_write(SceneTransformComp);
+}
+
+ecs_view_define(SeekTargetView) { ecs_access_read(SceneTransformComp); }
+
+static GeoVector seek_target_position(EcsIterator* entityItr) {
+  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+
+  // TODO: Target offset should either be based on target collision bounds or be configurable.
+  const GeoVector targetAimOffset = geo_vector(0, 1.0f, 0);
+  return geo_vector_add(trans->position, targetAimOffset);
+}
+
+static void seek_apply(SceneTransformComp* trans, EcsIterator* seekTargetItr, const f32 deltaSec) {
+  const GeoVector seekPos   = seek_target_position(seekTargetItr);
+  const GeoVector seekDelta = geo_vector_sub(seekPos, trans->position);
+  const f32       seekDist  = geo_vector_mag(seekDelta);
+  if (seekDist <= f32_epsilon) {
+    return;
+  }
+  const GeoVector seekDir = geo_vector_div(seekDelta, seekDist);
+  const GeoQuat   seekRot = geo_quat_look(seekDir, geo_up);
+  geo_quat_towards(&trans->rotation, seekRot, projectile_seek_angle_max * deltaSec);
 }
 
 typedef struct {
@@ -82,6 +107,8 @@ ecs_system_define(SceneProjectileSys) {
   const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSeconds = scene_delta_seconds(time);
 
+  EcsIterator* seekTargetItr = ecs_view_itr(ecs_world_view_t(world, SeekTargetView));
+
   EcsView* projView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr_step(projView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId       entity  = ecs_view_entity(itr);
@@ -89,15 +116,19 @@ ecs_system_define(SceneProjectileSys) {
     SceneTransformComp*     trans   = ecs_view_write_t(itr, SceneTransformComp);
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
 
+    if (ecs_view_maybe_jump(seekTargetItr, proj->seekTarget)) {
+      seek_apply(trans, seekTargetItr, deltaSeconds);
+    }
+
     const GeoVector dir       = geo_quat_rotate(trans->rotation, geo_forward);
     const f32       deltaDist = proj->speed * deltaSeconds;
     const GeoRay    ray       = {.point = trans->position, .dir = dir};
 
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     SceneRayHit hit;
@@ -126,8 +157,13 @@ ecs_module_init(scene_projectile_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(ProjectileView);
+  ecs_register_view(SeekTargetView);
 
-  ecs_register_system(SceneProjectileSys, ecs_view_id(GlobalView), ecs_view_id(ProjectileView));
+  ecs_register_system(
+      SceneProjectileSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(ProjectileView),
+      ecs_view_id(SeekTargetView));
 
   ecs_parallel(SceneProjectileSys, 4);
 }
