@@ -70,6 +70,7 @@ typedef struct {
   AssetVfxSpace       space;
   VfxSpriteDef        sprite;
   VfxRangeScalarDef   speed;
+  f32                 expandForce;
   u32                 count;
   f32                 interval;
   VfxRangeScalarDef   scale;
@@ -169,6 +170,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
@@ -284,9 +286,10 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
 
   vfx_build_sprite(&def->sprite, &out->sprite);
 
-  out->speed    = vfx_build_range_scalar(&def->speed);
-  out->count    = def->count;
-  out->interval = (TimeDuration)time_seconds(def->interval);
+  out->speed       = vfx_build_range_scalar(&def->speed);
+  out->expandForce = def->expandForce;
+  out->count       = def->count;
+  out->interval    = (TimeDuration)time_seconds(def->interval);
 
   out->scale = vfx_build_range_scalar(&def->scale);
   if (out->scale.max <= 0) {

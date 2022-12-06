@@ -341,9 +341,11 @@ static void vfx_system_simulate(
     // Apply force.
     instance->velo = geo_vector_add(instance->velo, geo_vector_mul(emitterAsset->force, deltaSec));
 
+    // Apply expanding.
+    instance->scale += emitterAsset->expandForce * deltaSec;
+
     // Apply movement.
-    const GeoVector posDelta = geo_vector_mul(instance->velo, deltaSec);
-    instance->pos            = geo_vector_add(instance->pos, posDelta);
+    instance->pos = geo_vector_add(instance->pos, geo_vector_mul(instance->velo, deltaSec));
 
     // Update age and destruct if too old.
     if ((instance->ageSec += deltaSec) > instance->lifetimeSec) {
