@@ -150,10 +150,10 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
-          "aimSpeed": 120,
+          "aimSpeed": 100,
           "targetDistanceMax": 50,
           "targetLineOfSightRadius": 0.5,
-          "targetExcludeObscured": true
+          "targetAlwaysLineOfSight": true
         },
         {
           "$type": "AssetPrefabTrait_Collision",
