@@ -19,7 +19,7 @@ typedef struct {
   bool         launchTowardsTarget, seekTowardsTarget;
   f32          spreadAngle;
   f32          speed;
-  f32          damage;
+  f32          damage, damageRadius;
   TimeDuration delay, lifetime, destroyDelay, impactLifetime;
   EcsEntityId  vfxProjectile, vfxImpact;
 } AssetWeaponEffectProj;

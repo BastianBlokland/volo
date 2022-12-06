@@ -98,23 +98,45 @@ static void projectile_impact_spawn(
 }
 
 static void projectile_hit(
-    EcsWorld*                  world,
-    const EcsEntityId          projEntity,
-    const SceneProjectileComp* proj,
-    SceneTransformComp*        projTrans,
-    const GeoVector            hitPos,
-    const GeoVector            hitNormal,
-    const EcsEntityId          hitEntity) {
+    EcsWorld*                    world,
+    const SceneCollisionEnvComp* colEnv,
+    const SceneQueryFilter*      targetFilter,
+    const EcsEntityId            projEntity,
+    const SceneProjectileComp*   proj,
+    const GeoVector              hitPos,
+    const GeoVector              hitNormal,
+    const EcsEntityId            hitEntity) {
+
   ecs_world_remove_t(world, projEntity, SceneProjectileComp);
   ecs_world_add_t(world, projEntity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
-  projTrans->position = hitPos;
 
   if (proj->impactVfx) {
     projectile_impact_spawn(world, proj, hitPos, hitNormal);
   }
-  const bool hitEntityExists = hitEntity && ecs_world_exists(world, hitEntity);
-  if (hitEntityExists && ecs_world_has_t(world, hitEntity, SceneHealthComp)) {
-    scene_health_damage(world, hitEntity, proj->damage);
+
+  EcsEntityId hits[scene_query_max_hits + 1];
+  u32         hitCount = 0;
+
+  // Find all targets in the damage radius.
+  if (proj->damageRadius > f32_epsilon) {
+    const GeoSphere damageSphere = {
+        .point  = hitPos,
+        .radius = proj->damageRadius,
+    };
+    hitCount = scene_query_sphere_all(colEnv, &damageSphere, targetFilter, hits);
+  }
+
+  // Add the entity we hit directly.
+  if (hitEntity) {
+    hits[hitCount++] = hitEntity;
+  }
+
+  // Damage all the found entities.
+  for (u32 i = 0; i != hitCount; ++i) {
+    const bool exists = ecs_world_exists(world, hits[i]);
+    if (exists && ecs_world_has_t(world, hits[i], SceneHealthComp)) {
+      scene_health_damage(world, hits[i], proj->damage);
+    }
   }
 }
 
@@ -124,7 +146,7 @@ ecs_system_define(SceneProjectileSys) {
   if (!globalItr) {
     return;
   }
-  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneCollisionEnvComp* colEnv       = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSeconds = scene_delta_seconds(time);
 
@@ -153,8 +175,9 @@ ecs_system_define(SceneProjectileSys) {
     };
 
     SceneRayHit hit;
-    if (scene_query_ray(collisionEnv, &ray, deltaDist, &filter, &hit)) {
-      projectile_hit(world, entity, proj, trans, hit.position, hit.normal, hit.entity);
+    if (scene_query_ray(colEnv, &ray, deltaDist, &filter, &hit)) {
+      trans->position = hit.position;
+      projectile_hit(world, colEnv, &filter, entity, proj, hit.position, hit.normal, hit.entity);
       continue;
     }
 
@@ -163,7 +186,8 @@ ecs_system_define(SceneProjectileSys) {
     if (groundHitT >= 0 && groundHitT <= deltaDist) {
       const EcsEntityId hitEntity = 0;
       const GeoVector   hitPos    = geo_ray_position(&ray, groundHitT);
-      projectile_hit(world, entity, proj, trans, hitPos, groundPlane.normal, hitEntity);
+      trans->position             = hitPos;
+      projectile_hit(world, colEnv, &filter, entity, proj, hitPos, groundPlane.normal, hitEntity);
       continue;
     }
 

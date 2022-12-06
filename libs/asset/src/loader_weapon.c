@@ -22,7 +22,7 @@ typedef struct {
   f32    delay, lifetime;
   f32    spreadAngle;
   f32    speed;
-  f32    damage;
+  f32    damage, damageRadius;
   f32    destroyDelay, impactLifetime;
   String vfxIdProjectile, vfxIdImpact;
 } AssetWeaponEffectProjDef;
@@ -97,6 +97,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, impactLifetime, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -188,6 +189,7 @@ static void weapon_effect_proj_build(
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
       .damage              = def->damage,
+      .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
       .impactLifetime      = (TimeDuration)time_seconds(def->impactLifetime),
       .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
