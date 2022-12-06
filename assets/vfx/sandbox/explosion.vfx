@@ -162,6 +162,11 @@
       "count": 15,
       "lifetime": {
         "min": 1.5
+      },
+      "rotation": {
+        "random": {
+          "z": 360
+        }
       }
     }
   ]
