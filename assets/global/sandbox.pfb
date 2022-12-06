@@ -151,8 +151,8 @@
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
           "aimSpeed": 90,
-          "targetDistanceMin": 15,
-          "targetDistanceMax": 60
+          "targetDistanceMin": 30,
+          "targetDistanceMax": 75
         },
         {
           "$type": "AssetPrefabTrait_Collision",
