@@ -150,7 +150,7 @@
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
-          "aimSpeed": 100,
+          "aimSpeed": 90,
           "targetDistanceMin": 15,
           "targetDistanceMax": 60
         },
