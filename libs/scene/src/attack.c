@@ -228,6 +228,7 @@ static EffectResult effect_update_proj(
       SceneProjectileComp,
       .speed          = def->speed,
       .damage         = def->damage,
+      .destroyDelay   = def->destroyDelay,
       .impactLifetime = def->impactLifetime,
       .instigator     = ctx->instigator,
       .impactVfx      = def->vfxImpact);

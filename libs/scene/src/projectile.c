@@ -84,13 +84,13 @@ ecs_system_define(SceneProjectileSys) {
 
   EcsView* projView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr_step(projView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId       entity     = ecs_view_entity(itr);
-    SceneProjectileComp*    projectile = ecs_view_write_t(itr, SceneProjectileComp);
-    SceneTransformComp*     trans      = ecs_view_write_t(itr, SceneTransformComp);
-    const SceneFactionComp* faction    = ecs_view_read_t(itr, SceneFactionComp);
+    const EcsEntityId       entity  = ecs_view_entity(itr);
+    SceneProjectileComp*    proj    = ecs_view_write_t(itr, SceneProjectileComp);
+    SceneTransformComp*     trans   = ecs_view_write_t(itr, SceneTransformComp);
+    const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
 
     const GeoVector dir       = geo_quat_rotate(trans->rotation, geo_forward);
-    const f32       deltaDist = projectile->speed * deltaSeconds;
+    const f32       deltaDist = proj->speed * deltaSeconds;
     const GeoRay    ray       = {.point = trans->position, .dir = dir};
 
     const QueryFilterCtx   filterCtx = {.instigator = entity};
@@ -103,15 +103,15 @@ ecs_system_define(SceneProjectileSys) {
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, deltaDist, &filter, &hit)) {
       ecs_world_remove_t(world, entity, SceneProjectileComp);
-      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_milliseconds(50));
+      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
       trans->position = hit.position;
 
-      if (projectile->impactVfx) {
-        projectile_impact_spawn(world, projectile, hit.position, hit.normal);
+      if (proj->impactVfx) {
+        projectile_impact_spawn(world, proj, hit.position, hit.normal);
       }
       const bool hitEntityExists = ecs_world_exists(world, hit.entity);
       if (hitEntityExists && ecs_world_has_t(world, hit.entity, SceneHealthComp)) {
-        scene_health_damage(world, hit.entity, projectile->damage);
+        scene_health_damage(world, hit.entity, proj->damage);
       }
       continue;
     }
