@@ -229,18 +229,25 @@ static EffectResult effect_update_proj(
   }
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = orgPos, .rotation = rot);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->lifetime);
+
+  SceneProjectileFlags projectileFlags = 0;
+  if (def->seekTowardsTarget) {
+    projectileFlags |= SceneProjectile_Seek;
+  }
   ecs_world_add_t(
       ctx->world,
       e,
       SceneProjectileComp,
+      .flags          = projectileFlags,
       .speed          = def->speed,
       .damage         = def->damage,
       .damageRadius   = def->damageRadius,
       .destroyDelay   = def->destroyDelay,
       .impactLifetime = def->impactLifetime,
       .instigator     = ctx->instigator,
-      .seekTarget     = def->seekTowardsTarget ? ctx->attack->targetEntity : 0,
-      .impactVfx      = def->vfxImpact);
+      .impactVfx      = def->vfxImpact,
+      .seekEntity     = ctx->attack->targetEntity,
+      .seekPos        = ctx->attack->targetPos);
 
   return EffectResult_Done;
 }

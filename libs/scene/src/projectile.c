@@ -31,7 +31,7 @@ ecs_view_define(SeekTargetView) {
   ecs_access_with(SceneCollisionComp);
 }
 
-static GeoVector seek_target_position(EcsIterator* entityItr) {
+static GeoVector seek_position(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
 
   // TODO: Target offset should either be based on target collision bounds or be configurable.
@@ -39,13 +39,9 @@ static GeoVector seek_target_position(EcsIterator* entityItr) {
   return geo_vector_add(trans->position, targetAimOffset);
 }
 
-static void seek_apply(
-    const SceneProjectileComp* proj,
-    SceneTransformComp*        projTrans,
-    EcsIterator*               seekTargetItr,
-    const f32                  deltaSec) {
-  const GeoVector seekPos   = seek_target_position(seekTargetItr);
-  const GeoVector seekDelta = geo_vector_sub(seekPos, projTrans->position);
+static void seek_towards_position(
+    const SceneProjectileComp* proj, SceneTransformComp* projTrans, const f32 deltaSec) {
+  const GeoVector seekDelta = geo_vector_sub(proj->seekPos, projTrans->position);
   const f32       seekDist  = geo_vector_mag(seekDelta);
   if (seekDist <= f32_epsilon) {
     return;
@@ -172,8 +168,17 @@ ecs_system_define(SceneProjectileSys) {
     proj->age += time->delta;
 
     // Optionally seek towards target.
-    if (ecs_view_maybe_jump(seekTargetItr, proj->seekTarget)) {
-      seek_apply(proj, trans, seekTargetItr, deltaSec);
+    if (proj->flags & SceneProjectile_Seek) {
+      if (ecs_view_maybe_jump(seekTargetItr, proj->seekEntity)) {
+        proj->seekPos = seek_position(seekTargetItr);
+      } else {
+        /**
+         * Seek target is missing, adjust the seek position downwards to guide the projectile
+         * towards the ground.
+         */
+        proj->seekPos = geo_vector_sub(proj->seekPos, geo_vector(0, deltaSec, 0));
+      }
+      seek_towards_position(proj, trans, deltaSec);
     }
 
     const GeoVector        dir       = geo_quat_rotate(trans->rotation, geo_forward);
