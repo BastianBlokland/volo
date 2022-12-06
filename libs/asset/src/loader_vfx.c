@@ -79,6 +79,7 @@ typedef struct {
 } VfxEmitterDef;
 
 typedef struct {
+  bool ignoreTransformRotation;
   struct {
     VfxEmitterDef* values;
     usize          count;
@@ -178,6 +179,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
+    data_reg_field_t(g_dataReg, VfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
     // clang-format on
 
@@ -307,6 +309,11 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
   diag_assert(def->emitters.count <= asset_vfx_max_emitters);
 
+  AssetVfxFlags flags = 0;
+  if (def->ignoreTransformRotation) {
+    flags |= AssetVfx_IgnoreTransformRotation;
+  }
+  out->flags        = flags;
   out->emitterCount = (u32)def->emitters.count;
   for (u32 i = 0; i != out->emitterCount; ++i) {
     vfx_build_emitter(&def->emitters.values[i], &out->emitters[i]);
