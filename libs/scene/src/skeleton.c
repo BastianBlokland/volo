@@ -497,12 +497,12 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
-      if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
+      if (LIKELY(layer->duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
         if (layer->flags & SceneAnimFlags_Loop) {
-          layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
-        } else if (layer->time > tl->anims[i].duration) {
-          layer->time = tl->anims[i].duration;
+          layer->time = math_mod_f32(layer->time, layer->duration);
+        } else if (layer->time > layer->duration) {
+          layer->time = layer->duration;
         }
       }
       if (layer->flags & SceneAnimFlags_AutoFade) {
