@@ -56,7 +56,8 @@
           "$type": "AssetWeaponEffect_Animation",
           "layer": "melee",
           "delay": 0,
-          "speed": 1.75
+          "speed": 1.75,
+          "durationMax": 1.5
         }
       ]
     },
