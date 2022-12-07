@@ -35,6 +35,7 @@ typedef struct {
   StringHash   layer;
   f32          speed;
   TimeDuration delay;
+  TimeDuration durationMax;
 } AssetWeaponEffectAnim;
 
 typedef struct {

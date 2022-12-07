@@ -315,11 +315,16 @@ static EffectResult effect_update_anim(
     animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
     animLayer->time  = 0.0f;                     // Restart the animation.
     animLayer->speed = def->speed;
+
+    // NOTE: The ability to reduce the duration here is sketchy and should be replaced by a
+    // configuration option on the animation side.
+    animLayer->duration = math_min(animLayer->duration, def->durationMax / (f32)time_second);
+
     return EffectResult_Running;
   }
 
   // Keep running until the animation reaches the end.
-  return animLayer->time == animLayer->duration ? EffectResult_Done : EffectResult_Running;
+  return animLayer->time >= animLayer->duration ? EffectResult_Done : EffectResult_Running;
 }
 
 static EffectResult effect_update_vfx(
