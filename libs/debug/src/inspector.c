@@ -47,6 +47,7 @@ typedef enum {
   DebugInspectorVis_BoundsGlobal,
   DebugInspectorVis_NavigationPath,
   DebugInspectorVis_NavigationGrid,
+  DebugInspectorVis_Health,
   DebugInspectorVis_Target,
 
   DebugInspectorVis_Count,
@@ -77,6 +78,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
     [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
+    [DebugInspectorVis_Health]          = string_static("Health"),
     [DebugInspectorVis_Target]          = string_static("Target"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
@@ -911,6 +913,14 @@ static void inspector_vis_draw_navigation_path(
   }
 }
 
+static void inspector_vis_draw_health(
+    DebugTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
+  const GeoVector pos          = transform ? transform->position : geo_vector(0);
+  const f32       healthPoints = scene_health_points(health);
+  const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
+  debug_text(text, pos, fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0)), color);
+}
+
 static void inspector_vis_draw_target(
     DebugTextComp*               text,
     const SceneTargetFinderComp* tgtFinder,
@@ -956,6 +966,7 @@ static void inspector_vis_draw_subject(
     EcsIterator*                      subject) {
   const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneHealthComp*     healthComp    = ecs_view_read_t(subject, SceneHealthComp);
   const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
   const SceneNavAgentComp*   navAgentComp  = ecs_view_read_t(subject, SceneNavAgentComp);
@@ -997,6 +1008,9 @@ static void inspector_vis_draw_subject(
   }
   if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
+  }
+  if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
+    inspector_vis_draw_health(text, healthComp, transformComp);
   }
 }
 
@@ -1054,6 +1068,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
       [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
+      [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {

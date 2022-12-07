@@ -558,7 +558,7 @@
       ]
     },
     {
-      "name": "DebugInspectorVisTarget",
+      "name": "DebugInspectorVisHealth",
       "blockers": [
         "TextInput"
       ],
@@ -566,6 +566,18 @@
         {
           "type": "Pressed",
           "key": "Alpha8"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisTarget",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha9"
         }
       ]
     }
