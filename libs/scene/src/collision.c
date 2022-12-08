@@ -206,6 +206,31 @@ void scene_collision_add_box(
       .box   = box);
 }
 
+f32 scene_collision_intersect_ray(
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const GeoRay*             ray) {
+  switch (collision->type) {
+  case SceneCollisionType_Sphere: {
+    const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
+    return geo_sphere_intersect_ray(&sphere, ray);
+  } break;
+  case SceneCollisionType_Capsule: {
+    const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
+    GeoVector        normal;
+    return geo_capsule_intersect_ray(&capsule, ray, &normal);
+  } break;
+  case SceneCollisionType_Box: {
+    const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
+    GeoVector           normal;
+    return geo_box_rotated_intersect_ray(&boxRotated, ray, &normal);
+  } break;
+  default:
+    diag_crash();
+  }
+}
+
 bool scene_query_ray(
     const SceneCollisionEnvComp* env,
     const GeoRay*                ray,
