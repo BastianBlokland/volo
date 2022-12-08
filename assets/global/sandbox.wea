@@ -47,10 +47,11 @@
       "effects": [
         {
           "$type": "AssetWeaponEffect_Damage",
-          "originJoint": "RightHand",
-          "delay": 0.5,
+          "originJoint": "RightHandMiddle1",
+          "delay": 0.55,
           "damage": 25,
-          "radius": 1.25
+          "radius": 1,
+          "vfxIdImpact": "vfx/sandbox/melee_impact.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
@@ -58,6 +59,14 @@
           "delay": 0,
           "speed": 1.75,
           "durationMax": 1.5
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "RightHandMiddle1",
+          "scale": 1,
+          "delay": 0.45,
+          "duration": 1,
+          "assetId": "vfx/sandbox/melee_dust.vfx"
         }
       ]
     },
