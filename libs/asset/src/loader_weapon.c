@@ -32,6 +32,7 @@ typedef struct {
   f32    delay;
   f32    radius;
   f32    damage;
+  String vfxIdImpact;
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
@@ -109,6 +110,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
     data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -205,13 +207,15 @@ static void weapon_effect_dmg_build(
     const AssetWeaponEffectDmgDef* def,
     AssetWeaponEffectDmg*          out,
     WeaponError*                   err) {
-  (void)ctx;
 
   *out = (AssetWeaponEffectDmg){
       .originJoint = string_hash(def->originJoint),
       .delay       = (TimeDuration)time_seconds(def->delay),
       .damage      = def->damage,
       .radius      = def->radius,
+      .vfxImpact   = string_is_empty(def->vfxIdImpact)
+                         ? 0
+                         : asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
   };
   *err = WeaponError_None;
 }

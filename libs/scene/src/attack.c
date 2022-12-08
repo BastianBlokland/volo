@@ -1,5 +1,6 @@
 #include "asset_weapon.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
@@ -21,6 +22,7 @@
 
 #define attack_in_sight_threshold 0.9995f
 #define attack_in_sight_min_dist 1.0f
+#define attack_target_aim_offset geo_vector(0, 1.25f, 0)
 
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
@@ -76,19 +78,33 @@ static void aim_face(
   }
 }
 
-static GeoVector aim_target_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
+static GeoVector aim_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
   const SceneVelocityComp*  velo  = ecs_view_read_t(entityItr, SceneVelocityComp);
 
-  // TODO: Target offset should either be based on target collision bounds or be configurable.
-  const GeoVector targetAimOffset = geo_vector(0, 1.25f, 0);
-
-  return geo_vector_add(scene_position_predict(trans, velo, timeInFuture), targetAimOffset);
+  const GeoVector predictedPos = scene_position_predict(trans, velo, timeInFuture);
+  return geo_vector_add(predictedPos, attack_target_aim_offset);
 }
 
-static f32 aim_target_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
+static f32 aim_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
   const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   return geo_vector_mag(geo_vector_sub(tgtTrans->position, pos));
+}
+
+static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* itr) {
+  const SceneTransformComp* hitTransform = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*     hitScale     = ecs_view_read_t(itr, SceneScaleComp);
+  const SceneCollisionComp* hitCollision = ecs_view_read_t(itr, SceneCollisionComp);
+
+  const GeoVector targetPos    = geo_vector_add(hitTransform->position, attack_target_aim_offset);
+  const GeoVector toTarget     = geo_vector_sub(targetPos, origin);
+  const f32       toTargetDist = geo_vector_mag(toTarget);
+  if (toTargetDist <= f32_epsilon) {
+    return origin;
+  }
+  const GeoRay ray  = {.point = origin, .dir = geo_vector_div(toTarget, toTargetDist)};
+  const f32    hitT = scene_collision_intersect_ray(hitCollision, hitTransform, hitScale, &ray);
+  return hitT > 0 ? geo_ray_position(&ray, hitT) : origin;
 }
 
 static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
@@ -164,6 +180,7 @@ static TimeDuration weapon_estimate_impact_time(
 
 typedef struct {
   EcsWorld*                     world;
+  EcsView*                      targetView;
   EcsEntityId                   instigator;
   const SceneCollisionEnvComp*  collisionEnv;
   const AssetWeaponMapComp*     weaponMap;
@@ -281,16 +298,32 @@ static EffectResult effect_update_dmg(
   EcsEntityId hits[scene_query_max_hits];
   const u32   hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
 
+  EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
   for (u32 i = 0; i != hitCount; ++i) {
     if (hits[i] == ctx->instigator) {
       continue; // Ignore ourselves.
     }
-    const bool hitEntityExists = ecs_world_exists(ctx->world, hits[i]);
-    if (hitEntityExists && ecs_world_has_t(ctx->world, hits[i], SceneHealthComp)) {
-      scene_health_damage(ctx->world, hits[i], def->damage);
+    if (!ecs_view_maybe_jump(hitItr, hits[i])) {
+      continue; // Hit entity is no longer alive or is missing components.
+    }
+    const GeoVector impactPoint = aim_estimate_impact_point(orgSphere.point, hitItr);
+
+    // Apply damage.
+    scene_health_damage(ctx->world, hits[i], def->damage);
+
+    // Spawn vfx.
+    if (def->vfxImpact) {
+      const EcsEntityId vfxEntity = ecs_world_entity_create(ctx->world);
+      ecs_world_add_t(
+          ctx->world,
+          vfxEntity,
+          SceneTransformComp,
+          .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
+          .rotation = geo_quat_ident);
+      ecs_world_add_t(ctx->world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
+      ecs_world_add_t(ctx->world, vfxEntity, SceneVfxComp, .asset = def->vfxImpact);
     }
   }
-
   return EffectResult_Done;
 }
 
@@ -402,6 +435,7 @@ ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_with(SceneHealthComp);
 }
 
 ecs_system_define(SceneAttackSys) {
@@ -420,7 +454,8 @@ ecs_system_define(SceneAttackSys) {
     return; // Weapon-map not loaded yet.
   }
 
-  EcsIterator* targetItr  = ecs_view_itr(ecs_world_view_t(world, TargetView));
+  EcsView*     targetView = ecs_world_view_t(world, TargetView);
+  EcsIterator* targetItr  = ecs_view_itr(targetView);
   EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, GraphicView));
 
   EcsView* attackView = ecs_world_view_t(world, AttackView);
@@ -467,12 +502,12 @@ ecs_system_define(SceneAttackSys) {
 
     // Potentially start a new attack.
     if (hasTarget) {
-      const f32    distEst       = aim_target_estimate_distance(trans->position, targetItr);
+      const f32    distEst       = aim_estimate_distance(trans->position, targetItr);
       TimeDuration impactTimeEst = 0;
       if (weapon->flags & AssetWeapon_PredictiveAim) {
         impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
       }
-      const GeoVector targetPos = aim_target_position(targetItr, impactTimeEst);
+      const GeoVector targetPos = aim_position(targetItr, impactTimeEst);
       aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSeconds);
 
       const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
@@ -493,6 +528,7 @@ ecs_system_define(SceneAttackSys) {
     if (attack->flags & SceneAttackFlags_Firing) {
       const AttackCtx ctx = {
           .world        = world,
+          .targetView   = targetView,
           .instigator   = entity,
           .collisionEnv = collisionEnv,
           .weaponMap    = weaponMap,

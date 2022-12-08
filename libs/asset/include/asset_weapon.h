@@ -29,6 +29,7 @@ typedef struct {
   f32          radius;
   f32          damage;
   TimeDuration delay;
+  EcsEntityId  vfxImpact;
 } AssetWeaponEffectDmg;
 
 typedef struct {
