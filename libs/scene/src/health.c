@@ -80,11 +80,12 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer(anim, g_healthHitAnimHash))) {
 
-    if (hitAnimLayer->weight > 0) {
+    if (hitAnimLayer->time < hitAnimLayer->duration) {
       return; // Don't restart the animation if its already playing.
     }
-    hitAnimLayer->time  = 0;
-    hitAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
+    hitAnimLayer->time   = 0;
+    hitAnimLayer->weight = 1.0f;
+    hitAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
     hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
     hitAnimLayer->mask = healthAnim->hitAnimMask;
@@ -94,8 +95,9 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
   if ((deathAnimLayer = scene_animation_layer(anim, g_healthDeathAnimHash))) {
-    deathAnimLayer->time  = 0;
-    deathAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
+    deathAnimLayer->time   = 0;
+    deathAnimLayer->weight = 1.0f;
+    deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
     deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
     deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
   }

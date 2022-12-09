@@ -364,6 +364,7 @@ static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
     const u32                     layerIndex,
+    const f32                     layerWeight,
     f32*                          weights,
     SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
@@ -381,13 +382,13 @@ static void anim_sample_layer(
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
 
     if (chT->frameCount && *weightT < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layer->weight, weightT, &out[j].t);
+      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layerWeight, weightT, &out[j].t);
     }
     if (chR->frameCount && *weightR < scene_weight_max) {
-      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layer->weight, weightR, &out[j].r);
+      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layerWeight, weightR, &out[j].r);
     }
     if (chS->frameCount && *weightS < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layer->weight, weightS, &out[j].s);
+      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layerWeight, weightS, &out[j].s);
     }
   }
 }
@@ -438,20 +439,18 @@ static void anim_mul_rec(
   }
 }
 
-/**
- * Assign the weight based on the animation progress.
- */
-static void anim_layer_auto_weight_fade(SceneAnimLayer* layer) {
-  const f32 tQuad = (layer->time / layer->duration) * 4.0f;
-  layer->weight   = 1.0f;
-  if (layer->flags & SceneAnimFlags_AutoFadeIn) {
+static f32 anim_compute_fade(const f32 time, const f32 duration, const SceneAnimFlags flags) {
+  const f32 tQuad    = (time / duration) * 4.0f;
+  f32       strength = 1.0f;
+  if (flags & SceneAnimFlags_AutoFadeIn) {
     // Fade-in over the first 25%.
-    layer->weight = math_min(1.0f, tQuad);
+    strength = math_min(1.0f, tQuad);
   }
-  if (layer->flags & SceneAnimFlags_AutoFadeOut) {
+  if (flags & SceneAnimFlags_AutoFadeOut) {
     // Fade-out over the last 25%.
-    layer->weight -= math_max(0.0f, tQuad - 3.0f);
+    strength -= math_max(0.0f, tQuad - 3.0f);
   }
+  return strength;
 }
 
 ecs_view_define(UpdateView) {
@@ -505,11 +504,12 @@ ecs_system_define(SceneSkeletonUpdateSys) {
           layer->time = layer->duration;
         }
       }
+      f32 layerWeight = layer->weight;
       if (layer->flags & SceneAnimFlags_AutoFade) {
-        anim_layer_auto_weight_fade(layer);
+        layerWeight *= anim_compute_fade(layer->time, layer->duration, layer->flags);
       }
-      if (layer->weight > scene_weight_min) {
-        anim_sample_layer(tl, layer, i, weights, poses);
+      if (layerWeight > scene_weight_min) {
+        anim_sample_layer(tl, layer, i, layerWeight, weights, poses);
       }
     }
     anim_sample_def(tl, weights, poses);
