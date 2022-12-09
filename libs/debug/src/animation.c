@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -214,6 +215,45 @@ static void anim_draw_joints_def(
   ui_style_pop(canvas);
 }
 
+static void anim_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
+  static const struct {
+    SceneAnimFlags flag;
+    String         label;
+    String         tooltip;
+  } g_flagMeta[] = {
+      {
+          .flag    = SceneAnimFlags_Loop,
+          .label   = string_static("L"),
+          .tooltip = string_static("Looping playback"),
+      },
+      {
+          .flag    = SceneAnimFlags_AutoFadeIn,
+          .label   = string_static("I"),
+          .tooltip = string_static("Automatic fade-in over the first 25% of the playback"),
+      },
+      {
+          .flag    = SceneAnimFlags_AutoFadeOut,
+          .label   = string_static("O"),
+          .tooltip = string_static("Automatic fade-out over the last 25% of the playback"),
+      },
+  };
+  static const UiColor g_colorActive   = ui_color(0, 128, 0, 192);
+  static const UiColor g_colorInactive = ui_color(32, 32, 32, 192);
+
+  ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+  for (u32 i = 0; i != array_elems(g_flagMeta); ++i) {
+    if (ui_button(
+            canvas,
+            .label      = g_flagMeta[i].label,
+            .fontSize   = 14,
+            .tooltip    = g_flagMeta[i].tooltip,
+            .frameColor = layer->flags & g_flagMeta[i].flag ? g_colorActive : g_colorInactive)) {
+      layer->flags ^= g_flagMeta[i].flag;
+    }
+    ui_layout_next(canvas, Ui_Right, 5);
+  }
+}
+
 static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettingsComp* settings) {
   ui_layout_push(canvas);
 
@@ -273,6 +313,7 @@ static void anim_panel_draw(
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 60);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
     ui_table_draw_header(
@@ -280,10 +321,11 @@ static void anim_panel_draw(
         &table,
         (const UiTableColumnName[]){
             {string_lit("Name"), string_lit("Animation name.")},
-            {string_lit("Time"), string_lit("Current playback time.")},
-            {string_lit("Progress"), string_lit("Current playback progress.")},
-            {string_lit("Speed"), string_lit("Current playback speed.")},
-            {string_lit("Weight"), string_lit("Current playback weight.")},
+            {string_lit("Time"), string_lit("Playback time.")},
+            {string_lit("Progress"), string_lit("Playback progress.")},
+            {string_lit("Speed"), string_lit("Playback speed.")},
+            {string_lit("Weight"), string_lit("Playback weight.")},
+            {string_lit("Flags"), string_lit("Playback flags.")},
         });
 
     const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
@@ -316,6 +358,9 @@ static void anim_panel_draw(
       ui_table_next_column(canvas, &table);
 
       ui_slider(canvas, &layer->weight);
+      ui_table_next_column(canvas, &table);
+
+      anim_panel_drag_flags(canvas, layer);
       ui_table_next_column(canvas, &table);
 
       if (open) {
@@ -532,6 +577,6 @@ ecs_module_init(debug_animation_module) {
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(.size = ui_vector(900, 350)));
+      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
   return panelEntity;
 }
