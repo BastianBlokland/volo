@@ -1,0 +1,35 @@
+{
+  "emitters": [
+    {
+      "sprite": {
+        "atlasEntry": "glow",
+        "color": {
+          "r": 1,
+          "g": 0.2,
+          "b": 0.1,
+          "a": 1.2
+        },
+        "blend": "AdditiveDouble",
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "fadeInTime": 0.05,
+        "fadeOutTime": 0.15
+      },
+      "force": {
+        "y": 7.5
+      },
+      "expandForce": 15,
+      "scale": {
+        "min": 0.75,
+        "max": 1.25
+      },
+      "lifetime": {
+        "min": 0.17,
+        "max": 0.23
+      }
+    }
+  ]
+}

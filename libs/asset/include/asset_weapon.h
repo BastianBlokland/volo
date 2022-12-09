@@ -29,12 +29,14 @@ typedef struct {
   f32          radius;
   f32          damage;
   TimeDuration delay;
+  EcsEntityId  vfxImpact;
 } AssetWeaponEffectDmg;
 
 typedef struct {
   StringHash   layer;
   f32          speed;
   TimeDuration delay;
+  TimeDuration durationMax;
 } AssetWeaponEffectAnim;
 
 typedef struct {

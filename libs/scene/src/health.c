@@ -47,7 +47,7 @@ ecs_system_define(SceneHealthInitSys) {
       /**
        * TODO: Define this skeleton mask in content instead of hard-coding it here.
        */
-      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Neck"));
+      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Spine"));
       if (!sentinel_check(neckJoint)) {
         scene_skeleton_mask_clear_rec(&animComp->hitAnimMask, skelTempl, 0);
         scene_skeleton_mask_set_rec(&animComp->hitAnimMask, skelTempl, neckJoint);
@@ -79,23 +79,25 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnimComp* healthAnim) {
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer(anim, g_healthHitAnimHash))) {
-
-    if (hitAnimLayer->weight > 0) {
-      return; // Don't restart the animation if its already playing.
-    }
-    hitAnimLayer->time  = 0;
-    hitAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
+    hitAnimLayer->weight = 0.5f; // TODO: Weight should be defined in content.
+    hitAnimLayer->speed  = 2.0f; // TODO: Speed should be defined in content.
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
     hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
     hitAnimLayer->mask = healthAnim->hitAnimMask;
+
+    // Restart the animation if it has reached the end, don't rewind if its already playing.
+    if (hitAnimLayer->time == hitAnimLayer->duration) {
+      hitAnimLayer->time = 0;
+    }
   }
 }
 
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
   if ((deathAnimLayer = scene_animation_layer(anim, g_healthDeathAnimHash))) {
-    deathAnimLayer->time  = 0;
-    deathAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
+    deathAnimLayer->time   = 0;
+    deathAnimLayer->weight = 1.0f;
+    deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
     deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
     deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
   }

@@ -110,6 +110,13 @@ void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, 
 void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLayer);
 
 /**
+ * Intersection apis.
+ */
+
+f32 scene_collision_intersect_ray(
+    const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
+
+/**
  * Query apis.
  */
 

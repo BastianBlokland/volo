@@ -6,6 +6,7 @@
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
@@ -137,10 +138,13 @@ static void scene_skeleton_init_from_templ(
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
-    layers[i] = (SceneAnimLayer){
+    const bool isLowestLayer = i == tl->animCount - 1;
+    const f32  startTime     = rng_sample_range(g_rng, 0, tl->anims->duration);
+    layers[i]                = (SceneAnimLayer){
+        .time     = startTime,
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
-        .weight   = (i == tl->animCount - 1) ? 1.0f : 0.0f,
+        .weight   = isLowestLayer ? 1.0f : 0.0f,
         .nameHash = tl->anims[i].nameHash,
         .flags    = SceneAnimFlags_Loop,
     };
@@ -360,6 +364,7 @@ static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
     const u32                     layerIndex,
+    const f32                     layerWeight,
     f32*                          weights,
     SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
@@ -377,13 +382,13 @@ static void anim_sample_layer(
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
 
     if (chT->frameCount && *weightT < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layer->weight, weightT, &out[j].t);
+      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layerWeight, weightT, &out[j].t);
     }
     if (chR->frameCount && *weightR < scene_weight_max) {
-      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layer->weight, weightR, &out[j].r);
+      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layerWeight, weightR, &out[j].r);
     }
     if (chS->frameCount && *weightS < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layer->weight, weightS, &out[j].s);
+      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layerWeight, weightS, &out[j].s);
     }
   }
 }
@@ -434,20 +439,18 @@ static void anim_mul_rec(
   }
 }
 
-/**
- * Assign the weight based on the animation progress.
- */
-static void anim_layer_auto_weight_fade(SceneAnimLayer* layer) {
-  const f32 tQuad = (layer->time / layer->duration) * 4.0f;
-  layer->weight   = 1.0f;
-  if (layer->flags & SceneAnimFlags_AutoFadeIn) {
+static f32 anim_compute_fade(const f32 time, const f32 duration, const SceneAnimFlags flags) {
+  const f32 tQuad    = (time / duration) * 4.0f;
+  f32       strength = 1.0f;
+  if (flags & SceneAnimFlags_AutoFadeIn) {
     // Fade-in over the first 25%.
-    layer->weight = math_min(1.0f, tQuad);
+    strength = math_min(1.0f, tQuad);
   }
-  if (layer->flags & SceneAnimFlags_AutoFadeOut) {
+  if (flags & SceneAnimFlags_AutoFadeOut) {
     // Fade-out over the last 25%.
-    layer->weight -= math_max(0.0f, tQuad - 3.0f);
+    strength -= math_max(0.0f, tQuad - 3.0f);
   }
+  return strength;
 }
 
 ecs_view_define(UpdateView) {
@@ -493,19 +496,20 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
-      if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
+      if (LIKELY(layer->duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
         if (layer->flags & SceneAnimFlags_Loop) {
-          layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
-        } else if (layer->time > tl->anims[i].duration) {
-          layer->time = tl->anims[i].duration;
+          layer->time = math_mod_f32(layer->time, layer->duration);
+        } else if (layer->time > layer->duration) {
+          layer->time = layer->duration;
         }
       }
+      f32 layerWeight = layer->weight;
       if (layer->flags & SceneAnimFlags_AutoFade) {
-        anim_layer_auto_weight_fade(layer);
+        layerWeight *= anim_compute_fade(layer->time, layer->duration, layer->flags);
       }
-      if (layer->weight > scene_weight_min) {
-        anim_sample_layer(tl, layer, i, weights, poses);
+      if (layerWeight > scene_weight_min) {
+        anim_sample_layer(tl, layer, i, layerWeight, weights, poses);
       }
     }
     anim_sample_def(tl, weights, poses);

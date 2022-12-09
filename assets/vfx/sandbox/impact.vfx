@@ -17,8 +17,8 @@
         "blend": "AdditiveDouble",
         "facing": "BillboardSphere",
         "size": {
-          "x": 0.5,
-          "y": 0.5
+          "x": 0.7,
+          "y": 0.7
         },
         "fadeInTime": 0.05,
         "scaleOutTime": 0.2
