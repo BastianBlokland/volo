@@ -237,8 +237,8 @@ static void anim_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
           .tooltip = string_static("Automatic fade-out over the last 25% of the playback"),
       },
   };
-  static const UiColor g_colorActive   = ui_color(0, 128, 0, 192);
-  static const UiColor g_colorInactive = ui_color(32, 32, 32, 192);
+  static const UiColor g_colorActive   = {0, 128, 0, 192};
+  static const UiColor g_colorInactive = {32, 32, 32, 192};
 
   ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
   for (u32 i = 0; i != array_elems(g_flagMeta); ++i) {
