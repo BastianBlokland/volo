@@ -1025,7 +1025,7 @@ static void inspector_vis_draw_navigation_grid(
   for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
     for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
       const GeoNavCell   cell      = {.x = x, .y = y};
-      const GeoVector    pos       = scene_nav_position(nav, (GeoNavCell){.x = x, .y = y});
+      const GeoVector    pos       = scene_nav_position(nav, cell);
       const bool         highlight = (x & 1) == (y & 1);
       const bool         blocked   = scene_nav_blocked(nav, cell);
       const GeoNavIsland island    = scene_nav_island(nav, cell);
