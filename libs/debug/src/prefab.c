@@ -174,6 +174,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .position = pos,
           .rotation = geo_quat_ident,
           .faction  = ctx->panelComp->createFaction,
+          .flags    = ScenePrefabFlags_SnapToTerrain,
       });
 
   if (!ctx->panelComp->createMultiple) {
