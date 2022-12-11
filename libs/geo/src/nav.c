@@ -55,6 +55,7 @@ struct sGeoNavGrid {
   f32           cellDensity, cellSize;
   f32           cellHeight;
   GeoVector     cellOffset;
+  f32*          cellY;            // f32[cellCountTotal]
   u16*          cellBlockerCount; // u16[cellCountTotal]
   u16*          cellOccupancy;    // u16[cellCountTotal][geo_nav_occupants_per_cell]
   GeoNavIsland* cellIslands;      // GeoNavIsland[cellCountTotal]
@@ -189,8 +190,9 @@ static bool nav_cell_add_occupant(GeoNavGrid* grid, const GeoNavCell cell, const
 }
 
 static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
-  const GeoVector localPos = {cell.x, 0, cell.y};
-  return geo_vector_add(geo_vector_mul(localPos, grid->cellSize), grid->cellOffset);
+  GeoVector pos = geo_vector_mul(geo_vector(cell.x, 0, cell.y), grid->cellSize);
+  pos.y         = grid->cellY[nav_cell_index(grid, cell)];
+  return geo_vector_add(pos, grid->cellOffset);
 }
 
 static GeoBox nav_cell_box(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -897,6 +899,7 @@ geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f
       .cellSize         = 1.0f / density,
       .cellHeight       = height,
       .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
+      .cellY            = alloc_array_t(alloc, f32, cellCountTotal),
       .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
       .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
@@ -906,12 +909,14 @@ geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f
       .alloc            = alloc,
   };
 
+  geo_nav_y_clear(grid);
   nav_blocker_release_all(grid);
   grid->islandCount = nav_islands_compute(grid);
   return grid;
 }
 
 void geo_nav_grid_destroy(GeoNavGrid* grid) {
+  alloc_free_array_t(grid->alloc, grid->cellY, grid->cellCountTotal);
   alloc_free_array_t(grid->alloc, grid->cellBlockerCount, grid->cellCountTotal);
   alloc_free_array_t(grid->alloc, grid->cellIslands, grid->cellCountTotal);
   alloc_free(grid->alloc, nav_occupancy_mem(grid));
@@ -940,6 +945,15 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
 
 GeoVector geo_nav_cell_size(const GeoNavGrid* grid) {
   return geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize);
+}
+
+void geo_nav_y_set(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  grid->cellY[nav_cell_index(grid, cell)] = y;
+}
+
+void geo_nav_y_clear(GeoNavGrid* grid) {
+  mem_set(mem_create(grid->cellY, sizeof(f32) * grid->cellCountTotal), 0);
 }
 
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -1067,10 +1081,6 @@ u32 geo_nav_path(
 }
 
 GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, const GeoBox* box) {
-  if (box->max.y < grid->cellOffset.y || box->min.y > (grid->cellOffset.y + grid->cellHeight)) {
-    // Outside of the y band of the grid.
-    return (GeoNavBlockerId)sentinel_u16;
-  }
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     log_e("Navigation blocker cell limit reached");
@@ -1285,6 +1295,7 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
   u32 dataSizeGrid = sizeof(GeoNavGrid);
+  dataSizeGrid += ((u32)sizeof(f32) * grid->cellCountTotal);          // grid.cellY
   dataSizeGrid += ((u32)sizeof(u16) * grid->cellCountTotal);          // grid.cellBlockerCount
   dataSizeGrid += ((u32)nav_occupancy_mem(grid).size);                // grid.cellOccupancy
   dataSizeGrid += ((u32)sizeof(GeoNavIsland) * grid->cellCountTotal); // grid.cellIslands
