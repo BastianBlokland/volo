@@ -135,6 +135,10 @@ ecs_system_define(DebugGridDrawSys) {
   }
 }
 
+static void grid_notify_show(DebugStatsGlobalComp* stats, const bool show) {
+  debug_stats_notify(stats, string_lit("Grid show"), fmt_write_scratch("{}", fmt_bool(show)));
+}
+
 static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSize) {
   debug_stats_notify(
       stats,
@@ -233,6 +237,10 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    if (input_triggered_lit(input, "GridShow")) {
+      grid->show ^= 1;
+      grid_notify_show(stats, grid->show);
+    }
     if (input_triggered_lit(input, "GridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
       grid->show     = true;
