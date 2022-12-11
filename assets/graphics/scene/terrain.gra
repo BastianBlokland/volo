@@ -1,0 +1,49 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/scene/terrain.vert.spv",
+      "overrides": [
+        {
+          "name": "heightMapScale",
+          "binding": 0,
+          "value": 3
+        }
+      ]
+    },
+    {
+      "shaderId": "shaders/scene/terrain.frag.spv",
+      "overrides": [
+        {
+          "name": "heightMapScale",
+          "binding": 0,
+          "value": 3
+        },
+        {
+          "name": "terrainSize",
+          "binding": 1,
+          "value": 200
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/terrain/terrain_2_height.r16",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "external/terrain/terrain_2_color.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    }
+  ],
+  "meshId": "meshes/scene/terrain.pme",
+  "renderOrder": 5,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "None"
+}
