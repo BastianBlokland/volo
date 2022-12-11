@@ -8,6 +8,8 @@
 #include "input_manager.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
+#include "scene_selection.h"
+#include "scene_transform.h"
 #include "ui.h"
 
 // clang-format off
@@ -59,11 +61,12 @@ ecs_view_define(GridCreateView) {
 
 ecs_view_define(GridReadView) { ecs_access_read(DebugGridComp); }
 ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
-
 ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneSelectionComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
 
@@ -225,21 +228,37 @@ static void grid_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
+static f32 debug_selection_height(const SceneSelectionComp* sel, EcsView* transformView) {
+  EcsIterator* transformItr  = ecs_view_itr(transformView);
+  f32          averageHeight = 0.0f;
+  u32          entryCount    = 0;
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_view_maybe_jump(transformItr, *e)) {
+      averageHeight += ecs_view_read_t(transformItr, SceneTransformComp)->position.y;
+      ++entryCount;
+    }
+  }
+  return entryCount ? (averageHeight / entryCount) : 0.0f;
+}
+
 ecs_system_define(DebugGridUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*   stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+  DebugStatsGlobalComp*     stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp*   input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+
+  EcsView* transformView = ecs_world_view_t(world, TransformReadView);
 
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
     if (input_triggered_lit(input, "GridShow")) {
       grid->show ^= 1;
-      grid->height = 0; // NOTE: Does this make sense?
+      grid->height = debug_selection_height(selection, transformView);
       grid_notify_show(stats, grid->show);
     }
     if (input_triggered_lit(input, "GridScaleUp")) {
@@ -287,6 +306,7 @@ ecs_module_init(debug_grid_module) {
   ecs_register_view(GridReadView);
   ecs_register_view(GridWriteView);
   ecs_register_view(DrawWriteView);
+  ecs_register_view(TransformReadView);
   ecs_register_view(UpdateGlobalView);
   ecs_register_view(UpdateView);
 
@@ -299,7 +319,8 @@ ecs_module_init(debug_grid_module) {
       DebugGridUpdateSys,
       ecs_view_id(UpdateGlobalView),
       ecs_view_id(UpdateView),
-      ecs_view_id(GridWriteView));
+      ecs_view_id(GridWriteView),
+      ecs_view_id(TransformReadView));
 }
 
 void debug_grid_show(DebugGridComp* comp, const f32 height) {
