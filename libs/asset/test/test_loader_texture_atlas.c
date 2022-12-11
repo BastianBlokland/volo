@@ -92,7 +92,7 @@ spec(loader_texture_atlas) {
     check_eq_int(asset_atlas_lookup(atlas, string_hash_lit("b"))->atlasIndex, 1);
     check(!asset_atlas_lookup(atlas, string_hash_lit("c")));
 
-    check_eq_int(tex->type, AssetTextureType_Byte);
+    check_eq_int(tex->type, AssetTextureType_U8);
     check_eq_int(tex->channels, 4);
     check_eq_int(tex->width, 64);
     check_eq_int(tex->height, 64);

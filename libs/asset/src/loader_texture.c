@@ -42,9 +42,11 @@ ecs_module_init(asset_texture_module) {
 
 usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   switch (texture->type) {
-  case AssetTextureType_Byte:
+  case AssetTextureType_U8:
     return sizeof(u8) * texture->channels;
-  case AssetTextureType_Float:
+  case AssetTextureType_U16:
+    return sizeof(u16) * texture->channels;
+  case AssetTextureType_F32:
     return sizeof(f32) * texture->channels;
   }
   diag_crash();
@@ -80,7 +82,7 @@ static AssetTexturePixelB4 pixel_b4_from_vec(const GeoVector v) {
 
 AssetTexturePixelB1 asset_texture_sample_b1(
     const AssetTextureComp* texture, const f32 xNorm, const f32 yNorm, const u32 layer) {
-  diag_assert(texture->type == AssetTextureType_Byte);
+  diag_assert(texture->type == AssetTextureType_U8);
   diag_assert(texture->channels == AssetTextureChannels_One);
   diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
   diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
@@ -107,7 +109,7 @@ AssetTexturePixelB1 asset_texture_sample_b1(
 
 AssetTexturePixelB4 asset_texture_sample_b4(
     const AssetTextureComp* texture, const f32 xNorm, const f32 yNorm, const u32 layer) {
-  diag_assert(texture->type == AssetTextureType_Byte);
+  diag_assert(texture->type == AssetTextureType_U8);
   diag_assert(texture->channels == AssetTextureChannels_Four);
   diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
   diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);

@@ -304,7 +304,7 @@ static void ftx_generate(
       .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
-      .type     = AssetTextureType_Byte,
+      .type     = AssetTextureType_U8,
       .channels = AssetTextureChannels_One,
       .pixelsB1 = pixels,
       .width    = def->size,

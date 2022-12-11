@@ -10,6 +10,14 @@ typedef struct {
 } AssetTexturePixelB4;
 
 typedef struct {
+  u16 r;
+} AssetTexturePixelU1;
+
+typedef struct {
+  u16 r, g, b, a;
+} AssetTexturePixelU4;
+
+typedef struct {
   f32 r;
 } AssetTexturePixelF1;
 
@@ -18,8 +26,9 @@ typedef struct {
 } AssetTexturePixelF4;
 
 typedef enum {
-  AssetTextureType_Byte,
-  AssetTextureType_Float,
+  AssetTextureType_U8,
+  AssetTextureType_U16,
+  AssetTextureType_F32,
 } AssetTextureType;
 
 typedef enum {
@@ -42,6 +51,8 @@ ecs_comp_extern_public(AssetTextureComp) {
     const u8*                  pixelsRaw;
     const AssetTexturePixelB1* pixelsB1;
     const AssetTexturePixelB4* pixelsB4;
+    const AssetTexturePixelU1* pixelsU1;
+    const AssetTexturePixelU4* pixelsU4;
     const AssetTexturePixelF1* pixelsF1;
     const AssetTexturePixelF4* pixelsF4;
   };
@@ -54,7 +65,7 @@ Mem   asset_texture_data(const AssetTextureComp*);
 /**
  * Sample the texture at the given normalized x and y coordinates.
  *
- * Pre-condition: texture.type == AssetTextureType_Byte.
+ * Pre-condition: texture.type == AssetTextureType_U8.
  */
 AssetTexturePixelB1 asset_texture_sample_b1(const AssetTextureComp*, f32 x, f32 y, u32 layer);
 AssetTexturePixelB4 asset_texture_sample_b4(const AssetTextureComp*, f32 x, f32 y, u32 layer);

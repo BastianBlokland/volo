@@ -66,8 +66,9 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetTextureChannels, Four);
 
     data_reg_enum_t(g_dataReg, AssetTextureType);
-    data_reg_const_t(g_dataReg, AssetTextureType, Byte);
-    data_reg_const_t(g_dataReg, AssetTextureType, Float);
+    data_reg_const_t(g_dataReg, AssetTextureType, U8);
+    data_reg_const_t(g_dataReg, AssetTextureType, U16);
+    data_reg_const_t(g_dataReg, AssetTextureType, F32);
 
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
@@ -166,9 +167,11 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
 
 static usize pme_pixel_channel_size(const PtxDef* def) {
   switch (def->pixelType) {
-  case AssetTextureType_Byte:
+  case AssetTextureType_U8:
     return sizeof(u8);
-  case AssetTextureType_Float:
+  case AssetTextureType_U16:
+    return sizeof(u16);
+  case AssetTextureType_F32:
     return sizeof(f32);
   }
   diag_crash();
@@ -186,14 +189,18 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
       const f32 sample = ptx_sample(def, x, y, rng);
 
       union {
-        f32 f32;
         u8  u8;
+        u16 u16;
+        f32 f32;
       } value;
       switch (def->pixelType) {
-      case AssetTextureType_Byte:
+      case AssetTextureType_U8:
         value.u8 = (u8)(sample * 255.999f);
         break;
-      case AssetTextureType_Float:
+      case AssetTextureType_U16:
+        value.u16 = (u16)(sample * 65535.999f);
+        break;
+      case AssetTextureType_F32:
         value.f32 = sample;
         break;
       }

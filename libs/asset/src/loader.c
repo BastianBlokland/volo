@@ -49,6 +49,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Ptx: {
     RET_LOADER(ptx);
   }
+  case AssetFormat_R16: {
+    RET_LOADER(r16);
+  }
   case AssetFormat_R32: {
     RET_LOADER(r32);
   }
