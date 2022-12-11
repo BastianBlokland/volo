@@ -2,9 +2,15 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "scene_renderable.h"
+#include "scene_terrain.h"
+
+static const f32 g_terrainSize        = 200.0f;
+static const f32 g_terrainSizeHalf    = g_terrainSize * 0.5f;
+static const f32 g_terrainSizeInv     = 1.0f / g_terrainSize;
+static const f32 g_terrainHeightScale = 3.0f;
 
 typedef enum {
   Terrain_HeightmapAcquired    = 1 << 0,
@@ -13,7 +19,8 @@ typedef enum {
 } TerrainFlags;
 
 ecs_comp_define(SceneTerrainComp) {
-  TerrainFlags     flags;
+  TerrainFlags flags;
+
   String           heightmapId;
   EcsEntityId      heightmapEntity;
   Mem              heightmapData;
@@ -59,6 +66,15 @@ static void terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTexture
     terrain_heightmap_unsupported(terrain, string_lit("Not square"));
     return;
   }
+  if (tex->layers > 1) {
+    terrain_heightmap_unsupported(terrain, string_lit("Layer count greater than 1"));
+    return;
+  }
+  if (tex->type != AssetTextureType_U16) {
+    // TODO: Support other types.
+    terrain_heightmap_unsupported(terrain, string_lit("Non-u16 format"));
+    return;
+  }
   terrain->heightmapData = asset_texture_data(tex);
   terrain->heightmapSize = tex->width;
   terrain->heightmapType = tex->type;
@@ -76,6 +92,40 @@ static void terrain_heightmap_unload(SceneTerrainComp* terrain) {
   terrain->flags &= ~Terrain_HeightmapUnsupported;
 
   log_d("Terrain heightmap unloaded", log_param("id", fmt_text(terrain->heightmapId)));
+}
+
+/**
+ * Sample the heightmap at the given coordinate.
+ * NOTE: Returns a normalized (0 - 1) float.
+ */
+static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, const f32 yNorm) {
+  if (UNLIKELY(xNorm < 0 || xNorm > 1 || yNorm < 0 || yNorm > 1)) {
+    return 0.0f;
+  }
+  if (UNLIKELY(!t->heightmapData.size)) {
+    return 0.0f;
+  }
+  diag_assert(t->heightmapType == AssetTextureType_U16);
+
+  static const f32 g_normMul = 1.0f / u16_max;
+
+  const u16* pixels = t->heightmapData.ptr;
+  const f32  x = xNorm * (t->heightmapSize - 1), y = yNorm * (t->heightmapSize - 1);
+
+  /**
+   * Bi-linearly interpolate 4 pixels around the required coordinate.
+   */
+  const f32 corner1x = math_min(t->heightmapSize - 2, math_round_down_f32(x));
+  const f32 corner1y = math_min(t->heightmapSize - 2, math_round_down_f32(y));
+  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
+
+  const f32 p1 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner1x] * g_normMul;
+  const f32 p2 = pixels[(usize)corner1y * t->heightmapSize + (usize)corner2x] * g_normMul;
+  const f32 p3 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner1x] * g_normMul;
+  const f32 p4 = pixels[(usize)corner2y * t->heightmapSize + (usize)corner2x] * g_normMul;
+
+  const f32 tX = x - corner1x, tY = y - corner1y;
+  return math_lerp(math_lerp(p1, p2, tX), math_lerp(p3, p4, tX), tY);
 }
 
 ecs_system_define(SceneTerrainLoadSys) {
@@ -161,4 +211,10 @@ void scene_terrain_init(EcsWorld* world, const String heightmapId) {
       ecs_world_global(world),
       SceneTerrainComp,
       .heightmapId = string_dup(g_alloc_heap, heightmapId));
+}
+
+f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {
+  const f32 heightmapX = (position.x + g_terrainSizeHalf) * g_terrainSizeInv;
+  const f32 heightmapY = (position.z + g_terrainSizeHalf) * g_terrainSizeInv;
+  return terrain_heightmap_sample(terrain, heightmapX, heightmapY) * g_terrainHeightScale;
 }
