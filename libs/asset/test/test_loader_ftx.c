@@ -156,7 +156,7 @@ spec(loader_ftx) {
     check_eq_int(ftx->characters[1].cp, 0x31); // The 'digit one' character.
     check_eq_int(ftx->characters[1].glyphIndex, 1);
 
-    check_eq_int(tex->type, AssetTextureType_Byte);
+    check_eq_int(tex->type, AssetTextureType_U8);
     check_eq_int(tex->channels, 1);
     check_eq_int(tex->width, 64);
     check_eq_int(tex->height, 64);

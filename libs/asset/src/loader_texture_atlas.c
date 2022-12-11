@@ -210,7 +210,7 @@ static void atlas_generate(
 
   // Validate textures.
   for (u32 i = 0; i != def->entries.count; ++i) {
-    if (UNLIKELY(textures[i]->type != AssetTextureType_Byte)) {
+    if (UNLIKELY(textures[i]->type != AssetTextureType_U8)) {
       *err = AtlasError_EntryTextureTypeUnsupported;
       return;
     }
@@ -253,7 +253,7 @@ static void atlas_generate(
       .entryCount    = entryCount,
   };
   *outTexture = (AssetTextureComp){
-      .type     = AssetTextureType_Byte,
+      .type     = AssetTextureType_U8,
       .channels = AssetTextureChannels_Four,
       .flags    = atlas_texture_flags(def),
       .pixelsB4 = pixels,

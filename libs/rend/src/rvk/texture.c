@@ -27,6 +27,16 @@ static VkFormat rvk_texture_format_byte(const AssetTextureChannels channels, con
   diag_crash();
 }
 
+static VkFormat rvk_texture_format_u16(const AssetTextureChannels channels) {
+  switch (channels) {
+  case AssetTextureChannels_One:
+    return VK_FORMAT_R16_UNORM;
+  case AssetTextureChannels_Four:
+    return VK_FORMAT_R16G16B16A16_UNORM;
+  }
+  diag_crash();
+}
+
 static VkFormat rvk_texture_format_f32(const AssetTextureChannels channels) {
   switch (channels) {
   case AssetTextureChannels_One:
@@ -43,10 +53,13 @@ static VkFormat rvk_texture_format(
     const AssetTextureChannels channels) {
   const bool srgb = (flags & AssetTextureFlags_Srgb) != 0;
   switch (type) {
-  case AssetTextureType_Byte:
+  case AssetTextureType_U8:
     return rvk_texture_format_byte(channels, srgb);
+  case AssetTextureType_U16:
+    diag_assert_msg(!srgb, "U16 textures with srgb encoding are not supported");
+    return rvk_texture_format_u16(channels);
   case AssetTextureType_F32:
-    diag_assert_msg(!srgb, "Float textures with srgb encoding are not supported");
+    diag_assert_msg(!srgb, "F32 textures with srgb encoding are not supported");
     return rvk_texture_format_f32(channels);
   }
   diag_crash();
