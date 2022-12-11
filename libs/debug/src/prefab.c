@@ -204,7 +204,12 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  const f32 rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay);
+  f32 rayT;
+  if (ctx->terrain) {
+    rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay);
+  } else {
+    rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
+  }
   if (rayT < g_createMinInteractDist || rayT > g_createMaxInteractDist || blocked) {
     return;
   }
@@ -387,8 +392,8 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(ScenePrefabResourceComp);
-  ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);
