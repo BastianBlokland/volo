@@ -141,7 +141,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
 
     if (terrain && positionDirty) {
-      trans->position.y = scene_terrain_height(terrain, trans->position);
+      scene_terrain_snap(terrain, &trans->position);
     }
 
     if (anim && loco->speedNorm < f32_epsilon) {

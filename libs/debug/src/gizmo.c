@@ -14,6 +14,7 @@
 #include "geo_query.h"
 #include "input.h"
 #include "scene_camera.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 
 #define gizmo_ring_segments 32
@@ -195,8 +196,9 @@ static bool gizmo_is_interacting_type(
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
+  ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(InputManagerComp);
 }
 
@@ -413,11 +415,12 @@ static GeoPlane gizmo_translation_plane(
 }
 
 static void gizmo_update_interaction_translation(
-    DebugGizmoComp*       comp,
-    DebugStatsGlobalComp* stats,
-    DebugGridComp*        grid,
-    const GapWindowComp*  window,
-    const GeoRay*         ray) {
+    DebugGizmoComp*         comp,
+    DebugStatsGlobalComp*   stats,
+    DebugGridComp*          grid,
+    const SceneTerrainComp* terrain,
+    const GapWindowComp*    window,
+    const GeoRay*           ray) {
   DebugGizmoEditorTranslation* data    = &comp->editor.translation;
   const DebugGizmoSection      section = comp->activeSection;
 
@@ -438,7 +441,11 @@ static void gizmo_update_interaction_translation(
   data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
-    debug_grid_snap(grid, &data->result);
+    debug_grid_snap_axis(grid, &data->result, DebugGizmoSection_X);
+    debug_grid_snap_axis(grid, &data->result, DebugGizmoSection_Z);
+    if (terrain) {
+      scene_terrain_snap(terrain, &data->result);
+    }
     debug_grid_show(grid, data->result.y);
   }
 
@@ -536,6 +543,7 @@ static void gizmo_update_interaction(
     DebugStatsGlobalComp*     stats,
     DebugGridComp*            grid,
     const InputManagerComp*   input,
+    const SceneTerrainComp*   terrain,
     const GapWindowComp*      window,
     const SceneCameraComp*    camera,
     const SceneTransformComp* cameraTrans) {
@@ -583,7 +591,7 @@ static void gizmo_update_interaction(
   if (isInteracting) {
     switch (comp->activeType) {
     case DebugGizmoType_Translation:
-      gizmo_update_interaction_translation(comp, stats, grid, window, &inputRay);
+      gizmo_update_interaction_translation(comp, stats, grid, terrain, window, &inputRay);
       break;
     case DebugGizmoType_Rotation:
       gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
@@ -621,9 +629,10 @@ ecs_system_define(DebugGizmoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp* stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  DebugGizmoComp*       gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
-  InputManagerComp*     input = ecs_view_write_t(globalItr, InputManagerComp);
+  DebugGizmoComp*         gizmo   = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugStatsGlobalComp*   stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  InputManagerComp*       input   = ecs_view_write_t(globalItr, InputManagerComp);
+  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   // Register all gizmos that where active in the last frame.
   GeoVector center = {0};
@@ -644,7 +653,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    gizmo_update_interaction(gizmo, stats, grid, input, window, camera, cameraTrans);
+    gizmo_update_interaction(gizmo, stats, grid, input, terrain, window, camera, cameraTrans);
 
     // Determine the gizmo size based on the distance from the camera to the gizmo center.
     const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));

@@ -222,3 +222,7 @@ f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector positi
   const f32 heightmapY = (position.z + g_terrainSizeHalf) * g_terrainSizeInv;
   return terrain_heightmap_sample(terrain, heightmapX, heightmapY) * g_terrainHeightScale;
 }
+
+void scene_terrain_snap(const SceneTerrainComp* terrain, GeoVector* position) {
+  position->y = scene_terrain_height(terrain, *position);
+}

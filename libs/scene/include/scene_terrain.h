@@ -16,3 +16,8 @@ bool scene_terrain_loaded(const SceneTerrainComp*);
  * Sample the terrain height at the given coordinate.
  */
 f32 scene_terrain_height(const SceneTerrainComp*, GeoVector position);
+
+/**
+ * Snap the given position to the terrain.
+ */
+void scene_terrain_snap(const SceneTerrainComp*, GeoVector* position);

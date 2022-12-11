@@ -307,7 +307,7 @@ static void setup_prefab(
   }
   GeoVector spawnPos = spec->position;
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
-    spawnPos.y = scene_terrain_height(terrain, spawnPos);
+    scene_terrain_snap(terrain, &spawnPos);
   }
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
