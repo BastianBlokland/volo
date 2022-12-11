@@ -239,6 +239,7 @@ ecs_system_define(DebugGridUpdateSys) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
     if (input_triggered_lit(input, "GridShow")) {
       grid->show ^= 1;
+      grid->height = 0; // NOTE: Does this make sense?
       grid_notify_show(stats, grid->show);
     }
     if (input_triggered_lit(input, "GridScaleUp")) {
@@ -301,7 +302,10 @@ ecs_module_init(debug_grid_module) {
       ecs_view_id(GridWriteView));
 }
 
-void debug_grid_show(DebugGridComp* comp) { comp->show = true; }
+void debug_grid_show(DebugGridComp* comp, const f32 height) {
+  comp->show   = true;
+  comp->height = height;
+}
 
 void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
   for (u8 axis = 0; axis != 3; ++axis) {

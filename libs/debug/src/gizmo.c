@@ -438,8 +438,8 @@ static void gizmo_update_interaction_translation(
   data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
-    debug_grid_show(grid);
     debug_grid_snap(grid, &data->result);
+    debug_grid_show(grid, data->result.y);
   }
 
   const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));
