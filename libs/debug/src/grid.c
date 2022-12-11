@@ -25,7 +25,8 @@ static const f32    g_gridCellSizeMax   = 4.0f;
 
 typedef struct {
   ALIGNAS(16)
-  f32 cellSize;
+  f16 cellSize;
+  f16 height;
   u32 segmentCount;
   u32 highlightInterval;
   f32 fadeFraction;
@@ -125,7 +126,8 @@ ecs_system_define(DebugGridDrawSys) {
     rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
     *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
-            .cellSize          = grid->cellSize,
+            .cellSize          = float_f32_to_f16(grid->cellSize),
+            .height            = float_f32_to_f16(grid->height),
             .segmentCount      = (u32)grid->segmentCount,
             .highlightInterval = (u32)grid->highlightInterval,
             .fadeFraction      = grid->fadeFraction,
