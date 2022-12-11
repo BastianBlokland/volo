@@ -5,7 +5,8 @@
 #include "global.glsl"
 
 struct GridData {
-  f32 cellSize;
+  f16 cellSize;
+  f16 height;
   u32 segmentCount;
   u32 highlightInterval;
   f32 fadeFraction;
@@ -24,7 +25,8 @@ bind_internal(2) out flat f32v4 out_color;
 bind_internal(3) out flat f32 out_fadeFraction;
 
 void main() {
-  const f32 invCellSize  = 1.0 / u_instance.cellSize;
+  const f32 cellSize     = f32(u_instance.cellSize);
+  const f32 invCellSize  = 1.0 / cellSize;
   const i32 centerX      = i32(u_global.camPosition.x * invCellSize);
   const i32 centerZ      = i32(u_global.camPosition.z * invCellSize);
   const i32 segments     = i32(u_instance.segmentCount);
@@ -39,15 +41,17 @@ void main() {
   // Every vertex ping-pong between -halfSegments and + halfSegments.
   const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
 
-  const f32 x      = (centerX + (isHorizontal ? b : a)) * u_instance.cellSize;
-  const f32 z      = (centerZ + (isHorizontal ? a : b)) * u_instance.cellSize;
+  const f32 x      = (centerX + (isHorizontal ? b : a)) * cellSize;
+  const f32 z      = (centerZ + (isHorizontal ? a : b)) * cellSize;
   out_worldGridPos = f32v3(x, 0, z);
-  out_gridHalfSize = segments * u_instance.cellSize * 0.5;
+  out_gridHalfSize = segments * cellSize * 0.5;
 
   const bool isHighlight =
       (abs((isHorizontal ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
   out_color = isHighlight ? c_colorHighlight : c_colorNormal;
 
-  out_vertexPosition = u_global.viewProj * f32v4(x, f32(isHighlight) * c_highlightYOffset, z, 1);
+  const f32 y = f32(u_instance.height) + f32(isHighlight) * c_highlightYOffset;
+
+  out_vertexPosition = u_global.viewProj * f32v4(x, y, z, 1);
   out_fadeFraction   = u_instance.fadeFraction;
 }

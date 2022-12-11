@@ -300,6 +300,18 @@
       ]
     },
     {
+      "name": "GridShow",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "G"
+        }
+      ]
+    },
+    {
       "name": "GridScaleUp",
       "blockers": [
         "TextInput"

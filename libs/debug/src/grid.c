@@ -14,6 +14,7 @@
 
 static const String g_tooltipShow       = string_static("Should the grid be shown?");
 static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
+static const String g_tooltipHeight     = string_static("Height to draw the grid at.");
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
 static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
@@ -24,7 +25,8 @@ static const f32    g_gridCellSizeMax   = 4.0f;
 
 typedef struct {
   ALIGNAS(16)
-  f32 cellSize;
+  f16 cellSize;
+  f16 height;
   u32 segmentCount;
   u32 highlightInterval;
   f32 fadeFraction;
@@ -37,6 +39,7 @@ ecs_comp_define(DebugGridComp) {
   EcsEntityId drawEntity;
   bool        show;
   f32         cellSize;
+  f32         height;
   f32         highlightInterval;
   f32         segmentCount;
   f32         fadeFraction;
@@ -87,7 +90,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       world,
       entity,
       DebugGridComp,
-      .show              = true,
+      .show              = false,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
       .cellSize          = 1.0f,
@@ -123,7 +126,8 @@ ecs_system_define(DebugGridDrawSys) {
     rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
     *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
-            .cellSize          = grid->cellSize,
+            .cellSize          = float_f32_to_f16(grid->cellSize),
+            .height            = float_f32_to_f16(grid->height),
             .segmentCount      = (u32)grid->segmentCount,
             .highlightInterval = (u32)grid->highlightInterval,
             .fadeFraction      = grid->fadeFraction,
@@ -131,11 +135,22 @@ ecs_system_define(DebugGridDrawSys) {
   }
 }
 
+static void grid_notify_show(DebugStatsGlobalComp* stats, const bool show) {
+  debug_stats_notify(stats, string_lit("Grid show"), fmt_write_scratch("{}", fmt_bool(show)));
+}
+
 static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSize) {
   debug_stats_notify(
       stats,
       string_lit("Grid size"),
       fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 4, .expThresholdNeg = 0)));
+}
+
+static void grid_notify_height(DebugStatsGlobalComp* stats, const f32 height) {
+  debug_stats_notify(
+      stats,
+      string_lit("Grid height"),
+      fmt_write_scratch("{}", fmt_float(height, .maxDecDigits = 4, .expThresholdNeg = 0)));
 }
 
 static void grid_panel_draw(
@@ -169,6 +184,15 @@ static void grid_panel_draw(
           .step    = 0.25f,
           .tooltip = g_tooltipCellSize)) {
     grid_notify_cell_size(stats, grid->cellSize);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Height"));
+  ui_table_next_column(canvas, &table);
+  f64 heightVal = grid->height;
+  if (ui_numbox(canvas, &heightVal, .min = -250, .max = 250, .tooltip = g_tooltipHeight)) {
+    grid->height = (f32)heightVal;
+    grid_notify_height(stats, grid->height);
   }
 
   ui_table_next_row(canvas, &table);
@@ -213,12 +237,19 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    if (input_triggered_lit(input, "GridShow")) {
+      grid->show ^= 1;
+      grid->height = 0; // NOTE: Does this make sense?
+      grid_notify_show(stats, grid->show);
+    }
     if (input_triggered_lit(input, "GridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
+      grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
     if (input_triggered_lit(input, "GridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
+      grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
   }
@@ -269,6 +300,11 @@ ecs_module_init(debug_grid_module) {
       ecs_view_id(UpdateGlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(GridWriteView));
+}
+
+void debug_grid_show(DebugGridComp* comp, const f32 height) {
+  comp->show   = true;
+  comp->height = height;
 }
 
 void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {

@@ -9,6 +9,8 @@
  */
 ecs_comp_extern(DebugGridComp);
 
+void debug_grid_show(DebugGridComp*, f32 height);
+
 /**
  * Snap the given position to the grid.
  * Output is written back to the position pointer..
