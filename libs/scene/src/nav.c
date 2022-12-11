@@ -14,10 +14,9 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const GeoVector g_sceneNavCenter  = {0, 0, 0};
-static const f32       g_sceneNavSize    = 200.0f;
-static const f32       g_sceneNavDensity = 1.25f;
-static const f32       g_sceneNavHeight  = 5.0f; // Ideally this would be based on terrain height.
+static const f32 g_sceneNavSize       = 200.0f;
+static const f32 g_sceneNavDensity    = 1.25f;
+static const f32 g_sceneNavCellHeight = 3.0f;
 
 #define path_max_cells 64
 #define path_max_queries_per_task 25
@@ -43,8 +42,8 @@ static void ecs_destruct_nav_path_comp(void* data) {
 }
 
 static void scene_nav_env_create(EcsWorld* world) {
-  GeoNavGrid* grid = geo_nav_grid_create(
-      g_alloc_heap, g_sceneNavCenter, g_sceneNavSize, g_sceneNavDensity, g_sceneNavHeight);
+  GeoNavGrid* grid =
+      geo_nav_grid_create(g_alloc_heap, g_sceneNavSize, g_sceneNavDensity, g_sceneNavCellHeight);
 
   ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);

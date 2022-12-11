@@ -881,9 +881,8 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
   return islandCount;
 }
 
-GeoNavGrid* geo_nav_grid_create(
-    Allocator* alloc, const GeoVector center, const f32 size, const f32 density, const f32 height) {
-  diag_assert(geo_vector_mag_sqr(center) <= (1e4f * 1e4f));
+GeoNavGrid*
+geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f32 height) {
   diag_assert(size > 1e-4f && size < 1e4f);
   diag_assert(density > 1e-4f && density < 1e4f);
 
@@ -897,7 +896,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellDensity      = density,
       .cellSize         = 1.0f / density,
       .cellHeight       = height,
-      .cellOffset       = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
+      .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
       .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
       .cellOccupancy    = alloc_array_t(alloc, u16, cellCountTotal * geo_nav_occupants_per_cell),
       .cellIslands      = alloc_array_t(alloc, GeoNavIsland, cellCountTotal),
