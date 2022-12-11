@@ -213,6 +213,10 @@ void scene_terrain_init(EcsWorld* world, const String heightmapId) {
       .heightmapId = string_dup(g_alloc_heap, heightmapId));
 }
 
+bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
+  return terrain && terrain->heightmapData.size;
+}
+
 f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {
   const f32 heightmapX = (position.x + g_terrainSizeHalf) * g_terrainSizeInv;
   const f32 heightmapY = (position.z + g_terrainSizeHalf) * g_terrainSizeInv;

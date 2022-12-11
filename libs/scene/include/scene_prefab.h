@@ -29,11 +29,16 @@ EcsEntityId scene_prefab_map(const ScenePrefabResourceComp*);
  * NOTE: Spawned entity can take multiple frames to initialize.
  */
 
+typedef enum {
+  ScenePrefabFlags_SnapToTerrain = 1 << 0,
+} ScenePrefabFlags;
+
 typedef struct {
-  StringHash   prefabId;
-  GeoVector    position;
-  GeoQuat      rotation;
-  SceneFaction faction;
+  StringHash       prefabId;
+  GeoVector        position;
+  GeoQuat          rotation;
+  SceneFaction     faction;
+  ScenePrefabFlags flags;
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);

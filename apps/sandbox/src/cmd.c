@@ -120,6 +120,7 @@ static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cm
               .faction  = g_cmdPlayerFaction,
               .position = cmd->spawnUnit.position,
               .rotation = geo_quat_look(geo_backward, geo_up),
+              .flags    = ScenePrefabFlags_SnapToTerrain,
           });
     }
     break;
