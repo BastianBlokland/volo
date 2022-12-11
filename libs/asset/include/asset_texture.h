@@ -19,7 +19,7 @@ typedef struct {
 
 typedef enum {
   AssetTextureType_Byte,
-  AssetTextureType_Float,
+  AssetTextureType_F32,
 } AssetTextureType;
 
 typedef enum {

@@ -44,7 +44,7 @@ usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   switch (texture->type) {
   case AssetTextureType_Byte:
     return sizeof(u8) * texture->channels;
-  case AssetTextureType_Float:
+  case AssetTextureType_F32:
     return sizeof(f32) * texture->channels;
   }
   diag_crash();

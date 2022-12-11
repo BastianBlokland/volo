@@ -32,7 +32,7 @@ static usize ftex_pixel_align(const FtexType type) { return ftex_pixel_size(type
 static AssetTextureType ftex_texture_type(const FtexType type) {
   switch (type) {
   case FtexType_32:
-    return AssetTextureType_Float;
+    return AssetTextureType_F32;
   }
   diag_crash();
 }

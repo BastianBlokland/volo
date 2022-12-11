@@ -67,7 +67,7 @@ static void ptx_datareg_init() {
 
     data_reg_enum_t(g_dataReg, AssetTextureType);
     data_reg_const_t(g_dataReg, AssetTextureType, Byte);
-    data_reg_const_t(g_dataReg, AssetTextureType, Float);
+    data_reg_const_t(g_dataReg, AssetTextureType, F32);
 
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
@@ -168,7 +168,7 @@ static usize pme_pixel_channel_size(const PtxDef* def) {
   switch (def->pixelType) {
   case AssetTextureType_Byte:
     return sizeof(u8);
-  case AssetTextureType_Float:
+  case AssetTextureType_F32:
     return sizeof(f32);
   }
   diag_crash();
@@ -193,7 +193,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
       case AssetTextureType_Byte:
         value.u8 = (u8)(sample * 255.999f);
         break;
-      case AssetTextureType_Float:
+      case AssetTextureType_F32:
         value.f32 = sample;
         break;
       }
