@@ -5,6 +5,7 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_selection.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -138,7 +139,7 @@ static void input_order(
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
-    const GeoPlane*              groundPlane,
+    const SceneTerrainComp*      terrain,
     const GeoRay*                inputRay) {
   /**
    * Order an attack when clicking an opponent unit.
@@ -156,7 +157,7 @@ static void input_order(
   /**
    * Otherwise order an move.
    */
-  const f32 rayT = geo_plane_intersect_ray(groundPlane, inputRay);
+  const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay);
   if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
     const GeoVector targetPos = geo_ray_position(inputRay, rayT);
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
@@ -171,12 +172,12 @@ static void update_camera_interact(
     InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
+    const SceneTerrainComp*      terrain,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
-  const GeoPlane  groundPlane  = {.normal = geo_up};
 
   const bool selectActive = input_triggered_lit(input, "Select");
   switch (state->selectState) {
@@ -213,12 +214,12 @@ static void update_camera_interact(
   }
 
   if (!selectActive && input_triggered_lit(input, "Order")) {
-    input_order(cmdController, collisionEnv, sel, &groundPlane, &inputRay);
+    input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
 
   if (!selectActive && input_triggered_lit(input, "SpawnUnit")) {
     const u32 count = input_modifiers(input) & InputModifier_Shift ? 25 : 1;
-    const f32 rayT  = geo_plane_intersect_ray(&groundPlane, &inputRay);
+    const f32 rayT  = scene_terrain_intersect_ray(terrain, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
       cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT), count);
     }
@@ -243,6 +244,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(SceneTerrainComp);
 }
 
 ecs_view_define(CameraView) {
@@ -260,6 +262,7 @@ ecs_system_define(InputUpdateSys) {
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
   const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
@@ -281,7 +284,8 @@ ecs_system_define(InputUpdateSys) {
     }
     if (input_active_window(input) == ecs_view_entity(itr)) {
       update_camera_movement(time, input, sel, camera, cameraTrans);
-      update_camera_interact(state, cmdController, input, collisionEnv, sel, camera, cameraTrans);
+      update_camera_interact(
+          state, cmdController, input, collisionEnv, sel, terrain, camera, cameraTrans);
     } else {
       state->selectState = InputSelectState_None;
     }
