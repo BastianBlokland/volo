@@ -196,8 +196,12 @@ static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
 }
 
 static GeoBox nav_cell_box(const GeoNavGrid* grid, const GeoNavCell cell) {
-  const GeoVector center = nav_cell_pos(grid, cell);
-  return geo_box_from_center(center, geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize));
+  const GeoVector center       = nav_cell_pos(grid, cell);
+  const f32       cellHalfSize = grid->cellSize * 0.5f;
+  return (GeoBox){
+      .min = geo_vector_sub(center, geo_vector(cellHalfSize, 0, cellHalfSize)),
+      .max = geo_vector_add(center, geo_vector(cellHalfSize, grid->cellHeight, cellHalfSize)),
+  };
 }
 
 typedef enum {
