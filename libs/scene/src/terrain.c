@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "geo_plane.h"
 #include "log_logger.h"
+#include "scene_nav.h"
 #include "scene_terrain.h"
 
 static const f32 g_terrainSize        = 200.0f;
@@ -35,11 +36,15 @@ static void ecs_destruct_terrain(void* data) {
 }
 
 ecs_view_define(GlobalLoadView) {
-  ecs_access_write(SceneTerrainComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(SceneNavEnvComp);
+  ecs_access_write(SceneTerrainComp);
 }
 
-ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
+ecs_view_define(GlobalUnloadView) {
+  ecs_access_write(SceneNavEnvComp);
+  ecs_access_write(SceneTerrainComp);
+}
 
 ecs_view_define(TextureReadView) { ecs_access_read(AssetTextureComp); }
 
@@ -52,29 +57,29 @@ static void terrain_heightmap_unsupported(SceneTerrainComp* terrain, const Strin
   terrain->flags |= Terrain_HeightmapUnsupported;
 }
 
-static void terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTextureComp* tex) {
+static bool terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTextureComp* tex) {
   diag_assert_msg(!terrain->heightmapData.size, "Heightmap already loaded");
 
   if (tex->flags & AssetTextureFlags_Srgb) {
     terrain_heightmap_unsupported(terrain, string_lit("Srgb"));
-    return;
+    return false;
   }
   if (tex->channels != AssetTextureChannels_One) {
     terrain_heightmap_unsupported(terrain, string_lit("More then one channel"));
-    return;
+    return false;
   }
   if (tex->width != tex->height) {
     terrain_heightmap_unsupported(terrain, string_lit("Not square"));
-    return;
+    return false;
   }
   if (tex->layers > 1) {
     terrain_heightmap_unsupported(terrain, string_lit("Layer count greater than 1"));
-    return;
+    return false;
   }
   if (tex->type != AssetTextureType_U16) {
     // TODO: Support other types.
     terrain_heightmap_unsupported(terrain, string_lit("Non-u16 format"));
-    return;
+    return false;
   }
   terrain->heightmapData = asset_texture_data(tex);
   terrain->heightmapSize = tex->width;
@@ -85,6 +90,8 @@ static void terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTexture
       log_param("id", fmt_text(terrain->heightmapId)),
       log_param("type", fmt_text(asset_texture_type_str(terrain->heightmapType))),
       log_param("size", fmt_int(terrain->heightmapSize)));
+
+  return true;
 }
 
 static void terrain_heightmap_unload(SceneTerrainComp* terrain) {
@@ -135,8 +142,9 @@ ecs_system_define(SceneTerrainLoadSys) {
   if (!globalItr) {
     return;
   }
-  SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
   AssetManagerComp* assets  = ecs_view_write_t(globalItr, AssetManagerComp);
+  SceneNavEnvComp*  nav     = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
 
   if (!terrain->heightmapEntity) {
     terrain->heightmapEntity = asset_lookup(world, assets, terrain->heightmapId);
@@ -155,7 +163,9 @@ ecs_system_define(SceneTerrainLoadSys) {
     EcsView*     textureView = ecs_world_view_t(world, TextureReadView);
     EcsIterator* textureItr  = ecs_view_maybe_at(textureView, terrain->heightmapEntity);
     if (textureItr) {
-      terrain_heightmap_load(terrain, ecs_view_read_t(textureItr, AssetTextureComp));
+      if (terrain_heightmap_load(terrain, ecs_view_read_t(textureItr, AssetTextureComp))) {
+        scene_nav_terrain_update(nav, terrain);
+      }
     }
   }
 }
@@ -170,6 +180,7 @@ ecs_system_define(SceneTerrainUnloadSys) {
   if (!terrain->heightmapEntity) {
     return; // Heightmap entity not yet looked up.
   }
+  SceneNavEnvComp* nav = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
   const bool isLoaded   = ecs_world_has_t(world, terrain->heightmapEntity, AssetLoadedComp);
   const bool isFailed   = ecs_world_has_t(world, terrain->heightmapEntity, AssetFailedComp);
@@ -183,6 +194,7 @@ ecs_system_define(SceneTerrainUnloadSys) {
 
     asset_release(world, terrain->heightmapEntity);
     terrain_heightmap_unload(terrain);
+    scene_nav_terrain_clear(nav);
 
     terrain->flags &= ~Terrain_HeightmapAcquired;
     terrain->flags |= Terrain_HeightmapUnloading;
