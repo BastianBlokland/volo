@@ -9,71 +9,74 @@
 #include "repo_internal.h"
 
 /**
- * Float texture - Simple collection of 32 bit IEEE-754 floats without any meta-data.
+ * Height texture - Collection of height values without any meta-data.
+ * Supported types:
+ * - r32 (32 bit IEEE-754 signed floats)
+ *
  * This format is commonly used for heightmaps (for example by WorldMachine or Gaea).
  * Because there is no meta-data the pixel size is assumed to be a square power-of-two.
- * NOTE: The floats are assumed to have been written in the same endianness as the host.
+ * NOTE: The values are assumed to have been written in the same endianness as the host.
  */
 
 typedef enum {
-  FtexType_32, // 32 bit floats.
-} FtexType;
+  HtexType_32, // 32 bit floats.
+} HtexType;
 
-static usize ftex_pixel_size(const FtexType type) {
+static usize htex_pixel_size(const HtexType type) {
   switch (type) {
-  case FtexType_32:
+  case HtexType_32:
     return sizeof(f32);
   }
   diag_crash();
 }
 
-static usize ftex_pixel_align(const FtexType type) { return ftex_pixel_size(type); }
+static usize htex_pixel_align(const HtexType type) { return htex_pixel_size(type); }
 
-static AssetTextureType ftex_texture_type(const FtexType type) {
+static AssetTextureType htex_texture_type(const HtexType type) {
   switch (type) {
-  case FtexType_32:
+  case HtexType_32:
     return AssetTextureType_F32;
   }
   diag_crash();
 }
 
 typedef enum {
-  FtexError_None = 0,
-  FtexError_Corrupt,
-  FtexError_NonPow2,
+  HtexError_None = 0,
+  HtexError_Corrupt,
+  HtexError_NonPow2,
 
-  FtexError_Count,
-} FtexError;
+  HtexError_Count,
+} HtexError;
 
-static String ftex_error_str(const FtexError err) {
+static String htex_error_str(const HtexError err) {
   static const String g_msgs[] = {
       string_static("None"),
-      string_static("Corrupt float texture data"),
+      string_static("Corrupt height texture data"),
       string_static("Non power-of-two size"),
   };
-  ASSERT(array_elems(g_msgs) == FtexError_Count, "Incorrect number of error messages");
+  ASSERT(array_elems(g_msgs) == HtexError_Count, "Incorrect number of error messages");
   return g_msgs[err];
 }
 
-static void ftex_load_fail(EcsWorld* world, const EcsEntityId e, const FtexError err) {
-  log_e("Failed to parse float texture", log_param("error", fmt_text(ftex_error_str(err))));
+static void htex_load_fail(EcsWorld* world, const EcsEntityId e, const HtexError err) {
+  log_e("Failed to parse height texture", log_param("error", fmt_text(htex_error_str(err))));
   ecs_world_add_empty_t(world, e, AssetFailedComp);
 }
 
-static void ftex_load(EcsWorld* world, const EcsEntityId entity, String data, const FtexType type) {
-  const usize pixelSize = ftex_pixel_size(type);
+static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, const HtexType type) {
+  const usize pixelSize = htex_pixel_size(type);
   if (data.size % pixelSize) {
-    ftex_load_fail(world, entity, FtexError_Corrupt);
+    htex_load_fail(world, entity, HtexError_Corrupt);
     return;
   }
   const usize pixelCount = data.size / pixelSize;
   const u32   size       = (u32)math_sqrt_f64(pixelCount);
   if (size * size != pixelCount) {
-    ftex_load_fail(world, entity, FtexError_NonPow2);
+    htex_load_fail(world, entity, HtexError_NonPow2);
     return;
   }
 
-  Mem outputMem = alloc_alloc(g_alloc_heap, pixelSize * pixelCount, ftex_pixel_align(type));
+  Mem outputMem = alloc_alloc(g_alloc_heap, pixelSize * pixelCount, htex_pixel_align(type));
 
   /**
    * Read the pixels into the output memory.
@@ -86,7 +89,7 @@ static void ftex_load(EcsWorld* world, const EcsEntityId entity, String data, co
       const Mem   outputPixelMem = mem_slice(outputMem, outputIndex * pixelSize, pixelSize);
 
       // Copy the pixel data.
-      // NOTE: Assumes IEEE-754 floats with the same endianess as the host.
+      // NOTE: Assumes values written in the same endianess as the host.
       mem_cpy(outputPixelMem, mem_slice(data, 0, pixelSize));
 
       // Advance input data.
@@ -98,7 +101,7 @@ static void ftex_load(EcsWorld* world, const EcsEntityId entity, String data, co
       world,
       entity,
       AssetTextureComp,
-      .type      = ftex_texture_type(type),
+      .type      = htex_texture_type(type),
       .channels  = AssetTextureChannels_One,
       .width     = size,
       .height    = size,
@@ -108,6 +111,6 @@ static void ftex_load(EcsWorld* world, const EcsEntityId entity, String data, co
 
 void asset_load_r32(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
-  ftex_load(world, entity, src->data, FtexType_32);
+  htex_load(world, entity, src->data, HtexType_32);
   asset_repo_source_close(src);
 }
