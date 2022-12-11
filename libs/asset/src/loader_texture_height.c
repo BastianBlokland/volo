@@ -11,6 +11,7 @@
 /**
  * Height texture - Collection of height values without any meta-data.
  * Supported types:
+ * - r16 (16 bit unsigned integers)
  * - r32 (32 bit IEEE-754 signed floats)
  *
  * This format is commonly used for heightmaps (for example by WorldMachine or Gaea).
@@ -19,12 +20,15 @@
  */
 
 typedef enum {
-  HtexType_32, // 32 bit floats.
+  HtexType_U16, // 16 bit unsigned integers.
+  HtexType_F32, // 32 bit IEEE-754 signed floats.
 } HtexType;
 
 static usize htex_pixel_size(const HtexType type) {
   switch (type) {
-  case HtexType_32:
+  case HtexType_U16:
+    return sizeof(u16);
+  case HtexType_F32:
     return sizeof(f32);
   }
   diag_crash();
@@ -34,7 +38,9 @@ static usize htex_pixel_align(const HtexType type) { return htex_pixel_size(type
 
 static AssetTextureType htex_texture_type(const HtexType type) {
   switch (type) {
-  case HtexType_32:
+  case HtexType_U16:
+    return AssetTextureType_U16;
+  case HtexType_F32:
     return AssetTextureType_F32;
   }
   diag_crash();
@@ -109,8 +115,14 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
+void asset_load_r16(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+  htex_load(world, entity, src->data, HtexType_U16);
+  asset_repo_source_close(src);
+}
+
 void asset_load_r32(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
-  htex_load(world, entity, src->data, HtexType_32);
+  htex_load(world, entity, src->data, HtexType_F32);
   asset_repo_source_close(src);
 }
