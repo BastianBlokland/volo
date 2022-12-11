@@ -14,6 +14,7 @@
 
 static const String g_tooltipShow       = string_static("Should the grid be shown?");
 static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
+static const String g_tooltipHeight     = string_static("Height to draw the grid at.");
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
 static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
@@ -37,6 +38,7 @@ ecs_comp_define(DebugGridComp) {
   EcsEntityId drawEntity;
   bool        show;
   f32         cellSize;
+  f32         height;
   f32         highlightInterval;
   f32         segmentCount;
   f32         fadeFraction;
@@ -138,6 +140,13 @@ static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSiz
       fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 4, .expThresholdNeg = 0)));
 }
 
+static void grid_notify_height(DebugStatsGlobalComp* stats, const f32 height) {
+  debug_stats_notify(
+      stats,
+      string_lit("Grid height"),
+      fmt_write_scratch("{}", fmt_float(height, .maxDecDigits = 4, .expThresholdNeg = 0)));
+}
+
 static void grid_panel_draw(
     UiCanvasComp*         canvas,
     DebugStatsGlobalComp* stats,
@@ -169,6 +178,15 @@ static void grid_panel_draw(
           .step    = 0.25f,
           .tooltip = g_tooltipCellSize)) {
     grid_notify_cell_size(stats, grid->cellSize);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Height"));
+  ui_table_next_column(canvas, &table);
+  f64 heightVal = grid->height;
+  if (ui_numbox(canvas, &heightVal, .min = -250, .max = 250, .tooltip = g_tooltipHeight)) {
+    grid->height = (f32)heightVal;
+    grid_notify_height(stats, grid->height);
   }
 
   ui_table_next_row(canvas, &table);
