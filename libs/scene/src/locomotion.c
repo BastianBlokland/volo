@@ -59,7 +59,7 @@ static bool scene_loco_move(
   if (!(loco->flags & SceneLocomotion_Moving)) {
     return false;
   }
-  const GeoVector toTarget = geo_vector_sub(loco->targetPos, trans->position);
+  const GeoVector toTarget = geo_vector_xz(geo_vector_sub(loco->targetPos, trans->position));
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
     loco->flags &= ~SceneLocomotion_Moving;
