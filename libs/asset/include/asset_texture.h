@@ -29,6 +29,8 @@ typedef enum {
   AssetTextureType_U8,
   AssetTextureType_U16,
   AssetTextureType_F32,
+
+  AssetTextureType_Count,
 } AssetTextureType;
 
 typedef enum {
@@ -58,6 +60,8 @@ ecs_comp_extern_public(AssetTextureComp) {
   };
   u32 width, height, layers;
 };
+
+String asset_texture_type_str(AssetTextureType);
 
 usize asset_texture_pixel_size(const AssetTextureComp*);
 Mem   asset_texture_data(const AssetTextureComp*);

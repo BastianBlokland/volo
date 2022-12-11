@@ -40,6 +40,16 @@ ecs_module_init(asset_texture_module) {
   ecs_register_system(UnloadTextureAssetSys, ecs_view_id(UnloadView));
 }
 
+String asset_texture_type_str(const AssetTextureType type) {
+  static const String g_names[] = {
+      string_static("U8"),
+      string_static("U16"),
+      string_static("F32"),
+  };
+  ASSERT(array_elems(g_names) == AssetTextureType_Count, "Incorrect number of names");
+  return g_names[type];
+}
+
 usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   switch (texture->type) {
   case AssetTextureType_U8:
@@ -48,6 +58,8 @@ usize asset_texture_pixel_size(const AssetTextureComp* texture) {
     return sizeof(u16) * texture->channels;
   case AssetTextureType_F32:
     return sizeof(f32) * texture->channels;
+  case AssetTextureType_Count:
+    UNREACHABLE
   }
   diag_crash();
 }

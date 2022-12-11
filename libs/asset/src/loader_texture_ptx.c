@@ -173,6 +173,8 @@ static usize pme_pixel_channel_size(const PtxDef* def) {
     return sizeof(u16);
   case AssetTextureType_F32:
     return sizeof(f32);
+  case AssetTextureType_Count:
+    UNREACHABLE
   }
   diag_crash();
 }
@@ -203,6 +205,8 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
       case AssetTextureType_F32:
         value.f32 = sample;
         break;
+      case AssetTextureType_Count:
+        UNREACHABLE
       }
 
       const Mem pixelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
