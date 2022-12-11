@@ -3,4 +3,4 @@
 
 ecs_comp_extern(SceneTerrainComp);
 
-void scene_terrain_init(EcsWorld*, String terrainGraphic);
+void scene_terrain_init(EcsWorld*, String heightmapId);
