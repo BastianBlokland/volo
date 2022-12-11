@@ -206,7 +206,7 @@ ecs_view_define(GlobalRenderView) {
 }
 
 ecs_view_define(CameraView) {
-  ecs_access_maybe_read(DebugGridComp);
+  ecs_access_maybe_write(DebugGridComp);
   ecs_access_read(GapWindowComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
@@ -415,8 +415,8 @@ static GeoPlane gizmo_translation_plane(
 static void gizmo_update_interaction_translation(
     DebugGizmoComp*       comp,
     DebugStatsGlobalComp* stats,
+    DebugGridComp*        grid,
     const GapWindowComp*  window,
-    const DebugGridComp*  grid,
     const GeoRay*         ray) {
   DebugGizmoEditorTranslation* data    = &comp->editor.translation;
   const DebugGizmoSection      section = comp->activeSection;
@@ -438,7 +438,8 @@ static void gizmo_update_interaction_translation(
   data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
-    debug_grid_snap_axis(grid, &data->result, (u8)section);
+    debug_grid_show(grid);
+    debug_grid_snap(grid, &data->result);
   }
 
   const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));
@@ -533,9 +534,9 @@ static void gizmo_update_interaction_scale_uniform(
 static void gizmo_update_interaction(
     DebugGizmoComp*           comp,
     DebugStatsGlobalComp*     stats,
+    DebugGridComp*            grid,
     const InputManagerComp*   input,
     const GapWindowComp*      window,
-    const DebugGridComp*      grid,
     const SceneCameraComp*    camera,
     const SceneTransformComp* cameraTrans) {
 
@@ -582,7 +583,7 @@ static void gizmo_update_interaction(
   if (isInteracting) {
     switch (comp->activeType) {
     case DebugGizmoType_Translation:
-      gizmo_update_interaction_translation(comp, stats, window, grid, &inputRay);
+      gizmo_update_interaction_translation(comp, stats, grid, window, &inputRay);
       break;
     case DebugGizmoType_Rotation:
       gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
@@ -638,12 +639,12 @@ ecs_system_define(DebugGizmoUpdateSys) {
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   if (ecs_view_contains(cameraView, input_active_window(input))) {
     EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(input));
+    DebugGridComp*            grid        = ecs_view_write_t(camItr, DebugGridComp);
     const GapWindowComp*      window      = ecs_view_read_t(camItr, GapWindowComp);
-    const DebugGridComp*      grid        = ecs_view_read_t(camItr, DebugGridComp);
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    gizmo_update_interaction(gizmo, stats, input, window, grid, camera, cameraTrans);
+    gizmo_update_interaction(gizmo, stats, grid, input, window, camera, cameraTrans);
 
     // Determine the gizmo size based on the distance from the camera to the gizmo center.
     const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));

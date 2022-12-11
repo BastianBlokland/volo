@@ -301,6 +301,8 @@ ecs_module_init(debug_grid_module) {
       ecs_view_id(GridWriteView));
 }
 
+void debug_grid_show(DebugGridComp* comp) { comp->show = true; }
+
 void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
   for (u8 axis = 0; axis != 3; ++axis) {
     debug_grid_snap_axis(comp, position, axis);
