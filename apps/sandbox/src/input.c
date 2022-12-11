@@ -157,11 +157,13 @@ static void input_order(
   /**
    * Otherwise order an move.
    */
-  const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay);
-  if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-    const GeoVector targetPos = geo_ray_position(inputRay, rayT);
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-      cmd_push_move(cmdController, *e, targetPos);
+  if (terrain) {
+    const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay);
+    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
+      const GeoVector targetPos = geo_ray_position(inputRay, rayT);
+      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+        cmd_push_move(cmdController, *e, targetPos);
+      }
     }
   }
 }
@@ -217,7 +219,7 @@ static void update_camera_interact(
     input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
 
-  if (!selectActive && input_triggered_lit(input, "SpawnUnit")) {
+  if (!selectActive && terrain && input_triggered_lit(input, "SpawnUnit")) {
     const u32 count = input_modifiers(input) & InputModifier_Shift ? 25 : 1;
     const f32 rayT  = scene_terrain_intersect_ray(terrain, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
@@ -244,7 +246,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
-  ecs_access_write(SceneTerrainComp);
+  ecs_access_maybe_read(SceneTerrainComp);
 }
 
 ecs_view_define(CameraView) {
