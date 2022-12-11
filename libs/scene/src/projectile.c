@@ -6,6 +6,7 @@
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_projectile.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -18,6 +19,7 @@ ecs_comp_define_public(SceneProjectileComp);
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_maybe_read(SceneTerrainComp);
 }
 
 ecs_view_define(ProjectileView) {
@@ -152,6 +154,7 @@ ecs_system_define(SceneProjectileSys) {
     return;
   }
   const SceneCollisionEnvComp* colEnv   = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTerrainComp*      terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time     = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSec = scene_delta_seconds(time);
 
@@ -199,15 +202,17 @@ ecs_system_define(SceneProjectileSys) {
       continue;
     }
 
-    // Test collision with the ground.
-    const GeoPlane groundPlane = {.normal = geo_up};
-    const f32      groundHitT  = geo_plane_intersect_ray(&groundPlane, &ray);
-    if (groundHitT >= 0 && groundHitT <= deltaDist) {
-      const EcsEntityId hitEntity = 0;
-      const GeoVector   hitPos    = geo_ray_position(&ray, groundHitT);
-      trans->position             = hitPos;
-      projectile_hit(world, colEnv, &filter, entity, proj, hitPos, groundPlane.normal, hitEntity);
-      continue;
+    // Test collision with the terrain.
+    if (terrain) {
+      const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray);
+      if (terrainHitT >= 0 && terrainHitT <= deltaDist) {
+        const EcsEntityId hitEntity      = 0;
+        const GeoVector   hitPos         = geo_ray_position(&ray, terrainHitT);
+        trans->position                  = hitPos;
+        const GeoVector terrainHitNormal = geo_up; // TODO: Compute proper terrain normal.
+        projectile_hit(world, colEnv, &filter, entity, proj, hitPos, terrainHitNormal, hitEntity);
+        continue;
+      }
     }
 
     // Update position.
