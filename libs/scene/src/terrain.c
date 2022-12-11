@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "geo_plane.h"
 #include "log_logger.h"
 #include "scene_terrain.h"
 
@@ -215,6 +216,23 @@ void scene_terrain_init(EcsWorld* world, const String heightmapId) {
 
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
   return terrain && terrain->heightmapData.size;
+}
+
+f32 scene_terrain_intersect_ray(const SceneTerrainComp* terrain, const GeoRay* ray) {
+  /**
+   * Approximate terrain ray-casting with two plane intersections.
+   * More precise intersections could be implemented by ray-marching the heightmap or generating a
+   * triangle mesh from the heightmap.
+   */
+  const GeoPlane planeZero  = {.normal = geo_up};
+  const f32      planeZeroT = geo_plane_intersect_ray(&planeZero, ray);
+  if (planeZeroT < 0) {
+    return -1.0f;
+  }
+  const GeoVector geoPlanePos   = geo_ray_position(ray, planeZeroT);
+  const f32       terrainHeight = scene_terrain_height(terrain, geoPlanePos);
+  const GeoPlane  planeTerrain  = {.normal = geo_up, .distance = terrainHeight};
+  return geo_plane_intersect_ray(&planeTerrain, ray);
 }
 
 f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {

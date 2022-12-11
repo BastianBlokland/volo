@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_ray.h"
 #include "geo_vector.h"
 
 ecs_comp_extern(SceneTerrainComp);
@@ -11,6 +12,13 @@ void scene_terrain_init(EcsWorld*, String heightmapId);
  * NOTE: Returns false if a null terrain is provided.
  */
 bool scene_terrain_loaded(const SceneTerrainComp*);
+
+/**
+ * Compute the intersection of the given ray with the terrain.
+ * Returns the time along the ray at which the intersection occurred or negative if no intersection
+ * occurred.
+ */
+f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*);
 
 /**
  * Sample the terrain height at the given coordinate.
