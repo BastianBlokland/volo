@@ -90,7 +90,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       world,
       entity,
       DebugGridComp,
-      .show              = true,
+      .show              = false,
       .drawEntity        = drawEntity,
       .segmentCount      = 750,
       .cellSize          = 1.0f,
@@ -235,10 +235,12 @@ ecs_system_define(DebugGridUpdateSys) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
     if (input_triggered_lit(input, "GridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
+      grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
     if (input_triggered_lit(input, "GridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
+      grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
   }
