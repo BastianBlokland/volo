@@ -77,7 +77,7 @@ spec(nav) {
     check(!geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 1}));
   }
 
-  it("blockers below the center are ignored") {
+  it("ignores blockers below the grid") {
     const GeoNavCell cell = {.x = 2, .y = 2};
     check(!geo_nav_blocked(grid, cell));
 
@@ -88,7 +88,7 @@ spec(nav) {
     check(!geo_nav_blocked(grid, cell));
   }
 
-  it("blockers above the cell height are ignored") {
+  it("ignores blockers above the cell height") {
     const GeoNavCell cell = {.x = 2, .y = 2};
     check(!geo_nav_blocked(grid, cell));
 
@@ -96,6 +96,26 @@ spec(nav) {
     const GeoBox    box = geo_box_from_sphere(pos, 0.25f);
     geo_nav_blocker_add_box(grid, 42, &box);
 
+    check(!geo_nav_blocked(grid, cell));
+  }
+
+  it("blocks cells if the y position is too hight") {
+    const GeoNavCell cell = {.x = 2, .y = 2};
+    check(!geo_nav_blocked(grid, cell));
+
+    geo_nav_y_update(grid, cell, 1.0f);
+
+    check(geo_nav_blocked(grid, cell));
+  }
+
+  it("unblocks cells if the y position is lowered again") {
+    const GeoNavCell cell = {.x = 2, .y = 2};
+    check(!geo_nav_blocked(grid, cell));
+
+    geo_nav_y_update(grid, cell, 1.0f);
+    check(geo_nav_blocked(grid, cell));
+
+    geo_nav_y_update(grid, cell, 0.4f);
     check(!geo_nav_blocked(grid, cell));
   }
 
