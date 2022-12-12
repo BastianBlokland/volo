@@ -38,6 +38,7 @@ add_library(lib_rend STATIC
   src/resource.c
   src/settings.c
   src/stats.c
+  src/terrain.c
   src/view.c
   )
 target_include_directories(lib_rend PUBLIC include)

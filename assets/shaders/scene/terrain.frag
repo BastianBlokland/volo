@@ -15,8 +15,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic(1) uniform sampler2D u_texHeightMap;
 bind_graphic(2) uniform sampler2D u_texDiffuse;
 
-bind_internal(0) in flat f32v4 in_rotation;
-bind_internal(1) in f32v2 in_texcoord;
+bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v4 out_color;
 
@@ -38,9 +37,7 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 scale) {
 void main() {
   const f32v4 diffuse = texture(u_texDiffuse, in_texcoord);
   const f32v3 viewDir = quat_rotate(u_global.camRotation, f32v3(0, 0, 1));
-
-  const f32v3 localNormal = heightmap_normal(in_texcoord, s_heightMapScale);
-  const f32v3 normal      = quat_rotate(in_rotation, localNormal);
+  const f32v3 normal  = heightmap_normal(in_texcoord, s_heightMapScale);
 
   const Shading shading = light_shade_blingphong(normal, viewDir);
 

@@ -64,16 +64,6 @@ static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
 
-static void app_scene_create_terrain(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneRenderableComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/terrain.gra")));
-  ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Terrain);
-}
-
 static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   const StringHash wallPrefabId = string_hash_lit("Wall");
 
@@ -181,11 +171,8 @@ ecs_system_define(AppUpdateSys) {
   // Create the scene.
   if (!app->sceneCreated) {
     app_scene_create_sky(world, assets);
-    app_scene_create_terrain(world, assets);
     app_scene_create_walls(world, app->rng);
     app_scene_create_units(world);
-    (void)app_scene_create_walls;
-    (void)app_scene_create_units;
     app->sceneCreated = true;
   }
 

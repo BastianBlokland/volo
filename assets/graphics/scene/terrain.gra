@@ -1,14 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/scene/terrain.vert.spv",
-      "overrides": [
-        {
-          "name": "heightMapScale",
-          "binding": 0,
-          "value": 3
-        }
-      ]
+      "shaderId": "shaders/scene/terrain.vert.spv"
     },
     {
       "shaderId": "shaders/scene/terrain.frag.spv",
