@@ -7,7 +7,8 @@ typedef struct {
   ALIGNAS(16)
   f32 size;
   f32 heightScale;
-  f32 patchScale;
+  f32 patchPosScale;
+  f32 patchUvScale;
 } RendTerrainData;
 
 ASSERT(sizeof(RendTerrainData) == 16, "Size needs to match the size defined in glsl");
@@ -16,6 +17,8 @@ typedef struct {
   ALIGNAS(16)
   f32 posX;
   f32 posZ;
+  f32 texU;
+  f32 texV;
 } RendTerrainPatchData;
 
 ASSERT(sizeof(RendTerrainPatchData) == 16, "Size needs to match the size defined in glsl");
@@ -36,9 +39,10 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   // Set global terrain meta.
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
-      .size        = scene_terrain_size(terrain),
-      .heightScale = scene_terrain_height_scale(terrain),
-      .patchScale  = scene_terrain_size(terrain),
+      .size          = scene_terrain_size(terrain),
+      .heightScale   = scene_terrain_height_scale(terrain),
+      .patchPosScale = scene_terrain_size(terrain),
+      .patchUvScale  = 1.0f,
   };
 
   // Clear previously added instances.
@@ -50,6 +54,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   *rend_draw_add_instance_t(draw, RendTerrainPatchData, tags, bounds) = (RendTerrainPatchData){
       .posX = 0,
       .posZ = 0,
+      .texU = 0,
+      .texV = 0,
   };
 }
 

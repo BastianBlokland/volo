@@ -8,11 +8,13 @@
 struct TerrainData {
   f32 size;
   f32 heightScale;
-  f32 patchScale;
+  f32 patchPosScale;
+  f32 patchUvScale;
 };
 
 struct PatchData {
   f32 posX, posZ;
+  f32 texU, texV;
 };
 
 const u32 c_maxPatches = 512;
@@ -36,12 +38,13 @@ void main() {
   const Vertex    vert      = vert_unpack(u_vertices[in_vertexIndex]);
   const PatchData patchData = u_patches[in_instanceIndex];
 
-  const f32   height   = heightmap_sample(vert.texcoord, u_terrain.heightScale);
-  const f32v3 localPos = vert.position * u_terrain.patchScale;
+  const f32v2 uv = f32v2(patchData.texU, patchData.texV) + vert.texcoord * u_terrain.patchUvScale;
+  const f32   height   = heightmap_sample(uv, u_terrain.heightScale);
+  const f32v3 localPos = vert.position * u_terrain.patchPosScale;
   const f32v3 patchPos = f32v3(patchData.posX, height, patchData.posZ);
 
   out_vertexPosition = u_global.viewProj * f32v4(patchPos + localPos, 1);
   out_size           = u_terrain.size;
   out_heightScale    = u_terrain.heightScale;
-  out_texcoord       = vert.texcoord;
+  out_texcoord       = uv;
 }
