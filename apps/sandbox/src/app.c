@@ -268,7 +268,10 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_init(world, string_lit("global/sandbox.imp"));
   scene_prefab_init(world, string_lit("global/sandbox.pfb"));
   scene_weapon_init(world, string_lit("global/sandbox.wea"));
-  scene_terrain_init(world, string_lit("external/terrain/terrain_2_height.r16"));
+  scene_terrain_init(
+      world,
+      string_lit("graphics/scene/terrain.gra"),
+      string_lit("external/terrain/terrain_2_height.r16"));
 
   app_window_create(world);
 }

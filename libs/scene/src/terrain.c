@@ -23,6 +23,9 @@ ecs_comp_define(SceneTerrainComp) {
   TerrainFlags flags;
   u32          version;
 
+  String      graphicId;
+  EcsEntityId graphicEntity;
+
   String           heightmapId;
   EcsEntityId      heightmapEntity;
   Mem              heightmapData;
@@ -32,6 +35,7 @@ ecs_comp_define(SceneTerrainComp) {
 
 static void ecs_destruct_terrain(void* data) {
   SceneTerrainComp* comp = data;
+  string_free(g_alloc_heap, comp->graphicId);
   string_free(g_alloc_heap, comp->heightmapId);
 }
 
@@ -143,6 +147,9 @@ ecs_system_define(SceneTerrainLoadSys) {
   AssetManagerComp* assets  = ecs_view_write_t(globalItr, AssetManagerComp);
   SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
 
+  if (!terrain->graphicEntity) {
+    terrain->graphicEntity = asset_lookup(world, assets, terrain->graphicId);
+  }
   if (!terrain->heightmapEntity) {
     terrain->heightmapEntity = asset_lookup(world, assets, terrain->heightmapId);
   }
@@ -209,13 +216,14 @@ ecs_module_init(scene_terrain_module) {
   ecs_register_system(SceneTerrainUnloadSys, ecs_view_id(GlobalUnloadView));
 }
 
-void scene_terrain_init(EcsWorld* world, const String heightmapId) {
+void scene_terrain_init(EcsWorld* world, const String graphicId, const String heightmapId) {
   diag_assert_msg(heightmapId.size, "Invalid terrain heightmapId");
 
   ecs_world_add_t(
       world,
       ecs_world_global(world),
       SceneTerrainComp,
+      .graphicId   = string_dup(g_alloc_heap, graphicId),
       .heightmapId = string_dup(g_alloc_heap, heightmapId));
 }
 
@@ -224,6 +232,20 @@ bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
 }
 
 u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
+
+EcsEntityId scene_terrain_graphic(const SceneTerrainComp* terrain) {
+  return terrain->graphicEntity;
+}
+
+f32 scene_terrain_size(const SceneTerrainComp* terrain) {
+  (void)terrain;
+  return g_terrainSize;
+}
+
+f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) {
+  (void)terrain;
+  return g_terrainHeightScale;
+}
 
 f32 scene_terrain_intersect_ray(const SceneTerrainComp* terrain, const GeoRay* ray) {
   /**

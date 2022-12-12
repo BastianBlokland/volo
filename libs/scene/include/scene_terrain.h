@@ -1,11 +1,11 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_ray.h"
-#include "geo_vector.h"
 
 ecs_comp_extern(SceneTerrainComp);
 
-void scene_terrain_init(EcsWorld*, String heightmapId);
+void scene_terrain_init(EcsWorld*, String graphicId, String heightmapId);
 
 /**
  * Check if the terrain is loaded.
@@ -18,6 +18,10 @@ bool scene_terrain_loaded(const SceneTerrainComp*);
  * Version is incremented when the terrain is updated and can be used to invalidate cached data.
  */
 u32 scene_terrain_version(const SceneTerrainComp*);
+
+EcsEntityId scene_terrain_graphic(const SceneTerrainComp*);
+f32         scene_terrain_size(const SceneTerrainComp*);
+f32         scene_terrain_height_scale(const SceneTerrainComp*);
 
 /**
  * Compute the intersection of the given ray with the terrain.
