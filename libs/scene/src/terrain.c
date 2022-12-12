@@ -22,6 +22,7 @@ typedef enum {
 
 ecs_comp_define(SceneTerrainComp) {
   TerrainFlags flags;
+  u32          version;
 
   String           heightmapId;
   EcsEntityId      heightmapEntity;
@@ -81,6 +82,7 @@ static bool terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTexture
     terrain_heightmap_unsupported(terrain, string_lit("Non-u16 format"));
     return false;
   }
+  ++terrain->version;
   terrain->heightmapData = asset_texture_data(tex);
   terrain->heightmapSize = tex->width;
   terrain->heightmapType = tex->type;
@@ -95,9 +97,10 @@ static bool terrain_heightmap_load(SceneTerrainComp* terrain, const AssetTexture
 }
 
 static void terrain_heightmap_unload(SceneTerrainComp* terrain) {
+  ++terrain->version;
+  terrain->flags &= ~Terrain_HeightmapUnsupported;
   terrain->heightmapData = mem_empty;
   terrain->heightmapSize = 0;
-  terrain->flags &= ~Terrain_HeightmapUnsupported;
 
   log_d("Terrain heightmap unloaded", log_param("id", fmt_text(terrain->heightmapId)));
 }
@@ -229,6 +232,8 @@ void scene_terrain_init(EcsWorld* world, const String heightmapId) {
 bool scene_terrain_loaded(const SceneTerrainComp* terrain) {
   return terrain && terrain->heightmapData.size;
 }
+
+u32 scene_terrain_version(const SceneTerrainComp* terrain) { return terrain->version; }
 
 f32 scene_terrain_intersect_ray(const SceneTerrainComp* terrain, const GeoRay* ray) {
   /**

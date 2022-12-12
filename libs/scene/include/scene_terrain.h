@@ -14,6 +14,12 @@ void scene_terrain_init(EcsWorld*, String heightmapId);
 bool scene_terrain_loaded(const SceneTerrainComp*);
 
 /**
+ * Retrieve the terrain's version number.
+ * Version is incremented when the terrain is updated and can be used to invalidate cached data.
+ */
+u32 scene_terrain_version(const SceneTerrainComp*);
+
+/**
  * Compute the intersection of the given ray with the terrain.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.
