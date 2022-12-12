@@ -7,13 +7,15 @@ typedef struct {
   ALIGNAS(16)
   f32 size;
   f32 heightScale;
+  f32 patchScale;
 } RendTerrainData;
 
 ASSERT(sizeof(RendTerrainData) == 16, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector position;
+  f32 posX;
+  f32 posZ;
 } RendTerrainPatchData;
 
 ASSERT(sizeof(RendTerrainPatchData) == 16, "Size needs to match the size defined in glsl");
@@ -36,6 +38,7 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
       .size        = scene_terrain_size(terrain),
       .heightScale = scene_terrain_height_scale(terrain),
+      .patchScale  = scene_terrain_size(terrain),
   };
 
   // Clear previously added instances.
@@ -45,7 +48,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   const SceneTags tags                                                = SceneTags_Terrain;
   const GeoBox    bounds                                              = geo_box_inverted3();
   *rend_draw_add_instance_t(draw, RendTerrainPatchData, tags, bounds) = (RendTerrainPatchData){
-      .position = geo_vector(0, 0, 0),
+      .posX = 0,
+      .posZ = 0,
   };
 }
 

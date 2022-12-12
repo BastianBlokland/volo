@@ -20,7 +20,7 @@
       "anisotropy": "x4"
     }
   ],
-  "meshId": "meshes/scene/terrain.pme",
+  "meshId": "meshes/scene/terrain_patch.pme",
   "renderOrder": 5,
   "topology": "Triangles",
   "rasterizer": "Fill",
