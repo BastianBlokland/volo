@@ -1115,13 +1115,19 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
   blocker->region        = region;
 
   const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  mem_set(blockedInRegion, 0xFF);
+  bitset_clear_all(blockedInRegion);
 
+  u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
       // TODO: Optimizable as horizontal neighbors are consecutive in memory.
-      nav_cell_block(grid, cell);
+      const f32 cellY = grid->cellY[nav_cell_index(grid, cell)];
+      if (box->max.y > cellY && box->min.y < (cellY + grid->cellHeight)) {
+        nav_cell_block(grid, cell);
+        nav_bit_set(blockedInRegion, indexInRegion);
+      }
+      ++indexInRegion;
     }
   }
 
