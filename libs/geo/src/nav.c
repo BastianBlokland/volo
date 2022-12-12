@@ -54,6 +54,7 @@ struct sGeoNavGrid {
   u32           cellCountAxis, cellCountTotal;
   f32           cellDensity, cellSize;
   f32           cellHeight;
+  f32           cellBlockHeight;
   GeoVector     cellOffset;
   f32*          cellY;            // f32[cellCountTotal]
   u16*          cellBlockerCount; // u16[cellCountTotal]
@@ -887,10 +888,12 @@ static u32 nav_islands_compute(GeoNavGrid* grid) {
   return islandCount;
 }
 
-GeoNavGrid*
-geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f32 height) {
+GeoNavGrid* geo_nav_grid_create(
+    Allocator* alloc, const f32 size, const f32 density, const f32 height, const f32 blockHeight) {
   diag_assert(size > 1e-4f && size < 1e4f);
   diag_assert(density > 1e-4f && density < 1e4f);
+  diag_assert(height > 1e-4f);
+  diag_assert(blockHeight > 1e-4f);
 
   GeoNavGrid* grid           = alloc_alloc_t(alloc, GeoNavGrid);
   const u32   cellCountAxis  = (u32)math_round_nearest_f32(size * density);
@@ -902,6 +905,7 @@ geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f
       .cellDensity      = density,
       .cellSize         = 1.0f / density,
       .cellHeight       = height,
+      .cellBlockHeight  = blockHeight,
       .cellOffset       = geo_vector(size * -0.5f, 0, size * -0.5f),
       .cellY            = alloc_array_t(alloc, f32, cellCountTotal),
       .cellBlockerCount = alloc_array_t(alloc, u16, cellCountTotal),
@@ -955,7 +959,20 @@ GeoVector geo_nav_cell_size(const GeoNavGrid* grid) {
 
 void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  grid->cellY[nav_cell_index(grid, cell)] = y;
+
+  const u32  cellIndex   = nav_cell_index(grid, cell);
+  const bool wasBlocked  = grid->cellY[cellIndex] >= grid->cellBlockHeight;
+  const bool shouldBlock = y >= grid->cellBlockHeight;
+
+  // Update y.
+  grid->cellY[cellIndex] = y;
+
+  // Updated blocked state.
+  if (wasBlocked && !shouldBlock) {
+    nav_cell_unblock(grid, cell);
+  } else if (!wasBlocked && shouldBlock) {
+    nav_cell_block(grid, cell);
+  }
 }
 
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {

@@ -45,7 +45,7 @@ typedef u8 GeoNavIsland;
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
-GeoNavGrid* geo_nav_grid_create(Allocator*, f32 size, f32 density, f32 height);
+GeoNavGrid* geo_nav_grid_create(Allocator*, f32 size, f32 density, f32 height, f32 blockHeight);
 
 /**
  * Destroy a GeoNavGrid instance.

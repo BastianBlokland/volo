@@ -6,13 +6,14 @@
 
 spec(nav) {
 
-  const f32   size     = 10;
-  const f32   density  = 0.5f;
-  const f32   cellSize = 1.0f / density;
-  const f32   height   = 0.5f;
-  GeoNavGrid* grid     = null;
+  const f32   size        = 10;
+  const f32   density     = 0.5f;
+  const f32   cellSize    = 1.0f / density;
+  const f32   height      = 0.5f;
+  const f32   blockHeight = 0.5f;
+  GeoNavGrid* grid        = null;
 
-  setup() { grid = geo_nav_grid_create(g_alloc_heap, size, density, height); }
+  setup() { grid = geo_nav_grid_create(g_alloc_heap, size, density, height, blockHeight); }
 
   it("can retrieve the bounding region") {
     const GeoNavRegion region = geo_nav_bounds(grid);
