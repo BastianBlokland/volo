@@ -3,6 +3,8 @@
 #include "rend_draw.h"
 #include "scene_terrain.h"
 
+static const u32 g_terrainPatchCountAxis = 16;
+
 typedef struct {
   ALIGNAS(16)
   f32 size;
@@ -35,12 +37,17 @@ static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
 }
 
 static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp* draw) {
-  const f32 patchScale = 1.0f;
+  const f32 size          = scene_terrain_size(terrain);
+  const f32 halfSize      = size * 0.5f;
+  const f32 patchScale    = 1.0f / g_terrainPatchCountAxis;
+  const f32 patchSize     = size * patchScale;
+  const f32 patchHalfSize = patchSize * 0.5f;
+  const f32 heightScale   = scene_terrain_height_scale(terrain);
 
   // Set global terrain meta.
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
-      .size        = scene_terrain_size(terrain),
+      .size        = size,
       .heightScale = scene_terrain_height_scale(terrain),
       .patchScale  = patchScale,
   };
@@ -49,14 +56,23 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   rend_draw_clear(draw);
 
   // Add patch instances.
-  const SceneTags tags                                                = SceneTags_Terrain;
-  const GeoBox    bounds                                              = geo_box_inverted3();
-  *rend_draw_add_instance_t(draw, RendTerrainPatchData, tags, bounds) = (RendTerrainPatchData){
-      .posX = 0,
-      .posZ = 0,
-      .texU = 0,
-      .texV = 0,
-  };
+  const SceneTags patchTags = SceneTags_Terrain;
+  for (u32 x = 0; x != g_terrainPatchCountAxis; ++x) {
+    for (u32 z = 0; z != g_terrainPatchCountAxis; ++z) {
+      const RendTerrainPatchData patchData = {
+          .posX = x * patchSize - halfSize + patchHalfSize,
+          .posZ = z * patchSize - halfSize + patchHalfSize,
+          .texU = x * patchScale,
+          .texV = z * patchScale,
+      };
+      const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
+      const GeoBox    patchBounds = {
+          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+      };
+      *rend_draw_add_instance_t(draw, RendTerrainPatchData, patchTags, patchBounds) = patchData;
+    }
+  }
 }
 
 ecs_view_define(GlobalView) {
