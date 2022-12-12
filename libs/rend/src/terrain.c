@@ -31,7 +31,7 @@ ecs_comp_define(RendTerrainComp) {
 
 static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
   EcsEntityId         e     = ecs_world_entity_create(world);
-  const RendDrawFlags flags = RendDrawFlags_NoAutoClear;
+  const RendDrawFlags flags = RendDrawFlags_Terrain | RendDrawFlags_NoAutoClear;
   rend_draw_create(world, e, flags);
   return e;
 }

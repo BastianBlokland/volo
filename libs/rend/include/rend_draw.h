@@ -9,10 +9,11 @@ typedef enum {
   RendDrawFlags_Preload             = 1 << 0, // Load resources even if not drawn.
   RendDrawFlags_StandardGeometry    = 1 << 1, // Uses the standard instance data format.
   RendDrawFlags_Skinned             = 1 << 2,
-  RendDrawFlags_NoAutoClear         = 1 << 3,
-  RendDrawFlags_NoInstanceFiltering = 1 << 4, // NOTE: Does not support sorting.
-  RendDrawFlags_SortBackToFront     = 1 << 5,
-  RendDrawFlags_SortFrontToBack     = 1 << 6,
+  RendDrawFlags_Terrain             = 1 << 3,
+  RendDrawFlags_NoAutoClear         = 1 << 4,
+  RendDrawFlags_NoInstanceFiltering = 1 << 5, // NOTE: Does not support sorting.
+  RendDrawFlags_SortBackToFront     = 1 << 6,
+  RendDrawFlags_SortFrontToBack     = 1 << 7,
 
   RendDrawFlags_Sorted = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
 } RendDrawFlags;
