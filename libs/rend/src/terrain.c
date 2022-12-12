@@ -7,8 +7,7 @@ typedef struct {
   ALIGNAS(16)
   f32 size;
   f32 heightScale;
-  f32 patchPosScale;
-  f32 patchUvScale;
+  f32 patchScale;
 } RendTerrainData;
 
 ASSERT(sizeof(RendTerrainData) == 16, "Size needs to match the size defined in glsl");
@@ -36,13 +35,14 @@ static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
 }
 
 static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp* draw) {
+  const f32 patchScale = 1.0f;
+
   // Set global terrain meta.
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
-      .size          = scene_terrain_size(terrain),
-      .heightScale   = scene_terrain_height_scale(terrain),
-      .patchPosScale = scene_terrain_size(terrain),
-      .patchUvScale  = 1.0f,
+      .size        = scene_terrain_size(terrain),
+      .heightScale = scene_terrain_height_scale(terrain),
+      .patchScale  = patchScale,
   };
 
   // Clear previously added instances.
