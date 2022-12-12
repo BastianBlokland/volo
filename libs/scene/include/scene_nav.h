@@ -6,9 +6,6 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
 
-// Forward declare from 'scene_terrain.h'.
-ecs_comp_extern(SceneTerrainComp);
-
 /**
  * Global navigation environment.
  */
@@ -64,12 +61,6 @@ SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
  */
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
 GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);
-
-/**
- * Update navigation terrain.
- */
-void scene_nav_terrain_update(SceneNavEnvComp*, const SceneTerrainComp*);
-void scene_nav_terrain_clear(SceneNavEnvComp*);
 
 /**
  * Query cell information.

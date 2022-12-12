@@ -25,7 +25,11 @@ static const f32 g_sceneNavCellHeight = 3.0f;
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 2.0f
 
-ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
+ecs_comp_define(SceneNavEnvComp) {
+  GeoNavGrid* navGrid;
+  u32         terrainVersion;
+};
+
 ecs_comp_define_public(SceneNavStatsComp);
 
 ecs_comp_define_public(SceneNavBlockerComp);
@@ -83,7 +87,9 @@ static u32 scene_nav_blocker_hash(
   return hash;
 }
 
-static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+static bool scene_nav_refresh_blockers(
+    SceneNavEnvComp* env, EcsView* blockerEntities, const bool navGridUpdated) {
+
   bool blockersChanged = false;
   if (geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities)) {
     blockersChanged = true;
@@ -96,7 +102,7 @@ static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
     const u32  newHash = scene_nav_blocker_hash(collision, trans, scale);
-    const bool dirty   = newHash != blockerComp->hash;
+    const bool dirty   = navGridUpdated || newHash != blockerComp->hash;
 
     if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
       if (dirty) {
@@ -142,6 +148,27 @@ static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
   return blockersChanged;
 }
 
+static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
+  if (env->terrainVersion == scene_terrain_version(terrain)) {
+    return false; // Nav grid unchanged.
+  }
+  if (scene_terrain_loaded(terrain)) {
+    const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
+    for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
+      for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+        const GeoNavCell cell          = {.x = x, .y = y};
+        const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
+        const f32        terrainHeight = scene_terrain_height(terrain, pos);
+        geo_nav_y_set(env->navGrid, cell, terrainHeight);
+      }
+    }
+  } else {
+    geo_nav_y_clear(env->navGrid);
+  }
+  env->terrainVersion = scene_terrain_version(terrain);
+  return true; // Nav grid updated.
+}
+
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
@@ -168,7 +195,10 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   geo_nav_stats_reset(grid);
 }
 
-ecs_view_define(InitGlobalView) { ecs_access_write(SceneNavEnvComp); }
+ecs_view_define(InitGlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_write(SceneNavEnvComp);
+}
 
 ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -195,10 +225,14 @@ ecs_system_define(SceneNavInitSys) {
   if (!globalItr) {
     return;
   }
-  SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  SceneNavEnvComp*        env     = ecs_view_write_t(globalItr, SceneNavEnvComp);
+
+  bool gridUpdated = terrain && scene_nav_terrain_refresh(env, terrain);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  if (scene_nav_refresh_blockers(env, blockerEntities)) {
+  gridUpdated |= scene_nav_refresh_blockers(env, blockerEntities, gridUpdated);
+  if (gridUpdated) {
     geo_nav_compute_islands(env->navGrid);
   }
 
@@ -405,20 +439,6 @@ GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bound
 GeoVector scene_nav_cell_size(const SceneNavEnvComp* env) {
   return geo_nav_cell_size(env->navGrid);
 }
-
-void scene_nav_terrain_update(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
-  const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
-  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
-    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
-      const GeoNavCell cell          = {.x = x, .y = y};
-      const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
-      const f32        terrainHeight = scene_terrain_height(terrain, pos);
-      geo_nav_y_set(env->navGrid, cell, terrainHeight);
-    }
-  }
-}
-
-void scene_nav_terrain_clear(SceneNavEnvComp* env) { geo_nav_y_clear(env->navGrid); }
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_position(env->navGrid, cell);

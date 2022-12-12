@@ -6,7 +6,6 @@
 #include "ecs_world.h"
 #include "geo_plane.h"
 #include "log_logger.h"
-#include "scene_nav.h"
 #include "scene_terrain.h"
 
 static const f32 g_terrainSize        = 200.0f;
@@ -38,14 +37,10 @@ static void ecs_destruct_terrain(void* data) {
 
 ecs_view_define(GlobalLoadView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(SceneNavEnvComp);
   ecs_access_write(SceneTerrainComp);
 }
 
-ecs_view_define(GlobalUnloadView) {
-  ecs_access_write(SceneNavEnvComp);
-  ecs_access_write(SceneTerrainComp);
-}
+ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
 
 ecs_view_define(TextureReadView) { ecs_access_read(AssetTextureComp); }
 
@@ -146,7 +141,6 @@ ecs_system_define(SceneTerrainLoadSys) {
     return;
   }
   AssetManagerComp* assets  = ecs_view_write_t(globalItr, AssetManagerComp);
-  SceneNavEnvComp*  nav     = ecs_view_write_t(globalItr, SceneNavEnvComp);
   SceneTerrainComp* terrain = ecs_view_write_t(globalItr, SceneTerrainComp);
 
   if (!terrain->heightmapEntity) {
@@ -166,9 +160,7 @@ ecs_system_define(SceneTerrainLoadSys) {
     EcsView*     textureView = ecs_world_view_t(world, TextureReadView);
     EcsIterator* textureItr  = ecs_view_maybe_at(textureView, terrain->heightmapEntity);
     if (textureItr) {
-      if (terrain_heightmap_load(terrain, ecs_view_read_t(textureItr, AssetTextureComp))) {
-        scene_nav_terrain_update(nav, terrain);
-      }
+      terrain_heightmap_load(terrain, ecs_view_read_t(textureItr, AssetTextureComp));
     }
   }
 }
@@ -183,7 +175,6 @@ ecs_system_define(SceneTerrainUnloadSys) {
   if (!terrain->heightmapEntity) {
     return; // Heightmap entity not yet looked up.
   }
-  SceneNavEnvComp* nav = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
   const bool isLoaded   = ecs_world_has_t(world, terrain->heightmapEntity, AssetLoadedComp);
   const bool isFailed   = ecs_world_has_t(world, terrain->heightmapEntity, AssetFailedComp);
@@ -197,7 +188,6 @@ ecs_system_define(SceneTerrainUnloadSys) {
 
     asset_release(world, terrain->heightmapEntity);
     terrain_heightmap_unload(terrain);
-    scene_nav_terrain_clear(nav);
 
     terrain->flags &= ~Terrain_HeightmapAcquired;
     terrain->flags |= Terrain_HeightmapUnloading;
