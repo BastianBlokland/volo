@@ -152,18 +152,14 @@ static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainCo
   if (env->terrainVersion == scene_terrain_version(terrain)) {
     return false; // Nav grid unchanged.
   }
-  if (scene_terrain_loaded(terrain)) {
-    const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
-    for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
-      for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
-        const GeoNavCell cell          = {.x = x, .y = y};
-        const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
-        const f32        terrainHeight = scene_terrain_height(terrain, pos);
-        geo_nav_y_set(env->navGrid, cell, terrainHeight);
-      }
+  const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
+  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
+    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+      const GeoNavCell cell          = {.x = x, .y = y};
+      const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
+      const f32        terrainHeight = scene_terrain_height(terrain, pos);
+      geo_nav_y_update(env->navGrid, cell, terrainHeight);
     }
-  } else {
-    geo_nav_y_clear(env->navGrid);
   }
   env->terrainVersion = scene_terrain_version(terrain);
   return true; // Nav grid updated.

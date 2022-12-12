@@ -913,7 +913,9 @@ geo_nav_grid_create(Allocator* alloc, const f32 size, const f32 density, const f
       .alloc            = alloc,
   };
 
-  geo_nav_y_clear(grid);
+  // Initialize cell y's to 0.
+  mem_set(mem_create(grid->cellY, sizeof(f32) * grid->cellCountTotal), 0);
+
   nav_blocker_release_all(grid);
   grid->islandCount = nav_islands_compute(grid);
   return grid;
@@ -951,13 +953,9 @@ GeoVector geo_nav_cell_size(const GeoNavGrid* grid) {
   return geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize);
 }
 
-void geo_nav_y_set(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
+void geo_nav_y_update(GeoNavGrid* grid, const GeoNavCell cell, const f32 y) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   grid->cellY[nav_cell_index(grid, cell)] = y;
-}
-
-void geo_nav_y_clear(GeoNavGrid* grid) {
-  mem_set(mem_create(grid->cellY, sizeof(f32) * grid->cellCountTotal), 0);
 }
 
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
