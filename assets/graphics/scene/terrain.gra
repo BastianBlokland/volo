@@ -4,19 +4,7 @@
       "shaderId": "shaders/scene/terrain.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/terrain.frag.spv",
-      "overrides": [
-        {
-          "name": "heightMapScale",
-          "binding": 0,
-          "value": 3
-        },
-        {
-          "name": "terrainSize",
-          "binding": 1,
-          "value": 500
-        }
-      ]
+      "shaderId": "shaders/scene/terrain.frag.spv"
     }
   ],
   "samplers": [
