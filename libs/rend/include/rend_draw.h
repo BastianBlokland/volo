@@ -54,6 +54,11 @@ void rend_draw_set_camera_filter(RendDrawComp*, EcsEntityId camera);
 void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
 
 /**
+ * Clear any previously added instances.
+ */
+void rend_draw_clear(RendDrawComp*);
+
+/**
  * Set the 'per draw' data.
  */
 #define rend_draw_set_data_t(_DRAW_, _TYPE_)                                                       \
