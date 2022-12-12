@@ -8,7 +8,7 @@
 #include "log_logger.h"
 #include "scene_terrain.h"
 
-static const f32 g_terrainSize        = 200.0f;
+static const f32 g_terrainSize        = 500.0f;
 static const f32 g_terrainSizeHalf    = g_terrainSize * 0.5f;
 static const f32 g_terrainSizeInv     = 1.0f / g_terrainSize;
 static const f32 g_terrainHeightScale = 3.0f;

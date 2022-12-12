@@ -21,7 +21,7 @@
         {
           "name": "terrainSize",
           "binding": 1,
-          "value": 200
+          "value": 500
         }
       ]
     }
