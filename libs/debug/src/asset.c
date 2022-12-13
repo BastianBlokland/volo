@@ -9,6 +9,7 @@
 // clang-format off
 
 static const String g_tooltipFilter = string_static("Filter assets by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipReload = string_static("Request the asset to be reloaded.\nReload is delayed until all systems release the asset and reacquire it.");
 
 // clang-format on
 
@@ -194,7 +195,20 @@ static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelC
   ui_layout_pop(canvas);
 }
 
-static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
+static void
+asset_panel_draw_reload(UiCanvasComp* canvas, const DebugAssetInfo* asset, EcsWorld* world) {
+  ui_layout_push(canvas);
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_BottomRight, Ui_X);
+  ui_layout_resize(canvas, UiAlign_BottomRight, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = string_lit("R"), .fontSize = 14, .tooltip = g_tooltipReload)) {
+    asset_reload_request(world, asset->entity);
+  }
+  ui_layout_pop(canvas);
+}
+
+static void
+asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld* world) {
+
   const String title = fmt_write_scratch("{} Asset Panel", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -204,10 +218,10 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
   ui_table_add_column(&table, UiTableColumn_Fixed, 120);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -242,7 +256,9 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     ui_table_next_column(canvas, &table);
     ui_label(canvas, g_statusNames[asset->status]);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_bool(asset->dirty)));
+    ui_label(canvas, asset->dirty ? string_lit("y") : string_lit("n"));
+    asset_panel_draw_reload(canvas, asset, world);
+
     ui_table_next_column(canvas, &table);
     if (asset->refCount) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->refCount)));
@@ -271,7 +287,7 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
     asset_info_query(panelComp, world);
 
     ui_canvas_reset(canvas);
-    asset_panel_draw(canvas, panelComp);
+    asset_panel_draw(canvas, panelComp, world);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);

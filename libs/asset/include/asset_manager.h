@@ -67,6 +67,13 @@ void asset_acquire(EcsWorld*, EcsEntityId assetEntity);
 void asset_release(EcsWorld*, EcsEntityId assetEntity);
 
 /**
+ * Request the given asset to be reloaded.
+ * NOTE: Unload is delayed until all systems release the asset.
+ * NOTE: Does not reload dependent assets.
+ */
+void asset_reload_request(EcsWorld*, EcsEntityId assetEntity);
+
+/**
  * Debug apis.
  */
 u32  asset_ref_count(const AssetComp*);
