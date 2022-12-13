@@ -8,11 +8,11 @@
 #include "log_logger.h"
 #include "scene_terrain.h"
 
-#define scene_terrain_size 500.0f
+#define scene_terrain_size_axis 500.0f
 
-static const f32 g_terrainSize        = scene_terrain_size;
-static const f32 g_terrainSizeHalf    = scene_terrain_size * 0.5f;
-static const f32 g_terrainSizeInv     = 1.0f / scene_terrain_size;
+static const f32 g_terrainSize        = scene_terrain_size_axis;
+static const f32 g_terrainSizeHalf    = scene_terrain_size_axis * 0.5f;
+static const f32 g_terrainSizeInv     = 1.0f / scene_terrain_size_axis;
 static const f32 g_terrainHeightScale = 3.0f;
 
 typedef enum {
