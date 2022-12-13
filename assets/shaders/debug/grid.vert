@@ -14,8 +14,7 @@ struct GridData {
 
 const f32v4 c_colorNormal      = f32v4(0.5, 0.5, 0.5, 0.2);
 const f32v4 c_colorHighlight   = f32v4(0.8, 0.8, 0.8, 0.4);
-const f32   c_yOffsetNormal    = 0.05;
-const f32   c_yOffsetHighlight = 0.06;
+const f32   c_highlightYOffset = 0.0005;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance { GridData u_instance; };
@@ -51,7 +50,7 @@ void main() {
       (abs((isHorizontal ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
   out_color = isHighlight ? c_colorHighlight : c_colorNormal;
 
-  const f32 y = f32(u_instance.height) + (isHighlight ? c_yOffsetHighlight : c_yOffsetNormal);
+  const f32 y = f32(u_instance.height) + f32(isHighlight) * c_highlightYOffset;
 
   out_vertexPosition = u_global.viewProj * f32v4(x, y, z, 1);
   out_fadeFraction   = u_instance.fadeFraction;
