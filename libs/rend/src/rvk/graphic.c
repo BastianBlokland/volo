@@ -414,7 +414,7 @@ static VkPipeline rvk_pipeline_create(
       .lineWidth               = rvk_pipeline_linewidth(graphic),
       .cullMode                = rvk_pipeline_cullmode(graphic),
       .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-      .depthBiasEnable         = graphic->depthBias > f32_epsilon,
+      .depthBiasEnable         = graphic->depthBias < -1e-6 || graphic->depthBias > 1e-6,
       .depthBiasConstantFactor = graphic->depthBias,
   };
   const VkPipelineMultisampleStateCreateInfo multisampling = {
@@ -555,17 +555,17 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-      .device      = dev,
-      .dbgName     = string_dup(g_alloc_heap, dbgName),
-      .topology    = asset->topology,
-      .rasterizer  = asset->rasterizer,
-      .lineWidth   = asset->lineWidth,
-      .depthBias   = asset->depthBias,
-      .renderOrder = asset->renderOrder,
-      .blend       = asset->blend,
-      .depth       = asset->depth,
-      .cull        = asset->cull,
-      .vertexCount = asset->vertexCount,
+                 .device      = dev,
+                 .dbgName     = string_dup(g_alloc_heap, dbgName),
+                 .topology    = asset->topology,
+                 .rasterizer  = asset->rasterizer,
+                 .lineWidth   = asset->lineWidth,
+                 .depthBias   = asset->depthBias,
+                 .renderOrder = asset->renderOrder,
+                 .blend       = asset->blend,
+                 .depth       = asset->depth,
+                 .cull        = asset->cull,
+                 .vertexCount = asset->vertexCount,
   };
 
   log_d(
