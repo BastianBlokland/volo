@@ -381,8 +381,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
   diag_crash();
 }
 
-static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass vkRendPass) {
+static VkPipeline rvk_pipeline_create(
+    RvkGraphic* graphic, const VkPipelineLayout layout, const VkRenderPass vkRendPass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -409,11 +409,13 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
       .pScissors     = &scissor,
   };
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
-      .sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .polygonMode = rvk_pipeline_polygonmode(graphic),
-      .lineWidth   = rvk_pipeline_linewidth(graphic),
-      .cullMode    = rvk_pipeline_cullmode(graphic),
-      .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode             = rvk_pipeline_polygonmode(graphic),
+      .lineWidth               = rvk_pipeline_linewidth(graphic),
+      .cullMode                = rvk_pipeline_cullmode(graphic),
+      .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .depthBiasEnable         = graphic->depthBias > f32_epsilon,
+      .depthBiasConstantFactor = graphic->depthBias,
   };
   const VkPipelineMultisampleStateCreateInfo multisampling = {
       .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -558,6 +560,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .topology    = asset->topology,
       .rasterizer  = asset->rasterizer,
       .lineWidth   = asset->lineWidth,
+      .depthBias   = asset->depthBias,
       .renderOrder = asset->renderOrder,
       .blend       = asset->blend,
       .depth       = asset->depth,
@@ -570,7 +573,8 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       log_param("name", fmt_text(dbgName)),
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
-      log_param("line-width", fmt_float(asset->lineWidth)),
+      log_param("line-width", fmt_int(asset->lineWidth)),
+      log_param("depth-bias", fmt_float(asset->depthBias)),
       log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
       log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),
       log_param("cull", fmt_text(rvk_graphic_cull_str(asset->cull))));

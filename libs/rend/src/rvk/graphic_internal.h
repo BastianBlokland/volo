@@ -55,10 +55,11 @@ typedef struct sRvkGraphic {
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
   u32                    lineWidth;
+  f32                    depthBias;
   i32                    renderOrder;
+  u32                    vertexCount;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
-  u32                    vertexCount;
   RvkGraphicSampler      samplers[rvk_graphic_samplers_max];
   RvkDescSet             descSet;
   VkPipelineLayout       vkPipelineLayout;
