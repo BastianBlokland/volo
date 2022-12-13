@@ -46,7 +46,11 @@ ecs_view_define(GlobalLoadView) {
 
 ecs_view_define(GlobalUnloadView) { ecs_access_write(SceneTerrainComp); }
 
-ecs_view_define(TextureReadView) { ecs_access_read(AssetTextureComp); }
+ecs_view_define(TextureReadView) {
+  ecs_access_read(AssetTextureComp);
+  ecs_access_with(AssetLoadedComp);
+  ecs_access_without(AssetChangedComp);
+}
 
 static void terrain_heightmap_unsupported(SceneTerrainComp* terrain, const String error) {
   log_e(
