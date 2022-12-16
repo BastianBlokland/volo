@@ -746,7 +746,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
       const RvkDescKind kind = graphicDescMeta.bindings[i];
       if (rvk_desc_is_sampler(kind)) {
-        if (UNLIKELY(i == rvk_graphic_samplers_max)) {
+        if (UNLIKELY(samplerIndex == rvk_graphic_samplers_max)) {
           log_e(
               "Shader exceeds texture limit",
               log_param("graphic", fmt_text(graphic->dbgName)),
