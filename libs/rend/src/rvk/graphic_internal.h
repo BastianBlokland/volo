@@ -21,7 +21,7 @@ enum {
 };
 
 #define rvk_graphic_shaders_max 2
-#define rvk_graphic_samplers_max 4
+#define rvk_graphic_samplers_max 6
 
 typedef struct {
   RvkTexture* texture;
