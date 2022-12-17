@@ -6,7 +6,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/swat_a.gra"
+          "graphicId": "graphics/sandbox/swat.gra"
         },
         {
           "$type": "AssetPrefabTrait_Movement",

@@ -70,9 +70,7 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_up.tga
       swat/swat_3.bin
       swat/swat_3.gltf
-      swat/swat_a_diff.tga
-      swat/swat_b_diff.tga
-      swat/swat_c_diff.tga
+      swat/swat_color_rough.tga
       swat/swat_nrm.tga
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga

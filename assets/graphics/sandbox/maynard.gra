@@ -19,7 +19,7 @@
         {
           "name": "reflectFrac",
           "binding": 3,
-          "value": 0.3
+          "value": 0.25
         }
       ]
     }
