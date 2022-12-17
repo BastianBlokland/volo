@@ -19,14 +19,14 @@
         {
           "name": "reflectFrac",
           "binding": 3,
-          "value": 0.15
+          "value": 0.3
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "external/turret/turret_diff_blue.tga",
+      "textureId": "external/turret/turret_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"

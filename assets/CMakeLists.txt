@@ -81,7 +81,7 @@ if(${EXTERNAL_ASSETS})
       tiling/sand_1_color_rough.tga
       tiling/sand_1_normal.tga
       turret/turret_big.gltf
-      turret/turret_diff_blue.tga
+      turret/turret_color_rough.tga
       turret/turret_missile.bin
       turret/turret_missile.gltf
       turret/turret_nrm.tga
