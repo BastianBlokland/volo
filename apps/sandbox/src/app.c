@@ -24,7 +24,7 @@
 
 static const GapVector g_appWindowSize = {1920, 1080};
 static const u32       g_appWallCount  = 300;
-static const u64       g_appRngSeed    = 42;
+static const u64       g_appRngSeed    = 1337;
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
