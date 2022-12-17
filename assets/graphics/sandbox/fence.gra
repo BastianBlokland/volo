@@ -26,7 +26,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/fence/fence_1_color.tga",
+      "textureId": "external/fence/fence_1_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
