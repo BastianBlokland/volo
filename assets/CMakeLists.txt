@@ -58,7 +58,7 @@ if(${EXTERNAL_ASSETS})
       fire/fire_7.tga
       fire/fire_8.tga
       fire/fire_9.tga
-      maynard/maynard_diff.tga
+      maynard/maynard_color_rough.tga
       maynard/maynard_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
