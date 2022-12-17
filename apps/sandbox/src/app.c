@@ -23,7 +23,7 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appWallCount  = 175;
+static const u32       g_appWallCount  = 300;
 static const u64       g_appRngSeed    = 42;
 
 static void app_window_create(EcsWorld* world) {
@@ -68,9 +68,9 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   const StringHash wallPrefabId = string_hash_lit("Wall");
 
   for (u32 i = 0; i != g_appWallCount; ++i) {
-    const f32 posX  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 posX  = rng_sample_range(rng, -100.0f, 100.0f);
     const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32 posZ  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 posZ  = rng_sample_range(rng, -100.0f, 100.0f);
     const f32 angle = rng_sample_f32(rng) * math_pi_f32 * 2;
     scene_prefab_spawn(
         world,

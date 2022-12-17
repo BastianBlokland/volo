@@ -38,6 +38,10 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
+      fence/fence_1_color.tga
+      fence/fence_1_normal.tga
+      fence/fence_1.bin
+      fence/fence_1.gltf
       fire/fire_0.tga
       fire/fire_1.tga
       fire/fire_10.tga
