@@ -12,8 +12,8 @@ struct GridData {
   f32 fadeFraction;
 };
 
-const f32v4 c_colorNormal      = f32v4(0.5, 0.5, 0.5, 0.2);
-const f32v4 c_colorHighlight   = f32v4(0.8, 0.8, 0.8, 0.4);
+const f32v4 c_colorNormal      = f32v4(0.5, 0.5, 0.5, 0.5);
+const f32v4 c_colorHighlight   = f32v4(0.3, 0.3, 0.3, 0.9);
 const f32   c_highlightYOffset = 0.0005;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
