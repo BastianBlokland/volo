@@ -18,7 +18,7 @@ ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable 
 static const f32 g_sceneNavSize            = 250.0f;
 static const f32 g_sceneNavDensity         = 1.25f;
 static const f32 g_sceneNavCellHeight      = 5.0f;
-static const f32 g_sceneNavCellBlockHeight = 1.5f;
+static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
 #define path_max_cells 64
 #define path_max_queries_per_task 25

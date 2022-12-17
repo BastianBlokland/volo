@@ -70,8 +70,12 @@ if(${EXTERNAL_ASSETS})
       swat/swat_b_diff.tga
       swat/swat_c_diff.tga
       swat/swat_nrm.tga
-      terrain/terrain_2_color.tga
-      terrain/terrain_2_height.r16
+      terrain/terrain_3_height.r16
+      terrain/terrain_3_splat.tga
+      tiling/dirt_1_color_rough.tga
+      tiling/dirt_1_normal.tga
+      tiling/sand_1_color_rough.tga
+      tiling/sand_1_normal.tga
       turret/turret_big.gltf
       turret/turret_diff_blue.tga
       turret/turret_missile.bin

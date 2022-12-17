@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/terrain/terrain_2_height.r16",
+      "textureId": "external/terrain/terrain_3_height.r16",
       "wrap": "Clamp",
       "filter": "Linear"
     }

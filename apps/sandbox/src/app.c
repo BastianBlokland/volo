@@ -258,7 +258,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_terrain_init(
       world,
       string_lit("graphics/scene/terrain.gra"),
-      string_lit("external/terrain/terrain_2_height.r16"));
+      string_lit("external/terrain/terrain_3_height.r16"));
 
   app_window_create(world);
 }
