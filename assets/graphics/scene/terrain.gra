@@ -4,7 +4,24 @@
       "shaderId": "shaders/scene/terrain.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/terrain.frag.spv"
+      "shaderId": "shaders/scene/terrain.frag.spv",
+      "overrides": [
+        {
+          "name": "heightNormalIntensity",
+          "binding": 0,
+          "value": 2.5
+        },
+        {
+          "name": "splat1UvScale",
+          "binding": 1,
+          "value": 150
+        },
+        {
+          "name": "splat2UvScale",
+          "binding": 2,
+          "value": 75
+        }
+      ]
     }
   ],
   "samplers": [
@@ -18,6 +35,27 @@
       "wrap": "Clamp",
       "filter": "Linear"
     },
+    {
+      "textureId": "external/tiling/sand_1_color_rough.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/sand_1_normal.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/dirt_1_color_rough.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/dirt_1_normal.tga",
+      "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x4"
     }
