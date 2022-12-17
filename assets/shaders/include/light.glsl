@@ -4,8 +4,8 @@
 #include "types.glsl"
 
 const f32v3 c_lightDir       = normalize(f32v3(0.2, 1.0, -0.3));
-const f32v4 c_lightColor     = f32v4(1.0, 0.9, 0.7, 1.0);
-const f32   c_lightIntensity = 0.8;
+const f32v3 c_lightColor     = f32v3(1.0, 0.9, 0.7);
+const f32   c_lightIntensity = 1.1;
 const f32   c_lightShininess = 16;
 const f32   c_lightAmbient   = 0.1;
 
@@ -36,9 +36,14 @@ Shading light_shade_blingphong(const f32v3 normal, const f32v3 viewDir) {
   return res;
 }
 
-f32v4 light_color(const Shading shading, const f32v4 diffuseColor) {
-  return (diffuseColor * shading.ambient) +
-         (diffuseColor * c_lightColor * (shading.lambertian + shading.specular));
+f32v3 light_color(const Shading shading, const f32v3 color) {
+  return (color * shading.ambient) +
+         (color * c_lightColor * (shading.lambertian + shading.specular));
+}
+
+f32v3 light_color_rough(const Shading shading, const f32v3 color, const f32 rough) {
+  return (color * shading.ambient) +
+         (color * c_lightColor * (shading.lambertian + shading.specular * (1.0 - rough)));
 }
 
 #endif // INCLUDE_LIGHT

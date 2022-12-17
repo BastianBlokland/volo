@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard_skinned.vert.spv"
+      "shaderId": "shaders/standard.vert.spv"
     },
     {
       "shaderId": "shaders/standard.frag.spv",
@@ -19,20 +19,20 @@
         {
           "name": "reflectFrac",
           "binding": 3,
-          "value": 0.025
+          "value": 0.3
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "external/swat/swat_a_diff.tga",
+      "textureId": "external/fence/fence_1_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/swat/swat_nrm.tga",
+      "textureId": "external/fence/fence_1_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
@@ -44,7 +44,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "external/swat/swat_3.gltf",
+  "meshId": "external/fence/fence_1.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

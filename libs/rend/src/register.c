@@ -13,4 +13,5 @@ void rend_register(EcsDef* def) {
   ecs_register_module(def, rend_resource_module);
   ecs_register_module(def, rend_settings_module);
   ecs_register_module(def, rend_stats_module);
+  ecs_register_module(def, rend_terrain_module);
 }

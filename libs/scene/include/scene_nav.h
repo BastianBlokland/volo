@@ -39,6 +39,7 @@ ecs_comp_extern_public(SceneNavAgentComp) {
   SceneNavAgentFlags flags;
   GeoVector          target;
 };
+
 ecs_comp_extern_public(SceneNavPathComp) {
   GeoNavCell*  cells;
   u32          cellCount;
@@ -49,12 +50,21 @@ ecs_comp_extern_public(SceneNavPathComp) {
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);
 void scene_nav_stop(SceneNavAgentComp*);
 
+/**
+ * Initialize navigation agents and blockers.
+ */
 void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
 
+/**
+ * Retrieve global navigation settings.
+ */
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
 GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);
 
+/**
+ * Query cell information.
+ */
 GeoVector    scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
 GeoVector    scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
 GeoBox       scene_nav_box(const SceneNavEnvComp*, GeoNavCell);

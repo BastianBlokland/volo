@@ -19,14 +19,14 @@
         {
           "name": "reflectFrac",
           "binding": 3,
-          "value": 0.05
+          "value": 0.25
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "external/maynard/maynard_diff.tga",
+      "textureId": "external/maynard/maynard_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"

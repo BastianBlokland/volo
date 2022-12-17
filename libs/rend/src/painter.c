@@ -125,6 +125,7 @@ static void painter_draw_forward(
     if (graphic->mesh) {
       const bool isStandardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
       const bool isSkinned          = (rend_draw_flags(draw) & RendDrawFlags_Skinned) != 0;
+      const bool isTerrain          = (rend_draw_flags(draw) & RendDrawFlags_Terrain) != 0;
 
       diag_assert_msg(
           isSkinned == ((graphic->mesh->flags & RvkMeshFlags_Skinned) != 0),
@@ -134,9 +135,16 @@ static void painter_draw_forward(
         const RvkRepositoryId graphicId = RvkRepositoryId_DebugSkinningGraphic;
         painter_draw_override_dynmesh(painter, forwardPass, graphicId, draw, graphic->mesh);
       }
-      if (settings->flags & RendFlags_Wireframe && isStandardGeometry) {
-        const RvkRepositoryId graphicId =
-            isSkinned ? RvkRepositoryId_WireframeSkinnedGraphic : RvkRepositoryId_WireframeGraphic;
+      if (settings->flags & RendFlags_Wireframe && (isStandardGeometry || isTerrain)) {
+        RvkRepositoryId graphicId;
+        if (isStandardGeometry && isSkinned) {
+          graphicId = RvkRepositoryId_WireframeSkinnedGraphic;
+        } else if (isTerrain) {
+          graphicId = RvkRepositoryId_WireframeTerrainGraphic;
+        } else {
+          diag_assert(isStandardGeometry && !isSkinned);
+          graphicId = RvkRepositoryId_WireframeGraphic;
+        }
         painter_draw_override_dynmesh(painter, forwardPass, graphicId, draw, graphic->mesh);
       }
     }

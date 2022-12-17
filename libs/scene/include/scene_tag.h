@@ -5,15 +5,16 @@
 typedef enum {
   SceneTags_None       = 0,
   SceneTags_Background = 1 << 0,
-  SceneTags_Geometry   = 1 << 1,
-  SceneTags_Vfx        = 1 << 2,
-  SceneTags_Ui         = 1 << 3,
-  SceneTags_Debug      = 1 << 4,
-  SceneTags_Unit       = 1 << 5,
-  SceneTags_Selected   = 1 << 6,
-  SceneTags_Damaged    = 1 << 7,
+  SceneTags_Terrain    = 1 << 1,
+  SceneTags_Geometry   = 1 << 2,
+  SceneTags_Vfx        = 1 << 3,
+  SceneTags_Ui         = 1 << 4,
+  SceneTags_Debug      = 1 << 5,
+  SceneTags_Unit       = 1 << 6,
+  SceneTags_Selected   = 1 << 7,
+  SceneTags_Damaged    = 1 << 8,
 
-  SceneTags_Count   = 8,
+  SceneTags_Count   = 9,
   SceneTags_Default = SceneTags_Geometry,
 } SceneTags;
 

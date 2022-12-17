@@ -9,15 +9,16 @@
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_register.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const GeoVector g_sceneNavCenter  = {0, 0, 0};
-static const f32       g_sceneNavSize    = 200.0f;
-static const f32       g_sceneNavDensity = 1.25f;
-static const f32       g_sceneNavHeight  = 2.0f;
+static const f32 g_sceneNavSize            = 250.0f;
+static const f32 g_sceneNavDensity         = 1.25f;
+static const f32 g_sceneNavCellHeight      = 5.0f;
+static const f32 g_sceneNavCellBlockHeight = 3.0f;
 
 #define path_max_cells 64
 #define path_max_queries_per_task 25
@@ -25,7 +26,11 @@ static const f32       g_sceneNavHeight  = 2.0f;
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 2.0f
 
-ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
+ecs_comp_define(SceneNavEnvComp) {
+  GeoNavGrid* navGrid;
+  u32         terrainVersion;
+};
+
 ecs_comp_define_public(SceneNavStatsComp);
 
 ecs_comp_define_public(SceneNavBlockerComp);
@@ -44,7 +49,11 @@ static void ecs_destruct_nav_path_comp(void* data) {
 
 static void scene_nav_env_create(EcsWorld* world) {
   GeoNavGrid* grid = geo_nav_grid_create(
-      g_alloc_heap, g_sceneNavCenter, g_sceneNavSize, g_sceneNavDensity, g_sceneNavHeight);
+      g_alloc_heap,
+      g_sceneNavSize,
+      g_sceneNavDensity,
+      g_sceneNavCellHeight,
+      g_sceneNavCellBlockHeight);
 
   ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
   ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
@@ -83,7 +92,9 @@ static u32 scene_nav_blocker_hash(
   return hash;
 }
 
-static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
+static bool scene_nav_refresh_blockers(
+    SceneNavEnvComp* env, EcsView* blockerEntities, const bool navGridUpdated) {
+
   bool blockersChanged = false;
   if (geo_nav_blocker_remove_pred(env->navGrid, scene_nav_blocker_remove_pred, blockerEntities)) {
     blockersChanged = true;
@@ -96,7 +107,7 @@ static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
     SceneNavBlockerComp*      blockerComp = ecs_view_write_t(itr, SceneNavBlockerComp);
 
     const u32  newHash = scene_nav_blocker_hash(collision, trans, scale);
-    const bool dirty   = newHash != blockerComp->hash;
+    const bool dirty   = navGridUpdated || newHash != blockerComp->hash;
 
     if (blockerComp->flags & SceneNavBlockerFlags_RegisteredBlocker) {
       if (dirty) {
@@ -142,6 +153,23 @@ static bool scene_nav_refresh_blockers(SceneNavEnvComp* env, EcsView* blockerEnt
   return blockersChanged;
 }
 
+static bool scene_nav_terrain_refresh(SceneNavEnvComp* env, const SceneTerrainComp* terrain) {
+  if (env->terrainVersion == scene_terrain_version(terrain)) {
+    return false; // Nav grid unchanged.
+  }
+  const GeoNavRegion bounds = geo_nav_bounds(env->navGrid);
+  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
+    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+      const GeoNavCell cell          = {.x = x, .y = y};
+      const GeoVector  pos           = geo_nav_position(env->navGrid, cell);
+      const f32        terrainHeight = scene_terrain_height(terrain, pos);
+      geo_nav_y_update(env->navGrid, cell, terrainHeight);
+    }
+  }
+  env->terrainVersion = scene_terrain_version(terrain);
+  return true; // Nav grid updated.
+}
+
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
@@ -168,7 +196,10 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   geo_nav_stats_reset(grid);
 }
 
-ecs_view_define(InitGlobalView) { ecs_access_write(SceneNavEnvComp); }
+ecs_view_define(InitGlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_write(SceneNavEnvComp);
+}
 
 ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -195,10 +226,14 @@ ecs_system_define(SceneNavInitSys) {
   if (!globalItr) {
     return;
   }
-  SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
+  SceneNavEnvComp*        env     = ecs_view_write_t(globalItr, SceneNavEnvComp);
+
+  bool gridUpdated = terrain && scene_nav_terrain_refresh(env, terrain);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
-  if (scene_nav_refresh_blockers(env, blockerEntities)) {
+  gridUpdated |= scene_nav_refresh_blockers(env, blockerEntities, gridUpdated);
+  if (gridUpdated) {
     geo_nav_compute_islands(env->navGrid);
   }
 
@@ -278,8 +313,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       toPos  = geo_nav_position(env->navGrid, toCell);
     }
 
-    const f32 distToTarget    = geo_vector_mag(geo_vector_sub(toPos, trans->position));
-    const f32 arriveThreshold = scene_nav_arrive_threshold(env, toCell);
+    const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(toPos, trans->position));
+    const f32       distToTarget    = geo_vector_mag(toTarget);
+    const f32       arriveThreshold = scene_nav_arrive_threshold(env, toCell);
     if (distToTarget <= arriveThreshold) {
       agent->flags |= SceneNavAgent_Stop; // Arrived at destination.
     }

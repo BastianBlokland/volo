@@ -51,7 +51,7 @@ ecs_module_init(nav_test_module) {
 
 spec(nav) {
 
-  const f32  halfGridSize = 100;
+  const f32  halfGridSize = 125;
   const f32  gridDensity  = 1.25f;
   const f32  gridCellSize = 1.0f / gridDensity;
   EcsDef*    def          = null;
@@ -106,8 +106,8 @@ spec(nav) {
      * Expected: (1 is an output cell, x is blocked and 0 is an enqueued neighbor).
      *
      *  00 0
-     * 011x11
-     *  01110
+     * 011x01
+     *  01111
      *   000
      */
 
@@ -122,7 +122,7 @@ spec(nav) {
             {.x = centerCell - 1, .y = centerCell - 1},
             {.x = centerCell + 0, .y = centerCell - 1},
             {.x = centerCell + 1, .y = centerCell - 1},
-            {.x = centerCell + 1, .y = centerCell},
+            {.x = centerCell + 2, .y = centerCell - 1},
             {.x = centerCell + 2, .y = centerCell},
         },
         7);

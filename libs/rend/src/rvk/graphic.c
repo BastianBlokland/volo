@@ -40,6 +40,8 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
     rend_image_sampler_mask,
     rend_image_sampler_mask,
+    rend_image_sampler_mask,
+    rend_image_sampler_mask,
 };
 
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
@@ -381,8 +383,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
   diag_crash();
 }
 
-static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass vkRendPass) {
+static VkPipeline rvk_pipeline_create(
+    RvkGraphic* graphic, const VkPipelineLayout layout, const VkRenderPass vkRendPass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -409,11 +411,13 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
       .pScissors     = &scissor,
   };
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
-      .sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .polygonMode = rvk_pipeline_polygonmode(graphic),
-      .lineWidth   = rvk_pipeline_linewidth(graphic),
-      .cullMode    = rvk_pipeline_cullmode(graphic),
-      .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode             = rvk_pipeline_polygonmode(graphic),
+      .lineWidth               = rvk_pipeline_linewidth(graphic),
+      .cullMode                = rvk_pipeline_cullmode(graphic),
+      .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .depthBiasEnable         = graphic->depthBias < -1e-6 || graphic->depthBias > 1e-6,
+      .depthBiasConstantFactor = graphic->depthBias,
   };
   const VkPipelineMultisampleStateCreateInfo multisampling = {
       .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -553,16 +557,17 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-      .device      = dev,
-      .dbgName     = string_dup(g_alloc_heap, dbgName),
-      .topology    = asset->topology,
-      .rasterizer  = asset->rasterizer,
-      .lineWidth   = asset->lineWidth,
-      .renderOrder = asset->renderOrder,
-      .blend       = asset->blend,
-      .depth       = asset->depth,
-      .cull        = asset->cull,
-      .vertexCount = asset->vertexCount,
+                 .device      = dev,
+                 .dbgName     = string_dup(g_alloc_heap, dbgName),
+                 .topology    = asset->topology,
+                 .rasterizer  = asset->rasterizer,
+                 .lineWidth   = asset->lineWidth,
+                 .depthBias   = asset->depthBias,
+                 .renderOrder = asset->renderOrder,
+                 .blend       = asset->blend,
+                 .depth       = asset->depth,
+                 .cull        = asset->cull,
+                 .vertexCount = asset->vertexCount,
   };
 
   log_d(
@@ -570,7 +575,8 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       log_param("name", fmt_text(dbgName)),
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
-      log_param("line-width", fmt_float(asset->lineWidth)),
+      log_param("line-width", fmt_int(asset->lineWidth)),
+      log_param("depth-bias", fmt_float(asset->depthBias)),
       log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
       log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),
       log_param("cull", fmt_text(rvk_graphic_cull_str(asset->cull))));
@@ -742,7 +748,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
       const RvkDescKind kind = graphicDescMeta.bindings[i];
       if (rvk_desc_is_sampler(kind)) {
-        if (UNLIKELY(i == rvk_graphic_samplers_max)) {
+        if (UNLIKELY(samplerIndex == rvk_graphic_samplers_max)) {
           log_e(
               "Shader exceeds texture limit",
               log_param("graphic", fmt_text(graphic->dbgName)),

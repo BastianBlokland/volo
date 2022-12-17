@@ -14,6 +14,7 @@
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_spawner.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
 #include "ui_register.h"
@@ -22,8 +23,8 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appWallCount  = 175;
-static const u64       g_appRngSeed    = 42;
+static const u32       g_appWallCount  = 300;
+static const u64       g_appRngSeed    = 1337;
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -67,9 +68,9 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   const StringHash wallPrefabId = string_hash_lit("Wall");
 
   for (u32 i = 0; i != g_appWallCount; ++i) {
-    const f32 posX  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 posX  = rng_sample_range(rng, -100.0f, 100.0f);
     const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32 posZ  = rng_sample_range(rng, -75.0f, 75.0f);
+    const f32 posZ  = rng_sample_range(rng, -100.0f, 100.0f);
     const f32 angle = rng_sample_f32(rng) * math_pi_f32 * 2;
     scene_prefab_spawn(
         world,
@@ -78,6 +79,7 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
             .faction  = SceneFaction_None,
             .position = geo_vector(posX, posY, posZ),
             .rotation = geo_quat_angle_axis(geo_up, angle),
+            .flags    = ScenePrefabFlags_SnapToTerrain,
         });
   }
 }
@@ -90,6 +92,7 @@ static void app_scene_create_units(EcsWorld* world) {
           .faction  = SceneFaction_A,
           .position = geo_vector(50),
           .rotation = geo_quat_ident,
+          .flags    = ScenePrefabFlags_SnapToTerrain,
       });
 
   static const GeoVector g_turretGunLocations[] = {
@@ -105,6 +108,7 @@ static void app_scene_create_units(EcsWorld* world) {
             .faction  = SceneFaction_A,
             .position = *turretLoc,
             .rotation = geo_quat_forward_to_left,
+            .flags    = ScenePrefabFlags_SnapToTerrain,
         });
   }
 
@@ -120,6 +124,7 @@ static void app_scene_create_units(EcsWorld* world) {
             .faction  = SceneFaction_A,
             .position = *turretLoc,
             .rotation = geo_quat_forward_to_left,
+            .flags    = ScenePrefabFlags_SnapToTerrain,
         });
   }
 
@@ -130,6 +135,7 @@ static void app_scene_create_units(EcsWorld* world) {
           .faction  = SceneFaction_B,
           .position = geo_vector(-50),
           .rotation = geo_quat_ident,
+          .flags    = ScenePrefabFlags_SnapToTerrain,
       });
 }
 
@@ -249,6 +255,10 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_init(world, string_lit("global/sandbox.imp"));
   scene_prefab_init(world, string_lit("global/sandbox.pfb"));
   scene_weapon_init(world, string_lit("global/sandbox.wea"));
+  scene_terrain_init(
+      world,
+      string_lit("graphics/scene/terrain.gra"),
+      string_lit("external/terrain/terrain_3_height.r16"));
 
   app_window_create(world);
 }

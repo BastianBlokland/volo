@@ -33,6 +33,7 @@ static void spawner_spawn(
       .prefabId = spawner->prefabId,
       .faction  = faction,
       .rotation = spawnerRot,
+      .flags    = ScenePrefabFlags_SnapToTerrain,
   };
   for (u32 i = 0; i != spawnCount; ++i) {
     spec.position       = spawn_random_point_in_circle(spawnerPos, spawner->radius);

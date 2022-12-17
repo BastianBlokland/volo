@@ -319,6 +319,8 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
+void rend_draw_clear(RendDrawComp* draw) { draw->instCount = 0; }
+
 Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
   buf_ensure(&draw->dataMem, size, rend_min_align);
   draw->dataSize = (u32)size;

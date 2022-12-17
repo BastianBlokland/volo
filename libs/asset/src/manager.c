@@ -420,6 +420,15 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
   ecs_world_add_t(world, asset, AssetDirtyComp, .numRelease = 1);
 }
 
+void asset_reload_request(EcsWorld* world, const EcsEntityId assetEntity) {
+  /**
+   * Mark the asset as changed and bypass the normal unload delay.
+   * NOTE: Does not mark dependent assets as changed.
+   */
+  ecs_utils_maybe_add_t(world, assetEntity, AssetChangedComp);
+  ecs_utils_maybe_add_t(world, assetEntity, AssetInstantUnloadComp);
+}
+
 u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
 
 u32 asset_load_count(const AssetComp* asset) { return asset->loadCount; }

@@ -1,0 +1,70 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/scene/terrain.vert.spv"
+    },
+    {
+      "shaderId": "shaders/scene/terrain.frag.spv",
+      "overrides": [
+        {
+          "name": "heightNormalIntensity",
+          "binding": 0,
+          "value": 2.5
+        },
+        {
+          "name": "splat1UvScale",
+          "binding": 1,
+          "value": 150
+        },
+        {
+          "name": "splat2UvScale",
+          "binding": 2,
+          "value": 75
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/terrain/terrain_3_height.r16",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "external/terrain/terrain_3_splat.tga",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "external/tiling/sand_1_color_rough.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/sand_1_normal.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/dirt_1_color_rough.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/tiling/dirt_1_normal.tga",
+      "wrap": "Repeat",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    }
+  ],
+  "meshId": "meshes/scene/terrain_patch.pme",
+  "renderOrder": 5,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}

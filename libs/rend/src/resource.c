@@ -45,6 +45,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
+        .repoId     = RvkRepositoryId_WireframeTerrainGraphic,
+        .assetId    = string_static("graphics/wireframe_terrain.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_DebugSkinningGraphic,
         .assetId    = string_static("graphics/debug/debug_skinning.gra"),
         .reloadable = true,

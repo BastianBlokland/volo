@@ -17,6 +17,7 @@
 #include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_unit.h"
 #include "scene_vfx.h"
@@ -44,7 +45,12 @@ ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(ScenePrefabResourceComp);
   ecs_access_write(AssetManagerComp);
 }
-ecs_view_define(GlobalResourceReadView) { ecs_access_read(ScenePrefabResourceComp); }
+
+ecs_view_define(GlobalSpawnView) {
+  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_read(ScenePrefabResourceComp);
+}
+
 ecs_view_define(PrefabMapAssetView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabSpawnView) { ecs_access_read(ScenePrefabRequestComp); }
 
@@ -287,7 +293,11 @@ static void setup_trait(
 }
 
 static void setup_prefab(
-    EcsWorld* w, const EcsEntityId e, const ScenePrefabSpec* spec, const AssetPrefabMapComp* map) {
+    EcsWorld*                 w,
+    const SceneTerrainComp*   terrain,
+    const EcsEntityId         e,
+    const ScenePrefabSpec*    spec,
+    const AssetPrefabMapComp* map) {
 
   ecs_world_add_t(w, e, ScenePrefabInstanceComp, .prefabId = spec->prefabId);
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
@@ -295,7 +305,11 @@ static void setup_prefab(
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
     return;
   }
-  ecs_world_add_t(w, e, SceneTransformComp, .position = spec->position, .rotation = spec->rotation);
+  GeoVector spawnPos = spec->position;
+  if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
+    scene_terrain_snap(terrain, &spawnPos);
+  }
+  ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
 
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
@@ -315,12 +329,13 @@ static void setup_prefab(
 }
 
 ecs_system_define(ScenePrefabSpawnSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalResourceReadView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalSpawnView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
   const ScenePrefabResourceComp* resource = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  const SceneTerrainComp*        terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
   EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, resource->mapEntity);
@@ -334,7 +349,11 @@ ecs_system_define(ScenePrefabSpawnSys) {
     const EcsEntityId             entity  = ecs_view_entity(itr);
     const ScenePrefabRequestComp* request = ecs_view_read_t(itr, ScenePrefabRequestComp);
 
-    setup_prefab(world, entity, &request->spec, map);
+    if (!scene_terrain_loaded(terrain) && (request->spec.flags & ScenePrefabFlags_SnapToTerrain)) {
+      continue; // Wait until the terrain is loaded.
+    }
+
+    setup_prefab(world, terrain, entity, &request->spec, map);
     ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
   }
 }
@@ -345,7 +364,7 @@ ecs_module_init(scene_prefab_module) {
   ecs_register_comp(ScenePrefabInstanceComp);
 
   ecs_register_view(GlobalResourceUpdateView);
-  ecs_register_view(GlobalResourceReadView);
+  ecs_register_view(GlobalSpawnView);
   ecs_register_view(PrefabMapAssetView);
   ecs_register_view(PrefabSpawnView);
 
@@ -355,7 +374,7 @@ ecs_module_init(scene_prefab_module) {
 
   ecs_register_system(
       ScenePrefabSpawnSys,
-      ecs_view_id(GlobalResourceReadView),
+      ecs_view_id(GlobalSpawnView),
       ecs_view_id(PrefabMapAssetView),
       ecs_view_id(PrefabSpawnView));
 }

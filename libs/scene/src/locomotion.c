@@ -5,6 +5,7 @@
 #include "scene_nav.h"
 #include "scene_register.h"
 #include "scene_skeleton.h"
+#include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
@@ -13,6 +14,7 @@
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
 }
@@ -49,27 +51,32 @@ static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, cons
   return !clamped;
 }
 
-static void scene_loco_move(
+/**
+ * NOTE: Returns true if we moved the entity, otherwise false.
+ */
+static bool scene_loco_move(
     SceneLocomotionComp* loco, SceneTransformComp* trans, const f32 scale, const f32 delta) {
   if (!(loco->flags & SceneLocomotion_Moving)) {
-    return;
+    return false;
   }
-  const GeoVector toTarget = geo_vector_sub(loco->targetPos, trans->position);
+  const GeoVector toTarget = geo_vector_xz(geo_vector_sub(loco->targetPos, trans->position));
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
     loco->flags &= ~SceneLocomotion_Moving;
-    return;
+    return false;
   }
   const f32 distDelta = math_min(dist, loco->maxSpeed * loco->speedNorm * scale * delta);
 
   loco->targetDir = geo_vector_div(toTarget, dist);
   trans->position = geo_vector_add(trans->position, geo_vector_mul(loco->targetDir, distDelta));
+  return true;
 }
 
 /**
  * Separate this entity from blockers and (other) navigation agents.
+ * NOTE: Returns true if we moved the entity, otherwise false.
  */
-static void scene_loco_separate(
+static bool scene_loco_separate(
     const SceneNavEnvComp* navEnv,
     const EcsEntityId      entity,
     SceneLocomotionComp*   loco,
@@ -80,6 +87,8 @@ static void scene_loco_separate(
 
   loco->lastSeparation = scene_nav_separate(navEnv, entity, pos, loco->radius * scale, moving);
   trans->position      = geo_vector_add(trans->position, loco->lastSeparation);
+
+  return geo_vector_mag_sqr(loco->lastSeparation) > f32_epsilon;
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
@@ -88,9 +97,10 @@ ecs_system_define(SceneLocomotionMoveSys) {
   if (!globalItr) {
     return;
   }
-  const SceneNavEnvComp* navEnv       = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32              deltaSeconds = scene_delta_seconds(time);
+  const SceneNavEnvComp*  navEnv       = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTerrainComp* terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32               deltaSeconds = scene_delta_seconds(time);
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr_step(moveView, parCount, parIndex); ecs_view_walk(itr);) {
@@ -99,20 +109,24 @@ ecs_system_define(SceneLocomotionMoveSys) {
     SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
     SceneTransformComp*  trans  = ecs_view_write_t(itr, SceneTransformComp);
 
-    const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
+    const SceneScaleComp* scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
+    const f32             scale         = scaleComp ? scaleComp->scale : 1.0f;
+    bool                  positionDirty = false;
 
     if (loco->flags & SceneLocomotion_Stop) {
       loco->targetPos = trans->position;
       loco->flags &= ~(SceneLocomotion_Moving | SceneLocomotion_Stop);
+      positionDirty = true;
     }
 
-    scene_loco_move(loco, trans, scale, deltaSeconds);
+    positionDirty |= scene_loco_move(loco, trans, scale, deltaSeconds);
+
     if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
       if (scene_loco_face(trans, loco->targetDir, loco->rotationSpeedRad * deltaSeconds)) {
         loco->targetDir = geo_vector(0);
       }
     }
+
     if (deltaSeconds > 0) {
       /**
        * Move this entity out of other navigation agents and blockers.
@@ -123,7 +137,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * time-scale). Consider changing this to use forces and apply the separation over-time, this
        * will mean that we have to accept units temporary overlapping each other.
        */
-      scene_loco_separate(navEnv, entity, loco, trans, scale);
+      positionDirty |= scene_loco_separate(navEnv, entity, loco, trans, scale);
+    }
+
+    if (terrain && positionDirty) {
+      scene_terrain_snap(terrain, &trans->position);
     }
 
     if (anim && loco->speedNorm < f32_epsilon) {

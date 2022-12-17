@@ -49,6 +49,7 @@ static AssetTextureType htex_texture_type(const HtexType type) {
 typedef enum {
   HtexError_None = 0,
   HtexError_Corrupt,
+  HtexError_Empty,
   HtexError_NonPow2,
 
   HtexError_Count,
@@ -58,6 +59,7 @@ static String htex_error_str(const HtexError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Corrupt height texture data"),
+      string_static("Missing height texture data"),
       string_static("Non power-of-two size"),
   };
   ASSERT(array_elems(g_msgs) == HtexError_Count, "Incorrect number of error messages");
@@ -71,13 +73,17 @@ static void htex_load_fail(EcsWorld* world, const EcsEntityId e, const HtexError
 
 static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, const HtexType type) {
   const usize pixelSize = htex_pixel_size(type);
-  if (data.size % pixelSize) {
+  if (UNLIKELY(data.size % pixelSize)) {
     htex_load_fail(world, entity, HtexError_Corrupt);
     return;
   }
   const usize pixelCount = data.size / pixelSize;
-  const u32   size       = (u32)math_sqrt_f64(pixelCount);
-  if (size * size != pixelCount) {
+  if (UNLIKELY(!pixelCount)) {
+    htex_load_fail(world, entity, HtexError_Empty);
+    return;
+  }
+  const u32 size = (u32)math_sqrt_f64(pixelCount);
+  if (UNLIKELY(size * size != pixelCount)) {
     htex_load_fail(world, entity, HtexError_NonPow2);
     return;
   }

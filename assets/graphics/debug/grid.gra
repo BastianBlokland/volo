@@ -14,5 +14,6 @@
   "rasterizer": "Lines",
   "blend": "Alpha",
   "depth": "Less",
+  "depthBias": 500,
   "cull": "None"
 }

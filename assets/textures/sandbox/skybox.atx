@@ -2,11 +2,11 @@
   "type": "CubeMap",
   "mipmaps": true,
   "textures": [
-    "external/skybox/sorsele_right.tga",
-    "external/skybox/sorsele_left.tga",
-    "external/skybox/sorsele_down.tga",
-    "external/skybox/sorsele_up.tga",
-    "external/skybox/sorsele_front.tga",
-    "external/skybox/sorsele_back.tga"
+    "external/skybox/teide_right.tga",
+    "external/skybox/teide_left.tga",
+    "external/skybox/teide_down.tga",
+    "external/skybox/teide_up.tga",
+    "external/skybox/teide_forward.tga",
+    "external/skybox/teide_back.tga"
   ]
 }

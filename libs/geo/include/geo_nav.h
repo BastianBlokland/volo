@@ -45,7 +45,7 @@ typedef u8 GeoNavIsland;
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
-GeoNavGrid* geo_nav_grid_create(Allocator*, GeoVector center, f32 size, f32 density, f32 height);
+GeoNavGrid* geo_nav_grid_create(Allocator*, f32 size, f32 density, f32 height, f32 blockHeight);
 
 /**
  * Destroy a GeoNavGrid instance.
@@ -57,6 +57,11 @@ void geo_nav_grid_destroy(GeoNavGrid*);
  */
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 GeoVector    geo_nav_cell_size(const GeoNavGrid*);
+
+/**
+ * Update cell y coordinates.
+ */
+void geo_nav_y_update(GeoNavGrid*, GeoNavCell, f32 y);
 
 /**
  * Lookup cell information.

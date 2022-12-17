@@ -19,6 +19,8 @@ configure_shaders(volo_shaders
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
+    shaders/scene/terrain.frag
+    shaders/scene/terrain.vert
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
@@ -36,35 +38,18 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
-      skybox/sorsele_back.tga
-      skybox/sorsele_down.tga
-      skybox/sorsele_front.tga
-      skybox/sorsele_left.tga
-      skybox/sorsele_right.tga
-      skybox/sorsele_up.tga
-      swat/swat_a_diff.tga
-      swat/swat_b_diff.tga
-      swat/swat_c_diff.tga
-      swat/swat_nrm.tga
-      swat/swat_3.bin
-      swat/swat_3.gltf
-      maynard/maynard_diff.tga
-      maynard/maynard_nrm.tga
-      maynard/maynard.bin
-      maynard/maynard.gltf
-      turret/turret_diff_blue.tga
-      turret/turret_nrm.tga
-      turret/turret.bin
-      turret/turret_big.gltf
-      turret/turret_missile.bin
-      turret/turret_missile.gltf
-      vfx/flash.tga
-      vfx/flash_star.tga
-      vfx/trail.tga
-      vfx/smoke.tga
-      vfx/rock.tga
+      fence/fence_1_color_rough.tga
+      fence/fence_1_normal.tga
+      fence/fence_1.bin
+      fence/fence_1.gltf
       fire/fire_0.tga
       fire/fire_1.tga
+      fire/fire_10.tga
+      fire/fire_11.tga
+      fire/fire_12.tga
+      fire/fire_13.tga
+      fire/fire_14.tga
+      fire/fire_15.tga
       fire/fire_2.tga
       fire/fire_3.tga
       fire/fire_4.tga
@@ -73,12 +58,37 @@ if(${EXTERNAL_ASSETS})
       fire/fire_7.tga
       fire/fire_8.tga
       fire/fire_9.tga
-      fire/fire_10.tga
-      fire/fire_11.tga
-      fire/fire_12.tga
-      fire/fire_13.tga
-      fire/fire_14.tga
-      fire/fire_15.tga
+      maynard/maynard_color_rough.tga
+      maynard/maynard_nrm.tga
+      maynard/maynard.bin
+      maynard/maynard.gltf
+      skybox/teide_back.tga
+      skybox/teide_down.tga
+      skybox/teide_forward.tga
+      skybox/teide_left.tga
+      skybox/teide_right.tga
+      skybox/teide_up.tga
+      swat/swat_3.bin
+      swat/swat_3.gltf
+      swat/swat_color_rough.tga
+      swat/swat_nrm.tga
+      terrain/terrain_3_height.r16
+      terrain/terrain_3_splat.tga
+      tiling/dirt_1_color_rough.tga
+      tiling/dirt_1_normal.tga
+      tiling/sand_1_color_rough.tga
+      tiling/sand_1_normal.tga
+      turret/turret_big.gltf
+      turret/turret_color_rough.tga
+      turret/turret_missile.bin
+      turret/turret_missile.gltf
+      turret/turret_nrm.tga
+      turret/turret.bin
+      vfx/flash_star.tga
+      vfx/flash.tga
+      vfx/rock.tga
+      vfx/smoke.tga
+      vfx/trail.tga
     )
 endif()
 

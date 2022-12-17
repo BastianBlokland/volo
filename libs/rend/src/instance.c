@@ -1,13 +1,12 @@
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "rend_draw.h"
 #include "rend_register.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
-
-#include "draw_internal.h"
 
 #define rend_instance_max_draw_create_per_task 4
 

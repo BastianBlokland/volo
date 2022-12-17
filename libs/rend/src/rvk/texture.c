@@ -61,6 +61,8 @@ static VkFormat rvk_texture_format(
   case AssetTextureType_F32:
     diag_assert_msg(!srgb, "F32 textures with srgb encoding are not supported");
     return rvk_texture_format_f32(channels);
+  case AssetTextureType_Count:
+    UNREACHABLE
   }
   diag_crash();
 }

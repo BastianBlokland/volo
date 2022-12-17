@@ -1,12 +1,20 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/wireframe_skinned.vert.spv"
+      "shaderId": "shaders/scene/terrain.vert.spv"
     },
     {
       "shaderId": "shaders/wireframe.frag.spv"
     }
   ],
+  "samplers": [
+    {
+      "textureId": "external/terrain/terrain_3_height.r16",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "meshId": "meshes/scene/terrain_patch.pme",
   "renderOrder": 25,
   "topology": "Triangles",
   "rasterizer": "Lines",
