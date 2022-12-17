@@ -58,12 +58,12 @@ if(${EXTERNAL_ASSETS})
       maynard/maynard_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
-      skybox/sorsele_back.tga
-      skybox/sorsele_down.tga
-      skybox/sorsele_front.tga
-      skybox/sorsele_left.tga
-      skybox/sorsele_right.tga
-      skybox/sorsele_up.tga
+      skybox/teide_back.tga
+      skybox/teide_down.tga
+      skybox/teide_forward.tga
+      skybox/teide_left.tga
+      skybox/teide_right.tga
+      skybox/teide_up.tga
       swat/swat_3.bin
       swat/swat_3.gltf
       swat/swat_a_diff.tga
