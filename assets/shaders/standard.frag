@@ -34,22 +34,22 @@ f32v3 surface_normal() {
   return normalize(in_worldNormal);
 }
 
-f32v4 compute_reflection(const f32v4 diffuse, const f32v3 normal, const f32v3 viewDir) {
+f32v3 compute_reflection(const f32v3 diffuse, const f32v3 normal, const f32v3 viewDir) {
   if (s_reflectSkybox) {
     const f32v3 dir = reflect(viewDir, normal);
-    return mix(diffuse, texture_cube(u_cubeSkybox, dir), s_reflectFrac);
+    return mix(diffuse, texture_cube(u_cubeSkybox, dir).rgb, s_reflectFrac);
   }
   return diffuse;
 }
 
 void main() {
-  const f32v4   diffuse = texture(u_texDiffuse, in_texcoord);
+  const f32v3   diffuse = texture(u_texDiffuse, in_texcoord).rgb;
   const f32v3   normal  = surface_normal();
   const f32v3   viewDir = normalize(in_worldPosition - u_global.camPosition.xyz);
   const Shading shading = s_shade ? light_shade_blingphong(normal, viewDir) : light_shade_flat();
 
-  const f32v4 diffuseWithRefl = compute_reflection(diffuse, normal, viewDir);
-  out_color                   = light_color(shading, diffuseWithRefl);
+  const f32v3 diffuseWithRefl = compute_reflection(diffuse, normal, viewDir);
+  out_color                   = f32v4(light_color(shading, diffuseWithRefl), 1);
 
   if (tag_is_set(in_tags, tag_selected_bit)) {
     out_color += (1.0 - abs(dot(normal, viewDir))) * 2.0;
