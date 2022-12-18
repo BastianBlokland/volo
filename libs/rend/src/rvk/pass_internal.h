@@ -24,6 +24,12 @@ typedef enum {
   RvkPassFlags_Count = 2,
 } RvkPassFlags;
 
+typedef enum {
+  RvkPassOutput_Color,
+
+  RvkPassOutput_Count,
+} RvkPassOutput;
+
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
   RvkMesh*    dynMesh; // Dynamic (late bound) mesh to use in this draw.
@@ -43,7 +49,7 @@ RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFl
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
 
-RvkImage* rvk_pass_output(RvkPass*);
+RvkImage* rvk_pass_output(RvkPass*, RvkPassOutput);
 u64       rvk_pass_stat(RvkPass*, RvkStat);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);

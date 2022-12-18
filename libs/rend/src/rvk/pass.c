@@ -283,7 +283,16 @@ bool rvk_pass_active(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Active) != 0;
 }
 
-RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->attachColor; }
+RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
+  switch (output) {
+  case RvkPassOutput_Color:
+    return &pass->attachColor;
+  case RvkPassOutput_Count:
+    break;
+  }
+  UNREACHABLE
+  return null;
+}
 
 u64 rvk_pass_stat(RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
