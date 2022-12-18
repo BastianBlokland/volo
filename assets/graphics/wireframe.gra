@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/wireframe.vert.spv"
+      "shaderId": "shaders/standard_position.vert.spv"
     },
     {
-      "shaderId": "shaders/wireframe.frag.spv"
+      "shaderId": "shaders/white.frag.spv"
     }
   ],
   "renderOrder": 25,
