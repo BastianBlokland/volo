@@ -230,8 +230,8 @@ static bool painter_draw(
         .aspectRatio = (f32)resolution.width / (f32)resolution.height,
     };
 
+    // Forward pass.
     RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
-    rvk_pass_begin(forwardPass, geo_color_black);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
       painter_push_wireframe(painter, settings, &view, forwardPass, drawView, graphicView);
@@ -239,9 +239,11 @@ static bool painter_draw(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(painter, settings, &view, forwardPass, drawView, graphicView);
     }
+    rvk_pass_begin(forwardPass, geo_color_black);
     painter_flush(painter, forwardPass, &globalData);
     rvk_pass_end(forwardPass);
 
+    // Finish the frame.
     rvk_canvas_end(painter->canvas);
   }
   return draw;
