@@ -194,7 +194,6 @@ static void painter_push_debugskinning(
 static void
 painter_flush(RendPainterComp* painter, RvkPass* pass, const RendPainterGlobalData* globalData) {
   dynarray_sort(&painter->drawBuffer, painter_compare_pass_draw);
-
   rvk_pass_draw(
       pass,
       mem_var(*globalData),
@@ -202,8 +201,6 @@ painter_flush(RendPainterComp* painter, RvkPass* pass, const RendPainterGlobalDa
           .values = dynarray_begin_t(&painter->drawBuffer, RvkPassDraw),
           .count  = painter->drawBuffer.size,
       });
-  rvk_pass_end(pass);
-
   dynarray_clear(&painter->drawBuffer);
 }
 
