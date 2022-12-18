@@ -84,6 +84,35 @@ static void painter_push(RendPainterComp* painter, const RvkPassDraw draw) {
   *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = draw;
 }
 
+static void painter_push_geometry(
+    RendPainterComp*        painter,
+    const RendSettingsComp* settings,
+    const RendView*         view,
+    RvkPass*                pass,
+    EcsView*                drawView,
+    EcsView*                graphicView) {
+
+  const RendDrawFlags requiredFlags = RendDrawFlags_Terrain;
+
+  EcsIterator* graphicItr = ecs_view_itr(graphicView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if ((rend_draw_flags(draw) & requiredFlags) == 0) {
+      continue; // Draw not required in the geometry pass.
+    }
+    if (!rend_draw_gather(draw, view, settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(pass, graphic)) {
+      painter_push(painter, rend_draw_output(draw, graphic, null));
+    }
+  }
+}
+
 static void painter_push_forward(
     RendPainterComp*        painter,
     const RendSettingsComp* settings,
@@ -232,6 +261,7 @@ static bool painter_draw(
 
     // Geometry pass.
     RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+    painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
     rvk_pass_begin(geometryPass, geo_color_black);
     painter_flush(painter, geometryPass, &globalData);
     rvk_pass_end(geometryPass);
