@@ -61,11 +61,13 @@ static RvkUniformEntry rvk_uniform_upload(RvkUniformPool* uni, Mem data) {
 
   // If no set has enough space; create a new one.
   RvkUniformSet* newSet = dynarray_push_t(&uni->sets, RvkUniformSet);
-  *newSet               = (RvkUniformSet){
-                    .buffer = rvk_buffer_create(uni->device, rvk_uniform_buffer_size, RvkBufferType_HostUniform),
-                    .desc   = rvk_desc_alloc(uni->device->descPool, &uni->descMeta),
-                    .offset = (u32)paddedSize,
+
+  *newSet = (RvkUniformSet){
+      .buffer = rvk_buffer_create(uni->device, rvk_uniform_buffer_size, RvkBufferType_HostUniform),
+      .desc   = rvk_desc_alloc(uni->device->descPool, &uni->descMeta),
+      .offset = (u32)paddedSize,
   };
+
   rvk_debug_name_buffer(uni->device->debug, newSet->buffer.vkBuffer, "uniform");
   rvk_desc_set_attach_buffer(newSet->desc, 0, &newSet->buffer, uni->dataSizeMax);
   rvk_buffer_upload(&newSet->buffer, data, 0);
@@ -81,14 +83,16 @@ static RvkUniformEntry rvk_uniform_upload(RvkUniformPool* uni, Mem data) {
 
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
   RvkUniformPool* debug = alloc_alloc_t(g_alloc_heap, RvkUniformPool);
-  *debug                = (RvkUniformPool){
-                     .device               = dev,
-                     .descMeta.bindings[0] = RvkDescKind_UniformBufferDynamic,
-                     .alignMin             = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
-                     .dataSizeMax          = (u32)math_min(
+
+  *debug = (RvkUniformPool){
+      .device               = dev,
+      .descMeta.bindings[0] = RvkDescKind_UniformBufferDynamic,
+      .alignMin             = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
+      .dataSizeMax          = (u32)math_min(
           dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max),
-                     .sets = dynarray_create_t(g_alloc_heap, RvkUniformSet, 16),
+      .sets = dynarray_create_t(g_alloc_heap, RvkUniformSet, 16),
   };
+
   return debug;
 }
 

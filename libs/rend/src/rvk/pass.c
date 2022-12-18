@@ -434,7 +434,8 @@ void rvk_pass_draw(RvkPass* pass, Mem globalData, const RvkPassDrawList drawList
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
 
   if (globalData.size) {
-    rvk_uniform_bind(pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
+    rvk_uniform_bind(
+        pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, RvkGraphicSet_Global);
     pass->flags |= RvkPassPrivateFlags_BoundGlobalData;
   }
 
