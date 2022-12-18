@@ -10,7 +10,7 @@
   "renderOrder": 24,
   "topology": "Triangles",
   "rasterizer": "Fill",
-  "blend": "None",
+  "blend": "Alpha",
   "depth": "LessOrEqual",
   "cull": "Back"
 }

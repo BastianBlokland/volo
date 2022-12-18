@@ -9,6 +9,8 @@
 #include "quat.glsl"
 #include "vertex.glsl"
 
+const f32 c_alpha = 0.5;
+
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_dynamic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform InstanceSkinned {
@@ -16,7 +18,7 @@ bind_instance_data(0) readonly uniform InstanceSkinned {
 };
 
 f32v4 joint_color(const u32 jointIndex) {
-  return f32v4(color_from_hsv(hash_u32(jointIndex) / 4294967295.0, 1, 1), 1);
+  return f32v4(color_from_hsv(hash_u32(jointIndex) / 4294967295.0, 1, 1), c_alpha);
 }
 
 f32v4 vertex_color(const u32v4 jointIndices, const f32v4 jointWeights) {
