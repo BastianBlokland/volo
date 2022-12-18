@@ -110,7 +110,7 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
 }
 
 static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
-  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_target");
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_output");
 
   RvkImage* src  = rvk_pass_output(pass);
   RvkImage* dest = rend->currentTarget;
