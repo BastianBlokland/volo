@@ -11,6 +11,13 @@ typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkRenderer RvkRenderer;
 
+typedef enum {
+  RvkRenderPass_Geometry,
+  RvkRenderPass_Forward,
+
+  RvkRenderPass_Count,
+} RvkRenderPass;
+
 typedef struct {
   TimeDuration renderDur, waitForRenderDur;
   RvkSize      forwardResolution;
@@ -28,5 +35,5 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 
 void rvk_renderer_begin(
     RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
-RvkPass* rvk_renderer_pass_forward(RvkRenderer*);
+RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
 void     rvk_renderer_end(RvkRenderer*);

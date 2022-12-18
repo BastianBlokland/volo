@@ -22,7 +22,8 @@ struct sRvkRenderer {
   u32              rendererId;
   RvkUniformPool*  uniformPool;
   RvkStopwatch*    stopwatch;
-  RvkPass*         forwardPass;
+  RvkPass*         passGeometry;
+  RvkPass*         passForward;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
   VkCommandPool    vkCmdPool;
@@ -145,7 +146,13 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   };
   rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
-  renderer->forwardPass  = rvk_pass_create(
+  renderer->passGeometry = rvk_pass_create(
+      dev,
+      renderer->vkDrawBuffer,
+      renderer->uniformPool,
+      RvkPassFlags_ClearColor | RvkPassFlags_Default,
+      string_lit("geometry"));
+  renderer->passForward = rvk_pass_create(
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
@@ -157,7 +164,8 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
 void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_renderer_wait_for_done(rend);
 
-  rvk_pass_destroy(rend->forwardPass);
+  rvk_pass_destroy(rend->passGeometry);
+  rvk_pass_destroy(rend->passForward);
   rvk_uniform_pool_destroy(rend->uniformPool);
   rvk_stopwatch_destroy(rend->stopwatch);
 
@@ -195,12 +203,12 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
       .renderDur          = time_nanoseconds(timestampEnd - timestampBegin),
       .waitForRenderDur   = rend->waitForRenderDur,
       .forwardResolution  = rend->currentResolution,
-      .forwardDraws       = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Draws),
-      .forwardInstances   = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Instances),
-      .forwardVertices    = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
-      .forwardPrimitives  = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
-      .forwardShadersVert = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsVert),
-      .forwardShadersFrag = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsFrag),
+      .forwardDraws       = (u32)rvk_pass_stat(rend->passForward, RvkStat_Draws),
+      .forwardInstances   = (u32)rvk_pass_stat(rend->passForward, RvkStat_Instances),
+      .forwardVertices    = rvk_pass_stat(rend->passForward, RvkStat_InputAssemblyVertices),
+      .forwardPrimitives  = rvk_pass_stat(rend->passForward, RvkStat_InputAssemblyPrimitives),
+      .forwardShadersVert = rvk_pass_stat(rend->passForward, RvkStat_ShaderInvocationsVert),
+      .forwardShadersFrag = rvk_pass_stat(rend->passForward, RvkStat_ShaderInvocationsFrag),
   };
 }
 
@@ -223,7 +231,8 @@ void rvk_renderer_begin(
 
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
-  rvk_pass_setup(rend->forwardPass, rend->currentResolution);
+  rvk_pass_setup(rend->passGeometry, rend->currentResolution);
+  rvk_pass_setup(rend->passForward, rend->currentResolution);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(
@@ -234,16 +243,26 @@ void rvk_renderer_begin(
       fmt_int(rend->rendererId));
 }
 
-RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
+RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  return rend->forwardPass;
+  switch (pass) {
+  case RvkRenderPass_Geometry:
+    return rend->passGeometry;
+  case RvkRenderPass_Forward:
+    return rend->passForward;
+  case RvkRenderPass_Count:
+    break;
+  }
+  UNREACHABLE
+  return null;
 }
 
 void rvk_renderer_end(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
+  diag_assert_msg(!rvk_pass_active(rend->passGeometry), "Geometry pass is still active");
+  diag_assert_msg(!rvk_pass_active(rend->passForward), "Forward pass is still active");
 
-  rvk_renderer_blit_to_output(rend, rend->forwardPass);
+  rvk_renderer_blit_to_output(rend, rend->passForward);
 
   rend->timeRecEnd = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);

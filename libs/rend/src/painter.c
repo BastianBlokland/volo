@@ -191,7 +191,7 @@ static bool painter_draw(
         .aspectRatio = (f32)resolution.width / (f32)resolution.height,
     };
 
-    RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
+    RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
     painter_draw_forward(painter, settings, &globalData, &view, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }

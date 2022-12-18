@@ -25,7 +25,8 @@ struct sRvkCanvas {
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   RvkSwapchain* swapchain = rvk_swapchain_create(dev, window);
   RvkCanvas*    canvas    = alloc_alloc_t(g_alloc_heap, RvkCanvas);
-  *canvas                 = (RvkCanvas){
+
+  *canvas = (RvkCanvas){
       .device       = dev,
       .swapchain    = swapchain,
       .renderers[0] = rvk_renderer_create(dev, 0),
@@ -78,11 +79,10 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
-RvkPass* rvk_canvas_pass_forward(RvkCanvas* canvas) {
+RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkRenderPass pass) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-
-  return rvk_renderer_pass_forward(renderer);
+  return rvk_renderer_pass(renderer, pass);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {
