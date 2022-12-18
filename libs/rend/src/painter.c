@@ -230,6 +230,12 @@ static bool painter_draw(
         .aspectRatio = (f32)resolution.width / (f32)resolution.height,
     };
 
+    // Geometry pass.
+    RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+    rvk_pass_begin(geometryPass, geo_color_black);
+    painter_flush(painter, geometryPass, &globalData);
+    rvk_pass_end(geometryPass);
+
     // Forward pass.
     RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
