@@ -39,7 +39,7 @@ typedef struct sRvkPassDrawList {
   usize        count;
 } RvkPassDrawList;
 
-RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags);
+RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags, String name);
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
 

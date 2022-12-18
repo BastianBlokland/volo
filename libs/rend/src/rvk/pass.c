@@ -29,6 +29,7 @@ struct sRvkPass {
   RvkDevice*       dev;
   RvkStatRecorder* statrecorder;
   RvkPassFlags     flags;
+  String           name;
   RvkSize          size;
   VkRenderPass     vkRendPass;
   VkPipelineLayout vkGlobalLayout;
@@ -245,11 +246,15 @@ RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     VkCommandBuffer    vkCmdBuf,
     RvkUniformPool*    uniformPool,
-    const RvkPassFlags flags) {
+    const RvkPassFlags flags,
+    const String       name) {
+  diag_assert(!string_is_empty(name));
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
-  *pass         = (RvkPass){
+
+  *pass = (RvkPass){
       .dev            = dev,
+      .name           = string_dup(g_alloc_heap, name),
       .statrecorder   = rvk_statrecorder_create(dev),
       .vkRendPass     = rvk_renderpass_create(dev, flags),
       .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
@@ -262,6 +267,7 @@ RvkPass* rvk_pass_create(
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
+  string_free(g_alloc_heap, pass->name);
   rvk_pass_free_dyn_desc(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
@@ -314,7 +320,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   pass->flags |= RvkPassPrivateFlags_Active;
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
-  rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass");
+  rvk_debug_label_begin(
+      pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->attachColor.size, clearColor);
   rvk_image_transition_external(&pass->attachColor, RvkImagePhase_ColorAttachment);
