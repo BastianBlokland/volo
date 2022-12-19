@@ -86,7 +86,7 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
   case RvkImagePhase_ColorAttachment:
     return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   case RvkImagePhase_DepthAttachment:
-    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
   case RvkImagePhase_ShaderRead:
     return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
   case RvkImagePhase_Present:
