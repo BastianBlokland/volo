@@ -29,16 +29,26 @@ typedef enum {
   RvkImageType_Count,
 } RvkImageType;
 
+typedef enum {
+  RvkImageCapability_TransferSource  = 1 << 0,
+  RvkImageCapability_TransferDest    = 1 << 1,
+  RvkImageCapability_Sampled         = 1 << 2,
+  RvkImageCapability_AttachmentColor = 1 << 3,
+  RvkImageCapability_AttachmentDepth = 1 << 4,
+  RvkImageCapability_Present         = 1 << 5,
+} RvkImageCapability;
+
 typedef struct sRvkImage {
-  RvkImageType  type : 8;
-  RvkImagePhase phase : 8;
-  u8            layers;
-  u8            mipLevels;
-  VkFormat      vkFormat;
-  RvkSize       size;
-  VkImage       vkImage;
-  VkImageView   vkImageView;
-  RvkMem        mem;
+  RvkImageType       type : 8;
+  RvkImagePhase      phase : 8;
+  RvkImageCapability caps : 8;
+  VkFormat           vkFormat;
+  RvkSize            size;
+  u8                 layers;
+  u8                 mipLevels;
+  VkImage            vkImage;
+  VkImageView        vkImageView;
+  RvkMem             mem;
 } RvkImage;
 
 RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels);

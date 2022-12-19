@@ -107,51 +107,44 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   }
 }
 
-static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const u8 mipLevels) {
-  switch (type) {
-  case RvkImageType_ColorSource:
-  case RvkImageType_ColorSourceCube: {
-    VkImageUsageFlags flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    if (mipLevels > 1) {
-      flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
-    return flags;
+static VkImageUsageFlags rvk_image_vkusage(const RvkImageCapability caps) {
+  VkImageUsageFlags usage = 0;
+  if (caps & RvkImageCapability_TransferSource) {
+    usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   }
-  case RvkImageType_ColorAttachment:
-    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-  case RvkImageType_DepthAttachment:
-    return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  case RvkImageType_Swapchain:
-    // Swapchain images cannot be created manually.
-    break;
-  case RvkImageType_Count:
-    break;
+  if (caps & RvkImageCapability_TransferDest) {
+    usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   }
-  diag_crash();
+  if (caps & RvkImageCapability_Sampled) {
+    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentColor) {
+    usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentDepth) {
+    usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  }
+  return usage;
 }
 
-static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type, const u8 mipLevels) {
-  switch (type) {
-  case RvkImageType_ColorSource:
-  case RvkImageType_ColorSourceCube: {
-    VkFormatFeatureFlags flags =
-        VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-    if (mipLevels > 1) {
-      flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-    }
-    return flags;
+static VkFormatFeatureFlags rvk_image_format_features(const RvkImageCapability caps) {
+  VkFormatFeatureFlags formatFeatures = 0;
+  if (caps & RvkImageCapability_TransferSource) {
+    formatFeatures |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
   }
-  case RvkImageType_ColorAttachment:
-    return VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-  case RvkImageType_DepthAttachment:
-    return VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  case RvkImageType_Swapchain:
-    // Swapchain images cannot be created manually.
-    break;
-  case RvkImageType_Count:
-    break;
+  if (caps & RvkImageCapability_TransferDest) {
+    formatFeatures |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
   }
-  diag_crash();
+  if (caps & RvkImageCapability_Sampled) {
+    formatFeatures |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentColor) {
+    formatFeatures |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentDepth) {
+    formatFeatures |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  }
+  return formatFeatures;
 }
 
 static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u8 layers) {
@@ -278,16 +271,17 @@ static VkImageView rvk_vkimageview_create(
 }
 
 static RvkImage rvk_image_create_backed(
-    RvkDevice*         dev,
-    const RvkImageType type,
-    const VkFormat     vkFormat,
-    const RvkSize      size,
-    const u8           layers,
-    const u8           mipLevels) {
+    RvkDevice*               dev,
+    const RvkImageType       type,
+    const RvkImageCapability caps,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const u8                 layers,
+    const u8                 mipLevels) {
   diag_assert_msg(layers, "Image needs at least 1 layer");
   diag_assert_msg(mipLevels, "Image needs at least 1 mipmap");
 
-  const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type, mipLevels);
+  const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(caps);
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
     diag_crash_msg("Image format {} unsupported", fmt_text(rvk_format_info(vkFormat).name));
   }
@@ -296,7 +290,7 @@ static RvkImage rvk_image_create_backed(
   }
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
-  const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type, mipLevels);
+  const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(caps);
   const VkImage vkImage = rvk_vkimage_create(dev, type, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
@@ -311,10 +305,12 @@ static RvkImage rvk_image_create_backed(
 
   return (RvkImage){
       .type        = type,
-      .mipLevels   = mipLevels,
-      .layers      = layers,
+      .phase       = RvkImagePhase_Undefined,
+      .caps        = caps,
       .vkFormat    = vkFormat,
       .size        = size,
+      .layers      = layers,
+      .mipLevels   = mipLevels,
       .vkImage     = vkImage,
       .vkImageView = vkView,
       .mem         = mem,
@@ -327,32 +323,44 @@ RvkImage rvk_image_create_source_color(
     const RvkSize  size,
     const u8       layers,
     const u8       mipLevels) {
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
+  RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
+  if (mipLevels > 1) {
+    caps |= RvkImageCapability_TransferSource;
+  }
+  return rvk_image_create_backed(
+      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage rvk_image_create_source_color_cube(
     RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
+  RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
+  if (mipLevels > 1) {
+    caps |= RvkImageCapability_TransferSource;
+  }
   const u8 layers = 6;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorSourceCube, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorSourceCube, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
 rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
+  const RvkImageCapability caps =
+      RvkImageCapability_AttachmentColor | RvkImageCapability_TransferSource;
   const u8 layers    = 1;
   const u8 mipLevels = 1;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorAttachment, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorAttachment, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
 rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
-  const u8 layers    = 1;
-  const u8 mipLevels = 1;
+  const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth;
+  const u8                 layers    = 1;
+  const u8                 mipLevels = 1;
   return rvk_image_create_backed(
-      dev, RvkImageType_DepthAttachment, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_DepthAttachment, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
@@ -360,10 +368,12 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
   (void)dev;
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
-      .layers    = 1,
-      .mipLevels = 1,
+      .phase     = RvkImagePhase_Undefined,
+      .caps      = RvkImageCapability_Present | RvkImageCapability_TransferDest,
       .vkFormat  = vkFormat,
       .size      = size,
+      .layers    = 1,
+      .mipLevels = 1,
       .vkImage   = vkImage,
   };
 }
