@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -63,10 +64,6 @@ void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
 
 u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
-VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool* uni) {
-  return rvk_desc_vklayout(uni->device->descPool, &uni->descMeta);
-}
-
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
 }
@@ -122,21 +119,21 @@ const RvkBuffer* rvk_uniform_buffer(RvkUniformPool* uni, const RvkUniformHandle 
 
 void rvk_uniform_bind(
     RvkUniformPool*  uni,
-    Mem              data,
+    RvkUniformHandle handle,
     VkCommandBuffer  vkCmdBuf,
     VkPipelineLayout vkPipelineLayout,
     const u32        set) {
 
-  const RvkUniformHandle entry     = rvk_uniform_upload(uni, data);
-  const RvkUniformChunk* chunk     = rvk_uniform_chunk(uni, entry.chunkIdx);
-  VkDescriptorSet        vkDescSet = rvk_desc_set_vkset(chunk->desc);
+  const RvkUniformChunk* chunk            = rvk_uniform_chunk(uni, handle.chunkIdx);
+  const VkDescriptorSet  descSets[]       = {rvk_desc_set_vkset(chunk->desc)};
+  const u32              dynamicOffsets[] = {handle.offset};
   vkCmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       vkPipelineLayout,
       set,
-      1,
-      &vkDescSet,
-      1,
-      &entry.offset);
+      array_elems(descSets),
+      descSets,
+      array_elems(dynamicOffsets),
+      dynamicOffsets);
 }

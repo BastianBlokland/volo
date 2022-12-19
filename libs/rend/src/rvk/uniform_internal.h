@@ -9,10 +9,9 @@ typedef struct sRvkDevice RvkDevice;
 
 typedef struct sRvkUniformPool RvkUniformPool;
 
-RvkUniformPool*       rvk_uniform_pool_create(RvkDevice*);
-void                  rvk_uniform_pool_destroy(RvkUniformPool*);
-u32                   rvk_uniform_size_max(RvkUniformPool*);
-VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool*);
+RvkUniformPool* rvk_uniform_pool_create(RvkDevice*);
+void            rvk_uniform_pool_destroy(RvkUniformPool*);
+u32             rvk_uniform_size_max(RvkUniformPool*);
 
 typedef struct {
   u32 chunkIdx, offset;
@@ -21,4 +20,6 @@ typedef struct {
 void             rvk_uniform_reset(RvkUniformPool*);
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
 const RvkBuffer* rvk_uniform_buffer(RvkUniformPool*, RvkUniformHandle);
-void rvk_uniform_bind(RvkUniformPool*, Mem data, VkCommandBuffer, VkPipelineLayout, u32 set);
+
+void rvk_uniform_bind(
+    RvkUniformPool*, RvkUniformHandle, VkCommandBuffer, VkPipelineLayout, u32 set);

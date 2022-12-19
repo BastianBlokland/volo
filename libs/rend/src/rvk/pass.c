@@ -443,7 +443,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   if (draw->drawData.size) {
     rvk_uniform_bind(
         pass->uniformPool,
-        draw->drawData,
+        rvk_uniform_upload(pass->uniformPool, draw->drawData),
         pass->vkCmdBuf,
         graphic->vkPipelineLayout,
         RvkGraphicSet_Draw);
@@ -461,7 +461,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       const u32 dataSize = instCount * dataStride;
       rvk_uniform_bind(
           pass->uniformPool,
-          mem_slice(draw->instData, dataOffset, dataSize),
+          rvk_uniform_upload(pass->uniformPool, mem_slice(draw->instData, dataOffset, dataSize)),
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
