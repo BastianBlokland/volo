@@ -30,6 +30,7 @@ typedef enum {
 } RvkImageType;
 
 typedef enum {
+  RvkImageCapability_None            = 0,
   RvkImageCapability_TransferSource  = 1 << 0,
   RvkImageCapability_TransferDest    = 1 << 1,
   RvkImageCapability_Sampled         = 1 << 2,
@@ -53,8 +54,8 @@ typedef struct sRvkImage {
 
 RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels);
 RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels);
-RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize);
-RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize);
+RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
+RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize, RvkImageCapability extraCaps);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
 

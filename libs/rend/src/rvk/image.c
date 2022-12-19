@@ -6,6 +6,10 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+static const RvkImageCapability g_allowedExtraCaps = RvkImageCapability_TransferSource |
+                                                     RvkImageCapability_TransferDest |
+                                                     RvkImageCapability_Sampled;
+
 static bool rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
@@ -364,21 +368,30 @@ RvkImage rvk_image_create_source_color_cube(
       dev, RvkImageType_ColorSourceCube, caps, vkFormat, size, layers, mipLevels);
 }
 
-RvkImage
-rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
+RvkImage rvk_image_create_attach_color(
+    RvkDevice*               dev,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const RvkImageCapability extraCaps) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  const RvkImageCapability caps =
-      RvkImageCapability_AttachmentColor | RvkImageCapability_TransferSource;
-  const u8 layers    = 1;
-  const u8 mipLevels = 1;
+  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+
+  const RvkImageCapability caps      = RvkImageCapability_AttachmentColor | extraCaps;
+  const u8                 layers    = 1;
+  const u8                 mipLevels = 1;
   return rvk_image_create_backed(
       dev, RvkImageType_ColorAttachment, caps, vkFormat, size, layers, mipLevels);
 }
 
-RvkImage
-rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
+RvkImage rvk_image_create_attach_depth(
+    RvkDevice*               dev,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const RvkImageCapability extraCaps) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
-  const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth;
+  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+
+  const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth | extraCaps;
   const u8                 layers    = 1;
   const u8                 mipLevels = 1;
   return rvk_image_create_backed(

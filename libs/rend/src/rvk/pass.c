@@ -191,9 +191,14 @@ static void rvk_pass_vkrenderpass_begin(
 }
 
 static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
-  pass->size          = size;
-  pass->attachColor   = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size);
-  pass->attachDepth   = rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size);
+  pass->size = size;
+
+  pass->attachColor = rvk_image_create_attach_color(
+      pass->dev, g_attachColorFormat, size, RvkImageCapability_TransferSource);
+
+  pass->attachDepth = rvk_image_create_attach_depth(
+      pass->dev, pass->dev->vkDepthFormat, size, RvkImageCapability_None);
+
   pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->attachColor, &pass->attachDepth);
 }
 
