@@ -127,6 +127,27 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   case RvkImageType_Swapchain:
     return VK_IMAGE_ASPECT_COLOR_BIT;
   case RvkImageType_DepthAttachment:
+    /**
+     * NOTE: Exclude the stencil part as we can only read from either the depth or the stencil part
+     * at the same time.
+     */
+    return VK_IMAGE_ASPECT_DEPTH_BIT;
+  default:
+    return 0;
+  }
+}
+
+static VkImageAspectFlags rvk_image_vkaspect_for_barrier(const RvkImageType type) {
+  switch (type) {
+  case RvkImageType_ColorSource:
+  case RvkImageType_ColorSourceCube:
+  case RvkImageType_ColorAttachment:
+  case RvkImageType_Swapchain:
+    return VK_IMAGE_ASPECT_COLOR_BIT;
+  case RvkImageType_DepthAttachment:
+    /**
+     * NOTE: We need to include the stencil part also for barriers.
+     */
     return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
   default:
     return 0;
@@ -210,7 +231,7 @@ static void rvk_image_barrier(
       .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .image                           = image->vkImage,
-      .subresourceRange.aspectMask     = rvk_image_vkaspect(image->type),
+      .subresourceRange.aspectMask     = rvk_image_vkaspect_for_barrier(image->type),
       .subresourceRange.baseMipLevel   = baseMip,
       .subresourceRange.levelCount     = mipLevels,
       .subresourceRange.baseArrayLayer = 0,
