@@ -108,7 +108,7 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
   case RvkImagePhase_ColorAttachment:
     return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_DepthAttachment:
-    return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_ShaderRead:
     return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   case RvkImagePhase_Present:
@@ -127,7 +127,7 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   case RvkImageType_Swapchain:
     return VK_IMAGE_ASPECT_COLOR_BIT;
   case RvkImageType_DepthAttachment:
-    return VK_IMAGE_ASPECT_DEPTH_BIT;
+    return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
   default:
     return 0;
   }
@@ -210,7 +210,7 @@ static void rvk_image_barrier(
       .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .image                           = image->vkImage,
-      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.aspectMask     = rvk_image_vkaspect(image->type),
       .subresourceRange.baseMipLevel   = baseMip,
       .subresourceRange.levelCount     = mipLevels,
       .subresourceRange.baseArrayLayer = 0,
