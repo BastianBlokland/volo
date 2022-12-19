@@ -153,14 +153,10 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
-      RvkPassFlags_ClearColor | RvkPassFlags_Default,
+      RvkPassFlags_Default,
       string_lit("geometry"));
   renderer->passForward = rvk_pass_create(
-      dev,
-      renderer->vkDrawBuffer,
-      renderer->uniformPool,
-      RvkPassFlags_ClearColor | RvkPassFlags_Default,
-      string_lit("forward"));
+      dev, renderer->vkDrawBuffer, renderer->uniformPool, RvkPassFlags_None, string_lit("forward"));
   return renderer;
 }
 

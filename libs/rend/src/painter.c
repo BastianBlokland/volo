@@ -281,7 +281,7 @@ static bool painter_draw(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(painter, settings, &view, forwardPass, drawView, graphicView);
     }
-    rvk_pass_begin(forwardPass, geo_color_black);
+    rvk_pass_begin(forwardPass, geo_color_clear);
     painter_flush(painter, forwardPass);
     rvk_pass_end(forwardPass);
 
