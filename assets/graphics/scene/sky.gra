@@ -8,9 +8,9 @@
     }
   ],
   "samplers": [],
-  "vertexCount": 4,
+  "vertexCount": 3,
   "renderOrder": 10,
-  "topology": "TriangleFan",
+  "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
   "depth": "LessOrEqual",
