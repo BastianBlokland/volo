@@ -14,17 +14,15 @@
 
 #define pass_instance_count_max 2048
 #define pass_attachment_max 8
+#define pass_global_image_max 2
 
 typedef RvkGraphic* RvkGraphicPtr;
 
 static const VkFormat g_attachColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassPrivateFlags_Setup           = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Active          = 1 << (RvkPassFlags_Count + 1),
-  RvkPassPrivateFlags_BoundGlobalData = 1 << (RvkPassFlags_Count + 2),
-
-  RvkPassPrivateFlags_BoundGlobalAny = RvkPassPrivateFlags_BoundGlobalData,
+  RvkPassPrivateFlags_Setup  = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active = 1 << (RvkPassFlags_Count + 1),
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -41,6 +39,8 @@ struct sRvkPass {
   VkPipelineLayout globalPipelineLayout;
   RvkDescSet       globalDescSet;
   u32              globalDataOffset;
+  u16              globalBoundMask; // Bitset of the bound global resources;
+  RvkSampler       globalImageSampler;
   DynArray         dynDescSets; // RvkDescSet[]
 };
 
@@ -174,7 +174,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
 }
 
 static void rvk_pass_bind_global(RvkPass* pass) {
-  diag_assert(pass->flags & RvkPassPrivateFlags_BoundGlobalAny);
+  diag_assert(pass->globalBoundMask != 0);
 
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(pass->globalDescSet)};
   const u32             dynamicOffsets[] = {pass->globalDataOffset};
@@ -274,9 +274,16 @@ RvkPass* rvk_pass_create(
     const String       name) {
   diag_assert(!string_is_empty(name));
 
-  const RvkDescMeta      globalDescMeta       = rvk_uniform_meta(uniformPool);
+  RvkDescMeta globalDescMeta = {
+      .bindings[0] = RvkDescKind_UniformBufferDynamic,
+  };
+  for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
+    globalDescMeta.bindings[1 + globalImgIdx] = RvkDescKind_CombinedImageSampler2D;
+  }
   const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
   const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
+  const RvkSampler       globalImageSampler   = rvk_sampler_create(
+      dev, RvkSamplerWrap_Clamp, RvkSamplerFilter_Linear, RvkSamplerAniso_None, 1);
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
@@ -290,6 +297,7 @@ RvkPass* rvk_pass_create(
       .flags                = flags,
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
+      .globalImageSampler   = globalImageSampler,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
 
@@ -305,6 +313,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   rvk_desc_free(pass->globalDescSet);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
+  rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
   dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -374,18 +383,30 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_BoundGlobalData), "Data already bound");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  const u32 globalDataBinding = 0;
+  diag_assert_msg(!(pass->globalBoundMask & (1 << globalDataBinding)), "Data already bound");
 
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
 
-  const u32 globalDataBinding = 0;
   rvk_desc_set_attach_buffer(
       pass->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
 
   pass->globalDataOffset = dataHandle.offset;
-  pass->flags |= RvkPassPrivateFlags_BoundGlobalData;
+  pass->globalBoundMask |= 1 << globalDataBinding;
+}
+
+void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  const u32 bindIndex = 1 + imageIndex;
+  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
+
+  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+
+  pass->globalBoundMask |= 1 >> bindIndex;
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
@@ -405,7 +426,7 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   rvk_pass_viewport_set(pass->vkCmdBuf, pass->attachColor.size);
   rvk_pass_scissor_set(pass->vkCmdBuf, pass->attachColor.size);
 
-  if (pass->flags & RvkPassPrivateFlags_BoundGlobalAny) {
+  if (pass->globalBoundMask != 0) {
     rvk_pass_bind_global(pass);
   }
 }
@@ -421,7 +442,7 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
 
-  const bool  hasGlobalData = (pass->flags & RvkPassPrivateFlags_BoundGlobalData) != 0;
+  const bool  hasGlobalData = (pass->globalBoundMask & 1) != 0;
   RvkGraphic* graphic       = draw->graphic;
 
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireGlobalData && !hasGlobalData)) {
@@ -505,7 +526,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
-  pass->flags &= ~RvkPassPrivateFlags_BoundGlobalAny;
+  pass->globalBoundMask = 0;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);

@@ -59,6 +59,7 @@ bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
 void rvk_pass_bind_global_data(RvkPass*, Mem);
+void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
