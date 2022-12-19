@@ -485,6 +485,8 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
 
   diag_assert(image->caps & RvkImagePhase_TransferSource);
   diag_assert(image->caps & RvkImagePhase_TransferDest);
+  diag_assert(
+      image->type == RvkImageType_ColorSource || image->type == RvkImageType_ColorSourceCube);
 
   /**
    * Generate the mipmap levels by copying from the previous level at half the size until all levels
