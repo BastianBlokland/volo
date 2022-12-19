@@ -6,6 +6,28 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+static bool rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
+    return true;
+  case RvkImagePhase_TransferSource:
+    return (caps & RvkImageCapability_TransferSource) != 0;
+  case RvkImagePhase_TransferDest:
+    return (caps & RvkImageCapability_TransferDest) != 0;
+  case RvkImagePhase_ColorAttachment:
+    return (caps & RvkImageCapability_AttachmentColor) != 0;
+  case RvkImagePhase_DepthAttachment:
+    return (caps & RvkImageCapability_AttachmentDepth) != 0;
+  case RvkImagePhase_ShaderRead:
+    return (caps & RvkImageCapability_Sampled) != 0;
+  case RvkImagePhase_Present:
+    return (caps & RvkImageCapability_Present) != 0;
+  case RvkImagePhase_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported image phase");
+}
+
 static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
@@ -425,11 +447,21 @@ void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
 }
 
 void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkImagePhase phase) {
+  diag_assert_msg(
+      rvk_image_phase_supported(image->caps, phase),
+      "Image does not support the '{}' phase",
+      fmt_text(rvk_image_phase_str(phase)));
+
   rvk_image_barrier_from_to(vkCmdBuf, image, image->phase, phase, 0, image->mipLevels);
   image->phase = phase;
 }
 
 void rvk_image_transition_external(RvkImage* image, const RvkImagePhase phase) {
+  diag_assert_msg(
+      rvk_image_phase_supported(image->caps, phase),
+      "Image does not support the '{}' phase",
+      fmt_text(rvk_image_phase_str(phase)));
+
   image->phase = phase;
 }
 
@@ -437,6 +469,9 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
   if (image->mipLevels <= 1) {
     return;
   }
+
+  diag_assert(image->caps & RvkImagePhase_TransferSource);
+  diag_assert(image->caps & RvkImagePhase_TransferDest);
 
   /**
    * Generate the mipmap levels by copying from the previous level at half the size until all levels
