@@ -430,11 +430,11 @@ void rvk_desc_set_attach_buffer(
 
 void rvk_desc_set_attach_sampler(
     const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSampler* sampler) {
+  diag_assert(image->caps & RvkImageCapability_Sampled);
 
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   switch (kind) {
   case RvkDescKind_CombinedImageSampler2D:
-    diag_assert(image->type == RvkImageType_ColorSource);
     break;
   case RvkDescKind_CombinedImageSamplerCube:
     diag_assert(image->type == RvkImageType_ColorSourceCube);
