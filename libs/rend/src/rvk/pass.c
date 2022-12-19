@@ -193,8 +193,8 @@ static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
 
   const VkClearValue clearValues[] = {
-      *(VkClearColorValue*)&clearColor,
-      {.depthStencil = {.depth = 0.0f}}, // Init depth to zero for a reversed-z depthbuffer.
+      [0].color        = *(VkClearColorValue*)&clearColor,
+      [1].depthStencil = {.depth = 0.0f}, // Init depth to zero for a reversed-z depthbuffer.
   };
   const VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -203,7 +203,7 @@ static void rvk_pass_vkrenderpass_begin(
       .renderArea.offset        = {0, 0},
       .renderArea.extent.width  = size.width,
       .renderArea.extent.height = size.height,
-      .clearValueCount          = array_elems(clearValues),
+      .clearValueCount          = (pass->flags & RvkPassFlags_Clear) ? array_elems(clearValues) : 0,
       .pClearValues             = clearValues,
   };
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
