@@ -220,16 +220,9 @@ static void painter_push_debugskinning(
   }
 }
 
-static void
-painter_flush(RendPainterComp* painter, RvkPass* pass, const RendPainterGlobalData* globalData) {
+static void painter_flush(RendPainterComp* painter, RvkPass* pass) {
   dynarray_sort(&painter->drawBuffer, painter_compare_pass_draw);
-  rvk_pass_draw(
-      pass,
-      mem_var(*globalData),
-      (RvkPassDrawList){
-          .values = dynarray_begin_t(&painter->drawBuffer, RvkPassDraw),
-          .count  = painter->drawBuffer.size,
-      });
+  dynarray_for_t(&painter->drawBuffer, RvkPassDraw, draw) { rvk_pass_draw(pass, draw); }
   dynarray_clear(&painter->drawBuffer);
 }
 
@@ -262,8 +255,9 @@ static bool painter_draw(
     // Geometry pass.
     RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
     painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
+    rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
     rvk_pass_begin(geometryPass, geo_color_black);
-    painter_flush(painter, geometryPass, &globalData);
+    painter_flush(painter, geometryPass);
     rvk_pass_end(geometryPass);
 
     // Forward pass.
@@ -275,8 +269,9 @@ static bool painter_draw(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(painter, settings, &view, forwardPass, drawView, graphicView);
     }
+    rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_begin(forwardPass, geo_color_black);
-    painter_flush(painter, forwardPass, &globalData);
+    painter_flush(painter, forwardPass);
     rvk_pass_end(forwardPass);
 
     // Finish the frame.

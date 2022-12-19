@@ -23,6 +23,8 @@ typedef enum {
   RvkPassPrivateFlags_Setup           = 1 << (RvkPassFlags_Count + 0),
   RvkPassPrivateFlags_Active          = 1 << (RvkPassFlags_Count + 1),
   RvkPassPrivateFlags_BoundGlobalData = 1 << (RvkPassFlags_Count + 2),
+
+  RvkPassPrivateFlags_BoundGlobalAny = RvkPassPrivateFlags_BoundGlobalData,
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -32,11 +34,13 @@ struct sRvkPass {
   String           name;
   RvkSize          size;
   VkRenderPass     vkRendPass;
-  VkPipelineLayout vkGlobalLayout;
   RvkImage         attachColor, attachDepth;
   VkFramebuffer    vkFrameBuffer;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
+  VkPipelineLayout globalPipelineLayout;
+  RvkDescSet       globalDescSet;
+  u32              globalDataOffset;
   DynArray         dynDescSets; // RvkDescSet[]
 };
 
@@ -116,13 +120,12 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
  * All pipeline layouts have to be compatible with this layout.
  * This allows us to share the global data binding between different pipelines.
  */
-static VkPipelineLayout
-rvk_global_layout_create(RvkDevice* dev, VkDescriptorSetLayout vkGlobalDescLayout) {
-
+static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMeta* descMeta) {
+  const VkDescriptorSetLayout      sets[] = {rvk_desc_vklayout(dev->descPool, descMeta)};
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
       .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 1,
-      .pSetLayouts    = &vkGlobalDescLayout,
+      .setLayoutCount = array_elems(sets),
+      .pSetLayouts    = sets,
   };
   VkPipelineLayout result;
   rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
@@ -168,6 +171,22 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
       .extent.height = size.height,
   };
   vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
+}
+
+static void rvk_pass_bind_global(RvkPass* pass) {
+  diag_assert(pass->flags & RvkPassPrivateFlags_BoundGlobalAny);
+
+  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(pass->globalDescSet)};
+  const u32             dynamicOffsets[] = {pass->globalDataOffset};
+  vkCmdBindDescriptorSets(
+      pass->vkCmdBuf,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      pass->globalPipelineLayout,
+      RvkGraphicSet_Global,
+      array_elems(descSets),
+      descSets,
+      array_elems(dynamicOffsets),
+      dynamicOffsets);
 }
 
 static void rvk_pass_vkrenderpass_begin(
@@ -255,19 +274,27 @@ RvkPass* rvk_pass_create(
     const String       name) {
   diag_assert(!string_is_empty(name));
 
+  const RvkDescMeta globalDescMeta = {
+      .bindings[0] = RvkDescKind_UniformBufferDynamic,
+  };
+  const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
+  const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
+
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
   *pass = (RvkPass){
-      .dev            = dev,
-      .name           = string_dup(g_alloc_heap, name),
-      .statrecorder   = rvk_statrecorder_create(dev),
-      .vkRendPass     = rvk_renderpass_create(dev, flags),
-      .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
-      .vkCmdBuf       = vkCmdBuf,
-      .uniformPool    = uniformPool,
-      .flags          = flags,
-      .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .dev                  = dev,
+      .name                 = string_dup(g_alloc_heap, name),
+      .statrecorder         = rvk_statrecorder_create(dev),
+      .vkRendPass           = rvk_renderpass_create(dev, flags),
+      .vkCmdBuf             = vkCmdBuf,
+      .uniformPool          = uniformPool,
+      .flags                = flags,
+      .globalDescSet        = globalDescSet,
+      .globalPipelineLayout = globalPipelineLayout,
+      .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
+
   return pass;
 }
 
@@ -278,7 +305,8 @@ void rvk_pass_destroy(RvkPass* pass) {
   rvk_statrecorder_destroy(pass->statrecorder);
   rvk_pass_resource_destroy(pass);
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
-  vkDestroyPipelineLayout(pass->dev->vkDev, pass->vkGlobalLayout, &pass->dev->vkAlloc);
+  rvk_desc_free(pass->globalDescSet);
+  vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
   dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -327,6 +355,21 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   return rvk_mesh_prepare(mesh);
 }
 
+void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_BoundGlobalData), "Data already bound");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
+  const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
+  const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
+
+  const u32 globalDataBinding = 0;
+  rvk_desc_set_attach_buffer(
+      pass->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
+
+  pass->globalDataOffset = dataHandle.offset;
+  pass->flags |= RvkPassPrivateFlags_BoundGlobalData;
+}
+
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
@@ -343,6 +386,10 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
 
   rvk_pass_viewport_set(pass->vkCmdBuf, pass->attachColor.size);
   rvk_pass_scissor_set(pass->vkCmdBuf, pass->attachColor.size);
+
+  if (pass->flags & RvkPassPrivateFlags_BoundGlobalAny) {
+    rvk_pass_bind_global(pass);
+  }
 }
 
 static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const u32 dataStride) {
@@ -353,7 +400,9 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
   return math_min(instances, pass_instance_count_max);
 }
 
-static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
+void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+
   const bool  hasGlobalData = (pass->flags & RvkPassPrivateFlags_BoundGlobalData) != 0;
   RvkGraphic* graphic       = draw->graphic;
 
@@ -435,23 +484,10 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
 }
 
-void rvk_pass_draw(RvkPass* pass, Mem globalData, const RvkPassDrawList drawList) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
-
-  if (globalData.size) {
-    rvk_uniform_bind(
-        pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, RvkGraphicSet_Global);
-    pass->flags |= RvkPassPrivateFlags_BoundGlobalData;
-  }
-
-  array_ptr_for_t(drawList, RvkPassDraw, draw) { rvk_pass_draw_submit(pass, draw); }
-
-  pass->flags &= ~RvkPassPrivateFlags_BoundGlobalData;
-}
-
 void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
+  pass->flags &= ~RvkPassPrivateFlags_BoundGlobalAny;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);

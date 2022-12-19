@@ -40,11 +40,6 @@ typedef struct sRvkPassDraw {
   u32         instDataStride;
 } RvkPassDraw;
 
-typedef struct sRvkPassDrawList {
-  RvkPassDraw* values;
-  usize        count;
-} RvkPassDrawList;
-
 RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags, String name);
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
@@ -56,6 +51,8 @@ void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
+void rvk_pass_bind_global_data(RvkPass*, Mem);
+
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
-void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);
+void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);
