@@ -96,7 +96,7 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 static void rvk_renderer_submit(RvkRenderer* rend) {
   const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-  VkSubmitInfo submitInfo = {
+  const VkSubmitInfo submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
       .pWaitSemaphores      = &rend->semaphoreBegin,
