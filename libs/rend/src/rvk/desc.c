@@ -146,7 +146,8 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
 
 static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta* meta) {
   RvkDescChunk* chunk = alloc_alloc_t(g_alloc_heap, RvkDescChunk);
-  *chunk              = (RvkDescChunk){
+
+  *chunk = (RvkDescChunk){
       .pool     = pool,
       .vkPool   = rvk_desc_vkpool_create(pool, meta),
       .metaHash = rvk_desc_meta_hash(meta),
@@ -213,13 +214,15 @@ static void rvk_desc_chunk_free(RvkDescChunk* chunk, const RvkDescSet set) {
 
 RvkDescPool* rvk_desc_pool_create(const VkDevice vkDev) {
   RvkDescPool* pool = alloc_alloc_t(g_alloc_heap, RvkDescPool);
-  *pool             = (RvkDescPool){
+
+  *pool = (RvkDescPool){
       .vkDev      = vkDev,
       .vkAlloc    = rvk_mem_allocator(g_alloc_heap),
       .layoutLock = thread_mutex_create(g_alloc_heap),
       .layouts    = dynarray_create_t(g_alloc_heap, RvkDescLayout, 64),
       .chunkLock  = thread_mutex_create(g_alloc_heap),
   };
+
   return pool;
 }
 
@@ -369,6 +372,21 @@ VkDescriptorSetLayout rvk_desc_set_vklayout(const RvkDescSet set) {
       mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
 
   const VkDescriptorSetLayout result = layout->vkLayout;
+  thread_mutex_unlock(set.chunk->pool->layoutLock);
+  return result;
+}
+
+RvkDescMeta rvk_desc_set_meta(const RvkDescSet set) {
+  diag_assert(rvk_desc_valid(set));
+
+  thread_mutex_lock(set.chunk->pool->layoutLock);
+
+  const RvkDescLayout* layout = dynarray_search_binary(
+      &set.chunk->pool->layouts,
+      rvk_desc_compare_layout,
+      mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
+
+  const RvkDescMeta result = layout->meta;
   thread_mutex_unlock(set.chunk->pool->layoutLock);
   return result;
 }

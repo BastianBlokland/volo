@@ -22,7 +22,7 @@ typedef enum {
   RvkDescKind_Count,
 } RvkDescKind;
 
-typedef struct {
+typedef struct sRvkDescMeta {
   u8 bindings[rvk_desc_bindings_max]; // RvkDescKind[]
 } RvkDescMeta;
 
@@ -46,6 +46,7 @@ String                rvk_desc_kind_str(RvkDescKind);
 
 VkDescriptorSet       rvk_desc_set_vkset(RvkDescSet);
 VkDescriptorSetLayout rvk_desc_set_vklayout(RvkDescSet);
+RvkDescMeta           rvk_desc_set_meta(RvkDescSet);
 RvkDescKind           rvk_desc_set_kind(RvkDescSet, u32 binding);
 
 void rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 size);
