@@ -409,7 +409,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
 
-  pass->globalBoundMask |= 1 >> bindIndex;
+  pass->globalBoundMask |= 1 << bindIndex;
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
