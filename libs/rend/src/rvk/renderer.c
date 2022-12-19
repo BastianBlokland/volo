@@ -94,16 +94,17 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  VkSubmitInfo               submitInfo = {
-                    .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                    .waitSemaphoreCount   = 1,
-                    .pWaitSemaphores      = &rend->semaphoreBegin,
-                    .pWaitDstStageMask    = &waitStage,
-                    .commandBufferCount   = 1,
-                    .pCommandBuffers      = &rend->vkDrawBuffer,
-                    .signalSemaphoreCount = 1,
-                    .pSignalSemaphores    = &rend->semaphoreDone,
+  const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+  VkSubmitInfo submitInfo = {
+      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .waitSemaphoreCount   = 1,
+      .pWaitSemaphores      = &rend->semaphoreBegin,
+      .pWaitDstStageMask    = &waitStage,
+      .commandBufferCount   = 1,
+      .pCommandBuffers      = &rend->vkDrawBuffer,
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores    = &rend->semaphoreDone,
   };
   thread_mutex_lock(rend->dev->queueSubmitMutex);
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
@@ -134,16 +135,18 @@ static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp*
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
-  *renderer             = (RvkRenderer){
-                  .dev             = dev,
-                  .uniformPool     = rvk_uniform_pool_create(dev),
-                  .stopwatch       = rvk_stopwatch_create(dev),
-                  .rendererId      = rendererId,
-                  .semaphoreBegin  = rvk_semaphore_create(dev),
-                  .semaphoreDone   = rvk_semaphore_create(dev),
-                  .fenceRenderDone = rvk_fence_create(dev, true),
-                  .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
+
+  *renderer = (RvkRenderer){
+      .dev             = dev,
+      .uniformPool     = rvk_uniform_pool_create(dev),
+      .stopwatch       = rvk_stopwatch_create(dev),
+      .rendererId      = rendererId,
+      .semaphoreBegin  = rvk_semaphore_create(dev),
+      .semaphoreDone   = rvk_semaphore_create(dev),
+      .fenceRenderDone = rvk_fence_create(dev, true),
+      .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
+
   rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
   renderer->passGeometry = rvk_pass_create(
