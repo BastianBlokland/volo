@@ -30,6 +30,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("WireframeSkinnedGraphic"),
       string_static("WireframeTerrainGraphic"),
       string_static("DebugSkinningGraphic"),
+      string_static("DeferredBaseGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];
@@ -82,6 +83,13 @@ RvkGraphic* rvk_repository_graphic_get(const RvkRepository* repo, const RvkRepos
     diag_crash_msg(
         "Repository asset '{}' cannot be found or is of the wrong type",
         fmt_text(rvk_repository_id_str(id)));
+  }
+  return repo->entries[id].graphic;
+}
+
+RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository* repo, const RvkRepositoryId id) {
+  if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Graphic)) {
+    return null;
   }
   return repo->entries[id].graphic;
 }
