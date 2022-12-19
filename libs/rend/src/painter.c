@@ -92,13 +92,11 @@ static void painter_push_geometry(
     EcsView*                drawView,
     EcsView*                graphicView) {
 
-  const RendDrawFlags requiredFlags = RendDrawFlags_Terrain;
-
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if ((rend_draw_flags(draw) & requiredFlags) == 0) {
-      continue; // Draw not required in the geometry pass.
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
+      continue; // Not a geometry draw.
     }
     if (!rend_draw_gather(draw, view, settings)) {
       continue; // Draw culled.
@@ -113,6 +111,14 @@ static void painter_push_geometry(
   }
 }
 
+static void painter_push_deferred(RendPainterComp* painter, RvkPass* pass) {
+  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
+  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DeferredBaseGraphic);
+  if (graphic && rvk_pass_prepare(pass, graphic)) {
+    painter_push(painter, (RvkPassDraw){.graphic = graphic, .instCount = 1});
+  }
+}
+
 static void painter_push_forward(
     RendPainterComp*        painter,
     const RendSettingsComp* settings,
@@ -124,6 +130,9 @@ static void painter_push_forward(
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (rend_draw_flags(draw) & RendDrawFlags_Geometry) {
+      continue; // Ignore geometry (should be drawn in the geometry pass).
+    }
     if (!rend_draw_gather(draw, view, settings)) {
       continue; // Draw culled.
     }
@@ -145,7 +154,7 @@ static void painter_push_wireframe(
     EcsView*                drawView,
     EcsView*                graphicView) {
 
-  RvkRepository* repository = rvk_canvas_repository(painter->canvas);
+  RvkRepository* repo       = rvk_canvas_repository(painter->canvas);
   EcsIterator*   graphicItr = ecs_view_itr(graphicView);
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
@@ -172,7 +181,7 @@ static void painter_push_wireframe(
     } else {
       graphicId = RvkRepositoryId_WireframeGraphic;
     }
-    RvkGraphic* graphicWireframe = rvk_repository_graphic_get(repository, graphicId);
+    RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!graphicWireframe) {
       continue; // Wireframe graphic not loaded.
     }
@@ -254,14 +263,17 @@ static bool painter_draw(
 
     // Geometry pass.
     RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
-    painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
     rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
+    painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
     rvk_pass_begin(geometryPass, geo_color_black);
     painter_flush(painter, geometryPass);
     rvk_pass_end(geometryPass);
 
     // Forward pass.
     RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+    rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
+    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color), 0);
+    painter_push_deferred(painter, forwardPass);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
       painter_push_wireframe(painter, settings, &view, forwardPass, drawView, graphicView);
@@ -269,7 +281,6 @@ static bool painter_draw(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(painter, settings, &view, forwardPass, drawView, graphicView);
     }
-    rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_begin(forwardPass, geo_color_black);
     painter_flush(painter, forwardPass);
     rvk_pass_end(forwardPass);
