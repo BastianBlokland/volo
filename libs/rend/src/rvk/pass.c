@@ -316,6 +316,12 @@ bool rvk_pass_active(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Active) != 0;
 }
 
+RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
+  return rvk_desc_set_meta(pass->globalDescSet);
+}
+
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
+
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color:
@@ -347,7 +353,7 @@ void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
-  return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
+  return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {

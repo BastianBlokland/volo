@@ -7,6 +7,7 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
+typedef struct sRvkDescMeta    RvkDescMeta;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
@@ -43,6 +44,8 @@ typedef struct sRvkPassDraw {
 RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags, String name);
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
+RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
 
 RvkImage* rvk_pass_output(RvkPass*, RvkPassOutput);
 u64       rvk_pass_stat(RvkPass*, RvkStat);

@@ -9,6 +9,7 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
+#include "pass_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
@@ -191,8 +192,8 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   return meta;
 }
 
-static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const RvkDescMeta           globalDescMeta   = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
+static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
+  const RvkDescMeta           globalDescMeta   = rvk_pass_meta_global(pass);
   const RvkDescMeta           dynamicDescMeta  = {.bindings[0] = RvkDescKind_StorageBuffer};
   const RvkDescMeta           drawDescMeta     = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
   const RvkDescMeta           instanceDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
@@ -383,8 +384,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
   diag_crash();
 }
 
-static VkPipeline rvk_pipeline_create(
-    RvkGraphic* graphic, const VkPipelineLayout layout, const VkRenderPass vkRendPass) {
+static VkPipeline
+rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const RvkPass* pass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -459,7 +460,7 @@ static VkPipeline rvk_pipeline_create(
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = vkRendPass,
+      .renderPass          = rvk_pass_vkrenderpass(pass),
   };
   RvkDevice*      dev  = graphic->device;
   VkPipelineCache psoc = dev->vkPipelineCache;
@@ -670,7 +671,8 @@ void rvk_graphic_sampler_add(
       log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const RvkPass* pass) {
+  diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
   }
@@ -779,8 +781,8 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       return false;
     }
 
-    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, vkRendPass);
+    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, pass);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, pass);
 
     rvk_debug_name_pipeline_layout(
         graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
