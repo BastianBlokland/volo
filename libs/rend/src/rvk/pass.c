@@ -87,28 +87,14 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .pColorAttachments       = colorRefs,
       .pDepthStencilAttachment = &depthAttachmentRef,
   };
-  const VkSubpassDependency dependencies[] = {
-      // Synchronize with the previous run of this renderpass.
-      {
-          .srcSubpass   = VK_SUBPASS_EXTERNAL,
-          .dstSubpass   = 0,
-          .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-          .srcAccessMask = 0,
-          .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-          .dstAccessMask =
-              VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-      },
-  };
   const VkRenderPassCreateInfo renderPassInfo = {
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       .attachmentCount = attachmentCount,
       .pAttachments    = attachments,
       .subpassCount    = 1,
       .pSubpasses      = &subpass,
-      .dependencyCount = array_elems(dependencies),
-      .pDependencies   = dependencies,
+      .dependencyCount = 0,
+      .pDependencies   = null,
   };
   VkRenderPass result;
   rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
