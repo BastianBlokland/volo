@@ -690,8 +690,10 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
             graphic, RvkGraphicSet_Global, &globalDescMeta, g_rendSupportedGlobalBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_RequireGlobalData;
+    for (u16 i = 0; i != rvk_desc_bindings_max; ++i) {
+      if (globalDescMeta.bindings[i]) {
+        graphic->requiredGlobalBindings |= 1 << i;
+      }
     }
 
     // Prepare dynamic bindings.

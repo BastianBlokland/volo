@@ -445,11 +445,13 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
 
-  const bool  hasGlobalData = (pass->globalBoundMask & 1) != 0;
-  RvkGraphic* graphic       = draw->graphic;
+  RvkGraphic* graphic           = draw->graphic;
+  const u16   reqGlobalBindings = graphic->requiredGlobalBindings;
 
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireGlobalData && !hasGlobalData)) {
-    log_e("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
+  if (UNLIKELY((reqGlobalBindings & pass->globalBoundMask) != reqGlobalBindings)) {
+    log_e(
+        "Graphic requires additional global bindings",
+        log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicMesh && !draw->dynMesh)) {

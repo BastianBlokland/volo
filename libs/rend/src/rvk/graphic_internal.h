@@ -30,7 +30,6 @@ typedef struct {
 
 typedef enum {
   RvkGraphicFlags_Ready               = 1 << 0,
-  RvkGraphicFlags_RequireGlobalData   = 1 << 1,
   RvkGraphicFlags_RequireDynamicMesh  = 1 << 2,
   RvkGraphicFlags_RequireDrawData     = 1 << 3,
   RvkGraphicFlags_RequireInstanceData = 1 << 4,
@@ -54,6 +53,7 @@ typedef struct sRvkGraphic {
   AssetGraphicBlend      blend : 8;
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
+  u16                    requiredGlobalBindings;
   u32                    lineWidth;
   f32                    depthBias;
   i32                    renderOrder;
