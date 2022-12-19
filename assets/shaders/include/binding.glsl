@@ -13,6 +13,8 @@ const u32 c_setInstance = 4;
  * Declare a global (per pass) binding.
  * Supported indices:
  *  0: User data (Uniform buffer).
+ *  1: Texture (Image sampler).
+ *  2: Texture (Image sampler).
  */
 #define bind_global(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_)
 #define bind_global_data(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_, std140)
