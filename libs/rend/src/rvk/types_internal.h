@@ -3,9 +3,9 @@
 
 typedef union {
   struct {
-    u32 width, height;
+    u16 width, height;
   };
-  u64 data;
+  u32 data;
 } RvkSize;
 
 #define rvk_size(_WIDTH_, _HEIGHT_) ((RvkSize){.width = (_WIDTH_), .height = (_HEIGHT_)})

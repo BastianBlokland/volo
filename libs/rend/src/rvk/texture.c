@@ -9,12 +9,12 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-static u32 rvk_compute_miplevels(const RvkSize size) {
+static u16 rvk_compute_miplevels(const RvkSize size) {
   /**
    * Check how many times we can cut the image in half before both sides hit 1 pixel.
    */
-  const u32 biggestSide = math_max(size.width, size.height);
-  return 32 - bits_clz_32(biggestSide);
+  const u16 biggestSide = math_max(size.width, size.height);
+  return (u16)(32 - bits_clz_32(biggestSide));
 }
 
 static VkFormat rvk_texture_format_byte(const AssetTextureChannels channels, const bool srgb) {

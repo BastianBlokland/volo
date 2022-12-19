@@ -244,7 +244,7 @@ static bool painter_draw(
     EcsView*                  graphicView) {
 
   const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
-  const RvkSize   resolution = rvk_size((u32)winSize.width, (u32)winSize.height);
+  const RvkSize   resolution = rvk_size((u16)winSize.width, (u16)winSize.height);
   const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
   if (draw) {
     const GeoVector      origin   = trans ? trans->position : geo_vector(0);

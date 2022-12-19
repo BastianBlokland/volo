@@ -45,16 +45,16 @@ struct sRvkSwapchain {
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
   if (size.width < vkCaps->minImageExtent.width) {
-    size.width = vkCaps->minImageExtent.width;
+    size.width = (u16)vkCaps->minImageExtent.width;
   }
   if (size.height < vkCaps->minImageExtent.height) {
-    size.height = vkCaps->minImageExtent.height;
+    size.height = (u16)vkCaps->minImageExtent.height;
   }
   if (size.width > vkCaps->maxImageExtent.width) {
-    size.width = vkCaps->maxImageExtent.width;
+    size.width = (u16)vkCaps->maxImageExtent.width;
   }
   if (size.height > vkCaps->maxImageExtent.height) {
-    size.height = vkCaps->maxImageExtent.height;
+    size.height = (u16)vkCaps->maxImageExtent.height;
   }
   return size;
 }
