@@ -4,14 +4,16 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkBuffer RvkBuffer;
-typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkBuffer   RvkBuffer;
+typedef struct sRvkDescMeta RvkDescMeta;
+typedef struct sRvkDevice   RvkDevice;
 
 typedef struct sRvkUniformPool RvkUniformPool;
 
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice*);
 void            rvk_uniform_pool_destroy(RvkUniformPool*);
 u32             rvk_uniform_size_max(RvkUniformPool*);
+RvkDescMeta     rvk_uniform_meta(RvkUniformPool*);
 
 typedef struct {
   u32 chunkIdx, offset;

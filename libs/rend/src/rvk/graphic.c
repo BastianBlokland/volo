@@ -193,10 +193,10 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
-  const RvkDescMeta           globalDescMeta   = rvk_pass_meta_global(pass);
-  const RvkDescMeta           dynamicDescMeta  = {.bindings[0] = RvkDescKind_StorageBuffer};
-  const RvkDescMeta           drawDescMeta     = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
-  const RvkDescMeta           instanceDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
+  const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
+  const RvkDescMeta           dynamicDescMeta     = rvk_pass_meta_dynamic(pass);
+  const RvkDescMeta           drawDescMeta        = rvk_pass_meta_draw(pass);
+  const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->descSet),
@@ -557,18 +557,19 @@ static bool rend_graphic_validate_set(
 RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
-  *graphic            = (RvkGraphic){
-                 .device      = dev,
-                 .dbgName     = string_dup(g_alloc_heap, dbgName),
-                 .topology    = asset->topology,
-                 .rasterizer  = asset->rasterizer,
-                 .lineWidth   = asset->lineWidth,
-                 .depthBias   = asset->depthBias,
-                 .renderOrder = asset->renderOrder,
-                 .blend       = asset->blend,
-                 .depth       = asset->depth,
-                 .cull        = asset->cull,
-                 .vertexCount = asset->vertexCount,
+
+  *graphic = (RvkGraphic){
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .depthBias   = asset->depthBias,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(

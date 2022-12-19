@@ -39,18 +39,18 @@ static RvkUniformChunk* rvk_uniform_chunk(RvkUniformPool* uni, const u32 chunkId
 }
 
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
-  RvkUniformPool* debug = alloc_alloc_t(g_alloc_heap, RvkUniformPool);
+  RvkUniformPool* pool = alloc_alloc_t(g_alloc_heap, RvkUniformPool);
 
-  *debug = (RvkUniformPool){
-      .device               = dev,
-      .descMeta.bindings[0] = RvkDescKind_UniformBufferDynamic,
-      .alignMin             = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
-      .dataSizeMax          = (u32)math_min(
+  *pool = (RvkUniformPool){
+      .device      = dev,
+      .alignMin    = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
+      .dataSizeMax = (u32)math_min(
           dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max),
       .chunks = dynarray_create_t(g_alloc_heap, RvkUniformChunk, 16),
   };
+  pool->descMeta = rvk_uniform_meta(pool);
 
-  return debug;
+  return pool;
 }
 
 void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
@@ -63,6 +63,11 @@ void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
 }
 
 u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
+
+RvkDescMeta rvk_uniform_meta(RvkUniformPool* uni) {
+  (void)uni;
+  return (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
+}
 
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }

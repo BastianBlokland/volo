@@ -244,18 +244,18 @@ static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta
 static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
   diag_assert_msg(mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
 
-  const RvkDescMeta meta    = {.bindings[0] = RvkDescKind_StorageBuffer};
+  const RvkDescMeta meta    = rvk_pass_meta_dynamic(pass);
   const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
   rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
 
-  VkDescriptorSet vkDescSet = rvk_desc_set_vkset(descSet);
+  const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       graphic->vkPipelineLayout,
       RvkGraphicSet_Dynamic,
-      1,
-      &vkDescSet,
+      array_elems(vkDescSets),
+      vkDescSets,
       0,
       null);
 
@@ -274,9 +274,7 @@ RvkPass* rvk_pass_create(
     const String       name) {
   diag_assert(!string_is_empty(name));
 
-  const RvkDescMeta globalDescMeta = {
-      .bindings[0] = RvkDescKind_UniformBufferDynamic,
-  };
+  const RvkDescMeta      globalDescMeta       = rvk_uniform_meta(uniformPool);
   const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
   const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
 
@@ -318,6 +316,20 @@ bool rvk_pass_active(const RvkPass* pass) {
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
   return rvk_desc_set_meta(pass->globalDescSet);
+}
+
+RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
+  (void)pass;
+  /**
+   * Single StorageBuffer for the vertices.
+   */
+  return (RvkDescMeta){.bindings[0] = RvkDescKind_StorageBuffer};
+}
+
+RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
+
+RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
+  return rvk_uniform_meta(pass->uniformPool);
 }
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
