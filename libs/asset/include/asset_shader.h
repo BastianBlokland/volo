@@ -5,6 +5,7 @@
 #define asset_shader_max_bindings 8
 #define asset_shader_max_resources (asset_shader_max_sets * asset_shader_max_bindings)
 #define asset_shader_max_specs 16
+#define asset_shader_max_inputs 16
 #define asset_shader_max_outputs 16
 
 typedef enum {
@@ -52,6 +53,7 @@ typedef struct {
 
 ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind kind;
+  u16             inputMask;
   u16             outputMask;
   String          entryPoint;
   struct {

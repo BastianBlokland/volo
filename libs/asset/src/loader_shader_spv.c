@@ -39,6 +39,7 @@ typedef enum {
 
 typedef enum {
   SpvStorageClass_UniformConstant = 0,
+  SpvStorageClass_Input           = 1,
   SpvStorageClass_Uniform         = 2,
   SpvStorageClass_Output          = 3,
   SpvStorageClass_StorageBuffer   = 12,
@@ -112,6 +113,7 @@ typedef enum {
   SpvError_UnsupportedSpecConstantType,
   SpvError_UnsupportedSetExceedsMax,
   SpvError_UnsupportedBindingExceedsMax,
+  SpvError_UnsupportedInputExceedsMax,
   SpvError_UnsupportedOutputExceedsMax,
   SpvError_UnsupportedImageType,
 
@@ -133,6 +135,7 @@ static String spv_error_str(SpvError res) {
       string_static("Unsupported SpirV specialization constant type"),
       string_static("SpirV shader resource set exceeds maximum"),
       string_static("SpirV shader resource binding exceeds maximum"),
+      string_static("SpirV shader input binding exceeds maximum"),
       string_static("SpirV shader output binding exceeds maximum"),
       string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
   };
@@ -480,6 +483,13 @@ static bool spv_is_resource(const SpvId* id) {
 
 static bool spv_is_specialization(const SpvId* id) { return id->kind == SpvIdKind_SpecConstant; }
 
+static bool spv_is_input(const SpvId* id) {
+  if (id->kind != SpvIdKind_Variable) {
+    return false;
+  }
+  return id->storageClass == SpvStorageClass_Input && (id->flags & SpvIdFlags_HasBinding) != 0;
+}
+
 static bool spv_is_output(const SpvId* id) {
   if (id->kind != SpvIdKind_Variable) {
     return false;
@@ -600,6 +610,12 @@ static void spv_asset_shader_create(
           .type    = type,
           .binding = id->binding,
       };
+    } else if (spv_is_input(id)) {
+      if (id->binding >= asset_shader_max_inputs) {
+        *err = SpvError_UnsupportedInputExceedsMax;
+        return;
+      }
+      out->inputMask |= 1 << id->binding;
     } else if (spv_is_output(id)) {
       if (id->binding >= asset_shader_max_outputs) {
         *err = SpvError_UnsupportedOutputExceedsMax;
