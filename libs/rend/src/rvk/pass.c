@@ -232,10 +232,17 @@ static void rvk_pass_vkrenderpass_begin(
         "Pass is marked with 'ExternalDepth' but nothing is copied to the depth-buffer");
   }
 
-  const VkClearValue clearValues[] = {
-      [0].color        = *(VkClearColorValue*)&clearColor,
-      [1].depthStencil = {.depth = 0.0f}, // Init depth to zero for a reversed-z depthbuffer.
-  };
+  VkClearValue clearValues[pass_attachment_max];
+  u32          clearValueCount = 0;
+
+  if (pass->flags & RvkPassFlags_Clear) {
+    for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+      clearValues[clearValueCount++].color = *(VkClearColorValue*)&clearColor;
+    }
+    // Init depth to zero for a reversed-z depthbuffer.
+    clearValues[clearValueCount++].depthStencil = (VkClearDepthStencilValue){.depth = 0.0f};
+  }
+
   const VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .renderPass               = pass->vkRendPass,
@@ -243,7 +250,7 @@ static void rvk_pass_vkrenderpass_begin(
       .renderArea.offset        = {0, 0},
       .renderArea.extent.width  = size.width,
       .renderArea.extent.height = size.height,
-      .clearValueCount          = (pass->flags & RvkPassFlags_Clear) ? array_elems(clearValues) : 0,
+      .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
