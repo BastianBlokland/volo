@@ -1,6 +1,7 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
@@ -404,6 +405,7 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       .topology = rvk_pipeline_input_topology(graphic),
   };
+
   const VkViewport                        viewport      = {0};
   const VkRect2D                          scissor       = {0};
   const VkPipelineViewportStateCreateInfo viewportState = {
@@ -413,6 +415,7 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .scissorCount  = 1,
       .pScissors     = &scissor,
   };
+
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
       .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       .polygonMode             = rvk_pipeline_polygonmode(graphic),
@@ -422,10 +425,12 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .depthBiasEnable         = graphic->depthBias < -1e-6 || graphic->depthBias > 1e-6,
       .depthBiasConstantFactor = graphic->depthBias,
   };
+
   const VkPipelineMultisampleStateCreateInfo multisampling = {
       .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
+
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = rvk_pipeline_depth_write(graphic),
@@ -433,13 +438,24 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
                          graphic->depth != AssetGraphicDepth_AlwaysNoWrite,
       .depthCompareOp = rvk_pipeline_depth_compare(graphic),
   };
-  const VkPipelineColorBlendAttachmentState colorBlendAttach =
-      rvk_pipeline_colorblend_attach(graphic);
+
+  const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
+  VkPipelineColorBlendAttachmentState colorBlends[16];
+  // TODO: Validate that the output at index 0 is actually used.
+  colorBlends[0] = rvk_pipeline_colorblend_attach(graphic);
+  for (u32 i = 1; i < colorAttachmentCount; ++i) {
+    // NOTE: No blending for the other color attachments.
+    colorBlends[i] = (VkPipelineColorBlendAttachmentState){
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    };
+  }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .attachmentCount = 1,
-      .pAttachments    = &colorBlendAttach,
+      .attachmentCount = colorAttachmentCount,
+      .pAttachments    = colorBlends,
   };
+
   const VkDynamicState dynamicStates[] = {
       VK_DYNAMIC_STATE_VIEWPORT,
       VK_DYNAMIC_STATE_SCISSOR,
@@ -449,6 +465,7 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .dynamicStateCount = array_elems(dynamicStates),
       .pDynamicStates    = dynamicStates,
   };
+
   const VkGraphicsPipelineCreateInfo pipelineInfo = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .stageCount          = shaderStageCount,
