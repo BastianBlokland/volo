@@ -21,6 +21,7 @@ typedef struct sRvkShader {
   VkShaderModule        vkModule;
   String                entryPoint;
   RvkDescMeta           descriptors[rvk_shader_desc_max];
+  u16                   inputMask, outputMask;
   struct {
     AssetShaderSpec* values;
     usize            count;

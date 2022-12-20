@@ -53,8 +53,7 @@ typedef struct {
 
 ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind kind;
-  u16             inputMask;
-  u16             outputMask;
+  u16             inputMask, outputMask;
   String          entryPoint;
   struct {
     AssetShaderRes* values;

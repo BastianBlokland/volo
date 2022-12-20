@@ -493,6 +493,7 @@ static void rvk_graphic_set_missing_sampler(
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   VkShaderStageFlagBits foundStages = 0;
+  u16                   vertexShaderOutputs, fragmentShaderInputs;
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->shader) {
       // Validate stage.
@@ -501,6 +502,12 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
         return false;
       }
       foundStages |= itr->shader->vkStage;
+
+      if (itr->shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
+        vertexShaderOutputs = itr->shader->outputMask;
+      } else if (itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+        fragmentShaderInputs = itr->shader->inputMask;
+      }
 
       // Validate used sets.
       for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
@@ -521,6 +528,12 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   }
   if (!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT)) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
+  if (vertexShaderOutputs != fragmentShaderInputs) {
+    log_e(
+        "Vertex shader outputs do not match fragment inputs",
+        log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
   return true;
