@@ -428,10 +428,14 @@ void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(pass->flags & RvkPassFlags_ExternalDepth, "Pass does not support external depth");
 
+  rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, geo_color_purple, "copy_depth");
+
   rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_TransferSource);
   rvk_image_transition(&pass->attachDepth, pass->vkCmdBuf, RvkImagePhase_TransferDest);
 
   rvk_image_copy(image, &pass->attachDepth, pass->vkCmdBuf);
+
+  rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
