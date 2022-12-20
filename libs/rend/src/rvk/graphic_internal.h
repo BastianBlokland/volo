@@ -55,7 +55,7 @@ typedef struct sRvkGraphic {
   AssetGraphicCull       cull : 8;
   u16                    globalBindings;
   u16                    outputMask;
-  u32                    lineWidth;
+  u16                    lineWidth;
   f32                    depthBias;
   i32                    renderOrder;
   u32                    vertexCount;
