@@ -100,9 +100,9 @@ ecs_comp_extern_public(AssetGraphicComp) {
     AssetGraphicSampler* values;
     usize                count;
   } samplers;
-  String                 meshId; // Mutally exclusive with 'vertexCount'.
+  String                 meshId; // Mutually exclusive with 'vertexCount'.
   EcsEntityId            mesh;
-  u32                    vertexCount; // Mutally exclusive with 'mesh'.
+  u32                    vertexCount; // Mutually exclusive with 'mesh'.
   i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
