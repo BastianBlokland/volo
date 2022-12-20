@@ -29,7 +29,7 @@ typedef enum {
 } RvkPassFlags;
 
 typedef enum {
-  RvkPassOutput_Color,
+  RvkPassOutput_Color1,
   RvkPassOutput_Depth,
 
   RvkPassOutput_Count,

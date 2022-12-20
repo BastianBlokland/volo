@@ -385,7 +385,7 @@ VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPas
 
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
-  case RvkPassOutput_Color:
+  case RvkPassOutput_Color1:
     return &pass->attachColor;
   case RvkPassOutput_Depth:
     diag_assert_msg(pass->flags & RvkPassFlags_OutputDepth, "Pass does not output depth");
