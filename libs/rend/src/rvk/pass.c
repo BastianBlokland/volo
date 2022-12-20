@@ -71,7 +71,8 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
                                                           : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      .storeOp        = (flags & RvkPassFlags_OutputDepth) ? VK_ATTACHMENT_STORE_OP_STORE
+                                                           : VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -198,14 +199,15 @@ static void rvk_pass_vkrenderpass_begin(
 static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->size = size;
 
-  pass->attachColor = rvk_image_create_attach_color(
-      pass->dev,
-      g_attachColorFormat,
-      size,
-      RvkImageCapability_TransferSource | RvkImageCapability_Sampled);
+  const RvkImageCapability outCap = RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+
+  pass->attachColor = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size, outCap);
 
   pass->attachDepth = rvk_image_create_attach_depth(
-      pass->dev, pass->dev->vkDepthFormat, size, RvkImageCapability_None);
+      pass->dev,
+      pass->dev->vkDepthFormat,
+      size,
+      (pass->flags & RvkPassFlags_OutputDepth) ? outCap : RvkImageCapability_None);
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->attachColor, &pass->attachDepth);
 }
@@ -336,6 +338,9 @@ RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color:
     return &pass->attachColor;
+  case RvkPassOutput_Depth:
+    diag_assert_msg(pass->flags & RvkPassFlags_OutputDepth, "Pass does not output depth");
+    return &pass->attachDepth;
   case RvkPassOutput_Count:
     break;
   }

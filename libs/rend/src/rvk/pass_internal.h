@@ -17,9 +17,10 @@ typedef struct sRvkUniformPool RvkUniformPool;
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_None       = 0,
-  RvkPassFlags_ClearColor = 1 << 0,
-  RvkPassFlags_ClearDepth = 1 << 1,
+  RvkPassFlags_None        = 0,
+  RvkPassFlags_ClearColor  = 1 << 0,
+  RvkPassFlags_ClearDepth  = 1 << 1,
+  RvkPassFlags_OutputDepth = 1 << 2,
 
   RvkPassFlags_Clear   = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
   RvkPassFlags_Default = RvkPassFlags_ClearDepth,
@@ -29,6 +30,7 @@ typedef enum {
 
 typedef enum {
   RvkPassOutput_Color,
+  RvkPassOutput_Depth,
 
   RvkPassOutput_Count,
 } RvkPassOutput;
