@@ -503,7 +503,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
 
   RvkGraphic* graphic           = draw->graphic;
-  const u16   reqGlobalBindings = graphic->requiredGlobalBindings;
+  const u16   reqGlobalBindings = graphic->globalBindings;
 
   if (UNLIKELY((reqGlobalBindings & pass->globalBoundMask) != reqGlobalBindings)) {
     log_e(

@@ -539,6 +539,15 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   return true;
 }
 
+static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->shader && itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+      return itr->shader->outputMask;
+    }
+  }
+  return 0;
+}
+
 static bool rend_graphic_validate_set(
     const RvkGraphic*  graphic,
     const u32          set,
@@ -696,6 +705,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
+    graphic->outputMask = rvk_graphic_output_mask(graphic);
 
     // Prepare global set bindings.
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);
@@ -705,7 +715,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     }
     for (u16 i = 0; i != rvk_desc_bindings_max; ++i) {
       if (globalDescMeta.bindings[i]) {
-        graphic->requiredGlobalBindings |= 1 << i;
+        graphic->globalBindings |= 1 << i;
       }
     }
 

@@ -53,7 +53,8 @@ typedef struct sRvkGraphic {
   AssetGraphicBlend      blend : 8;
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
-  u16                    requiredGlobalBindings;
+  u16                    globalBindings;
+  u16                    outputMask;
   u32                    lineWidth;
   f32                    depthBias;
   i32                    renderOrder;
