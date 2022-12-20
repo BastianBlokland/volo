@@ -257,7 +257,7 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     pass->attachColors[i] = rvk_image_create_attach_color(pass->dev, g_colorFormat, size, colorCap);
-    pass->attachColorMask = 1 << i;
+    pass->attachColorMask |= 1 << i;
   }
 
   RvkImageCapability attachCap = 0;
