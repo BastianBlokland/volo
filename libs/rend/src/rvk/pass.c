@@ -14,6 +14,7 @@
 
 #define pass_instance_count_max 2048
 #define pass_attachment_max 8
+#define pass_dependencies_max 8
 #define pass_global_image_max 2
 
 typedef RvkGraphic* RvkGraphicPtr;
@@ -75,7 +76,8 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
                                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+      .initialLayout  = (flags & RvkPassFlags_ExternalDepth) ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                                                             : VK_IMAGE_LAYOUT_UNDEFINED,
       .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
   };
   const VkAttachmentReference depthAttachmentRef = {
@@ -88,14 +90,47 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .pColorAttachments       = colorRefs,
       .pDepthStencilAttachment = &depthAttachmentRef,
   };
+  VkSubpassDependency dependencies[pass_dependencies_max];
+  u32                 dependencyCount = 0;
+
+  /**
+   * Synchronize the attachment layout transitions.
+   */
+  dependencies[dependencyCount++] = (VkSubpassDependency){
+      .srcSubpass   = VK_SUBPASS_EXTERNAL,
+      .dstSubpass   = 0,
+      .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+      .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+      .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+      .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+  };
+
+  if (flags & RvkPassFlags_ExternalDepth) {
+    /**
+     * Synchronize the transferring to the depth-buffer with this pass reading / writing to it.
+     */
+    dependencies[dependencyCount++] = (VkSubpassDependency){
+        .srcSubpass    = VK_SUBPASS_EXTERNAL,
+        .dstSubpass    = 0,
+        .srcStageMask  = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask  = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+    };
+  }
   const VkRenderPassCreateInfo renderPassInfo = {
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       .attachmentCount = attachmentCount,
       .pAttachments    = attachments,
       .subpassCount    = 1,
       .pSubpasses      = &subpass,
-      .dependencyCount = 0,
-      .pDependencies   = null,
+      .dependencyCount = dependencyCount,
+      .pDependencies   = dependencies,
   };
   VkRenderPass result;
   rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
@@ -179,6 +214,12 @@ static void rvk_pass_bind_global(RvkPass* pass) {
 static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
 
+  if (pass->flags & RvkPassFlags_ExternalDepth) {
+    diag_assert_msg(
+        pass->attachDepth.phase == RvkImagePhase_TransferDest,
+        "Pass is marked with 'ExternalDepth' but nothing is copied to the depth-buffer");
+  }
+
   const VkClearValue clearValues[] = {
       [0].color        = *(VkClearColorValue*)&clearColor,
       [1].depthStencil = {.depth = 0.0f}, // Init depth to zero for a reversed-z depthbuffer.
@@ -199,15 +240,21 @@ static void rvk_pass_vkrenderpass_begin(
 static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->size = size;
 
-  const RvkImageCapability outCap = RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  RvkImageCapability colorCap = 0;
+  colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
 
-  pass->attachColor = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size, outCap);
+  pass->attachColor = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size, colorCap);
 
-  pass->attachDepth = rvk_image_create_attach_depth(
-      pass->dev,
-      pass->dev->vkDepthFormat,
-      size,
-      (pass->flags & RvkPassFlags_OutputDepth) ? outCap : RvkImageCapability_None);
+  RvkImageCapability attachCap = 0;
+  if (pass->flags & RvkPassFlags_OutputDepth) {
+    attachCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  }
+  if (pass->flags & RvkPassFlags_ExternalDepth) {
+    attachCap |= RvkImageCapability_TransferDest;
+  }
+
+  pass->attachDepth =
+      rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, attachCap);
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->attachColor, &pass->attachDepth);
 }
@@ -374,6 +421,17 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   return rvk_mesh_prepare(mesh);
+}
+
+void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(pass->flags & RvkPassFlags_ExternalDepth, "Pass does not support external depth");
+
+  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_TransferSource);
+  rvk_image_transition(&pass->attachDepth, pass->vkCmdBuf, RvkImagePhase_TransferDest);
+
+  rvk_image_copy(image, &pass->attachDepth, pass->vkCmdBuf);
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {

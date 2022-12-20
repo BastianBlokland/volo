@@ -148,15 +148,23 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   };
 
   rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
+
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
+
   renderer->passGeometry = rvk_pass_create(
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
-      RvkPassFlags_Default,
+      RvkPassFlags_ClearDepth | RvkPassFlags_OutputDepth,
       string_lit("geometry"));
+
   renderer->passForward = rvk_pass_create(
-      dev, renderer->vkDrawBuffer, renderer->uniformPool, RvkPassFlags_None, string_lit("forward"));
+      dev,
+      renderer->vkDrawBuffer,
+      renderer->uniformPool,
+      RvkPassFlags_ExternalDepth,
+      string_lit("forward"));
+
   return renderer;
 }
 

@@ -271,6 +271,7 @@ static bool painter_draw(
 
     // Forward pass.
     RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+    rvk_pass_use_depth(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color), 0);
     painter_push_deferred(painter, forwardPass);

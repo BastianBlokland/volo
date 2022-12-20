@@ -17,15 +17,15 @@ typedef struct sRvkUniformPool RvkUniformPool;
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_None        = 0,
-  RvkPassFlags_ClearColor  = 1 << 0,
-  RvkPassFlags_ClearDepth  = 1 << 1,
-  RvkPassFlags_OutputDepth = 1 << 2,
+  RvkPassFlags_None          = 0,
+  RvkPassFlags_ClearColor    = 1 << 0,
+  RvkPassFlags_ClearDepth    = 1 << 1,
+  RvkPassFlags_OutputDepth   = 1 << 2,
+  RvkPassFlags_ExternalDepth = 1 << 3, // Call 'rvk_pass_use_depth()' with a source depth image.
 
-  RvkPassFlags_Clear   = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
-  RvkPassFlags_Default = RvkPassFlags_ClearDepth,
+  RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 2,
+  RvkPassFlags_Count = 4,
 } RvkPassFlags;
 
 typedef enum {
@@ -61,6 +61,8 @@ u64       rvk_pass_stat(RvkPass*, RvkStat);
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
+
+void rvk_pass_use_depth(RvkPass*, RvkImage*);
 
 void rvk_pass_bind_global_data(RvkPass*, Mem);
 void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
