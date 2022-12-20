@@ -42,6 +42,7 @@ struct sRvkPass {
   u32              globalDataOffset;
   u16              globalBoundMask; // Bitset of the bound global resources;
   RvkSampler       globalImageSampler;
+  u16              colorAttachmentMask;
   DynArray         dynDescSets; // RvkDescSet[]
 };
 
@@ -244,6 +245,7 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
 
   pass->attachColor = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size, colorCap);
+  pass->colorAttachmentMask = 0b1; // Single color attachment at index 0.
 
   RvkImageCapability attachCap = 0;
   if (pass->flags & RvkPassFlags_OutputDepth) {
@@ -505,6 +507,12 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   RvkGraphic* graphic           = draw->graphic;
   const u16   reqGlobalBindings = graphic->globalBindings;
 
+  if (UNLIKELY(graphic->outputMask != pass->colorAttachmentMask)) {
+    log_e(
+        "Graphic output does not match bound color attachments",
+        log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
   if (UNLIKELY((reqGlobalBindings & pass->globalBoundMask) != reqGlobalBindings)) {
     log_e(
         "Graphic requires additional global bindings",
