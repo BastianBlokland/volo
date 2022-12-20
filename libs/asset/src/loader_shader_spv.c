@@ -32,6 +32,7 @@ typedef enum {
 
 typedef enum {
   SpvDecoration_SpecId        = 1,
+  SpvDecoration_Location      = 30,
   SpvDecoration_Binding       = 33,
   SpvDecoration_DescriptorSet = 34,
 } SpvDecoration;
@@ -39,6 +40,7 @@ typedef enum {
 typedef enum {
   SpvStorageClass_UniformConstant = 0,
   SpvStorageClass_Uniform         = 2,
+  SpvStorageClass_Output          = 3,
   SpvStorageClass_StorageBuffer   = 12,
 } SpvStorageClass;
 
@@ -82,10 +84,10 @@ typedef enum {
 } SpvIdFlags;
 
 typedef struct {
-  SpvIdKind       kind;
-  SpvIdFlags      flags;
+  SpvIdKind       kind : 8;
+  SpvIdFlags      flags : 8;
+  SpvStorageClass storageClass : 8;
   u32             set, binding, typeId;
-  SpvStorageClass storageClass;
 } SpvId;
 
 typedef struct {
@@ -110,6 +112,7 @@ typedef enum {
   SpvError_UnsupportedSpecConstantType,
   SpvError_UnsupportedSetExceedsMax,
   SpvError_UnsupportedBindingExceedsMax,
+  SpvError_UnsupportedOutputExceedsMax,
   SpvError_UnsupportedImageType,
 
   SpvError_Count,
@@ -130,6 +133,7 @@ static String spv_error_str(SpvError res) {
       string_static("Unsupported SpirV specialization constant type"),
       string_static("SpirV shader resource set exceeds maximum"),
       string_static("SpirV shader resource binding exceeds maximum"),
+      string_static("SpirV shader output binding exceeds maximum"),
       string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
   };
   ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
@@ -305,13 +309,17 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         out->ids[targetId].binding = data.ptr[3];
         out->ids[targetId].flags |= SpvIdFlags_HasBinding;
         break;
-      case SpvDecoration_DescriptorSet:
-        out->ids[targetId].set = data.ptr[3];
-        out->ids[targetId].flags |= SpvIdFlags_HasSet;
+      case SpvDecoration_Location:
+        out->ids[targetId].binding = data.ptr[3];
+        out->ids[targetId].flags |= SpvIdFlags_HasBinding;
         break;
       case SpvDecoration_Binding:
         out->ids[targetId].binding = data.ptr[3];
         out->ids[targetId].flags |= SpvIdFlags_HasBinding;
+        break;
+      case SpvDecoration_DescriptorSet:
+        out->ids[targetId].set = data.ptr[3];
+        out->ids[targetId].flags |= SpvIdFlags_HasSet;
         break;
       }
     } break;
@@ -470,6 +478,15 @@ static bool spv_is_resource(const SpvId* id) {
   }
 }
 
+static bool spv_is_specialization(const SpvId* id) { return id->kind == SpvIdKind_SpecConstant; }
+
+static bool spv_is_output(const SpvId* id) {
+  if (id->kind != SpvIdKind_Variable) {
+    return false;
+  }
+  return id->storageClass == SpvStorageClass_Output && (id->flags & SpvIdFlags_HasBinding) != 0;
+}
+
 static AssetShaderResKind spv_resource_kind(
     const SpvProgram*     program,
     const u32             typeId,
@@ -561,7 +578,7 @@ static void spv_asset_shader_create(
           .set     = id->set,
           .binding = id->binding,
       };
-    } else if (id->kind == SpvIdKind_SpecConstant) {
+    } else if (spv_is_specialization(id)) {
       if (!(id->flags & SpvIdFlags_HasBinding)) {
         *err = SpvError_MalformedSpecWithoutBinding;
         return;
@@ -583,6 +600,12 @@ static void spv_asset_shader_create(
           .type    = type,
           .binding = id->binding,
       };
+    } else if (spv_is_output(id)) {
+      if (id->binding >= asset_shader_max_outputs) {
+        *err = SpvError_UnsupportedOutputExceedsMax;
+        return;
+      }
+      out->outputMask |= 1 << id->binding;
     }
   }
   *err = SpvError_None;
