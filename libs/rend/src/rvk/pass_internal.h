@@ -21,15 +21,17 @@ typedef enum {
   RvkPassFlags_ClearColor    = 1 << 0,
   RvkPassFlags_ClearDepth    = 1 << 1,
   RvkPassFlags_OutputDepth   = 1 << 2,
-  RvkPassFlags_ExternalDepth = 1 << 3, // Call 'rvk_pass_use_depth()' with a source depth image.
+  RvkPassFlags_OutputColor2  = 1 << 3, // Enable a second color attachment.
+  RvkPassFlags_ExternalDepth = 1 << 4, // Call 'rvk_pass_use_depth()' with a source depth image.
 
   RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 4,
+  RvkPassFlags_Count = 5,
 } RvkPassFlags;
 
 typedef enum {
   RvkPassOutput_Color1,
+  RvkPassOutput_Color2,
   RvkPassOutput_Depth,
 
   RvkPassOutput_Count,

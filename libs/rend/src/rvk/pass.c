@@ -13,13 +13,14 @@
 #include "uniform_internal.h"
 
 #define pass_instance_count_max 2048
-#define pass_attachment_max 8
+#define pass_attachment_color_max 2
+#define pass_attachment_max (pass_attachment_color_max + 1)
 #define pass_dependencies_max 8
 #define pass_global_image_max 2
 
 typedef RvkGraphic* RvkGraphicPtr;
 
-static const VkFormat g_attachColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+static const VkFormat g_colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
   RvkPassPrivateFlags_Setup  = 1 << (RvkPassFlags_Count + 0),
@@ -33,7 +34,8 @@ struct sRvkPass {
   String           name;
   RvkSize          size;
   VkRenderPass     vkRendPass;
-  RvkImage         attachColor, attachDepth;
+  RvkImage         attachColors[pass_attachment_color_max];
+  RvkImage         attachDepth;
   VkFramebuffer    vkFrameBuffer;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
@@ -41,32 +43,37 @@ struct sRvkPass {
   RvkDescSet       globalDescSet;
   u32              globalDataOffset;
   u16              globalBoundMask; // Bitset of the bound global resources;
+  u16              attachColorMask;
   RvkSampler       globalImageSampler;
-  u16              colorAttachmentMask;
   DynArray         dynDescSets; // RvkDescSet[]
 };
+
+static u32 rvk_attach_color_count(const RvkPassFlags flags) {
+  return (flags & RvkPassFlags_OutputColor2) ? 2 : 1;
+}
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
-  VkAttachmentReference   colorRefs[pass_attachment_max];
-  u32                     colorRefCount = 0;
+  VkAttachmentReference   colorRefs[pass_attachment_color_max];
 
-  attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = g_attachColorFormat,
-      .samples        = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-      .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-      .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  };
-  colorRefs[colorRefCount++] = (VkAttachmentReference){
-      .attachment = attachmentCount - 1,
-      .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-  };
+  for (u32 i = 0; i != rvk_attach_color_count(flags); ++i) {
+    attachments[attachmentCount++] = (VkAttachmentDescription){
+        .format         = g_colorFormat,
+        .samples        = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                            : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    };
+    colorRefs[i] = (VkAttachmentReference){
+        .attachment = attachmentCount - 1,
+        .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    };
+  }
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
       .format         = dev->vkDepthFormat,
@@ -87,7 +94,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   };
   const VkSubpassDescription subpass = {
       .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-      .colorAttachmentCount    = colorRefCount,
+      .colorAttachmentCount    = rvk_attach_color_count(flags),
       .pColorAttachments       = colorRefs,
       .pDepthStencilAttachment = &depthAttachmentRef,
   };
@@ -155,16 +162,20 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
   return result;
 }
 
-static VkFramebuffer
-rvk_framebuffer_create(RvkPass* pass, RvkImage* attachColor, RvkImage* attachDepth) {
-  const VkImageView attachments[] = {
-      attachColor->vkImageView,
-      attachDepth->vkImageView,
-  };
+static VkFramebuffer rvk_framebuffer_create(
+    RvkPass* pass, RvkImage attachColors[pass_attachment_color_max], RvkImage* attachDepth) {
+
+  VkImageView attachments[pass_attachment_max];
+  u32         attachCount = 0;
+  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    attachments[attachCount++] = attachColors[i].vkImageView;
+  }
+  attachments[attachCount++] = attachDepth->vkImageView;
+
   const VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       .renderPass      = pass->vkRendPass,
-      .attachmentCount = array_elems(attachments),
+      .attachmentCount = attachCount,
       .pAttachments    = attachments,
       .width           = pass->size.width,
       .height          = pass->size.height,
@@ -244,8 +255,10 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   RvkImageCapability colorCap = 0;
   colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
 
-  pass->attachColor = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size, colorCap);
-  pass->colorAttachmentMask = 0b1; // Single color attachment at index 0.
+  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    pass->attachColors[i] = rvk_image_create_attach_color(pass->dev, g_colorFormat, size, colorCap);
+    pass->attachColorMask = 1 << i;
+  }
 
   RvkImageCapability attachCap = 0;
   if (pass->flags & RvkPassFlags_OutputDepth) {
@@ -258,14 +271,17 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->attachDepth =
       rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, attachCap);
 
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->attachColor, &pass->attachDepth);
+  pass->vkFrameBuffer = rvk_framebuffer_create(pass, pass->attachColors, &pass->attachDepth);
 }
 
 static void rvk_pass_resource_destroy(RvkPass* pass) {
   if (!pass->size.width || !pass->size.height) {
     return;
   }
-  rvk_image_destroy(&pass->attachColor, pass->dev);
+  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    rvk_image_destroy(&pass->attachColors[i], pass->dev);
+  }
+  pass->attachColorMask = 0;
   rvk_image_destroy(&pass->attachDepth, pass->dev);
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
@@ -386,7 +402,10 @@ VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPas
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color1:
-    return &pass->attachColor;
+    return &pass->attachColors[0];
+  case RvkPassOutput_Color2:
+    diag_assert_msg(pass->flags & RvkPassFlags_OutputColor2, "Pass does not output color2");
+    return &pass->attachColors[1];
   case RvkPassOutput_Depth:
     diag_assert_msg(pass->flags & RvkPassFlags_OutputDepth, "Pass does not output depth");
     return &pass->attachDepth;
@@ -481,12 +500,15 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
-  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->attachColor.size, clearColor);
-  rvk_image_transition_external(&pass->attachColor, RvkImagePhase_ColorAttachment);
+  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->size, clearColor);
+
+  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    rvk_image_transition_external(&pass->attachColors[i], RvkImagePhase_ColorAttachment);
+  }
   rvk_image_transition_external(&pass->attachDepth, RvkImagePhase_DepthAttachment);
 
-  rvk_pass_viewport_set(pass->vkCmdBuf, pass->attachColor.size);
-  rvk_pass_scissor_set(pass->vkCmdBuf, pass->attachColor.size);
+  rvk_pass_viewport_set(pass->vkCmdBuf, pass->size);
+  rvk_pass_scissor_set(pass->vkCmdBuf, pass->size);
 
   if (pass->globalBoundMask != 0) {
     rvk_pass_bind_global(pass);
@@ -507,7 +529,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   RvkGraphic* graphic           = draw->graphic;
   const u16   reqGlobalBindings = graphic->globalBindings;
 
-  if (UNLIKELY(graphic->outputMask != pass->colorAttachmentMask)) {
+  if (UNLIKELY(graphic->outputMask != pass->attachColorMask)) {
     log_e(
         "Graphic output does not match bound color attachments",
         log_param("graphic", fmt_text(graphic->dbgName)));
