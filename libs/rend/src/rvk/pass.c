@@ -377,7 +377,9 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
   const u32 globalDataBinding = 0;
   diag_assert_msg(!(pass->globalBoundMask & (1 << globalDataBinding)), "Data already bound");
 
@@ -392,7 +394,9 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
 }
 
 void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
   const u32 bindIndex = 1 + imageIndex;
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
