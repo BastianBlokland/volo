@@ -266,7 +266,7 @@ static bool painter_draw(
     RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
     rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
     painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
-    rvk_pass_begin(geometryPass, geo_color_black);
+    rvk_pass_begin(geometryPass, geo_color_clear);
     painter_flush(painter, geometryPass);
     rvk_pass_end(geometryPass);
 
