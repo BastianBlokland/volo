@@ -28,13 +28,13 @@ static void ecs_destruct_painter(void* data) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoMatrix viewProj, viewProjInv;
+  GeoMatrix proj, projInv, viewProj, viewProjInv;
   GeoVector camPosition;
   GeoQuat   camRotation;
   f32       aspectRatio;
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 176, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
   ecs_access_write(RendPlatformComp);
@@ -67,17 +67,19 @@ static i8 painter_compare_pass_draw(const void* a, const void* b) {
   return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
 }
 
-static GeoMatrix painter_view_proj_matrix(
-    const GapWindowComp* win, const SceneCameraComp* cam, const SceneTransformComp* trans) {
-
+static GeoMatrix painter_proj_matrix(const GapWindowComp* win, const SceneCameraComp* cam) {
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
   const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
-
   if (LIKELY(cam)) {
-    return scene_camera_view_proj(cam, trans, aspect);
+    return scene_camera_proj(cam, aspect);
   }
   // Fall back to a basic orthographic projection.
   return geo_matrix_proj_ortho(2.0f, 2.0f / aspect, -100.0f, 100.0f);
+}
+
+static GeoMatrix painter_view_proj_matrix(const GeoMatrix* proj, const SceneTransformComp* trans) {
+  const GeoMatrix view = LIKELY(trans) ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
+  return geo_matrix_mul(proj, &view);
 }
 
 static void painter_push(RendPainterComp* painter, const RvkPassDraw draw) {
@@ -277,11 +279,14 @@ static bool painter_draw(
   const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
   if (draw) {
     const GeoVector      origin   = trans ? trans->position : geo_vector(0);
-    const GeoMatrix      viewProj = painter_view_proj_matrix(win, cam, trans);
+    const GeoMatrix      proj     = painter_proj_matrix(win, cam);
+    const GeoMatrix      viewProj = painter_view_proj_matrix(&proj, trans);
     const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
     const RendView       view     = rend_view_create(camEntity, origin, &viewProj, filter);
 
     const RendPainterGlobalData globalData = {
+        .proj        = proj,
+        .projInv     = geo_matrix_inverse(&proj),
         .viewProj    = viewProj,
         .viewProjInv = geo_matrix_inverse(&viewProj),
         .camPosition = trans ? trans->position : geo_vector(0),
