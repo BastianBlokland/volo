@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_sphere.pme",
-  "renderOrder": 65,
+  "renderOrder": 165,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

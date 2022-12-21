@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_quad.pme",
-  "renderOrder": 64,
+  "renderOrder": 164,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

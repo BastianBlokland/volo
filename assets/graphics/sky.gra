@@ -9,7 +9,7 @@
   ],
   "samplers": [],
   "vertexCount": 3,
-  "renderOrder": 10,
+  "renderOrder": -1,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

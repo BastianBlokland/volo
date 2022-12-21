@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_hemisphere_uncapped.pme",
-  "renderOrder": 62,
+  "renderOrder": 162,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

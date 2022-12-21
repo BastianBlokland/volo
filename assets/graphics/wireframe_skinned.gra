@@ -7,12 +7,12 @@
       "shaderId": "shaders/white.frag.spv"
     }
   ],
-  "renderOrder": 25,
+  "renderOrder": 10,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "LessOrEqualNoWrite",
   "depthBias": 500,
   "cull": "Back"
 }

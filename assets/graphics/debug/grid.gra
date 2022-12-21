@@ -8,12 +8,12 @@
     }
   ],
   "samplers": [],
-  "renderOrder": 20,
+  "renderOrder": 50,
   "topology": "Lines",
   "lineWidth": 2,
   "rasterizer": "Lines",
   "blend": "Alpha",
-  "depth": "Less",
+  "depth": "LessNoWrite",
   "depthBias": 500,
   "cull": "None"
 }

@@ -22,7 +22,7 @@
     }
   ],
   "vertexCount": 6,
-  "renderOrder": 100,
+  "renderOrder": 1000,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

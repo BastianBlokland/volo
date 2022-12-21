@@ -61,7 +61,7 @@
     }
   ],
   "meshId": "meshes/scene/terrain_patch.pme",
-  "renderOrder": 5,
+  "renderOrder": 1,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

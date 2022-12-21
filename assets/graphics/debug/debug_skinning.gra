@@ -7,10 +7,10 @@
       "shaderId": "shaders/debug/debug_skinning.frag.spv"
     }
   ],
-  "renderOrder": 24,
+  "renderOrder": 5,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
-  "depth": "LessOrEqual",
+  "depth": "LessOrEqualNoWrite",
   "cull": "Back"
 }

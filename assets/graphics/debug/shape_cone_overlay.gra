@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_cone.pme",
-  "renderOrder": 61,
+  "renderOrder": 161,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

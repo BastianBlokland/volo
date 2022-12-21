@@ -16,7 +16,7 @@
     }
   ],
   "vertexCount": 3,
-  "renderOrder": 0,
+  "renderOrder": -100,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
