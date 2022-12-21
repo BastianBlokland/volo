@@ -13,6 +13,6 @@
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "EqualNoWrite",
   "cull": "None"
 }
