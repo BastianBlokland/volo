@@ -100,6 +100,14 @@ static const String g_presentOptions[] = {
     string_static("Mailbox"),
 };
 
+static const String g_shadeDebugNames[] = {
+    string_static("None"),
+    string_static("Color"),
+    string_static("Roughness"),
+    string_static("Normal"),
+    string_static("Depth"),
+};
+
 typedef struct {
   String graphicName;
   i32    renderOrder;
@@ -251,6 +259,11 @@ static void rend_settings_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_FrustumCulling, .tooltip = g_tooltipFrustumCulling);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Shade debug"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&settings->shadeDebug, g_shadeDebugNames, array_elems(g_shadeDebugNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));

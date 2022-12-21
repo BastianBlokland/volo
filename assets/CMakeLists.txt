@@ -24,6 +24,7 @@ configure_shaders(volo_shaders
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
     shaders/shade_base.frag
+    shaders/shade_debug.frag
     shaders/standard_position.vert
     shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert

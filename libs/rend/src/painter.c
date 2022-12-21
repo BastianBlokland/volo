@@ -119,6 +119,33 @@ static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const R
   }
 }
 
+static void painter_push_shade_debug(
+    RendPainterComp* painter, const RendSettingsComp* settings, RvkPass* pass) {
+
+  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
+  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
+  if (!graphic || !rvk_pass_prepare(pass, graphic)) {
+    return; // Graphic not ready to be drawn.
+  }
+
+  typedef struct {
+    ALIGNAS(16)
+    u32 mode;
+  } ShadeDebugData;
+
+  ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
+  *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
+
+  painter_push(
+      painter,
+      (RvkPassDraw){
+          .graphic        = graphic,
+          .instCount      = 1,
+          .instData       = mem_create(data, sizeof(ShadeDebugData)),
+          .instDataStride = sizeof(ShadeDebugData),
+      });
+}
+
 static void painter_push_forward(
     RendPainterComp*        painter,
     const RendSettingsComp* settings,
@@ -277,7 +304,11 @@ static bool painter_draw(
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
-    painter_push_simple(painter, forwardPass, RvkRepositoryId_ShadeBaseGraphic);
+    if (settings->shadeDebug == RendShadeDebug_None) {
+      painter_push_simple(painter, forwardPass, RvkRepositoryId_ShadeBaseGraphic);
+    } else {
+      painter_push_shade_debug(painter, settings, forwardPass);
+    }
     painter_push_simple(painter, forwardPass, RvkRepositoryId_SkyGraphic);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {

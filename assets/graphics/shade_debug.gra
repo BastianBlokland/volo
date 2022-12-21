@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/shade_debug.frag.spv"
+    }
+  ],
+  "vertexCount": 3,
+  "renderOrder": -100,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "GreaterNoWrite",
+  "cull": "None"
+}
