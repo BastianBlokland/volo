@@ -275,6 +275,8 @@ static bool painter_draw(
     rvk_pass_use_depth(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
+    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
+    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
     painter_push_simple(painter, forwardPass, RvkRepositoryId_DeferredBaseGraphic);
     painter_push_simple(painter, forwardPass, RvkRepositoryId_SkyGraphic);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);

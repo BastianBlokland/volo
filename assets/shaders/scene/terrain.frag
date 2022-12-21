@@ -3,15 +3,11 @@
 
 #include "binding.glsl"
 #include "global.glsl"
-#include "light.glsl"
-#include "quat.glsl"
 #include "texture.glsl"
 
 bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
 bind_spec(1) const f32 s_splat1UvScale         = 50;
 bind_spec(2) const f32 s_splat2UvScale         = 50;
-
-bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic(1) uniform sampler2D u_texHeight;
 bind_graphic(2) uniform sampler2D u_texSplat;
@@ -25,7 +21,8 @@ bind_internal(1) in flat f32 in_heightScale;
 bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in f32v3 in_worldPos;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v4 out_colorRough;
+bind_internal(1) out f32v3 out_normal;
 
 /**
  * Calculate the normal by taking samples around this location and normalizing the deltas.
@@ -86,8 +83,7 @@ void main() {
   splatColRough += splat.r * textureMulti(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
   splatColRough += splat.g * textureMulti(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
 
-  const f32v3 color     = splatColRough.rgb;
-  const f32   roughness = splatColRough.a;
+  out_colorRough = splatColRough;
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
@@ -97,12 +93,5 @@ void main() {
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
-  const f32v3 normal     = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
-
-  // Compute the shading.
-  const f32v3   viewDir = quat_rotate(u_global.camRotation, f32v3(0, 0, 1));
-  const Shading shading = light_shade_blingphong(normal, viewDir);
-
-  // Compute the final color.
-  out_color = f32v4(light_color_rough(shading, color, roughness), 1);
+  out_normal             = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 }

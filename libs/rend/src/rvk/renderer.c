@@ -155,7 +155,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
-      RvkPassFlags_ClearDepth | RvkPassFlags_OutputDepth,
+      RvkPassFlags_ClearDepth | RvkPassFlags_OutputColor2 | RvkPassFlags_OutputDepth,
       string_lit("geometry"));
 
   renderer->passForward = rvk_pass_create(
