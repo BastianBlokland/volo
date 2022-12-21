@@ -30,6 +30,17 @@ ecs_comp_define_public(SceneCameraComp);
 
 ecs_module_init(scene_camera_module) { ecs_register_comp(SceneCameraComp); }
 
+f32 scene_camera_near(const SceneCameraComp* cam) {
+  return (cam->flags & SceneCameraFlags_Orthographic) ? g_camOrthoNear : cam->persNear;
+}
+
+f32 scene_camera_far(const SceneCameraComp* cam) {
+  // NOTE: For perspective projections the far plane is infinitely far away so we return an
+  // arbitrarily large number.
+  const static f32 g_persFar = 1e8;
+  return (cam->flags & SceneCameraFlags_Orthographic) ? g_camOrthoFar : g_persFar;
+}
+
 GeoMatrix scene_camera_proj(const SceneCameraComp* cam, const f32 aspect) {
   if (cam->flags & SceneCameraFlags_Orthographic) {
     if (cam->flags & SceneCameraFlags_Vertical) {
