@@ -114,6 +114,7 @@ MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) 
       string_static("Always"),
       string_static("LessNoWrite"),
       string_static("LessOrEqualNoWrite"),
+      string_static("EqualNoWrite"),
       string_static("AlwaysNoWrite"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
@@ -307,6 +308,8 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_LessOrEqualNoWrite:
     return VK_COMPARE_OP_GREATER_OR_EQUAL;
+  case AssetGraphicDepth_EqualNoWrite:
+    return VK_COMPARE_OP_EQUAL;
   case AssetGraphicDepth_Always:
   case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
@@ -325,6 +328,7 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
     return true;
   case AssetGraphicDepth_LessNoWrite:
   case AssetGraphicDepth_LessOrEqualNoWrite:
+  case AssetGraphicDepth_EqualNoWrite:
   case AssetGraphicDepth_AlwaysNoWrite:
     return false;
   case AssetGraphicDepth_Count:

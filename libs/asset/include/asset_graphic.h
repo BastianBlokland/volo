@@ -56,6 +56,7 @@ typedef enum {
   AssetGraphicDepth_Always,             // Always pass the depth-test.
   AssetGraphicDepth_LessNoWrite,        // 'Less' without depth writing.
   AssetGraphicDepth_LessOrEqualNoWrite, // 'LessOrEqual' without depth writing.
+  AssetGraphicDepth_EqualNoWrite,       // 'Equal' without depth writing.
   AssetGraphicDepth_AlwaysNoWrite,      // 'Always' without depth writing.
 
   AssetGraphicDepth_Count,
