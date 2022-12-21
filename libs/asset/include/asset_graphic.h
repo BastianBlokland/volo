@@ -52,6 +52,7 @@ typedef enum {
 typedef enum {
   AssetGraphicDepth_Less,               // Pass the depth-test if the fragment is closer.
   AssetGraphicDepth_LessOrEqual,        // Pass the depth-test if the fragment is closer or equal.
+  AssetGraphicDepth_Equal,              // Pass the depth-test if the fragment is equal.
   AssetGraphicDepth_Always,             // Always pass the depth-test.
   AssetGraphicDepth_LessNoWrite,        // 'Less' without depth writing.
   AssetGraphicDepth_LessOrEqualNoWrite, // 'LessOrEqual' without depth writing.

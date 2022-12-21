@@ -110,6 +110,7 @@ MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) 
   static const String g_names[] = {
       string_static("Less"),
       string_static("LessOrEqual"),
+      string_static("Equal"),
       string_static("Always"),
       string_static("LessNoWrite"),
       string_static("LessOrEqualNoWrite"),
@@ -301,6 +302,8 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_LessNoWrite:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_GREATER;
+  case AssetGraphicDepth_Equal:
+    return VK_COMPARE_OP_EQUAL;
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_LessOrEqualNoWrite:
     return VK_COMPARE_OP_GREATER_OR_EQUAL;
@@ -317,6 +320,7 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   switch (graphic->depth) {
   case AssetGraphicDepth_Less:
   case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_Equal:
   case AssetGraphicDepth_Always:
     return true;
   case AssetGraphicDepth_LessNoWrite:
