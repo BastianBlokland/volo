@@ -36,6 +36,7 @@ static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
     rend_uniform_buffer_mask,
     rend_image_sampler_2d_mask,
     rend_image_sampler_2d_mask,
+    rend_image_sampler_2d_mask,
 };
 
 static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
