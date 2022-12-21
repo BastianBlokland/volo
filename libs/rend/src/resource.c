@@ -59,6 +59,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId    = string_static("graphics/deferred_base.gra"),
         .reloadable = true,
     },
+    {
+        .repoId     = RvkRepositoryId_SkyGraphic,
+        .assetId    = string_static("graphics/sky.gra"),
+        .reloadable = true,
+    },
 };
 
 ecs_comp_define_public(RendResGraphicComp);
