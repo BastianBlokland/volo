@@ -16,7 +16,6 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
-    shaders/deferred_base.frag
     shaders/fullscreen.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
@@ -24,6 +23,7 @@ configure_shaders(volo_shaders
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
+    shaders/shade_base.frag
     shaders/standard_position.vert
     shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert

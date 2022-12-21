@@ -55,8 +55,8 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
-        .repoId     = RvkRepositoryId_DeferredBaseGraphic,
-        .assetId    = string_static("graphics/deferred_base.gra"),
+        .repoId     = RvkRepositoryId_ShadeBaseGraphic,
+        .assetId    = string_static("graphics/shade_base.gra"),
         .reloadable = true,
     },
     {
