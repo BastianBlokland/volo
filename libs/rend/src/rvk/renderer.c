@@ -162,7 +162,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
-      RvkPassFlags_ExternalDepth,
+      RvkPassFlags_ClearColor | RvkPassFlags_ExternalDepth,
       string_lit("forward"));
 
   return renderer;
