@@ -37,7 +37,7 @@ f32 scene_camera_near(const SceneCameraComp* cam) {
 f32 scene_camera_far(const SceneCameraComp* cam) {
   // NOTE: For perspective projections the far plane is infinitely far away so we return an
   // arbitrarily large number.
-  const static f32 g_persFar = 1e8;
+  static const f32 g_persFar = 1e8;
   return (cam->flags & SceneCameraFlags_Orthographic) ? g_camOrthoFar : g_persFar;
 }
 
