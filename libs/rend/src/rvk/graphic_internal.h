@@ -30,7 +30,6 @@ typedef struct {
 
 typedef enum {
   RvkGraphicFlags_Ready               = 1 << 0,
-  RvkGraphicFlags_RequireGlobalData   = 1 << 1,
   RvkGraphicFlags_RequireDynamicMesh  = 1 << 2,
   RvkGraphicFlags_RequireDrawData     = 1 << 3,
   RvkGraphicFlags_RequireInstanceData = 1 << 4,
@@ -54,7 +53,9 @@ typedef struct sRvkGraphic {
   AssetGraphicBlend      blend : 8;
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
-  u32                    lineWidth;
+  u16                    globalBindings;
+  u16                    outputMask;
+  u16                    lineWidth;
   f32                    depthBias;
   i32                    renderOrder;
   u32                    vertexCount;
@@ -74,5 +75,5 @@ void rvk_graphic_shader_add(
 void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
-bool rvk_graphic_prepare(RvkGraphic*, VkCommandBuffer, VkRenderPass);
+bool rvk_graphic_prepare(RvkGraphic*, VkCommandBuffer, const RvkPass*);
 void rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);

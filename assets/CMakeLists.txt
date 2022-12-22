@@ -16,11 +16,17 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
+    shaders/fullscreen.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
+    shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
+    shaders/shade_base.frag
+    shaders/shade_debug.frag
+    shaders/standard_position.vert
+    shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
@@ -28,9 +34,7 @@ configure_shaders(volo_shaders
     shaders/ui/canvas.vert
     shaders/vfx/particle.frag
     shaders/vfx/particle.vert
-    shaders/wireframe_skinned.vert
-    shaders/wireframe.frag
-    shaders/wireframe.vert
+    shaders/white.frag
   )
 
 if(${EXTERNAL_ASSETS})

@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
@@ -12,6 +13,8 @@
 #include "types_internal.h"
 #include "uniform_internal.h"
 
+typedef RvkPass* RvkPassPtr;
+
 typedef enum {
   RvkRenderer_Active            = 1 << 0,
   RvkRenderer_SubmittedDrawOnce = 1 << 1,
@@ -22,7 +25,7 @@ struct sRvkRenderer {
   u32              rendererId;
   RvkUniformPool*  uniformPool;
   RvkStopwatch*    stopwatch;
-  RvkPass*         forwardPass;
+  RvkPass*         passes[RvkRenderPass_Count];
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
   VkCommandPool    vkCmdPool;
@@ -93,16 +96,17 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  VkSubmitInfo               submitInfo = {
-                    .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                    .waitSemaphoreCount   = 1,
-                    .pWaitSemaphores      = &rend->semaphoreBegin,
-                    .pWaitDstStageMask    = &waitStage,
-                    .commandBufferCount   = 1,
-                    .pCommandBuffers      = &rend->vkDrawBuffer,
-                    .signalSemaphoreCount = 1,
-                    .pSignalSemaphores    = &rend->semaphoreDone,
+  const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+  const VkSubmitInfo submitInfo = {
+      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .waitSemaphoreCount   = 1,
+      .pWaitSemaphores      = &rend->semaphoreBegin,
+      .pWaitDstStageMask    = &waitStage,
+      .commandBufferCount   = 1,
+      .pCommandBuffers      = &rend->vkDrawBuffer,
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores    = &rend->semaphoreDone,
   };
   thread_mutex_lock(rend->dev->queueSubmitMutex);
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
@@ -110,9 +114,9 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
 }
 
 static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
-  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_target");
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_output");
 
-  RvkImage* src  = rvk_pass_output(pass);
+  RvkImage* src  = rvk_pass_output(pass, RvkPassOutput_Color1);
   RvkImage* dest = rend->currentTarget;
 
   rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
@@ -127,36 +131,52 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
 
 static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp* settings) {
   return rvk_size(
-      (u32)math_round_nearest_f32(target->size.width * settings->resolutionScale),
-      (u32)math_round_nearest_f32(target->size.height * settings->resolutionScale));
+      (u16)math_round_nearest_f32(target->size.width * settings->resolutionScale),
+      (u16)math_round_nearest_f32(target->size.height * settings->resolutionScale));
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
-  *renderer             = (RvkRenderer){
-                  .dev             = dev,
-                  .uniformPool     = rvk_uniform_pool_create(dev),
-                  .stopwatch       = rvk_stopwatch_create(dev),
-                  .rendererId      = rendererId,
-                  .semaphoreBegin  = rvk_semaphore_create(dev),
-                  .semaphoreDone   = rvk_semaphore_create(dev),
-                  .fenceRenderDone = rvk_fence_create(dev, true),
-                  .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
+
+  *renderer = (RvkRenderer){
+      .dev             = dev,
+      .uniformPool     = rvk_uniform_pool_create(dev),
+      .stopwatch       = rvk_stopwatch_create(dev),
+      .rendererId      = rendererId,
+      .semaphoreBegin  = rvk_semaphore_create(dev),
+      .semaphoreDone   = rvk_semaphore_create(dev),
+      .fenceRenderDone = rvk_fence_create(dev, true),
+      .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
+
   rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
+
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
-  renderer->forwardPass  = rvk_pass_create(
+
+  renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
-      RvkPassFlags_ClearColor | RvkPassFlags_Default);
+      renderer->stopwatch,
+      RvkPassFlags_Clear | RvkPassFlags_OutputColor2 | RvkPassFlags_OutputDepth,
+      string_lit("geometry"));
+
+  renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(
+      dev,
+      renderer->vkDrawBuffer,
+      renderer->uniformPool,
+      renderer->stopwatch,
+      RvkPassFlags_ClearColor | RvkPassFlags_ExternalDepth,
+      string_lit("forward"));
+
   return renderer;
 }
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_renderer_wait_for_done(rend);
 
-  rvk_pass_destroy(rend->forwardPass);
+  rvk_pass_destroy(rend->passes[RvkRenderPass_Geometry]);
+  rvk_pass_destroy(rend->passes[RvkRenderPass_Forward]);
   rvk_uniform_pool_destroy(rend->uniformPool);
   rvk_stopwatch_destroy(rend->stopwatch);
 
@@ -190,17 +210,25 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   const u64 timestampBegin = rvk_stopwatch_query(rend->stopwatch, rend->timeRecBegin);
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
-  return (RvkRenderStats){
-      .renderDur          = time_nanoseconds(timestampEnd - timestampBegin),
-      .waitForRenderDur   = rend->waitForRenderDur,
-      .forwardResolution  = rend->currentResolution,
-      .forwardDraws       = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Draws),
-      .forwardInstances   = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Instances),
-      .forwardVertices    = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
-      .forwardPrimitives  = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
-      .forwardShadersVert = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsVert),
-      .forwardShadersFrag = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsFrag),
-  };
+  RvkRenderStats result;
+  result.resolution       = rend->currentResolution;
+  result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
+  result.waitForRenderDur = rend->waitForRenderDur;
+
+  for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
+    const RvkPass* pass    = rend->passes[passIdx];
+    result.passes[passIdx] = (RendStatPass){
+        .dur         = rvk_pass_duration(pass),
+        .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
+        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
+        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+    };
+  }
+
+  return result;
 }
 
 void rvk_renderer_begin(
@@ -222,7 +250,8 @@ void rvk_renderer_begin(
 
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
-  rvk_pass_setup(rend->forwardPass, rend->currentResolution);
+
+  array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_setup(*itr, rend->currentResolution); }
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(
@@ -233,16 +262,20 @@ void rvk_renderer_begin(
       fmt_int(rend->rendererId));
 }
 
-RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
+RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  return rend->forwardPass;
+  diag_assert(pass < RvkRenderPass_Count);
+  return rend->passes[pass];
 }
 
 void rvk_renderer_end(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
+  array_for_t(rend->passes, RvkPassPtr, itr) {
+    diag_assert_msg(
+        !rvk_pass_active(*itr), "Pass '{}' is still active", fmt_text(rvk_pass_name(*itr)));
+  }
 
-  rvk_renderer_blit_to_output(rend, rend->forwardPass);
+  rvk_renderer_blit_to_output(rend, rend->passes[RvkRenderPass_Forward]);
 
   rend->timeRecEnd = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);

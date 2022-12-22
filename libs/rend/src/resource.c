@@ -54,6 +54,21 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId    = string_static("graphics/debug/debug_skinning.gra"),
         .reloadable = true,
     },
+    {
+        .repoId     = RvkRepositoryId_ShadeBaseGraphic,
+        .assetId    = string_static("graphics/shade_base.gra"),
+        .reloadable = true,
+    },
+    {
+        .repoId     = RvkRepositoryId_ShadeDebugGraphic,
+        .assetId    = string_static("graphics/shade_debug.gra"),
+        .reloadable = true,
+    },
+    {
+        .repoId     = RvkRepositoryId_SkyGraphic,
+        .assetId    = string_static("graphics/sky.gra"),
+        .reloadable = true,
+    },
 };
 
 ecs_comp_define_public(RendResGraphicComp);

@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/scene/terrain.vert.spv"
+      "shaderId": "shaders/scene/terrain_position.vert.spv"
     },
     {
-      "shaderId": "shaders/wireframe.frag.spv"
+      "shaderId": "shaders/white.frag.spv"
     }
   ],
   "samplers": [
@@ -15,12 +15,12 @@
     }
   ],
   "meshId": "meshes/scene/terrain_patch.pme",
-  "renderOrder": 25,
+  "renderOrder": 10,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "LessOrEqualNoWrite",
   "depthBias": 500,
   "cull": "Back"
 }

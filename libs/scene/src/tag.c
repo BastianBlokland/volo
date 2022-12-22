@@ -20,7 +20,6 @@ String scene_tag_name(const SceneTags tags) {
   diag_assert_msg(bits_popcnt((u32)tags) == 1, "Exactly one tag should be set");
   const u32           index     = bits_ctz_32(tags);
   static const String g_names[] = {
-      string_static("Background"),
       string_static("Terrain"),
       string_static("Geometry"),
       string_static("Vfx"),

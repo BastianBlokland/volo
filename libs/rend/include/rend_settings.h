@@ -35,9 +35,19 @@ typedef enum {
 
 } RendPresentMode;
 
+typedef enum {
+  RendShadeDebug_None,
+  RendShadeDebug_Color,
+  RendShadeDebug_Roughness,
+  RendShadeDebug_Normal,
+  RendShadeDebug_Depth,
+  RendShadeDebug_Tags,
+} RendShadeDebug;
+
 ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
+  RendShadeDebug  shadeDebug;
   f32             resolutionScale;
 };
 

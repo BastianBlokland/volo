@@ -54,16 +54,6 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
       isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
 }
 
-static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneRenderableComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
-  ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
-}
-
 static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
   const StringHash wallPrefabId = string_hash_lit("Wall");
 
@@ -152,7 +142,6 @@ static void ecs_destruct_app_comp(void* data) {
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(AppComp);
-  ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
@@ -164,13 +153,11 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
-  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  AppComp*                app   = ecs_view_write_t(globalItr, AppComp);
+  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
 
   // Create the scene.
   if (!app->sceneCreated) {
-    app_scene_create_sky(world, assets);
     app_scene_create_walls(world, app->rng);
     app_scene_create_units(world);
     app->sceneCreated = true;

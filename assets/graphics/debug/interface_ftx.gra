@@ -22,7 +22,7 @@
     }
   ],
   "vertexCount": 4,
-  "renderOrder": 200,
+  "renderOrder": 2000,
   "topology": "TriangleFan",
   "rasterizer": "Fill",
   "blend": "None",

@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_box.pme",
-  "renderOrder": 60,
+  "renderOrder": 160,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",

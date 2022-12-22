@@ -62,9 +62,13 @@ static void graphic_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetGraphicDepth);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, Less);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqual);
+    data_reg_const_t(g_dataReg, AssetGraphicDepth, Equal);
+    data_reg_const_t(g_dataReg, AssetGraphicDepth, Greater);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, Always);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, LessNoWrite);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqualNoWrite);
+    data_reg_const_t(g_dataReg, AssetGraphicDepth, EqualNoWrite);
+    data_reg_const_t(g_dataReg, AssetGraphicDepth, GreaterNoWrite);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, AlwaysNoWrite);
 
     data_reg_enum_t(g_dataReg, AssetGraphicCull);
@@ -95,7 +99,7 @@ static void graphic_datareg_init() {
     data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetGraphicComp, depthBias, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);

@@ -15,7 +15,7 @@
     }
   ],
   "vertexCount": 6,
-  "renderOrder": 40,
+  "renderOrder": 100,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "PreMultiplied",

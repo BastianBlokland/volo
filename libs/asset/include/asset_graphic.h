@@ -52,9 +52,13 @@ typedef enum {
 typedef enum {
   AssetGraphicDepth_Less,               // Pass the depth-test if the fragment is closer.
   AssetGraphicDepth_LessOrEqual,        // Pass the depth-test if the fragment is closer or equal.
+  AssetGraphicDepth_Equal,              // Pass the depth-test if the fragment is equal.
+  AssetGraphicDepth_Greater,            // Pass the depth-test if the fragment is further away.
   AssetGraphicDepth_Always,             // Always pass the depth-test.
   AssetGraphicDepth_LessNoWrite,        // 'Less' without depth writing.
   AssetGraphicDepth_LessOrEqualNoWrite, // 'LessOrEqual' without depth writing.
+  AssetGraphicDepth_EqualNoWrite,       // 'Equal' without depth writing.
+  AssetGraphicDepth_GreaterNoWrite,     // 'Greater' without depth writing.
   AssetGraphicDepth_AlwaysNoWrite,      // 'Always' without depth writing.
 
   AssetGraphicDepth_Count,
@@ -100,13 +104,13 @@ ecs_comp_extern_public(AssetGraphicComp) {
     AssetGraphicSampler* values;
     usize                count;
   } samplers;
-  String                 meshId; // Mutally exclusive with 'vertexCount'.
+  String                 meshId; // Mutually exclusive with 'vertexCount'.
   EcsEntityId            mesh;
-  u32                    vertexCount; // Mutally exclusive with 'mesh'.
+  u32                    vertexCount; // Mutually exclusive with 'mesh'.
   i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
-  u32                    lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.
+  u16                    lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.
   f32                    depthBias;
   AssetGraphicBlend      blend;
   AssetGraphicDepth      depth;

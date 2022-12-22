@@ -8,11 +8,11 @@
     }
   ],
   "samplers": [],
-  "vertexCount": 4,
-  "renderOrder": 10,
-  "topology": "TriangleFan",
+  "vertexCount": 3,
+  "renderOrder": -1,
+  "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "EqualNoWrite",
   "cull": "None"
 }

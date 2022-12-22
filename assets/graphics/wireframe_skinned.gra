@@ -1,18 +1,18 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/wireframe_skinned.vert.spv"
+      "shaderId": "shaders/standard_skinned_position.vert.spv"
     },
     {
-      "shaderId": "shaders/wireframe.frag.spv"
+      "shaderId": "shaders/white.frag.spv"
     }
   ],
-  "renderOrder": 25,
+  "renderOrder": 10,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "LessOrEqualNoWrite",
   "depthBias": 500,
   "cull": "Back"
 }

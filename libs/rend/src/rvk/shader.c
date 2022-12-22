@@ -115,13 +115,17 @@ static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f
 
 RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
-  *shader           = (RvkShader){
+
+  *shader = (RvkShader){
       .device     = dev,
       .dbgName    = string_dup(g_alloc_heap, dbgName),
       .vkModule   = rvk_shader_module_create(dev, asset),
       .vkStage    = rvk_shader_stage(asset->kind),
       .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
+      .inputMask  = asset->inputMask,
+      .outputMask = asset->outputMask,
   };
+
   rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
 
   // Copy the specialization bindings.

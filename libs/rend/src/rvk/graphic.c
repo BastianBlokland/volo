@@ -1,6 +1,7 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
@@ -9,6 +10,7 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
+#include "pass_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
@@ -32,6 +34,9 @@ static const u8 g_rendSupportedShaderSets[] = {
 
 static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
     rend_uniform_buffer_mask,
+    rend_image_sampler_2d_mask,
+    rend_image_sampler_2d_mask,
+    rend_image_sampler_2d_mask,
 };
 
 static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
@@ -106,9 +111,13 @@ MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) 
   static const String g_names[] = {
       string_static("Less"),
       string_static("LessOrEqual"),
+      string_static("Equal"),
+      string_static("Greater"),
       string_static("Always"),
       string_static("LessNoWrite"),
       string_static("LessOrEqualNoWrite"),
+      string_static("EqualNoWrite"),
+      string_static("GreaterNoWrite"),
       string_static("AlwaysNoWrite"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
@@ -191,11 +200,11 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   return meta;
 }
 
-static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const RvkDescMeta           globalDescMeta   = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
-  const RvkDescMeta           dynamicDescMeta  = {.bindings[0] = RvkDescKind_StorageBuffer};
-  const RvkDescMeta           drawDescMeta     = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
-  const RvkDescMeta           instanceDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
+static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
+  const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
+  const RvkDescMeta           dynamicDescMeta     = rvk_pass_meta_dynamic(pass);
+  const RvkDescMeta           drawDescMeta        = rvk_pass_meta_draw(pass);
+  const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->descSet),
@@ -297,9 +306,17 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_LessNoWrite:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_GREATER;
+  case AssetGraphicDepth_Equal:
+    return VK_COMPARE_OP_EQUAL;
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_LessOrEqualNoWrite:
     return VK_COMPARE_OP_GREATER_OR_EQUAL;
+  case AssetGraphicDepth_EqualNoWrite:
+    return VK_COMPARE_OP_EQUAL;
+  case AssetGraphicDepth_Greater:
+  case AssetGraphicDepth_GreaterNoWrite:
+    // Use the 'less' compare op, because we are using a reversed-z depthbuffer.
+    return VK_COMPARE_OP_LESS;
   case AssetGraphicDepth_Always:
   case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
@@ -313,10 +330,14 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   switch (graphic->depth) {
   case AssetGraphicDepth_Less:
   case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_Equal:
+  case AssetGraphicDepth_Greater:
   case AssetGraphicDepth_Always:
     return true;
   case AssetGraphicDepth_LessNoWrite:
   case AssetGraphicDepth_LessOrEqualNoWrite:
+  case AssetGraphicDepth_EqualNoWrite:
+  case AssetGraphicDepth_GreaterNoWrite:
   case AssetGraphicDepth_AlwaysNoWrite:
     return false;
   case AssetGraphicDepth_Count:
@@ -383,8 +404,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
   diag_crash();
 }
 
-static VkPipeline rvk_pipeline_create(
-    RvkGraphic* graphic, const VkPipelineLayout layout, const VkRenderPass vkRendPass) {
+static VkPipeline
+rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const RvkPass* pass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -401,6 +422,7 @@ static VkPipeline rvk_pipeline_create(
       .sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
       .topology = rvk_pipeline_input_topology(graphic),
   };
+
   const VkViewport                        viewport      = {0};
   const VkRect2D                          scissor       = {0};
   const VkPipelineViewportStateCreateInfo viewportState = {
@@ -410,6 +432,7 @@ static VkPipeline rvk_pipeline_create(
       .scissorCount  = 1,
       .pScissors     = &scissor,
   };
+
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
       .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       .polygonMode             = rvk_pipeline_polygonmode(graphic),
@@ -419,10 +442,12 @@ static VkPipeline rvk_pipeline_create(
       .depthBiasEnable         = graphic->depthBias < -1e-6 || graphic->depthBias > 1e-6,
       .depthBiasConstantFactor = graphic->depthBias,
   };
+
   const VkPipelineMultisampleStateCreateInfo multisampling = {
       .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
+
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = rvk_pipeline_depth_write(graphic),
@@ -430,13 +455,24 @@ static VkPipeline rvk_pipeline_create(
                          graphic->depth != AssetGraphicDepth_AlwaysNoWrite,
       .depthCompareOp = rvk_pipeline_depth_compare(graphic),
   };
-  const VkPipelineColorBlendAttachmentState colorBlendAttach =
-      rvk_pipeline_colorblend_attach(graphic);
+
+  const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
+  VkPipelineColorBlendAttachmentState colorBlends[16];
+  // TODO: Validate that the output at index 0 is actually used.
+  colorBlends[0] = rvk_pipeline_colorblend_attach(graphic);
+  for (u32 i = 1; i < colorAttachmentCount; ++i) {
+    // NOTE: No blending for the other color attachments.
+    colorBlends[i] = (VkPipelineColorBlendAttachmentState){
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    };
+  }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .attachmentCount = 1,
-      .pAttachments    = &colorBlendAttach,
+      .attachmentCount = colorAttachmentCount,
+      .pAttachments    = colorBlends,
   };
+
   const VkDynamicState dynamicStates[] = {
       VK_DYNAMIC_STATE_VIEWPORT,
       VK_DYNAMIC_STATE_SCISSOR,
@@ -446,6 +482,7 @@ static VkPipeline rvk_pipeline_create(
       .dynamicStateCount = array_elems(dynamicStates),
       .pDynamicStates    = dynamicStates,
   };
+
   const VkGraphicsPipelineCreateInfo pipelineInfo = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .stageCount          = shaderStageCount,
@@ -459,7 +496,7 @@ static VkPipeline rvk_pipeline_create(
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = vkRendPass,
+      .renderPass          = rvk_pass_vkrenderpass(pass),
   };
   RvkDevice*      dev  = graphic->device;
   VkPipelineCache psoc = dev->vkPipelineCache;
@@ -490,6 +527,7 @@ static void rvk_graphic_set_missing_sampler(
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   VkShaderStageFlagBits foundStages = 0;
+  u16                   vertexShaderOutputs, fragmentShaderInputs;
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->shader) {
       // Validate stage.
@@ -498,6 +536,12 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
         return false;
       }
       foundStages |= itr->shader->vkStage;
+
+      if (itr->shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
+        vertexShaderOutputs = itr->shader->outputMask;
+      } else if (itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+        fragmentShaderInputs = itr->shader->inputMask;
+      }
 
       // Validate used sets.
       for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
@@ -520,7 +564,22 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
+  if (vertexShaderOutputs != fragmentShaderInputs) {
+    log_e(
+        "Vertex shader outputs do not match fragment inputs",
+        log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
   return true;
+}
+
+static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->shader && itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+      return itr->shader->outputMask;
+    }
+  }
+  return 0;
 }
 
 static bool rend_graphic_validate_set(
@@ -556,18 +615,19 @@ static bool rend_graphic_validate_set(
 RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
-  *graphic            = (RvkGraphic){
-                 .device      = dev,
-                 .dbgName     = string_dup(g_alloc_heap, dbgName),
-                 .topology    = asset->topology,
-                 .rasterizer  = asset->rasterizer,
-                 .lineWidth   = asset->lineWidth,
-                 .depthBias   = asset->depthBias,
-                 .renderOrder = asset->renderOrder,
-                 .blend       = asset->blend,
-                 .depth       = asset->depth,
-                 .cull        = asset->cull,
-                 .vertexCount = asset->vertexCount,
+
+  *graphic = (RvkGraphic){
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .depthBias   = asset->depthBias,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(
@@ -670,7 +730,8 @@ void rvk_graphic_sampler_add(
       log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const RvkPass* pass) {
+  diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
   }
@@ -678,6 +739,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
+    graphic->outputMask = rvk_graphic_output_mask(graphic);
 
     // Prepare global set bindings.
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);
@@ -685,8 +747,10 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
             graphic, RvkGraphicSet_Global, &globalDescMeta, g_rendSupportedGlobalBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_RequireGlobalData;
+    for (u16 i = 0; i != rvk_desc_bindings_max; ++i) {
+      if (globalDescMeta.bindings[i]) {
+        graphic->globalBindings |= 1 << i;
+      }
     }
 
     // Prepare dynamic bindings.
@@ -779,8 +843,8 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       return false;
     }
 
-    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, vkRendPass);
+    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, pass);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, pass);
 
     rvk_debug_name_pipeline_layout(
         graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));

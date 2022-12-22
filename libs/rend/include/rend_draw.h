@@ -15,7 +15,8 @@ typedef enum {
   RendDrawFlags_SortBackToFront     = 1 << 6,
   RendDrawFlags_SortFrontToBack     = 1 << 7,
 
-  RendDrawFlags_Sorted = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
+  RendDrawFlags_Geometry = RendDrawFlags_StandardGeometry | RendDrawFlags_Terrain,
+  RendDrawFlags_Sorted   = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
 } RendDrawFlags;
 
 /**

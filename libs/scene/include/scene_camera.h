@@ -26,6 +26,12 @@ ecs_comp_extern_public(SceneCameraComp) {
 };
 
 /**
+ * Retrieve the camera's near and far plane distances.
+ */
+f32 scene_camera_near(const SceneCameraComp*);
+f32 scene_camera_far(const SceneCameraComp*);
+
+/**
  * Compute the projection matrix at the given aspect.
  */
 GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);

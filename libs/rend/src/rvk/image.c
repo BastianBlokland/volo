@@ -6,6 +6,36 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+// clang-format off
+MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
+    RvkImageCapability_TransferSource |
+    RvkImageCapability_TransferDest |
+    RvkImageCapability_Sampled;
+// clang-format on
+
+MAYBE_UNUSED static bool
+rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
+    return true;
+  case RvkImagePhase_TransferSource:
+    return (caps & RvkImageCapability_TransferSource) != 0;
+  case RvkImagePhase_TransferDest:
+    return (caps & RvkImageCapability_TransferDest) != 0;
+  case RvkImagePhase_ColorAttachment:
+    return (caps & RvkImageCapability_AttachmentColor) != 0;
+  case RvkImagePhase_DepthAttachment:
+    return (caps & RvkImageCapability_AttachmentDepth) != 0;
+  case RvkImagePhase_ShaderRead:
+    return (caps & RvkImageCapability_Sampled) != 0;
+  case RvkImagePhase_Present:
+    return (caps & RvkImageCapability_Present) != 0;
+  case RvkImagePhase_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported image phase");
+}
+
 static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
@@ -60,7 +90,7 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
   case RvkImagePhase_ColorAttachment:
     return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   case RvkImagePhase_DepthAttachment:
-    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
   case RvkImagePhase_ShaderRead:
     return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
   case RvkImagePhase_Present:
@@ -82,7 +112,7 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
   case RvkImagePhase_ColorAttachment:
     return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_DepthAttachment:
-    return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_ShaderRead:
     return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   case RvkImagePhase_Present:
@@ -107,51 +137,44 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   }
 }
 
-static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const u8 mipLevels) {
-  switch (type) {
-  case RvkImageType_ColorSource:
-  case RvkImageType_ColorSourceCube: {
-    VkImageUsageFlags flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    if (mipLevels > 1) {
-      flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    }
-    return flags;
+static VkImageUsageFlags rvk_image_vkusage(const RvkImageCapability caps) {
+  VkImageUsageFlags usage = 0;
+  if (caps & RvkImageCapability_TransferSource) {
+    usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   }
-  case RvkImageType_ColorAttachment:
-    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-  case RvkImageType_DepthAttachment:
-    return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  case RvkImageType_Swapchain:
-    // Swapchain images cannot be created manually.
-    break;
-  case RvkImageType_Count:
-    break;
+  if (caps & RvkImageCapability_TransferDest) {
+    usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
   }
-  diag_crash();
+  if (caps & RvkImageCapability_Sampled) {
+    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentColor) {
+    usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentDepth) {
+    usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  }
+  return usage;
 }
 
-static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type, const u8 mipLevels) {
-  switch (type) {
-  case RvkImageType_ColorSource:
-  case RvkImageType_ColorSourceCube: {
-    VkFormatFeatureFlags flags =
-        VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-    if (mipLevels > 1) {
-      flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-    }
-    return flags;
+static VkFormatFeatureFlags rvk_image_format_features(const RvkImageCapability caps) {
+  VkFormatFeatureFlags formatFeatures = 0;
+  if (caps & RvkImageCapability_TransferSource) {
+    formatFeatures |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
   }
-  case RvkImageType_ColorAttachment:
-    return VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-  case RvkImageType_DepthAttachment:
-    return VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  case RvkImageType_Swapchain:
-    // Swapchain images cannot be created manually.
-    break;
-  case RvkImageType_Count:
-    break;
+  if (caps & RvkImageCapability_TransferDest) {
+    formatFeatures |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
   }
-  diag_crash();
+  if (caps & RvkImageCapability_Sampled) {
+    formatFeatures |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentColor) {
+    formatFeatures |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+  }
+  if (caps & RvkImageCapability_AttachmentDepth) {
+    formatFeatures |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  }
+  return formatFeatures;
 }
 
 static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u8 layers) {
@@ -191,7 +214,7 @@ static void rvk_image_barrier(
       .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
       .image                           = image->vkImage,
-      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.aspectMask     = rvk_image_vkaspect(image->type),
       .subresourceRange.baseMipLevel   = baseMip,
       .subresourceRange.levelCount     = mipLevels,
       .subresourceRange.baseArrayLayer = 0,
@@ -278,16 +301,17 @@ static VkImageView rvk_vkimageview_create(
 }
 
 static RvkImage rvk_image_create_backed(
-    RvkDevice*         dev,
-    const RvkImageType type,
-    const VkFormat     vkFormat,
-    const RvkSize      size,
-    const u8           layers,
-    const u8           mipLevels) {
+    RvkDevice*               dev,
+    const RvkImageType       type,
+    const RvkImageCapability caps,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const u8                 layers,
+    const u8                 mipLevels) {
   diag_assert_msg(layers, "Image needs at least 1 layer");
   diag_assert_msg(mipLevels, "Image needs at least 1 mipmap");
 
-  const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type, mipLevels);
+  const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(caps);
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
     diag_crash_msg("Image format {} unsupported", fmt_text(rvk_format_info(vkFormat).name));
   }
@@ -296,7 +320,7 @@ static RvkImage rvk_image_create_backed(
   }
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
-  const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type, mipLevels);
+  const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(caps);
   const VkImage vkImage = rvk_vkimage_create(dev, type, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
@@ -311,10 +335,12 @@ static RvkImage rvk_image_create_backed(
 
   return (RvkImage){
       .type        = type,
-      .mipLevels   = mipLevels,
-      .layers      = layers,
+      .phase       = RvkImagePhase_Undefined,
+      .caps        = caps,
       .vkFormat    = vkFormat,
       .size        = size,
+      .layers      = layers,
+      .mipLevels   = mipLevels,
       .vkImage     = vkImage,
       .vkImageView = vkView,
       .mem         = mem,
@@ -327,32 +353,53 @@ RvkImage rvk_image_create_source_color(
     const RvkSize  size,
     const u8       layers,
     const u8       mipLevels) {
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
+  RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
+  if (mipLevels > 1) {
+    caps |= RvkImageCapability_TransferSource;
+  }
+  return rvk_image_create_backed(
+      dev, RvkImageType_ColorSource, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage rvk_image_create_source_color_cube(
     RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
+  RvkImageCapability caps = RvkImageCapability_Sampled | RvkImageCapability_TransferDest;
+  if (mipLevels > 1) {
+    caps |= RvkImageCapability_TransferSource;
+  }
   const u8 layers = 6;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorSourceCube, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorSourceCube, caps, vkFormat, size, layers, mipLevels);
 }
 
-RvkImage
-rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
+RvkImage rvk_image_create_attach_color(
+    RvkDevice*               dev,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const RvkImageCapability extraCaps) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  const u8 layers    = 1;
-  const u8 mipLevels = 1;
+  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+
+  const RvkImageCapability caps      = RvkImageCapability_AttachmentColor | extraCaps;
+  const u8                 layers    = 1;
+  const u8                 mipLevels = 1;
   return rvk_image_create_backed(
-      dev, RvkImageType_ColorAttachment, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_ColorAttachment, caps, vkFormat, size, layers, mipLevels);
 }
 
-RvkImage
-rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
+RvkImage rvk_image_create_attach_depth(
+    RvkDevice*               dev,
+    const VkFormat           vkFormat,
+    const RvkSize            size,
+    const RvkImageCapability extraCaps) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
-  const u8 layers    = 1;
-  const u8 mipLevels = 1;
+  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+
+  const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth | extraCaps;
+  const u8                 layers    = 1;
+  const u8                 mipLevels = 1;
   return rvk_image_create_backed(
-      dev, RvkImageType_DepthAttachment, vkFormat, size, layers, mipLevels);
+      dev, RvkImageType_DepthAttachment, caps, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
@@ -360,10 +407,12 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
   (void)dev;
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
-      .layers    = 1,
-      .mipLevels = 1,
+      .phase     = RvkImagePhase_Undefined,
+      .caps      = RvkImageCapability_Present | RvkImageCapability_TransferDest,
       .vkFormat  = vkFormat,
       .size      = size,
+      .layers    = 1,
+      .mipLevels = 1,
       .vkImage   = vkImage,
   };
 }
@@ -415,11 +464,21 @@ void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
 }
 
 void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkImagePhase phase) {
+  diag_assert_msg(
+      rvk_image_phase_supported(image->caps, phase),
+      "Image does not support the '{}' phase",
+      fmt_text(rvk_image_phase_str(phase)));
+
   rvk_image_barrier_from_to(vkCmdBuf, image, image->phase, phase, 0, image->mipLevels);
   image->phase = phase;
 }
 
 void rvk_image_transition_external(RvkImage* image, const RvkImagePhase phase) {
+  diag_assert_msg(
+      rvk_image_phase_supported(image->caps, phase),
+      "Image does not support the '{}' phase",
+      fmt_text(rvk_image_phase_str(phase)));
+
   image->phase = phase;
 }
 
@@ -427,6 +486,11 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
   if (image->mipLevels <= 1) {
     return;
   }
+
+  diag_assert(image->caps & RvkImagePhase_TransferSource);
+  diag_assert(image->caps & RvkImagePhase_TransferDest);
+  diag_assert(
+      image->type == RvkImageType_ColorSource || image->type == RvkImageType_ColorSourceCube);
 
   /**
    * Generate the mipmap levels by copying from the previous level at half the size until all levels

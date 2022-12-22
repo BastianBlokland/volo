@@ -11,6 +11,9 @@ typedef enum {
   RvkRepositoryId_WireframeSkinnedGraphic,
   RvkRepositoryId_WireframeTerrainGraphic,
   RvkRepositoryId_DebugSkinningGraphic,
+  RvkRepositoryId_ShadeBaseGraphic,
+  RvkRepositoryId_ShadeDebugGraphic,
+  RvkRepositoryId_SkyGraphic,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;
@@ -27,3 +30,4 @@ void rvk_repository_unset(RvkRepository*, RvkRepositoryId);
 
 RvkTexture* rvk_repository_texture_get(const RvkRepository*, RvkRepositoryId);
 RvkGraphic* rvk_repository_graphic_get(const RvkRepository*, RvkRepositoryId);
+RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository*, RvkRepositoryId);

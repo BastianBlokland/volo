@@ -8,18 +8,8 @@
       "overrides": [
         {
           "name": "normalMap",
-          "binding": 1,
+          "binding": 0,
           "value": 1
-        },
-        {
-          "name": "reflectSkybox",
-          "binding": 2,
-          "value": 1
-        },
-        {
-          "name": "reflectFrac",
-          "binding": 3,
-          "value": 0.3
         }
       ]
     }
@@ -36,12 +26,6 @@
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
-    },
-    {
-      "textureId": "textures/sandbox/skybox.atx",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "None"
     }
   ],
   "meshId": "external/fence/fence_1.gltf",

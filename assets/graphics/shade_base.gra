@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/scene/sky.vert.spv"
+      "shaderId": "shaders/fullscreen.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/sky_cubemap.frag.spv"
+      "shaderId": "shaders/shade_base.frag.spv"
     }
   ],
   "samplers": [
@@ -15,11 +15,11 @@
       "anisotropy": "None"
     }
   ],
-  "vertexCount": 4,
-  "renderOrder": 10,
-  "topology": "TriangleFan",
+  "vertexCount": 3,
+  "renderOrder": -100,
+  "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
-  "depth": "LessOrEqual",
+  "depth": "GreaterNoWrite",
   "cull": "None"
 }

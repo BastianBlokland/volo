@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core_time.h"
 #include "geo_color.h"
 
 #include "statrecorder_internal.h"
@@ -7,22 +7,36 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
+typedef struct sRvkDescMeta    RvkDescMeta;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkMesh        RvkMesh;
+typedef struct sRvkStopwatch   RvkStopwatch;
 typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_ClearColor = 1 << 0,
-  RvkPassFlags_ClearDepth = 1 << 1,
+  RvkPassFlags_None          = 0,
+  RvkPassFlags_ClearColor    = 1 << 0,
+  RvkPassFlags_ClearDepth    = 1 << 1,
+  RvkPassFlags_OutputDepth   = 1 << 2,
+  RvkPassFlags_OutputColor2  = 1 << 3, // Enable a second color attachment.
+  RvkPassFlags_ExternalDepth = 1 << 4, // Call 'rvk_pass_use_depth()' with a source depth image.
 
-  RvkPassFlags_Default = RvkPassFlags_ClearDepth,
+  RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 2,
+  RvkPassFlags_Count = 5,
 } RvkPassFlags;
+
+typedef enum {
+  RvkPassOutput_Color1,
+  RvkPassOutput_Color2,
+  RvkPassOutput_Depth,
+
+  RvkPassOutput_Count,
+} RvkPassOutput;
 
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
@@ -34,22 +48,31 @@ typedef struct sRvkPassDraw {
   u32         instDataStride;
 } RvkPassDraw;
 
-typedef struct sRvkPassDrawList {
-  RvkPassDraw* values;
-  usize        count;
-} RvkPassDrawList;
+RvkPass* rvk_pass_create(
+    RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkStopwatch*, RvkPassFlags, String name);
+void   rvk_pass_destroy(RvkPass*);
+bool   rvk_pass_active(const RvkPass*);
+String rvk_pass_name(const RvkPass*);
 
-RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags);
-void     rvk_pass_destroy(RvkPass*);
-bool     rvk_pass_active(const RvkPass*);
+RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
+RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);
+RvkDescMeta  rvk_pass_meta_draw(const RvkPass*);
+RvkDescMeta  rvk_pass_meta_instance(const RvkPass*);
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
 
-RvkImage* rvk_pass_output(RvkPass*);
-u64       rvk_pass_stat(RvkPass*, RvkStat);
+RvkImage*    rvk_pass_output(RvkPass*, RvkPassOutput);
+u64          rvk_pass_stat(const RvkPass*, RvkStat);
+TimeDuration rvk_pass_duration(const RvkPass*);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
+void rvk_pass_use_depth(RvkPass*, RvkImage*);
+
+void rvk_pass_bind_global_data(RvkPass*, Mem);
+void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
+
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
-void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);
+void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);

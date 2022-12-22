@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_quad.pme",
-  "renderOrder": 53,
+  "renderOrder": 153,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,
