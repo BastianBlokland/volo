@@ -17,4 +17,11 @@
  */
 bool tag_is_set(const u32 tags, const u32 tagBit) { return (tags & (1 << tagBit)) != 0; }
 
+/**
+ * Encode tags for outputting into a R8UNORM texture
+ * NOTE: Only the first 8 tags can be stored this way.
+ */
+f32 tags_tex_encode(const u32 tags) { return f32(tags & 0xFF) / 255.0; }
+u32 tags_tex_decode(const f32 texNorm) { return u32(texNorm * 255.999); }
+
 #endif // INCLUDE_TAGS

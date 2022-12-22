@@ -106,6 +106,7 @@ static const String g_shadeDebugNames[] = {
     string_static("Roughness"),
     string_static("Normal"),
     string_static("Depth"),
+    string_static("Tags"),
 };
 
 typedef struct {

@@ -41,6 +41,7 @@ typedef enum {
   RendShadeDebug_Roughness,
   RendShadeDebug_Normal,
   RendShadeDebug_Depth,
+  RendShadeDebug_Tags,
 } RendShadeDebug;
 
 ecs_comp_extern_public(RendSettingsComp) {

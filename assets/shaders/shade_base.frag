@@ -3,6 +3,7 @@
 
 #include "binding.glsl"
 #include "global.glsl"
+#include "tags.glsl"
 #include "texture.glsl"
 
 const f32v3 c_sunDir           = normalize(f32v3(0.2, 1.0, -0.3));
@@ -14,7 +15,7 @@ const f32   c_reflectFrac      = 0.25;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
-bind_global(2) uniform sampler2D u_texGeoNormal;
+bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 
 bind_graphic(0) uniform samplerCube u_cubeRefl;
@@ -60,12 +61,14 @@ f32v3 color_with_light(const Shading shading, const f32v3 color, const f32 smoot
 
 void main() {
   const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
-  const f32v3 normal     = texture(u_texGeoNormal, in_texcoord).rgb;
+  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
   const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
   const f32v3 color      = colorRough.rgb;
   const f32   roughness  = colorRough.a;
   const f32   smoothness = 1.0 - roughness;
+  const f32v3 normal     = normalTags.xyz;
+  const u32   tags       = tags_tex_decode(normalTags.w);
 
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);

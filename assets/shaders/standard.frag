@@ -16,9 +16,10 @@ bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in flat u32 in_tags;
 
 bind_internal(0) out f32v4 out_colorRough;
-bind_internal(1) out f32v3 out_normal;
+bind_internal(1) out f32v4 out_normalTags;
 
 void main() {
+  // Output color and roughness.
   out_colorRough = texture(u_texColorRough, in_texcoord);
   if (tag_is_set(in_tags, tag_selected_bit)) {
     out_colorRough.rgb += 1.0f;
@@ -27,9 +28,13 @@ void main() {
     out_colorRough.rgb += f32v3(0.4, 0.025, 0.025);
   }
 
+  // Output world normal.
   if (s_normalMap) {
-    out_normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
+    out_normalTags.xyz = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
   } else {
-    out_normal = normalize(in_worldNormal);
+    out_normalTags.xyz = normalize(in_worldNormal);
   }
+
+  // Output tags.
+  out_normalTags.w = tags_tex_encode(in_tags);
 }
