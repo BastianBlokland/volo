@@ -6,9 +6,12 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
-static const RvkImageCapability g_allowedExtraCaps = RvkImageCapability_TransferSource |
-                                                     RvkImageCapability_TransferDest |
-                                                     RvkImageCapability_Sampled;
+// clang-format off
+MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
+    RvkImageCapability_TransferSource |
+    RvkImageCapability_TransferDest |
+    RvkImageCapability_Sampled;
+// clang-format on
 
 static bool rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
   switch (phase) {
