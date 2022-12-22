@@ -80,4 +80,12 @@ void main() {
   const f32v3 colorWithLight = color_with_light(shading, colorWithRefl, smoothness);
 
   out_color = f32v4(colorWithLight, 1.0);
+
+  // TODO: Apply these effects at a later stage (after all the lighting has been done).
+  if (tag_is_set(tags, tag_selected_bit)) {
+    out_color.rgb += (1.0 - abs(dot(normal, viewDir))) * 2.0;
+  }
+  if (tag_is_set(tags, tag_damaged_bit)) {
+    out_color.rgb = mix(out_color.rgb, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
+  }
 }

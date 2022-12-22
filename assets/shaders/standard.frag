@@ -21,12 +21,6 @@ bind_internal(1) out f32v4 out_normalTags;
 void main() {
   // Output color and roughness.
   out_colorRough = texture(u_texColorRough, in_texcoord);
-  if (tag_is_set(in_tags, tag_selected_bit)) {
-    out_colorRough.rgb += 1.0f;
-  }
-  if (tag_is_set(in_tags, tag_damaged_bit)) {
-    out_colorRough.rgb += f32v3(0.4, 0.025, 0.025);
-  }
 
   // Output world normal.
   if (s_normalMap) {
