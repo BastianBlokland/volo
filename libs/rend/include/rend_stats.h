@@ -12,9 +12,10 @@ typedef enum {
 } RendStatRes;
 
 typedef struct {
-  u32 draws, instances;
-  u64 vertices, primitives;
-  u64 shadersVert, shadersFrag;
+  TimeDuration dur;
+  u32          draws, instances;
+  u64          vertices, primitives;
+  u64          shadersVert, shadersFrag;
 } RendStatPass;
 
 ecs_comp_extern_public(RendStatsComp) {

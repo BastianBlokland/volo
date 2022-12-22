@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core_time.h"
 #include "geo_color.h"
 
 #include "statrecorder_internal.h"
@@ -12,6 +12,7 @@ typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkMesh        RvkMesh;
+typedef struct sRvkStopwatch   RvkStopwatch;
 typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
@@ -47,10 +48,11 @@ typedef struct sRvkPassDraw {
   u32         instDataStride;
 } RvkPassDraw;
 
-RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags, String name);
-void     rvk_pass_destroy(RvkPass*);
-bool     rvk_pass_active(const RvkPass*);
-String   rvk_pass_name(const RvkPass*);
+RvkPass* rvk_pass_create(
+    RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkStopwatch*, RvkPassFlags, String name);
+void   rvk_pass_destroy(RvkPass*);
+bool   rvk_pass_active(const RvkPass*);
+String rvk_pass_name(const RvkPass*);
 
 RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);
@@ -58,8 +60,9 @@ RvkDescMeta  rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
 
-RvkImage* rvk_pass_output(RvkPass*, RvkPassOutput);
-u64       rvk_pass_stat(const RvkPass*, RvkStat);
+RvkImage*    rvk_pass_output(RvkPass*, RvkPassOutput);
+u64          rvk_pass_stat(const RvkPass*, RvkStat);
+TimeDuration rvk_pass_duration(const RvkPass*);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);

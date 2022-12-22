@@ -10,6 +10,7 @@
 #include "image_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
+#include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
 #define pass_instance_count_max 2048
@@ -28,24 +29,26 @@ typedef enum {
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
-  RvkDevice*       dev;
-  RvkStatRecorder* statrecorder;
-  RvkPassFlags     flags;
-  String           name;
-  RvkSize          size;
-  VkRenderPass     vkRendPass;
-  RvkImage         attachColors[pass_attachment_color_max];
-  RvkImage         attachDepth;
-  VkFramebuffer    vkFrameBuffer;
-  VkCommandBuffer  vkCmdBuf;
-  RvkUniformPool*  uniformPool;
-  VkPipelineLayout globalPipelineLayout;
-  RvkDescSet       globalDescSet;
-  u32              globalDataOffset;
-  u16              globalBoundMask; // Bitset of the bound global resources;
-  u16              attachColorMask;
-  RvkSampler       globalImageSampler;
-  DynArray         dynDescSets; // RvkDescSet[]
+  RvkDevice*         dev;
+  RvkStatRecorder*   statrecorder;
+  RvkStopwatch*      stopwatch;
+  RvkStopwatchRecord timeRecBegin, timeRecEnd;
+  RvkPassFlags       flags;
+  String             name;
+  RvkSize            size;
+  VkRenderPass       vkRendPass;
+  RvkImage           attachColors[pass_attachment_color_max];
+  RvkImage           attachDepth;
+  VkFramebuffer      vkFrameBuffer;
+  VkCommandBuffer    vkCmdBuf;
+  RvkUniformPool*    uniformPool;
+  VkPipelineLayout   globalPipelineLayout;
+  RvkDescSet         globalDescSet;
+  u32                globalDataOffset;
+  u16                globalBoundMask; // Bitset of the bound global resources;
+  u16                attachColorMask;
+  RvkSampler         globalImageSampler;
+  DynArray           dynDescSets; // RvkDescSet[]
 };
 
 static u32 rvk_attach_color_count(const RvkPassFlags flags) {
@@ -333,6 +336,7 @@ RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     VkCommandBuffer    vkCmdBuf,
     RvkUniformPool*    uniformPool,
+    RvkStopwatch*      stopwatch,
     const RvkPassFlags flags,
     const String       name) {
   diag_assert(!string_is_empty(name));
@@ -354,6 +358,7 @@ RvkPass* rvk_pass_create(
       .dev                  = dev,
       .name                 = string_dup(g_alloc_heap, name),
       .statrecorder         = rvk_statrecorder_create(dev),
+      .stopwatch            = stopwatch,
       .vkRendPass           = rvk_renderpass_create(dev, flags),
       .vkCmdBuf             = vkCmdBuf,
       .uniformPool          = uniformPool,
@@ -427,6 +432,12 @@ RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
+}
+
+TimeDuration rvk_pass_duration(const RvkPass* pass) {
+  const u64 timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
+  const u64 timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
+  return time_nanoseconds(timestampEnd - timestampBegin);
 }
 
 void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
@@ -506,6 +517,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   pass->flags |= RvkPassPrivateFlags_Active;
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
+
+  pass->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
@@ -633,4 +646,5 @@ void rvk_pass_end(RvkPass* pass) {
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
+  pass->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
 }

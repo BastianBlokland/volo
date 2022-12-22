@@ -157,6 +157,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
+      renderer->stopwatch,
       RvkPassFlags_Clear | RvkPassFlags_OutputColor2 | RvkPassFlags_OutputDepth,
       string_lit("geometry"));
 
@@ -164,6 +165,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       dev,
       renderer->vkDrawBuffer,
       renderer->uniformPool,
+      renderer->stopwatch,
       RvkPassFlags_ClearColor | RvkPassFlags_ExternalDepth,
       string_lit("forward"));
 
@@ -216,6 +218,7 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
     const RvkPass* pass    = rend->passes[passIdx];
     result.passes[passIdx] = (RendStatPass){
+        .dur         = rvk_pass_duration(pass),
         .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
         .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
         .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
