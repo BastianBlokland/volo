@@ -50,6 +50,7 @@ typedef struct sRvkPassDraw {
 RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags, String name);
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
+String   rvk_pass_name(const RvkPass*);
 
 RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);
@@ -58,7 +59,7 @@ RvkDescMeta  rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
 
 RvkImage* rvk_pass_output(RvkPass*, RvkPassOutput);
-u64       rvk_pass_stat(RvkPass*, RvkStat);
+u64       rvk_pass_stat(const RvkPass*, RvkStat);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
