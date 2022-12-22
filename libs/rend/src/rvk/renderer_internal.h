@@ -1,6 +1,7 @@
 #pragma once
 #include "core_time.h"
 #include "rend_settings.h"
+#include "rend_stats.h"
 
 #include "image_internal.h"
 #include "vulkan_internal.h"
@@ -19,15 +20,9 @@ typedef enum {
 } RvkRenderPass;
 
 typedef struct {
-  u32 draws, instances;
-  u64 vertices, primitives;
-  u64 shadersVert, shadersFrag;
-} RvkRenderPassStats;
-
-typedef struct {
-  RvkSize            resolution;
-  TimeDuration       renderDur, waitForRenderDur;
-  RvkRenderPassStats passes[RvkRenderPass_Count];
+  RvkSize      resolution;
+  TimeDuration renderDur, waitForRenderDur;
+  RendStatPass passes[RvkRenderPass_Count];
 } RvkRenderStats;
 
 RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);

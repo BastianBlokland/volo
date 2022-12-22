@@ -215,7 +215,7 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
 
   for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
     const RvkPass* pass    = rend->passes[passIdx];
-    result.passes[passIdx] = (RvkRenderPassStats){
+    result.passes[passIdx] = (RendStatPass){
         .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
         .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
         .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
