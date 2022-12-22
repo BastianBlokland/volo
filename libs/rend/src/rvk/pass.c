@@ -427,7 +427,6 @@ RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
     break;
   }
   UNREACHABLE
-  return null;
 }
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
