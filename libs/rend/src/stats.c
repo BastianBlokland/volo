@@ -90,20 +90,20 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RvkSwapchainStats swapchainStats = rvk_canvas_swapchain_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
-    stats->renderSize[0]     = renderStats.forwardResolution.width;
-    stats->renderSize[1]     = renderStats.forwardResolution.height;
-    stats->draws             = renderStats.forwardDraws;
-    stats->instances         = renderStats.forwardInstances;
+    stats->renderSize[0]     = renderStats.resolution.width;
+    stats->renderSize[1]     = renderStats.resolution.height;
+    stats->draws             = renderStats.passes[RvkRenderPass_Forward].draws;
+    stats->instances         = renderStats.passes[RvkRenderPass_Forward].instances;
     stats->renderDur         = renderStats.renderDur;
     stats->waitForRenderDur  = renderStats.waitForRenderDur;
     stats->presentAcquireDur = swapchainStats.acquireDur;
     stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
     stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
-    stats->vertices          = renderStats.forwardVertices;
-    stats->primitives        = renderStats.forwardPrimitives;
-    stats->shadersVert       = renderStats.forwardShadersVert;
-    stats->shadersFrag       = renderStats.forwardShadersFrag;
+    stats->vertices          = renderStats.passes[RvkRenderPass_Forward].vertices;
+    stats->primitives        = renderStats.passes[RvkRenderPass_Forward].primitives;
+    stats->shadersVert       = renderStats.passes[RvkRenderPass_Forward].shadersVert;
+    stats->shadersFrag       = renderStats.passes[RvkRenderPass_Forward].shadersFrag;
     stats->ramOccupied       = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
     stats->ramReserved       = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
     stats->vramOccupied      = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);

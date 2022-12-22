@@ -208,18 +208,24 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   const u64 timestampBegin = rvk_stopwatch_query(rend->stopwatch, rend->timeRecBegin);
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
-  const RvkPass* passForward = rend->passes[RvkRenderPass_Forward];
-  return (RvkRenderStats){
-      .renderDur          = time_nanoseconds(timestampEnd - timestampBegin),
-      .waitForRenderDur   = rend->waitForRenderDur,
-      .forwardResolution  = rend->currentResolution,
-      .forwardDraws       = (u32)rvk_pass_stat(passForward, RvkStat_Draws),
-      .forwardInstances   = (u32)rvk_pass_stat(passForward, RvkStat_Instances),
-      .forwardVertices    = rvk_pass_stat(passForward, RvkStat_InputAssemblyVertices),
-      .forwardPrimitives  = rvk_pass_stat(passForward, RvkStat_InputAssemblyPrimitives),
-      .forwardShadersVert = rvk_pass_stat(passForward, RvkStat_ShaderInvocationsVert),
-      .forwardShadersFrag = rvk_pass_stat(passForward, RvkStat_ShaderInvocationsFrag),
-  };
+  RvkRenderStats result;
+  result.resolution       = rend->currentResolution;
+  result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
+  result.waitForRenderDur = rend->waitForRenderDur;
+
+  for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
+    const RvkPass* pass    = rend->passes[passIdx];
+    result.passes[passIdx] = (RvkRenderPassStats){
+        .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
+        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
+        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+    };
+  }
+
+  return result;
 }
 
 void rvk_renderer_begin(

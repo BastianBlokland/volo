@@ -19,11 +19,15 @@ typedef enum {
 } RvkRenderPass;
 
 typedef struct {
-  TimeDuration renderDur, waitForRenderDur;
-  RvkSize      forwardResolution;
-  u32          forwardDraws, forwardInstances;
-  u64          forwardVertices, forwardPrimitives;
-  u64          forwardShadersVert, forwardShadersFrag;
+  u32 draws, instances;
+  u64 vertices, primitives;
+  u64 shadersVert, shadersFrag;
+} RvkRenderPassStats;
+
+typedef struct {
+  RvkSize            resolution;
+  TimeDuration       renderDur, waitForRenderDur;
+  RvkRenderPassStats passes[RvkRenderPass_Count];
 } RvkRenderStats;
 
 RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);
