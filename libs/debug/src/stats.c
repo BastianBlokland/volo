@@ -59,9 +59,10 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration limiterDur;
   TimeDuration rendWaitDur;
   TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
-  TimeDuration gpuRenderDur;
+  TimeDuration gpuRenderDur, gpuRenderGeoDur;
 
-  f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
+  f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
+  f64 gpuRenderFrac, gpuRenderGeoFrac;
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -290,14 +291,19 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 idleFrac = 1.0f - stats->gpuRenderFrac;
+  const f64 idleFrac        = 1.0f - stats->gpuRenderFrac;
+  const f64 renderOtherFrac = stats->gpuRenderFrac - stats->gpuRenderGeoFrac;
 
   const StatGraphSection sections[] = {
-      {stats->gpuRenderFrac, ui_color(0, 128, 0, 178)},
+      {stats->gpuRenderGeoFrac, ui_color(0, 128, 128, 178)},
+      {renderOtherFrac, ui_color(0, 128, 0, 178)},
       {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~green\a.bRender\ar: {<7}", fmt_duration(stats->gpuRenderDur, .minDecDigits = 1));
+      "\a~teal\a.bGeometry\ar: {<7}\n"
+      "\a~green\a.bTotal\ar:    {<7}",
+      fmt_duration(stats->gpuRenderGeoDur, .minDecDigits = 1),
+      fmt_duration(stats->gpuRenderDur, .minDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_layout_next(canvas, Ui_Down, 0);
@@ -436,12 +442,13 @@ static void debug_stats_update(
                                ? time_second / rendGlobalSettings->limiterFreq
                                : time_second / 60; // TODO: This assumes a 60 hz display.
 
-  stats->limiterDur     = rendStats->limiterDur;
-  stats->rendWaitDur    = rendStats->waitForRenderDur;
-  stats->presentAcqDur  = rendStats->presentAcquireDur;
-  stats->presentEnqDur  = rendStats->presentEnqueueDur;
-  stats->presentWaitDur = rendStats->presentWaitDur;
-  stats->gpuRenderDur   = rendStats->renderDur;
+  stats->limiterDur      = rendStats->limiterDur;
+  stats->rendWaitDur     = rendStats->waitForRenderDur;
+  stats->presentAcqDur   = rendStats->presentAcquireDur;
+  stats->presentEnqDur   = rendStats->presentEnqueueDur;
+  stats->presentWaitDur  = rendStats->presentWaitDur;
+  stats->gpuRenderDur    = rendStats->renderDur;
+  stats->gpuRenderGeoDur = rendStats->passGeometry.dur;
 
   const f64 timeRef = (f64)stats->frameDur;
   debug_avg(&stats->rendWaitFrac, math_clamp_f64(stats->rendWaitDur / timeRef, 0, 1));
@@ -450,6 +457,7 @@ static void debug_stats_update(
   debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
   debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
   debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
+  debug_avg(&stats->gpuRenderGeoFrac, math_clamp_f64(stats->gpuRenderGeoDur / timeRef, 0, 1));
 }
 
 static void
