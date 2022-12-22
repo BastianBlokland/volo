@@ -13,7 +13,8 @@ MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
     RvkImageCapability_Sampled;
 // clang-format on
 
-static bool rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
+MAYBE_UNUSED static bool
+rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
     return true;
