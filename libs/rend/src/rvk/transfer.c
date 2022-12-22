@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -41,7 +42,7 @@ struct sRvkTransferer {
 };
 
 static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
-  VkCommandPoolCreateInfo createInfo = {
+  const VkCommandPoolCreateInfo createInfo = {
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .queueFamilyIndex = queueIndex,
       .flags =
@@ -69,7 +70,7 @@ static bool rvk_fence_signaled(RvkDevice* dev, VkFence fence) {
 }
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
-  VkFenceCreateInfo fenceInfo = {
+  const VkFenceCreateInfo fenceInfo = {
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
@@ -84,10 +85,11 @@ static bool rvk_transfer_fits(const RvkTransferBuffer* buffer, const u64 size, c
 
 static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans, const u64 size) {
   RvkTransferBuffer* buffer = dynarray_push_t(&trans->buffers, RvkTransferBuffer);
-  *buffer                   = (RvkTransferBuffer){
-                        .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
-                        .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
-                        .vkFinishedFence = rvk_fence_create(trans->dev, true),
+
+  *buffer = (RvkTransferBuffer){
+      .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
+      .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
+      .vkFinishedFence = rvk_fence_create(trans->dev, true),
   };
 
 #if defined(VOLO_RVK_TRANSFER_LOGGING)
@@ -135,7 +137,7 @@ static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) 
 
   rvk_call(vkResetFences, trans->dev->vkDev, 1, &buffer->vkFinishedFence);
 
-  VkCommandBufferBeginInfo beginInfo = {
+  const VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
@@ -155,24 +157,33 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
   buffer->offset = 0;
   vkEndCommandBuffer(buffer->vkCmdBuffer);
 
-  const VkSubmitInfo submitInfo = {
-      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .commandBufferCount = 1,
-      .pCommandBuffers    = &buffer->vkCmdBuffer,
+  const VkSubmitInfo submitInfos[] = {
+      {
+          .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+          .commandBufferCount = 1,
+          .pCommandBuffers    = &buffer->vkCmdBuffer,
+      },
   };
   thread_mutex_lock(trans->dev->queueSubmitMutex);
-  rvk_call(vkQueueSubmit, trans->dev->vkTransferQueue, 1, &submitInfo, buffer->vkFinishedFence);
+  rvk_call(
+      vkQueueSubmit,
+      trans->dev->vkTransferQueue,
+      array_elems(submitInfos),
+      submitInfos,
+      buffer->vkFinishedFence);
   thread_mutex_unlock(trans->dev->queueSubmitMutex);
 }
 
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
   RvkTransferer* transferer = alloc_alloc_t(g_alloc_heap, RvkTransferer);
-  *transferer               = (RvkTransferer){
-                    .dev       = dev,
-                    .mutex     = thread_mutex_create(g_alloc_heap),
-                    .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
-                    .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
+
+  *transferer = (RvkTransferer){
+      .dev       = dev,
+      .mutex     = thread_mutex_create(g_alloc_heap),
+      .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
+      .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
+
   rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPool, "transferer");
   return transferer;
 }
@@ -205,12 +216,19 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  const VkBufferCopy copyRegion = {
-      .srcOffset = buffer->offset,
-      .dstOffset = 0,
-      .size      = data.size,
+  const VkBufferCopy copyRegions[] = {
+      {
+          .srcOffset = buffer->offset,
+          .dstOffset = 0,
+          .size      = data.size,
+      },
   };
-  vkCmdCopyBuffer(buffer->vkCmdBuffer, buffer->hostBuffer.vkBuffer, dest->vkBuffer, 1, &copyRegion);
+  vkCmdCopyBuffer(
+      buffer->vkCmdBuffer,
+      buffer->hostBuffer.vkBuffer,
+      dest->vkBuffer,
+      array_elems(copyRegions),
+      copyRegions);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
@@ -246,21 +264,23 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
 
   rvk_image_transition(dest, buffer->vkCmdBuffer, RvkImagePhase_TransferDest);
 
-  const VkBufferImageCopy region = {
-      .bufferOffset                = buffer->offset,
-      .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .imageSubresource.layerCount = dest->layers,
-      .imageExtent.width           = dest->size.width,
-      .imageExtent.height          = dest->size.height,
-      .imageExtent.depth           = 1,
+  const VkBufferImageCopy regions[] = {
+      {
+          .bufferOffset                = buffer->offset,
+          .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+          .imageSubresource.layerCount = dest->layers,
+          .imageExtent.width           = dest->size.width,
+          .imageExtent.height          = dest->size.height,
+          .imageExtent.depth           = 1,
+      },
   };
   vkCmdCopyBufferToImage(
       buffer->vkCmdBuffer,
       buffer->hostBuffer.vkBuffer,
       dest->vkImage,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      1,
-      &region);
+      array_elems(regions),
+      regions);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
