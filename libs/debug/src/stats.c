@@ -61,8 +61,8 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
   TimeDuration gpuRenderDur, gpuRenderGeoDur;
 
-  f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
-  f64 gpuRenderFrac, gpuRenderGeoFrac;
+  f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
+  f32 gpuRenderFrac, gpuRenderGeoFrac;
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -118,13 +118,17 @@ static f32 debug_plot_max(const DebugStatPlot* plot) {
   return max;
 }
 
-static void debug_avg(f64* value, const f64 new) {
+static void debug_avg_f32(f32* value, const f32 new) {
+  *value += (new - *value) * g_statsInvAverageWindow;
+}
+
+static void debug_avg_f64(f64* value, const f64 new) {
   *value += (new - *value) * g_statsInvAverageWindow;
 }
 
 static void debug_avg_dur(TimeDuration* value, const TimeDuration new) {
   f64 floatVal = (f64)*value;
-  debug_avg(&floatVal, (f64) new);
+  debug_avg_f64(&floatVal, (f64) new);
   *value = (TimeDuration)floatVal;
 }
 
@@ -203,7 +207,7 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
 }
 
 typedef struct {
-  f64     frac;
+  f32     frac;
   UiColor color;
 } StatGraphSection;
 
@@ -215,15 +219,15 @@ static void stats_draw_graph(
   ui_style_push(canvas);
   ui_style_outline(canvas, 0);
 
-  f64 t = 0;
+  f32 t = 0;
   for (u32 i = 0; i != sectionCount; ++i) {
-    const f64 frac = math_min(sections[i].frac, 1.0 - t);
+    const f32 frac = math_min(sections[i].frac, 1.0f - t);
     if (frac <= 0.0) {
       break; // TODO: This can happen as values are averaged independently.
     }
     ui_layout_push(canvas);
-    ui_layout_move(canvas, ui_vector((f32)t, 0), UiBase_Current, Ui_X);
-    ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector((f32)frac, 0), UiBase_Current, Ui_X);
+    ui_layout_move(canvas, ui_vector(t, 0), UiBase_Current, Ui_X);
+    ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(frac, 0), UiBase_Current, Ui_X);
     ui_style_color(canvas, sections[i].color);
     ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
     ui_layout_pop(canvas);
@@ -251,7 +255,7 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 busyFrac = 1.0f - stats->rendWaitFrac - stats->presAcqFrac - stats->presEnqFrac -
+  const f32 busyFrac = 1.0f - stats->rendWaitFrac - stats->presAcqFrac - stats->presEnqFrac -
                        stats->presWaitFrac - stats->limiterFrac;
 
   const StatGraphSection sections[] = {
@@ -291,8 +295,8 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 idleFrac        = 1.0f - stats->gpuRenderFrac;
-  const f64 renderOtherFrac = stats->gpuRenderFrac - stats->gpuRenderGeoFrac;
+  const f32 idleFrac        = 1.0f - stats->gpuRenderFrac;
+  const f32 renderOtherFrac = stats->gpuRenderFrac - stats->gpuRenderGeoFrac;
 
   const StatGraphSection sections[] = {
       {stats->gpuRenderGeoFrac, ui_color(0, 128, 128, 178)},
@@ -450,14 +454,14 @@ static void debug_stats_update(
   stats->gpuRenderDur    = rendStats->renderDur;
   stats->gpuRenderGeoDur = rendStats->passGeometry.dur;
 
-  const f64 timeRef = (f64)stats->frameDur;
-  debug_avg(&stats->rendWaitFrac, math_clamp_f64(stats->rendWaitDur / timeRef, 0, 1));
-  debug_avg(&stats->presAcqFrac, math_clamp_f64(stats->presentAcqDur / timeRef, 0, 1));
-  debug_avg(&stats->presEnqFrac, math_clamp_f64(stats->presentEnqDur / timeRef, 0, 1));
-  debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
-  debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
-  debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
-  debug_avg(&stats->gpuRenderGeoFrac, math_clamp_f64(stats->gpuRenderGeoDur / timeRef, 0, 1));
+  const f32 timeRef = (f32)stats->frameDur;
+  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(stats->presentAcqDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(stats->presentEnqDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(stats->presentWaitDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(stats->limiterDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->gpuRenderFrac, math_clamp_f32(stats->gpuRenderDur / timeRef, 0, 1));
+  debug_avg_f32(&stats->gpuRenderGeoFrac, math_clamp_f32(stats->gpuRenderGeoDur / timeRef, 0, 1));
 }
 
 static void
