@@ -285,6 +285,15 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
       array_elems(copyRegions),
       copyRegions);
 
+  if (rvk_has_separate_transfer_queue(trans)) {
+    rvk_buffer_transfer_ownership(
+        dest,
+        buffer->vkCmdBufferTransfer,
+        buffer->vkCmdBufferGraphics,
+        trans->dev->transferQueueIndex,
+        trans->dev->graphicsQueueIndex);
+  }
+
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
 
