@@ -40,11 +40,11 @@ Shading light_shade_blingphong(const f32v3 normal, const f32v3 viewDir) {
   const f32v3 sunDir = u_draw.sunDirPadding.rgb;
 
   Shading res;
-  res.lambertian = max(dot(normal, sunDir), 0.0);
+  res.lambertian = max(dot(normal, -sunDir), 0.0);
   res.ambient    = u_draw.ambientIntensity;
   res.specular   = 0.0;
   if (res.lambertian > 0.0) {
-    const f32v3 halfDir   = normalize(sunDir - viewDir);
+    const f32v3 halfDir   = normalize(viewDir - sunDir);
     const f32   specAngle = max(dot(normal, halfDir), 0.0);
     res.specular          = pow(specAngle, u_draw.sunLightShininess.a);
   }
