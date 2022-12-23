@@ -96,18 +96,18 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-  const VkCommandBuffer commandBuffers[]   = {rend->vkDrawBuffer};
-  const VkSemaphore     waitSemaphores[]   = {rend->semaphoreBegin};
-  const VkSemaphore     signalSemaphores[] = {rend->semaphoreDone};
+  const VkCommandBuffer      commandBuffers[]   = {rend->vkDrawBuffer};
+  const VkSemaphore          waitSemaphores[]   = {rend->semaphoreBegin};
+  const VkPipelineStageFlags waitStages[]       = {VK_PIPELINE_STAGE_TRANSFER_BIT};
+  const VkSemaphore          signalSemaphores[] = {rend->semaphoreDone};
 
   const VkSubmitInfo submitInfos[] = {
       {
           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
           .waitSemaphoreCount   = array_elems(waitSemaphores),
           .pWaitSemaphores      = waitSemaphores,
-          .pWaitDstStageMask    = &waitStage,
+          .pWaitDstStageMask    = waitStages,
           .commandBufferCount   = array_elems(commandBuffers),
           .pCommandBuffers      = commandBuffers,
           .signalSemaphoreCount = array_elems(signalSemaphores),
