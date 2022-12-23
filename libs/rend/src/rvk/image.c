@@ -198,6 +198,8 @@ static VkImageViewType rvk_image_viewtype(const RvkImageType type, const u8 laye
 static void rvk_image_barrier(
     VkCommandBuffer            vkCmdBuf,
     const RvkImage*            image,
+    const u32                  srcQueueFamIdx,
+    const u32                  dstQueueFamIdx,
     const VkImageLayout        oldLayout,
     const VkImageLayout        newLayout,
     const VkAccessFlags        srcAccess,
@@ -211,8 +213,8 @@ static void rvk_image_barrier(
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       .oldLayout                       = oldLayout,
       .newLayout                       = newLayout,
-      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .srcQueueFamilyIndex             = srcQueueFamIdx,
+      .dstQueueFamilyIndex             = dstQueueFamIdx,
       .image                           = image->vkImage,
       .subresourceRange.aspectMask     = rvk_image_vkaspect(image->type),
       .subresourceRange.baseMipLevel   = baseMip,
@@ -235,6 +237,8 @@ static void rvk_image_barrier_from_to(
   rvk_image_barrier(
       vkCmdBuf,
       image,
+      VK_QUEUE_FAMILY_IGNORED,
+      VK_QUEUE_FAMILY_IGNORED,
       rvk_image_vklayout(from),
       rvk_image_vklayout(to),
       rvk_image_vkaccess_write(from),
@@ -616,4 +620,45 @@ void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer 
       &clearColor,
       array_elems(ranges),
       ranges);
+}
+
+void rvk_image_transfer_ownership(
+    const RvkImage* img,
+    VkCommandBuffer srcCmdBuf,
+    VkCommandBuffer dstCmdBuf,
+    const u32       srcQueueFamIdx,
+    const u32       dstQueueFamIdx) {
+  if (srcQueueFamIdx == dstQueueFamIdx) {
+    return;
+  }
+
+  // Release the image on the source queue.
+  rvk_image_barrier(
+      srcCmdBuf,
+      img,
+      srcQueueFamIdx,
+      dstQueueFamIdx,
+      rvk_image_vklayout(img->phase),
+      rvk_image_vklayout(img->phase),
+      rvk_image_vkaccess_write(img->phase),
+      0,
+      rvk_image_vkpipelinestage(img->phase),
+      rvk_image_vkpipelinestage(img->phase),
+      0,
+      img->mipLevels);
+
+  // Acquire the image on the destination queue.
+  rvk_image_barrier(
+      dstCmdBuf,
+      img,
+      srcQueueFamIdx,
+      dstQueueFamIdx,
+      rvk_image_vklayout(img->phase),
+      rvk_image_vklayout(img->phase),
+      0,
+      rvk_image_vkaccess_read(img->phase) | rvk_image_vkaccess_write(img->phase),
+      rvk_image_vkpipelinestage(img->phase),
+      rvk_image_vkpipelinestage(img->phase),
+      0,
+      img->mipLevels);
 }

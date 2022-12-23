@@ -362,6 +362,16 @@ ecs_system_define(RendPainterCreateSys) {
 }
 
 ecs_system_define(RendPainterDrawBatchesSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  /**
+   * Dependency on the global 'RendPlatformComp' to ensure ordering between this and the
+   * platform update system.
+   */
+  if (!globalItr) {
+    return;
+  }
+
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
   EcsView* graphicView = ecs_world_view_t(world, GraphicView);
@@ -401,6 +411,7 @@ ecs_module_init(rend_painter_module) {
 
   ecs_register_system(
       RendPainterDrawBatchesSys,
+      ecs_view_id(GlobalView),
       ecs_view_id(PainterUpdateView),
       ecs_view_id(DrawView),
       ecs_view_id(GraphicView));

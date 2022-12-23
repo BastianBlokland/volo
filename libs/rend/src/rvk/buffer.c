@@ -34,9 +34,32 @@ static VkBufferUsageFlags rvk_buffer_usage_flags(const RvkBufferType type) {
   diag_crash_msg("Unexpected RvkBufferType");
 }
 
+static void rvk_buffer_barrier(
+    VkCommandBuffer            vkCmdBuf,
+    const RvkBuffer*           buffer,
+    const u32                  srcQueueFamIdx,
+    const u32                  dstQueueFamIdx,
+    const VkAccessFlags        srcAccess,
+    const VkAccessFlags        dstAccess,
+    const VkPipelineStageFlags srcStageFlags,
+    const VkPipelineStageFlags dstStageFlags) {
+
+  const VkBufferMemoryBarrier barrier = {
+      .sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+      .srcAccessMask       = srcAccess,
+      .dstAccessMask       = dstAccess,
+      .srcQueueFamilyIndex = srcQueueFamIdx,
+      .dstQueueFamilyIndex = dstQueueFamIdx,
+      .buffer              = buffer->vkBuffer,
+      .offset              = 0,
+      .size                = buffer->size,
+  };
+  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 1, &barrier, 0, null);
+}
+
 RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType type) {
   const VkBufferUsageFlags usageFlags = rvk_buffer_usage_flags(type);
-  VkBufferCreateInfo       bufferInfo = {
+  const VkBufferCreateInfo bufferInfo = {
       .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       .size        = size,
       .usage       = usageFlags,
@@ -84,4 +107,37 @@ String rvk_buffer_type_str(const RvkBufferType type) {
   };
   ASSERT(array_elems(g_names) == RvkBufferType_Count, "Incorrect number of buffer-type names");
   return g_names[type];
+}
+
+void rvk_buffer_transfer_ownership(
+    const RvkBuffer* buffer,
+    VkCommandBuffer  srcCmdBuf,
+    VkCommandBuffer  dstCmdBuf,
+    u32              srcQueueFamIdx,
+    u32              dstQueueFamIdx) {
+  if (srcQueueFamIdx == dstQueueFamIdx) {
+    return;
+  }
+
+  // Release the buffer on the source queue.
+  rvk_buffer_barrier(
+      srcCmdBuf,
+      buffer,
+      srcQueueFamIdx,
+      dstQueueFamIdx,
+      VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+      0,
+      VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+  // Acquire the buffer on the destination queue.
+  rvk_buffer_barrier(
+      dstCmdBuf,
+      buffer,
+      srcQueueFamIdx,
+      dstQueueFamIdx,
+      0,
+      VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+      VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 }

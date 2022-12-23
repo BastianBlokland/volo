@@ -70,3 +70,10 @@ void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_clear(const RvkImage*, GeoColor, VkCommandBuffer);
+
+void rvk_image_transfer_ownership(
+    const RvkImage*,
+    VkCommandBuffer srcCmdBuf,
+    VkCommandBuffer dstCmdBuf,
+    u32             srcQueueFamIdx,
+    u32             dstQueueFamIdx);

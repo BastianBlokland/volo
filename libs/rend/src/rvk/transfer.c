@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -26,8 +27,9 @@ typedef enum {
 
 typedef struct {
   RvkBuffer        hostBuffer;
-  VkCommandBuffer  vkCmdBuffer;
-  VkFence          vkFinishedFence;
+  VkCommandBuffer  vkCmdBufferTransfer, vkCmdBufferGraphics;
+  VkSemaphore      releaseSemaphore; // Used for the queue ownership transfer.
+  VkFence          finishedFence;
   u64              offset;
   RvkTransferState state;
   u32              serial;
@@ -36,12 +38,12 @@ typedef struct {
 struct sRvkTransferer {
   RvkDevice*    dev;
   ThreadMutex   mutex;
-  VkCommandPool vkCmdPool;
+  VkCommandPool vkCmdPoolTransfer, vkCmdPoolGraphics;
   DynArray      buffers; // RvkTransferBuffer[]
 };
 
 static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
-  VkCommandPoolCreateInfo createInfo = {
+  const VkCommandPoolCreateInfo createInfo = {
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .queueFamilyIndex = queueIndex,
       .flags =
@@ -69,7 +71,7 @@ static bool rvk_fence_signaled(RvkDevice* dev, VkFence fence) {
 }
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
-  VkFenceCreateInfo fenceInfo = {
+  const VkFenceCreateInfo fenceInfo = {
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
@@ -78,16 +80,30 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
   return result;
 }
 
+static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
+  VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  VkSemaphore           result;
+  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+static bool rvk_has_separate_transfer_queue(RvkTransferer* trans) {
+  return trans->dev->transferQueueIndex != trans->dev->graphicsQueueIndex;
+}
+
 static bool rvk_transfer_fits(const RvkTransferBuffer* buffer, const u64 size, const u64 align) {
   return (bits_align(buffer->offset, align) + size) <= buffer->hostBuffer.size;
 }
 
 static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans, const u64 size) {
   RvkTransferBuffer* buffer = dynarray_push_t(&trans->buffers, RvkTransferBuffer);
-  *buffer                   = (RvkTransferBuffer){
-                        .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
-                        .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
-                        .vkFinishedFence = rvk_fence_create(trans->dev, true),
+
+  *buffer = (RvkTransferBuffer){
+      .hostBuffer          = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
+      .vkCmdBufferTransfer = rvk_commandbuffer_create(trans->dev, trans->vkCmdPoolTransfer),
+      .vkCmdBufferGraphics = rvk_commandbuffer_create(trans->dev, trans->vkCmdPoolGraphics),
+      .releaseSemaphore    = rvk_semaphore_create(trans->dev),
+      .finishedFence       = rvk_fence_create(trans->dev, true),
   };
 
 #if defined(VOLO_RVK_TRANSFER_LOGGING)
@@ -127,53 +143,99 @@ static RvkTransferId rvk_transfer_id(RvkTransferer* trans, RvkTransferBuffer* bu
 
 static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) {
   diag_assert(buffer->state == RvkTransferState_Idle);
-  diag_assert(rvk_fence_signaled(trans->dev, buffer->vkFinishedFence));
+  diag_assert(rvk_fence_signaled(trans->dev, buffer->finishedFence));
 
   buffer->state  = RvkTransferState_Rec;
   buffer->offset = 0;
   ++buffer->serial;
 
-  rvk_call(vkResetFences, trans->dev->vkDev, 1, &buffer->vkFinishedFence);
+  rvk_call(vkResetFences, trans->dev->vkDev, 1, &buffer->finishedFence);
 
-  VkCommandBufferBeginInfo beginInfo = {
+  const VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
-  rvk_call(vkBeginCommandBuffer, buffer->vkCmdBuffer, &beginInfo);
+  rvk_call(vkBeginCommandBuffer, buffer->vkCmdBufferTransfer, &beginInfo);
+  rvk_debug_label_begin(
+      trans->dev->debug, buffer->vkCmdBufferTransfer, geo_color_olive, "transfer_src");
 
-  rvk_debug_label_begin(trans->dev->debug, buffer->vkCmdBuffer, geo_color_olive, "transfer");
+  if (rvk_has_separate_transfer_queue(trans)) {
+    rvk_call(vkBeginCommandBuffer, buffer->vkCmdBufferGraphics, &beginInfo);
+    rvk_debug_label_begin(
+        trans->dev->debug, buffer->vkCmdBufferGraphics, geo_color_olive, "transfer_dst");
+  }
 }
 
 static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer) {
-  (void)trans;
-
   diag_assert(buffer->state == RvkTransferState_Rec);
+  const bool hasSeparateTransferQueue = rvk_has_separate_transfer_queue(trans);
 
-  rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBuffer);
+  rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferTransfer);
+  vkEndCommandBuffer(buffer->vkCmdBufferTransfer);
+
+  if (hasSeparateTransferQueue) {
+    rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferGraphics);
+    vkEndCommandBuffer(buffer->vkCmdBufferGraphics);
+  }
 
   buffer->state  = RvkTransferState_Busy;
   buffer->offset = 0;
-  vkEndCommandBuffer(buffer->vkCmdBuffer);
 
-  const VkSubmitInfo submitInfo = {
-      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .commandBufferCount = 1,
-      .pCommandBuffers    = &buffer->vkCmdBuffer,
+  const VkSemaphore          releaseSemaphores[] = {buffer->releaseSemaphore};
+  const VkPipelineStageFlags releaseWaitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+
+  const VkSubmitInfo transferSubmitInfos[] = {
+      {
+          .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+          .commandBufferCount   = 1,
+          .pCommandBuffers      = &buffer->vkCmdBufferTransfer,
+          .signalSemaphoreCount = hasSeparateTransferQueue ? array_elems(releaseSemaphores) : 0,
+          .pSignalSemaphores    = hasSeparateTransferQueue ? releaseSemaphores : null,
+      },
   };
+
   thread_mutex_lock(trans->dev->queueSubmitMutex);
-  rvk_call(vkQueueSubmit, trans->dev->vkTransferQueue, 1, &submitInfo, buffer->vkFinishedFence);
+  rvk_call(
+      vkQueueSubmit,
+      trans->dev->vkTransferQueue,
+      array_elems(transferSubmitInfos),
+      transferSubmitInfos,
+      hasSeparateTransferQueue ? null : buffer->finishedFence);
+
+  if (hasSeparateTransferQueue) {
+    const VkSubmitInfo graphicsSubmitInfos[] = {
+        {
+            .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers    = &buffer->vkCmdBufferGraphics,
+            .waitSemaphoreCount = array_elems(releaseSemaphores),
+            .pWaitSemaphores    = releaseSemaphores,
+            .pWaitDstStageMask  = releaseWaitStages,
+        },
+    };
+    rvk_call(
+        vkQueueSubmit,
+        trans->dev->vkGraphicsQueue,
+        array_elems(graphicsSubmitInfos),
+        graphicsSubmitInfos,
+        buffer->finishedFence);
+  }
+
   thread_mutex_unlock(trans->dev->queueSubmitMutex);
 }
 
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
   RvkTransferer* transferer = alloc_alloc_t(g_alloc_heap, RvkTransferer);
-  *transferer               = (RvkTransferer){
-                    .dev       = dev,
-                    .mutex     = thread_mutex_create(g_alloc_heap),
-                    .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
-                    .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
+
+  *transferer = (RvkTransferer){
+      .dev               = dev,
+      .mutex             = thread_mutex_create(g_alloc_heap),
+      .vkCmdPoolTransfer = rvk_commandpool_create(dev, dev->transferQueueIndex),
+      .vkCmdPoolGraphics = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
+      .buffers           = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
-  rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPool, "transferer");
+
+  rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPoolTransfer, "transferer");
   return transferer;
 }
 
@@ -181,10 +243,14 @@ void rvk_transferer_destroy(RvkTransferer* transferer) {
 
   dynarray_for_t(&transferer->buffers, RvkTransferBuffer, buffer) {
     rvk_buffer_destroy(&buffer->hostBuffer, transferer->dev);
-    vkDestroyFence(transferer->dev->vkDev, buffer->vkFinishedFence, &transferer->dev->vkAlloc);
+    vkDestroySemaphore(transferer->dev->vkDev, buffer->releaseSemaphore, &transferer->dev->vkAlloc);
+    vkDestroyFence(transferer->dev->vkDev, buffer->finishedFence, &transferer->dev->vkAlloc);
   }
 
-  vkDestroyCommandPool(transferer->dev->vkDev, transferer->vkCmdPool, &transferer->dev->vkAlloc);
+  vkDestroyCommandPool(
+      transferer->dev->vkDev, transferer->vkCmdPoolTransfer, &transferer->dev->vkAlloc);
+  vkDestroyCommandPool(
+      transferer->dev->vkDev, transferer->vkCmdPoolGraphics, &transferer->dev->vkAlloc);
   thread_mutex_destroy(transferer->mutex);
   dynarray_destroy(&transferer->buffers);
 
@@ -205,12 +271,28 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  const VkBufferCopy copyRegion = {
-      .srcOffset = buffer->offset,
-      .dstOffset = 0,
-      .size      = data.size,
+  const VkBufferCopy copyRegions[] = {
+      {
+          .srcOffset = buffer->offset,
+          .dstOffset = 0,
+          .size      = data.size,
+      },
   };
-  vkCmdCopyBuffer(buffer->vkCmdBuffer, buffer->hostBuffer.vkBuffer, dest->vkBuffer, 1, &copyRegion);
+  vkCmdCopyBuffer(
+      buffer->vkCmdBufferTransfer,
+      buffer->hostBuffer.vkBuffer,
+      dest->vkBuffer,
+      array_elems(copyRegions),
+      copyRegions);
+
+  if (rvk_has_separate_transfer_queue(trans)) {
+    rvk_buffer_transfer_ownership(
+        dest,
+        buffer->vkCmdBufferTransfer,
+        buffer->vkCmdBufferGraphics,
+        trans->dev->transferQueueIndex,
+        trans->dev->graphicsQueueIndex);
+  }
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
@@ -244,23 +326,34 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  rvk_image_transition(dest, buffer->vkCmdBuffer, RvkImagePhase_TransferDest);
+  rvk_image_transition(dest, buffer->vkCmdBufferTransfer, RvkImagePhase_TransferDest);
 
-  const VkBufferImageCopy region = {
-      .bufferOffset                = buffer->offset,
-      .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .imageSubresource.layerCount = dest->layers,
-      .imageExtent.width           = dest->size.width,
-      .imageExtent.height          = dest->size.height,
-      .imageExtent.depth           = 1,
+  const VkBufferImageCopy regions[] = {
+      {
+          .bufferOffset                = buffer->offset,
+          .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+          .imageSubresource.layerCount = dest->layers,
+          .imageExtent.width           = dest->size.width,
+          .imageExtent.height          = dest->size.height,
+          .imageExtent.depth           = 1,
+      },
   };
   vkCmdCopyBufferToImage(
-      buffer->vkCmdBuffer,
+      buffer->vkCmdBufferTransfer,
       buffer->hostBuffer.vkBuffer,
       dest->vkImage,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      1,
-      &region);
+      array_elems(regions),
+      regions);
+
+  if (rvk_has_separate_transfer_queue(trans)) {
+    rvk_image_transfer_ownership(
+        dest,
+        buffer->vkCmdBufferTransfer,
+        buffer->vkCmdBufferGraphics,
+        trans->dev->transferQueueIndex,
+        trans->dev->graphicsQueueIndex);
+  }
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
@@ -293,7 +386,7 @@ RvkTransferStatus rvk_transfer_poll(RvkTransferer* trans, const RvkTransferId id
     result = RvkTransferStatus_Finished;
     goto Done;
   }
-  if (rvk_fence_signaled(trans->dev, buffer->vkFinishedFence)) {
+  if (rvk_fence_signaled(trans->dev, buffer->finishedFence)) {
     result = RvkTransferStatus_Finished;
     goto Done;
   }
@@ -309,7 +402,7 @@ void rvk_transfer_flush(RvkTransferer* trans) {
     case RvkTransferState_Idle:
       break;
     case RvkTransferState_Busy:
-      if (rvk_fence_signaled(trans->dev, buffer->vkFinishedFence)) {
+      if (rvk_fence_signaled(trans->dev, buffer->finishedFence)) {
         buffer->state = RvkTransferState_Idle;
 
 #if defined(VOLO_RVK_TRANSFER_LOGGING)
