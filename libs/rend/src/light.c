@@ -27,9 +27,9 @@ ecs_module_init(rend_light_module) {
 }
 
 void rend_light_global_to_default(RendLightGlobalComp* lightGlobal) {
-  lightGlobal->sunLight         = geo_color(1.0f, 0.9f, 0.7f, 0);
+  lightGlobal->sunLight         = geo_color(1.0f, 0.9f, 0.7f, 1.0f);
   lightGlobal->sunShininess     = 16;
-  lightGlobal->sunRotation      = geo_quat_from_euler(geo_vector(-65, 15, 0));
+  lightGlobal->sunRotation      = geo_quat_from_euler(geo_vector(65, 15, 0));
   lightGlobal->ambientIntensity = 0.1f;
   lightGlobal->reflectFrac      = 0.25f;
 }
