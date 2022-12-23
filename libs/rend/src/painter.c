@@ -139,9 +139,9 @@ static void painter_push_shade(
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
     ShadeBaseData* data        = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->sunLightShininess[0] = lightGlobal->sunLight.r;
-    data->sunLightShininess[1] = lightGlobal->sunLight.g;
-    data->sunLightShininess[2] = lightGlobal->sunLight.b;
+    data->sunLightShininess[0] = lightGlobal->sunLight.r * lightGlobal->sunLight.a;
+    data->sunLightShininess[1] = lightGlobal->sunLight.g * lightGlobal->sunLight.a;
+    data->sunLightShininess[2] = lightGlobal->sunLight.b * lightGlobal->sunLight.a;
     data->sunLightShininess[3] = lightGlobal->sunShininess;
     data->sunDir               = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
     data->ambientIntensity     = lightGlobal->ambientIntensity;
