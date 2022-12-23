@@ -3,6 +3,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_register.h"
 #include "rend_settings.h"
 
 #include "platform_internal.h"
@@ -77,6 +78,11 @@ ecs_module_init(rend_platform_module) {
 
   ecs_register_system(
       RendPlatformUpdateSys, ecs_view_id(GlobalPlatformView), ecs_view_id(GlobalSettingsView));
+
+  /**
+   * Update the platform after all draws have been submitted.
+   */
+  ecs_order(RendPlatformUpdateSys, RendOrder_DrawExecute + 1);
 }
 
 void rend_platform_teardown(EcsWorld* world) {
