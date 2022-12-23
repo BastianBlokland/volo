@@ -126,26 +126,24 @@ static void painter_push_shade_debug(
 
   RvkRepository* repo = rvk_canvas_repository(painter->canvas);
   RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
-  if (!graphic || !rvk_pass_prepare(pass, graphic)) {
-    return; // Graphic not ready to be drawn.
+  if (graphic && rvk_pass_prepare(pass, graphic)) {
+
+    typedef struct {
+      ALIGNAS(16)
+      u32 mode;
+    } ShadeDebugData;
+
+    ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
+    *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
+
+    painter_push(
+        painter,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(ShadeDebugData)),
+        });
   }
-
-  typedef struct {
-    ALIGNAS(16)
-    u32 mode;
-  } ShadeDebugData;
-
-  ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
-  *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
-
-  painter_push(
-      painter,
-      (RvkPassDraw){
-          .graphic        = graphic,
-          .instCount      = 1,
-          .instData       = mem_create(data, sizeof(ShadeDebugData)),
-          .instDataStride = sizeof(ShadeDebugData),
-      });
 }
 
 static void painter_push_forward(
