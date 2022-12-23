@@ -1,5 +1,7 @@
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_gizmo.h"
+#include "debug_shape.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
@@ -13,12 +15,23 @@ ecs_comp_define(DebugLightPanelComp) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_write(DebugGizmoComp);
+  ecs_access_write(DebugShapeComp);
   ecs_access_write(RendLightGlobalComp);
 }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugLightPanelComp);
   ecs_access_write(UiCanvasComp);
+}
+
+static GeoColor light_resolve(const GeoColor light) {
+  return (GeoColor){
+      .r = light.r * light.a,
+      .g = light.g * light.a,
+      .b = light.b * light.a,
+      .a = 1.0f,
+  };
 }
 
 static bool light_panel_draw_editor_f32(UiCanvasComp* canvas, f32* val) {
@@ -57,7 +70,7 @@ static void light_panel_draw_sun(
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, table);
-  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightGlobal->sunLight, 3);
+  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightGlobal->sunLight, 4);
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun shininess"));
@@ -105,21 +118,42 @@ static void light_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
+static void light_sun_gizmo_draw(
+    DebugGizmoComp* gizmo, DebugShapeComp* shape, RendLightGlobalComp* lightGlobal) {
+
+  const GeoVector pos = {.y = 10.0f};
+  const GeoVector dir = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
+
+  const DebugGizmoId gizmoId = string_hash_lit("SunRotation");
+  debug_gizmo_rotation(gizmo, gizmoId, pos, &lightGlobal->sunRotation);
+
+  debug_arrow(
+      shape,
+      pos,
+      geo_vector_add(pos, geo_vector_mul(dir, 2.0f)),
+      0.25f,
+      light_resolve(lightGlobal->sunLight));
+}
+
 ecs_system_define(DebugLightUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+  DebugGizmoComp*      gizmo       = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugShapeComp*      shape       = ecs_view_write_t(globalItr, DebugShapeComp);
   RendLightGlobalComp* lightGlobal = ecs_view_write_t(globalItr, RendLightGlobalComp);
 
-  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+  bool     anyPanelOpen = false;
+  EcsView* panelView    = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLightPanelComp* panelComp = ecs_view_write_t(itr, DebugLightPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     light_panel_draw(canvas, panelComp, lightGlobal);
+    anyPanelOpen = true;
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -127,6 +161,10 @@ ecs_system_define(DebugLightUpdateSys) {
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
       ui_canvas_to_front(canvas);
     }
+  }
+
+  if (anyPanelOpen) {
+    light_sun_gizmo_draw(gizmo, shape, lightGlobal);
   }
 }
 
