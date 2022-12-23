@@ -6,17 +6,18 @@
 #include "tags.glsl"
 #include "texture.glsl"
 
-const f32v3 c_sunDir           = normalize(f32v3(0.2, 1.0, -0.3));
-const f32v3 c_sunColor         = f32v3(1.0, 0.9, 0.7);
-const f32   c_sunIntensity     = 1.1;
-const f32   c_ambientIntensity = 0.1;
-const f32   c_shininess        = 16;
-const f32   c_reflectFrac      = 0.25;
+struct ShadeBaseData {
+  f32v4 sunLightShininess; // rgb: sunLight, a: sunShininess.
+  f32v3 sunDir;
+  f32   ambientIntensity;
+  f32   reflectFrac;
+};
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
+bind_draw_data(0) readonly uniform Draw { ShadeBaseData u_draw; };
 
 bind_graphic(0) uniform samplerCube u_cubeRefl;
 
@@ -37,13 +38,13 @@ struct Shading {
 
 Shading light_shade_blingphong(const f32v3 normal, const f32v3 viewDir) {
   Shading res;
-  res.lambertian = max(dot(normal, c_sunDir), 0.0) * c_sunIntensity;
-  res.ambient    = c_ambientIntensity;
+  res.lambertian = max(dot(normal, u_draw.sunDir), 0.0);
+  res.ambient    = u_draw.ambientIntensity;
   res.specular   = 0.0;
   if (res.lambertian > 0.0) {
-    const f32v3 halfDir   = normalize(c_sunDir - viewDir);
+    const f32v3 halfDir   = normalize(u_draw.sunDir - viewDir);
     const f32   specAngle = max(dot(normal, halfDir), 0.0);
-    res.specular          = pow(specAngle, c_shininess) * c_sunIntensity;
+    res.specular          = pow(specAngle, u_draw.sunLightShininess.a);
   }
   return res;
 }
@@ -51,12 +52,12 @@ Shading light_shade_blingphong(const f32v3 normal, const f32v3 viewDir) {
 f32v3 color_with_refl(
     const f32v3 color, const f32 smoothness, const f32v3 normal, const f32v3 viewDir) {
   const f32v3 dir = reflect(viewDir, normal);
-  return mix(color, texture_cube(u_cubeRefl, dir).rgb, c_reflectFrac * smoothness);
+  return mix(color, texture_cube(u_cubeRefl, dir).rgb, u_draw.reflectFrac * smoothness);
 }
 
 f32v3 color_with_light(const Shading shading, const f32v3 color, const f32 smoothness) {
-  return (color * shading.ambient) +
-         (color * c_sunColor * (shading.lambertian + shading.specular * smoothness));
+  return (color * shading.ambient) + (color * u_draw.sunLightShininess.rgb *
+                                      (shading.lambertian + shading.specular * smoothness));
 }
 
 void main() {
