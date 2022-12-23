@@ -98,18 +98,29 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 static void rvk_renderer_submit(RvkRenderer* rend) {
   const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-  const VkSubmitInfo submitInfo = {
-      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .waitSemaphoreCount   = 1,
-      .pWaitSemaphores      = &rend->semaphoreBegin,
-      .pWaitDstStageMask    = &waitStage,
-      .commandBufferCount   = 1,
-      .pCommandBuffers      = &rend->vkDrawBuffer,
-      .signalSemaphoreCount = 1,
-      .pSignalSemaphores    = &rend->semaphoreDone,
+  const VkCommandBuffer commandBuffers[]   = {rend->vkDrawBuffer};
+  const VkSemaphore     waitSemaphores[]   = {rend->semaphoreBegin};
+  const VkSemaphore     signalSemaphores[] = {rend->semaphoreDone};
+
+  const VkSubmitInfo submitInfos[] = {
+      {
+          .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+          .waitSemaphoreCount   = array_elems(waitSemaphores),
+          .pWaitSemaphores      = waitSemaphores,
+          .pWaitDstStageMask    = &waitStage,
+          .commandBufferCount   = array_elems(commandBuffers),
+          .pCommandBuffers      = commandBuffers,
+          .signalSemaphoreCount = array_elems(signalSemaphores),
+          .pSignalSemaphores    = signalSemaphores,
+      },
   };
   thread_mutex_lock(rend->dev->queueSubmitMutex);
-  rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
+  rvk_call(
+      vkQueueSubmit,
+      rend->dev->vkGraphicsQueue,
+      array_elems(submitInfos),
+      submitInfos,
+      rend->fenceRenderDone);
   thread_mutex_unlock(rend->dev->queueSubmitMutex);
 }
 
