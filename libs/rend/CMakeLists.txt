@@ -5,6 +5,15 @@
 message(STATUS "> library: rend")
 
 add_library(lib_rend STATIC
+  src/draw.c
+  src/instance.c
+  src/light.c
+  src/limiter.c
+  src/painter.c
+  src/platform.c
+  src/register.c
+  src/reset.c
+  src/resource.c
   src/rvk/buffer.c
   src/rvk/canvas.c
   src/rvk/debug.c
@@ -28,14 +37,6 @@ add_library(lib_rend STATIC
   src/rvk/transfer.c
   src/rvk/uniform.c
   src/rvk/vulkan.c
-  src/draw.c
-  src/instance.c
-  src/limiter.c
-  src/painter.c
-  src/platform.c
-  src/register.c
-  src/reset.c
-  src/resource.c
   src/settings.c
   src/stats.c
   src/terrain.c
