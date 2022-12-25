@@ -7,14 +7,7 @@
       "shaderId": "shaders/shade_base.frag.spv"
     }
   ],
-  "samplers": [
-    {
-      "textureId": "textures/sandbox/skybox.atx",
-      "wrap": "Clamp",
-      "filter": "Linear",
-      "anisotropy": "None"
-    }
-  ],
+  "samplers": [],
   "vertexCount": 3,
   "renderOrder": -100,
   "topology": "Triangles",

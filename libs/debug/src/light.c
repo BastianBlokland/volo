@@ -25,7 +25,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static GeoColor light_resolve(const GeoColor light) {
+static GeoColor radiance_resolve(const GeoColor light) {
   return (GeoColor){
       .r = light.r * light.a,
       .g = light.g * light.a,
@@ -70,12 +70,7 @@ static void light_panel_draw_sun(
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, table);
-  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightGlobal->sunLight, 4);
-
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Sun shininess"));
-  ui_table_next_column(canvas, table);
-  ui_slider(canvas, &lightGlobal->sunShininess, .min = 1, .max = 64);
+  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightGlobal->sunRadiance, 4);
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun rotation"));
@@ -103,12 +98,7 @@ static void light_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &lightGlobal->ambientIntensity);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Reflect"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &lightGlobal->reflectFrac);
+  ui_slider(canvas, &lightGlobal->ambient);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"))) {
@@ -132,7 +122,7 @@ static void light_sun_gizmo_draw(
       pos,
       geo_vector_add(pos, geo_vector_mul(dir, 2.0f)),
       0.25f,
-      light_resolve(lightGlobal->sunLight));
+      radiance_resolve(lightGlobal->sunRadiance));
 }
 
 ecs_system_define(DebugLightUpdateSys) {

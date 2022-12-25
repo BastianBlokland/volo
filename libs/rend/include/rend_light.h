@@ -4,11 +4,9 @@
 #include "geo_quat.h"
 
 ecs_comp_extern_public(RendLightGlobalComp) {
-  GeoColor sunLight;
-  f32      sunShininess;
+  GeoColor sunRadiance;
   GeoQuat  sunRotation;
-  f32      ambientIntensity;
-  f32      reflectFrac;
+  f32      ambient;
 };
 
 void rend_light_global_to_default(RendLightGlobalComp*);

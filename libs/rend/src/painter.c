@@ -128,24 +128,22 @@ static void painter_push_shade(
 
   typedef struct {
     ALIGNAS(16)
-    f32       sunLightShininess[4]; // rgb: sunLight, a: sunShininess.
-    GeoVector sunDir;
-    f32       ambientIntensity;
-    f32       reflectFrac;
+    GeoVector sunRadiance; // xyz: sunRadiance, w: unused.
+    GeoVector sunDir;      // xyz: sunDir, w: unused.
+    f32       ambient;
   } ShadeBaseData;
 
   RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
   RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeBaseGraphic);
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
-    ShadeBaseData* data        = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->sunLightShininess[0] = lightGlobal->sunLight.r * lightGlobal->sunLight.a;
-    data->sunLightShininess[1] = lightGlobal->sunLight.g * lightGlobal->sunLight.a;
-    data->sunLightShininess[2] = lightGlobal->sunLight.b * lightGlobal->sunLight.a;
-    data->sunLightShininess[3] = lightGlobal->sunShininess;
-    data->sunDir               = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
-    data->ambientIntensity     = lightGlobal->ambientIntensity;
-    data->reflectFrac          = lightGlobal->reflectFrac;
+    ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
+    data->sunRadiance.x = lightGlobal->sunRadiance.r * lightGlobal->sunRadiance.a;
+    data->sunRadiance.y = lightGlobal->sunRadiance.g * lightGlobal->sunRadiance.a;
+    data->sunRadiance.z = lightGlobal->sunRadiance.b * lightGlobal->sunRadiance.a;
+    data->sunRadiance.w = 1.0;
+    data->sunDir        = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
+    data->ambient       = lightGlobal->ambient;
 
     painter_push(
         painter,
