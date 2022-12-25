@@ -41,7 +41,7 @@ void main() {
 
   const f32v3 color     = colorRough.rgb;
   const f32   roughness = colorRough.a;
-  const f32v3 normal    = normalTags.xyz;
+  const f32v3 normal    = normal_tex_decode(normalTags.xyz);
   const u32   tags      = tags_tex_decode(normalTags.w);
 
   const f32v3 clipPos     = f32v3(in_texcoord * 2.0 - 1.0, depth);

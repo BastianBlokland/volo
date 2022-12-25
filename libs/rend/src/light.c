@@ -28,8 +28,8 @@ ecs_module_init(rend_light_module) {
 }
 
 void rend_light_global_to_default(RendLightGlobalComp* lightGlobal) {
-  lightGlobal->sunRadiance = geo_color(1.0f, 0.9f, 0.8f, 5.0f);
+  lightGlobal->sunRadiance = geo_color(1.0f, 0.9f, 0.8f, 3.0f);
   lightGlobal->sunRotation =
       geo_quat_from_euler(geo_vector_mul(geo_vector(50, 15, 0), math_deg_to_rad));
-  lightGlobal->ambient = 0.2f;
+  lightGlobal->ambient = 0.1f;
 }

@@ -35,7 +35,7 @@ void main() {
 
   PbrSurface surf;
   surf.color        = colorRough.rgb;
-  surf.normal       = normalTags.xyz;
+  surf.normal       = normal_tex_decode(normalTags.xyz);
   surf.roughness    = colorRough.a;
   surf.metallicness = 0.0; // TODO: Support metals.
 

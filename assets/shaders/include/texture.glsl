@@ -5,6 +5,12 @@
 #include "types.glsl"
 
 /**
+ * Encode a normal (components in the -1 to 1 range) for storing in a texture (0 to 1 range).
+ */
+f32v3 normal_tex_encode(const f32v3 normal) { return normal * 0.5 + 0.5; }
+f32v3 normal_tex_decode(const f32v3 normal) { return normalize(normal * 2.0 - 1.0); }
+
+/**
  * Sample a cubemap.
  */
 f32v4 texture_cube(const samplerCube tex, const f32v3 direction) {
@@ -26,7 +32,7 @@ f32v3 texture_normal(
   const f32v3 normal    = normalize(normalRef);
   const f32v3 bitangent = normalize(cross(tangent, normal) * tangentRef.w);
   const f32m3 rotMatrix = f32m3(tangent, bitangent, normal);
-  return rotMatrix * normalize(texture(normalSampler, texcoord).xyz * 2.0 - 1.0);
+  return rotMatrix * normal_tex_decode(texture(normalSampler, texcoord).xyz);
 }
 
 #endif // INCLUDE_TEXTURE

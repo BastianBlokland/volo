@@ -24,9 +24,10 @@ void main() {
 
   // Output world normal.
   if (s_normalMap) {
-    out_normalTags.xyz = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
+    const f32v3 normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
+    out_normalTags.xyz = normal_tex_encode(normal);
   } else {
-    out_normalTags.xyz = normalize(in_worldNormal);
+    out_normalTags.xyz = normal_tex_encode(in_worldNormal);
   }
 
   // Output tags.
