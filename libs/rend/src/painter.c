@@ -32,7 +32,7 @@ typedef struct {
   GeoMatrix proj, projInv, viewProj, viewProjInv;
   GeoVector camPosition;
   GeoQuat   camRotation;
-  f32       aspectRatio;
+  GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
 } RendPainterGlobalData;
 
 ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
@@ -318,13 +318,15 @@ static bool painter_draw(
     const RendView       view     = rend_view_create(camEntity, origin, &viewProj, filter);
 
     const RendPainterGlobalData globalData = {
-        .proj        = proj,
-        .projInv     = geo_matrix_inverse(&proj),
-        .viewProj    = viewProj,
-        .viewProjInv = geo_matrix_inverse(&viewProj),
-        .camPosition = trans ? trans->position : geo_vector(0),
-        .camRotation = trans ? trans->rotation : geo_quat_ident,
-        .aspectRatio = (f32)resolution.width / (f32)resolution.height,
+        .proj         = proj,
+        .projInv      = geo_matrix_inverse(&proj),
+        .viewProj     = viewProj,
+        .viewProjInv  = geo_matrix_inverse(&viewProj),
+        .camPosition  = trans ? trans->position : geo_vector(0),
+        .camRotation  = trans ? trans->rotation : geo_quat_ident,
+        .resolution.x = (f32)resolution.width,
+        .resolution.y = (f32)resolution.height,
+        .resolution.z = (f32)resolution.width / (f32)resolution.height,
     };
 
     // Geometry pass.
