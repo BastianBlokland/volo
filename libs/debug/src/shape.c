@@ -148,7 +148,7 @@ ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
 ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-static AssetManagerComp* ui_asset_manager(EcsWorld* world) {
+static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
@@ -193,7 +193,7 @@ INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape s
 }
 
 ecs_system_define(DebugShapeRenderSys) {
-  AssetManagerComp* assets = ui_asset_manager(world);
+  AssetManagerComp* assets = debug_asset_manager(world);
   if (!assets) {
     return; // Asset manager hasn't been initialized yet.
   }
