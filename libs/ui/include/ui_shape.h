@@ -15,6 +15,7 @@
   X(0xE412, PhotoCamera)                                                                           \
   X(0xE425, Timer)                                                                                 \
   X(0xE4FC, QueryStats)                                                                            \
+  X(0xE518, Light)                                                                                 \
   X(0xE53B, Layers)                                                                                \
   X(0xE53C, LayersClear)                                                                           \
   X(0xE5CA, Check)                                                                                 \

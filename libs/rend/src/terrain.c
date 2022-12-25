@@ -67,8 +67,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_draw_add_instance_t(draw, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }
@@ -82,7 +82,7 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-ecs_system_define(RendTerrainCreateDraw) {
+ecs_system_define(RendTerrainCreateDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (UNLIKELY(!globalItr)) {
@@ -113,5 +113,5 @@ ecs_module_init(rend_terrain_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(DrawView);
 
-  ecs_register_system(RendTerrainCreateDraw, ecs_view_id(GlobalView), ecs_view_id(DrawView));
+  ecs_register_system(RendTerrainCreateDrawSys, ecs_view_id(GlobalView), ecs_view_id(DrawView));
 }

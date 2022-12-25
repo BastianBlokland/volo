@@ -3,6 +3,7 @@
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "rend_light.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
@@ -37,8 +38,9 @@ typedef struct {
 ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(RendPlatformComp);
+  ecs_access_read(RendLightGlobalComp);
   ecs_access_without(RendResetComp);
+  ecs_access_write(RendPlatformComp);
 }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
@@ -121,31 +123,61 @@ static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const R
   }
 }
 
+static void painter_push_shade(
+    RendPainterComp* painter, const RendLightGlobalComp* lightGlobal, RvkPass* pass) {
+
+  typedef struct {
+    ALIGNAS(16)
+    GeoVector sunRadiance; // xyz: sunRadiance, w: unused.
+    GeoVector sunDir;      // xyz: sunDir, w: unused.
+    f32       ambient;
+  } ShadeBaseData;
+
+  RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
+  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeBaseGraphic);
+  if (graphic && rvk_pass_prepare(pass, graphic)) {
+
+    ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
+    data->sunRadiance.x = lightGlobal->sunRadiance.r * lightGlobal->sunRadiance.a;
+    data->sunRadiance.y = lightGlobal->sunRadiance.g * lightGlobal->sunRadiance.a;
+    data->sunRadiance.z = lightGlobal->sunRadiance.b * lightGlobal->sunRadiance.a;
+    data->sunRadiance.w = 1.0;
+    data->sunDir        = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
+    data->ambient       = lightGlobal->ambient;
+
+    painter_push(
+        painter,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(ShadeBaseData)),
+        });
+  }
+}
+
 static void painter_push_shade_debug(
     RendPainterComp* painter, const RendSettingsComp* settings, RvkPass* pass) {
-
-  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
-  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
-  if (!graphic || !rvk_pass_prepare(pass, graphic)) {
-    return; // Graphic not ready to be drawn.
-  }
 
   typedef struct {
     ALIGNAS(16)
     u32 mode;
   } ShadeDebugData;
 
-  ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
-  *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
+  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
+  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
+  if (graphic && rvk_pass_prepare(pass, graphic)) {
 
-  painter_push(
-      painter,
-      (RvkPassDraw){
-          .graphic        = graphic,
-          .instCount      = 1,
-          .instData       = mem_create(data, sizeof(ShadeDebugData)),
-          .instDataStride = sizeof(ShadeDebugData),
-      });
+    ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
+    *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
+
+    painter_push(
+        painter,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(ShadeDebugData)),
+        });
+  }
 }
 
 static void painter_push_forward(
@@ -265,14 +297,15 @@ static void painter_flush(RendPainterComp* painter, RvkPass* pass) {
 }
 
 static bool painter_draw(
-    RendPainterComp*          painter,
-    const RendSettingsComp*   settings,
-    const GapWindowComp*      win,
-    const EcsEntityId         camEntity,
-    const SceneCameraComp*    cam,
-    const SceneTransformComp* trans,
-    EcsView*                  drawView,
-    EcsView*                  graphicView) {
+    RendPainterComp*           painter,
+    const RendSettingsComp*    settings,
+    const RendLightGlobalComp* lightGlobal,
+    const GapWindowComp*       win,
+    const EcsEntityId          camEntity,
+    const SceneCameraComp*     cam,
+    const SceneTransformComp*  trans,
+    EcsView*                   drawView,
+    EcsView*                   graphicView) {
 
   const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
   const RvkSize   resolution = rvk_size((u16)winSize.width, (u16)winSize.height);
@@ -310,7 +343,7 @@ static bool painter_draw(
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
     if (settings->shadeDebug == RendShadeDebug_None) {
-      painter_push_simple(painter, forwardPass, RvkRepositoryId_ShadeBaseGraphic);
+      painter_push_shade(painter, lightGlobal, forwardPass);
     } else {
       painter_push_shade_debug(painter, settings, forwardPass);
     }
@@ -364,13 +397,10 @@ ecs_system_define(RendPainterCreateSys) {
 ecs_system_define(RendPainterDrawBatchesSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  /**
-   * Dependency on the global 'RendPlatformComp' to ensure ordering between this and the
-   * platform update system.
-   */
   if (!globalItr) {
     return;
   }
+  const RendLightGlobalComp* lightGlobal = ecs_view_read_t(globalItr, RendLightGlobalComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
@@ -384,8 +414,8 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |=
-        painter_draw(painter, settings, win, entity, camera, transform, drawView, graphicView);
+    anyPainterDrawn |= painter_draw(
+        painter, settings, lightGlobal, win, entity, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {

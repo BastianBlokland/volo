@@ -23,7 +23,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_instance_data(0) readonly uniform Instance { ShadeDebugData u_instance; };
+bind_draw_data(0) readonly uniform Draw { ShadeDebugData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 
@@ -47,7 +47,7 @@ void main() {
   const f32v3 clipPos     = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32   linearDepth = clip_to_view(clipPos).z;
 
-  switch (u_instance.mode) {
+  switch (u_draw.mode) {
   case c_modeColor:
     out_color = f32v4(color, 0);
     break;

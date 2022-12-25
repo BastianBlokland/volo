@@ -9,7 +9,7 @@
         {
           "name": "heightNormalIntensity",
           "binding": 0,
-          "value": 2.5
+          "value": 2
         },
         {
           "name": "splat1UvScale",
@@ -48,13 +48,13 @@
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/tiling/dirt_1_color_rough.tga",
+      "textureId": "external/tiling/dirt_2_color_rough.tga",
       "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/tiling/dirt_1_normal.tga",
+      "textureId": "external/tiling/dirt_2_normal.tga",
       "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x4"
