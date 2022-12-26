@@ -56,25 +56,15 @@ static void ecs_destruct_light(void* data) {
   dynarray_destroy(&comp->entries);
 }
 
-ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LightRendererView) { ecs_access_write(RendLightRendererComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_write(AssetManagerComp);
+  ecs_access_maybe_read(RendLightRendererComp);
+}
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
-}
-
-static AssetManagerComp* rend_asset_manager(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, AssetManagerView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
-}
-
-static RendLightRendererComp* rend_light_renderer(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, LightRendererView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, RendLightRendererComp) : null;
 }
 
 static EcsEntityId rend_light_draw_create(
@@ -135,12 +125,14 @@ static f32 rend_light_point_radius(const RendLightPoint* point) {
 }
 
 ecs_system_define(RendLightRenderSys) {
-  AssetManagerComp* assets = rend_asset_manager(world);
-  if (!assets) {
-    return; // Asset manager hasn't been initialized yet.
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not yet available.
   }
 
-  RendLightRendererComp* renderer = rend_light_renderer(world);
+  AssetManagerComp*            assets   = ecs_view_write_t(globalItr, AssetManagerComp);
+  const RendLightRendererComp* renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
     rend_light_settings_create(world);
@@ -201,17 +193,12 @@ ecs_module_init(rend_light_module) {
   ecs_register_comp(RendLightRendererComp);
   ecs_register_comp(RendLightComp, .destructor = ecs_destruct_light);
 
-  ecs_register_view(AssetManagerView);
-  ecs_register_view(LightRendererView);
+  ecs_register_view(GlobalView);
   ecs_register_view(LightView);
   ecs_register_view(DrawView);
 
   ecs_register_system(
-      RendLightRenderSys,
-      ecs_view_id(AssetManagerView),
-      ecs_view_id(LightRendererView),
-      ecs_view_id(LightView),
-      ecs_view_id(DrawView));
+      RendLightRenderSys, ecs_view_id(GlobalView), ecs_view_id(LightView), ecs_view_id(DrawView));
 
   ecs_order(RendLightRenderSys, RendOrder_DrawCollect);
 }
