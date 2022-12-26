@@ -150,7 +150,7 @@ ecs_system_define(RendLightRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_sphere(entry->data_point.pos, radius);
-        *rend_draw_add_instance_t(draw, LightPointData, SceneTags_None, bounds) = (LightPointData){
+        *rend_draw_add_instance_t(draw, LightPointData, SceneTags_Light, bounds) = (LightPointData){
             .posScale.x    = entry->data_point.pos.x,
             .posScale.y    = entry->data_point.pos.y,
             .posScale.z    = entry->data_point.pos.z,
