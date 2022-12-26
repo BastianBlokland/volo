@@ -307,15 +307,18 @@ static bool painter_draw(
     EcsView*                     drawView,
     EcsView*                     graphicView) {
 
-  const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
-  const RvkSize   resolution = rvk_size((u16)winSize.width, (u16)winSize.height);
-  const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
+  const GapVector winSize      = gap_window_param(win, GapParam_WindowSize);
+  const RvkSize   canvasSize   = rvk_size((u16)winSize.width, (u16)winSize.height);
+  const f32       canvasAspect = (f32)winSize.width / (f32)winSize.height;
+  const bool      draw         = rvk_canvas_begin(painter->canvas, settings, canvasSize);
   if (draw) {
-    const GeoVector      origin   = trans ? trans->position : geo_vector(0);
-    const GeoMatrix      proj     = painter_proj_matrix(win, cam);
-    const GeoMatrix      viewProj = painter_view_proj_matrix(&proj, trans);
-    const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
-    const RendView       view     = rend_view_create(camEntity, origin, &viewProj, filter);
+    const GeoVector      origin       = trans ? trans->position : geo_vector(0);
+    const GeoMatrix      proj         = painter_proj_matrix(win, cam);
+    const GeoMatrix      viewProj     = painter_view_proj_matrix(&proj, trans);
+    const SceneTagFilter filter       = cam ? cam->filter : (SceneTagFilter){0};
+    const RendView       view         = rend_view_create(camEntity, origin, &viewProj, filter);
+    RvkPass*             geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+    RvkPass*             forwardPass  = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
 
     const RendPainterGlobalData globalData = {
         .proj         = proj,
@@ -324,13 +327,12 @@ static bool painter_draw(
         .viewProjInv  = geo_matrix_inverse(&viewProj),
         .camPosition  = trans ? trans->position : geo_vector(0),
         .camRotation  = trans ? trans->rotation : geo_quat_ident,
-        .resolution.x = (f32)resolution.width,
-        .resolution.y = (f32)resolution.height,
-        .resolution.z = (f32)resolution.width / (f32)resolution.height,
+        .resolution.x = (f32)rvk_pass_size(geometryPass).width,
+        .resolution.y = (f32)rvk_pass_size(geometryPass).height,
+        .resolution.z = canvasAspect,
     };
 
     // Geometry pass.
-    RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
     rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
     painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
     rvk_pass_begin(geometryPass, geo_color_clear);
@@ -338,7 +340,6 @@ static bool painter_draw(
     rvk_pass_end(geometryPass);
 
     // Forward pass.
-    RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
     rvk_pass_use_depth(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
