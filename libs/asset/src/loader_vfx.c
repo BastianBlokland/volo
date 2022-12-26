@@ -183,7 +183,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -282,6 +282,10 @@ static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef*
 }
 
 static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
+  if (string_is_empty(def->atlasEntry)) {
+    *out = (AssetVfxSprite){0};
+    return; // Sprites are optional.
+  }
   out->atlasEntry    = string_hash(def->atlasEntry);
   out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend         = def->blend;
@@ -297,6 +301,10 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
 }
 
 static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
+  if (def->radiance.a <= f32_epsilon) {
+    *out = (AssetVfxLight){0};
+    return; // Lights are optional.
+  }
   out->radiance          = vfx_build_color(&def->radiance);
   out->attenuationLinear = def->attenuationLinear > f32_epsilon ? def->attenuationLinear : 0.7f;
   out->attenuationQuad   = def->attenuationQuad > f32_epsilon ? def->attenuationQuad : 1.8f;
