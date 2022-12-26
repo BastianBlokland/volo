@@ -41,6 +41,12 @@ typedef struct {
 } AssetVfxSprite;
 
 typedef struct {
+  GeoColor     radiance;
+  f32          attenuationLinear, attenuationQuad;
+  TimeDuration fadeInTime, fadeOutTime;
+} AssetVfxLight;
+
+typedef struct {
   f32       angle;
   f32       radius;
   GeoVector position;
@@ -65,6 +71,7 @@ typedef struct {
   GeoVector             force;
   AssetVfxSpace         space;
   AssetVfxSprite        sprite;
+  AssetVfxLight         light;
   AssetVfxRangeScalar   speed;
   f32                   expandForce;
   u32                   count;

@@ -18,6 +18,18 @@
         "fadeInTime": 0.025,
         "scaleInTime": 0.05,
         "scaleOutTime": 0.05
+      },
+      "light": {
+        "radiance": {
+          "r": 1,
+          "g": 0.5,
+          "b": 0.2,
+          "a": 4
+        },
+        "attenuationLinear": 0.7,
+        "attenuationQuad": 1.8,
+        "fadeInTime": 0.05,
+        "fadeOutTime": 0.05
       }
     },
     {

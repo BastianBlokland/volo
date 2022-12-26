@@ -8,6 +8,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_light.h"
 #include "scene_lifetime.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -130,6 +131,7 @@ ecs_system_define(VfxAssetLoadSys) {
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxParticleRendererComp);
+  ecs_access_write(RendLightComp);
 }
 
 ecs_view_define(UpdateView) {
@@ -358,7 +360,7 @@ static void vfx_system_simulate(
   }
 }
 
-static void vfx_instance_output(
+static void vfx_instance_output_sprite(
     const VfxInstance*  instance,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
@@ -414,14 +416,45 @@ static void vfx_instance_output(
       });
 }
 
+static void vfx_instance_output_light(
+    const VfxInstance*  instance,
+    RendLightComp*      lightOutput,
+    const AssetVfxComp* asset,
+    const VfxTrans*     sysTrans,
+    const TimeDuration  sysTimeRem) {
+
+  const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
+  GeoColor             radiance = light->radiance;
+  if (radiance.a < f32_epsilon) {
+    return;
+  }
+  const TimeDuration  instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
+  const TimeDuration  instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
+  const TimeDuration  timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
+  const AssetVfxSpace space            = asset->emitters[instance->emitter].space;
+
+  GeoVector pos   = instance->pos;
+  f32       scale = instance->scale;
+  if (space == AssetVfxSpace_Local) {
+    pos = vfx_world_pos(sysTrans, pos);
+    scale *= sysTrans->scale;
+  }
+  radiance.a *= scale;
+  radiance.a *= math_min(instanceAge / (f32)light->fadeInTime, 1.0f);
+  radiance.a *= math_min(timeRem / (f32)light->fadeOutTime, 1.0f);
+
+  rend_light_point(lightOutput, pos, radiance, light->attenuationLinear, light->attenuationQuad);
+}
+
 ecs_system_define(VfxSystemUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const VfxParticleRendererComp* rend = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  const SceneTimeComp*           time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeComp*           time  = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxParticleRendererComp* rend  = ecs_view_read_t(globalItr, VfxParticleRendererComp);
+  RendLightComp*                 light = ecs_view_write_t(globalItr, RendLightComp);
 
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
   const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
@@ -465,7 +498,8 @@ ecs_system_define(VfxSystemUpdateSys) {
     vfx_system_simulate(state, asset, atlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output(instance, draw, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_light(instance, light, asset, &sysTrans, sysTimeRem);
     }
   }
 }

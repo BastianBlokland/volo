@@ -70,15 +70,27 @@
         "blend": "AdditiveDouble",
         "facing": "BillboardSphere",
         "size": {
-          "x": 15,
-          "y": 15
+          "x": 10,
+          "y": 10
         },
-        "fadeOutTime": 0.15,
+        "fadeOutTime": 0.2,
         "fadeInTime": 0.05,
         "scaleInTime": 0.25
       },
+      "light": {
+        "radiance": {
+          "r": 1,
+          "g": 0.5,
+          "b": 0.2,
+          "a": 10
+        },
+        "attenuationLinear": 0.22,
+        "attenuationQuad": 0.20,
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.1
+      },
       "lifetime": {
-        "min": 0.3
+        "min": 0.35
       }
     },
     {
