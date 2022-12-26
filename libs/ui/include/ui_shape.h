@@ -10,6 +10,7 @@
   X(0xE1DB, Storage)                                                                               \
   X(0xE25E, FormatShapes)                                                                          \
   X(0xE312, Keyboard)                                                                              \
+  X(0xE322, Memory)                                                                                \
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE3AE, Brush)                                                                                 \
   X(0xE412, PhotoCamera)                                                                           \
