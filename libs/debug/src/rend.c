@@ -41,7 +41,7 @@ typedef enum {
 } DebugRendTab;
 
 static const String g_rendTabNames[] = {
-    string_static("Settings"),
+    string_static("\uE8B8 Settings"),
     string_static("Draws"),
     string_static("Resources"),
     string_static("\uE518 Light"),
