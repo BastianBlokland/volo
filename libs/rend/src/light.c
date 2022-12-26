@@ -96,13 +96,6 @@ static void rend_light_renderer_create(EcsWorld* world, AssetManagerComp* assets
   }
 }
 
-static RendLightSettingsComp* rend_light_settings_create(EcsWorld* world) {
-  const EcsEntityId      global        = ecs_world_global(world);
-  RendLightSettingsComp* lightSettings = ecs_world_add_t(world, global, RendLightSettingsComp);
-  rend_light_settings_to_default(lightSettings);
-  return lightSettings;
-}
-
 INLINE_HINT static void rend_light_add(RendLightComp* comp, const RendLight light) {
   *((RendLight*)dynarray_push(&comp->entries, 1).ptr) = light;
 }
@@ -138,7 +131,6 @@ ecs_system_define(RendLightRenderSys) {
   const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
-    rend_light_settings_create(world);
     rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
     return;
   }
@@ -193,7 +185,6 @@ ecs_system_define(RendLightRenderSys) {
 }
 
 ecs_module_init(rend_light_module) {
-  ecs_register_comp(RendLightSettingsComp);
   ecs_register_comp(RendLightRendererComp);
   ecs_register_comp(RendLightComp, .destructor = ecs_destruct_light);
 
@@ -231,10 +222,4 @@ void rend_light_point(
                   .attenuationQuadratic = attenuationQuadratic,
               },
       });
-}
-
-void rend_light_settings_to_default(RendLightSettingsComp* s) {
-  s->sunRadiance = geo_color(1.0f, 0.9f, 0.8f, 3.0f);
-  s->sunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(50, 15, 0), math_deg_to_rad));
-  s->ambient     = 0.1f;
 }

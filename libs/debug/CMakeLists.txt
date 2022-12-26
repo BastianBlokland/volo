@@ -14,7 +14,6 @@ add_library(lib_debug STATIC
   src/grid.c
   src/inspector.c
   src/interface.c
-  src/light.c
   src/log_viewer.c
   src/menu.c
   src/prefab.c

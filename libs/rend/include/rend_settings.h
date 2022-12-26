@@ -1,5 +1,7 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_color.h"
+#include "geo_quat.h"
 
 typedef enum {
   RendFlags_FrustumCulling = 1 << 0,
@@ -61,6 +63,10 @@ typedef enum {
 ecs_comp_extern_public(RendGlobalSettingsComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
+
+  f32      lightAmbient;
+  GeoColor lightSunRadiance;
+  GeoQuat  lightSunRotation;
 };
 
 void rend_settings_to_default(RendSettingsComp*);

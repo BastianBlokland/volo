@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
@@ -9,6 +10,8 @@
 #include "rend_resource.h"
 #include "rend_settings.h"
 #include "ui.h"
+
+#include "widget_internal.h"
 
 // clang-format off
 
@@ -140,8 +143,9 @@ ecs_comp_define(DebugRendPanelComp) {
   DynString         nameFilter;
   DebugRendDrawSort drawSortMode;
   DebugRendResSort  resSortMode;
-  DynArray          draws;     // DebugDrawInfo[]
-  DynArray          resources; // DebugResourceInfo[]
+  DynArray          draws;          // DebugDrawInfo[]
+  DynArray          resources;      // DebugResourceInfo[]
+  GeoVector         sunRotEulerDeg; // Copy of rotation as euler angles to use while editing.
   bool              freeze;
   bool              hideEmptyDraws;
 };
@@ -608,6 +612,34 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_layout_container_pop(canvas);
 }
 
+static void rend_light_tab_draw(
+    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendGlobalSettingsComp* globalSettings) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sun light"));
+  ui_table_next_column(canvas, &table);
+  debug_widget_editor_color(canvas, &globalSettings->lightSunRadiance, UiWidget_Default);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sun rotation"));
+  ui_table_next_column(canvas, &table);
+  if (debug_widget_editor_vec3(canvas, &panelComp->sunRotEulerDeg, UiWidget_DirtyWhileEditing)) {
+    const GeoVector eulerRad         = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
+    globalSettings->lightSunRotation = geo_quat_from_euler(eulerRad);
+  } else {
+    const GeoVector eulerRad  = geo_quat_to_euler(globalSettings->lightSunRotation);
+    panelComp->sunRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Ambient"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &globalSettings->lightAmbient);
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -636,6 +668,7 @@ static void rend_panel_draw(
     rend_resource_tab_draw(canvas, panelComp);
     break;
   case DebugRendTab_Light:
+    rend_light_tab_draw(canvas, panelComp, globalSettings);
     break;
   }
 

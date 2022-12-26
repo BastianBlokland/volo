@@ -2,13 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
-#include "geo_quat.h"
-
-ecs_comp_extern_public(RendLightSettingsComp) {
-  GeoColor sunRadiance;
-  GeoQuat  sunRotation;
-  f32      ambient;
-};
+#include "geo_vector.h"
 
 ecs_comp_extern(RendLightComp);
 
@@ -28,8 +22,3 @@ RendLightComp* rend_light_create(EcsWorld*, EcsEntityId entity);
 void rend_light_point(RendLightComp*, GeoVector pos, GeoColor radiance, f32 attenuationLinear, f32 attenuationQuadratic);
 
 // clang-format on
-
-/**
- * Utilities.
- */
-void rend_light_settings_to_default(RendLightSettingsComp*);
