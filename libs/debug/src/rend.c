@@ -35,6 +35,7 @@ typedef enum {
   DebugRendTab_Settings,
   DebugRendTab_Draws,
   DebugRendTab_Resources,
+  DebugRendTab_Light,
 
   DebugRendTab_Count,
 } DebugRendTab;
@@ -43,6 +44,7 @@ static const String g_rendTabNames[] = {
     string_static("Settings"),
     string_static("Draws"),
     string_static("Resources"),
+    string_static("\uE518 Light"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
@@ -632,6 +634,8 @@ static void rend_panel_draw(
   case DebugRendTab_Resources:
     rend_resource_info_query(panelComp, world);
     rend_resource_tab_draw(canvas, panelComp);
+    break;
+  case DebugRendTab_Light:
     break;
   }
 
