@@ -26,7 +26,7 @@
 #include "scene_transform.h"
 #include "ui.h"
 
-static const String g_tooltipReset = string_static("Reset the value to default.");
+#include "widget_internal.h"
 
 typedef enum {
   DebugInspectorTool_None,
@@ -213,60 +213,6 @@ static void inspector_panel_draw_value_none(UiCanvasComp* canvas) {
   ui_style_pop(canvas);
 }
 
-static bool inspector_panel_draw_editor_f32(UiCanvasComp* canvas, f32* val) {
-  f64 v = *val;
-  if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = UiWidget_DirtyWhileEditing)) {
-    *val = (f32)v;
-    return true;
-  }
-  return false;
-}
-
-MAYBE_UNUSED static bool inspector_panel_draw_editor_u32(UiCanvasComp* canvas, u32* val) {
-  f64 v = *val;
-  if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = UiWidget_DirtyWhileEditing)) {
-    *val = (u32)v;
-    return true;
-  }
-  return false;
-}
-
-static bool
-inspector_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
-  static const f32 g_spacing   = 10.0f;
-  const u8         numSpacings = numComps - 1;
-  const UiAlign    align       = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / numComps, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(
-      canvas, align, ui_vector(numSpacings * -g_spacing / numComps, 0), UiBase_Absolute, Ui_X);
-
-  bool isDirty = false;
-  for (u8 comp = 0; comp != numComps; ++comp) {
-    isDirty |= inspector_panel_draw_editor_f32(canvas, &val->comps[comp]);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
-  }
-  ui_layout_pop(canvas);
-  return isDirty;
-}
-
-static bool inspector_panel_draw_editor_vec_resettable(
-    UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
-  ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
-  bool isDirty = inspector_panel_draw_editor_vec(canvas, val, numComps);
-  ui_layout_next(canvas, Ui_Right, 8);
-  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Default), .tooltip = g_tooltipReset)) {
-    for (u8 comp = 0; comp != numComps; ++comp) {
-      val->comps[comp] = 0;
-    }
-    isDirty = true;
-  }
-  ui_layout_pop(canvas);
-  return isDirty;
-}
-
 static void inspector_panel_draw_entity_info(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -326,7 +272,7 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Position"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_vec_resettable(canvas, &transform->position, 3)) {
+    if (debug_widget_editor_vec3_resettable(canvas, &transform->position, UiWidget_Default)) {
       // Clamp the position to a sane value.
       transform->position = geo_vector_clamp(transform->position, 1e3f);
     }
@@ -334,7 +280,8 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Rotation"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_vec_resettable(canvas, &panelComp->transformRotEulerDeg, 3)) {
+    if (debug_widget_editor_vec3_resettable(
+            canvas, &panelComp->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
       const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
     } else {
@@ -346,7 +293,7 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_f32(canvas, &scale->scale)) {
+    if (debug_widget_editor_f32(canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
     }
@@ -370,7 +317,7 @@ static void inspector_panel_draw_health(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Max"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_f32(canvas, &health->max);
+      debug_widget_editor_f32(canvas, &health->max, UiWidget_Default);
     }
   }
 }
@@ -415,22 +362,22 @@ static void inspector_panel_draw_target(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Overriden"));
       ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_Overriden);
+      ui_toggle_flag(canvas, &flags, SceneTarget_Overriden, .flags = UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Position"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_vec(canvas, &tgtPos, 3);
+      debug_widget_editor_vec3(canvas, &tgtPos, UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Distance"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_f32(canvas, &tgtDist);
+      debug_widget_editor_f32(canvas, &tgtDist, UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Line of Sight"));
       ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight);
+      ui_toggle_flag(canvas, &flags, SceneTarget_LineOfSight, .flags = UiWidget_Disabled);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Time until refresh"));
@@ -507,18 +454,18 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_vec(canvas, &collision->sphere.offset, 3);
+        debug_widget_editor_vec3(canvas, &collision->sphere.offset, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_f32(canvas, &collision->sphere.radius);
+        debug_widget_editor_f32(canvas, &collision->sphere.radius, UiWidget_Default);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_vec(canvas, &collision->capsule.offset, 3);
+        debug_widget_editor_vec3(canvas, &collision->capsule.offset, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Direction"));
@@ -530,23 +477,23 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_f32(canvas, &collision->capsule.radius);
+        debug_widget_editor_f32(canvas, &collision->capsule.radius, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Height"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_f32(canvas, &collision->capsule.height);
+        debug_widget_editor_f32(canvas, &collision->capsule.height, UiWidget_Default);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Min"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_vec(canvas, &collision->box.min, 3);
+        debug_widget_editor_vec3(canvas, &collision->box.min, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Max"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_vec(canvas, &collision->box.max, 3);
+        debug_widget_editor_vec3(canvas, &collision->box.max, UiWidget_Default);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
@@ -571,12 +518,12 @@ static void inspector_panel_draw_bounds(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Center"));
       ui_table_next_column(canvas, table);
-      dirty |= inspector_panel_draw_editor_vec(canvas, &center, 3);
+      dirty |= debug_widget_editor_vec3(canvas, &center, UiWidget_Default);
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Size"));
       ui_table_next_column(canvas, table);
-      dirty |= inspector_panel_draw_editor_vec(canvas, &size, 3);
+      dirty |= debug_widget_editor_vec3(canvas, &size, UiWidget_Default);
 
       if (dirty) {
         boundsComp->local = geo_box_from_center(center, size);

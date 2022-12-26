@@ -24,6 +24,7 @@ add_library(lib_debug STATIC
   src/stats.c
   src/text.c
   src/time.c
+  src/widget.c
   )
 target_include_directories(lib_debug PUBLIC include)
 target_link_libraries(lib_debug PUBLIC lib_core lib_ecs lib_scene)
