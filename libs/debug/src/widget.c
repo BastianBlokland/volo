@@ -77,3 +77,7 @@ bool debug_widget_editor_vec4_resettable(
     UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
   return debug_widget_editor_vec_resettable_internal(canvas, val, 3, flags);
 }
+
+bool debug_widget_editor_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
+  return debug_widget_editor_vec_internal(canvas, (GeoVector*)val, 4, flags);
+}

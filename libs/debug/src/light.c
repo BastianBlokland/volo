@@ -8,6 +8,8 @@
 #include "rend_light.h"
 #include "ui.h"
 
+#include "widget_internal.h"
+
 ecs_comp_define(DebugLightPanelComp) {
   UiPanel   panel;
   GeoVector sunRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
@@ -34,33 +36,6 @@ static GeoColor radiance_resolve(const GeoColor light) {
   };
 }
 
-static bool light_panel_draw_editor_f32(UiCanvasComp* canvas, f32* val) {
-  f64 v = *val;
-  if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = UiWidget_DirtyWhileEditing)) {
-    *val = (f32)v;
-    return true;
-  }
-  return false;
-}
-
-static bool light_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
-  static const f32 g_spacing   = 10.0f;
-  const u8         numSpacings = numComps - 1;
-  const UiAlign    align       = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / numComps, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(
-      canvas, align, ui_vector(numSpacings * -g_spacing / numComps, 0), UiBase_Absolute, Ui_X);
-
-  bool isDirty = false;
-  for (u8 comp = 0; comp != numComps; ++comp) {
-    isDirty |= light_panel_draw_editor_f32(canvas, &val->comps[comp]);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
-  }
-  ui_layout_pop(canvas);
-  return isDirty;
-}
-
 static void light_panel_draw_sun(
     UiCanvasComp*          canvas,
     UiTable*               table,
@@ -70,12 +45,12 @@ static void light_panel_draw_sun(
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, table);
-  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightSettings->sunRadiance, 4);
+  debug_widget_editor_color(canvas, &lightSettings->sunRadiance, UiWidget_Default);
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun rotation"));
   ui_table_next_column(canvas, table);
-  if (light_panel_draw_editor_vec(canvas, &panelComp->sunRotEulerDeg, 3)) {
+  if (debug_widget_editor_vec3(canvas, &panelComp->sunRotEulerDeg, UiWidget_DirtyWhileEditing)) {
     const GeoVector eulerRad   = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
     lightSettings->sunRotation = geo_quat_from_euler(eulerRad);
   } else {
