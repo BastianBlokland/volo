@@ -107,7 +107,7 @@ static f32 rend_light_point_radius(const RendLightPoint* point) {
   const f32      c          = 1.0f;                        // Constant term.
   const f32      l          = point->attenuationLinear;    // Linear term.
   const f32      q          = point->attenuationQuadratic; // Quadratic term.
-  const f32      threshold  = 256.0f / 30.0f;
+  const f32      threshold  = 256.0f / 20.0f;
   return (-l + math_sqrt_f32(l * l - 4.0f * q * (c - threshold * brightness))) / (2.0f * q);
 }
 
