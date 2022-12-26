@@ -3,20 +3,17 @@
 
 #include "binding.glsl"
 #include "global.glsl"
-#include "tags.glsl"
+#include "pbr.glsl"
 #include "texture.glsl"
-
-struct ShadeBaseData {
-  f32 ambient;
-};
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_draw_data(0) readonly uniform Draw { ShadeBaseData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
+bind_internal(1) in flat f32v3 in_direction;
+bind_internal(2) in flat f32v3 in_radiance;
 
 bind_internal(0) out f32v4 out_color;
 
@@ -30,18 +27,16 @@ void main() {
   const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
   const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
-  const u32   tags     = tags_tex_decode(normalTags.w);
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
-  const f32v3 normal   = normal_tex_decode(normalTags.xyz);
   const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
 
-  out_color = f32v4(colorRough.rgb * u_draw.ambient, 1.0);
+  PbrSurface surf;
+  surf.position     = worldPos;
+  surf.color        = colorRough.rgb;
+  surf.normal       = normal_tex_decode(normalTags.xyz);
+  surf.roughness    = colorRough.a;
+  surf.metallicness = 0.0; // TODO: Support metals.
 
-  if (tag_is_set(tags, tag_selected_bit)) {
-    out_color.rgb += (1.0 - abs(dot(normal, viewDir)));
-  }
-  if (tag_is_set(tags, tag_damaged_bit)) {
-    out_color.rgb = mix(out_color.rgb, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
-  }
+  out_color = f32v4(pbr_light_dir(in_radiance, in_direction, viewDir, surf), 1.0);
 }

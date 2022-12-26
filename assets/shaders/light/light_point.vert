@@ -8,8 +8,8 @@
 
 struct LightPointData {
   f32v4 posScale;    // x, y, z: position, w: scale
-  f32v4 radiance;    // x, y, z: radiance, w: unused.
-  f32v3 attenuation; // x: constant term, y: linear term, z: quadratic term, w: unused.
+  f32v4 radiance;    // x, y, z: radiance, w: unused
+  f32v3 attenuation; // x: constant term, y: linear term, z: quadratic term, w: unused
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };

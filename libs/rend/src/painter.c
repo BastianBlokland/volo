@@ -127,9 +127,7 @@ static void painter_push_shade(
 
   typedef struct {
     ALIGNAS(16)
-    GeoVector sunRadiance; // xyz: sunRadiance, w: unused.
-    GeoVector sunDir;      // xyz: sunDir, w: unused.
-    f32       ambient;
+    f32 ambient;
   } ShadeBaseData;
 
   RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
@@ -137,11 +135,6 @@ static void painter_push_shade(
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
     ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->sunRadiance.x = settingsGlobal->lightSunRadiance.r * settingsGlobal->lightSunRadiance.a;
-    data->sunRadiance.y = settingsGlobal->lightSunRadiance.g * settingsGlobal->lightSunRadiance.a;
-    data->sunRadiance.z = settingsGlobal->lightSunRadiance.b * settingsGlobal->lightSunRadiance.a;
-    data->sunRadiance.w = 1.0;
-    data->sunDir        = geo_quat_rotate(settingsGlobal->lightSunRotation, geo_forward);
     data->ambient       = settingsGlobal->lightAmbient;
 
     painter_push(
