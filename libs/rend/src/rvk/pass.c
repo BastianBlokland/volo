@@ -391,7 +391,8 @@ bool rvk_pass_active(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Active) != 0;
 }
 
-String rvk_pass_name(const RvkPass* pass) { return pass->name; }
+String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
+RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
   return rvk_desc_set_meta(pass->globalDescSet);
