@@ -14,6 +14,15 @@ typedef enum {
   RendLightType_Count,
 } RendLightType;
 
+typedef enum {
+  RendLightVariation_Normal,
+  RendLightVariation_Debug,
+
+  RendLightVariation_Count,
+} RendLightVariation;
+
+enum { RendLightDraw_Count = RendLightType_Count * RendLightVariation_Count };
+
 typedef struct {
   GeoVector pos;
   GeoColor  radiance;
@@ -27,13 +36,16 @@ typedef struct {
   };
 } RendLight;
 
-static const String g_lightGraphics[RendLightType_Count] = {
-    [RendLightType_Point] = string_static("graphics/light/light_point.gra"),
+// clang-format off
+static const String g_lightGraphics[RendLightDraw_Count] = {
+    [RendLightType_Point + RendLightVariation_Normal] = string_static("graphics/light/light_point.gra"),
+    [RendLightType_Point + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.gra"),
 };
+// clang-format on
 
 ecs_comp_define_public(RendLightSettingsComp);
 
-ecs_comp_define(RendLightRendererComp) { EcsEntityId drawEntities[RendLightType_Count]; };
+ecs_comp_define(RendLightRendererComp) { EcsEntityId drawEntities[RendLightDraw_Count]; };
 
 ecs_comp_define(RendLightComp) {
   DynArray entries; // RendLight[]
@@ -49,6 +61,10 @@ ecs_view_define(LightRendererView) { ecs_access_write(RendLightRendererComp); }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
+static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
+  return (u32)type + (u32)variation;
+}
+
 static AssetManagerComp* rend_asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, AssetManagerView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -61,13 +77,17 @@ static RendLightRendererComp* rend_light_renderer(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, RendLightRendererComp) : null;
 }
 
-static EcsEntityId
-rend_light_draw_create(EcsWorld* world, AssetManagerComp* assets, const RendLightType type) {
-  diag_assert(!string_is_empty(g_lightGraphics[type]));
+static EcsEntityId rend_light_draw_create(
+    EcsWorld*                world,
+    AssetManagerComp*        assets,
+    const RendLightType      type,
+    const RendLightVariation var) {
+  const u32 drawIndex = rend_draw_index(type, var);
+  diag_assert(!string_is_empty(g_lightGraphics[drawIndex]));
 
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendDrawComp*     draw          = rend_draw_create(world, entity, RendDrawFlags_None);
-  const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[type]);
+  const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[drawIndex]);
   rend_draw_set_graphic(draw, graphicEntity);
   return entity;
 }
@@ -77,7 +97,10 @@ static void rend_light_renderer_create(EcsWorld* world, AssetManagerComp* assets
   RendLightRendererComp* renderer = ecs_world_add_t(world, global, RendLightRendererComp);
 
   for (RendLightType type = 0; type != RendLightType_Count; ++type) {
-    renderer->drawEntities[type] = rend_light_draw_create(world, assets, type);
+    for (RendLightVariation var = 0; var != RendLightVariation_Count; ++var) {
+      const u32 drawIndex               = rend_draw_index(type, var);
+      renderer->drawEntities[drawIndex] = rend_light_draw_create(world, assets, type, var);
+    }
   }
 }
 
@@ -125,13 +148,16 @@ ecs_system_define(RendLightRenderSys) {
     return;
   }
 
+  const RendLightVariation var = RendLightVariation_Normal;
+
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
     RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
     dynarray_for_t(&light->entries, RendLight, entry) {
-      ecs_view_jump(drawItr, renderer->drawEntities[entry->type]);
+      const u32 drawIndex = rend_draw_index(entry->type, var);
+      ecs_view_jump(drawItr, renderer->drawEntities[drawIndex]);
       RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
       typedef struct {
