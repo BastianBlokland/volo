@@ -17,7 +17,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugShapeComp);
-  ecs_access_write(RendLightGlobalComp);
+  ecs_access_write(RendLightSettingsComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -62,30 +62,30 @@ static bool light_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, co
 }
 
 static void light_panel_draw_sun(
-    UiCanvasComp*        canvas,
-    UiTable*             table,
-    DebugLightPanelComp* panelComp,
-    RendLightGlobalComp* lightGlobal) {
+    UiCanvasComp*          canvas,
+    UiTable*               table,
+    DebugLightPanelComp*   panelComp,
+    RendLightSettingsComp* lightSettings) {
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, table);
-  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightGlobal->sunRadiance, 4);
+  light_panel_draw_editor_vec(canvas, (GeoVector*)&lightSettings->sunRadiance, 4);
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Sun rotation"));
   ui_table_next_column(canvas, table);
   if (light_panel_draw_editor_vec(canvas, &panelComp->sunRotEulerDeg, 3)) {
-    const GeoVector eulerRad = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
-    lightGlobal->sunRotation = geo_quat_from_euler(eulerRad);
+    const GeoVector eulerRad   = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
+    lightSettings->sunRotation = geo_quat_from_euler(eulerRad);
   } else {
-    const GeoVector eulerRad  = geo_quat_to_euler(lightGlobal->sunRotation);
+    const GeoVector eulerRad  = geo_quat_to_euler(lightSettings->sunRotation);
     panelComp->sunRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
   }
 }
 
 static void light_panel_draw(
-    UiCanvasComp* canvas, DebugLightPanelComp* panelComp, RendLightGlobalComp* lightGlobal) {
+    UiCanvasComp* canvas, DebugLightPanelComp* panelComp, RendLightSettingsComp* lightSettings) {
   const String title = fmt_write_scratch("{} Light Panel", fmt_ui_shape(Light));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -93,36 +93,36 @@ static void light_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  light_panel_draw_sun(canvas, &table, panelComp, lightGlobal);
+  light_panel_draw_sun(canvas, &table, panelComp, lightSettings);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &lightGlobal->ambient);
+  ui_slider(canvas, &lightSettings->ambient);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"))) {
-    rend_light_global_to_default(lightGlobal);
+    rend_light_settings_to_default(lightSettings);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
 
 static void light_sun_gizmo_draw(
-    DebugGizmoComp* gizmo, DebugShapeComp* shape, RendLightGlobalComp* lightGlobal) {
+    DebugGizmoComp* gizmo, DebugShapeComp* shape, RendLightSettingsComp* lightSettings) {
 
   const GeoVector pos = {.y = 10.0f};
-  const GeoVector dir = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
+  const GeoVector dir = geo_quat_rotate(lightSettings->sunRotation, geo_forward);
 
   const DebugGizmoId gizmoId = string_hash_lit("SunRotation");
-  debug_gizmo_rotation(gizmo, gizmoId, pos, &lightGlobal->sunRotation);
+  debug_gizmo_rotation(gizmo, gizmoId, pos, &lightSettings->sunRotation);
 
   debug_arrow(
       shape,
       pos,
       geo_vector_add(pos, geo_vector_mul(dir, 2.0f)),
       0.25f,
-      radiance_resolve(lightGlobal->sunRadiance));
+      radiance_resolve(lightSettings->sunRadiance));
 }
 
 ecs_system_define(DebugLightUpdateSys) {
@@ -131,9 +131,9 @@ ecs_system_define(DebugLightUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugGizmoComp*      gizmo       = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugShapeComp*      shape       = ecs_view_write_t(globalItr, DebugShapeComp);
-  RendLightGlobalComp* lightGlobal = ecs_view_write_t(globalItr, RendLightGlobalComp);
+  DebugGizmoComp*        gizmo         = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugShapeComp*        shape         = ecs_view_write_t(globalItr, DebugShapeComp);
+  RendLightSettingsComp* lightSettings = ecs_view_write_t(globalItr, RendLightSettingsComp);
 
   bool     anyPanelOpen = false;
   EcsView* panelView    = ecs_world_view_t(world, PanelUpdateView);
@@ -142,7 +142,7 @@ ecs_system_define(DebugLightUpdateSys) {
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    light_panel_draw(canvas, panelComp, lightGlobal);
+    light_panel_draw(canvas, panelComp, lightSettings);
     anyPanelOpen = true;
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
@@ -154,7 +154,7 @@ ecs_system_define(DebugLightUpdateSys) {
   }
 
   if (anyPanelOpen) {
-    light_sun_gizmo_draw(gizmo, shape, lightGlobal);
+    light_sun_gizmo_draw(gizmo, shape, lightSettings);
   }
 }
 

@@ -38,7 +38,7 @@ typedef struct {
 ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendLightGlobalComp);
+  ecs_access_read(RendLightSettingsComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
@@ -124,7 +124,7 @@ static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const R
 }
 
 static void painter_push_shade(
-    RendPainterComp* painter, const RendLightGlobalComp* lightGlobal, RvkPass* pass) {
+    RendPainterComp* painter, const RendLightSettingsComp* lightSettings, RvkPass* pass) {
 
   typedef struct {
     ALIGNAS(16)
@@ -138,12 +138,12 @@ static void painter_push_shade(
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
     ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->sunRadiance.x = lightGlobal->sunRadiance.r * lightGlobal->sunRadiance.a;
-    data->sunRadiance.y = lightGlobal->sunRadiance.g * lightGlobal->sunRadiance.a;
-    data->sunRadiance.z = lightGlobal->sunRadiance.b * lightGlobal->sunRadiance.a;
+    data->sunRadiance.x = lightSettings->sunRadiance.r * lightSettings->sunRadiance.a;
+    data->sunRadiance.y = lightSettings->sunRadiance.g * lightSettings->sunRadiance.a;
+    data->sunRadiance.z = lightSettings->sunRadiance.b * lightSettings->sunRadiance.a;
     data->sunRadiance.w = 1.0;
-    data->sunDir        = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
-    data->ambient       = lightGlobal->ambient;
+    data->sunDir        = geo_quat_rotate(lightSettings->sunRotation, geo_forward);
+    data->ambient       = lightSettings->ambient;
 
     painter_push(
         painter,
@@ -297,15 +297,15 @@ static void painter_flush(RendPainterComp* painter, RvkPass* pass) {
 }
 
 static bool painter_draw(
-    RendPainterComp*           painter,
-    const RendSettingsComp*    settings,
-    const RendLightGlobalComp* lightGlobal,
-    const GapWindowComp*       win,
-    const EcsEntityId          camEntity,
-    const SceneCameraComp*     cam,
-    const SceneTransformComp*  trans,
-    EcsView*                   drawView,
-    EcsView*                   graphicView) {
+    RendPainterComp*             painter,
+    const RendSettingsComp*      settings,
+    const RendLightSettingsComp* lightSettings,
+    const GapWindowComp*         win,
+    const EcsEntityId            camEntity,
+    const SceneCameraComp*       cam,
+    const SceneTransformComp*    trans,
+    EcsView*                     drawView,
+    EcsView*                     graphicView) {
 
   const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
   const RvkSize   resolution = rvk_size((u16)winSize.width, (u16)winSize.height);
@@ -345,7 +345,7 @@ static bool painter_draw(
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
     if (settings->shadeDebug == RendShadeDebug_None) {
-      painter_push_shade(painter, lightGlobal, forwardPass);
+      painter_push_shade(painter, lightSettings, forwardPass);
     } else {
       painter_push_shade_debug(painter, settings, forwardPass);
     }
@@ -402,7 +402,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   if (!globalItr) {
     return;
   }
-  const RendLightGlobalComp* lightGlobal = ecs_view_read_t(globalItr, RendLightGlobalComp);
+  const RendLightSettingsComp* lightSettings = ecs_view_read_t(globalItr, RendLightSettingsComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
@@ -417,7 +417,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     anyPainterDrawn |= painter_draw(
-        painter, settings, lightGlobal, win, entity, camera, transform, drawView, graphicView);
+        painter, settings, lightSettings, win, entity, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {

@@ -59,6 +59,7 @@ f32v3 pbr_fresnel_schlick(const f32 cosTheta, const f32v3 reflectance) {
 }
 
 struct PbrSurface {
+  f32v3 position;
   f32v3 color;
   f32v3 normal;
   f32   roughness;
@@ -71,6 +72,13 @@ f32v3 pbr_surf_reflectance(const PbrSurface surf) {
    * reflectance of of 0.04 and if it's a metal, use the albedo color (metallic workflow).
    */
   return mix(f32v3(0.04), surf.color, surf.metallicness);
+}
+
+f32 pbr_attenuation_resolve(const f32v3 attenuation, const f32 dist) {
+  const f32 c = attenuation.x; // Constant term.
+  const f32 l = attenuation.y; // Linear term.
+  const f32 q = attenuation.z; // Quadratic term.
+  return 1.0 / (c + l * dist + q * dist * dist);
 }
 
 f32v3 pbr_light_dir(
@@ -105,6 +113,19 @@ f32v3 pbr_light_dir(
 
   // NOTE: We already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again.
   return (kD * surf.color / c_pi + specular) * radiance * normDotDir;
+}
+
+f32v3 pbr_light_point(
+    const f32v3      radiance,
+    const f32v3      pos,
+    const f32v3      attenuation, // x: constant, y: linear, z: quadratic
+    const f32v3      viewDir,
+    const PbrSurface surf) {
+
+  const f32v3 lightDir          = normalize(surf.position - pos);
+  const f32   dist              = length(surf.position - pos);
+  const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(attenuation, dist);
+  return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
 }
 
 #endif // INCLUDE_PBR

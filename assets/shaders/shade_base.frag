@@ -33,16 +33,17 @@ void main() {
   const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
   const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
-  PbrSurface surf;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.metallicness = 0.0; // TODO: Support metals.
-
   const u32   tags     = tags_tex_decode(normalTags.w);
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
   const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
+
+  PbrSurface surf;
+  surf.position     = worldPos;
+  surf.color        = colorRough.rgb;
+  surf.normal       = normal_tex_decode(normalTags.xyz);
+  surf.roughness    = colorRough.a;
+  surf.metallicness = 0.0; // TODO: Support metals.
 
   const f32v3 ambient  = surf.color * u_draw.ambient;
   const f32v3 sunLight = pbr_light_dir(u_draw.sunRadiance.rgb, u_draw.sunDir.xyz, viewDir, surf);
