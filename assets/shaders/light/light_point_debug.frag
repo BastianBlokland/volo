@@ -9,9 +9,9 @@
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(3) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in f32v3 in_position;
-bind_internal(1) in f32v3 in_radiance;
-bind_internal(2) in f32v3 in_attenuation;
+bind_internal(0) in flat f32v3 in_position;
+bind_internal(1) in flat f32v3 in_radiance;
+bind_internal(2) in flat f32v3 in_attenuation;
 
 bind_internal(0) out f32v4 out_color;
 

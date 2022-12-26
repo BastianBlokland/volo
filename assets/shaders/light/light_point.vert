@@ -16,9 +16,9 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform Instance { LightPointData[c_maxInstances] u_instances; };
 
-bind_internal(0) out f32v3 out_position;
-bind_internal(1) out f32v3 out_radiance;
-bind_internal(2) out f32v3 out_attenuation;
+bind_internal(0) out flat f32v3 out_position;
+bind_internal(1) out flat f32v3 out_radiance;
+bind_internal(2) out flat f32v3 out_attenuation;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
