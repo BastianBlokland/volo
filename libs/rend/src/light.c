@@ -7,6 +7,7 @@
 #include "rend_draw.h"
 #include "rend_light.h"
 #include "rend_register.h"
+#include "rend_settings.h"
 
 typedef enum {
   RendLightType_Point,
@@ -57,8 +58,9 @@ static void ecs_destruct_light(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_read(RendLightRendererComp);
+  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -131,8 +133,9 @@ ecs_system_define(RendLightRenderSys) {
     return; // Global dependencies not yet available.
   }
 
-  AssetManagerComp*            assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  const RendLightRendererComp* renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
+  AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
+  const RendLightRendererComp*  renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
+  const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
     rend_light_settings_create(world);
@@ -140,7 +143,8 @@ ecs_system_define(RendLightRenderSys) {
     return;
   }
 
-  const RendLightVariation var = RendLightVariation_Normal;
+  const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
+  const RendLightVariation var = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);

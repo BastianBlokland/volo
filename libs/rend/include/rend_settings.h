@@ -53,8 +53,9 @@ ecs_comp_extern_public(RendSettingsComp) {
 
 typedef enum {
   RendGlobalFlags_Validation = 1 << 0,
-  RendGlobalFlags_Debug      = 1 << 1,
-  RendGlobalFlags_Verbose    = 1 << 2,
+  RendGlobalFlags_Verbose    = 1 << 1,
+  RendGlobalFlags_DebugGpu   = 1 << 2,
+  RendGlobalFlags_DebugLight = 1 << 3,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendGlobalSettingsComp) {

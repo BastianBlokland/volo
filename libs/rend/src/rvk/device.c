@@ -354,12 +354,12 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
-  VkPhysicalDeviceFeatures2 featuresToEnable = {
+  const VkPhysicalDeviceFeatures2 featuresToEnable = {
       .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext    = &float16IStorageFeatures,
       .features = rvk_device_pick_features(dev, &supportedFeatures),
   };
-  VkDeviceCreateInfo createInfo = {
+  const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pNext                   = &featuresToEnable,
       .pQueueCreateInfos       = queueCreateInfos,
@@ -400,7 +400,7 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
     dev->flags |= RvkDeviceFlags_Validation;
     dev->flags |= RvkDeviceFlags_Debug; // Validation will also enable debug features.
   }
-  const bool debugDesired = (globalSettings->flags & RendGlobalFlags_Debug) != 0;
+  const bool debugDesired = (globalSettings->flags & RendGlobalFlags_DebugGpu) != 0;
   if (debugDesired) {
     // TODO: Support enabling this optionally based on instance support, at the moment creating the
     // instance would fail if unsupported.

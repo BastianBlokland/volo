@@ -277,6 +277,17 @@ static void rend_settings_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug light"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugLight);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug Gpu"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugGpu, .tooltip = g_tooltipDebugGpu);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
@@ -284,12 +295,6 @@ static void rend_settings_tab_draw(
       (u32*)&globalSettings->flags,
       RendGlobalFlags_Validation,
       .tooltip = g_tooltipValidation);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Gpu debug"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_Debug, .tooltip = g_tooltipDebugGpu);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));
@@ -702,7 +707,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(.size = ui_vector(800, 400)),
+      .panel          = ui_panel(.size = ui_vector(800, 430)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),
