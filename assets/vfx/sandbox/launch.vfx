@@ -106,6 +106,23 @@
           "z": 360
         }
       }
+    },
+    {
+      "light": {
+        "radiance": {
+          "r": 1,
+          "g": 0.5,
+          "b": 0.2,
+          "a": 5
+        },
+        "attenuationLinear": 0.22,
+        "attenuationQuad": 0.20,
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.3
+      },
+      "lifetime": {
+        "min": 0.4
+      }
     }
   ]
 }

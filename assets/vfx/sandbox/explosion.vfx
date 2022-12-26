@@ -90,7 +90,7 @@
         "fadeOutTime": 0.1
       },
       "lifetime": {
-        "min": 0.35
+        "min": 0.4
       }
     },
     {
