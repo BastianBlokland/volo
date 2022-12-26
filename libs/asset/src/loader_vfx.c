@@ -12,7 +12,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-#define vfx_time_max time_days(9999)
+#define vfx_max_time time_days(9999)
 
 static DataReg* g_dataReg;
 static DataMeta g_dataVfxDefMeta;
@@ -221,6 +221,11 @@ static String vfx_error_str(const VfxError err) {
 
 ecs_comp_define_public(AssetVfxComp);
 
+static void ecs_destruct_vfx_comp(void* data) {
+  AssetVfxComp* comp = data;
+  alloc_free_array_t(g_alloc_heap, comp->emitters, comp->emitterCount);
+}
+
 ecs_view_define(VfxUnloadView) {
   ecs_access_with(AssetVfxComp);
   ecs_access_without(AssetLoadedComp);
@@ -332,7 +337,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
 
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {
-    out->lifetime.min = out->lifetime.max = vfx_time_max;
+    out->lifetime.min = out->lifetime.max = vfx_max_time;
   }
 
   out->rotation = vfx_build_range_rotation(&def->rotation);
@@ -346,7 +351,9 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
     flags |= AssetVfx_IgnoreTransformRotation;
   }
   out->flags        = flags;
+  out->emitters     = alloc_array_t(g_alloc_heap, AssetVfxEmitter, def->emitters.count);
   out->emitterCount = (u32)def->emitters.count;
+
   for (u32 i = 0; i != out->emitterCount; ++i) {
     vfx_build_emitter(&def->emitters.values[i], &out->emitters[i]);
   }
@@ -355,7 +362,7 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
 ecs_module_init(asset_vfx_module) {
   vfx_datareg_init();
 
-  ecs_register_comp(AssetVfxComp);
+  ecs_register_comp(AssetVfxComp, .destructor = ecs_destruct_vfx_comp);
 
   ecs_register_view(VfxUnloadView);
 

@@ -86,7 +86,7 @@ typedef enum {
 } AssetVfxFlags;
 
 ecs_comp_extern_public(AssetVfxComp) {
-  AssetVfxFlags   flags;
-  u32             emitterCount;
-  AssetVfxEmitter emitters[asset_vfx_max_emitters];
+  AssetVfxFlags    flags;
+  u32              emitterCount;
+  AssetVfxEmitter* emitters;
 };
