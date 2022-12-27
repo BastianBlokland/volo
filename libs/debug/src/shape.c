@@ -143,13 +143,13 @@ static void ecs_destruct_shape(void* data) {
   dynarray_destroy(&comp->entries);
 }
 
-ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
 ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-static AssetManagerComp* ui_asset_manager(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
+static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
+  EcsView*     globalView = ecs_world_view_t(world, AssetManagerView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
 }
@@ -170,7 +170,7 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
    * TODO: At the moment all shapes are drawn back-to-front, but this is only needed for overlay
    * types. For the depth testing types (fill and wire) this causes unnecessary overdraw and should
    * either be sorted front-to-back or not at all.
-   * NOTE: Only instances of the same shape are stored, order between different shapes is undefined.
+   * NOTE: Only instances of the same shape are sorted, order between different shapes is undefined.
    */
   const RendDrawFlags drawFlags     = RendDrawFlags_SortBackToFront;
   RendDrawComp*       draw          = rend_draw_create(world, entity, drawFlags);
@@ -193,7 +193,7 @@ INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape s
 }
 
 ecs_system_define(DebugShapeRenderSys) {
-  AssetManagerComp* assets = ui_asset_manager(world);
+  AssetManagerComp* assets = debug_asset_manager(world);
   if (!assets) {
     return; // Asset manager hasn't been initialized yet.
   }
@@ -350,14 +350,14 @@ ecs_module_init(debug_shape_module) {
   ecs_register_comp(DebugShapeRendererComp);
   ecs_register_comp(DebugShapeComp, .destructor = ecs_destruct_shape);
 
-  ecs_register_view(GlobalAssetsView);
+  ecs_register_view(AssetManagerView);
   ecs_register_view(ShapeRendererView);
   ecs_register_view(ShapeView);
   ecs_register_view(DrawView);
 
   ecs_register_system(
       DebugShapeRenderSys,
-      ecs_view_id(GlobalAssetsView),
+      ecs_view_id(AssetManagerView),
       ecs_view_id(ShapeRendererView),
       ecs_view_id(ShapeView),
       ecs_view_id(DrawView));

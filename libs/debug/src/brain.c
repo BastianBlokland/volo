@@ -22,7 +22,7 @@ typedef enum {
 
 static const String g_brainTabNames[] = {
     string_static("Evaluation"),
-    string_static("Memory"),
+    string_static("\uE322 Memory"),
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 

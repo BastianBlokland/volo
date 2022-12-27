@@ -4,7 +4,14 @@
       "shaderId": "shaders/fullscreen.vert.spv"
     },
     {
-      "shaderId": "shaders/shade_debug.frag.spv"
+      "shaderId": "shaders/compose.frag.spv",
+      "overrides": [
+        {
+          "name": "debug",
+          "binding": 0,
+          "value": 1
+        }
+      ]
     }
   ],
   "vertexCount": 3,

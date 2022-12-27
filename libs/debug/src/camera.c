@@ -24,7 +24,7 @@ static const String g_tooltipVerticalAspect = string_static("Use the vertical di
 static const String g_tooltipDebugFrustum   = string_static("Visualize the camera frustum.");
 static const String g_tooltipDebugInput     = string_static("Visualize the input ray.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
-static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
+static const String g_tooltipExclude        = string_static("Exclude \a.b{}\ar from being rendered.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
@@ -105,6 +105,7 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp*
       {SceneTags_Terrain, string_static("terrain")},
       {SceneTags_Geometry, string_static("geometry")},
       {SceneTags_Vfx, string_static("vfx")},
+      {SceneTags_Light, string_static("light")},
       {SceneTags_Debug, string_static("debug")},
   };
 
@@ -353,7 +354,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 400)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 430)),
       .window = window);
   return panelEntity;
 }

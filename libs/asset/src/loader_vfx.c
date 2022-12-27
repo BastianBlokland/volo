@@ -12,7 +12,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-#define vfx_time_max time_days(9999)
+#define vfx_max_time time_days(9999)
 
 static DataReg* g_dataReg;
 static DataMeta g_dataVfxDefMeta;
@@ -65,10 +65,17 @@ typedef struct {
 } VfxSpriteDef;
 
 typedef struct {
+  VfxColorDef radiance;
+  f32         attenuationLinear, attenuationQuad;
+  f32         fadeInTime, fadeOutTime;
+} VfxLightDef;
+
+typedef struct {
   VfxConeDef          cone;
   VfxVec3Def          force;
   AssetVfxSpace       space;
   VfxSpriteDef        sprite;
+  VfxLightDef         light;
   VfxRangeScalarDef   speed;
   f32                 expandForce;
   u32                 count;
@@ -165,11 +172,19 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
 
+    data_reg_struct_t(g_dataReg, VfxLightDef);
+    data_reg_field_t(g_dataReg, VfxLightDef, radiance, t_VfxColorDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxLightDef, attenuationLinear, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxLightDef, attenuationQuad, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_struct_t(g_dataReg, VfxEmitterDef);
     data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
@@ -205,6 +220,11 @@ static String vfx_error_str(const VfxError err) {
 }
 
 ecs_comp_define_public(AssetVfxComp);
+
+static void ecs_destruct_vfx_comp(void* data) {
+  AssetVfxComp* comp = data;
+  alloc_free_array_t(g_alloc_heap, comp->emitters, comp->emitterCount);
+}
 
 ecs_view_define(VfxUnloadView) {
   ecs_access_with(AssetVfxComp);
@@ -267,6 +287,10 @@ static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef*
 }
 
 static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
+  if (string_is_empty(def->atlasEntry)) {
+    *out = (AssetVfxSprite){0};
+    return; // Sprites are optional.
+  }
   out->atlasEntry    = string_hash(def->atlasEntry);
   out->color         = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend         = def->blend;
@@ -281,12 +305,25 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
 }
 
+static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
+  if (def->radiance.a <= f32_epsilon) {
+    *out = (AssetVfxLight){0};
+    return; // Lights are optional.
+  }
+  out->radiance          = vfx_build_color(&def->radiance);
+  out->attenuationLinear = def->attenuationLinear > f32_epsilon ? def->attenuationLinear : 0.7f;
+  out->attenuationQuad   = def->attenuationQuad > f32_epsilon ? def->attenuationQuad : 1.8f;
+  out->fadeInTime        = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime       = (TimeDuration)time_seconds(def->fadeOutTime);
+}
+
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone  = vfx_build_cone(&def->cone);
   out->force = vfx_build_vec3(&def->force);
   out->space = def->space;
 
   vfx_build_sprite(&def->sprite, &out->sprite);
+  vfx_build_light(&def->light, &out->light);
 
   out->speed       = vfx_build_range_scalar(&def->speed);
   out->expandForce = def->expandForce;
@@ -300,7 +337,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
 
   out->lifetime = vfx_build_range_duration(&def->lifetime);
   if (out->lifetime.max <= 0) {
-    out->lifetime.min = out->lifetime.max = vfx_time_max;
+    out->lifetime.min = out->lifetime.max = vfx_max_time;
   }
 
   out->rotation = vfx_build_range_rotation(&def->rotation);
@@ -314,7 +351,9 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
     flags |= AssetVfx_IgnoreTransformRotation;
   }
   out->flags        = flags;
+  out->emitters     = alloc_array_t(g_alloc_heap, AssetVfxEmitter, def->emitters.count);
   out->emitterCount = (u32)def->emitters.count;
+
   for (u32 i = 0; i != out->emitterCount; ++i) {
     vfx_build_emitter(&def->emitters.values[i], &out->emitters[i]);
   }
@@ -323,7 +362,7 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
 ecs_module_init(asset_vfx_module) {
   vfx_datareg_init();
 
-  ecs_register_comp(AssetVfxComp);
+  ecs_register_comp(AssetVfxComp, .destructor = ecs_destruct_vfx_comp);
 
   ecs_register_view(VfxUnloadView);
 

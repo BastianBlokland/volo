@@ -91,13 +91,14 @@ void main() {
   f32v3 splatNormRaw = f32v3(0, 0, 0);
   splatNormRaw += splat.r * textureMulti(u_tex1Normal, in_texcoord * s_splat1UvScale).xyz;
   splatNormRaw += splat.g * textureMulti(u_tex2Normal, in_texcoord * s_splat2UvScale).xyz;
-  const f32v3 splatNorm = normalize(splatNormRaw * 2.0 - 1.0);
+  const f32v3 splatNorm = normal_tex_decode(splatNormRaw);
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
 
   // Output world normal.
-  out_normalTags.xyz = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
+  const f32v3 normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
+  out_normalTags.xyz = normal_tex_encode(normal);
 
   // Output tags.
   const u32 tags   = 1 << tag_terrain_bit;

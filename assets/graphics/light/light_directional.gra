@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/light/light_directional.vert.spv"
+    },
+    {
+      "shaderId": "shaders/light/light_directional.frag.spv"
+    }
+  ],
+  "vertexCount": 3,
+  "renderOrder": -90,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Additive",
+  "depth": "GreaterNoWrite",
+  "cull": "None"
+}

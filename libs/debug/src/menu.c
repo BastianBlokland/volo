@@ -9,7 +9,6 @@
 #include "debug_grid.h"
 #include "debug_inspector.h"
 #include "debug_interface.h"
-#include "debug_light.h"
 #include "debug_log_viewer.h"
 #include "debug_menu.h"
 #include "debug_prefab.h"
@@ -98,11 +97,6 @@ static const struct {
         .iconShape  = UiShape_Brush,
         .openFunc   = debug_rend_panel_open,
         .hotkeyName = string_static("DebugPanelRenderer"),
-    },
-    {
-        .name      = string_static("Light"),
-        .iconShape = UiShape_Light,
-        .openFunc  = debug_light_panel_open,
     },
     {
         .name      = string_static("Interface"),

@@ -8,6 +8,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_light.h"
 #include "scene_lifetime.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -20,7 +21,7 @@
 
 typedef struct {
   u8        emitter;
-  u16       atlasBaseIndex;
+  u16       spriteAtlasBaseIndex;
   f32       lifetimeSec, ageSec;
   f32       scale;
   GeoVector pos;
@@ -130,6 +131,7 @@ ecs_system_define(VfxAssetLoadSys) {
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxParticleRendererComp);
+  ecs_access_write(RendLightComp);
 }
 
 ecs_view_define(UpdateView) {
@@ -261,21 +263,24 @@ static void vfx_system_spawn(
   diag_assert(emitter < asset->emitterCount);
   const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-  const StringHash       atlasEntryName = emitterAsset->sprite.atlasEntry;
-  const AssetAtlasEntry* atlasEntry     = asset_atlas_lookup(atlas, atlasEntryName);
-  if (UNLIKELY(!atlasEntry)) {
-    log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(atlasEntryName)));
-    return;
+  const StringHash spriteAtlasEntryName  = emitterAsset->sprite.atlasEntry;
+  u16              spriteAtlasEntryIndex = sentinel_u16;
+  if (spriteAtlasEntryName) {
+    const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, spriteAtlasEntryName);
+    if (UNLIKELY(!atlasEntry)) {
+      log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
+      return;
+    }
+    if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
+      log_e(
+          "Vfx atlas has not enough entries for flipbook",
+          log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
+          log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
+      return;
+    }
+    diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
+    spriteAtlasEntryIndex = (u16)atlasEntry->atlasIndex;
   }
-  if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
-    log_e(
-        "Vfx atlas has not enough entries for flipbook",
-        log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
-        log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
-    return;
-  }
-
-  diag_assert_msg(atlasEntry->atlasIndex <= u16_max, "Atlas index exceeds limit");
 
   GeoVector spawnPos    = emitterAsset->cone.position;
   f32       spawnRadius = emitterAsset->cone.radius;
@@ -291,13 +296,13 @@ static void vfx_system_spawn(
   }
 
   *dynarray_push_t(&state->instances, VfxInstance) = (VfxInstance){
-      .emitter        = emitter,
-      .atlasBaseIndex = (u16)atlasEntry->atlasIndex,
-      .lifetimeSec    = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
-      .scale          = spawnScale,
-      .pos            = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
-      .rot            = vfx_sample_range_rotation(&emitterAsset->rotation),
-      .velo           = geo_vector_mul(spawnDir, spawnSpeed),
+      .emitter              = emitter,
+      .spriteAtlasBaseIndex = spriteAtlasEntryIndex,
+      .lifetimeSec          = vfx_sample_range_duration(&emitterAsset->lifetime) / (f32)time_second,
+      .scale                = spawnScale,
+      .pos                  = geo_vector_add(spawnPos, vfx_random_in_sphere(spawnRadius)),
+      .rot                  = vfx_sample_range_rotation(&emitterAsset->rotation),
+      .velo                 = geo_vector_mul(spawnDir, spawnSpeed),
   };
 }
 
@@ -358,13 +363,16 @@ static void vfx_system_simulate(
   }
 }
 
-static void vfx_instance_output(
+static void vfx_instance_output_sprite(
     const VfxInstance*  instance,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
     const VfxTrans*     sysTrans,
     const TimeDuration  sysTimeRem) {
 
+  if (sentinel_check(instance->spriteAtlasBaseIndex)) {
+    return; // Sprites are optional.
+  }
   const AssetVfxSpace   space            = asset->emitters[instance->emitter].space;
   const AssetVfxSprite* sprite           = &asset->emitters[instance->emitter].sprite;
   const TimeDuration    instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
@@ -406,12 +414,42 @@ static void vfx_instance_output(
           .position   = pos,
           .rotation   = rot,
           .flags      = vfx_facing_particle_flags(sprite->facing),
-          .atlasIndex = instance->atlasBaseIndex + flipbookIndex,
+          .atlasIndex = instance->spriteAtlasBaseIndex + flipbookIndex,
           .sizeX      = scale * sprite->sizeX,
           .sizeY      = scale * sprite->sizeY,
           .color      = color,
           .opacity    = opacity,
       });
+}
+
+static void vfx_instance_output_light(
+    const VfxInstance*  instance,
+    RendLightComp*      lightOutput,
+    const AssetVfxComp* asset,
+    const VfxTrans*     sysTrans,
+    const TimeDuration  sysTimeRem) {
+
+  const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
+  GeoColor             radiance = light->radiance;
+  if (radiance.a <= f32_epsilon) {
+    return; // Lights are optional.
+  }
+  const TimeDuration  instanceAge      = (TimeDuration)time_seconds(instance->ageSec);
+  const TimeDuration  instanceLifetime = (TimeDuration)time_seconds(instance->lifetimeSec);
+  const TimeDuration  timeRem          = math_min(instanceLifetime - instanceAge, sysTimeRem);
+  const AssetVfxSpace space            = asset->emitters[instance->emitter].space;
+
+  GeoVector pos   = instance->pos;
+  f32       scale = instance->scale;
+  if (space == AssetVfxSpace_Local) {
+    pos = vfx_world_pos(sysTrans, pos);
+    scale *= sysTrans->scale;
+  }
+  radiance.a *= scale;
+  radiance.a *= math_min(instanceAge / (f32)light->fadeInTime, 1.0f);
+  radiance.a *= math_min(timeRem / (f32)light->fadeOutTime, 1.0f);
+
+  rend_light_point(lightOutput, pos, radiance, light->attenuationLinear, light->attenuationQuad);
 }
 
 ecs_system_define(VfxSystemUpdateSys) {
@@ -420,8 +458,9 @@ ecs_system_define(VfxSystemUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const VfxParticleRendererComp* rend = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  const SceneTimeComp*           time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeComp*           time  = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxParticleRendererComp* rend  = ecs_view_read_t(globalItr, VfxParticleRendererComp);
+  RendLightComp*                 light = ecs_view_write_t(globalItr, RendLightComp);
 
   RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
   const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
@@ -465,7 +504,8 @@ ecs_system_define(VfxSystemUpdateSys) {
     vfx_system_simulate(state, asset, atlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output(instance, draw, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_light(instance, light, asset, &sysTrans, sysTimeRem);
     }
   }
 }

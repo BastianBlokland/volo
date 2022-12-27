@@ -1,9 +1,9 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
-#include "rend_light.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
@@ -32,13 +32,13 @@ typedef struct {
   GeoMatrix proj, projInv, viewProj, viewProjInv;
   GeoVector camPosition;
   GeoQuat   camRotation;
-  f32       aspectRatio;
+  GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
 } RendPainterGlobalData;
 
 ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendLightGlobalComp);
+  ecs_access_read(RendGlobalSettingsComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
@@ -123,59 +123,34 @@ static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const R
   }
 }
 
-static void painter_push_shade(
-    RendPainterComp* painter, const RendLightGlobalComp* lightGlobal, RvkPass* pass) {
+static void painter_push_compose(
+    RendPainterComp*              painter,
+    const RendSettingsComp*       settings,
+    const RendGlobalSettingsComp* settingsGlobal,
+    RvkPass*                      pass) {
 
   typedef struct {
     ALIGNAS(16)
-    GeoVector sunRadiance; // xyz: sunRadiance, w: unused.
-    GeoVector sunDir;      // xyz: sunDir, w: unused.
-    f32       ambient;
-  } ShadeBaseData;
+    GeoVector packed; // x: ambient, y: mode, z: unused, w: unused.
+  } ComposeData;
 
-  RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
-  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeBaseGraphic);
+  RvkRepository*        repo      = rvk_canvas_repository(painter->canvas);
+  const RvkRepositoryId graphicId = settings->composeMode == RendComposeMode_Normal
+                                        ? RvkRepositoryId_ComposeGraphic
+                                        : RvkRepositoryId_ComposeDebugGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
-    ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->sunRadiance.x = lightGlobal->sunRadiance.r * lightGlobal->sunRadiance.a;
-    data->sunRadiance.y = lightGlobal->sunRadiance.g * lightGlobal->sunRadiance.a;
-    data->sunRadiance.z = lightGlobal->sunRadiance.b * lightGlobal->sunRadiance.a;
-    data->sunRadiance.w = 1.0;
-    data->sunDir        = geo_quat_rotate(lightGlobal->sunRotation, geo_forward);
-    data->ambient       = lightGlobal->ambient;
+    ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
+    data->packed.x    = settingsGlobal->lightAmbient;
+    data->packed.y    = bits_u32_as_f32(settings->composeMode);
 
     painter_push(
         painter,
         (RvkPassDraw){
             .graphic   = graphic,
             .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ShadeBaseData)),
-        });
-  }
-}
-
-static void painter_push_shade_debug(
-    RendPainterComp* painter, const RendSettingsComp* settings, RvkPass* pass) {
-
-  typedef struct {
-    ALIGNAS(16)
-    u32 mode;
-  } ShadeDebugData;
-
-  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
-  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
-  if (graphic && rvk_pass_prepare(pass, graphic)) {
-
-    ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
-    *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
-
-    painter_push(
-        painter,
-        (RvkPassDraw){
-            .graphic   = graphic,
-            .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ShadeDebugData)),
+            .drawData  = mem_create(data, sizeof(ComposeData)),
         });
   }
 }
@@ -188,11 +163,19 @@ static void painter_push_forward(
     EcsView*                drawView,
     EcsView*                graphicView) {
 
+  RendDrawFlags ignoreFlags = 0;
+  ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
+
+  if (settings->composeMode != RendComposeMode_Normal) {
+    // Disable lighting when using any of the debug compose modes.
+    ignoreFlags |= RendDrawFlags_Light;
+  }
+
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (rend_draw_flags(draw) & RendDrawFlags_Geometry) {
-      continue; // Ignore geometry (should be drawn in the geometry pass).
+    if (rend_draw_flags(draw) & ignoreFlags) {
+      continue;
     }
     if (!rend_draw_gather(draw, view, settings)) {
       continue; // Draw culled.
@@ -297,38 +280,42 @@ static void painter_flush(RendPainterComp* painter, RvkPass* pass) {
 }
 
 static bool painter_draw(
-    RendPainterComp*           painter,
-    const RendSettingsComp*    settings,
-    const RendLightGlobalComp* lightGlobal,
-    const GapWindowComp*       win,
-    const EcsEntityId          camEntity,
-    const SceneCameraComp*     cam,
-    const SceneTransformComp*  trans,
-    EcsView*                   drawView,
-    EcsView*                   graphicView) {
+    RendPainterComp*              painter,
+    const RendSettingsComp*       settings,
+    const RendGlobalSettingsComp* settingsGlobal,
+    const GapWindowComp*          win,
+    const EcsEntityId             camEntity,
+    const SceneCameraComp*        cam,
+    const SceneTransformComp*     trans,
+    EcsView*                      drawView,
+    EcsView*                      graphicView) {
 
-  const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
-  const RvkSize   resolution = rvk_size((u16)winSize.width, (u16)winSize.height);
-  const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
+  const GapVector winSize      = gap_window_param(win, GapParam_WindowSize);
+  const RvkSize   canvasSize   = rvk_size((u16)winSize.width, (u16)winSize.height);
+  const f32       canvasAspect = (f32)winSize.width / (f32)winSize.height;
+  const bool      draw         = rvk_canvas_begin(painter->canvas, settings, canvasSize);
   if (draw) {
-    const GeoVector      origin   = trans ? trans->position : geo_vector(0);
-    const GeoMatrix      proj     = painter_proj_matrix(win, cam);
-    const GeoMatrix      viewProj = painter_view_proj_matrix(&proj, trans);
-    const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
-    const RendView       view     = rend_view_create(camEntity, origin, &viewProj, filter);
+    const GeoVector      origin       = trans ? trans->position : geo_vector(0);
+    const GeoMatrix      proj         = painter_proj_matrix(win, cam);
+    const GeoMatrix      viewProj     = painter_view_proj_matrix(&proj, trans);
+    const SceneTagFilter filter       = cam ? cam->filter : (SceneTagFilter){0};
+    const RendView       view         = rend_view_create(camEntity, origin, &viewProj, filter);
+    RvkPass*             geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+    RvkPass*             forwardPass  = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
 
     const RendPainterGlobalData globalData = {
-        .proj        = proj,
-        .projInv     = geo_matrix_inverse(&proj),
-        .viewProj    = viewProj,
-        .viewProjInv = geo_matrix_inverse(&viewProj),
-        .camPosition = trans ? trans->position : geo_vector(0),
-        .camRotation = trans ? trans->rotation : geo_quat_ident,
-        .aspectRatio = (f32)resolution.width / (f32)resolution.height,
+        .proj         = proj,
+        .projInv      = geo_matrix_inverse(&proj),
+        .viewProj     = viewProj,
+        .viewProjInv  = geo_matrix_inverse(&viewProj),
+        .camPosition  = trans ? trans->position : geo_vector(0),
+        .camRotation  = trans ? trans->rotation : geo_quat_ident,
+        .resolution.x = (f32)rvk_pass_size(geometryPass).width,
+        .resolution.y = (f32)rvk_pass_size(geometryPass).height,
+        .resolution.z = canvasAspect,
     };
 
     // Geometry pass.
-    RvkPass* geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
     rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
     painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
     rvk_pass_begin(geometryPass, geo_color_clear);
@@ -336,17 +323,12 @@ static bool painter_draw(
     rvk_pass_end(geometryPass);
 
     // Forward pass.
-    RvkPass* forwardPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
     rvk_pass_use_depth(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
-    if (settings->shadeDebug == RendShadeDebug_None) {
-      painter_push_shade(painter, lightGlobal, forwardPass);
-    } else {
-      painter_push_shade_debug(painter, settings, forwardPass);
-    }
+    painter_push_compose(painter, settings, settingsGlobal, forwardPass);
     painter_push_simple(painter, forwardPass, RvkRepositoryId_SkyGraphic);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
@@ -400,7 +382,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   if (!globalItr) {
     return;
   }
-  const RendLightGlobalComp* lightGlobal = ecs_view_read_t(globalItr, RendLightGlobalComp);
+  const RendGlobalSettingsComp* settingsGlobal = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
@@ -415,7 +397,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     anyPainterDrawn |= painter_draw(
-        painter, settings, lightGlobal, win, entity, camera, transform, drawView, graphicView);
+        painter, settings, settingsGlobal, win, entity, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {

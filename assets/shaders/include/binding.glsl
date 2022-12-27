@@ -72,6 +72,7 @@ const u32 c_setInstance = 4;
  */
 #define in_vertexIndex gl_VertexIndex
 #define in_instanceIndex gl_InstanceIndex
+#define in_fragCoord gl_FragCoord
 #define out_vertexPosition gl_Position
 #define out_pointSize gl_PointSize
 

@@ -22,8 +22,8 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_internal(0) out f32v2 out_texcoord;
 
 void main() {
-  const f32v2 size = u_global.aspectRatio < 1 ? f32v2(1, 1 * u_global.aspectRatio)
-                                              : f32v2(1 / u_global.aspectRatio, 1);
+  const f32   aspectRatio = u_global.resolution.z;
+  const f32v2 size        = aspectRatio < 1 ? f32v2(1, 1 * aspectRatio) : f32v2(1 / aspectRatio, 1);
 
   out_vertexPosition = c_unitPositions[in_vertexIndex] * f32v4(size, 0, 1);
   out_texcoord       = c_unitTexCoords[in_vertexIndex];

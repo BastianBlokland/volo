@@ -7,6 +7,7 @@ message(STATUS "> assets")
 configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
+    shaders/compose.frag
     shaders/debug/debug_skinning.frag
     shaders/debug/debug_skinning.vert
     shaders/debug/grid.frag
@@ -17,14 +18,17 @@ configure_shaders(volo_shaders
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
     shaders/fullscreen.vert
+    shaders/light/light_directional.frag
+    shaders/light/light_directional.vert
+    shaders/light/light_point_debug.frag
+    shaders/light/light_point.frag
+    shaders/light/light_point.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
-    shaders/shade_base.frag
-    shaders/shade_debug.frag
     shaders/standard_position.vert
     shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert

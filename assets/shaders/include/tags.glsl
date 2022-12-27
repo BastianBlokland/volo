@@ -11,6 +11,7 @@
 #define tag_unit_bit 5
 #define tag_selected_bit 6
 #define tag_damaged_bit 7
+#define tag_light_bit 8
 
 /**
  * Query if the given tag bit is set.

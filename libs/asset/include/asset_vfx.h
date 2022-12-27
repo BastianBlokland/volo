@@ -41,6 +41,12 @@ typedef struct {
 } AssetVfxSprite;
 
 typedef struct {
+  GeoColor     radiance;
+  f32          attenuationLinear, attenuationQuad;
+  TimeDuration fadeInTime, fadeOutTime;
+} AssetVfxLight;
+
+typedef struct {
   f32       angle;
   f32       radius;
   GeoVector position;
@@ -65,6 +71,7 @@ typedef struct {
   GeoVector             force;
   AssetVfxSpace         space;
   AssetVfxSprite        sprite;
+  AssetVfxLight         light;
   AssetVfxRangeScalar   speed;
   f32                   expandForce;
   u32                   count;
@@ -79,7 +86,7 @@ typedef enum {
 } AssetVfxFlags;
 
 ecs_comp_extern_public(AssetVfxComp) {
-  AssetVfxFlags   flags;
-  u32             emitterCount;
-  AssetVfxEmitter emitters[asset_vfx_max_emitters];
+  AssetVfxFlags    flags;
+  u32              emitterCount;
+  AssetVfxEmitter* emitters;
 };

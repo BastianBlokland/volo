@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
@@ -9,6 +10,8 @@
 #include "rend_resource.h"
 #include "rend_settings.h"
 #include "ui.h"
+
+#include "widget_internal.h"
 
 // clang-format off
 
@@ -35,14 +38,16 @@ typedef enum {
   DebugRendTab_Settings,
   DebugRendTab_Draws,
   DebugRendTab_Resources,
+  DebugRendTab_Light,
 
   DebugRendTab_Count,
 } DebugRendTab;
 
 static const String g_rendTabNames[] = {
-    string_static("Settings"),
+    string_static("\uE8B8 Settings"),
     string_static("Draws"),
     string_static("Resources"),
+    string_static("\uE518 Light"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
@@ -100,13 +105,13 @@ static const String g_presentOptions[] = {
     string_static("Mailbox"),
 };
 
-static const String g_shadeDebugNames[] = {
-    string_static("None"),
-    string_static("Color"),
-    string_static("Roughness"),
+static const String g_composeModeNames[] = {
     string_static("Normal"),
-    string_static("Depth"),
-    string_static("Tags"),
+    string_static("DebugColor"),
+    string_static("DebugRoughness"),
+    string_static("DebugNormal"),
+    string_static("DebugDepth"),
+    string_static("DebugTags"),
 };
 
 typedef struct {
@@ -138,8 +143,9 @@ ecs_comp_define(DebugRendPanelComp) {
   DynString         nameFilter;
   DebugRendDrawSort drawSortMode;
   DebugRendResSort  resSortMode;
-  DynArray          draws;     // DebugDrawInfo[]
-  DynArray          resources; // DebugResourceInfo[]
+  DynArray          draws;          // DebugDrawInfo[]
+  DynArray          resources;      // DebugResourceInfo[]
+  GeoVector         sunRotEulerDeg; // Copy of rotation as euler angles to use while editing.
   bool              freeze;
   bool              hideEmptyDraws;
 };
@@ -222,7 +228,7 @@ static void rend_settings_tab_draw(
     RendSettingsComp*       settings,
     RendGlobalSettingsComp* globalSettings) {
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
 
   ui_table_next_row(canvas, &table);
@@ -262,9 +268,10 @@ static void rend_settings_tab_draw(
       canvas, (u32*)&settings->flags, RendFlags_FrustumCulling, .tooltip = g_tooltipFrustumCulling);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Shade debug"));
+  ui_label(canvas, string_lit("Compose"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&settings->shadeDebug, g_shadeDebugNames, array_elems(g_shadeDebugNames));
+  ui_select(
+      canvas, (i32*)&settings->composeMode, g_composeModeNames, array_elems(g_composeModeNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
@@ -277,6 +284,17 @@ static void rend_settings_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug light"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugLight);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug Gpu"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugGpu, .tooltip = g_tooltipDebugGpu);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
@@ -284,12 +302,6 @@ static void rend_settings_tab_draw(
       (u32*)&globalSettings->flags,
       RendGlobalFlags_Validation,
       .tooltip = g_tooltipValidation);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Gpu debug"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_Debug, .tooltip = g_tooltipDebugGpu);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));
@@ -394,7 +406,7 @@ static void rend_draw_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCo
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
@@ -552,7 +564,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
@@ -601,6 +613,34 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_layout_container_pop(canvas);
 }
 
+static void rend_light_tab_draw(
+    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendGlobalSettingsComp* globalSettings) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sun light"));
+  ui_table_next_column(canvas, &table);
+  debug_widget_editor_color(canvas, &globalSettings->lightSunRadiance, UiWidget_Default);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sun rotation"));
+  ui_table_next_column(canvas, &table);
+  if (debug_widget_editor_vec3(canvas, &panelComp->sunRotEulerDeg, UiWidget_DirtyWhileEditing)) {
+    const GeoVector eulerRad         = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
+    globalSettings->lightSunRotation = geo_quat_from_euler(eulerRad);
+  } else {
+    const GeoVector eulerRad  = geo_quat_to_euler(globalSettings->lightSunRotation);
+    panelComp->sunRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Ambient"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &globalSettings->lightAmbient);
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -627,6 +667,9 @@ static void rend_panel_draw(
   case DebugRendTab_Resources:
     rend_resource_info_query(panelComp, world);
     rend_resource_tab_draw(canvas, panelComp);
+    break;
+  case DebugRendTab_Light:
+    rend_light_tab_draw(canvas, panelComp, globalSettings);
     break;
   }
 
@@ -702,7 +745,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(.size = ui_vector(710, 400)),
+      .panel          = ui_panel(.size = ui_vector(800, 430)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),

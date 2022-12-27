@@ -28,6 +28,7 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Unit"),
       string_static("Selected"),
       string_static("Damaged"),
+      string_static("Light"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
   return g_names[index];

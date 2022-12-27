@@ -1,5 +1,7 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_color.h"
+#include "geo_quat.h"
 
 typedef enum {
   RendFlags_FrustumCulling = 1 << 0,
@@ -36,30 +38,35 @@ typedef enum {
 } RendPresentMode;
 
 typedef enum {
-  RendShadeDebug_None,
-  RendShadeDebug_Color,
-  RendShadeDebug_Roughness,
-  RendShadeDebug_Normal,
-  RendShadeDebug_Depth,
-  RendShadeDebug_Tags,
-} RendShadeDebug;
+  RendComposeMode_Normal,
+  RendComposeMode_DebugColor,
+  RendComposeMode_DebugRoughness,
+  RendComposeMode_DebugNormal,
+  RendComposeMode_DebugDepth,
+  RendComposeMode_DebugTags,
+} RendComposeMode;
 
 ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
-  RendShadeDebug  shadeDebug;
+  RendComposeMode composeMode;
   f32             resolutionScale;
 };
 
 typedef enum {
   RendGlobalFlags_Validation = 1 << 0,
-  RendGlobalFlags_Debug      = 1 << 1,
-  RendGlobalFlags_Verbose    = 1 << 2,
+  RendGlobalFlags_Verbose    = 1 << 1,
+  RendGlobalFlags_DebugGpu   = 1 << 2,
+  RendGlobalFlags_DebugLight = 1 << 3,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendGlobalSettingsComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
+
+  f32      lightAmbient;
+  GeoColor lightSunRadiance;
+  GeoQuat  lightSunRotation;
 };
 
 void rend_settings_to_default(RendSettingsComp*);
