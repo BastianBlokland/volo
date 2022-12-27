@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
@@ -122,52 +123,34 @@ static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const R
   }
 }
 
-static void painter_push_shade(
-    RendPainterComp* painter, const RendGlobalSettingsComp* settingsGlobal, RvkPass* pass) {
+static void painter_push_compose(
+    RendPainterComp*              painter,
+    const RendSettingsComp*       settings,
+    const RendGlobalSettingsComp* settingsGlobal,
+    RvkPass*                      pass) {
 
   typedef struct {
     ALIGNAS(16)
-    f32 ambient;
-  } ShadeBaseData;
+    GeoVector packed; // x: ambient, y: mode, z: unused, w: unused.
+  } ComposeData;
 
-  RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
-  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeBaseGraphic);
+  RvkRepository*        repo      = rvk_canvas_repository(painter->canvas);
+  const RvkRepositoryId graphicId = settings->composeMode == RendComposeMode_Normal
+                                        ? RvkRepositoryId_ComposeGraphic
+                                        : RvkRepositoryId_ComposeDebugGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(pass, graphic)) {
 
-    ShadeBaseData* data = alloc_alloc_t(g_alloc_scratch, ShadeBaseData);
-    data->ambient       = settingsGlobal->lightAmbient;
+    ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
+    data->packed.x    = settingsGlobal->lightAmbient;
+    data->packed.y    = bits_u32_as_f32(settings->composeMode);
 
     painter_push(
         painter,
         (RvkPassDraw){
             .graphic   = graphic,
             .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ShadeBaseData)),
-        });
-  }
-}
-
-static void painter_push_shade_debug(
-    RendPainterComp* painter, const RendSettingsComp* settings, RvkPass* pass) {
-
-  typedef struct {
-    ALIGNAS(16)
-    u32 mode;
-  } ShadeDebugData;
-
-  RvkRepository* repo = rvk_canvas_repository(painter->canvas);
-  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ShadeDebugGraphic);
-  if (graphic && rvk_pass_prepare(pass, graphic)) {
-
-    ShadeDebugData* data = alloc_alloc_t(g_alloc_scratch, ShadeDebugData);
-    *data                = (ShadeDebugData){.mode = (u32)settings->shadeDebug};
-
-    painter_push(
-        painter,
-        (RvkPassDraw){
-            .graphic   = graphic,
-            .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ShadeDebugData)),
+            .drawData  = mem_create(data, sizeof(ComposeData)),
         });
   }
 }
@@ -337,11 +320,7 @@ static bool painter_draw(
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
-    if (settings->shadeDebug == RendShadeDebug_None) {
-      painter_push_shade(painter, settingsGlobal, forwardPass);
-    } else {
-      painter_push_shade_debug(painter, settings, forwardPass);
-    }
+    painter_push_compose(painter, settings, settingsGlobal, forwardPass);
     painter_push_simple(painter, forwardPass, RvkRepositoryId_SkyGraphic);
     painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {

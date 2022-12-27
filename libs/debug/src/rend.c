@@ -105,13 +105,13 @@ static const String g_presentOptions[] = {
     string_static("Mailbox"),
 };
 
-static const String g_shadeDebugNames[] = {
-    string_static("None"),
-    string_static("Color"),
-    string_static("Roughness"),
+static const String g_composeModeNames[] = {
     string_static("Normal"),
-    string_static("Depth"),
-    string_static("Tags"),
+    string_static("DebugColor"),
+    string_static("DebugRoughness"),
+    string_static("DebugNormal"),
+    string_static("DebugDepth"),
+    string_static("DebugTags"),
 };
 
 typedef struct {
@@ -268,9 +268,10 @@ static void rend_settings_tab_draw(
       canvas, (u32*)&settings->flags, RendFlags_FrustumCulling, .tooltip = g_tooltipFrustumCulling);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Shade debug"));
+  ui_label(canvas, string_lit("Compose"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&settings->shadeDebug, g_shadeDebugNames, array_elems(g_shadeDebugNames));
+  ui_select(
+      canvas, (i32*)&settings->composeMode, g_composeModeNames, array_elems(g_composeModeNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
