@@ -169,7 +169,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       renderer->vkDrawBuffer,
       renderer->uniformPool,
       renderer->stopwatch,
-      RvkPassFlags_Clear | RvkPassFlags_OutputColor2 | RvkPassFlags_OutputDepth,
+      RvkPassFlags_Clear | RvkPassFlags_Color1 | RvkPassFlags_Color2 | RvkPassFlags_DepthOutput,
       string_lit("geometry"));
 
   renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(
@@ -177,7 +177,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       renderer->vkDrawBuffer,
       renderer->uniformPool,
       renderer->stopwatch,
-      RvkPassFlags_ClearColor | RvkPassFlags_ExternalDepth,
+      RvkPassFlags_ClearColor | RvkPassFlags_Color1 | RvkPassFlags_ExternalDepth,
       string_lit("forward"));
 
   return renderer;

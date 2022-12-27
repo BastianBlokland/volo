@@ -52,7 +52,10 @@ struct sRvkPass {
 };
 
 static u32 rvk_attach_color_count(const RvkPassFlags flags) {
-  return (flags & RvkPassFlags_OutputColor2) ? 2 : 1;
+  u32 result = 0;
+  result += (flags & RvkPassFlags_Color1) != 0;
+  result += (flags & RvkPassFlags_Color2) != 0;
+  return result;
 }
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
@@ -83,7 +86,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
                                                           : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .storeOp        = (flags & RvkPassFlags_OutputDepth) ? VK_ATTACHMENT_STORE_OP_STORE
+      .storeOp        = (flags & RvkPassFlags_DepthOutput) ? VK_ATTACHMENT_STORE_OP_STORE
                                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -270,16 +273,16 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
     pass->attachColorMask |= 1 << i;
   }
 
-  RvkImageCapability attachCap = 0;
-  if (pass->flags & RvkPassFlags_OutputDepth) {
-    attachCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  RvkImageCapability depthCap = 0;
+  if (pass->flags & RvkPassFlags_DepthOutput) {
+    depthCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
   if (pass->flags & RvkPassFlags_ExternalDepth) {
-    attachCap |= RvkImageCapability_TransferDest;
+    depthCap |= RvkImageCapability_TransferDest;
   }
 
   pass->attachDepth =
-      rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, attachCap);
+      rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, depthCap);
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass, pass->attachColors, &pass->attachDepth);
 }
@@ -417,12 +420,13 @@ VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPas
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color1:
+    diag_assert_msg(pass->flags & RvkPassFlags_Color1, "Pass does not have a color1 output");
     return &pass->attachColors[0];
   case RvkPassOutput_Color2:
-    diag_assert_msg(pass->flags & RvkPassFlags_OutputColor2, "Pass does not output color2");
+    diag_assert_msg(pass->flags & RvkPassFlags_Color2, "Pass does not have a color2 output");
     return &pass->attachColors[1];
   case RvkPassOutput_Depth:
-    diag_assert_msg(pass->flags & RvkPassFlags_OutputDepth, "Pass does not output depth");
+    diag_assert_msg(pass->flags & RvkPassFlags_DepthOutput, "Pass does not output depth");
     return &pass->attachDepth;
   case RvkPassOutput_Count:
     break;
