@@ -163,11 +163,19 @@ static void painter_push_forward(
     EcsView*                drawView,
     EcsView*                graphicView) {
 
+  RendDrawFlags ignoreFlags = 0;
+  ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
+
+  if (settings->composeMode != RendComposeMode_Normal) {
+    // Disable lighting when using any of the debug compose modes.
+    ignoreFlags |= RendDrawFlags_Light;
+  }
+
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (rend_draw_flags(draw) & RendDrawFlags_Geometry) {
-      continue; // Ignore geometry (should be drawn in the geometry pass).
+    if (rend_draw_flags(draw) & ignoreFlags) {
+      continue;
     }
     if (!rend_draw_gather(draw, view, settings)) {
       continue; // Draw culled.
