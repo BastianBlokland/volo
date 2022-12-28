@@ -127,7 +127,7 @@ static void painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsV
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
-      continue; // Not a geometry draw.
+      continue; // Shouldn't be included in the geometry pass.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
@@ -211,7 +211,7 @@ static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, Ecs
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if ((rend_draw_flags(draw) & (RendDrawFlags_StandardGeometry | RendDrawFlags_Terrain)) == 0) {
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
       continue; // Not a draw we can render a wireframe for.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
@@ -253,9 +253,8 @@ static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView,
 
   EcsIterator* graphicItr = ecs_view_itr(graView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp*       draw      = ecs_view_write_t(drawItr, RendDrawComp);
-    const RendDrawFlags drawFlags = rend_draw_flags(draw);
-    if ((drawFlags & RendDrawFlags_Skinned) == 0) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Skinned)) {
       continue; // Not a skinned draw.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
@@ -303,36 +302,40 @@ static bool rend_canvas_paint(
   }
 
   // Geometry pass.
-  RvkPass*         geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
-  RendPaintContext geoCtx  = painter_context(
-      &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, geoPass);
-  rvk_pass_bind_global_data(geoPass, mem_var(geoCtx.data));
-  painter_push_geometry(&geoCtx, drawView, graphicView);
-  rvk_pass_begin(geoPass, geo_color_clear);
-  painter_flush(&geoCtx);
-  rvk_pass_end(geoPass);
+  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  {
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, geoPass);
+    rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
+    painter_push_geometry(&ctx, drawView, graphicView);
+    rvk_pass_begin(geoPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(geoPass);
+  }
 
   // Forward pass.
-  RvkPass*         fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
-  RendPaintContext fwdCtx  = painter_context(
-      &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, fwdPass);
-  rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
-  rvk_pass_bind_global_data(fwdPass, mem_var(fwdCtx.data));
-  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
-  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
-  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
-  painter_push_compose(&fwdCtx);
-  painter_push_simple(&fwdCtx, RvkRepositoryId_SkyGraphic);
-  painter_push_forward(&fwdCtx, drawView, graphicView);
-  if (settings->flags & RendFlags_Wireframe) {
-    painter_push_wireframe(&fwdCtx, drawView, graphicView);
+  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  {
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, fwdPass);
+    rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
+    rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
+    painter_push_compose(&ctx);
+    painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
+    painter_push_forward(&ctx, drawView, graphicView);
+    if (settings->flags & RendFlags_Wireframe) {
+      painter_push_wireframe(&ctx, drawView, graphicView);
+    }
+    if (settings->flags & RendFlags_DebugSkinning) {
+      painter_push_debugskinning(&ctx, drawView, graphicView);
+    }
+    rvk_pass_begin(fwdPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(fwdPass);
   }
-  if (settings->flags & RendFlags_DebugSkinning) {
-    painter_push_debugskinning(&fwdCtx, drawView, graphicView);
-  }
-  rvk_pass_begin(fwdPass, geo_color_clear);
-  painter_flush(&fwdCtx);
-  rvk_pass_end(fwdPass);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
