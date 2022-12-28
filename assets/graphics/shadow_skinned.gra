@@ -1,0 +1,15 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard_skinned_position.vert.spv"
+    },
+    {
+      "shaderId": "shaders/depth_only.frag.spv"
+    }
+  ],
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}

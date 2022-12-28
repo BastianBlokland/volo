@@ -35,6 +35,16 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("textures/missing_cube.atx"),
     },
     {
+        .repoId     = RvkRepositoryId_ShadowGraphic,
+        .assetId    = string_static("graphics/shadow.gra"),
+        .reloadable = true,
+    },
+    {
+        .repoId     = RvkRepositoryId_ShadowSkinnedGraphic,
+        .assetId    = string_static("graphics/shadow_skinned.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_WireframeGraphic,
         .assetId    = string_static("graphics/wireframe.gra"),
         .reloadable = true,
