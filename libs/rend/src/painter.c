@@ -27,16 +27,6 @@ static void ecs_destruct_painter(void* data) {
   rvk_canvas_destroy(comp->canvas);
 }
 
-typedef struct {
-  ALIGNAS(16)
-  GeoMatrix proj, projInv, viewProj, viewProjInv;
-  GeoVector camPosition;
-  GeoQuat   camRotation;
-  GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
-} RendPainterGlobalData;
-
-ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
-
 ecs_view_define(GlobalView) {
   ecs_access_read(RendGlobalSettingsComp);
   ecs_access_without(RendResetComp);
@@ -69,84 +59,116 @@ static i8 painter_compare_pass_draw(const void* a, const void* b) {
   return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
 }
 
-static GeoMatrix painter_proj_matrix(const GapWindowComp* win, const SceneCameraComp* cam) {
+static RvkSize painter_win_size(const GapWindowComp* win) {
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
-  const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
-  if (LIKELY(cam)) {
-    return scene_camera_proj(cam, aspect);
-  }
-  // Fall back to a basic orthographic projection.
-  return geo_matrix_proj_ortho(2.0f, 2.0f / aspect, -100.0f, 100.0f);
+  return rvk_size((u16)winSize.width, (u16)winSize.height);
 }
 
-static GeoMatrix painter_view_proj_matrix(const GeoMatrix* proj, const SceneTransformComp* trans) {
-  const GeoMatrix view = LIKELY(trans) ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
-  return geo_matrix_mul(proj, &view);
+typedef struct {
+  ALIGNAS(16)
+  GeoMatrix proj, projInv, viewProj, viewProjInv;
+  GeoVector camPosition;
+  GeoQuat   camRotation;
+  GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
+} RendPainterGlobalData;
+
+ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  RendPainterComp*              painter;
+  RvkPass*                      pass;
+  const RendSettingsComp*       settings;
+  const RendGlobalSettingsComp* settingsGlobal;
+  RendPainterGlobalData         data;
+  RendView                      view;
+} RendPaintContext;
+
+static RendPaintContext painter_context(
+    const GeoMatrix*              cameraMatrix,
+    const GeoMatrix*              projMatrix,
+    const EcsEntityId             sceneCameraEntity,
+    const SceneTagFilter          sceneFilter,
+    RendPainterComp*              painter,
+    const RendSettingsComp*       settings,
+    const RendGlobalSettingsComp* settingsGlobal,
+    RvkPass*                      pass) {
+  const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
+  const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
+  const GeoVector cameraPosition = geo_matrix_to_translation(cameraMatrix);
+  const GeoQuat   cameraRotation = geo_matrix_to_quat(cameraMatrix);
+
+  return (RendPaintContext){
+      .painter        = painter,
+      .settings       = settings,
+      .settingsGlobal = settingsGlobal,
+      .pass           = pass,
+      .data =
+          {
+              .proj         = *projMatrix,
+              .projInv      = geo_matrix_inverse(projMatrix),
+              .viewProj     = viewProjMatrix,
+              .viewProjInv  = geo_matrix_inverse(&viewProjMatrix),
+              .camPosition  = cameraPosition,
+              .camRotation  = cameraRotation,
+              .resolution.x = rvk_pass_size(pass).width,
+              .resolution.y = rvk_pass_size(pass).height,
+              .resolution.z = (f32)rvk_pass_size(pass).width / (f32)rvk_pass_size(pass).height,
+          },
+      .view = rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter),
+  };
 }
 
-static void painter_push(RendPainterComp* painter, const RvkPassDraw draw) {
-  *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = draw;
+static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
+  *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
 
-static void painter_push_geometry(
-    RendPainterComp*        painter,
-    const RendSettingsComp* settings,
-    const RendView*         view,
-    RvkPass*                pass,
-    EcsView*                drawView,
-    EcsView*                graphicView) {
-
+static void painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
       continue; // Not a geometry draw.
     }
-    if (!rend_draw_gather(draw, view, settings)) {
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
     if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(pass, graphic)) {
-      painter_push(painter, rend_draw_output(draw, graphic, null));
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic, null));
     }
   }
 }
 
-static void painter_push_simple(RendPainterComp* painter, RvkPass* pass, const RvkRepositoryId id) {
-  RvkRepository* repo    = rvk_canvas_repository(painter->canvas);
+static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id) {
+  RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
   RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
-  if (graphic && rvk_pass_prepare(pass, graphic)) {
-    painter_push(painter, (RvkPassDraw){.graphic = graphic, .instCount = 1});
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    painter_push(ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1});
   }
 }
 
-static void painter_push_compose(
-    RendPainterComp*              painter,
-    const RendSettingsComp*       settings,
-    const RendGlobalSettingsComp* settingsGlobal,
-    RvkPass*                      pass) {
-
+static void painter_push_compose(RendPaintContext* ctx) {
   typedef struct {
     ALIGNAS(16)
     GeoVector packed; // x: ambient, y: mode, z: unused, w: unused.
   } ComposeData;
 
-  RvkRepository*        repo      = rvk_canvas_repository(painter->canvas);
-  const RvkRepositoryId graphicId = settings->composeMode == RendComposeMode_Normal
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = ctx->settings->composeMode == RendComposeMode_Normal
                                         ? RvkRepositoryId_ComposeGraphic
                                         : RvkRepositoryId_ComposeDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(pass, graphic)) {
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
 
     ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
-    data->packed.x    = settingsGlobal->lightAmbient;
-    data->packed.y    = bits_u32_as_f32(settings->composeMode);
+    data->packed.x    = ctx->settingsGlobal->lightAmbient;
+    data->packed.y    = bits_u32_as_f32(ctx->settings->composeMode);
 
     painter_push(
-        painter,
+        ctx,
         (RvkPassDraw){
             .graphic   = graphic,
             .instCount = 1,
@@ -155,18 +177,11 @@ static void painter_push_compose(
   }
 }
 
-static void painter_push_forward(
-    RendPainterComp*        painter,
-    const RendSettingsComp* settings,
-    const RendView*         view,
-    RvkPass*                pass,
-    EcsView*                drawView,
-    EcsView*                graphicView) {
-
+static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
 
-  if (settings->composeMode != RendComposeMode_Normal) {
+  if (ctx->settings->composeMode != RendComposeMode_Normal) {
     // Disable lighting when using any of the debug compose modes.
     ignoreFlags |= RendDrawFlags_Light;
   }
@@ -177,28 +192,21 @@ static void painter_push_forward(
     if (rend_draw_flags(draw) & ignoreFlags) {
       continue;
     }
-    if (!rend_draw_gather(draw, view, settings)) {
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
     if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(pass, graphic)) {
-      painter_push(painter, rend_draw_output(draw, graphic, null));
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic, null));
     }
   }
 }
 
-static void painter_push_wireframe(
-    RendPainterComp*        painter,
-    const RendSettingsComp* settings,
-    const RendView*         view,
-    RvkPass*                pass,
-    EcsView*                drawView,
-    EcsView*                graphicView) {
-
-  RvkRepository* repo       = rvk_canvas_repository(painter->canvas);
+static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
+  RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
   EcsIterator*   graphicItr = ecs_view_itr(graphicView);
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
@@ -206,7 +214,7 @@ static void painter_push_wireframe(
     if ((rend_draw_flags(draw) & (RendDrawFlags_StandardGeometry | RendDrawFlags_Terrain)) == 0) {
       continue; // Not a draw we can render a wireframe for.
     }
-    if (!rend_draw_gather(draw, view, settings)) {
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
     if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
@@ -229,35 +237,28 @@ static void painter_push_wireframe(
     if (!graphicWireframe) {
       continue; // Wireframe graphic not loaded.
     }
-    if (rvk_pass_prepare(pass, graphicWireframe) && rvk_pass_prepare_mesh(pass, mesh)) {
-      painter_push(painter, rend_draw_output(draw, graphicWireframe, mesh));
+    if (rvk_pass_prepare(ctx->pass, graphicWireframe) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+      painter_push(ctx, rend_draw_output(draw, graphicWireframe, mesh));
     }
   }
 }
 
-static void painter_push_debugskinning(
-    RendPainterComp*        painter,
-    const RendSettingsComp* settings,
-    const RendView*         view,
-    RvkPass*                pass,
-    EcsView*                drawView,
-    EcsView*                graphicView) {
-
-  RvkRepository*        repository     = rvk_canvas_repository(painter->canvas);
+static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  RvkRepository*        repository     = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
   RvkGraphic*           debugGraphic   = rvk_repository_graphic_get(repository, debugGraphicId);
-  if (!debugGraphic || !rvk_pass_prepare(pass, debugGraphic)) {
+  if (!debugGraphic || !rvk_pass_prepare(ctx->pass, debugGraphic)) {
     return; // Debug graphic not ready to be drawn.
   }
 
-  EcsIterator* graphicItr = ecs_view_itr(graphicView);
+  EcsIterator* graphicItr = ecs_view_itr(graView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp*       draw      = ecs_view_write_t(drawItr, RendDrawComp);
     const RendDrawFlags drawFlags = rend_draw_flags(draw);
     if ((drawFlags & RendDrawFlags_Skinned) == 0) {
       continue; // Not a skinned draw.
     }
-    if (!rend_draw_gather(draw, view, settings)) {
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
     }
     if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
@@ -267,19 +268,19 @@ static void painter_push_debugskinning(
     RvkMesh*    mesh            = graphicOriginal->mesh;
     diag_assert(mesh);
 
-    if (rvk_pass_prepare_mesh(pass, mesh)) {
-      painter_push(painter, rend_draw_output(draw, debugGraphic, mesh));
+    if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+      painter_push(ctx, rend_draw_output(draw, debugGraphic, mesh));
     }
   }
 }
 
-static void painter_flush(RendPainterComp* painter, RvkPass* pass) {
-  dynarray_sort(&painter->drawBuffer, painter_compare_pass_draw);
-  dynarray_for_t(&painter->drawBuffer, RvkPassDraw, draw) { rvk_pass_draw(pass, draw); }
-  dynarray_clear(&painter->drawBuffer);
+static void painter_flush(RendPaintContext* ctx) {
+  dynarray_sort(&ctx->painter->drawBuffer, painter_compare_pass_draw);
+  dynarray_for_t(&ctx->painter->drawBuffer, RvkPassDraw, draw) { rvk_pass_draw(ctx->pass, draw); }
+  dynarray_clear(&ctx->painter->drawBuffer);
 }
 
-static bool painter_draw(
+static bool rend_canvas_paint(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendGlobalSettingsComp* settingsGlobal,
@@ -289,62 +290,53 @@ static bool painter_draw(
     const SceneTransformComp*     trans,
     EcsView*                      drawView,
     EcsView*                      graphicView) {
+  const RvkSize winSize   = painter_win_size(win);
+  const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
-  const GapVector winSize      = gap_window_param(win, GapParam_WindowSize);
-  const RvkSize   canvasSize   = rvk_size((u16)winSize.width, (u16)winSize.height);
-  const f32       canvasAspect = (f32)winSize.width / (f32)winSize.height;
-  const bool      draw         = rvk_canvas_begin(painter->canvas, settings, canvasSize);
-  if (draw) {
-    const GeoVector      origin       = trans ? trans->position : geo_vector(0);
-    const GeoMatrix      proj         = painter_proj_matrix(win, cam);
-    const GeoMatrix      viewProj     = painter_view_proj_matrix(&proj, trans);
-    const SceneTagFilter filter       = cam ? cam->filter : (SceneTagFilter){0};
-    const RendView       view         = rend_view_create(camEntity, origin, &viewProj, filter);
-    RvkPass*             geometryPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
-    RvkPass*             forwardPass  = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  const GeoMatrix      camMat  = trans ? scene_transform_matrix(trans) : geo_matrix_ident();
+  const GeoMatrix      projMat = cam ? scene_camera_proj(cam, winAspect)
+                                     : geo_matrix_proj_ortho(2, 2.0f / winAspect, -100, 100);
+  const SceneTagFilter filter  = cam ? cam->filter : (SceneTagFilter){0};
 
-    const RendPainterGlobalData globalData = {
-        .proj         = proj,
-        .projInv      = geo_matrix_inverse(&proj),
-        .viewProj     = viewProj,
-        .viewProjInv  = geo_matrix_inverse(&viewProj),
-        .camPosition  = trans ? trans->position : geo_vector(0),
-        .camRotation  = trans ? trans->rotation : geo_quat_ident,
-        .resolution.x = (f32)rvk_pass_size(geometryPass).width,
-        .resolution.y = (f32)rvk_pass_size(geometryPass).height,
-        .resolution.z = canvasAspect,
-    };
-
-    // Geometry pass.
-    rvk_pass_bind_global_data(geometryPass, mem_var(globalData));
-    painter_push_geometry(painter, settings, &view, geometryPass, drawView, graphicView);
-    rvk_pass_begin(geometryPass, geo_color_clear);
-    painter_flush(painter, geometryPass);
-    rvk_pass_end(geometryPass);
-
-    // Forward pass.
-    rvk_pass_use_depth(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth));
-    rvk_pass_bind_global_data(forwardPass, mem_var(globalData));
-    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color1), 0);
-    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Color2), 1);
-    rvk_pass_bind_global_image(forwardPass, rvk_pass_output(geometryPass, RvkPassOutput_Depth), 2);
-    painter_push_compose(painter, settings, settingsGlobal, forwardPass);
-    painter_push_simple(painter, forwardPass, RvkRepositoryId_SkyGraphic);
-    painter_push_forward(painter, settings, &view, forwardPass, drawView, graphicView);
-    if (settings->flags & RendFlags_Wireframe) {
-      painter_push_wireframe(painter, settings, &view, forwardPass, drawView, graphicView);
-    }
-    if (settings->flags & RendFlags_DebugSkinning) {
-      painter_push_debugskinning(painter, settings, &view, forwardPass, drawView, graphicView);
-    }
-    rvk_pass_begin(forwardPass, geo_color_clear);
-    painter_flush(painter, forwardPass);
-    rvk_pass_end(forwardPass);
-
-    // Finish the frame.
-    rvk_canvas_end(painter->canvas);
+  if (!rvk_canvas_begin(painter->canvas, settings, winSize)) {
+    return false; // Canvas not ready for rendering.
   }
-  return draw;
+
+  // Geometry pass.
+  RvkPass*         geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  RendPaintContext geoCtx  = painter_context(
+      &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, geoPass);
+  rvk_pass_bind_global_data(geoPass, mem_var(geoCtx.data));
+  painter_push_geometry(&geoCtx, drawView, graphicView);
+  rvk_pass_begin(geoPass, geo_color_clear);
+  painter_flush(&geoCtx);
+  rvk_pass_end(geoPass);
+
+  // Forward pass.
+  RvkPass*         fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  RendPaintContext fwdCtx  = painter_context(
+      &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, fwdPass);
+  rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
+  rvk_pass_bind_global_data(fwdPass, mem_var(fwdCtx.data));
+  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
+  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
+  rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
+  painter_push_compose(&fwdCtx);
+  painter_push_simple(&fwdCtx, RvkRepositoryId_SkyGraphic);
+  painter_push_forward(&fwdCtx, drawView, graphicView);
+  if (settings->flags & RendFlags_Wireframe) {
+    painter_push_wireframe(&fwdCtx, drawView, graphicView);
+  }
+  if (settings->flags & RendFlags_DebugSkinning) {
+    painter_push_debugskinning(&fwdCtx, drawView, graphicView);
+  }
+  rvk_pass_begin(fwdPass, geo_color_clear);
+  painter_flush(&fwdCtx);
+  rvk_pass_end(fwdPass);
+
+  // Finish the frame.
+  rvk_canvas_end(painter->canvas);
+  return true;
 }
 
 ecs_system_define(RendPainterCreateSys) {
@@ -396,7 +388,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |= painter_draw(
+    anyPainterDrawn |= rend_canvas_paint(
         painter, settings, settingsGlobal, win, entity, camera, transform, drawView, graphicView);
   }
 
