@@ -24,8 +24,9 @@ typedef RvkGraphic* RvkGraphicPtr;
 static const VkFormat g_colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassPrivateFlags_Setup  = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Active = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_Setup           = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active          = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_HasBeenRecorded = 1 << (RvkPassFlags_Count + 2),
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -397,6 +398,10 @@ bool rvk_pass_active(const RvkPass* pass) {
 String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
 RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 
+bool rvk_pass_has_been_recorded(const RvkPass* pass) {
+  return (pass->flags & RvkPassPrivateFlags_HasBeenRecorded) != 0;
+}
+
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
   return rvk_desc_set_meta(pass->globalDescSet);
 }
@@ -644,6 +649,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
+  pass->flags |= RvkPassPrivateFlags_HasBeenRecorded;
   pass->globalBoundMask = 0;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);

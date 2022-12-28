@@ -16,8 +16,7 @@
 typedef RvkPass* RvkPassPtr;
 
 typedef enum {
-  RvkRenderer_Active            = 1 << 0,
-  RvkRenderer_SubmittedDrawOnce = 1 << 1,
+  RvkRenderer_Active = 1 << 0,
 } RvkRendererFlags;
 
 struct sRvkRenderer {
@@ -211,11 +210,6 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
 }
 
 RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
-  if (!(rend->flags & RvkRenderer_SubmittedDrawOnce)) {
-    // This renderer has never submitted a draw so there are no statistics.
-    return (RvkRenderStats){0};
-  }
-
   rvk_renderer_wait_for_done(rend);
 
   const u64 timestampBegin = rvk_stopwatch_query(rend->stopwatch, rend->timeRecBegin);
@@ -227,16 +221,21 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   result.waitForRenderDur = rend->waitForRenderDur;
 
   for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
-    const RvkPass* pass    = rend->passes[passIdx];
-    result.passes[passIdx] = (RendStatPass){
-        .dur         = rvk_pass_duration(pass),
-        .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
-        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
-        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
-    };
+    const RvkPass* pass = rend->passes[passIdx];
+    if (rvk_pass_has_been_recorded(pass)) {
+      result.passes[passIdx] = (RendStatPass){
+          .dur         = rvk_pass_duration(pass),
+          .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
+          .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
+          .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
+          .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
+          .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
+          .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+      };
+    } else {
+      // Pass has not been recorded; no stats available.
+      result.passes[passIdx] = (RendStatPass){0};
+    }
   }
 
   return result;
@@ -295,7 +294,6 @@ void rvk_renderer_end(RvkRenderer* rend) {
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend);
 
-  rend->flags |= RvkRenderer_SubmittedDrawOnce;
   rend->flags &= ~RvkRenderer_Active;
   rend->currentTarget = null;
 }
