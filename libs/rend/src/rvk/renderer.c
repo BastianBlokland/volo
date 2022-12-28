@@ -179,14 +179,22 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       RvkPassFlags_ClearColor | RvkPassFlags_Color1 | RvkPassFlags_ExternalDepth,
       string_lit("forward"));
 
+  renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(
+      dev,
+      renderer->vkDrawBuffer,
+      renderer->uniformPool,
+      renderer->stopwatch,
+      RvkPassFlags_ClearDepth | RvkPassFlags_DepthOutput,
+      string_lit("shadow"));
+
   return renderer;
 }
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_renderer_wait_for_done(rend);
 
-  rvk_pass_destroy(rend->passes[RvkRenderPass_Geometry]);
-  rvk_pass_destroy(rend->passes[RvkRenderPass_Forward]);
+  array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_destroy(*itr); }
+
   rvk_uniform_pool_destroy(rend->uniformPool);
   rvk_stopwatch_destroy(rend->stopwatch);
 

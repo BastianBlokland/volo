@@ -15,6 +15,7 @@ typedef struct sRvkRenderer RvkRenderer;
 typedef enum {
   RvkRenderPass_Geometry,
   RvkRenderPass_Forward,
+  RvkRenderPass_Shadow,
 
   RvkRenderPass_Count,
 } RvkRenderPass;
