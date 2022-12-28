@@ -17,6 +17,7 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
+    shaders/depth_only.frag
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
