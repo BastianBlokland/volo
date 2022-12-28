@@ -405,7 +405,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
      * If no painter was drawn this frame (for example because they are all minimized) we sleep
      * the thread to avoid wasting cpu cycles.
      */
-    thread_sleep(time_second / 30);
+    thread_sleep(time_second / 60);
   }
 }
 
