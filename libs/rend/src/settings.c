@@ -3,6 +3,8 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 
+#define VOLO_REND_GPU_DEBUG 0
+
 ecs_comp_define_public(RendSettingsComp);
 ecs_comp_define_public(RendSettingsGlobalComp);
 
@@ -21,6 +23,10 @@ void rend_settings_to_default(RendSettingsComp* s) {
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->flags       = RendGlobalFlags_SunShadows;
   s->limiterFreq = 0;
+
+#if VOLO_REND_GPU_DEBUG
+  s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu | RendGlobalFlags_Verbose;
+#endif
 
   s->lightSunRadiance = geo_color(1.0f, 0.9f, 0.8f, 3.0f);
   s->lightSunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(50, 15, 0), math_deg_to_rad));
