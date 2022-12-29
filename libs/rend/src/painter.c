@@ -142,6 +142,42 @@ static void painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsV
   }
 }
 
+static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
+  RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
+  EcsIterator*   graphicItr = ecs_view_itr(graphicView);
+
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_StandardGeometry)) {
+      continue; // Shouldn't be included in the shadow pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    RvkMesh*    mesh            = graphicOriginal->mesh;
+    if (!mesh) {
+      continue; // Graphic does not have a mesh to draw a shadow for.
+    }
+    RvkRepositoryId graphicId;
+    if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
+      graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
+    } else {
+      graphicId = RvkRepositoryId_ShadowGraphic;
+    }
+    RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
+    if (!shadowGraphic) {
+      continue; // Shadow graphic not loaded.
+    }
+    if (rvk_pass_prepare(ctx->pass, shadowGraphic) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+      painter_push(ctx, rend_draw_output(draw, shadowGraphic, mesh));
+    }
+  }
+}
+
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id) {
   RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
   RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
@@ -311,6 +347,20 @@ static bool rend_canvas_paint(
     rvk_pass_begin(geoPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(geoPass);
+  }
+
+  // Shadow pass.
+  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
+  {
+    const GeoMatrix  sunTrans = geo_matrix_from_quat(settingsGlobal->lightSunRotation);
+    const GeoMatrix  sunProj  = geo_matrix_proj_ortho(200, 200, -100, 100);
+    RendPaintContext ctx      = painter_context(
+        &sunTrans, &sunProj, camEntity, filter, painter, settings, settingsGlobal, shadowPass);
+    rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
+    painter_push_shadow(&ctx, drawView, graphicView);
+    rvk_pass_begin(shadowPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(shadowPass);
   }
 
   // Forward pass.
