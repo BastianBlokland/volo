@@ -51,6 +51,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendPresentMode presentMode;
   RendComposeMode composeMode;
   f32             resolutionScale;
+  u16             shadowResolution;
 };
 
 typedef enum {

@@ -614,7 +614,10 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
 }
 
 static void rend_light_tab_draw(
-    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendSettingsGlobalComp* settingsGlobal) {
+    UiCanvasComp*           canvas,
+    DebugRendPanelComp*     panelComp,
+    RendSettingsComp*       settings,
+    RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
@@ -639,6 +642,15 @@ static void rend_light_tab_draw(
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
   ui_slider(canvas, &settingsGlobal->lightAmbient);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Shadow resolution"));
+  ui_table_next_column(canvas, &table);
+  if (debug_widget_editor_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
+    if (settings->shadowResolution == 0) {
+      settings->shadowResolution = 512;
+    }
+  }
 }
 
 static void rend_panel_draw(
@@ -669,7 +681,7 @@ static void rend_panel_draw(
     rend_resource_tab_draw(canvas, panelComp);
     break;
   case DebugRendTab_Light:
-    rend_light_tab_draw(canvas, panelComp, settingsGlobal);
+    rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
     break;
   }
 
