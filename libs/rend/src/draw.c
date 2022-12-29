@@ -144,7 +144,8 @@ ecs_system_define(RendClearDrawsSys) {
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     RendDrawComp* drawComp = ecs_view_write_t(itr, RendDrawComp);
     if (!(drawComp->flags & RendDrawFlags_NoAutoClear)) {
-      drawComp->instCount = 0;
+      drawComp->instCount    = 0;
+      drawComp->instDataSize = 0;
     }
   }
 }
@@ -319,7 +320,10 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_clear(RendDrawComp* draw) { draw->instCount = 0; }
+void rend_draw_clear(RendDrawComp* draw) {
+  draw->instCount    = 0;
+  draw->instDataSize = 0;
+}
 
 Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
   buf_ensure(&draw->dataMem, size, rend_min_align);
