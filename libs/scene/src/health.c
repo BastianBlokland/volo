@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "scene_health.h"
@@ -100,6 +101,9 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
     deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
     deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
     deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
+
+    // Randomize the speed to avoid multiple units playing the same animation completely in sync.
+    deathAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
   }
 }
 
