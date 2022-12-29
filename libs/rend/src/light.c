@@ -128,9 +128,13 @@ static GeoColor rend_radiance_resolve(const GeoColor radiance) {
   };
 }
 
+static f32 rend_light_brightness(const GeoColor radiance) {
+  return math_max(math_max(radiance.r, radiance.g), radiance.b);
+}
+
 static f32 rend_light_point_radius(const RendLightPoint* point) {
   const GeoColor radiance   = rend_radiance_resolve(point->radiance);
-  const f32      brightness = math_max(math_max(radiance.r, radiance.g), radiance.b);
+  const f32      brightness = rend_light_brightness(radiance);
   const f32      c          = 1.0f;                        // Constant term.
   const f32      l          = point->attenuationLinear;    // Linear term.
   const f32      q          = point->attenuationQuadratic; // Quadratic term.
@@ -210,6 +214,10 @@ ecs_system_define(RendLightRenderSys) {
 
       switch (entry->type) {
       case RendLightType_Directional: {
+        const GeoColor radiance = rend_radiance_resolve(entry->data_directional.radiance);
+        if (rend_light_brightness(radiance) < 0.1f) {
+          continue;
+        }
         bool shadow = (entry->data_directional.flags & RendLightFlags_Shadow) != 0;
         if (shadow && renderer->hasShadow) {
           log_e("Only a single directional shadow is supported");
@@ -225,7 +233,6 @@ ecs_system_define(RendLightRenderSys) {
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
-        const GeoColor  radiance  = rend_radiance_resolve(entry->data_directional.radiance);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
         if (radiance.r > f32_epsilon || radiance.g > f32_epsilon || radiance.b > f32_epsilon) {
           *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
