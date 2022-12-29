@@ -50,6 +50,7 @@ static f32 rvk_sampler_aniso_level(const RvkSamplerAniso aniso) {
 
 static VkSampler rvk_vksampler_create(
     const RvkDevice*       dev,
+    const RvkSamplerFlags  flags,
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
@@ -65,8 +66,8 @@ static VkSampler rvk_vksampler_create(
       .maxAnisotropy           = 1,
       .borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
       .unnormalizedCoordinates = false,
-      .compareEnable           = false,
-      .compareOp               = VK_COMPARE_OP_ALWAYS,
+      .compareEnable           = (flags & RvkSamplerFlags_SupportCompare) != 0,
+      .compareOp               = VK_COMPARE_OP_LESS,
       .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
       .mipLodBias              = 0,
       .minLod                  = 0,
@@ -85,13 +86,14 @@ static VkSampler rvk_vksampler_create(
 
 RvkSampler rvk_sampler_create(
     RvkDevice*             dev,
+    const RvkSamplerFlags  flags,
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
     const u8               mipLevels) {
 
   return (RvkSampler){
-      .vkSampler = rvk_vksampler_create(dev, wrap, filter, aniso, mipLevels),
+      .vkSampler = rvk_vksampler_create(dev, flags, wrap, filter, aniso, mipLevels),
   };
 }
 

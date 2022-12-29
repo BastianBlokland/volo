@@ -522,6 +522,7 @@ static void rvk_graphic_set_missing_sampler(
   graphic->samplers[samplerIndex].texture = tex;
   graphic->samplers[samplerIndex].sampler = rvk_sampler_create(
       dev,
+      RvkSamplerFlags_None,
       RvkSamplerWrap_Repeat,
       RvkSamplerFilter_Nearest,
       RvkSamplerAniso_None,
@@ -711,19 +712,20 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 }
 
 void rvk_graphic_sampler_add(
-    RvkGraphic* graphic, RvkTexture* texture, const AssetGraphicSampler* sampler) {
+    RvkGraphic* graphic, RvkTexture* tex, const AssetGraphicSampler* sampler) {
 
   RvkDevice* dev = graphic->device;
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (!itr->texture) {
+      const RvkSamplerFlags  flags      = RvkSamplerFlags_None;
       const RvkSamplerWrap   wrap       = rvk_graphic_wrap(sampler->wrap);
       const RvkSamplerFilter filter     = rvk_graphic_filter(sampler->filter);
       const RvkSamplerAniso  anisotropy = rvk_graphic_aniso(sampler->anisotropy);
-      itr->texture                      = texture;
-      itr->sampler = rvk_sampler_create(dev, wrap, filter, anisotropy, texture->image.mipLevels);
+      itr->texture                      = tex;
+      itr->sampler = rvk_sampler_create(dev, flags, wrap, filter, anisotropy, tex->image.mipLevels);
 
       rvk_debug_name_sampler(
-          graphic->device->debug, itr->sampler.vkSampler, "{}", fmt_text(texture->dbgName));
+          graphic->device->debug, itr->sampler.vkSampler, "{}", fmt_text(tex->dbgName));
       return;
     }
   }
