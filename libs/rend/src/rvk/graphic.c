@@ -141,6 +141,8 @@ static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {
     return RvkSamplerWrap_Repeat;
   case AssetGraphicWrap_Clamp:
     return RvkSamplerWrap_Clamp;
+  case AssetGraphicWrap_Zero:
+    return RvkSamplerWrap_Zero;
   }
   diag_crash();
 }

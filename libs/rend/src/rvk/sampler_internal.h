@@ -7,6 +7,7 @@ typedef struct sRvkDevice RvkDevice;
 typedef enum {
   RvkSamplerWrap_Repeat,
   RvkSamplerWrap_Clamp,
+  RvkSamplerWrap_Zero,
 
   RvkSamplerWrap_Count,
 } RvkSamplerWrap;

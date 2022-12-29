@@ -22,6 +22,8 @@ static VkSamplerAddressMode rvk_sampler_vkaddress(const RvkSamplerWrap wrap) {
     return VK_SAMPLER_ADDRESS_MODE_REPEAT;
   case RvkSamplerWrap_Clamp:
     return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  case RvkSamplerWrap_Zero:
+    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
   case RvkSamplerWrap_Count:
     break;
   }
@@ -61,7 +63,7 @@ static VkSampler rvk_vksampler_create(
       .addressModeV            = rvk_sampler_vkaddress(wrap),
       .addressModeW            = rvk_sampler_vkaddress(wrap),
       .maxAnisotropy           = 1,
-      .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+      .borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
       .unnormalizedCoordinates = false,
       .compareEnable           = false,
       .compareOp               = VK_COMPARE_OP_ALWAYS,
@@ -101,6 +103,7 @@ String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
   static const String g_names[] = {
       string_static("Repeat"),
       string_static("Clamp"),
+      string_static("Zero"),
   };
   ASSERT(array_elems(g_names) == RvkSamplerWrap_Count, "Incorrect number of sampler-wrap names");
   return g_names[wrap];

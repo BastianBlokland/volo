@@ -47,6 +47,7 @@ static void graphic_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetGraphicWrap);
     data_reg_const_t(g_dataReg, AssetGraphicWrap, Repeat);
     data_reg_const_t(g_dataReg, AssetGraphicWrap, Clamp);
+    data_reg_const_t(g_dataReg, AssetGraphicWrap, Zero);
 
     data_reg_enum_t(g_dataReg, AssetGraphicFilter);
     data_reg_const_t(g_dataReg, AssetGraphicFilter, Nearest);
