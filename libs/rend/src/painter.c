@@ -9,6 +9,7 @@
 #include "scene_transform.h"
 
 #include "draw_internal.h"
+#include "light_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "reset_internal.h"
@@ -28,6 +29,7 @@ static void ecs_destruct_painter(void* data) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
@@ -319,6 +321,7 @@ static bool rend_canvas_paint(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
+    const RendLightRendererComp*  light,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
@@ -352,10 +355,10 @@ static bool rend_canvas_paint(
   // Shadow pass.
   RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
   {
-    const GeoMatrix  sunTrans = geo_matrix_from_quat(settingsGlobal->lightSunRotation);
-    const GeoMatrix  sunProj  = geo_matrix_proj_ortho(200, 200, -100, 100);
-    RendPaintContext ctx      = painter_context(
-        &sunTrans, &sunProj, camEntity, filter, painter, settings, settingsGlobal, shadowPass);
+    const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
+    const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
+    RendPaintContext ctx         = painter_context(
+        shadowTrans, shadowProj, camEntity, filter, painter, settings, settingsGlobal, shadowPass);
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
     painter_push_shadow(&ctx, drawView, graphicView);
     rvk_pass_begin(shadowPass, geo_color_clear);
@@ -432,6 +435,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     return;
   }
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
@@ -445,8 +449,18 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+
     anyPainterDrawn |= rend_canvas_paint(
-        painter, settings, settingsGlobal, win, entity, camera, transform, drawView, graphicView);
+        painter,
+        settings,
+        settingsGlobal,
+        light,
+        win,
+        entity,
+        camera,
+        transform,
+        drawView,
+        graphicView);
   }
 
   if (!anyPainterDrawn) {

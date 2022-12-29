@@ -4,10 +4,14 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
+#include "log_logger.h"
 #include "rend_draw.h"
 #include "rend_light.h"
 #include "rend_register.h"
 #include "rend_settings.h"
+
+#include "light_internal.h"
 
 typedef enum {
   RendLightType_Directional,
@@ -26,14 +30,16 @@ typedef enum {
 enum { RendLightDraw_Count = RendLightType_Count * RendLightVariation_Count };
 
 typedef struct {
-  GeoQuat  rotation;
-  GeoColor radiance;
+  GeoQuat        rotation;
+  GeoColor       radiance;
+  RendLightFlags flags;
 } RendLightDirectional;
 
 typedef struct {
-  GeoVector pos;
-  GeoColor  radiance;
-  f32       attenuationLinear, attenuationQuadratic;
+  GeoVector      pos;
+  GeoColor       radiance;
+  f32            attenuationLinear, attenuationQuadratic;
+  RendLightFlags flags;
 } RendLightPoint;
 
 typedef struct {
@@ -52,9 +58,11 @@ static const String g_lightGraphics[RendLightDraw_Count] = {
 };
 // clang-format on
 
-ecs_comp_define_public(RendLightSettingsComp);
-
-ecs_comp_define(RendLightRendererComp) { EcsEntityId drawEntities[RendLightDraw_Count]; };
+ecs_comp_define(RendLightRendererComp) {
+  EcsEntityId drawEntities[RendLightDraw_Count];
+  bool        hasShadow;
+  GeoMatrix   shadowTransMatrix, shadowProjMatrix;
+};
 
 ecs_comp_define(RendLightComp) {
   DynArray entries; // RendLight[]
@@ -66,8 +74,8 @@ static void ecs_destruct_light(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(RendLightRendererComp);
   ecs_access_maybe_write(RendLightComp);
+  ecs_access_maybe_write(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_write(AssetManagerComp);
 }
@@ -139,7 +147,8 @@ ecs_system_define(RendLightSunSys) {
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
   if (light) {
-    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance);
+    const RendLightFlags flags = RendLightFlags_Shadow;
+    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
   }
 }
 
@@ -151,7 +160,7 @@ ecs_system_define(RendLightRenderSys) {
   }
 
   AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  const RendLightRendererComp*  renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
+  RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
@@ -162,6 +171,8 @@ ecs_system_define(RendLightRenderSys) {
   const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
+
+  renderer->hasShadow = false;
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);
@@ -195,6 +206,16 @@ ecs_system_define(RendLightRenderSys) {
 
       switch (entry->type) {
       case RendLightType_Directional: {
+        bool shadow = (entry->data_directional.flags & RendLightFlags_Shadow) != 0;
+        if (shadow && renderer->hasShadow) {
+          log_e("Only a single directional shadow is supported");
+          shadow = false;
+        }
+        if (shadow) {
+          renderer->hasShadow         = true;
+          renderer->shadowTransMatrix = geo_matrix_from_quat(entry->data_directional.rotation);
+          renderer->shadowProjMatrix  = geo_matrix_proj_ortho(200, 200, -100, 100);
+        }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoColor  radiance  = rend_radiance_resolve(entry->data_directional.radiance);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
@@ -207,6 +228,9 @@ ecs_system_define(RendLightRenderSys) {
         break;
       }
       case RendLightType_Point: {
+        if (entry->data_point.flags & RendLightFlags_Shadow) {
+          log_e("Point-light shadows are unsupported");
+        }
         const f32 radius = rend_light_point_radius(&entry->data_point);
         if (UNLIKELY(radius < f32_epsilon)) {
           continue;
@@ -253,7 +277,11 @@ RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
       world, entity, RendLightComp, .entries = dynarray_create_t(g_alloc_heap, RendLight, 4));
 }
 
-void rend_light_directional(RendLightComp* comp, const GeoQuat rotation, const GeoColor radiance) {
+void rend_light_directional(
+    RendLightComp*       comp,
+    const GeoQuat        rotation,
+    const GeoColor       radiance,
+    const RendLightFlags flags) {
   rend_light_add(
       comp,
       (RendLight){
@@ -262,16 +290,18 @@ void rend_light_directional(RendLightComp* comp, const GeoQuat rotation, const G
               {
                   .rotation = rotation,
                   .radiance = radiance,
+                  .flags    = flags,
               },
       });
 }
 
 void rend_light_point(
-    RendLightComp*  comp,
-    const GeoVector pos,
-    const GeoColor  radiance,
-    const f32       attenuationLinear,
-    const f32       attenuationQuadratic) {
+    RendLightComp*       comp,
+    const GeoVector      pos,
+    const GeoColor       radiance,
+    const f32            attenuationLinear,
+    const f32            attenuationQuadratic,
+    const RendLightFlags flags) {
   rend_light_add(
       comp,
       (RendLight){
@@ -282,6 +312,15 @@ void rend_light_point(
                   .radiance             = radiance,
                   .attenuationLinear    = attenuationLinear,
                   .attenuationQuadratic = attenuationQuadratic,
+                  .flags                = flags,
               },
       });
+}
+
+const GeoMatrix* rend_light_shadow_trans(const RendLightRendererComp* renderer) {
+  return &renderer->shadowTransMatrix;
+}
+
+const GeoMatrix* rend_light_shadow_proj(const RendLightRendererComp* renderer) {
+  return &renderer->shadowProjMatrix;
 }

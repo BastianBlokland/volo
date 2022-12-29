@@ -449,7 +449,13 @@ static void vfx_instance_output_light(
   radiance.a *= math_min(instanceAge / (f32)light->fadeInTime, 1.0f);
   radiance.a *= math_min(timeRem / (f32)light->fadeOutTime, 1.0f);
 
-  rend_light_point(lightOutput, pos, radiance, light->attenuationLinear, light->attenuationQuad);
+  rend_light_point(
+      lightOutput,
+      pos,
+      radiance,
+      light->attenuationLinear,
+      light->attenuationQuad,
+      RendLightFlags_None);
 }
 
 ecs_system_define(VfxSystemUpdateSys) {
