@@ -215,7 +215,7 @@ ecs_system_define(RendLightRenderSys) {
       switch (entry->type) {
       case RendLightType_Directional: {
         const GeoColor radiance = rend_radiance_resolve(entry->data_directional.radiance);
-        if (rend_light_brightness(radiance) < 0.1f) {
+        if (rend_light_brightness(radiance) < 0.01f) {
           continue;
         }
         bool shadow = (entry->data_directional.flags & RendLightFlags_Shadow) != 0;

@@ -21,8 +21,6 @@
 
 typedef RvkGraphic* RvkGraphicPtr;
 
-static const VkFormat g_colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
-
 typedef enum {
   RvkPassPrivateFlags_Setup    = 1 << (RvkPassFlags_Count + 0),
   RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 1),
@@ -52,6 +50,21 @@ struct sRvkPass {
   DynArray           dynDescSets; // RvkDescSet[]
 };
 
+static VkFormat rvk_attach_color_format(const RvkPassFlags flags, const u32 index) {
+  switch (index) {
+  case 0: {
+    const bool srgb = (flags & RvkPassFlags_SrgbColor1) != 0;
+    return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+  }
+  case 1: {
+    const bool srgb = (flags & RvkPassFlags_SrgbColor2) != 0;
+    return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+  }
+  default:
+    diag_crash_msg("Unsupported color attachment index: {}", fmt_int(index));
+  }
+}
+
 static u32 rvk_attach_color_count(const RvkPassFlags flags) {
   u32 result = 0;
   result += (flags & RvkPassFlags_Color1) != 0;
@@ -66,7 +79,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
 
   for (u32 i = 0; i != rvk_attach_color_count(flags); ++i) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
-        .format         = g_colorFormat,
+        .format         = rvk_attach_color_format(flags, i),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
                                                             : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -270,7 +283,8 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    pass->attachColors[i] = rvk_image_create_attach_color(pass->dev, g_colorFormat, size, colorCap);
+    const VkFormat format = rvk_attach_color_format(pass->flags, i);
+    pass->attachColors[i] = rvk_image_create_attach_color(pass->dev, format, size, colorCap);
     pass->attachColorMask |= 1 << i;
   }
 
@@ -344,6 +358,8 @@ RvkPass* rvk_pass_create(
     const RvkPassFlags flags,
     const String       name) {
   diag_assert(!string_is_empty(name));
+  diag_assert(!(flags & RvkPassFlags_SrgbColor1) || (flags & RvkPassFlags_Color1));
+  diag_assert(!(flags & RvkPassFlags_SrgbColor2) || (flags & RvkPassFlags_Color2));
 
   RvkDescMeta globalDescMeta = {
       .bindings[0] = RvkDescKind_UniformBufferDynamic,

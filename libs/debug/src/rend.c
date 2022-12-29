@@ -229,7 +229,7 @@ static void rend_settings_tab_draw(
     RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Present mode"));
@@ -629,7 +629,7 @@ static void rend_light_tab_draw(
     RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
@@ -650,7 +650,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun shadows"));
