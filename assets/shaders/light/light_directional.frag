@@ -10,7 +10,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_global(4) uniform sampler2D u_texShadow;
+bind_global(4) uniform sampler2DShadow u_texShadow;
 
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v3 in_direction;
@@ -29,8 +29,17 @@ f32 shadow_frac(const f32v3 worldPos) {
   if (shadowClipPos.z <= 0.0) {
     return 0.0;
   }
-  const f32v2 shadowCoord = shadowClipPos.xy * 0.5 + 0.5;
-  return f32(texture(u_texShadow, shadowCoord).r > shadowClipPos.z);
+  const f32v2 shadowTexelSize = 1.0 / textureSize(u_texShadow, 0);
+  const f32v2 baseShadowCoord = shadowClipPos.xy * 0.5 + 0.5;
+
+  f32 shadowSum = 0;
+  for (i32 y = -1; y <= 1; y += 1) {
+    for (i32 x = -1; x <= 1; x += 1) {
+      const f32v2 shadowCoord = baseShadowCoord + f32v2(x, y) * shadowTexelSize;
+      shadowSum += texture(u_texShadow, f32v3(shadowCoord, shadowClipPos.z));
+    }
+  }
+  return shadowSum / 9;
 }
 
 void main() {
