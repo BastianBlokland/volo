@@ -658,6 +658,8 @@ static void rend_light_tab_draw(
   if (debug_widget_editor_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
     if (settings->shadowResolution == 0) {
       settings->shadowResolution = 512;
+    } else if (settings->shadowResolution > 16384) {
+      settings->shadowResolution = 16384;
     }
   }
 }
