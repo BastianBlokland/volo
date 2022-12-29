@@ -59,10 +59,10 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration limiterDur;
   TimeDuration rendWaitDur;
   TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
-  TimeDuration gpuRenderDur, gpuRenderGeoDur;
+  TimeDuration gpuRenderDur, gpuRenderGeoDur, gpuRenderShadowDur, gpuRenderForwardDur;
 
   f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
-  f32 gpuRenderFrac, gpuRenderGeoFrac;
+  f32 gpuRenderFrac, gpuRenderGeoFrac, gpuRenderShadowFrac;
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -267,16 +267,16 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       {stats->limiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~red\a.bWait for gpu\ar:    {<8}\n"
-      "\a~purple\a.bPresent acquire\ar: {<8}\n"
-      "\a~blue\a.bPresent enqueue\ar: {<8}\n"
-      "\a~teal\a.bPresent wait\ar:    {<8}\n"
-      "\a.bLimiter\ar:         {<8}",
-      fmt_duration(stats->rendWaitDur, .minDecDigits = 1),
-      fmt_duration(stats->presentAcqDur, .minDecDigits = 1),
-      fmt_duration(stats->presentEnqDur, .minDecDigits = 1),
-      fmt_duration(stats->presentWaitDur, .minDecDigits = 1),
-      fmt_duration(stats->limiterDur, .minDecDigits = 1));
+      "\a~red\a.bWait for gpu\ar:    {>8}\n"
+      "\a~purple\a.bPresent acquire\ar: {>8}\n"
+      "\a~blue\a.bPresent enqueue\ar: {>8}\n"
+      "\a~teal\a.bPresent wait\ar:    {>8}\n"
+      "\a.bLimiter\ar:         {>8}",
+      fmt_duration(stats->rendWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->presentAcqDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->presentEnqDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -295,19 +295,25 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 idleFrac        = 1.0f - stats->gpuRenderFrac;
-  const f32 renderOtherFrac = stats->gpuRenderFrac - stats->gpuRenderGeoFrac;
+  const f32 idleFrac = 1.0f - stats->gpuRenderFrac;
+  const f32 renderOtherFrac =
+      stats->gpuRenderFrac - stats->gpuRenderGeoFrac - stats->gpuRenderShadowFrac;
 
   const StatGraphSection sections[] = {
       {stats->gpuRenderGeoFrac, ui_color(0, 128, 128, 178)},
+      {stats->gpuRenderShadowFrac, ui_color(128, 0, 128, 178)},
       {renderOtherFrac, ui_color(0, 128, 0, 178)},
       {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~teal\a.bGeometry\ar: {<7}\n"
-      "\a~green\a.bTotal\ar:    {<7}",
-      fmt_duration(stats->gpuRenderGeoDur, .minDecDigits = 1),
-      fmt_duration(stats->gpuRenderDur, .minDecDigits = 1));
+      "\a~teal\a.bGeometry\ar: {>8}\n"
+      "\a~purple\a.bShadow\ar:   {>8}\n"
+      "\a~green\a.bForward\ar:  {>8}\n"
+      "\a.bTotal\ar:    {>8}",
+      fmt_duration(stats->gpuRenderGeoDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->gpuRenderShadowDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->gpuRenderForwardDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->gpuRenderDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_layout_next(canvas, Ui_Down, 0);
@@ -446,22 +452,25 @@ static void debug_stats_update(
                                ? time_second / rendGlobalSettings->limiterFreq
                                : time_second / 60; // TODO: This assumes a 60 hz display.
 
-  stats->limiterDur      = rendStats->limiterDur;
-  stats->rendWaitDur     = rendStats->waitForRenderDur;
-  stats->presentAcqDur   = rendStats->presentAcquireDur;
-  stats->presentEnqDur   = rendStats->presentEnqueueDur;
-  stats->presentWaitDur  = rendStats->presentWaitDur;
-  stats->gpuRenderDur    = rendStats->renderDur;
-  stats->gpuRenderGeoDur = rendStats->passGeometry.dur;
+  stats->limiterDur          = rendStats->limiterDur;
+  stats->rendWaitDur         = rendStats->waitForRenderDur;
+  stats->presentAcqDur       = rendStats->presentAcquireDur;
+  stats->presentEnqDur       = rendStats->presentEnqueueDur;
+  stats->presentWaitDur      = rendStats->presentWaitDur;
+  stats->gpuRenderDur        = rendStats->renderDur;
+  stats->gpuRenderGeoDur     = rendStats->passGeometry.dur;
+  stats->gpuRenderShadowDur  = rendStats->passShadow.dur;
+  stats->gpuRenderForwardDur = rendStats->passForward.dur;
 
-  const f32 timeRef = (f32)stats->frameDur;
-  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(stats->presentAcqDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(stats->presentEnqDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(stats->presentWaitDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(stats->limiterDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->gpuRenderFrac, math_clamp_f32(stats->gpuRenderDur / timeRef, 0, 1));
-  debug_avg_f32(&stats->gpuRenderGeoFrac, math_clamp_f32(stats->gpuRenderGeoDur / timeRef, 0, 1));
+  const f32 ref = (f32)stats->frameDur;
+  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));
+  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(stats->presentAcqDur / ref, 0, 1));
+  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(stats->presentEnqDur / ref, 0, 1));
+  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(stats->presentWaitDur / ref, 0, 1));
+  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(stats->limiterDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRenderFrac, math_clamp_f32(stats->gpuRenderDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRenderGeoFrac, math_clamp_f32(stats->gpuRenderGeoDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRenderShadowFrac, math_clamp_f32(stats->gpuRenderShadowDur / ref, 0, 1));
 }
 
 static void
