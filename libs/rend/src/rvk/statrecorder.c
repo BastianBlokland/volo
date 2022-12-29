@@ -50,8 +50,7 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
 static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
   thread_mutex_lock(sr->retrieveResultsMutex);
   if (!(sr->flags & RvkStatRecorder_HasResults)) {
-    rvk_call(
-        vkGetQueryPoolResults,
+    const VkResult vkQueryRes = vkGetQueryPoolResults(
         sr->dev->vkDev,
         sr->vkQueryPool,
         0,
@@ -60,6 +59,11 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
         sr->results,
         sizeof(u64),
         VK_QUERY_RESULT_64_BIT);
+    if (vkQueryRes == VK_NOT_READY) {
+      mem_set(mem_create(sr->results, RvkStatMeta_CountAuto * sizeof(u64)), 0);
+    } else {
+      rvk_check(string_lit("vkGetQueryPoolResults"), vkQueryRes);
+    }
     sr->flags |= RvkStatRecorder_HasResults;
   }
   thread_mutex_unlock(sr->retrieveResultsMutex);
