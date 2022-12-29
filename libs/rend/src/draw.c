@@ -34,6 +34,8 @@ ecs_comp_define(RendDrawComp) {
   u32           instCount;
   u32           outputInstCount;
 
+  SceneTags tagMask;
+
   u32 dataSize;     // Size of the 'per draw' data.
   u32 instDataSize; // Size of the 'per instance' data.
 
@@ -144,8 +146,7 @@ ecs_system_define(RendClearDrawsSys) {
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     RendDrawComp* drawComp = ecs_view_write_t(itr, RendDrawComp);
     if (!(drawComp->flags & RendDrawFlags_NoAutoClear)) {
-      drawComp->instCount    = 0;
-      drawComp->instDataSize = 0;
+      rend_draw_clear(drawComp);
     }
   }
 }
@@ -198,6 +199,7 @@ EcsEntityId   rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic
 u32           rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
 u32           rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
 u32           rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
+SceneTags     rend_draw_tag_mask(const RendDrawComp* draw) { return draw->tagMask; }
 
 static RendDrawSortKey* rend_draw_sort_key(const RendDrawComp* draw, const u32 outputIndex) {
   return bits_ptr_offset(draw->sortKeyMem.ptr, outputIndex * sizeof(RendDrawSortKey));
@@ -323,6 +325,7 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 void rend_draw_clear(RendDrawComp* draw) {
   draw->instCount    = 0;
   draw->instDataSize = 0;
+  draw->tagMask      = 0;
 }
 
 Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
@@ -345,6 +348,8 @@ Mem rend_draw_add_instance(
 
   const u32 drawIndex = draw->instCount++;
   buf_ensure(&draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
+
+  draw->tagMask |= tags;
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
     buf_ensure(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
