@@ -373,6 +373,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 3);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     painter_push_forward(&ctx, drawView, graphicView);
