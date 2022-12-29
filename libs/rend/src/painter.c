@@ -354,7 +354,7 @@ static bool rend_canvas_paint(
 
   // Shadow pass.
   RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
-  {
+  if (rend_light_has_shadow(light)) {
     const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
     const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
     RendPaintContext ctx         = painter_context(

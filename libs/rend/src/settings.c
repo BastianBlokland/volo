@@ -19,7 +19,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = 0;
+  s->flags       = RendGlobalFlags_SunShadows;
   s->limiterFreq = 0;
 
   s->lightSunRadiance = geo_color(1.0f, 0.9f, 0.8f, 3.0f);

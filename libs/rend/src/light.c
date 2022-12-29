@@ -147,7 +147,10 @@ ecs_system_define(RendLightSunSys) {
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
   if (light) {
-    const RendLightFlags flags = RendLightFlags_Shadow;
+    RendLightFlags flags = RendLightFlags_None;
+    if (settings->flags & RendGlobalFlags_SunShadows) {
+      flags |= RendLightFlags_Shadow;
+    }
     rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
   }
 }
@@ -316,6 +319,8 @@ void rend_light_point(
               },
       });
 }
+
+bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }
 
 const GeoMatrix* rend_light_shadow_trans(const RendLightRendererComp* renderer) {
   return &renderer->shadowTransMatrix;
