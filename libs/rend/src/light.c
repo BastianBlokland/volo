@@ -68,7 +68,7 @@ static void ecs_destruct_light(void* data) {
 ecs_view_define(GlobalView) {
   ecs_access_maybe_read(RendLightRendererComp);
   ecs_access_maybe_write(RendLightComp);
-  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
@@ -136,7 +136,7 @@ ecs_system_define(RendLightSunSys) {
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
   if (light) {
     rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance);
@@ -152,7 +152,7 @@ ecs_system_define(RendLightRenderSys) {
 
   AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
   const RendLightRendererComp*  renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
-  const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
     rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.

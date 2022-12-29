@@ -60,7 +60,7 @@ typedef enum {
   RendGlobalFlags_DebugLight = 1 << 3,
 } RendGlobalFlags;
 
-ecs_comp_extern_public(RendGlobalSettingsComp) {
+ecs_comp_extern_public(RendSettingsGlobalComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
 
@@ -70,4 +70,4 @@ ecs_comp_extern_public(RendGlobalSettingsComp) {
 };
 
 void rend_settings_to_default(RendSettingsComp*);
-void rend_global_settings_to_default(RendGlobalSettingsComp*);
+void rend_settings_global_to_default(RendSettingsGlobalComp*);

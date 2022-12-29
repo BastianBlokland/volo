@@ -28,7 +28,7 @@ static void ecs_destruct_painter(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
@@ -78,7 +78,7 @@ typedef struct {
   RendPainterComp*              painter;
   RvkPass*                      pass;
   const RendSettingsComp*       settings;
-  const RendGlobalSettingsComp* settingsGlobal;
+  const RendSettingsGlobalComp* settingsGlobal;
   RendPainterGlobalData         data;
   RendView                      view;
 } RendPaintContext;
@@ -90,7 +90,7 @@ static RendPaintContext painter_context(
     const SceneTagFilter          sceneFilter,
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
-    const RendGlobalSettingsComp* settingsGlobal,
+    const RendSettingsGlobalComp* settingsGlobal,
     RvkPass*                      pass) {
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
@@ -318,7 +318,7 @@ static void painter_flush(RendPaintContext* ctx) {
 static bool rend_canvas_paint(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
-    const RendGlobalSettingsComp* settingsGlobal,
+    const RendSettingsGlobalComp* settingsGlobal,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
@@ -428,7 +428,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   if (!globalItr) {
     return;
   }
-  const RendGlobalSettingsComp* settingsGlobal = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);

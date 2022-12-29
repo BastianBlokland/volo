@@ -226,7 +226,7 @@ static void rend_settings_tab_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
     RendSettingsComp*       settings,
-    RendGlobalSettingsComp* globalSettings) {
+    RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
@@ -244,10 +244,10 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Limiter"));
   ui_table_next_column(canvas, &table);
-  f32 limiterFreq = globalSettings->limiterFreq;
+  f32 limiterFreq = settingsGlobal->limiterFreq;
   if (ui_slider(
           canvas, &limiterFreq, .min = 0, .max = 240, .step = 30, .tooltip = g_tooltipLimiter)) {
-    globalSettings->limiterFreq = (u16)limiterFreq;
+    settingsGlobal->limiterFreq = (u16)limiterFreq;
   }
 
   ui_table_next_row(canvas, &table);
@@ -286,20 +286,20 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugLight);
+  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_DebugLight);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Gpu"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
-      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_DebugGpu, .tooltip = g_tooltipDebugGpu);
+      canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_DebugGpu, .tooltip = g_tooltipDebugGpu);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas,
-      (u32*)&globalSettings->flags,
+      (u32*)&settingsGlobal->flags,
       RendGlobalFlags_Validation,
       .tooltip = g_tooltipValidation);
 
@@ -307,12 +307,12 @@ static void rend_settings_tab_draw(
   ui_label(canvas, string_lit("Verbose"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
-      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_Verbose, .tooltip = g_tooltipVerbose);
+      canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_Verbose, .tooltip = g_tooltipVerbose);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     rend_settings_to_default(settings);
-    rend_global_settings_to_default(globalSettings);
+    rend_settings_global_to_default(settingsGlobal);
   }
   ui_table_next_row(canvas, &table);
   if (ui_button(
@@ -614,7 +614,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
 }
 
 static void rend_light_tab_draw(
-    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendGlobalSettingsComp* globalSettings) {
+    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
@@ -622,23 +622,23 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, &table);
-  debug_widget_editor_color(canvas, &globalSettings->lightSunRadiance, UiWidget_Default);
+  debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun rotation"));
   ui_table_next_column(canvas, &table);
   if (debug_widget_editor_vec3(canvas, &panelComp->sunRotEulerDeg, UiWidget_DirtyWhileEditing)) {
     const GeoVector eulerRad         = geo_vector_mul(panelComp->sunRotEulerDeg, math_deg_to_rad);
-    globalSettings->lightSunRotation = geo_quat_from_euler(eulerRad);
+    settingsGlobal->lightSunRotation = geo_quat_from_euler(eulerRad);
   } else {
-    const GeoVector eulerRad  = geo_quat_to_euler(globalSettings->lightSunRotation);
+    const GeoVector eulerRad  = geo_quat_to_euler(settingsGlobal->lightSunRotation);
     panelComp->sunRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
   }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &globalSettings->lightAmbient);
+  ui_slider(canvas, &settingsGlobal->lightAmbient);
 }
 
 static void rend_panel_draw(
@@ -646,7 +646,7 @@ static void rend_panel_draw(
     UiCanvasComp*           canvas,
     DebugRendPanelComp*     panelComp,
     RendSettingsComp*       settings,
-    RendGlobalSettingsComp* globalSettings) {
+    RendSettingsGlobalComp* settingsGlobal) {
 
   const String title = fmt_write_scratch("{} Renderer Panel", fmt_ui_shape(Brush));
   ui_panel_begin(
@@ -658,7 +658,7 @@ static void rend_panel_draw(
 
   switch (panelComp->panel.activeTab) {
   case DebugRendTab_Settings:
-    rend_settings_tab_draw(world, canvas, settings, globalSettings);
+    rend_settings_tab_draw(world, canvas, settings, settingsGlobal);
     break;
   case DebugRendTab_Draws:
     rend_draw_info_query(panelComp, world);
@@ -669,14 +669,14 @@ static void rend_panel_draw(
     rend_resource_tab_draw(canvas, panelComp);
     break;
   case DebugRendTab_Light:
-    rend_light_tab_draw(canvas, panelComp, globalSettings);
+    rend_light_tab_draw(canvas, panelComp, settingsGlobal);
     break;
   }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_view_define(GlobalView) { ecs_access_write(RendGlobalSettingsComp); }
+ecs_view_define(GlobalView) { ecs_access_write(RendSettingsGlobalComp); }
 ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
@@ -690,7 +690,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  RendGlobalSettingsComp* globalSettings = ecs_view_write_t(globalItr, RendGlobalSettingsComp);
+  RendSettingsGlobalComp* settingsGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
 
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
 
@@ -705,7 +705,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-    rend_panel_draw(world, canvas, panelComp, settings, globalSettings);
+    rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));

@@ -31,18 +31,18 @@ static void destruct_platform_intern_comp(void* data) {
 }
 
 ecs_view_define(GlobalPlatformView) { ecs_access_write(RendPlatformComp); }
-ecs_view_define(GlobalSettingsView) { ecs_access_read(RendGlobalSettingsComp); }
+ecs_view_define(GlobalSettingsView) { ecs_access_read(RendSettingsGlobalComp); }
 
-static const RendGlobalSettingsComp* rend_global_settings(EcsWorld* world) {
+static const RendSettingsGlobalComp* rend_global_settings(EcsWorld* world) {
   const EcsEntityId global       = ecs_world_global(world);
   EcsView*          settingsView = ecs_world_view_t(world, GlobalSettingsView);
   EcsIterator*      settingsItr  = ecs_view_maybe_at(settingsView, global);
   if (!settingsItr) {
-    RendGlobalSettingsComp* settings = ecs_world_add_t(world, global, RendGlobalSettingsComp);
-    rend_global_settings_to_default(settings);
+    RendSettingsGlobalComp* settings = ecs_world_add_t(world, global, RendSettingsGlobalComp);
+    rend_settings_global_to_default(settings);
     return settings;
   }
-  return ecs_view_read_t(settingsItr, RendGlobalSettingsComp);
+  return ecs_view_read_t(settingsItr, RendSettingsGlobalComp);
 }
 
 ecs_system_define(RendPlatformUpdateSys) {
@@ -57,7 +57,7 @@ ecs_system_define(RendPlatformUpdateSys) {
   if (!platformItr) {
     log_i("Setting up renderer");
 
-    const RendGlobalSettingsComp* settings = rend_global_settings(world);
+    const RendSettingsGlobalComp* settings = rend_global_settings(world);
     RvkDevice*                    device   = rvk_device_create(settings);
     ecs_world_add_t(world, global, RendPlatformComp, .device = device);
     ecs_world_add_t(world, global, RendPlatformInternComp, .device = device);

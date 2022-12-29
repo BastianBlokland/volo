@@ -432,7 +432,7 @@ static void debug_stats_draw_interface(
 static void debug_stats_update(
     DebugStatsComp*               stats,
     const RendStatsComp*          rendStats,
-    const RendGlobalSettingsComp* rendGlobalSettings,
+    const RendSettingsGlobalComp* rendGlobalSettings,
     const SceneTimeComp*          time) {
 
   const TimeDuration prevFrameDur = stats->frameDur;
@@ -477,7 +477,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneCollisionStatsComp);
   ecs_access_read(SceneNavStatsComp);
   ecs_access_read(SceneTimeComp);
@@ -524,7 +524,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   const SceneTimeComp*           time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneCollisionStatsComp* colStats    = ecs_view_read_t(globalItr, SceneCollisionStatsComp);
   const SceneNavStatsComp*       navStats    = ecs_view_read_t(globalItr, SceneNavStatsComp);
-  const RendGlobalSettingsComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
   const AllocStats    allocStats = alloc_stats_query();
   const EcsWorldStats ecsStats   = ecs_world_stats_query(world);
