@@ -26,5 +26,5 @@ void main() {
 
   tags ^= tags_at_offset(0, 0);
 
-  out_color.rgb = f32v3(tag_is_set(tags, tag_selected_bit));
+  out_color.rgb = f32v3(tag_is_set(tags, tag_outline_bit));
 }
