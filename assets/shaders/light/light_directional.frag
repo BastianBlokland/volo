@@ -26,7 +26,10 @@ f32v3 clip_to_world(const f32v3 clipPos) {
 
 f32 shadow_frac(const f32v3 worldPos) {
   const f32v4 shadowClipPos = in_shadowViewProj * f32v4(worldPos, 1.0);
-  const f32v2 shadowCoord   = shadowClipPos.xy * 0.5 + 0.5;
+  if (shadowClipPos.z <= 0.0) {
+    return 0.0;
+  }
+  const f32v2 shadowCoord = shadowClipPos.xy * 0.5 + 0.5;
   return f32(texture(u_texShadow, shadowCoord).r > shadowClipPos.z);
 }
 
