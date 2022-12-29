@@ -36,7 +36,7 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
 
 static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
   thread_mutex_lock(sw->retrieveResultsMutex);
-  if (!(sw->flags & RvkStopwatch_HasResults)) {
+  if (!(sw->flags & RvkStopwatch_HasResults) && sw->counter) {
     rvk_call(
         vkGetQueryPoolResults,
         sw->dev->vkDev,
@@ -54,7 +54,8 @@ static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
 
 RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
   RvkStopwatch* sw = alloc_alloc_t(g_alloc_heap, RvkStopwatch);
-  *sw              = (RvkStopwatch){
+
+  *sw = (RvkStopwatch){
       .dev                  = dev,
       .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
   };
