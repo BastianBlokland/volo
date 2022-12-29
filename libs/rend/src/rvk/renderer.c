@@ -148,44 +148,46 @@ static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp*
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
 
+  RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
+  RvkStopwatch*   stopwatch   = rvk_stopwatch_create(dev);
+
+  VkCommandPool vkCmdPool = rvk_commandpool_create(dev, dev->graphicsQueueIndex);
+  rvk_debug_name_cmdpool(dev->debug, vkCmdPool, "renderer_{}", fmt_int(rendererId));
+
+  VkCommandBuffer vkDrawBuffer = rvk_commandbuffer_create(dev, vkCmdPool);
+
   *renderer = (RvkRenderer){
       .dev             = dev,
-      .uniformPool     = rvk_uniform_pool_create(dev),
-      .stopwatch       = rvk_stopwatch_create(dev),
+      .uniformPool     = uniformPool,
+      .stopwatch       = stopwatch,
       .rendererId      = rendererId,
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
       .fenceRenderDone = rvk_fence_create(dev, true),
-      .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
+      .vkCmdPool       = vkCmdPool,
+      .vkDrawBuffer    = vkDrawBuffer,
   };
 
-  rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
-
-  renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
-
-  renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(
-      dev,
-      renderer->vkDrawBuffer,
-      renderer->uniformPool,
-      renderer->stopwatch,
-      RvkPassFlags_Clear | RvkPassFlags_Color1 | RvkPassFlags_Color2 | RvkPassFlags_DepthOutput,
-      string_lit("geometry"));
-
-  renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(
-      dev,
-      renderer->vkDrawBuffer,
-      renderer->uniformPool,
-      renderer->stopwatch,
-      RvkPassFlags_ClearColor | RvkPassFlags_Color1 | RvkPassFlags_ExternalDepth,
-      string_lit("forward"));
-
-  renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(
-      dev,
-      renderer->vkDrawBuffer,
-      renderer->uniformPool,
-      renderer->stopwatch,
-      RvkPassFlags_ClearDepth | RvkPassFlags_DepthOutput,
-      string_lit("shadow"));
+  // clang-format off
+  {
+    const RvkPassFlags flags = RvkPassFlags_Clear |
+      RvkPassFlags_Color1 | RvkPassFlags_SrgbColor1 | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
+      RvkPassFlags_Color2 |                           // Attachment color2 (linear): normal (rgb) and tags (a).
+      RvkPassFlags_DepthOutput;                       // Attachment depth.
+    renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("geometry"));
+  }
+  {
+    const RvkPassFlags flags = RvkPassFlags_ClearColor |
+      RvkPassFlags_Color1 | RvkPassFlags_SrgbColor1 | // Attachment color1 (srgb): color (rgb).
+      RvkPassFlags_ExternalDepth;                     // Attachment depth.
+    renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("forward"));
+  }
+  {
+    const RvkPassFlags flags = RvkPassFlags_ClearDepth |
+      RvkPassFlags_DepthOutput;                       // Attachment depth.
+    renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("shadow"));
+  }
+  // clang-format on
 
   return renderer;
 }
