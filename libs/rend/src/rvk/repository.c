@@ -32,6 +32,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("WireframeSkinnedGraphic"),
       string_static("WireframeTerrainGraphic"),
       string_static("DebugSkinningGraphic"),
+      string_static("DebugShadowGraphic"),
       string_static("ComposeGraphic"),
       string_static("ComposeDebugGraphic"),
       string_static("SkyGraphic"),

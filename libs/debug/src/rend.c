@@ -284,6 +284,15 @@ static void rend_settings_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug shadow"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugShadow);
+
+  if (settings->flags & RendFlags_DebugShadow && ui_canvas_input_any(canvas)) {
+    settings->flags &= ~RendFlags_DebugShadow;
+  }
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_DebugLight);
@@ -757,7 +766,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(.size = ui_vector(800, 430)),
+      .panel          = ui_panel(.size = ui_vector(800, 460)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),

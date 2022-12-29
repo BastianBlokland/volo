@@ -13,6 +13,7 @@ typedef enum {
   RvkRepositoryId_WireframeSkinnedGraphic,
   RvkRepositoryId_WireframeTerrainGraphic,
   RvkRepositoryId_DebugSkinningGraphic,
+  RvkRepositoryId_DebugShadowGraphic,
   RvkRepositoryId_ComposeGraphic,
   RvkRepositoryId_ComposeDebugGraphic,
   RvkRepositoryId_SkyGraphic,

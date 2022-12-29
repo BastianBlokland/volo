@@ -383,6 +383,9 @@ static bool rend_canvas_paint(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
+    if (settings->flags & RendFlags_DebugShadow) {
+      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
+    }
     rvk_pass_begin(fwdPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(fwdPass);
