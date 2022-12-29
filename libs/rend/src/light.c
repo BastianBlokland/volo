@@ -219,7 +219,7 @@ ecs_system_define(RendLightRenderSys) {
         if (shadow) {
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = geo_matrix_from_quat(entry->data_directional.rotation);
-          renderer->shadowProjMatrix  = geo_matrix_proj_ortho(175, 175, -75, 75);
+          renderer->shadowProjMatrix  = geo_matrix_proj_ortho(150, 150, -75, 75);
 
           const GeoMatrix shadowViewMatrix = geo_matrix_inverse(&renderer->shadowTransMatrix);
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
