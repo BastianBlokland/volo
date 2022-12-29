@@ -15,6 +15,15 @@ bool debug_widget_editor_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags
   return false;
 }
 
+bool debug_widget_editor_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
+  f64 v = *val;
+  if (ui_numbox(canvas, &v, .max = u16_max, .step = 1, .flags = flags)) {
+    *val = (u16)v;
+    return true;
+  }
+  return false;
+}
+
 bool debug_widget_editor_u32(UiCanvasComp* canvas, u32* val, const UiWidgetFlags flags) {
   f64 v = *val;
   if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = flags)) {

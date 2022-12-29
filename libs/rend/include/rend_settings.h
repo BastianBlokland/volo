@@ -7,6 +7,7 @@ typedef enum {
   RendFlags_FrustumCulling = 1 << 0,
   RendFlags_Wireframe      = 1 << 1,
   RendFlags_DebugSkinning  = 1 << 2,
+  RendFlags_DebugShadow    = 1 << 3,
 } RendFlags;
 
 typedef enum {
@@ -51,16 +52,18 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendPresentMode presentMode;
   RendComposeMode composeMode;
   f32             resolutionScale;
+  u16             shadowResolution;
 };
 
 typedef enum {
-  RendGlobalFlags_Validation = 1 << 0,
-  RendGlobalFlags_Verbose    = 1 << 1,
-  RendGlobalFlags_DebugGpu   = 1 << 2,
-  RendGlobalFlags_DebugLight = 1 << 3,
+  RendGlobalFlags_SunShadows = 1 << 0,
+  RendGlobalFlags_Validation = 1 << 1,
+  RendGlobalFlags_Verbose    = 1 << 2,
+  RendGlobalFlags_DebugGpu   = 1 << 3,
+  RendGlobalFlags_DebugLight = 1 << 4,
 } RendGlobalFlags;
 
-ecs_comp_extern_public(RendGlobalSettingsComp) {
+ecs_comp_extern_public(RendSettingsGlobalComp) {
   RendGlobalFlags flags;
   u16             limiterFreq;
 
@@ -70,4 +73,4 @@ ecs_comp_extern_public(RendGlobalSettingsComp) {
 };
 
 void rend_settings_to_default(RendSettingsComp*);
-void rend_global_settings_to_default(RendGlobalSettingsComp*);
+void rend_settings_global_to_default(RendSettingsGlobalComp*);

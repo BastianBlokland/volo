@@ -21,13 +21,14 @@ typedef enum {
   RvkPassFlags_None          = 0,
   RvkPassFlags_ClearColor    = 1 << 0,
   RvkPassFlags_ClearDepth    = 1 << 1,
-  RvkPassFlags_OutputDepth   = 1 << 2,
-  RvkPassFlags_OutputColor2  = 1 << 3, // Enable a second color attachment.
-  RvkPassFlags_ExternalDepth = 1 << 4, // Call 'rvk_pass_use_depth()' with a source depth image.
+  RvkPassFlags_Color1        = 1 << 2, // Enable a color attachment.
+  RvkPassFlags_Color2        = 1 << 3, // Enable a second color attachment.
+  RvkPassFlags_DepthOutput   = 1 << 4, // Support outputting the depth attachment.
+  RvkPassFlags_ExternalDepth = 1 << 5, // Call 'rvk_pass_use_depth()' with a source depth image.
 
   RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 5,
+  RvkPassFlags_Count = 6,
 } RvkPassFlags;
 
 typedef enum {
@@ -54,6 +55,7 @@ void    rvk_pass_destroy(RvkPass*);
 bool    rvk_pass_active(const RvkPass*);
 String  rvk_pass_name(const RvkPass*);
 RvkSize rvk_pass_size(const RvkPass*);
+bool    rvk_pass_recorded(const RvkPass*);
 
 RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);

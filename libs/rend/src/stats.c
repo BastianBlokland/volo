@@ -102,6 +102,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
 
     stats->passGeometry = renderStats.passes[RvkRenderPass_Geometry];
     stats->passForward  = renderStats.passes[RvkRenderPass_Forward];
+    stats->passShadow   = renderStats.passes[RvkRenderPass_Shadow];
 
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
     stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);

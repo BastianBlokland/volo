@@ -10,9 +10,10 @@
 #include "statrecorder_internal.h"
 
 typedef enum {
-  RvkStatRecorder_Supported  = 1 << 0,
-  RvkStatRecorder_Capturing  = 1 << 1,
-  RvkStatRecorder_HasResults = 1 << 2,
+  RvkStatRecorder_Supported   = 1 << 0,
+  RvkStatRecorder_Capturing   = 1 << 1,
+  RvkStatRecorder_HasCaptured = 1 << 2,
+  RvkStatRecorder_HasResults  = 1 << 3,
 } RvkStatRecorderFlags;
 
 struct sRvkStatRecorder {
@@ -49,8 +50,7 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
 static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
   thread_mutex_lock(sr->retrieveResultsMutex);
   if (!(sr->flags & RvkStatRecorder_HasResults)) {
-    rvk_call(
-        vkGetQueryPoolResults,
+    const VkResult vkQueryRes = vkGetQueryPoolResults(
         sr->dev->vkDev,
         sr->vkQueryPool,
         0,
@@ -59,6 +59,11 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
         sr->results,
         sizeof(u64),
         VK_QUERY_RESULT_64_BIT);
+    if (vkQueryRes == VK_NOT_READY) {
+      mem_set(mem_create(sr->results, RvkStatMeta_CountAuto * sizeof(u64)), 0);
+    } else {
+      rvk_check(string_lit("vkGetQueryPoolResults"), vkQueryRes);
+    }
     sr->flags |= RvkStatRecorder_HasResults;
   }
   thread_mutex_unlock(sr->retrieveResultsMutex);
@@ -66,7 +71,8 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
 
 RvkStatRecorder* rvk_statrecorder_create(RvkDevice* dev) {
   RvkStatRecorder* sr = alloc_alloc_t(g_alloc_heap, RvkStatRecorder);
-  *sr                 = (RvkStatRecorder){
+
+  *sr = (RvkStatRecorder){
       .dev                  = dev,
       .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
   };
@@ -101,6 +107,10 @@ void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
 }
 
 u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
+  diag_assert_msg(
+      sr->flags & RvkStatRecorder_HasCaptured,
+      "Unable to query recorder: No stats have been captured yet");
+
   if (UNLIKELY(!(sr->flags & RvkStatRecorder_Supported))) {
     return 0;
   }
@@ -139,4 +149,5 @@ void rvk_statrecorder_stop(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
     vkCmdEndQuery(vkCmdBuf, sr->vkQueryPool, 0);
   }
   sr->flags &= ~RvkStatRecorder_Capturing;
+  sr->flags |= RvkStatRecorder_HasCaptured;
 }

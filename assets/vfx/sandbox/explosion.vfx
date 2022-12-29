@@ -82,7 +82,7 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 10
+          "a": 15
         },
         "attenuationLinear": 0.22,
         "attenuationQuad": 0.20,

@@ -8,6 +8,8 @@ configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
     shaders/compose.frag
+    shaders/debug/debug_shadow.frag
+    shaders/debug/debug_shadow.vert
     shaders/debug/debug_skinning.frag
     shaders/debug/debug_skinning.vert
     shaders/debug/grid.frag
@@ -17,6 +19,7 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
+    shaders/depth_only.frag
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert

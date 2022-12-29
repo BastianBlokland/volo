@@ -388,19 +388,19 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
+RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
                 .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
                 .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
-  const bool validationDesired = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
+  const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
     dev->flags |= RvkDeviceFlags_Debug; // Validation will also enable debug features.
   }
-  const bool debugDesired = (globalSettings->flags & RendGlobalFlags_DebugGpu) != 0;
+  const bool debugDesired = (settingsGlobal->flags & RendGlobalFlags_DebugGpu) != 0;
   if (debugDesired) {
     // TODO: Support enabling this optionally based on instance support, at the moment creating the
     // instance would fail if unsupported.
@@ -423,7 +423,7 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
   if (dev->flags & RvkDeviceFlags_Debug) {
-    const bool          verbose    = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
+    const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
     if (dev->transferQueueIndex == dev->graphicsQueueIndex) {

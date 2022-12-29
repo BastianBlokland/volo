@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/debug_shadow.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/debug_shadow.frag.spv"
+    }
+  ],
+  "vertexCount": 4,
+  "renderOrder": 2000,
+  "topology": "TriangleFan",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

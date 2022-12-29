@@ -17,15 +17,16 @@
 #define pass_attachment_color_max 2
 #define pass_attachment_max (pass_attachment_color_max + 1)
 #define pass_dependencies_max 8
-#define pass_global_image_max 3
+#define pass_global_image_max 4
 
 typedef RvkGraphic* RvkGraphicPtr;
 
 static const VkFormat g_colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassPrivateFlags_Setup  = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Active = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_Setup    = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 2),
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -52,7 +53,10 @@ struct sRvkPass {
 };
 
 static u32 rvk_attach_color_count(const RvkPassFlags flags) {
-  return (flags & RvkPassFlags_OutputColor2) ? 2 : 1;
+  u32 result = 0;
+  result += (flags & RvkPassFlags_Color1) != 0;
+  result += (flags & RvkPassFlags_Color2) != 0;
+  return result;
 }
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
@@ -83,7 +87,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
                                                           : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .storeOp        = (flags & RvkPassFlags_OutputDepth) ? VK_ATTACHMENT_STORE_OP_STORE
+      .storeOp        = (flags & RvkPassFlags_DepthOutput) ? VK_ATTACHMENT_STORE_OP_STORE
                                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -270,16 +274,16 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
     pass->attachColorMask |= 1 << i;
   }
 
-  RvkImageCapability attachCap = 0;
-  if (pass->flags & RvkPassFlags_OutputDepth) {
-    attachCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  RvkImageCapability depthCap = 0;
+  if (pass->flags & RvkPassFlags_DepthOutput) {
+    depthCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
   if (pass->flags & RvkPassFlags_ExternalDepth) {
-    attachCap |= RvkImageCapability_TransferDest;
+    depthCap |= RvkImageCapability_TransferDest;
   }
 
   pass->attachDepth =
-      rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, attachCap);
+      rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, depthCap);
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass, pass->attachColors, &pass->attachDepth);
 }
@@ -350,7 +354,12 @@ RvkPass* rvk_pass_create(
   const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
   const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
   const RvkSampler       globalImageSampler   = rvk_sampler_create(
-      dev, RvkSamplerWrap_Clamp, RvkSamplerFilter_Linear, RvkSamplerAniso_None, 1);
+      dev,
+      RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+      RvkSamplerWrap_Zero,
+      RvkSamplerFilter_Linear,
+      RvkSamplerAniso_None,
+      1);
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
@@ -394,6 +403,10 @@ bool rvk_pass_active(const RvkPass* pass) {
 String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
 RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 
+bool rvk_pass_recorded(const RvkPass* pass) {
+  return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
+}
+
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
   return rvk_desc_set_meta(pass->globalDescSet);
 }
@@ -417,12 +430,13 @@ VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPas
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color1:
+    diag_assert_msg(pass->flags & RvkPassFlags_Color1, "Pass does not have a color1 output");
     return &pass->attachColors[0];
   case RvkPassOutput_Color2:
-    diag_assert_msg(pass->flags & RvkPassFlags_OutputColor2, "Pass does not output color2");
+    diag_assert_msg(pass->flags & RvkPassFlags_Color2, "Pass does not have a color2 output");
     return &pass->attachColors[1];
   case RvkPassOutput_Depth:
-    diag_assert_msg(pass->flags & RvkPassFlags_OutputDepth, "Pass does not output depth");
+    diag_assert_msg(pass->flags & RvkPassFlags_DepthOutput, "Pass does not output depth");
     return &pass->attachDepth;
   case RvkPassOutput_Count:
     break;
@@ -435,6 +449,9 @@ u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
 }
 
 TimeDuration rvk_pass_duration(const RvkPass* pass) {
+  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
+    return 0;
+  }
   const u64 timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
   const u64 timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
   return time_nanoseconds(timestampEnd - timestampBegin);
@@ -443,6 +460,7 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
 void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
+  pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 
@@ -640,6 +658,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
+  pass->flags |= RvkPassPrivateFlags_Recorded;
   pass->globalBoundMask = 0;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);

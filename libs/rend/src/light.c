@@ -4,10 +4,14 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
+#include "log_logger.h"
 #include "rend_draw.h"
 #include "rend_light.h"
 #include "rend_register.h"
 #include "rend_settings.h"
+
+#include "light_internal.h"
 
 typedef enum {
   RendLightType_Directional,
@@ -26,14 +30,16 @@ typedef enum {
 enum { RendLightDraw_Count = RendLightType_Count * RendLightVariation_Count };
 
 typedef struct {
-  GeoQuat  rotation;
-  GeoColor radiance;
+  GeoQuat        rotation;
+  GeoColor       radiance;
+  RendLightFlags flags;
 } RendLightDirectional;
 
 typedef struct {
-  GeoVector pos;
-  GeoColor  radiance;
-  f32       attenuationLinear, attenuationQuadratic;
+  GeoVector      pos;
+  GeoColor       radiance;
+  f32            attenuationLinear, attenuationQuadratic;
+  RendLightFlags flags;
 } RendLightPoint;
 
 typedef struct {
@@ -52,9 +58,11 @@ static const String g_lightGraphics[RendLightDraw_Count] = {
 };
 // clang-format on
 
-ecs_comp_define_public(RendLightSettingsComp);
-
-ecs_comp_define(RendLightRendererComp) { EcsEntityId drawEntities[RendLightDraw_Count]; };
+ecs_comp_define(RendLightRendererComp) {
+  EcsEntityId drawEntities[RendLightDraw_Count];
+  bool        hasShadow;
+  GeoMatrix   shadowTransMatrix, shadowProjMatrix;
+};
 
 ecs_comp_define(RendLightComp) {
   DynArray entries; // RendLight[]
@@ -66,9 +74,9 @@ static void ecs_destruct_light(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(RendLightRendererComp);
   ecs_access_maybe_write(RendLightComp);
-  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_maybe_write(RendLightRendererComp);
+  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
@@ -120,9 +128,13 @@ static GeoColor rend_radiance_resolve(const GeoColor radiance) {
   };
 }
 
+static f32 rend_light_brightness(const GeoColor radiance) {
+  return math_max(math_max(radiance.r, radiance.g), radiance.b);
+}
+
 static f32 rend_light_point_radius(const RendLightPoint* point) {
   const GeoColor radiance   = rend_radiance_resolve(point->radiance);
-  const f32      brightness = math_max(math_max(radiance.r, radiance.g), radiance.b);
+  const f32      brightness = rend_light_brightness(radiance);
   const f32      c          = 1.0f;                        // Constant term.
   const f32      l          = point->attenuationLinear;    // Linear term.
   const f32      q          = point->attenuationQuadratic; // Quadratic term.
@@ -136,10 +148,14 @@ ecs_system_define(RendLightSunSys) {
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   RendLightComp*                light    = ecs_view_write_t(globalItr, RendLightComp);
   if (light) {
-    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance);
+    RendLightFlags flags = RendLightFlags_None;
+    if (settings->flags & RendGlobalFlags_SunShadows) {
+      flags |= RendLightFlags_Shadow;
+    }
+    rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
   }
 }
 
@@ -151,8 +167,8 @@ ecs_system_define(RendLightRenderSys) {
   }
 
   AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  const RendLightRendererComp*  renderer = ecs_view_read_t(globalItr, RendLightRendererComp);
-  const RendGlobalSettingsComp* settings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
+  const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
     rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
@@ -162,6 +178,8 @@ ecs_system_define(RendLightRenderSys) {
   const bool               debugLight = (settings->flags & RendGlobalFlags_DebugLight) != 0;
   const RendLightVariation var  = debugLight ? RendLightVariation_Debug : RendLightVariation_Normal;
   const SceneTags          tags = SceneTags_Light;
+
+  renderer->hasShadow = false;
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);
@@ -180,8 +198,9 @@ ecs_system_define(RendLightRenderSys) {
         ALIGNAS(16)
         GeoVector direction; // x, y, z: direction, w: unused.
         GeoColor  radiance;  // r, g, b: radiance, a: unused.
+        GeoMatrix shadowViewProj;
       } LightDirData;
-      ASSERT(sizeof(LightDirData) == 32, "Size needs to match the size defined in glsl");
+      ASSERT(sizeof(LightDirData) == 96, "Size needs to match the size defined in glsl");
       ASSERT(alignof(LightDirData) == 16, "Alignment needs to match the glsl alignment");
 
       typedef struct {
@@ -195,18 +214,39 @@ ecs_system_define(RendLightRenderSys) {
 
       switch (entry->type) {
       case RendLightType_Directional: {
-        const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
-        const GeoColor  radiance  = rend_radiance_resolve(entry->data_directional.radiance);
-        const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
-        if (radiance.r > f32_epsilon || radiance.g > f32_epsilon || radiance.b > f32_epsilon) {
-          *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
-              .direction = direction,
-              .radiance  = radiance,
-          };
+        const GeoColor radiance = rend_radiance_resolve(entry->data_directional.radiance);
+        if (rend_light_brightness(radiance) < 0.1f) {
+          continue;
         }
+        bool shadow = (entry->data_directional.flags & RendLightFlags_Shadow) != 0;
+        if (shadow && renderer->hasShadow) {
+          log_e("Only a single directional shadow is supported");
+          shadow = false;
+        }
+        GeoMatrix shadowViewProj;
+        if (shadow) {
+          renderer->hasShadow         = true;
+          renderer->shadowTransMatrix = geo_matrix_from_quat(entry->data_directional.rotation);
+          renderer->shadowProjMatrix  = geo_matrix_proj_ortho(150, 150, -75, 75);
+
+          const GeoMatrix shadowViewMatrix = geo_matrix_inverse(&renderer->shadowTransMatrix);
+          shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
+        } else {
+          shadowViewProj = (GeoMatrix){0};
+        }
+        const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
+        const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
+        *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
+            .direction      = direction,
+            .radiance       = radiance,
+            .shadowViewProj = shadowViewProj,
+        };
         break;
       }
       case RendLightType_Point: {
+        if (entry->data_point.flags & RendLightFlags_Shadow) {
+          log_e("Point-light shadows are unsupported");
+        }
         const f32 radius = rend_light_point_radius(&entry->data_point);
         if (UNLIKELY(radius < f32_epsilon)) {
           continue;
@@ -253,7 +293,11 @@ RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {
       world, entity, RendLightComp, .entries = dynarray_create_t(g_alloc_heap, RendLight, 4));
 }
 
-void rend_light_directional(RendLightComp* comp, const GeoQuat rotation, const GeoColor radiance) {
+void rend_light_directional(
+    RendLightComp*       comp,
+    const GeoQuat        rotation,
+    const GeoColor       radiance,
+    const RendLightFlags flags) {
   rend_light_add(
       comp,
       (RendLight){
@@ -262,16 +306,18 @@ void rend_light_directional(RendLightComp* comp, const GeoQuat rotation, const G
               {
                   .rotation = rotation,
                   .radiance = radiance,
+                  .flags    = flags,
               },
       });
 }
 
 void rend_light_point(
-    RendLightComp*  comp,
-    const GeoVector pos,
-    const GeoColor  radiance,
-    const f32       attenuationLinear,
-    const f32       attenuationQuadratic) {
+    RendLightComp*       comp,
+    const GeoVector      pos,
+    const GeoColor       radiance,
+    const f32            attenuationLinear,
+    const f32            attenuationQuadratic,
+    const RendLightFlags flags) {
   rend_light_add(
       comp,
       (RendLight){
@@ -282,6 +328,17 @@ void rend_light_point(
                   .radiance             = radiance,
                   .attenuationLinear    = attenuationLinear,
                   .attenuationQuadratic = attenuationQuadratic,
+                  .flags                = flags,
               },
       });
+}
+
+bool rend_light_has_shadow(const RendLightRendererComp* renderer) { return renderer->hasShadow; }
+
+const GeoMatrix* rend_light_shadow_trans(const RendLightRendererComp* renderer) {
+  return &renderer->shadowTransMatrix;
+}
+
+const GeoMatrix* rend_light_shadow_proj(const RendLightRendererComp* renderer) {
+  return &renderer->shadowProjMatrix;
 }

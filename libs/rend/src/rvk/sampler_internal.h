@@ -5,8 +5,14 @@
 typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
+  RvkSamplerFlags_None           = 0,
+  RvkSamplerFlags_SupportCompare = 1 << 0, // Enable support for comparisons using sampler2DShadow.
+} RvkSamplerFlags;
+
+typedef enum {
   RvkSamplerWrap_Repeat,
   RvkSamplerWrap_Clamp,
+  RvkSamplerWrap_Zero,
 
   RvkSamplerWrap_Count,
 } RvkSamplerWrap;
@@ -32,8 +38,8 @@ typedef struct sRvkSampler {
   VkSampler vkSampler;
 } RvkSampler;
 
-RvkSampler
-rvk_sampler_create(RvkDevice*, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u8 mipLevels);
+RvkSampler rvk_sampler_create(
+    RvkDevice*, RvkSamplerFlags, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u8 mipLevels);
 
 void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
 

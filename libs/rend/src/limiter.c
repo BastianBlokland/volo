@@ -10,7 +10,7 @@
 ecs_comp_define_public(RendLimiterComp);
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_maybe_write(RendLimiterComp);
 }
 
@@ -33,7 +33,7 @@ ecs_system_define(RendFrameLimiterSys) {
   if (UNLIKELY(!globalItr)) {
     return;
   }
-  const RendGlobalSettingsComp* globalSettings = ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   RendLimiterComp*              limiter        = ecs_view_write_t(globalItr, RendLimiterComp);
   if (UNLIKELY(!limiter)) {
     limiter = ecs_world_add_t(
@@ -43,11 +43,11 @@ ecs_system_define(RendFrameLimiterSys) {
   // Wait for the previous frame's image to be presented to the user.
   rend_wait_for_present(world);
 
-  if (!globalSettings->limiterFreq) {
+  if (!settingsGlobal->limiterFreq) {
     limiter->sleepDur = 0;
     return; // Limiter not active.
   }
-  const TimeDuration targetDuration = time_second / globalSettings->limiterFreq;
+  const TimeDuration targetDuration = time_second / settingsGlobal->limiterFreq;
   const TimeSteady   start          = time_steady_clock();
   const TimeDuration elapsed        = time_steady_duration(limiter->previousTime, start);
 

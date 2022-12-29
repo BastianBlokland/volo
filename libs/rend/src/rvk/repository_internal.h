@@ -7,10 +7,13 @@ typedef struct sRvkGraphic RvkGraphic;
 typedef enum {
   RvkRepositoryId_MissingTexture,
   RvkRepositoryId_MissingTextureCube,
+  RvkRepositoryId_ShadowGraphic,
+  RvkRepositoryId_ShadowSkinnedGraphic,
   RvkRepositoryId_WireframeGraphic,
   RvkRepositoryId_WireframeSkinnedGraphic,
   RvkRepositoryId_WireframeTerrainGraphic,
   RvkRepositoryId_DebugSkinningGraphic,
+  RvkRepositoryId_DebugShadowGraphic,
   RvkRepositoryId_ComposeGraphic,
   RvkRepositoryId_ComposeDebugGraphic,
   RvkRepositoryId_SkyGraphic,

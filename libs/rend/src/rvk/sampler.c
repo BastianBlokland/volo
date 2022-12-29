@@ -22,6 +22,8 @@ static VkSamplerAddressMode rvk_sampler_vkaddress(const RvkSamplerWrap wrap) {
     return VK_SAMPLER_ADDRESS_MODE_REPEAT;
   case RvkSamplerWrap_Clamp:
     return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  case RvkSamplerWrap_Zero:
+    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
   case RvkSamplerWrap_Count:
     break;
   }
@@ -48,6 +50,7 @@ static f32 rvk_sampler_aniso_level(const RvkSamplerAniso aniso) {
 
 static VkSampler rvk_vksampler_create(
     const RvkDevice*       dev,
+    const RvkSamplerFlags  flags,
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
@@ -61,10 +64,10 @@ static VkSampler rvk_vksampler_create(
       .addressModeV            = rvk_sampler_vkaddress(wrap),
       .addressModeW            = rvk_sampler_vkaddress(wrap),
       .maxAnisotropy           = 1,
-      .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+      .borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
       .unnormalizedCoordinates = false,
-      .compareEnable           = false,
-      .compareOp               = VK_COMPARE_OP_ALWAYS,
+      .compareEnable           = (flags & RvkSamplerFlags_SupportCompare) != 0,
+      .compareOp               = VK_COMPARE_OP_LESS,
       .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
       .mipLodBias              = 0,
       .minLod                  = 0,
@@ -83,13 +86,14 @@ static VkSampler rvk_vksampler_create(
 
 RvkSampler rvk_sampler_create(
     RvkDevice*             dev,
+    const RvkSamplerFlags  flags,
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
     const u8               mipLevels) {
 
   return (RvkSampler){
-      .vkSampler = rvk_vksampler_create(dev, wrap, filter, aniso, mipLevels),
+      .vkSampler = rvk_vksampler_create(dev, flags, wrap, filter, aniso, mipLevels),
   };
 }
 
@@ -101,6 +105,7 @@ String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
   static const String g_names[] = {
       string_static("Repeat"),
       string_static("Clamp"),
+      string_static("Zero"),
   };
   ASSERT(array_elems(g_names) == RvkSamplerWrap_Count, "Incorrect number of sampler-wrap names");
   return g_names[wrap];
