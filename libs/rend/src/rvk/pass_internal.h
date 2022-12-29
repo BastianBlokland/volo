@@ -55,7 +55,7 @@ void    rvk_pass_destroy(RvkPass*);
 bool    rvk_pass_active(const RvkPass*);
 String  rvk_pass_name(const RvkPass*);
 RvkSize rvk_pass_size(const RvkPass*);
-bool    rvk_pass_has_been_recorded(const RvkPass*);
+bool    rvk_pass_recorded(const RvkPass*);
 
 RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);

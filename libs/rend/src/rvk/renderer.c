@@ -230,7 +230,7 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
 
   for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
     const RvkPass* pass = rend->passes[passIdx];
-    if (rvk_pass_has_been_recorded(pass)) {
+    if (rvk_pass_recorded(pass)) {
       result.passes[passIdx] = (RendStatPass){
           .dur         = rvk_pass_duration(pass),
           .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),

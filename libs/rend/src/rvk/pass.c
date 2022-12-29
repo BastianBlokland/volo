@@ -24,9 +24,9 @@ typedef RvkGraphic* RvkGraphicPtr;
 static const VkFormat g_colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassPrivateFlags_Setup           = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Active          = 1 << (RvkPassFlags_Count + 1),
-  RvkPassPrivateFlags_HasBeenRecorded = 1 << (RvkPassFlags_Count + 2),
+  RvkPassPrivateFlags_Setup    = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 2),
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -398,8 +398,8 @@ bool rvk_pass_active(const RvkPass* pass) {
 String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
 RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 
-bool rvk_pass_has_been_recorded(const RvkPass* pass) {
-  return (pass->flags & RvkPassPrivateFlags_HasBeenRecorded) != 0;
+bool rvk_pass_recorded(const RvkPass* pass) {
+  return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
 }
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
@@ -444,6 +444,9 @@ u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
 }
 
 TimeDuration rvk_pass_duration(const RvkPass* pass) {
+  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
+    return 0;
+  }
   const u64 timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
   const u64 timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
   return time_nanoseconds(timestampEnd - timestampBegin);
@@ -452,6 +455,7 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
 void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
+  pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 
@@ -649,7 +653,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
-  pass->flags |= RvkPassPrivateFlags_HasBeenRecorded;
+  pass->flags |= RvkPassPrivateFlags_Recorded;
   pass->globalBoundMask = 0;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
