@@ -354,7 +354,7 @@ RvkPass* rvk_pass_create(
   const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
   const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
   const RvkSampler       globalImageSampler   = rvk_sampler_create(
-      dev, RvkSamplerWrap_Clamp, RvkSamplerFilter_Linear, RvkSamplerAniso_None, 1);
+      dev, RvkSamplerWrap_Zero, RvkSamplerFilter_Linear, RvkSamplerAniso_None, 1);
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
