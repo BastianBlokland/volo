@@ -39,6 +39,7 @@ EcsEntityId   rend_draw_graphic(const RendDrawComp*);
 u32           rend_draw_instance_count(const RendDrawComp*);
 u32           rend_draw_data_size(const RendDrawComp*);
 u32           rend_draw_data_inst_size(const RendDrawComp*);
+SceneTags     rend_draw_tag_mask(const RendDrawComp*);
 
 /**
  * Update the graphic asset used for the draw.

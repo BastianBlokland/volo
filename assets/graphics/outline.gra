@@ -1,0 +1,16 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/outline.frag.spv"
+    }
+  ],
+  "vertexCount": 3,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Additive",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

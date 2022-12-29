@@ -124,8 +124,10 @@ static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
   *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
 
-static void painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
-  EcsIterator* graphicItr = ecs_view_itr(graphicView);
+static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  SceneTags tagMask = 0;
+
+  EcsIterator* graphicItr = ecs_view_itr(graView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
@@ -140,13 +142,16 @@ static void painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsV
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
     if (rvk_pass_prepare(ctx->pass, graphic)) {
       painter_push(ctx, rend_draw_output(draw, graphic, null));
+      tagMask |= rend_draw_tag_mask(draw);
     }
   }
+
+  return tagMask;
 }
 
-static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
+static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
   RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
-  EcsIterator*   graphicItr = ecs_view_itr(graphicView);
+  EcsIterator*   graphicItr = ecs_view_itr(graView);
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
@@ -341,12 +346,13 @@ static bool rend_canvas_paint(
   }
 
   // Geometry pass.
-  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  RvkPass*  geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  SceneTags geoTagMask;
   {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, geoPass);
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
-    painter_push_geometry(&ctx, drawView, graphicView);
+    geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     rvk_pass_begin(geoPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(geoPass);
@@ -379,6 +385,9 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 3);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
+    if (geoTagMask & SceneTags_Outline) {
+      painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic);
+    }
     painter_push_forward(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
       painter_push_wireframe(&ctx, drawView, graphicView);

@@ -60,6 +60,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
+        .repoId     = RvkRepositoryId_OutlineGraphic,
+        .assetId    = string_static("graphics/outline.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_DebugSkinningGraphic,
         .assetId    = string_static("graphics/debug/debug_skinning.gra"),
         .reloadable = true,

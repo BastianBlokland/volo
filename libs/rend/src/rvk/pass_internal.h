@@ -42,10 +42,10 @@ typedef enum {
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
   RvkMesh*    dynMesh; // Dynamic (late bound) mesh to use in this draw.
-  u32         vertexCountOverride;
   Mem         drawData;
-  u32         instCount;
   Mem         instData;
+  u32         vertexCountOverride;
+  u32         instCount;
   u32         instDataStride;
 } RvkPassDraw;
 

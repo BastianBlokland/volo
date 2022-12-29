@@ -80,9 +80,6 @@ void main() {
     out_color = f32v4(color * ambient, 1.0);
 
     // Additional effects.
-    if (tag_is_set(tags, tag_selected_bit)) {
-      out_color.rgb += (1.0 - abs(dot(normal, viewDir)));
-    }
     if (tag_is_set(tags, tag_damaged_bit)) {
       out_color.rgb = mix(out_color.rgb, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
     }
