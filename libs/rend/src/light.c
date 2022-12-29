@@ -194,8 +194,9 @@ ecs_system_define(RendLightRenderSys) {
         ALIGNAS(16)
         GeoVector direction; // x, y, z: direction, w: unused.
         GeoColor  radiance;  // r, g, b: radiance, a: unused.
+        GeoMatrix shadowViewProj;
       } LightDirData;
-      ASSERT(sizeof(LightDirData) == 32, "Size needs to match the size defined in glsl");
+      ASSERT(sizeof(LightDirData) == 96, "Size needs to match the size defined in glsl");
       ASSERT(alignof(LightDirData) == 16, "Alignment needs to match the glsl alignment");
 
       typedef struct {
@@ -214,18 +215,23 @@ ecs_system_define(RendLightRenderSys) {
           log_e("Only a single directional shadow is supported");
           shadow = false;
         }
+        GeoMatrix shadowViewProj;
         if (shadow) {
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = geo_matrix_from_quat(entry->data_directional.rotation);
           renderer->shadowProjMatrix  = geo_matrix_proj_ortho(200, 200, -100, 100);
+
+          const GeoMatrix shadowViewMatrix = geo_matrix_inverse(&renderer->shadowTransMatrix);
+          shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoColor  radiance  = rend_radiance_resolve(entry->data_directional.radiance);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
         if (radiance.r > f32_epsilon || radiance.g > f32_epsilon || radiance.b > f32_epsilon) {
           *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
-              .direction = direction,
-              .radiance  = radiance,
+              .direction      = direction,
+              .radiance       = radiance,
+              .shadowViewProj = shadowViewProj,
           };
         }
         break;
