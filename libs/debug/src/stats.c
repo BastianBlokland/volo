@@ -222,8 +222,11 @@ static void stats_draw_graph(
   f32 t = 0;
   for (u32 i = 0; i != sectionCount; ++i) {
     const f32 frac = math_min(sections[i].frac, 1.0f - t);
-    if (frac <= 0.0) {
+    if (frac < 0.0) {
       break; // TODO: This can happen as values are averaged independently.
+    }
+    if (frac < f32_epsilon) {
+      continue;
     }
     ui_layout_push(canvas);
     ui_layout_move(canvas, ui_vector(t, 0), UiBase_Current, Ui_X);
