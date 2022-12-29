@@ -231,16 +231,16 @@ ecs_system_define(RendLightRenderSys) {
 
           const GeoMatrix shadowViewMatrix = geo_matrix_inverse(&renderer->shadowTransMatrix);
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
+        } else {
+          shadowViewProj = (GeoMatrix){0};
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
-        if (radiance.r > f32_epsilon || radiance.g > f32_epsilon || radiance.b > f32_epsilon) {
-          *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
-              .direction      = direction,
-              .radiance       = radiance,
-              .shadowViewProj = shadowViewProj,
-          };
-        }
+        *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
+            .direction      = direction,
+            .radiance       = radiance,
+            .shadowViewProj = shadowViewProj,
+        };
         break;
       }
       case RendLightType_Point: {
