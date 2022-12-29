@@ -89,6 +89,9 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
     // Restart the animation if it has reached the end, don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
       hitAnimLayer->time = 0;
+
+      // Randomize the speed to avoid multiple units playing the same animation completely in sync.
+      hitAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
     }
   }
 }
