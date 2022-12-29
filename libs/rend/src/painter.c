@@ -379,6 +379,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 3);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
+    painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic);
     painter_push_forward(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
       painter_push_wireframe(&ctx, drawView, graphicView);
