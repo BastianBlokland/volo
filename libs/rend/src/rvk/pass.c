@@ -53,11 +53,11 @@ struct sRvkPass {
 static VkFormat rvk_attach_color_format(const RvkPassFlags flags, const u32 index) {
   switch (index) {
   case 0: {
-    const bool srgb = (flags & RvkPassFlags_SrgbColor1) != 0;
+    const bool srgb = (flags & RvkPassFlags_Color1Srgb) != 0;
     return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
   }
   case 1: {
-    const bool srgb = (flags & RvkPassFlags_SrgbColor2) != 0;
+    const bool srgb = (flags & RvkPassFlags_Color2Srgb) != 0;
     return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
   }
   default:
@@ -370,8 +370,8 @@ RvkPass* rvk_pass_create(
     const RvkPassFlags flags,
     const String       name) {
   diag_assert(!string_is_empty(name));
-  diag_assert(!(flags & RvkPassFlags_SrgbColor1) || (flags & RvkPassFlags_Color1));
-  diag_assert(!(flags & RvkPassFlags_SrgbColor2) || (flags & RvkPassFlags_Color2));
+  diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
+  diag_assert(!(flags & RvkPassFlags_Color2Srgb) || (flags & RvkPassFlags_Color2));
   diag_assert(!(flags & RvkPassFlags_DepthOutput) || (flags & RvkPassFlags_Depth));
   diag_assert(!(flags & RvkPassFlags_ExternalDepth) || (flags & RvkPassFlags_Depth));
 

@@ -23,8 +23,8 @@ typedef enum {
   RvkPassFlags_ClearDepth    = 1 << 1,
   RvkPassFlags_Color1        = 1 << 2, // Enable a color attachment.
   RvkPassFlags_Color2        = 1 << 3, // Enable a second color attachment.
-  RvkPassFlags_SrgbColor1    = 1 << 4, // Use an SRGB format for the color1 attachment.
-  RvkPassFlags_SrgbColor2    = 1 << 5, // Use an SRGB format for the color2 attachment.
+  RvkPassFlags_Color1Srgb    = 1 << 4, // Use an SRGB format for the color1 attachment.
+  RvkPassFlags_Color2Srgb    = 1 << 5, // Use an SRGB format for the color2 attachment.
   RvkPassFlags_Depth         = 1 << 6, // Enable a depth attachment.
   RvkPassFlags_DepthOutput   = 1 << 7, // Support outputting the depth attachment.
   RvkPassFlags_ExternalDepth = 1 << 8, // Call 'rvk_pass_use_depth()' with a source depth image.
