@@ -187,6 +187,11 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       RvkPassFlags_DepthOutput;                       // Attachment depth.
     renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("shadow"));
   }
+  {
+    const RvkPassFlags flags = RvkPassFlags_ClearColor |
+      RvkPassFlags_Color1 | RvkPassFlags_SrgbColor1;  // Attachment color1 (srgb): occlusion (r).
+    renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("ambient-occlusion"));
+  }
   // clang-format on
 
   return renderer;
