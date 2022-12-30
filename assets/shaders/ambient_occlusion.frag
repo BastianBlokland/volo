@@ -5,8 +5,10 @@
 #include "global.glsl"
 #include "texture.glsl"
 
+const u32 c_kernelSize = 16; // Needs to match the maximum in rend_painter.c
+
 struct AoData {
-  f32v4 dummy;
+  f32v4 kernel[c_kernelSize];
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };

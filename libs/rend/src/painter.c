@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
+#include "core_rng.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
@@ -231,22 +233,36 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
   const RvkRepositoryId graphicId = RvkRepositoryId_AmbientOcclusionGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    enum { AoKernelSize = 16 }; // Needs to match the size defined in the ambient_occlusion shader.
 
     typedef struct {
       ALIGNAS(16)
-      GeoVector dummy;
+      GeoVector kernel[AoKernelSize];
     } AoData;
 
-    AoData* data = alloc_alloc_t(g_alloc_scratch, AoData);
-    data->dummy  = geo_vector(42);
+    static AoData g_data;
+    static u32    g_dataInit;
+    if (!g_dataInit) {
+      for (u32 i = 0; i != AoKernelSize; ++i) {
+        Rng* tmpRng = rng_create_xorwow(g_alloc_scratch, 42);
+
+        // Scale the samples so more samples are closer to the origin.
+        f32 scale = (f32)i / (f32)AoKernelSize;
+        scale     = math_lerp(0.1f, 1.0f, scale * scale);
+
+        // Random position inside hemisphere surface.
+        g_data.kernel[i].x = rng_sample_range(tmpRng, -0.5f, 0.5f);
+        g_data.kernel[i].y = rng_sample_range(tmpRng, -0.5f, 0.5f);
+        g_data.kernel[i].z = rng_sample_f32(tmpRng);
+        g_data.kernel[i].w = 0;
+        g_data.kernel[i]   = geo_vector_norm(g_data.kernel[i]);
+        g_data.kernel[i]   = geo_vector_mul(g_data.kernel[i], rng_sample_f32(tmpRng) * scale);
+      }
+      g_dataInit = true;
+    }
 
     painter_push(
-        ctx,
-        (RvkPassDraw){
-            .graphic   = graphic,
-            .instCount = 1,
-            .drawData  = mem_create(data, sizeof(AoData)),
-        });
+        ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1, .drawData = mem_var(g_data)});
   }
 }
 
