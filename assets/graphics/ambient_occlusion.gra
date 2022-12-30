@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/ambient_occlusion.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "vertexCount": 3,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

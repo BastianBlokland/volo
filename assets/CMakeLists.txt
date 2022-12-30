@@ -7,6 +7,7 @@ message(STATUS "> assets")
 configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
+    shaders/ambient_occlusion.frag
     shaders/compose.frag
     shaders/debug/debug_shadow.frag
     shaders/debug/debug_shadow.vert
