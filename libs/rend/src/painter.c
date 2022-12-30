@@ -226,6 +226,30 @@ static void painter_push_compose(RendPaintContext* ctx) {
   }
 }
 
+static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_AmbientOcclusionGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+
+    typedef struct {
+      ALIGNAS(16)
+      GeoVector dummy;
+    } AoData;
+
+    AoData* data = alloc_alloc_t(g_alloc_scratch, AoData);
+    data->dummy  = geo_vector(42);
+
+    painter_push(
+        ctx,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(AoData)),
+        });
+  }
+}
+
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
@@ -384,6 +408,9 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
+    painter_push_ambient_occlusion(&ctx);
     rvk_pass_begin(aoPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(aoPass);
