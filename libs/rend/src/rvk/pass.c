@@ -196,16 +196,14 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
   return result;
 }
 
-static VkFramebuffer rvk_framebuffer_create(
-    RvkPass* pass, RvkImage attachColors[pass_attachment_color_max], RvkImage* attachDepth) {
-
+static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    attachments[attachCount++] = attachColors[i].vkImageView;
+    attachments[attachCount++] = pass->attachColors[i].vkImageView;
   }
-  if (attachDepth) {
-    attachments[attachCount++] = attachDepth->vkImageView;
+  if (pass->flags & RvkPassFlags_Depth) {
+    attachments[attachCount++] = pass->attachDepth.vkImageView;
   }
 
   const VkFramebufferCreateInfo framebufferInfo = {
@@ -318,7 +316,7 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
         rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, depthCap);
   }
 
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass, pass->attachColors, &pass->attachDepth);
+  pass->vkFrameBuffer = rvk_framebuffer_create(pass);
 }
 
 static void rvk_pass_resource_destroy(RvkPass* pass) {
