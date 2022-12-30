@@ -194,21 +194,27 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id)
 }
 
 static void painter_push_compose(RendPaintContext* ctx) {
-  typedef struct {
-    ALIGNAS(16)
-    GeoVector packed; // x: ambient, y: mode, z: unused, w: unused.
-  } ComposeData;
-
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId graphicId = ctx->settings->composeMode == RendComposeMode_Normal
                                         ? RvkRepositoryId_ComposeGraphic
                                         : RvkRepositoryId_ComposeDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    const u32 mode  = ctx->settings->composeMode;
+    u32       flags = 0;
+    if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
+      flags |= 1 << 0;
+    }
+
+    typedef struct {
+      ALIGNAS(16)
+      GeoVector packed; // x: ambient, y: mode, z: flags, w: unused.
+    } ComposeData;
 
     ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
     data->packed.x    = ctx->settingsGlobal->lightAmbient;
-    data->packed.y    = bits_u32_as_f32(ctx->settings->composeMode);
+    data->packed.y    = bits_u32_as_f32(mode);
+    data->packed.z    = bits_u32_as_f32(flags);
 
     painter_push(
         ctx,
@@ -374,7 +380,7 @@ static bool rend_canvas_paint(
 
   // Ambient occlusion.
   RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
-  {
+  if (settings->flags & RendFlags_AmbientOcclusion) {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));

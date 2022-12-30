@@ -4,10 +4,11 @@
 #include "geo_quat.h"
 
 typedef enum {
-  RendFlags_FrustumCulling = 1 << 0,
-  RendFlags_Wireframe      = 1 << 1,
-  RendFlags_DebugSkinning  = 1 << 2,
-  RendFlags_DebugShadow    = 1 << 3,
+  RendFlags_FrustumCulling   = 1 << 0,
+  RendFlags_AmbientOcclusion = 1 << 1,
+  RendFlags_Wireframe        = 1 << 2,
+  RendFlags_DebugSkinning    = 1 << 3,
+  RendFlags_DebugShadow      = 1 << 4,
 } RendFlags;
 
 typedef enum {

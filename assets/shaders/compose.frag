@@ -7,7 +7,7 @@
 #include "texture.glsl"
 
 struct ComposeData {
-  f32v4 packed; // x: ambient, y: mode, z, unused, w: unused
+  f32v4 packed; // x: ambient, y: mode, z, flags, w: unused
 };
 
 bind_spec(0) const bool s_debug = false;
@@ -18,6 +18,8 @@ const u32 c_modeDebugNormal           = 3;
 const u32 c_modeDebugDepth            = 4;
 const u32 c_modeDebugTags             = 5;
 const u32 c_modeDebugAmbientOcclusion = 6;
+
+const u32 c_flagsAmbientOcclusion = 1 << 0;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
@@ -41,10 +43,9 @@ f32v3 clip_to_world(const f32v3 clipPos) {
 }
 
 void main() {
-  const f32v4 colorRough       = texture(u_texGeoColorRough, in_texcoord);
-  const f32v4 normalTags       = texture(u_texGeoNormalTags, in_texcoord);
-  const f32   depth            = texture(u_texGeoDepth, in_texcoord).r;
-  const f32   ambientOcclusion = texture(u_texAmbientOcclusion, in_texcoord).r;
+  const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
+  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
+  const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
   const f32v3 color     = colorRough.rgb;
   const f32   roughness = colorRough.a;
@@ -55,6 +56,14 @@ void main() {
   const f32v3 viewDir   = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambient   = u_draw.packed.x;
   const u32   mode      = floatBitsToUint(u_draw.packed.y);
+  const u32   flags     = floatBitsToUint(u_draw.packed.z);
+
+  f32 ambientOcclusion;
+  if ((flags & c_flagsAmbientOcclusion) != 0) {
+    ambientOcclusion = texture(u_texAmbientOcclusion, in_texcoord).r;
+  } else {
+    ambientOcclusion = 1.0;
+  }
 
   if (s_debug) {
     const f32 linearDepth = clip_to_view(clipPos).z;

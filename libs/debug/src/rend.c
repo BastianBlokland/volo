@@ -649,11 +649,6 @@ static void rend_light_tab_draw(
   }
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Ambient"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun shadows"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunShadows);
@@ -668,6 +663,16 @@ static void rend_light_tab_draw(
       settings->shadowResolution = 16384;
     }
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Ambient"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AmbientOcclusion"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion scale"));
