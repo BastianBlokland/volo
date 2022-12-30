@@ -59,10 +59,11 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration limiterDur;
   TimeDuration rendWaitDur;
   TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
-  TimeDuration gpuRenderDur, gpuRenderGeoDur, gpuRenderShadowDur, gpuRenderForwardDur;
+  TimeDuration gpuRenderDur;
+  TimeDuration gpuRenderGeoDur, gpuRenderShadowDur, gpuRenderForwardDur, gpuRenderAoDur;
 
   f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
-  f32 gpuRenderFrac, gpuRenderGeoFrac, gpuRenderShadowFrac;
+  f32 gpuRenderFrac, gpuRenderGeoFrac, gpuRenderShadowFrac, gpuRenderAoFrac;
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -298,23 +299,26 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 idleFrac = 1.0f - stats->gpuRenderFrac;
-  const f32 renderOtherFrac =
-      stats->gpuRenderFrac - stats->gpuRenderGeoFrac - stats->gpuRenderShadowFrac;
+  const f32 idleFrac        = 1.0f - stats->gpuRenderFrac;
+  const f32 renderOtherFrac = stats->gpuRenderFrac - stats->gpuRenderGeoFrac -
+                              stats->gpuRenderShadowFrac - stats->gpuRenderAoFrac;
 
   const StatGraphSection sections[] = {
       {stats->gpuRenderGeoFrac, ui_color(0, 128, 128, 178)},
       {stats->gpuRenderShadowFrac, ui_color(128, 0, 128, 178)},
+      {stats->gpuRenderAoFrac, ui_color(128, 128, 0, 178)},
       {renderOtherFrac, ui_color(0, 128, 0, 178)},
       {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~teal\a.bGeometry\ar: {>8}\n"
-      "\a~purple\a.bShadow\ar:   {>8}\n"
-      "\a~green\a.bForward\ar:  {>8}\n"
-      "\a.bTotal\ar:    {>8}",
+      "\a~teal\a.bGeometry\ar:         {>7}\n"
+      "\a~purple\a.bShadow\ar:           {>7}\n"
+      "\a~orange\a.bAmbientOcclusion\ar: {>7}\n"
+      "\a~green\a.bForward\ar:          {>7}\n"
+      "\a.bTotal\ar:            {>7}",
       fmt_duration(stats->gpuRenderGeoDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(stats->gpuRenderShadowDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(stats->gpuRenderAoDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(stats->gpuRenderForwardDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(stats->gpuRenderDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
@@ -464,6 +468,7 @@ static void debug_stats_update(
   stats->gpuRenderGeoDur     = rendStats->passGeometry.dur;
   stats->gpuRenderShadowDur  = rendStats->passShadow.dur;
   stats->gpuRenderForwardDur = rendStats->passForward.dur;
+  stats->gpuRenderAoDur      = rendStats->passAmbientOcclusion.dur;
 
   const f32 ref = (f32)stats->frameDur;
   debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));
@@ -474,6 +479,7 @@ static void debug_stats_update(
   debug_avg_f32(&stats->gpuRenderFrac, math_clamp_f32(stats->gpuRenderDur / ref, 0, 1));
   debug_avg_f32(&stats->gpuRenderGeoFrac, math_clamp_f32(stats->gpuRenderGeoDur / ref, 0, 1));
   debug_avg_f32(&stats->gpuRenderShadowFrac, math_clamp_f32(stats->gpuRenderShadowDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRenderAoFrac, math_clamp_f32(stats->gpuRenderAoDur / ref, 0, 1));
 }
 
 static void

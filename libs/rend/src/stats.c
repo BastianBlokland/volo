@@ -100,9 +100,10 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
 
-    stats->passGeometry = renderStats.passes[RvkRenderPass_Geometry];
-    stats->passForward  = renderStats.passes[RvkRenderPass_Forward];
-    stats->passShadow   = renderStats.passes[RvkRenderPass_Shadow];
+    stats->passGeometry         = renderStats.passes[RvkRenderPass_Geometry];
+    stats->passForward          = renderStats.passes[RvkRenderPass_Forward];
+    stats->passShadow           = renderStats.passes[RvkRenderPass_Shadow];
+    stats->passAmbientOcclusion = renderStats.passes[RvkRenderPass_AmbientOcclusion];
 
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
     stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
