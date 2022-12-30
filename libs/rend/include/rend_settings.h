@@ -51,7 +51,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
   RendComposeMode composeMode;
-  f32             resolutionScale;
+  f32             resolutionScale, ambientOcclusionScale;
   u16             shadowResolution;
 };
 

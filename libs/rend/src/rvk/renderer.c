@@ -270,10 +270,12 @@ void rvk_renderer_begin(
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
 
   const RvkSize shadowResolution = {settings->shadowResolution, settings->shadowResolution};
+  const RvkSize aoRes = rvk_size_scale(rend->currentResolution, settings->ambientOcclusionScale);
 
   rvk_pass_setup(rend->passes[RvkRenderPass_Geometry], rend->currentResolution);
   rvk_pass_setup(rend->passes[RvkRenderPass_Forward], rend->currentResolution);
   rvk_pass_setup(rend->passes[RvkRenderPass_Shadow], shadowResolution);
+  rvk_pass_setup(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(

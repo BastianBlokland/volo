@@ -14,10 +14,11 @@ ecs_module_init(rend_settings_module) {
 }
 
 void rend_settings_to_default(RendSettingsComp* s) {
-  s->flags            = RendFlags_FrustumCulling;
-  s->presentMode      = RendPresentMode_VSyncRelaxed;
-  s->resolutionScale  = 1.0f;
-  s->shadowResolution = 2048;
+  s->flags                 = RendFlags_FrustumCulling;
+  s->presentMode           = RendPresentMode_VSyncRelaxed;
+  s->resolutionScale       = 1.0f;
+  s->ambientOcclusionScale = 0.5f;
+  s->shadowResolution      = 2048;
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
