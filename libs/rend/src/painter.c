@@ -372,6 +372,17 @@ static bool rend_canvas_paint(
     rvk_pass_end(shadowPass);
   }
 
+  // Ambient occlusion.
+  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
+  {
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
+    rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
+    rvk_pass_begin(aoPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(aoPass);
+  }
+
   // Forward pass.
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
   {
