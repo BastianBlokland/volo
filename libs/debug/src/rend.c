@@ -112,6 +112,7 @@ static const String g_composeModeNames[] = {
     string_static("DebugNormal"),
     string_static("DebugDepth"),
     string_static("DebugTags"),
+    string_static("DebugAmbientOcclusion"),
 };
 
 typedef struct {

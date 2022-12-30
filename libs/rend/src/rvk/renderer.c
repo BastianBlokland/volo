@@ -181,7 +181,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
     renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("shadow"));
   }
   {
-    const RvkPassFlags flags = RvkPassFlags_ClearColor |
+    const RvkPassFlags flags =
       RvkPassFlags_Color1 | RvkPassFlags_Color1Single; // Attachment color1 (linear): occlusion (r).
     renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("ambient-occlusion"));
   }

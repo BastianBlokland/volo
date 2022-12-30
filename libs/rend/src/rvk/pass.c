@@ -17,7 +17,7 @@
 #define pass_attachment_color_max 2
 #define pass_attachment_max (pass_attachment_color_max + 1)
 #define pass_dependencies_max 8
-#define pass_global_image_max 4
+#define pass_global_image_max 5
 
 typedef RvkGraphic* RvkGraphicPtr;
 

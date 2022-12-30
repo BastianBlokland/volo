@@ -45,6 +45,7 @@ typedef enum {
   RendComposeMode_DebugNormal,
   RendComposeMode_DebugDepth,
   RendComposeMode_DebugTags,
+  RendComposeMode_DebugAmbientOcclusion,
 } RendComposeMode;
 
 ecs_comp_extern_public(RendSettingsComp) {

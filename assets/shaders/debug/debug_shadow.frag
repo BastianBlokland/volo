@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "texture.glsl"
 
-bind_global(4) uniform sampler2D u_texShadow;
+bind_global(5) uniform sampler2D u_texShadow;
 
 bind_internal(0) in f32v2 in_texcoord;
 
