@@ -73,6 +73,7 @@ static String ui_escape_read_color_named(const String input, UiEscape* out) {
       {string_static("navy"), {0x00, 0x00, 0x80, 0xFF}},
       {string_static("fuchsia"), {0xFF, 0x00, 0xFF, 0xFF}},
       {string_static("purple"), {0x80, 0x00, 0x80, 0xFF}},
+      {string_static("orange"), {0xFF, 0x80, 0x00, 0xFF}},
   };
 
   array_for_t(g_namedColors, struct UiNamedColor, namedColor) {

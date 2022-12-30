@@ -21,6 +21,7 @@
 #define color_navy            f32v4(0.0, 0.0, 0.5, 1.0)
 #define color_fuchsia         f32v4(1.0, 0.0, 1.0, 1.0)
 #define color_purple          f32v4(0.5, 0.0, 0.5, 1.0)
+#define color_orange          f32v4(1.0, 0.5, 0.0, 1.0)
 #define color_soothing_purple f32v4(0.188, 0.039, 0.141, 1.0)
 // clang-format on
 
