@@ -1,7 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_math.h"
 #include "core_thread.h"
 
 #include "device_internal.h"
@@ -139,12 +138,6 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
-static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp* settings) {
-  return rvk_size(
-      (u16)math_round_nearest_f32(target->size.width * settings->resolutionScale),
-      (u16)math_round_nearest_f32(target->size.height * settings->resolutionScale));
-}
-
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
 
@@ -266,7 +259,7 @@ void rvk_renderer_begin(
   rend->flags |= RvkRenderer_Active;
   rend->currentTarget      = target;
   rend->currentTargetPhase = targetPhase;
-  rend->currentResolution  = rvk_renderer_resolution(target, settings);
+  rend->currentResolution  = rvk_size_scale(target->size, settings->resolutionScale);
   rend->waitForRenderDur   = 0;
 
   rvk_renderer_wait_for_done(rend);
