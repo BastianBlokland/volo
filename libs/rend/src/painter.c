@@ -70,13 +70,15 @@ static RvkSize painter_win_size(const GapWindowComp* win) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoMatrix proj, projInv, viewProj, viewProjInv;
+  GeoMatrix view, viewInv;
+  GeoMatrix proj, projInv;
+  GeoMatrix viewProj, viewProjInv;
   GeoVector camPosition;
   GeoQuat   camRotation;
   GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 432, "Size needs to match the size defined in glsl");
 
 typedef struct {
   RendPainterComp*              painter;
@@ -108,6 +110,8 @@ static RendPaintContext painter_context(
       .pass           = pass,
       .data =
           {
+              .view         = viewMatrix,
+              .viewInv      = *cameraMatrix,
               .proj         = *projMatrix,
               .projInv      = geo_matrix_inverse(projMatrix),
               .viewProj     = viewProjMatrix,
