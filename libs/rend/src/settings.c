@@ -16,6 +16,7 @@ ecs_module_init(rend_settings_module) {
 void rend_settings_to_default(RendSettingsComp* s) {
   s->flags                 = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion;
   s->presentMode           = RendPresentMode_VSyncRelaxed;
+  s->composeMode           = RendComposeMode_Normal;
   s->resolutionScale       = 1.0f;
   s->ambientOcclusionScale = 0.5f;
   s->shadowResolution      = 2048;
