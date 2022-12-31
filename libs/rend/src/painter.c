@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -247,20 +248,13 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     static AoData g_data;
     static u32    g_dataInit;
     if (!g_dataInit) {
-      for (u32 i = 0; i != AoKernelSize; ++i) {
-        Rng* tmpRng = rng_create_xorwow(g_alloc_scratch, 42);
-
-        // Scale the samples so more samples are closer to the origin.
-        f32 scale = (f32)i / (f32)AoKernelSize;
-        scale     = math_lerp(0.1f, 1.0f, scale * scale);
-
-        // Random position inside hemisphere surface.
+      Rng* tmpRng = rng_create_xorwow(g_alloc_scratch, 42);
+      for (u32 i = 0; i != array_elems(g_data.kernel); ++i) {
+        // Random position inside a sphere.
         g_data.kernel[i].x = rng_sample_range(tmpRng, -0.5f, 0.5f);
         g_data.kernel[i].y = rng_sample_range(tmpRng, -0.5f, 0.5f);
-        g_data.kernel[i].z = rng_sample_f32(tmpRng);
+        g_data.kernel[i].z = rng_sample_range(tmpRng, -0.5f, 0.5f);
         g_data.kernel[i].w = 0;
-        g_data.kernel[i]   = geo_vector_norm(g_data.kernel[i]);
-        g_data.kernel[i]   = geo_vector_mul(g_data.kernel[i], rng_sample_f32(tmpRng) * scale);
       }
       g_dataInit = true;
     }
@@ -428,8 +422,7 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
-    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 0);
     painter_push_ambient_occlusion(&ctx);
     rvk_pass_begin(aoPass, geo_color_clear);
     painter_flush(&ctx);
