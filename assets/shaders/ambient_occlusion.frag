@@ -19,6 +19,8 @@ bind_global(1) uniform sampler2D u_texGeoNormalTags;
 bind_global(2) uniform sampler2D u_texGeoDepth;
 bind_draw_data(0) readonly uniform Draw { AoData u_draw; };
 
+bind_graphic(1) uniform sampler2D u_texRotNoise;
+
 bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32 out_occlusion;
@@ -50,8 +52,10 @@ void main() {
   const f32v3 clipPos = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 viewPos = clip_to_view_pos(clipPos);
 
-  const f32v3 randNormal = f32v3(-0.1337, 0.42, -0.42);
-  const f32m3 rotMatrix  = kernel_rotation_matrix(viewNormal, randNormal);
+  const f32v2 rotNoiseScale = u_global.resolution.xy / f32v2(textureSize(u_texRotNoise, 0));
+  const f32v3 randNormal    = texture(u_texRotNoise, in_texcoord * rotNoiseScale).xyz * 2.0 - 1.0;
+
+  const f32m3 rotMatrix = kernel_rotation_matrix(viewNormal, randNormal);
 
   f32 occlusion = 0.0;
   for (u32 i = 0; i != c_kernelSize; ++i) {

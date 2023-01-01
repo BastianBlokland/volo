@@ -26,8 +26,8 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->composeMode       = RendComposeMode_Normal;
   s->resolutionScale   = 1.0f;
   s->aoAngle           = 85 * math_deg_to_rad;
-  s->aoRadius          = 0.25f;
-  s->aoPower           = 2.0f;
+  s->aoRadius          = 0.15f;
+  s->aoPower           = 2.5f;
   s->aoResolutionScale = 0.5f;
   s->shadowResolution  = 2048;
 
