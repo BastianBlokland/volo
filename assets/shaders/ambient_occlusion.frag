@@ -5,8 +5,7 @@
 #include "global.glsl"
 #include "texture.glsl"
 
-const u32 c_kernelSize = 16; // Needs to match the maximum in rend_painter.c
-const f32 c_sampleBias = -0.05;
+const u32 c_kernelSize = 16; // Needs to match the ao kernel size in rend_settings.h
 
 struct AoData {
   f32   radius;
@@ -67,7 +66,7 @@ void main() {
     const f32v3 sampleViewPos = clip_to_view_pos(f32v3(kernelClipPos.xy, sampleDepth));
 
     const f32 fade = smoothstep(0.0, 1.0, u_draw.radius / abs(viewPos.z - sampleViewPos.z));
-    occlusion += f32(sampleViewPos.z < kernelViewPos.z + c_sampleBias) * fade;
+    occlusion += f32(sampleViewPos.z < kernelViewPos.z) * fade;
   }
   out_occlusion = pow(1.0 - occlusion / f32(c_kernelSize), u_draw.power);
 }
