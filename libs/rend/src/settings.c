@@ -52,7 +52,7 @@ void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
   for (u32 i = 0; i != rend_ao_kernel_size; ++i) {
     const GeoVector randInCone = geo_vector_rand_in_cone3(rng, 140 - math_deg_to_rad);
     const f32       rand       = rng_sample_f32(rng);
-    const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand);
+    const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand) * s->aoRadius;
     s->aoKernel[i]             = geo_vector_mul(randInCone, mag);
   }
 }

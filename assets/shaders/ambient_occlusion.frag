@@ -54,7 +54,7 @@ void main() {
 
   f32 occlusion = 0.0;
   for (u32 i = 0; i != c_kernelSize; ++i) {
-    const f32v3 kernelViewPos = viewPos + rotMatrix * u_draw.kernel[i].xyz * u_draw.radius;
+    const f32v3 kernelViewPos = viewPos + rotMatrix * u_draw.kernel[i].xyz;
     const f32v3 kernelClipPos = view_to_clip_pos(kernelViewPos);
     const f32v2 kernelCoord   = kernelClipPos.xy * 0.5 + 0.5;
 

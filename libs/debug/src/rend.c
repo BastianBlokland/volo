@@ -677,7 +677,9 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion radius"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->aoRadius);
+  if (ui_slider(canvas, &settings->aoRadius)) {
+    rend_settings_generate_ao_kernel(settings);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion resolution"));
