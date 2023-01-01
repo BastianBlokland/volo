@@ -244,10 +244,10 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     } AoData;
 
     AoData* data = alloc_alloc_t(g_alloc_scratch, AoData);
-    data->radius = ctx->settings->ambientOcclusionRadius;
+    data->radius = ctx->settings->aoRadius;
     mem_cpy(
         array_mem(data->kernel),
-        mem_create(ctx->settings->ambientOcclusionKernel, sizeof(GeoVector) * rend_ao_kernel_size));
+        mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size));
 
     painter_push(
         ctx,

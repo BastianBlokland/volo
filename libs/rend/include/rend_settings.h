@@ -57,8 +57,8 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendComposeMode composeMode;
   f32             resolutionScale;
   u16             shadowResolution;
-  f32             ambientOcclusionRadius, ambientOcclusionScale;
-  GeoVector*      ambientOcclusionKernel; // GeoVector[rend_ao_kernel_size];
+  f32             aoRadius, aoResolutionScale;
+  GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
 };
 
 typedef enum {

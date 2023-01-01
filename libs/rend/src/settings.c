@@ -12,7 +12,7 @@ ecs_comp_define_public(RendSettingsGlobalComp);
 
 static void ecs_destruct_rend_settings_comp(void* data) {
   RendSettingsComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->ambientOcclusionKernel, rend_ao_kernel_size);
+  alloc_free_array_t(g_alloc_heap, comp->aoKernel, rend_ao_kernel_size);
 }
 
 ecs_module_init(rend_settings_module) {
@@ -21,13 +21,13 @@ ecs_module_init(rend_settings_module) {
 }
 
 void rend_settings_to_default(RendSettingsComp* s) {
-  s->flags                  = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion;
-  s->presentMode            = RendPresentMode_VSyncRelaxed;
-  s->composeMode            = RendComposeMode_Normal;
-  s->resolutionScale        = 1.0f;
-  s->ambientOcclusionRadius = 0.1f;
-  s->ambientOcclusionScale  = 0.5f;
-  s->shadowResolution       = 2048;
+  s->flags             = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion;
+  s->presentMode       = RendPresentMode_VSyncRelaxed;
+  s->composeMode       = RendComposeMode_Normal;
+  s->resolutionScale   = 1.0f;
+  s->aoRadius          = 0.1f;
+  s->aoResolutionScale = 0.5f;
+  s->shadowResolution  = 2048;
   rend_settings_generate_ao_kernel(s);
 }
 
@@ -45,14 +45,14 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
 }
 
 void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
-  if (!s->ambientOcclusionKernel) {
-    s->ambientOcclusionKernel = alloc_array_t(g_alloc_heap, GeoVector, rend_ao_kernel_size);
+  if (!s->aoKernel) {
+    s->aoKernel = alloc_array_t(g_alloc_heap, GeoVector, rend_ao_kernel_size);
   }
   Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
   for (u32 i = 0; i != rend_ao_kernel_size; ++i) {
-    const GeoVector randInCone   = geo_vector_rand_in_cone3(rng, 140 - math_deg_to_rad);
-    const f32       rand         = rng_sample_f32(rng);
-    const f32       mag          = math_lerp(0.1f, 1.0f, rand * rand);
-    s->ambientOcclusionKernel[i] = geo_vector_mul(randInCone, mag);
+    const GeoVector randInCone = geo_vector_rand_in_cone3(rng, 140 - math_deg_to_rad);
+    const f32       rand       = rng_sample_f32(rng);
+    const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand);
+    s->aoKernel[i]             = geo_vector_mul(randInCone, mag);
   }
 }

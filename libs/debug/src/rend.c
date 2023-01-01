@@ -677,12 +677,12 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion radius"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->ambientOcclusionRadius);
+  ui_slider(canvas, &settings->aoRadius);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AmbientOcclusion scale"));
+  ui_label(canvas, string_lit("AmbientOcclusion resolution"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->ambientOcclusionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
+  ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
 }
 
 static void rend_panel_draw(
