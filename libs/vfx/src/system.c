@@ -156,27 +156,12 @@ static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
   return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
 }
 
-static GeoVector vfx_random_dir() {
-  /**
-   * Generate a random point on a unit sphere (radius of 1, aka a direction vector).
-   */
-Retry:;
-  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(g_rng);
-  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(g_rng);
-  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
-  const f32             magSqr = geo_vector_mag_sqr(vec);
-  if (UNLIKELY(magSqr <= f32_epsilon)) {
-    goto Retry; // Reject zero vectors (rare case).
-  }
-  return geo_vector_div(vec, math_sqrt_f32(magSqr));
-}
-
 static GeoVector vfx_random_in_sphere(const f32 radius) {
   /**
    * Generate a random point inside a sphere.
    * NOTE: Cube-root as the area increases cubicly as you get further from the center.
    */
-  const GeoVector dir = vfx_random_dir();
+  const GeoVector dir = geo_vector_rand_on_unit_sphere3(g_rng);
   return geo_vector_mul(dir, radius * math_cbrt_f32(rng_sample_f32(g_rng)));
 }
 

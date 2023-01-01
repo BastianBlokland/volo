@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "geo_vector.h"
 
 #include "intrinsic_internal.h"
@@ -338,4 +339,16 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[4]) {
   out[1] = float_f32_to_f16(v.y);
   out[2] = float_f32_to_f16(v.z);
   out[3] = float_f32_to_f16(v.w);
+}
+
+GeoVector geo_vector_rand_on_unit_sphere3(Rng* rng) {
+Retry:;
+  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(rng);
+  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(rng);
+  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
+  const f32             magSqr = geo_vector_mag_sqr(vec);
+  if (UNLIKELY(magSqr <= f32_epsilon)) {
+    goto Retry; // Reject zero vectors (rare case).
+  }
+  return geo_vector_div(vec, math_sqrt_f32(magSqr));
 }
