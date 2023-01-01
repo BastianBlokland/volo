@@ -156,6 +156,9 @@ ecs_system_define(RendLightSunSys) {
     if (settings->flags & RendGlobalFlags_SunShadows) {
       flags |= RendLightFlags_Shadow;
     }
+    if (settings->flags & RendGlobalFlags_SunCoverage) {
+      flags |= RendLightFlags_CoverageMask;
+    }
     rend_light_directional(light, settings->lightSunRotation, settings->lightSunRadiance, flags);
   }
 }

@@ -3,14 +3,13 @@
 
 #include "binding.glsl"
 #include "global.glsl"
+#include "light.glsl"
 #include "pbr.glsl"
 #include "texture.glsl"
 
 bind_spec(0) const f32 s_coverageScale     = 100;
 bind_spec(1) const f32 s_coveragePanSpeedX = 1.5;
 bind_spec(2) const f32 s_coveragePanSpeedY = 0.25;
-
-const u32 c_flagsShadows = 1 << 0;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
@@ -65,8 +64,7 @@ void main() {
   const f32v3 worldPos = clip_to_world(clipPos);
   const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
 
-  const f32v3 radiance = in_radianceFlags.xyz;
-  const u32   flags    = floatBitsToUint(in_radianceFlags.w);
+  const u32 lightFlags = floatBitsToUint(in_radianceFlags.w);
 
   PbrSurface surf;
   surf.position     = worldPos;
@@ -75,9 +73,13 @@ void main() {
   surf.roughness    = colorRough.a;
   surf.metallicness = 0.0; // TODO: Support metals.
 
-  f32v3 effectiveRadiance = radiance * coverage_frac(worldPos);
+  f32v3 effectiveRadiance = in_radianceFlags.xyz;
 
-  if ((flags & c_flagsShadows) != 0) {
+  if ((lightFlags & c_lightFlagsCoverageMask) != 0) {
+    effectiveRadiance *= coverage_frac(worldPos);
+  }
+
+  if ((lightFlags & c_lightFlagsShadows) != 0) {
     effectiveRadiance *= 1.0 - shadow_frac(worldPos);
   }
 

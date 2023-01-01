@@ -62,11 +62,12 @@ ecs_comp_extern_public(RendSettingsComp) {
 };
 
 typedef enum {
-  RendGlobalFlags_SunShadows = 1 << 0,
-  RendGlobalFlags_Validation = 1 << 1,
-  RendGlobalFlags_Verbose    = 1 << 2,
-  RendGlobalFlags_DebugGpu   = 1 << 3,
-  RendGlobalFlags_DebugLight = 1 << 4,
+  RendGlobalFlags_SunShadows  = 1 << 0,
+  RendGlobalFlags_SunCoverage = 1 << 1,
+  RendGlobalFlags_Validation  = 1 << 2,
+  RendGlobalFlags_Verbose     = 1 << 3,
+  RendGlobalFlags_DebugGpu    = 1 << 4,
+  RendGlobalFlags_DebugLight  = 1 << 5,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendSettingsGlobalComp) {

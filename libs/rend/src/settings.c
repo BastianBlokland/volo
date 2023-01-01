@@ -36,7 +36,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = RendGlobalFlags_SunShadows;
+  s->flags       = RendGlobalFlags_SunShadows | RendGlobalFlags_SunCoverage;
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG

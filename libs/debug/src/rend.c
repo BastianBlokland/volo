@@ -654,6 +654,11 @@ static void rend_light_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunShadows);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sun coverage"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunCoverage);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadow resolution"));
   ui_table_next_column(canvas, &table);
   if (debug_widget_editor_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
