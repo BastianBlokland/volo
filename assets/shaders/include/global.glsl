@@ -10,6 +10,7 @@ struct GlobalData {
   f32v4 camPosition; // x, y, z position
   f32v4 camRotation; // x, y, z, w quaternion
   f32v4 resolution;  // x: width, y: height, z: aspect ratio (width / height), w: unused.
+  f32v4 time;        // x: time seconds, y: real-time seconds, z, w: unused.
 };
 
 #endif // INCLUDE_GLOBAL
