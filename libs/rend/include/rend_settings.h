@@ -3,6 +3,8 @@
 #include "geo_color.h"
 #include "geo_quat.h"
 
+#define rend_ao_kernel_size 16
+
 typedef enum {
   RendFlags_FrustumCulling   = 1 << 0,
   RendFlags_AmbientOcclusion = 1 << 1,
@@ -54,8 +56,9 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendPresentMode presentMode;
   RendComposeMode composeMode;
   f32             resolutionScale;
-  f32             ambientOcclusionRadius, ambientOcclusionScale;
   u16             shadowResolution;
+  f32             ambientOcclusionRadius, ambientOcclusionScale;
+  GeoVector*      ambientOcclusionKernel; // GeoVector[rend_ao_kernel_size];
 };
 
 typedef enum {
@@ -77,3 +80,5 @@ ecs_comp_extern_public(RendSettingsGlobalComp) {
 
 void rend_settings_to_default(RendSettingsComp*);
 void rend_settings_global_to_default(RendSettingsGlobalComp*);
+
+void rend_settings_generate_ao_kernel(RendSettingsComp*);
