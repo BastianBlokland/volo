@@ -179,6 +179,11 @@ GeoVector geo_vector_rand_on_sphere3(Rng*);
 GeoVector geo_vector_rand_in_sphere3(Rng*);
 
 /**
+ * Generate a uniformly distributed random point inside a cone oriented along the z axis.
+ */
+GeoVector geo_vector_rand_in_cone3(Rng*, f32 coneAngleRad);
+
+/**
  * Create a formatting argument for a vector.
  * NOTE: _VEC_ is expanded multiple times, so care must be taken when providing complex expressions.
  */

@@ -361,3 +361,17 @@ GeoVector geo_vector_rand_in_sphere3(Rng* rng) {
   const GeoVector dir = geo_vector_rand_on_sphere3(rng);
   return geo_vector_mul(dir, math_cbrt_f32(rng_sample_f32(rng)));
 }
+
+GeoVector geo_vector_rand_in_cone3(Rng* rng, const f32 coneAngleRad) {
+  /**
+   * Compute a uniformly distributed direction inside the given cone.
+   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
+   */
+  const f32 coneAngleCos = math_cos_f32(coneAngleRad);
+  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(rng);
+  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(rng);
+  const f32 sinT         = math_sqrt_f32(1 - z * z);
+  const f32 x            = math_cos_f32(phi) * sinT;
+  const f32 y            = math_sin_f32(phi) * sinT;
+  return geo_vector(x, y, z);
+}

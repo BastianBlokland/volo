@@ -143,17 +143,7 @@ ecs_view_define(UpdateView) {
 }
 
 static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
-  /**
-   * Compute a uniformly distributed direction inside the given cone.
-   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
-   */
-  const f32 coneAngleCos = math_cos_f32(cone->angle);
-  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(g_rng);
-  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(g_rng);
-  const f32 sinT         = math_sqrt_f32(1 - z * z);
-  const f32 x            = math_cos_f32(phi) * sinT;
-  const f32 y            = math_sin_f32(phi) * sinT;
-  return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
+  return geo_quat_rotate(cone->rotation, geo_vector_rand_in_cone3(g_rng, cone->angle));
 }
 
 static GeoVector vfx_random_in_sphere(const f32 radius) {

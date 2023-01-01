@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_math.h"
 #include "core_rng.h"
 
 #include "utils_internal.h"
@@ -300,6 +301,32 @@ spec(vector) {
     }
     const GeoVector avg = geo_vector_div(sum, g_iterations);
     check_eq_float(geo_vector_mag(avg), 0.0f, 1e-1);
+  }
+
+  it("can generate points inside a 3d cone") {
+    Allocator* alloc = alloc_bump_create_stack(256);
+
+    static const u64   g_seed       = 42;
+    static const f32   g_coneAngle  = 42 * math_deg_to_rad;
+    static const usize g_iterations = 10000;
+
+    Rng* rng = rng_create_xorwow(alloc, g_seed);
+
+    GeoVector sum = {0};
+    for (usize i = 0; i != g_iterations; ++i) {
+      const GeoVector p   = geo_vector_rand_in_cone3(rng, g_coneAngle);
+      const f32       mag = geo_vector_mag(p);
+      check(mag >= 0.0f);
+      check(mag <= 1.0f);
+
+      const f32 angle = geo_vector_angle(geo_forward, p);
+      check(angle <= g_coneAngle);
+
+      sum = geo_vector_add(sum, p);
+    }
+    const GeoVector avg = geo_vector_div(sum, g_iterations);
+    check_eq_float(avg.x, 0.0f, 1e-2);
+    check_eq_float(avg.y, 0.0f, 1e-2);
   }
 
   it("lists all components when formatted") {
