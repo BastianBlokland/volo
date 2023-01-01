@@ -25,9 +25,11 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->composeMode       = RendComposeMode_Normal;
   s->resolutionScale   = 1.0f;
+  s->aoAngle           = 140 * math_deg_to_rad;
   s->aoRadius          = 0.1f;
   s->aoResolutionScale = 0.5f;
   s->shadowResolution  = 2048;
+
   rend_settings_generate_ao_kernel(s);
 }
 
@@ -50,7 +52,7 @@ void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
   }
   Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
   for (u32 i = 0; i != rend_ao_kernel_size; ++i) {
-    const GeoVector randInCone = geo_vector_rand_in_cone3(rng, 140 - math_deg_to_rad);
+    const GeoVector randInCone = geo_vector_rand_in_cone3(rng, s->aoAngle);
     const f32       rand       = rng_sample_f32(rng);
     const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand) * s->aoRadius;
     s->aoKernel[i]             = geo_vector_mul(randInCone, mag);
