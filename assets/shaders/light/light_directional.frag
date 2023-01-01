@@ -6,11 +6,17 @@
 #include "pbr.glsl"
 #include "texture.glsl"
 
+bind_spec(0) const f32 s_coverageScale     = 100;
+bind_spec(1) const f32 s_coveragePanSpeedX = 1.5;
+bind_spec(2) const f32 s_coveragePanSpeedY = 0.25;
+
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(5) uniform sampler2DShadow u_texShadow;
+
+bind_graphic(1) uniform sampler2D u_texCoverageMask;
 
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v3 in_direction;
@@ -22,6 +28,12 @@ bind_internal(0) out f32v4 out_color;
 f32v3 clip_to_world(const f32v3 clipPos) {
   const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
   return v.xyz / v.w;
+}
+
+f32 coverage_frac(const f32v3 worldPos) {
+  const f32v2 texOffset = f32v2(s_coveragePanSpeedX, s_coveragePanSpeedY) * u_global.time.x;
+  const f32v2 texCoord  = (worldPos.xz + texOffset) / s_coverageScale;
+  return texture(u_texCoverageMask, texCoord).r;
 }
 
 f32 shadow_frac(const f32v3 worldPos) {
@@ -58,10 +70,10 @@ void main() {
   surf.roughness    = colorRough.a;
   surf.metallicness = 0.0; // TODO: Support metals.
 
-  f32v3 effectiveRadiance = in_radiance;
+  f32v3 effectiveRadiance = in_radiance * coverage_frac(worldPos);
 
-  const bool hasShadows = in_shadowViewProj[3][3] > 0.0;
-  if (hasShadows) {
+  const bool hasShadowMap = in_shadowViewProj[3][3] > 0.0;
+  if (hasShadowMap) {
     effectiveRadiance *= 1.0 - shadow_frac(worldPos);
   }
 

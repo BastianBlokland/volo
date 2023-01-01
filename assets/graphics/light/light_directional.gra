@@ -4,7 +4,31 @@
       "shaderId": "shaders/light/light_directional.vert.spv"
     },
     {
-      "shaderId": "shaders/light/light_directional.frag.spv"
+      "shaderId": "shaders/light/light_directional.frag.spv",
+      "overrides": [
+        {
+          "name": "coverageScale",
+          "binding": 0,
+          "value": 200
+        },
+        {
+          "name": "coveragePanSpeedX",
+          "binding": 1,
+          "value": 1.5
+        },
+        {
+          "name": "coveragePanSpeedY",
+          "binding": 2,
+          "value": 0.4
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/tiling/clouds.tga",
+      "wrap": "Repeat",
+      "filter": "Linear"
     }
   ],
   "vertexCount": 3,

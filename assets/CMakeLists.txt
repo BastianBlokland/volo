@@ -87,6 +87,7 @@ if(${EXTERNAL_ASSETS})
       swat/swat_nrm.tga
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
+      tiling/clouds.tga
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
       tiling/sand_1_color_rough.tga
