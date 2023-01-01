@@ -251,7 +251,8 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
       Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
       for (u32 i = 0; i != array_elems(g_data.kernel); ++i) {
         const GeoVector randOnSphere = geo_vector_rand_on_sphere3(rng);
-        const f32       mag          = math_lerp(0.15f, 1.0f, rng_sample_f32(rng));
+        const f32       rand         = rng_sample_f32(rng);
+        const f32       mag          = math_lerp(0.1f, 1.0f, rand * rand);
         g_data.kernel[i]             = geo_vector_mul(randOnSphere, mag);
 
 #if 0
