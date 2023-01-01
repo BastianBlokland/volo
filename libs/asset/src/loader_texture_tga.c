@@ -11,7 +11,7 @@
 
 /**
  * Truevision TGA.
- * Supports 24 bit (rgb) and 32 bit (rgba) and optionally rle compressed.
+ * Supports 8 bit (r), 24 bit (rgb) and 32 bit (rgba) and optionally rle compressed.
  * Format information: https://en.wikipedia.org/wiki/Truevision_TGA
  * Format examples: http://www.gamers.org/dEngine/quake3/TGA.txt
  * Color info: http://www.ryanjuckett.com/programming/parsing-colors-in-a-tga-file/
@@ -74,9 +74,15 @@ typedef struct {
 } TgaHeader;
 
 typedef enum {
+  TgaChannels_Invalid,
+  TgaChannels_R    = 1,
+  TgaChannels_RGB  = 3,
+  TgaChannels_RGBA = 4,
+} TgaChannels;
+
+typedef enum {
   TgaFlags_Rle   = 1 << 0,
   TgaFlags_YFlip = 1 << 1,
-  TgaFlags_Alpha = 1 << 2,
 } TgaFlags;
 
 typedef enum {
@@ -103,7 +109,7 @@ static String tga_error_str(const TgaError err) {
       string_static("Malformed Run-length-encoded tga pixel data"),
       string_static("Tga data is malformed"),
       string_static("Color-mapped Tga files are not supported"),
-      string_static("Unsupported bit depth, only 24 bit (RGB) and 32 bit (RGBA) are supported"),
+      string_static("Unsupported bit depth, 8 (R), 24 (RGB) and 32 (RGBA) are supported"),
       string_static("Only an 8 bit alpha channel is supported"),
       string_static("Interleaved tga files are not supported"),
       string_static("Unsupported image type, only TrueColor is supported"),
@@ -142,19 +148,60 @@ static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
   return input;
 }
 
+static TgaChannels tga_channels_from_bit_depth(const u32 bitDepth) {
+  switch (bitDepth) {
+  case 8:
+    return TgaChannels_R;
+  case 24:
+    return TgaChannels_RGB;
+  case 32:
+    return TgaChannels_RGBA;
+  default:
+    return TgaChannels_Invalid;
+  }
+}
+
+static bool tga_type_supported(const TgaImageType type) {
+  switch (type) {
+  case TgaImageType_TrueColor:
+  case TgaImageType_Grayscale:
+  case TgaImageType_RleTrueColor:
+  case TgaImageType_RleGrayscale:
+    return true;
+  case TgaImageType_ColorMapped:
+  case TgaImageType_RleColorMapped:
+    break;
+  }
+  return false;
+}
+
 static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height, TgaFlags flags) {
   // Either fill pixels from bottom to top - left to right, or top to bottom - left to right.
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
-static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTexturePixelB4* out) {
-  out->b = data[0];
-  out->g = data[1];
-  out->r = data[2];
-  if (flags & TgaFlags_Alpha) {
+static void tga_read_pixel_unchecked(u8* data, const TgaChannels chan, AssetTexturePixelB4* out) {
+  switch (chan) {
+  case TgaChannels_R:
+    out->r = data[0];
+    out->g = 0;
+    out->b = 0;
+    out->a = 255;
+    break;
+  case TgaChannels_RGB:
+    out->b = data[0];
+    out->g = data[1];
+    out->r = data[2];
+    out->a = 255;
+    break;
+  case TgaChannels_RGBA:
+    out->b = data[0];
+    out->g = data[1];
+    out->r = data[2];
     out->a = data[3];
-  } else {
-    out->a = 255; // Treat images without alpha as fully opaque.
+    break;
+  default:
+    UNREACHABLE
   }
 }
 
@@ -167,39 +214,39 @@ static Mem tga_read_pixels_uncompressed(
     Mem                  input,
     const u32            width,
     const u32            height,
+    const TgaChannels    channels,
     const TgaFlags       flags,
     AssetTexturePixelB4* out,
     TgaError*            err) {
 
   const u32 pixelCount = width * height;
-  const u32 pixelSize  = flags & TgaFlags_Alpha ? 4 : 3;
 
-  if (input.size < pixelCount * pixelSize) {
+  if (input.size < pixelCount * channels) {
     *err = TgaError_MalformedPixels;
     return input;
   }
   u8* src = mem_begin(input);
   for (u32 y = 0; y != height; ++y) {
     for (u32 x = 0; x != width; ++x) {
-      tga_read_pixel_unchecked(src, flags, &out[tga_index(x, y, width, height, flags)]);
-      src += pixelSize;
+      tga_read_pixel_unchecked(src, channels, &out[tga_index(x, y, width, height, flags)]);
+      src += channels;
     }
   }
   *err = TgaError_None;
-  return mem_consume(input, pixelCount * pixelSize);
+  return mem_consume(input, pixelCount * channels);
 }
 
 static Mem tga_read_pixels_rle(
     Mem                  input,
     const u32            width,
     const u32            height,
+    const TgaChannels    channels,
     const TgaFlags       flags,
     AssetTexturePixelB4* out,
     TgaError*            err) {
 
-  const u32 pixelSize      = flags & TgaFlags_Alpha ? 4 : 3;
-  u32       packetRem      = 0; // How many pixels are left in the current rle packet.
-  u32       packetRefPixel = u32_max;
+  u32 packetRem      = 0; // How many pixels are left in the current rle packet.
+  u32 packetRefPixel = u32_max;
   for (u32 y = 0; y != height; ++y) {
     for (u32 x = 0; x != width; ++x) {
       const u32 i = tga_index(x, y, width, height, flags);
@@ -214,7 +261,7 @@ static Mem tga_read_pixels_rle(
         /**
          * No pixels are remaining; Read a new packet header.
          */
-        if (UNLIKELY(input.size <= pixelSize)) {
+        if (UNLIKELY(input.size <= channels)) {
           *err = TgaError_MalformedRlePixels;
           return input;
         }
@@ -224,7 +271,7 @@ static Mem tga_read_pixels_rle(
         packetRefPixel         = isRlePacket ? i : u32_max;
         packetRem              = packetHeader & 0b01111111; // Remaining 7 bits are the rep count.
 
-        if (UNLIKELY(!isRlePacket && input.size < (packetRem + 1) * pixelSize)) {
+        if (UNLIKELY(!isRlePacket && input.size < (packetRem + 1) * channels)) {
           *err = TgaError_MalformedRlePixels;
           return input;
         }
@@ -238,8 +285,8 @@ static Mem tga_read_pixels_rle(
         out[i] = out[packetRefPixel];
       } else {
         // No reference pixel; Read a new pixel value.
-        tga_read_pixel_unchecked(mem_begin(input), flags, &out[i]);
-        tga_mem_consume_inplace(&input, pixelSize);
+        tga_read_pixel_unchecked(mem_begin(input), channels, &out[i]);
+        tga_mem_consume_inplace(&input, channels);
       }
     }
   }
@@ -251,14 +298,15 @@ static Mem tga_read_pixels(
     Mem                  input,
     const u32            width,
     const u32            height,
+    const TgaChannels    channels,
     const TgaFlags       flags,
     AssetTexturePixelB4* out,
     TgaError*            err) {
 
   if (flags & TgaFlags_Rle) {
-    return tga_read_pixels_rle(input, width, height, flags, out, err);
+    return tga_read_pixels_rle(input, width, height, channels, flags, out, err);
   }
-  return tga_read_pixels_uncompressed(input, width, height, flags, out, err);
+  return tga_read_pixels_uncompressed(input, width, height, channels, flags, out, err);
 }
 
 static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaError err) {
@@ -293,14 +341,12 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
     tga_load_fail(world, entity, TgaError_UnsupportedColorMap);
     goto Error;
   }
-  if (header.imageSpec.bitsPerPixel != 24 && header.imageSpec.bitsPerPixel != 32) {
+  const TgaChannels channels = tga_channels_from_bit_depth(header.imageSpec.bitsPerPixel);
+  if (channels == TgaChannels_Invalid) {
     tga_load_fail(world, entity, TgaError_UnsupportedBitDepth);
     goto Error;
   }
-  if (header.imageSpec.bitsPerPixel == 32) {
-    flags |= TgaFlags_Alpha;
-  }
-  if (flags & TgaFlags_Alpha && header.imageSpec.descriptor.attributeDepth != 8) {
+  if (channels == TgaChannels_RGBA && header.imageSpec.descriptor.attributeDepth != 8) {
     tga_load_fail(world, entity, TgaError_UnsupportedAlphaChannelDepth);
     goto Error;
   }
@@ -308,7 +354,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
     tga_load_fail(world, entity, TgaError_UnsupportedInterleaved);
     goto Error;
   }
-  if (header.imageType != TgaImageType_TrueColor && header.imageType != TgaImageType_RleTrueColor) {
+  if (!tga_type_supported(header.imageType)) {
     tga_load_fail(world, entity, TgaError_UnsupportedNonTrueColor);
     goto Error;
   }
@@ -320,7 +366,8 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
     tga_load_fail(world, entity, TgaError_UnsupportedSize);
     goto Error;
   }
-  if (header.imageType == TgaImageType_RleTrueColor) {
+  if (header.imageType == TgaImageType_RleGrayscale ||
+      header.imageType == TgaImageType_RleTrueColor) {
     flags |= TgaFlags_Rle;
   }
   if (header.imageSpec.descriptor.origin == TgaOrigin_UpperLeft ||
@@ -337,7 +384,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
   const u32            width  = header.imageSpec.width;
   const u32            height = header.imageSpec.height;
   AssetTexturePixelB4* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixelB4, width * height);
-  data                        = tga_read_pixels(data, width, height, flags, pixels, &res);
+  data                        = tga_read_pixels(data, width, height, channels, flags, pixels, &res);
   if (res) {
     tga_load_fail(world, entity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
