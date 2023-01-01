@@ -27,7 +27,8 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->resolutionScale   = 1.0f;
   s->aoAngle           = 80 * math_deg_to_rad;
   s->aoRadius          = 0.15f;
-  s->aoPower           = 1.75f;
+  s->aoRadiusPower     = 2.5f;
+  s->aoPower           = 3.5f;
   s->aoResolutionScale = 0.5f;
   s->shadowResolution  = 2048;
 
@@ -55,7 +56,7 @@ void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
   for (u32 i = 0; i != rend_ao_kernel_size; ++i) {
     const GeoVector randInCone = geo_vector_rand_in_cone3(rng, s->aoAngle);
     const f32       rand       = rng_sample_f32(rng);
-    const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand) * s->aoRadius;
-    s->aoKernel[i]             = geo_vector_mul(randInCone, mag);
+    const f32       mag = math_lerp(0.1f, 1.0f, math_pow_f32(rand, s->aoRadiusPower)) * s->aoRadius;
+    s->aoKernel[i]      = geo_vector_mul(randInCone, mag);
   }
 }
