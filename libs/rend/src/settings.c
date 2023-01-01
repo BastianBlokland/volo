@@ -25,8 +25,8 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->composeMode       = RendComposeMode_Normal;
   s->resolutionScale   = 1.0f;
-  s->aoAngle           = 140 * math_deg_to_rad;
-  s->aoRadius          = 0.1f;
+  s->aoAngle           = 100 * math_deg_to_rad;
+  s->aoRadius          = 0.2f;
   s->aoResolutionScale = 0.5f;
   s->shadowResolution  = 2048;
 
