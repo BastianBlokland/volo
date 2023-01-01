@@ -16,6 +16,7 @@ typedef enum {
   RvkRenderPass_Geometry,
   RvkRenderPass_Forward,
   RvkRenderPass_Shadow,
+  RvkRenderPass_AmbientOcclusion,
 
   RvkRenderPass_Count,
 } RvkRenderPass;

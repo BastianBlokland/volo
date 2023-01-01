@@ -36,6 +36,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("DebugShadowGraphic"),
       string_static("ComposeGraphic"),
       string_static("ComposeDebugGraphic"),
+      string_static("AmbientOcclusion"),
       string_static("SkyGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");

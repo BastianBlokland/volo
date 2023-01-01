@@ -41,6 +41,7 @@ ASSERT(sizeof(UiColor) == 4, "UiColor has to be 32 bits");
 #define ui_color_navy     ui_color(0,   0,   128, 255)
 #define ui_color_fuchsia  ui_color(255, 0,   255, 255)
 #define ui_color_purple   ui_color(128, 0,   128, 255)
+#define ui_color_orange   ui_color(255, 128,   0, 255)
 
 // clang-format on
 

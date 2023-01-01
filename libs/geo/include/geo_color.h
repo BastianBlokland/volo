@@ -38,6 +38,7 @@ ASSERT(sizeof(GeoColor) == 16, "GeoColor has to be 128 bits");
 #define geo_color_navy            geo_color(0.0f, 0.0f, 0.5f, 1.0f)
 #define geo_color_fuchsia         geo_color(1.0f, 0.0f, 1.0f, 1.0f)
 #define geo_color_purple          geo_color(0.5f, 0.0f, 0.5f, 1.0f)
+#define geo_color_orange          geo_color(1.0f, 0.5f, 0.0f, 1.0f)
 #define geo_color_soothing_purple geo_color(0.188f, 0.039f, 0.141f, 1.0f)
 
 // clang-format on

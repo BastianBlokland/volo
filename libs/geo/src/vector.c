@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "geo_vector.h"
 
 #include "intrinsic_internal.h"
@@ -338,4 +339,39 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[4]) {
   out[1] = float_f32_to_f16(v.y);
   out[2] = float_f32_to_f16(v.z);
   out[3] = float_f32_to_f16(v.w);
+}
+
+GeoVector geo_vector_rand_on_sphere3(Rng* rng) {
+Retry:;
+  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(rng);
+  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(rng);
+  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
+  const f32             magSqr = geo_vector_mag_sqr(vec);
+  if (UNLIKELY(magSqr <= f32_epsilon)) {
+    goto Retry; // Reject zero vectors (rare case).
+  }
+  return geo_vector_div(vec, math_sqrt_f32(magSqr));
+}
+
+GeoVector geo_vector_rand_in_sphere3(Rng* rng) {
+  /**
+   * Generate a random point inside a sphere.
+   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
+   */
+  const GeoVector dir = geo_vector_rand_on_sphere3(rng);
+  return geo_vector_mul(dir, math_cbrt_f32(rng_sample_f32(rng)));
+}
+
+GeoVector geo_vector_rand_in_cone3(Rng* rng, const f32 coneAngleRad) {
+  /**
+   * Compute a uniformly distributed direction inside the given cone.
+   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
+   */
+  const f32 coneAngleCos = math_cos_f32(coneAngleRad);
+  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(rng);
+  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(rng);
+  const f32 sinT         = math_sqrt_f32(1 - z * z);
+  const f32 x            = math_cos_f32(phi) * sinT;
+  const f32 y            = math_sin_f32(phi) * sinT;
+  return geo_vector(x, y, z);
 }

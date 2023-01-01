@@ -65,7 +65,7 @@ static u32 rng_xorwow_next(Rng* rng) {
 }
 
 THREAD_LOCAL struct RngXorWow g_rng_xorwow = {.api = {.next = rng_xorwow_next}};
-THREAD_LOCAL Rng* g_rng;
+THREAD_LOCAL Rng*             g_rng;
 
 void rng_init_thread() {
   const TimeReal clock = time_real_clock();
@@ -89,7 +89,7 @@ RngGaussPairF32 rng_sample_gauss_f32(Rng* rng) {
   do {
     a = rng_sample_f32(rng);
     b = rng_sample_f32(rng);
-    // Guard against a value very close to zero as we will feed it into std::log.
+    // Guard against a value very close to zero as we will feed it into math_log.
   } while (a <= 1e-8f);
   /**
    * BoxMuller transform.
@@ -104,12 +104,14 @@ RngGaussPairF32 rng_sample_gauss_f32(Rng* rng) {
 Rng* rng_create_xorwow(Allocator* alloc, u64 seed) {
   diag_assert_msg(seed, "rng_create_xorwow: 0 seed is invalid");
   struct RngXorWow* rng = alloc_alloc_t(alloc, struct RngXorWow);
-  rng->api              = (Rng){
+
+  rng->api = (Rng){
       .next    = rng_xorwow_next,
       .destroy = rng_xorwow_destroy,
   };
   rng->alloc = alloc;
   rng_xorwow_init(rng, seed);
+
   return (Rng*)rng;
 }
 

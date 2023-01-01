@@ -1,10 +1,12 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
 #include "rend_register.h"
+#include "rend_settings.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 
@@ -68,13 +70,15 @@ static RvkSize painter_win_size(const GapWindowComp* win) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoMatrix proj, projInv, viewProj, viewProjInv;
+  GeoMatrix view, viewInv;
+  GeoMatrix proj, projInv;
+  GeoMatrix viewProj, viewProjInv;
   GeoVector camPosition;
   GeoQuat   camRotation;
   GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 304, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 432, "Size needs to match the size defined in glsl");
 
 typedef struct {
   RendPainterComp*              painter;
@@ -106,6 +110,8 @@ static RendPaintContext painter_context(
       .pass           = pass,
       .data =
           {
+              .view         = viewMatrix,
+              .viewInv      = *cameraMatrix,
               .proj         = *projMatrix,
               .projInv      = geo_matrix_inverse(projMatrix),
               .viewProj     = viewProjMatrix,
@@ -194,21 +200,27 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id)
 }
 
 static void painter_push_compose(RendPaintContext* ctx) {
-  typedef struct {
-    ALIGNAS(16)
-    GeoVector packed; // x: ambient, y: mode, z: unused, w: unused.
-  } ComposeData;
-
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId graphicId = ctx->settings->composeMode == RendComposeMode_Normal
                                         ? RvkRepositoryId_ComposeGraphic
                                         : RvkRepositoryId_ComposeDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    const u32 mode  = ctx->settings->composeMode;
+    u32       flags = 0;
+    if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
+      flags |= 1 << 0;
+    }
+
+    typedef struct {
+      ALIGNAS(16)
+      GeoVector packed; // x: ambient, y: mode, z: flags, w: unused.
+    } ComposeData;
 
     ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
     data->packed.x    = ctx->settingsGlobal->lightAmbient;
-    data->packed.y    = bits_u32_as_f32(ctx->settings->composeMode);
+    data->packed.y    = bits_u32_as_f32(mode);
+    data->packed.z    = bits_u32_as_f32(flags);
 
     painter_push(
         ctx,
@@ -216,6 +228,34 @@ static void painter_push_compose(RendPaintContext* ctx) {
             .graphic   = graphic,
             .instCount = 1,
             .drawData  = mem_create(data, sizeof(ComposeData)),
+        });
+  }
+}
+
+static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_AmbientOcclusionGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      f32       radius;
+      f32       power;
+      GeoVector kernel[rend_ao_kernel_size];
+    } AoData;
+
+    AoData* data     = alloc_alloc_t(g_alloc_scratch, AoData);
+    data->radius     = ctx->settings->aoRadius;
+    data->power      = ctx->settings->aoPower;
+    const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
+    mem_cpy(array_mem(data->kernel), kernel);
+
+    painter_push(
+        ctx,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(AoData)),
         });
   }
 }
@@ -372,6 +412,20 @@ static bool rend_canvas_paint(
     rvk_pass_end(shadowPass);
   }
 
+  // Ambient occlusion.
+  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
+  if (settings->flags & RendFlags_AmbientOcclusion) {
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
+    rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
+    painter_push_ambient_occlusion(&ctx);
+    rvk_pass_begin(aoPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(aoPass);
+  }
+
   // Forward pass.
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
   {
@@ -382,7 +436,8 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
-    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 3);
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(aoPass, RvkPassOutput_Color1), 3);
+    rvk_pass_bind_global_image(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 4);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     if (geoTagMask & SceneTags_Outline) {

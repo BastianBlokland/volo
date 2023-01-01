@@ -1,0 +1,23 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/ambient_occlusion.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/ambient_occlusion_rot_noise.ptx",
+      "wrap": "Repeat",
+      "filter": "Nearest"
+    }
+  ],
+  "vertexCount": 3,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

@@ -7,21 +7,25 @@
 #include "texture.glsl"
 
 struct ComposeData {
-  f32v4 packed; // x: ambient, y: mode, z, unused, w: unused
+  f32v4 packed; // x: ambient, y: mode, z, flags, w: unused
 };
 
 bind_spec(0) const bool s_debug = false;
 
-const u32 c_modeDebugColor     = 1;
-const u32 c_modeDebugRoughness = 2;
-const u32 c_modeDebugNormal    = 3;
-const u32 c_modeDebugDepth     = 4;
-const u32 c_modeDebugTags      = 5;
+const u32 c_modeDebugColor            = 1;
+const u32 c_modeDebugRoughness        = 2;
+const u32 c_modeDebugNormal           = 3;
+const u32 c_modeDebugDepth            = 4;
+const u32 c_modeDebugTags             = 5;
+const u32 c_modeDebugAmbientOcclusion = 6;
+
+const u32 c_flagsAmbientOcclusion = 1 << 0;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
+bind_global(4) uniform sampler2D u_texAmbientOcclusion;
 bind_draw_data(0) readonly uniform Draw { ComposeData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -52,6 +56,14 @@ void main() {
   const f32v3 viewDir   = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambient   = u_draw.packed.x;
   const u32   mode      = floatBitsToUint(u_draw.packed.y);
+  const u32   flags     = floatBitsToUint(u_draw.packed.z);
+
+  f32 ambientOcclusion;
+  if ((flags & c_flagsAmbientOcclusion) != 0) {
+    ambientOcclusion = texture(u_texAmbientOcclusion, in_texcoord).r;
+  } else {
+    ambientOcclusion = 1.0;
+  }
 
   if (s_debug) {
     const f32 linearDepth = clip_to_view(clipPos).z;
@@ -60,24 +72,27 @@ void main() {
       out_color = f32v4(color, 0);
       break;
     case c_modeDebugRoughness:
-      out_color = f32v4(roughness, roughness, roughness, 0);
+      out_color = f32v4(roughness.rrr, 0);
       break;
     case c_modeDebugNormal:
       out_color = f32v4(normal, 0);
       break;
     case c_modeDebugDepth:
       const f32 debugMaxDist = 100.0;
-      out_color              = f32v4(linearDepth, linearDepth, linearDepth, 0) / debugMaxDist;
+      out_color              = f32v4(linearDepth.rrr, 0) / debugMaxDist;
       break;
     case c_modeDebugTags:
       out_color = f32v4(color_from_hsv(tags / 255.0, 1, 1), 0);
+      break;
+    case c_modeDebugAmbientOcclusion:
+      out_color = f32v4(ambientOcclusion.rrr, 0);
       break;
     default:
       discard;
     }
   } else {
     // Main color with ambient lighting.
-    out_color = f32v4(color * ambient, 1.0);
+    out_color = f32v4(color * ambient * ambientOcclusion, 0.0);
 
     // Additional effects.
     if (tag_is_set(tags, tag_damaged_bit)) {

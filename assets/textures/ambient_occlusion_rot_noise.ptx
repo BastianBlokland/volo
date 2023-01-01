@@ -1,0 +1,9 @@
+{
+  "type": "NoiseWhite",
+  "channels": 4,
+  "mipmaps": false,
+  "size": 4,
+  "frequency": 1,
+  "power": 1,
+  "seed": 1337
+}

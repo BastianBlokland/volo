@@ -21,16 +21,19 @@ typedef enum {
   RvkPassFlags_None          = 0,
   RvkPassFlags_ClearColor    = 1 << 0,
   RvkPassFlags_ClearDepth    = 1 << 1,
-  RvkPassFlags_Color1        = 1 << 2, // Enable a color attachment.
-  RvkPassFlags_Color2        = 1 << 3, // Enable a second color attachment.
-  RvkPassFlags_SrgbColor1    = 1 << 4, // Use an SRGB format for the color1 attachment.
-  RvkPassFlags_SrgbColor2    = 1 << 5, // Use an SRGB format for the color2 attachment.
-  RvkPassFlags_DepthOutput   = 1 << 6, // Support outputting the depth attachment.
-  RvkPassFlags_ExternalDepth = 1 << 7, // Call 'rvk_pass_use_depth()' with a source depth image.
+  RvkPassFlags_Color1        = 1 << 2,  // Enable the color1 attachment.
+  RvkPassFlags_Color1Srgb    = 1 << 3,  // Use an SRGB format for the color1 attachment.
+  RvkPassFlags_Color1Single  = 1 << 4,  // Use a single channel format for the color1 attachment.
+  RvkPassFlags_Color2        = 1 << 5,  // Enable the color2 attachment.
+  RvkPassFlags_Color2Srgb    = 1 << 6,  // Use an SRGB format for the color2 attachment.
+  RvkPassFlags_Color2Single  = 1 << 7,  // Use a single channel format for the color2 attachment.
+  RvkPassFlags_Depth         = 1 << 8,  // Enable a depth attachment.
+  RvkPassFlags_DepthOutput   = 1 << 9,  // Support outputting the depth attachment.
+  RvkPassFlags_ExternalDepth = 1 << 10, // Call 'rvk_pass_use_depth()' with a source depth image.
 
   RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 8,
+  RvkPassFlags_Count = 11,
 } RvkPassFlags;
 
 typedef enum {

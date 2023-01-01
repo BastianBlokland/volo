@@ -20,6 +20,7 @@ GeoColor geo_color_get(const u64 idx) {
       {0.0f, 0.5f, 0.0f, 1.0f},
       {0.5f, 0.5f, 0.5f, 1.0f},
       {0.5f, 0.0f, 0.5f, 1.0f},
+      {1.0f, 0.5f, 0.0f, 1.0f},
   };
   return g_colors[idx % array_elems(g_colors)];
 }

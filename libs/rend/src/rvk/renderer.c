@@ -1,7 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_math.h"
 #include "core_thread.h"
 
 #include "device_internal.h"
@@ -139,12 +138,6 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
-static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp* settings) {
-  return rvk_size(
-      (u16)math_round_nearest_f32(target->size.width * settings->resolutionScale),
-      (u16)math_round_nearest_f32(target->size.height * settings->resolutionScale));
-}
-
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
 
@@ -171,21 +164,26 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   // clang-format off
   {
     const RvkPassFlags flags = RvkPassFlags_Clear |
-      RvkPassFlags_Color1 | RvkPassFlags_SrgbColor1 | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
+      RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
       RvkPassFlags_Color2 |                           // Attachment color2 (linear): normal (rgb) and tags (a).
-      RvkPassFlags_DepthOutput;                       // Attachment depth.
+      RvkPassFlags_Depth | RvkPassFlags_DepthOutput;  // Attachment depth.
     renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("geometry"));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearColor |
-      RvkPassFlags_Color1 | RvkPassFlags_SrgbColor1 | // Attachment color1 (srgb): color (rgb).
-      RvkPassFlags_ExternalDepth;                     // Attachment depth.
+      RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb    | // Attachment color1 (srgb): color (rgb).
+      RvkPassFlags_Depth | RvkPassFlags_ExternalDepth;   // Attachment depth.
     renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("forward"));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearDepth |
-      RvkPassFlags_DepthOutput;                       // Attachment depth.
+      RvkPassFlags_Depth | RvkPassFlags_DepthOutput;     // Attachment depth.
     renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("shadow"));
+  }
+  {
+    const RvkPassFlags flags =
+      RvkPassFlags_Color1 | RvkPassFlags_Color1Single; // Attachment color1 (linear): occlusion (r).
+    renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("ambient-occlusion"));
   }
   // clang-format on
 
@@ -261,7 +259,7 @@ void rvk_renderer_begin(
   rend->flags |= RvkRenderer_Active;
   rend->currentTarget      = target;
   rend->currentTargetPhase = targetPhase;
-  rend->currentResolution  = rvk_renderer_resolution(target, settings);
+  rend->currentResolution  = rvk_size_scale(target->size, settings->resolutionScale);
   rend->waitForRenderDur   = 0;
 
   rvk_renderer_wait_for_done(rend);
@@ -272,10 +270,12 @@ void rvk_renderer_begin(
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
 
   const RvkSize shadowResolution = {settings->shadowResolution, settings->shadowResolution};
+  const RvkSize aoRes = rvk_size_scale(rend->currentResolution, settings->aoResolutionScale);
 
   rvk_pass_setup(rend->passes[RvkRenderPass_Geometry], rend->currentResolution);
   rvk_pass_setup(rend->passes[RvkRenderPass_Forward], rend->currentResolution);
   rvk_pass_setup(rend->passes[RvkRenderPass_Shadow], shadowResolution);
+  rvk_pass_setup(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(

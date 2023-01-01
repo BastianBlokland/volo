@@ -11,6 +11,6 @@
   "rasterizer": "Fill",
   "blend": "None",
   "depth": "Less",
-  "depthBias": 20000,
+  "depthBias": -500,
   "cull": "Front"
 }

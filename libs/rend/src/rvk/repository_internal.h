@@ -17,6 +17,7 @@ typedef enum {
   RvkRepositoryId_DebugShadowGraphic,
   RvkRepositoryId_ComposeGraphic,
   RvkRepositoryId_ComposeDebugGraphic,
+  RvkRepositoryId_AmbientOcclusionGraphic,
   RvkRepositoryId_SkyGraphic,
 
   RvkRepositoryId_Count,

@@ -143,41 +143,11 @@ ecs_view_define(UpdateView) {
 }
 
 static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
-  /**
-   * Compute a uniformly distributed direction inside the given cone.
-   * Reference: http://www.realtimerendering.com/resources/RTNews/html/rtnv20n1.html#art11
-   */
-  const f32 coneAngleCos = math_cos_f32(cone->angle);
-  const f32 phi          = 2.0f * math_pi_f32 * rng_sample_f32(g_rng);
-  const f32 z            = coneAngleCos + (1 - coneAngleCos) * rng_sample_f32(g_rng);
-  const f32 sinT         = math_sqrt_f32(1 - z * z);
-  const f32 x            = math_cos_f32(phi) * sinT;
-  const f32 y            = math_sin_f32(phi) * sinT;
-  return geo_quat_rotate(cone->rotation, geo_vector(x, y, z));
-}
-
-static GeoVector vfx_random_dir() {
-  /**
-   * Generate a random point on a unit sphere (radius of 1, aka a direction vector).
-   */
-Retry:;
-  const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(g_rng);
-  const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(g_rng);
-  const GeoVector       vec    = {.x = gauss1.a, .y = gauss1.b, .z = gauss2.a};
-  const f32             magSqr = geo_vector_mag_sqr(vec);
-  if (UNLIKELY(magSqr <= f32_epsilon)) {
-    goto Retry; // Reject zero vectors (rare case).
-  }
-  return geo_vector_div(vec, math_sqrt_f32(magSqr));
+  return geo_quat_rotate(cone->rotation, geo_vector_rand_in_cone3(g_rng, cone->angle));
 }
 
 static GeoVector vfx_random_in_sphere(const f32 radius) {
-  /**
-   * Generate a random point inside a sphere.
-   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
-   */
-  const GeoVector dir = vfx_random_dir();
-  return geo_vector_mul(dir, radius * math_cbrt_f32(rng_sample_f32(g_rng)));
+  return geo_vector_mul(geo_vector_rand_in_sphere3(g_rng), radius);
 }
 
 static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {

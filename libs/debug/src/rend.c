@@ -112,6 +112,7 @@ static const String g_composeModeNames[] = {
     string_static("DebugNormal"),
     string_static("DebugDepth"),
     string_static("DebugTags"),
+    string_static("DebugAmbientOcclusion"),
 };
 
 typedef struct {
@@ -648,11 +649,6 @@ static void rend_light_tab_draw(
   }
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Ambient"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun shadows"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunShadows);
@@ -667,6 +663,49 @@ static void rend_light_tab_draw(
       settings->shadowResolution = 16384;
     }
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Ambient"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AmbientOcclusion"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO angle"));
+  ui_table_next_column(canvas, &table);
+  f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
+  if (ui_slider(canvas, &aoAngleDeg, .max = 180)) {
+    settings->aoAngle = aoAngleDeg * math_deg_to_rad;
+    rend_settings_generate_ao_kernel(settings);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO radius"));
+  ui_table_next_column(canvas, &table);
+  if (ui_slider(canvas, &settings->aoRadius)) {
+    rend_settings_generate_ao_kernel(settings);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO radius power"));
+  ui_table_next_column(canvas, &table);
+  if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f)) {
+    rend_settings_generate_ao_kernel(settings);
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO power"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->aoPower, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO resolution scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
 }
 
 static void rend_panel_draw(

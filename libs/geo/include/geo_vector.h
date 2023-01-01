@@ -2,6 +2,9 @@
 #include "core_annotation.h"
 #include "core_types.h"
 
+// Forward declare from 'core_rng.h'.
+typedef struct sRng Rng;
+
 /**
  * 4 component geometric spacial Vector.
  * For describing a position / offset in 2 / 3 / 4 dimensions.
@@ -164,6 +167,21 @@ GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
  * Pack a vector to 16 bit floats.
  */
 void geo_vector_pack_f16(GeoVector, f16 out[4]);
+
+/**
+ * Generate a uniformly distributed random point on the surface of a 3d unit sphere.
+ */
+GeoVector geo_vector_rand_on_sphere3(Rng*);
+
+/**
+ * Generate a uniformly distributed random point inside a 3d unit sphere.
+ */
+GeoVector geo_vector_rand_in_sphere3(Rng*);
+
+/**
+ * Generate a uniformly distributed random point inside a cone oriented along the z axis.
+ */
+GeoVector geo_vector_rand_in_cone3(Rng*, f32 coneAngleRad);
 
 /**
  * Create a formatting argument for a vector.

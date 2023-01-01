@@ -85,6 +85,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
+        .repoId     = RvkRepositoryId_AmbientOcclusionGraphic,
+        .assetId    = string_static("graphics/ambient_occlusion.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_SkyGraphic,
         .assetId    = string_static("graphics/sky.gra"),
         .reloadable = true,

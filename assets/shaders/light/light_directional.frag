@@ -10,7 +10,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_global(4) uniform sampler2DShadow u_texShadow;
+bind_global(5) uniform sampler2DShadow u_texShadow;
 
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v3 in_direction;
