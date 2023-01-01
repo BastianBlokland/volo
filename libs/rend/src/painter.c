@@ -417,7 +417,7 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
     painter_push_ambient_occlusion(&ctx);
     rvk_pass_begin(aoPass, geo_color_clear);
