@@ -282,6 +282,26 @@ spec(vector) {
     check_eq_float(geo_vector_mag(avg), 0.0f, 1e-2);
   }
 
+  it("can generate points inside a 3d unit sphere") {
+    Allocator* alloc = alloc_bump_create_stack(256);
+
+    static const u64   g_seed       = 42;
+    static const usize g_iterations = 10000;
+
+    Rng* rng = rng_create_xorwow(alloc, g_seed);
+
+    GeoVector sum = {0};
+    for (usize i = 0; i != g_iterations; ++i) {
+      const GeoVector p   = geo_vector_rand_in_unit_sphere3(rng);
+      const f32       mag = geo_vector_mag(p);
+      check(mag >= 0.0f);
+      check(mag <= 1.0f);
+      sum = geo_vector_add(sum, p);
+    }
+    const GeoVector avg = geo_vector_div(sum, g_iterations);
+    check_eq_float(geo_vector_mag(avg), 0.0f, 1e-1);
+  }
+
   it("lists all components when formatted") {
     check_eq_string(fmt_write_scratch("{}", geo_vector_fmt(geo_forward)), string_lit("0, 0, 1, 0"));
     check_eq_string(fmt_write_scratch("{}", geo_vector_fmt(geo_up)), string_lit("0, 1, 0, 0"));

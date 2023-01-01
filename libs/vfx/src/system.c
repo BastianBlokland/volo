@@ -157,12 +157,7 @@ static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
 }
 
 static GeoVector vfx_random_in_sphere(const f32 radius) {
-  /**
-   * Generate a random point inside a sphere.
-   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
-   */
-  const GeoVector dir = geo_vector_rand_on_unit_sphere3(g_rng);
-  return geo_vector_mul(dir, radius * math_cbrt_f32(rng_sample_f32(g_rng)));
+  return geo_vector_mul(geo_vector_rand_in_unit_sphere3(g_rng), radius);
 }
 
 static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {

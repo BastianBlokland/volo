@@ -175,6 +175,12 @@ void geo_vector_pack_f16(GeoVector, f16 out[4]);
 GeoVector geo_vector_rand_on_unit_sphere3(Rng*);
 
 /**
+ * Generate a random point inside a 3d unit sphere.
+ * NOTE: Resulting points are uniformly distributed.
+ */
+GeoVector geo_vector_rand_in_unit_sphere3(Rng*);
+
+/**
  * Create a formatting argument for a vector.
  * NOTE: _VEC_ is expanded multiple times, so care must be taken when providing complex expressions.
  */

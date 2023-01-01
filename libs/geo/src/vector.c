@@ -352,3 +352,12 @@ Retry:;
   }
   return geo_vector_div(vec, math_sqrt_f32(magSqr));
 }
+
+GeoVector geo_vector_rand_in_unit_sphere3(Rng* rng) {
+  /**
+   * Generate a random point inside a sphere.
+   * NOTE: Cube-root as the area increases cubicly as you get further from the center.
+   */
+  const GeoVector dir = geo_vector_rand_on_unit_sphere3(rng);
+  return geo_vector_mul(dir, math_cbrt_f32(rng_sample_f32(rng)));
+}
