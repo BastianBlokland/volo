@@ -251,10 +251,10 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     if (!g_aoKernelInit) {
       Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
       for (u32 i = 0; i != array_elems(g_aoKernel); ++i) {
-        const GeoVector randOnSphere = geo_vector_rand_on_sphere3(rng);
-        const f32       rand         = rng_sample_f32(rng);
-        const f32       mag          = math_lerp(0.1f, 1.0f, rand * rand);
-        g_aoKernel[i]                = geo_vector_mul(randOnSphere, mag);
+        const GeoVector randInCone = geo_vector_rand_in_cone3(rng, 140 - math_deg_to_rad);
+        const f32       rand       = rng_sample_f32(rng);
+        const f32       mag        = math_lerp(0.1f, 1.0f, rand * rand);
+        g_aoKernel[i]              = geo_vector_mul(randInCone, mag);
 
 #if 0
         diag_print(
@@ -440,7 +440,8 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 0);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
+    rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
     painter_push_ambient_occlusion(&ctx);
     rvk_pass_begin(aoPass, geo_color_clear);
     painter_flush(&ctx);
