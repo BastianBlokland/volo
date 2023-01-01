@@ -248,13 +248,9 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     static AoData g_data;
     static u32    g_dataInit;
     if (!g_dataInit) {
-      Rng* tmpRng = rng_create_xorwow(g_alloc_scratch, 42);
+      Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
       for (u32 i = 0; i != array_elems(g_data.kernel); ++i) {
-        // Random position inside a sphere.
-        g_data.kernel[i].x = rng_sample_range(tmpRng, -0.5f, 0.5f);
-        g_data.kernel[i].y = rng_sample_range(tmpRng, -0.5f, 0.5f);
-        g_data.kernel[i].z = rng_sample_range(tmpRng, -0.5f, 0.5f);
-        g_data.kernel[i].w = 0;
+        g_data.kernel[i] = geo_vector_rand_in_sphere3(rng);
       }
       g_dataInit = true;
     }
