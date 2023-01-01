@@ -157,7 +157,7 @@ static GeoVector vfx_random_dir_in_cone(const AssetVfxCone* cone) {
 }
 
 static GeoVector vfx_random_in_sphere(const f32 radius) {
-  return geo_vector_mul(geo_vector_rand_in_unit_sphere3(g_rng), radius);
+  return geo_vector_mul(geo_vector_rand_in_sphere3(g_rng), radius);
 }
 
 static f32 vfx_sample_range_scalar(const AssetVfxRangeScalar* scalar) {

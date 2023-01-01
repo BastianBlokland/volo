@@ -274,7 +274,7 @@ spec(vector) {
 
     GeoVector sum = {0};
     for (usize i = 0; i != g_iterations; ++i) {
-      const GeoVector p = geo_vector_rand_on_unit_sphere3(rng);
+      const GeoVector p = geo_vector_rand_on_sphere3(rng);
       check_eq_float(geo_vector_mag(p), 1.0f, 1e-5);
       sum = geo_vector_add(sum, p);
     }
@@ -292,7 +292,7 @@ spec(vector) {
 
     GeoVector sum = {0};
     for (usize i = 0; i != g_iterations; ++i) {
-      const GeoVector p   = geo_vector_rand_in_unit_sphere3(rng);
+      const GeoVector p   = geo_vector_rand_in_sphere3(rng);
       const f32       mag = geo_vector_mag(p);
       check(mag >= 0.0f);
       check(mag <= 1.0f);

@@ -341,7 +341,7 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[4]) {
   out[3] = float_f32_to_f16(v.w);
 }
 
-GeoVector geo_vector_rand_on_unit_sphere3(Rng* rng) {
+GeoVector geo_vector_rand_on_sphere3(Rng* rng) {
 Retry:;
   const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(rng);
   const RngGaussPairF32 gauss2 = rng_sample_gauss_f32(rng);
@@ -353,11 +353,11 @@ Retry:;
   return geo_vector_div(vec, math_sqrt_f32(magSqr));
 }
 
-GeoVector geo_vector_rand_in_unit_sphere3(Rng* rng) {
+GeoVector geo_vector_rand_in_sphere3(Rng* rng) {
   /**
    * Generate a random point inside a sphere.
    * NOTE: Cube-root as the area increases cubicly as you get further from the center.
    */
-  const GeoVector dir = geo_vector_rand_on_unit_sphere3(rng);
+  const GeoVector dir = geo_vector_rand_on_sphere3(rng);
   return geo_vector_mul(dir, math_cbrt_f32(rng_sample_f32(rng)));
 }

@@ -169,16 +169,14 @@ GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
 void geo_vector_pack_f16(GeoVector, f16 out[4]);
 
 /**
- * Generate a random point on the surface of a 3d unit sphere (aka randomly orientated unit vector).
- * NOTE: Resulting points are uniformly distributed.
+ * Generate a uniformly distributed random point on the surface of a 3d unit sphere.
  */
-GeoVector geo_vector_rand_on_unit_sphere3(Rng*);
+GeoVector geo_vector_rand_on_sphere3(Rng*);
 
 /**
- * Generate a random point inside a 3d unit sphere.
- * NOTE: Resulting points are uniformly distributed.
+ * Generate a uniformly distributed random point inside a 3d unit sphere.
  */
-GeoVector geo_vector_rand_in_unit_sphere3(Rng*);
+GeoVector geo_vector_rand_in_sphere3(Rng*);
 
 /**
  * Create a formatting argument for a vector.
