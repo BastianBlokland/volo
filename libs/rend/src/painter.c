@@ -8,6 +8,7 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 
 #include "draw_internal.h"
@@ -33,6 +34,7 @@ static void ecs_destruct_painter(void* data) {
 ecs_view_define(GlobalView) {
   ecs_access_read(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
@@ -76,9 +78,10 @@ typedef struct {
   GeoVector camPosition;
   GeoQuat   camRotation;
   GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
+  GeoVector time;       // x: time seconds, y: real-time seconds, z, w: unused.
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 432, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 448, "Size needs to match the size defined in glsl");
 
 typedef struct {
   RendPainterComp*              painter;
@@ -97,6 +100,7 @@ static RendPaintContext painter_context(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
+    const SceneTimeComp*          time,
     RvkPass*                      pass) {
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
@@ -121,6 +125,8 @@ static RendPaintContext painter_context(
               .resolution.x = rvk_pass_size(pass).width,
               .resolution.y = rvk_pass_size(pass).height,
               .resolution.z = (f32)rvk_pass_size(pass).width / (f32)rvk_pass_size(pass).height,
+              .time.x       = scene_time_seconds(time),
+              .time.y       = scene_real_time_seconds(time),
           },
       .view = rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter),
   };
@@ -366,6 +372,7 @@ static bool rend_canvas_paint(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
+    const SceneTimeComp*          time,
     const RendLightRendererComp*  light,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
@@ -390,7 +397,7 @@ static bool rend_canvas_paint(
   SceneTags geoTagMask;
   {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, geoPass);
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, geoPass);
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     rvk_pass_begin(geoPass, geo_color_clear);
@@ -401,10 +408,10 @@ static bool rend_canvas_paint(
   // Shadow pass.
   RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
   if (rend_light_has_shadow(light)) {
-    const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
-    const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
-    RendPaintContext ctx         = painter_context(
-        shadowTrans, shadowProj, camEntity, filter, painter, settings, settingsGlobal, shadowPass);
+    const GeoMatrix* sTrans = rend_light_shadow_trans(light);
+    const GeoMatrix* sProj  = rend_light_shadow_proj(light);
+    RendPaintContext ctx    = painter_context(
+        sTrans, sProj, camEntity, filter, painter, settings, settingsGlobal, time, shadowPass);
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
     painter_push_shadow(&ctx, drawView, graphicView);
     rvk_pass_begin(shadowPass, geo_color_clear);
@@ -416,7 +423,7 @@ static bool rend_canvas_paint(
   RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
   if (settings->flags & RendFlags_AmbientOcclusion) {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, aoPass);
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, aoPass);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
@@ -430,7 +437,7 @@ static bool rend_canvas_paint(
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
   {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, fwdPass);
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
     rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
@@ -499,6 +506,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     return;
   }
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
@@ -518,6 +526,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
         painter,
         settings,
         settingsGlobal,
+        time,
         light,
         win,
         entity,

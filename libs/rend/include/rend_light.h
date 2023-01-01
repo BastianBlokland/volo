@@ -5,8 +5,9 @@
 #include "geo_quat.h"
 
 typedef enum {
-  RendLightFlags_None   = 0,
-  RendLightFlags_Shadow = 1 << 0,
+  RendLightFlags_None         = 0,
+  RendLightFlags_Shadow       = 1 << 0,
+  RendLightFlags_CoverageMask = 1 << 1,
 } RendLightFlags;
 
 ecs_comp_extern(RendLightComp);
