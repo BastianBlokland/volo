@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
@@ -196,8 +197,8 @@ ecs_system_define(RendLightRenderSys) {
 
       typedef struct {
         ALIGNAS(16)
-        GeoVector direction; // x, y, z: direction, w: unused.
-        GeoColor  radiance;  // r, g, b: radiance, a: unused.
+        GeoVector direction;     // x, y, z: direction, w: unused.
+        GeoVector radianceFlags; // x, y, z: radiance, a: flags.
         GeoMatrix shadowViewProj;
       } LightDirData;
       ASSERT(sizeof(LightDirData) == 96, "Size needs to match the size defined in glsl");
@@ -237,9 +238,12 @@ ecs_system_define(RendLightRenderSys) {
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
         *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
-            .direction      = direction,
-            .radiance       = radiance,
-            .shadowViewProj = shadowViewProj,
+            .direction       = direction,
+            .radianceFlags.x = radiance.r,
+            .radianceFlags.y = radiance.g,
+            .radianceFlags.z = radiance.b,
+            .radianceFlags.w = bits_u32_as_f32(entry->data_directional.flags),
+            .shadowViewProj  = shadowViewProj,
         };
         break;
       }
