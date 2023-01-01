@@ -242,33 +242,43 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 
     typedef struct {
       ALIGNAS(16)
+      f32       radius;
       GeoVector kernel[AoKernelSize];
     } AoData;
 
-    static AoData g_data;
-    static u32    g_dataInit;
-    if (!g_dataInit) {
+    static GeoVector g_aoKernel[AoKernelSize];
+    static u32       g_aoKernelInit;
+    if (!g_aoKernelInit) {
       Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
-      for (u32 i = 0; i != array_elems(g_data.kernel); ++i) {
+      for (u32 i = 0; i != array_elems(g_aoKernel); ++i) {
         const GeoVector randOnSphere = geo_vector_rand_on_sphere3(rng);
         const f32       rand         = rng_sample_f32(rng);
         const f32       mag          = math_lerp(0.1f, 1.0f, rand * rand);
-        g_data.kernel[i]             = geo_vector_mul(randOnSphere, mag);
+        g_aoKernel[i]                = geo_vector_mul(randOnSphere, mag);
 
 #if 0
         diag_print(
             "> [AO] kernel point ({}/{}) [{}] mag: {}\n",
             fmt_int(i, .minDigits = 2),
             fmt_int(AoKernelSize, .minDigits = 2),
-            geo_vector_fmt(g_data.kernel[i]),
+            geo_vector_fmt(g_aoKernel[i]),
             fmt_float(mag));
 #endif
       }
-      g_dataInit = true;
+      g_aoKernelInit = true;
     }
 
+    AoData* data = alloc_alloc_t(g_alloc_scratch, AoData);
+    data->radius = ctx->settings->ambientOcclusionRadius;
+    mem_cpy(array_mem(data->kernel), array_mem(g_aoKernel));
+
     painter_push(
-        ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1, .drawData = mem_var(g_data)});
+        ctx,
+        (RvkPassDraw){
+            .graphic   = graphic,
+            .instCount = 1,
+            .drawData  = mem_create(data, sizeof(AoData)),
+        });
   }
 }
 

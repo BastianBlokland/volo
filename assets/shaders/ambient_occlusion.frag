@@ -5,11 +5,11 @@
 #include "global.glsl"
 #include "texture.glsl"
 
-const u32 c_kernelSize   = 16; // Needs to match the maximum in rend_painter.c
-const f32 c_sampleRadius = 0.1;
-const f32 c_sampleBias   = -0.05;
+const u32 c_kernelSize = 16; // Needs to match the maximum in rend_painter.c
+const f32 c_sampleBias = -0.05;
 
 struct AoData {
+  f32   radius;
   f32v4 kernel[c_kernelSize];
 };
 
@@ -38,14 +38,14 @@ void main() {
 
   f32 occlusion = 0.0;
   for (u32 i = 0; i != c_kernelSize; ++i) {
-    const f32v3 kernelViewPos = viewPos + u_draw.kernel[i].xyz * c_sampleRadius;
+    const f32v3 kernelViewPos = viewPos + u_draw.kernel[i].xyz * u_draw.radius;
     const f32v3 kernelClipPos = view_to_clip_pos(kernelViewPos);
     const f32v2 kernelCoord   = kernelClipPos.xy * 0.5 + 0.5;
 
     const f32   sampleDepth   = texture(u_texGeoDepth, kernelCoord).r;
     const f32v3 sampleViewPos = clip_to_view_pos(f32v3(kernelClipPos.xy, sampleDepth));
 
-    const f32 fade = smoothstep(0.0, 1.0, c_sampleRadius / abs(viewPos.z - sampleViewPos.z));
+    const f32 fade = smoothstep(0.0, 1.0, u_draw.radius / abs(viewPos.z - sampleViewPos.z));
     occlusion += f32(sampleViewPos.z < kernelViewPos.z + c_sampleBias) * fade;
   }
   out_occlusion = 1.0 - occlusion / f32(c_kernelSize);

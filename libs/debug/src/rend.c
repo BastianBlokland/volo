@@ -675,6 +675,11 @@ static void rend_light_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AmbientOcclusion radius"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->ambientOcclusionRadius);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion scale"));
   ui_table_next_column(canvas, &table);
   ui_slider(canvas, &settings->ambientOcclusionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
