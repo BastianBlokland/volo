@@ -250,7 +250,18 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     if (!g_dataInit) {
       Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
       for (u32 i = 0; i != array_elems(g_data.kernel); ++i) {
-        g_data.kernel[i] = geo_vector_rand_in_sphere3(rng);
+        const GeoVector randOnSphere = geo_vector_rand_on_sphere3(rng);
+        const f32       mag          = math_lerp(0.15f, 1.0f, rng_sample_f32(rng));
+        g_data.kernel[i]             = geo_vector_mul(randOnSphere, mag);
+
+#if 0
+        diag_print(
+            "> [AO] kernel point ({}/{}) [{}] mag: {}\n",
+            fmt_int(i, .minDigits = 2),
+            fmt_int(AoKernelSize, .minDigits = 2),
+            geo_vector_fmt(g_data.kernel[i]),
+            fmt_float(mag));
+#endif
       }
       g_dataInit = true;
     }
