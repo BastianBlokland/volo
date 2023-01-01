@@ -240,14 +240,15 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     typedef struct {
       ALIGNAS(16)
       f32       radius;
+      f32       power;
       GeoVector kernel[rend_ao_kernel_size];
     } AoData;
 
-    AoData* data = alloc_alloc_t(g_alloc_scratch, AoData);
-    data->radius = ctx->settings->aoRadius;
-    mem_cpy(
-        array_mem(data->kernel),
-        mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size));
+    AoData* data     = alloc_alloc_t(g_alloc_scratch, AoData);
+    data->radius     = ctx->settings->aoRadius;
+    data->power      = ctx->settings->aoPower;
+    const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
+    mem_cpy(array_mem(data->kernel), kernel);
 
     painter_push(
         ctx,

@@ -10,6 +10,7 @@ const f32 c_sampleBias = -0.05;
 
 struct AoData {
   f32   radius;
+  f32   power;
   f32v4 kernel[c_kernelSize];
 };
 
@@ -64,5 +65,5 @@ void main() {
     const f32 fade = smoothstep(0.0, 1.0, u_draw.radius / abs(viewPos.z - sampleViewPos.z));
     occlusion += f32(sampleViewPos.z < kernelViewPos.z + c_sampleBias) * fade;
   }
-  out_occlusion = 1.0 - occlusion / f32(c_kernelSize);
+  out_occlusion = pow(1.0 - occlusion / f32(c_kernelSize), u_draw.power);
 }

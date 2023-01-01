@@ -691,6 +691,11 @@ static void rend_light_tab_draw(
   }
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AmbientOcclusion power"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->aoPower, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion resolution"));
   ui_table_next_column(canvas, &table);
   ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);

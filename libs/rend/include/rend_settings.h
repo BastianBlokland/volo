@@ -57,7 +57,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendComposeMode composeMode;
   f32             resolutionScale;
   u16             shadowResolution;
-  f32             aoAngle, aoRadius, aoResolutionScale;
+  f32             aoAngle, aoRadius, aoPower, aoResolutionScale;
   GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
 };
 
