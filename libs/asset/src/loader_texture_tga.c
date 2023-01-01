@@ -261,7 +261,7 @@ static Mem tga_read_pixels_rle(
         /**
          * No pixels are remaining; Read a new packet header.
          */
-        if (UNLIKELY(input.size <= channels)) {
+        if (UNLIKELY(input.size <= (usize)channels)) {
           *err = TgaError_MalformedRlePixels;
           return input;
         }
