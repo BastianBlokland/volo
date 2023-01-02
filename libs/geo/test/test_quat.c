@@ -29,6 +29,14 @@ spec(quat) {
       check_eq_quat(geo_quat_forward_to_left, geo_quat_angle_axis(geo_up, math_pi_f32 * -0.5f));
     }
     {
+      check_eq_vector(geo_quat_rotate(geo_quat_forward_to_up, geo_forward), geo_up);
+      check_eq_quat(geo_quat_forward_to_up, geo_quat_angle_axis(geo_right, math_pi_f32 * -0.5f));
+    }
+    {
+      check_eq_vector(geo_quat_rotate(geo_quat_forward_to_down, geo_forward), geo_down);
+      check_eq_quat(geo_quat_forward_to_down, geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f));
+    }
+    {
       check_eq_vector(geo_quat_rotate(geo_quat_up_to_forward, geo_up), geo_forward);
       check_eq_quat(geo_quat_up_to_forward, geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f));
     }
