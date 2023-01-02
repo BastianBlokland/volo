@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
@@ -130,6 +131,27 @@ static RendPaintContext painter_context(
           },
       .view = rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter),
   };
+}
+
+static void painter_set_debug_camera(RendPaintContext* ctx) {
+  static const f32 g_size     = 300;
+  static const f32 g_depthMin = -200;
+  static const f32 g_depthMax = 200;
+
+  const f32       aspect  = ctx->data.resolution.z;
+  const GeoMatrix camMat  = geo_matrix_rotate_x(math_pi_f32 * 0.5f);
+  const GeoMatrix viewMat = geo_matrix_inverse(&camMat);
+  const GeoMatrix projMat = geo_matrix_proj_ortho(g_size, g_size / aspect, g_depthMin, g_depthMax);
+  const GeoMatrix viewProjMat = geo_matrix_mul(&projMat, &viewMat);
+
+  ctx->data.view        = viewMat;
+  ctx->data.viewInv     = camMat;
+  ctx->data.proj        = projMat;
+  ctx->data.projInv     = geo_matrix_inverse(&projMat);
+  ctx->data.viewProj    = viewProjMat;
+  ctx->data.viewProjInv = geo_matrix_inverse(&viewProjMat);
+  ctx->data.camPosition = geo_vector(0, 0, 0);
+  ctx->data.camRotation = geo_quat_forward_to_down;
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
@@ -398,6 +420,9 @@ static bool rend_canvas_paint(
   {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, geoPass);
+    if (settings->flags & RendFlags_DebugCamera) {
+      painter_set_debug_camera(&ctx);
+    }
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     rvk_pass_begin(geoPass, geo_color_clear);
@@ -424,6 +449,9 @@ static bool rend_canvas_paint(
   if (settings->flags & RendFlags_AmbientOcclusion) {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, aoPass);
+    if (settings->flags & RendFlags_DebugCamera) {
+      painter_set_debug_camera(&ctx);
+    }
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
@@ -438,6 +466,9 @@ static bool rend_canvas_paint(
   {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
+    if (settings->flags & RendFlags_DebugCamera) {
+      painter_set_debug_camera(&ctx);
+    }
     rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
