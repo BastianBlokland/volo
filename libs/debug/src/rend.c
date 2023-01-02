@@ -280,6 +280,11 @@ static void rend_settings_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Wireframe);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug Camera"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugCamera);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Skinning"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
@@ -817,7 +822,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(.size = ui_vector(800, 460)),
+      .panel          = ui_panel(.size = ui_vector(800, 490)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),
