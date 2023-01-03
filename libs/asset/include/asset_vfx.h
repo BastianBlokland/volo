@@ -38,6 +38,7 @@ typedef struct {
   f32            sizeX, sizeY;
   TimeDuration   fadeInTime, fadeOutTime;
   TimeDuration   scaleInTime, scaleOutTime;
+  bool           geometryFade; // Aka 'soft particles'.
 } AssetVfxSprite;
 
 typedef struct {

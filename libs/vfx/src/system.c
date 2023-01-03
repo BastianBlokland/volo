@@ -376,6 +376,11 @@ static void vfx_instance_output_sprite(
     return; // NOTE: This can happen momentarily when hot-loading vfx.
   }
 
+  VfxParticleFlags flags = vfx_facing_particle_flags(sprite->facing);
+  if (sprite->geometryFade) {
+    flags |= VfxParticle_GeometryFade;
+  }
+
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(
@@ -383,7 +388,7 @@ static void vfx_instance_output_sprite(
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
-          .flags      = vfx_facing_particle_flags(sprite->facing),
+          .flags      = flags,
           .atlasIndex = instance->spriteAtlasBaseIndex + flipbookIndex,
           .sizeX      = scale * sprite->sizeX,
           .sizeY      = scale * sprite->sizeY,
