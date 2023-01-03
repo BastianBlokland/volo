@@ -46,7 +46,7 @@ struct sRvkPass {
   u32                globalDataOffset;
   u16                globalBoundMask; // Bitset of the bound global resources;
   u16                attachColorMask;
-  RvkSampler         globalImageSampler;
+  RvkSampler         globalImageSampler, globalShadowSampler;
   DynArray           dynDescSets; // RvkDescSet[]
 };
 
@@ -422,6 +422,9 @@ void rvk_pass_destroy(RvkPass* pass) {
   if (rvk_sampler_initialized(&pass->globalImageSampler)) {
     rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
   }
+  if (rvk_sampler_initialized(&pass->globalShadowSampler)) {
+    rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
+  }
   dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -559,6 +562,33 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
     const u8 mipLevels       = 1;
     pass->globalImageSampler = rvk_sampler_create(
         pass->dev,
+        RvkSamplerFlags_None,
+        RvkSamplerWrap_Clamp,
+        RvkSamplerFilter_Linear,
+        RvkSamplerAniso_None,
+        mipLevels);
+  }
+
+  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+
+  pass->globalBoundMask |= 1 << bindIndex;
+}
+
+void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
+  const u32 bindIndex = 1 + imageIndex;
+  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
+  diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
+
+  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+
+  if (!rvk_sampler_initialized(&pass->globalShadowSampler)) {
+    const u8 mipLevels        = 1;
+    pass->globalShadowSampler = rvk_sampler_create(
+        pass->dev,
         RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
         RvkSamplerWrap_Zero,
         RvkSamplerFilter_Linear,
@@ -566,7 +596,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
         mipLevels);
   }
 
-  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
   pass->globalBoundMask |= 1 << bindIndex;
 }
