@@ -9,11 +9,11 @@
           "b": 0.1,
           "a": 1
         },
-        "blend": "AdditiveDouble",
+        "blend": "AdditiveQuad",
         "facing": "BillboardSphere",
         "size": {
-          "x": 0.85,
-          "y": 0.85
+          "x": 0.75,
+          "y": 0.75
         },
         "fadeInTime": 0.025,
         "scaleInTime": 0.05,
@@ -60,7 +60,8 @@
         },
         "fadeInTime": 0.01,
         "fadeOutTime": 0.8,
-        "scaleInTime": 0.02
+        "scaleInTime": 0.02,
+        "geometryFade": true
       },
       "speed": {
         "min": 3,

@@ -49,7 +49,8 @@
         },
         "fadeInTime": 0.025,
         "fadeOutTime": 0.5,
-        "scaleInTime": 0.5
+        "scaleInTime": 0.5,
+        "geometryFade": true
       },
       "speed": {
         "min": 2,
