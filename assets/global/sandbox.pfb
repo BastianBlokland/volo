@@ -103,7 +103,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
-          "deathDestroyDelay": 0.25,
+          "deathDestroyDelay": 0.35,
           "deathVfxId": "vfx/sandbox/explosion.vfx"
         },
         {
@@ -143,7 +143,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
-          "deathDestroyDelay": 0.25,
+          "deathDestroyDelay": 0.35,
           "deathVfxId": "vfx/sandbox/explosion.vfx"
         },
         {
