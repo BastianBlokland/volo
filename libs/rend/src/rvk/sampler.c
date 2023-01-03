@@ -101,6 +101,8 @@ void rvk_sampler_destroy(RvkSampler* sampler, RvkDevice* dev) {
   vkDestroySampler(dev->vkDev, sampler->vkSampler, &dev->vkAlloc);
 }
 
+bool rvk_sampler_initialized(RvkSampler* sampler) { return sampler->vkSampler != null; }
+
 String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
   static const String g_names[] = {
       string_static("Repeat"),
