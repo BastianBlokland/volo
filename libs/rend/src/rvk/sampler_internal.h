@@ -43,6 +43,8 @@ RvkSampler rvk_sampler_create(
 
 void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
 
+bool rvk_sampler_initialized(RvkSampler*);
+
 String rvk_sampler_wrap_str(RvkSamplerWrap);
 String rvk_sampler_filter_str(RvkSamplerFilter);
 String rvk_sampler_aniso_str(RvkSamplerAniso);

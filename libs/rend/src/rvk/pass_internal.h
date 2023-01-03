@@ -80,6 +80,7 @@ void rvk_pass_use_depth(RvkPass*, RvkImage*);
 
 void rvk_pass_bind_global_data(RvkPass*, Mem);
 void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
+void rvk_pass_bind_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);

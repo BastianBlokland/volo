@@ -46,7 +46,7 @@ struct sRvkPass {
   u32                globalDataOffset;
   u16                globalBoundMask; // Bitset of the bound global resources;
   u16                attachColorMask;
-  RvkSampler         globalImageSampler;
+  RvkSampler         globalImageSampler, globalShadowSampler;
   DynArray           dynDescSets; // RvkDescSet[]
 };
 
@@ -390,13 +390,6 @@ RvkPass* rvk_pass_create(
   }
   const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
   const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
-  const RvkSampler       globalImageSampler   = rvk_sampler_create(
-      dev,
-      RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-      RvkSamplerWrap_Zero,
-      RvkSamplerFilter_Linear,
-      RvkSamplerAniso_None,
-      1);
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
@@ -411,7 +404,6 @@ RvkPass* rvk_pass_create(
       .flags                = flags,
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
-      .globalImageSampler   = globalImageSampler,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
 
@@ -427,7 +419,12 @@ void rvk_pass_destroy(RvkPass* pass) {
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   rvk_desc_free(pass->globalDescSet);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
-  rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
+  if (rvk_sampler_initialized(&pass->globalImageSampler)) {
+    rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
+  }
+  if (rvk_sampler_initialized(&pass->globalShadowSampler)) {
+    rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
+  }
   dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -560,7 +557,46 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
 
   rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+
+  if (!rvk_sampler_initialized(&pass->globalImageSampler)) {
+    const u8 mipLevels       = 1;
+    pass->globalImageSampler = rvk_sampler_create(
+        pass->dev,
+        RvkSamplerFlags_None,
+        RvkSamplerWrap_Clamp,
+        RvkSamplerFilter_Linear,
+        RvkSamplerAniso_None,
+        mipLevels);
+  }
+
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+
+  pass->globalBoundMask |= 1 << bindIndex;
+}
+
+void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
+  const u32 bindIndex = 1 + imageIndex;
+  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
+  diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
+
+  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+
+  if (!rvk_sampler_initialized(&pass->globalShadowSampler)) {
+    const u8 mipLevels        = 1;
+    pass->globalShadowSampler = rvk_sampler_create(
+        pass->dev,
+        RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+        RvkSamplerWrap_Zero,
+        RvkSamplerFilter_Linear,
+        RvkSamplerAniso_None,
+        mipLevels);
+  }
+
+  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
   pass->globalBoundMask |= 1 << bindIndex;
 }
