@@ -4,19 +4,7 @@
       "shaderId": "shaders/vfx/particle.vert.spv"
     },
     {
-      "shaderId": "shaders/vfx/particle.frag.spv",
-      "overrides": [
-        {
-          "name": "softParticles",
-          "binding": 0,
-          "value": 1
-        },
-        {
-          "name": "softParticlesFadeDist",
-          "binding": 1,
-          "value": 2.0
-        }
-      ]
+      "shaderId": "shaders/vfx/particle.frag.spv"
     }
   ],
   "samplers": [

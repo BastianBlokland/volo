@@ -15,8 +15,9 @@ ecs_comp_extern(AssetAtlasComp);
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
  */
 typedef enum {
-  VfxParticle_BillboardSphere   = 1 << 0,
-  VfxParticle_BillboardCylinder = 1 << 1,
+  VfxParticle_GeometryFade      = 1 << 0, // Aka 'soft particles'.
+  VfxParticle_BillboardSphere   = 1 << 1,
+  VfxParticle_BillboardCylinder = 1 << 2,
   VfxParticle_Billboard         = VfxParticle_BillboardSphere | VfxParticle_BillboardCylinder,
 } VfxParticleFlags;
 

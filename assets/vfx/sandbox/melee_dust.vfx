@@ -29,7 +29,8 @@
         },
         "fadeInTime": 0.01,
         "fadeOutTime": 0.4,
-        "scaleInTime": 0.1
+        "scaleInTime": 0.1,
+        "geometryFade": true
       },
       "expandForce": 5,
       "count": 4,

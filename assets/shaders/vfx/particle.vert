@@ -24,9 +24,10 @@ const f32v2 c_unitTexCoords[c_verticesPerParticle] = {
     f32v2(0, 0),
 };
 
-#define flag_billboard_sphere (1 << 0)
-#define flag_billboard_cylinder (1 << 1)
-#define flag_billboard (flag_billboard_sphere | flag_billboard_cylinder)
+const u32 c_flagGeometryFade      = 1 << 0;
+const u32 c_flagBillboardSphere   = 1 << 1;
+const u32 c_flagBillboardCylinder = 1 << 2;
+const u32 c_flagBillboard         = c_flagBillboardSphere | c_flagBillboardCylinder;
 
 struct MetaData {
   f32 atlasEntriesPerDim;
@@ -48,17 +49,18 @@ bind_instance_data(0) readonly uniform Instance { ParticleData[c_maxInstances] u
 
 bind_internal(0) out flat f32v4 out_color;
 bind_internal(1) out flat f32 out_opacity;
-bind_internal(2) out f32v2 out_texcoord;
+bind_internal(2) out flat u32 out_flags;
+bind_internal(3) out f32v2 out_texcoord;
 
 f32v3 ref_right(const u32 flags) {
-  if ((flags & flag_billboard) != 0) {
+  if ((flags & c_flagBillboard) != 0) {
     return quat_rotate(u_global.camRotation, f32v3(1, 0, 0));
   }
   return f32v3(1, 0, 0);
 }
 
 f32v3 ref_up(const u32 flags) {
-  if ((flags & flag_billboard_sphere) != 0) {
+  if ((flags & c_flagBillboardSphere) != 0) {
     return quat_rotate(u_global.camRotation, f32v3(0, 1, 0));
   }
   return f32v3(0, 1, 0);
@@ -102,5 +104,6 @@ void main() {
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
   out_opacity        = instanceOpacity;
+  out_flags          = instanceFlags;
   out_texcoord = texOrigin + c_unitTexCoords[in_vertexIndex] * u_meta.atlasEntrySizeMinusPadding;
 }

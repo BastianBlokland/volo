@@ -75,7 +75,8 @@
         },
         "fadeOutTime": 0.2,
         "fadeInTime": 0.05,
-        "scaleInTime": 0.25
+        "scaleInTime": 0.25,
+        "geometryFade": true
       },
       "light": {
         "radiance": {
@@ -121,7 +122,8 @@
         },
         "fadeInTime": 0.05,
         "fadeOutTime": 2.25,
-        "scaleInTime": 1.5
+        "scaleInTime": 1.5,
+        "geometryFade": true
       },
       "speed": {
         "min": 3.25,

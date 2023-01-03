@@ -139,7 +139,8 @@
         "size": {
           "x": 0.75,
           "y": 0.75
-        }
+        },
+        "geometryFade": true
       },
       "speed": {
         "min": 2,
