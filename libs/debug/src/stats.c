@@ -371,6 +371,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersVert), fmt_int(rendStats->passForward.shadersVert)));
     stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersFrag), fmt_int(rendStats->passForward.shadersFrag)));
 
+    stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{}", fmt_int(rendStats->attachCount)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
     stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));

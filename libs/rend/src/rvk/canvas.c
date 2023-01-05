@@ -56,6 +56,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
+RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->device->repository; }
 
 RvkRenderStats rvk_canvas_render_stats(const RvkCanvas* canvas) {

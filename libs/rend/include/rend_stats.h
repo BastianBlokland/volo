@@ -31,5 +31,6 @@ ecs_comp_extern_public(RendStatsComp) {
   u64 ramOccupied, ramReserved;
   u64 vramOccupied, vramReserved;
   u32 descSetsOccupied, descSetsReserved, descLayouts;
+  u32 attachCount;
   u32 resources[RendStatRes_Count];
 };

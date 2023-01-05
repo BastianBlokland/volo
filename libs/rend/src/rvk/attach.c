@@ -145,6 +145,10 @@ void rvk_attach_pool_destroy(RvkAttachPool* pool) {
   alloc_free_t(g_alloc_heap, pool);
 }
 
+u32 rvk_attach_pool_count(const RvkAttachPool* pool) {
+  return rvk_attach_max_images - (u32)bitset_count(bitset_from_array(pool->emptyMask));
+}
+
 void rvk_attach_pool_flush(RvkAttachPool* pool) {
   for (RvkAttachIndex slot = 0; slot != rvk_attach_max_images; ++slot) {
     if (pool->states[slot] == RvkAttachState_Empty) {
