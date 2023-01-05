@@ -409,6 +409,7 @@ RvkPass* rvk_pass_create(
       .globalPipelineLayout = globalPipelineLayout,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
+  rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
 
   return pass;
 }
@@ -570,6 +571,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
         RvkSamplerFilter_Linear,
         RvkSamplerAniso_None,
         mipLevels);
+    rvk_debug_name_sampler(pass->dev->debug, pass->globalImageSampler.vkSampler, "global_image");
   }
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
@@ -597,6 +599,7 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
         RvkSamplerFilter_Linear,
         RvkSamplerAniso_None,
         mipLevels);
+    rvk_debug_name_sampler(pass->dev->debug, pass->globalShadowSampler.vkSampler, "global_shadow");
   }
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
