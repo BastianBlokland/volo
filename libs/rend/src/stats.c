@@ -47,8 +47,8 @@ ecs_view_define(LoadedResourceView) {
   ecs_access_with(RendResFinishedComp);
 }
 
-static void rend_stat_update_resources(EcsWorld* world, u32 resources[RendStatRes_Count]) {
-  mem_set(mem_create(resources, sizeof(u32) * RendStatRes_Count), 0);
+static void rend_stat_update_resources(EcsWorld* world, u16 resources[RendStatRes_Count]) {
+  mem_set(mem_create(resources, sizeof(u16) * RendStatRes_Count), 0);
 
   EcsView* loadedResView = ecs_world_view_t(world, LoadedResourceView);
   for (EcsIterator* itr = ecs_view_itr(loadedResView); ecs_view_walk(itr);) {

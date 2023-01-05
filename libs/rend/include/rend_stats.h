@@ -20,7 +20,7 @@ typedef struct {
 
 ecs_comp_extern_public(RendStatsComp) {
   String gpuName;
-  u32    renderSize[2];
+  u16    renderSize[2];
 
   TimeDuration renderDur, waitForRenderDur;
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
@@ -30,8 +30,8 @@ ecs_comp_extern_public(RendStatsComp) {
 
   u64 ramOccupied, ramReserved;
   u64 vramOccupied, vramReserved;
-  u32 descSetsOccupied, descSetsReserved, descLayouts;
-  u32 attachCount;
+  u16 descSetsOccupied, descSetsReserved, descLayouts;
+  u16 attachCount;
   u64 attachMemory;
-  u32 resources[RendStatRes_Count];
+  u16 resources[RendStatRes_Count];
 };
