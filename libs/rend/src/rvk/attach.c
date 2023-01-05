@@ -9,7 +9,7 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
-#define VOLO_RVK_ATTACH_LOGGING 1
+#define VOLO_RVK_ATTACH_LOGGING 0
 
 #define rvk_attach_max_images 32
 ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple of 8");
