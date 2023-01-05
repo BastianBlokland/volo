@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "log_logger.h"
 
+#include "attach_internal.h"
 #include "canvas_internal.h"
 #include "device_internal.h"
 #include "renderer_internal.h"
@@ -16,6 +17,7 @@ typedef enum {
 struct sRvkCanvas {
   RvkDevice*      device;
   RvkSwapchain*   swapchain;
+  RvkAttachPool*  attachPool;
   RvkCanvasFlags  flags;
   RvkRenderer*    renderers[2];
   u32             rendererIdx;
@@ -23,14 +25,16 @@ struct sRvkCanvas {
 };
 
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
-  RvkSwapchain* swapchain = rvk_swapchain_create(dev, window);
-  RvkCanvas*    canvas    = alloc_alloc_t(g_alloc_heap, RvkCanvas);
+  RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
+  RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
+  RvkCanvas*     canvas     = alloc_alloc_t(g_alloc_heap, RvkCanvas);
 
   *canvas = (RvkCanvas){
       .device       = dev,
       .swapchain    = swapchain,
-      .renderers[0] = rvk_renderer_create(dev, 0),
-      .renderers[1] = rvk_renderer_create(dev, 1),
+      .attachPool   = attachPool,
+      .renderers[0] = rvk_renderer_create(dev, attachPool, 0),
+      .renderers[1] = rvk_renderer_create(dev, attachPool, 1),
   };
 
   log_d(
@@ -45,6 +49,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
   rvk_swapchain_destroy(canvas->swapchain);
+  rvk_attach_pool_destroy(canvas->attachPool);
 
   log_d("Vulkan canvas destroyed");
 
@@ -90,6 +95,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   rvk_renderer_end(renderer);
+  rvk_attach_pool_flush(canvas->attachPool);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
   rvk_swapchain_enqueue_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);

@@ -5,9 +5,9 @@
 #include "core_math.h"
 #include "log_logger.h"
 
+#include "attach_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
-#include "image_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "stopwatch_internal.h"
@@ -36,11 +36,12 @@ struct sRvkPass {
   String             name;
   RvkSize            size;
   VkRenderPass       vkRendPass;
-  RvkImage           attachColors[pass_attachment_color_max];
-  RvkImage           attachDepth;
+  RvkImage*          attachColors[pass_attachment_color_max];
+  RvkImage*          attachDepth;
   VkFramebuffer      vkFrameBuffer;
   VkCommandBuffer    vkCmdBuf;
   RvkUniformPool*    uniformPool;
+  RvkAttachPool*     attachPool;
   VkPipelineLayout   globalPipelineLayout;
   RvkDescSet         globalDescSet;
   u32                globalDataOffset;
@@ -200,10 +201,10 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    attachments[attachCount++] = pass->attachColors[i].vkImageView;
+    attachments[attachCount++] = pass->attachColors[i]->vkImageView;
   }
   if (pass->flags & RvkPassFlags_Depth) {
-    attachments[attachCount++] = pass->attachDepth.vkImageView;
+    attachments[attachCount++] = pass->attachDepth->vkImageView;
   }
 
   const VkFramebufferCreateInfo framebufferInfo = {
@@ -262,7 +263,7 @@ static void rvk_pass_vkrenderpass_begin(
 
   if (pass->flags & RvkPassFlags_ExternalDepth) {
     diag_assert_msg(
-        pass->attachDepth.phase == RvkImagePhase_TransferDest,
+        pass->attachDepth->phase == RvkImagePhase_TransferDest,
         "Pass is marked with 'ExternalDepth' but nothing is copied to the depth-buffer");
   }
 
@@ -299,8 +300,8 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    const VkFormat format = rvk_attach_color_format_at_index(pass->flags, i);
-    pass->attachColors[i] = rvk_image_create_attach_color(pass->dev, format, size, colorCap);
+    const VkFormat vkFormat = rvk_attach_color_format_at_index(pass->flags, i);
+    pass->attachColors[i]   = rvk_attach_acquire_color(pass->attachPool, vkFormat, size, colorCap);
     pass->attachColorMask |= 1 << i;
   }
 
@@ -313,7 +314,7 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
       depthCap |= RvkImageCapability_TransferDest;
     }
     pass->attachDepth =
-        rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size, depthCap);
+        rvk_attach_acquire_depth(pass->attachPool, pass->dev->vkDepthFormat, size, depthCap);
   }
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass);
@@ -324,11 +325,11 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
     return;
   }
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    rvk_image_destroy(&pass->attachColors[i], pass->dev);
+    rvk_attach_release(pass->attachPool, pass->attachColors[i]);
   }
   pass->attachColorMask = 0;
   if (pass->flags & RvkPassFlags_Depth) {
-    rvk_image_destroy(&pass->attachDepth, pass->dev);
+    rvk_attach_release(pass->attachPool, pass->attachDepth);
   }
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
@@ -373,6 +374,7 @@ RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     VkCommandBuffer    vkCmdBuf,
     RvkUniformPool*    uniformPool,
+    RvkAttachPool*     attachPool,
     RvkStopwatch*      stopwatch,
     const RvkPassFlags flags,
     const String       name) {
@@ -401,6 +403,7 @@ RvkPass* rvk_pass_create(
       .vkRendPass           = rvk_renderpass_create(dev, flags),
       .vkCmdBuf             = vkCmdBuf,
       .uniformPool          = uniformPool,
+      .attachPool           = attachPool,
       .flags                = flags,
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
@@ -465,13 +468,13 @@ RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color1:
     diag_assert_msg(pass->flags & RvkPassFlags_Color1, "Pass does not have a color1 output");
-    return &pass->attachColors[0];
+    return pass->attachColors[0];
   case RvkPassOutput_Color2:
     diag_assert_msg(pass->flags & RvkPassFlags_Color2, "Pass does not have a color2 output");
-    return &pass->attachColors[1];
+    return pass->attachColors[1];
   case RvkPassOutput_Depth:
     diag_assert_msg(pass->flags & RvkPassFlags_DepthOutput, "Pass does not output depth");
-    return &pass->attachDepth;
+    return pass->attachDepth;
   case RvkPassOutput_Count:
     break;
   }
@@ -524,9 +527,9 @@ void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
   rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, geo_color_purple, "copy_depth");
 
   rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_TransferSource);
-  rvk_image_transition(&pass->attachDepth, pass->vkCmdBuf, RvkImagePhase_TransferDest);
+  rvk_image_transition(pass->attachDepth, pass->vkCmdBuf, RvkImagePhase_TransferDest);
 
-  rvk_image_copy(image, &pass->attachDepth, pass->vkCmdBuf);
+  rvk_image_copy(image, pass->attachDepth, pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
 }
@@ -616,10 +619,10 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->size, clearColor);
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    rvk_image_transition_external(&pass->attachColors[i], RvkImagePhase_ColorAttachment);
+    rvk_image_transition_external(pass->attachColors[i], RvkImagePhase_ColorAttachment);
   }
   if (pass->flags & RvkPassFlags_Depth) {
-    rvk_image_transition_external(&pass->attachDepth, RvkImagePhase_DepthAttachment);
+    rvk_image_transition_external(pass->attachDepth, RvkImagePhase_DepthAttachment);
   }
 
   rvk_pass_viewport_set(pass->vkCmdBuf, pass->size);
