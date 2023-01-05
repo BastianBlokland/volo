@@ -7,6 +7,8 @@
  *
  * NOTE: The same image can be aliased across frames or even in the same frame, the caller is
  * responsible for making sure that the image wont be used concurrently.
+ *
+ * NOTE: Api is not thread-safe, should not be called concurrently.
  */
 typedef struct sRvkAttachPool RvkAttachPool;
 
