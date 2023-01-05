@@ -115,6 +115,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);
     stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
     stats->attachCount      = rvk_attach_pool_count(rvk_canvas_attach_pool(painter->canvas));
+    stats->attachMemory     = rvk_attach_pool_memory(rvk_canvas_attach_pool(painter->canvas));
     rend_stat_update_resources(world, stats->resources);
   }
 }

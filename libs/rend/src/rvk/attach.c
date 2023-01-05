@@ -149,6 +149,16 @@ u32 rvk_attach_pool_count(const RvkAttachPool* pool) {
   return rvk_attach_max_images - (u32)bitset_count(bitset_from_array(pool->emptyMask));
 }
 
+u64 rvk_attach_pool_memory(const RvkAttachPool* pool) {
+  u64 mem = 0;
+  for (RvkAttachIndex slot = 0; slot != rvk_attach_max_images; ++slot) {
+    if (pool->states[slot] != RvkAttachState_Empty) {
+      mem += pool->images[slot].mem.size;
+    }
+  }
+  return mem;
+}
+
 void rvk_attach_pool_flush(RvkAttachPool* pool) {
   for (RvkAttachIndex slot = 0; slot != rvk_attach_max_images; ++slot) {
     if (pool->states[slot] == RvkAttachState_Empty) {

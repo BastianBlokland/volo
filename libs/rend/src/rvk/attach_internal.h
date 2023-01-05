@@ -15,6 +15,7 @@ typedef struct sRvkAttachPool RvkAttachPool;
 RvkAttachPool* rvk_attach_pool_create(RvkDevice*);
 void           rvk_attach_pool_destroy(RvkAttachPool*);
 u32            rvk_attach_pool_count(const RvkAttachPool*);
+u64            rvk_attach_pool_memory(const RvkAttachPool*);
 void           rvk_attach_pool_flush(RvkAttachPool*);
 
 RvkImage* rvk_attach_acquire_color(RvkAttachPool*, VkFormat, RvkSize, RvkImageCapability);
