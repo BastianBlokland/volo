@@ -5,6 +5,8 @@
 #include "log_logger.h"
 
 #include "attach_internal.h"
+#include "debug_internal.h"
+#include "device_internal.h"
 #include "image_internal.h"
 
 #define VOLO_RVK_ATTACH_LOGGING 1
@@ -78,17 +80,25 @@ static RvkAttachIndex rvk_attach_create(
   }
   bitset_clear(bitset_from_array(pool->emptyMask), slot);
 
+  MAYBE_UNUSED String typeName;
   switch (type) {
   case RvkImageType_ColorAttachment:
+    typeName           = string_lit("color");
     pool->images[slot] = rvk_image_create_attach_color(pool->device, vkFormat, size, caps);
     break;
   case RvkImageType_DepthAttachment:
+    typeName           = string_lit("depth");
     pool->images[slot] = rvk_image_create_attach_depth(pool->device, vkFormat, size, caps);
     break;
   default:
     UNREACHABLE
   }
   pool->states[slot] = RvkAttachState_Pending;
+
+  RvkImage* img = &pool->images[slot];
+  RvkDebug* dbg = pool->device->debug;
+  rvk_debug_name_img(dbg, img->vkImage, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
+  rvk_debug_name_img_view(dbg, img->vkImageView, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
 
 #if VOLO_RVK_ATTACH_LOGGING
   log_d(
