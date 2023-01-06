@@ -96,7 +96,7 @@ MAYBE_UNUSED static bool rvk_mem_overlap(const RvkMem a, const RvkMem b) {
 
 /**
  * Allocate a continuous block of device memory from Vulkan.
- * NOTE: To avoid gpu memory fragmention only large blocks should be allocated from Vulkan.
+ * NOTE: To avoid gpu memory fragmentation only large blocks should be allocated from Vulkan.
  */
 static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u32 memType) {
   VkMemoryAllocateInfo allocInfo = {
