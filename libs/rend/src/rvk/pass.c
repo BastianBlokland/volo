@@ -450,26 +450,6 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
 }
 
-RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
-  switch (output) {
-  case RvkPassOutput_Color1:
-    diag_assert_msg(pass->flags & RvkPassFlags_Color1, "Pass does not have a color1 output");
-    diag_assert_msg(pass->attachColors[0], "Pass is missing a color1 attachment");
-    return pass->attachColors[0];
-  case RvkPassOutput_Color2:
-    diag_assert_msg(pass->flags & RvkPassFlags_Color2, "Pass does not have a color2 output");
-    diag_assert_msg(pass->attachColors[1], "Pass is missing a color1 attachment");
-    return pass->attachColors[1];
-  case RvkPassOutput_Depth:
-    diag_assert_msg(pass->flags & RvkPassFlags_DepthOutput, "Pass does not output depth");
-    diag_assert_msg(pass->attachDepth, "Pass is missing a depth attachment");
-    return pass->attachDepth;
-  case RvkPassOutput_Count:
-    break;
-  }
-  UNREACHABLE
-}
-
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }

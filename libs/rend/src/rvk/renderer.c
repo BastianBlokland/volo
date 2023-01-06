@@ -15,7 +15,8 @@
 typedef RvkPass* RvkPassPtr;
 
 typedef enum {
-  RvkRenderer_Active = 1 << 0,
+  RvkRenderer_Active        = 1 << 0,
+  RvkRenderer_OutputWritten = 1 << 1,
 } RvkRendererFlags;
 
 struct sRvkRenderer {
@@ -130,10 +131,9 @@ static void rvk_renderer_submit(
   thread_mutex_unlock(rend->dev->queueSubmitMutex);
 }
 
-static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
+static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkImage* src) {
   rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_output");
 
-  RvkImage* src  = rvk_pass_output(pass, RvkPassOutput_Color1);
   RvkImage* dest = rend->currentTarget;
 
   rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
@@ -294,6 +294,14 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   return rend->passes[pass];
 }
 
+void rvk_renderer_output(RvkRenderer* rend, RvkImage* src) {
+  diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
+  diag_assert_msg(!(rend->flags & RvkRenderer_OutputWritten), "Renderer output already written");
+
+  rend->flags |= RvkRenderer_OutputWritten;
+  rvk_renderer_blit_to_output(rend, src);
+}
+
 void rvk_renderer_end(
     RvkRenderer*       rend,
     VkSemaphore        waitForDeps,
@@ -301,12 +309,12 @@ void rvk_renderer_end(
     const VkSemaphore* signals,
     u32                signalCount) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
+  diag_assert_msg(rend->flags & RvkRenderer_OutputWritten, "Renderer output not written");
+
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
         !rvk_pass_active(*itr), "Pass '{}' is still active", fmt_text(rvk_pass_name(*itr)));
   }
-
-  rvk_renderer_blit_to_output(rend, rend->passes[RvkRenderPass_Forward]);
 
   rend->timeRecEnd = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
@@ -315,6 +323,6 @@ void rvk_renderer_end(
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend, waitForDeps, waitForTarget, signals, signalCount);
 
-  rend->flags &= ~RvkRenderer_Active;
+  rend->flags &= ~(RvkRenderer_Active | RvkRenderer_OutputWritten);
   rend->currentTarget = null;
 }

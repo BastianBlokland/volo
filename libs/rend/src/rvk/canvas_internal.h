@@ -33,6 +33,7 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 
 bool     rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 RvkPass* rvk_canvas_pass(RvkCanvas*, RvkRenderPass);
+void     rvk_canvas_output(RvkCanvas*, RvkImage* src);
 void     rvk_canvas_end(RvkCanvas*);
 
 /**

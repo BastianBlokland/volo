@@ -120,6 +120,12 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkRenderPass pass) {
   return rvk_renderer_pass(renderer, pass);
 }
 
+void rvk_canvas_output(RvkCanvas* canvas, RvkImage* src) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  rvk_renderer_output(renderer, src);
+}
+
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
