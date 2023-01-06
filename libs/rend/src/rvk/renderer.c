@@ -269,13 +269,14 @@ void rvk_renderer_begin(
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
 
+  array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_reset(*itr); }
+
   const RvkSize shadowResolution = {settings->shadowResolution, settings->shadowResolution};
   const RvkSize aoRes = rvk_size_scale(rend->currentResolution, settings->aoResolutionScale);
-
-  rvk_pass_reset(rend->passes[RvkRenderPass_Geometry], rend->currentResolution);
-  rvk_pass_reset(rend->passes[RvkRenderPass_Forward], rend->currentResolution);
-  rvk_pass_reset(rend->passes[RvkRenderPass_Shadow], shadowResolution);
-  rvk_pass_reset(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_Geometry], rend->currentResolution);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_Forward], rend->currentResolution);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_Shadow], shadowResolution);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(

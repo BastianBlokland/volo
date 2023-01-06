@@ -501,10 +501,7 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
   return time_nanoseconds(timestampEnd - timestampBegin);
 }
 
-void rvk_pass_reset(RvkPass* pass, const RvkSize size) {
-  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
-
-  pass->size = size;
+void rvk_pass_reset(RvkPass* pass) {
   pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
 
@@ -515,13 +512,24 @@ void rvk_pass_reset(RvkPass* pass, const RvkSize size) {
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 }
 
+void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
+  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
+  pass->size = size;
+}
+
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
   return rvk_mesh_prepare(mesh);
 }
 
