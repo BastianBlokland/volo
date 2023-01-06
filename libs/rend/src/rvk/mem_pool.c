@@ -18,14 +18,14 @@
 
 #define rvk_mem_chunk_size (64 * usize_mebibyte)
 
-typedef u32 RvkChunkId;
+typedef u16 RvkChunkId;
 
 struct sRvkMemChunk {
-  RvkChunkId     id;
   RvkMemPool*    pool;
   RvkMemChunk*   next;
-  RvkMemLoc      loc;
-  RvkMemAccess   access;
+  RvkChunkId     id;
+  RvkMemLoc      loc : 8;
+  RvkMemAccess   access : 8;
   u32            size;
   u32            memType;
   DynArray       freeBlocks; // RvkMem[]
