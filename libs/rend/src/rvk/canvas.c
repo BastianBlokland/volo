@@ -119,10 +119,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  const VkSemaphore depsAvailable   = null;
-  const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
+  const VkSemaphore waitForDeps   = null;
+  const VkSemaphore waitForTarget = canvas->rendererTargetAvailable[canvas->rendererIdx];
 
-  rvk_renderer_end(renderer, depsAvailable, targetAvailable);
+  rvk_renderer_end(renderer, waitForDeps, waitForTarget);
   rvk_attach_pool_flush(canvas->attachPool);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);

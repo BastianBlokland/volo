@@ -94,19 +94,19 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void
-rvk_renderer_submit(RvkRenderer* rend, VkSemaphore depsAvailable, VkSemaphore targetAvailable) {
+rvk_renderer_submit(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
 
   VkSemaphore          waitSemaphores[2];
   VkPipelineStageFlags waitStages[2];
   u32                  waitCount = 0;
 
-  if (depsAvailable) {
-    waitSemaphores[waitCount] = depsAvailable;
+  if (waitForDeps) {
+    waitSemaphores[waitCount] = waitForDeps;
     waitStages[waitCount]     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     ++waitCount;
   }
-  if (targetAvailable) {
-    waitSemaphores[waitCount] = targetAvailable;
+  if (waitForTarget) {
+    waitSemaphores[waitCount] = waitForTarget;
     waitStages[waitCount]     = VK_PIPELINE_STAGE_TRANSFER_BIT;
     ++waitCount;
   }
@@ -303,7 +303,7 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   return rend->passes[pass];
 }
 
-void rvk_renderer_end(RvkRenderer* rend, VkSemaphore depsAvailable, VkSemaphore targetAvailable) {
+void rvk_renderer_end(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
@@ -317,7 +317,7 @@ void rvk_renderer_end(RvkRenderer* rend, VkSemaphore depsAvailable, VkSemaphore 
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
-  rvk_renderer_submit(rend, depsAvailable, targetAvailable);
+  rvk_renderer_submit(rend, waitForDeps, waitForTarget);
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_flush(*itr); }
 

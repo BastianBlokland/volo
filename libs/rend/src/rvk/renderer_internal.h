@@ -37,4 +37,4 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 void rvk_renderer_begin(
     RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
-void     rvk_renderer_end(RvkRenderer*, VkSemaphore depsAvailable, VkSemaphore targetAvailable);
+void     rvk_renderer_end(RvkRenderer*, VkSemaphore waitForDeps, VkSemaphore waitForTarget);
