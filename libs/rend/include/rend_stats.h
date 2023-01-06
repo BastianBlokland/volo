@@ -13,14 +13,15 @@ typedef enum {
 
 typedef struct {
   TimeDuration dur;
-  u32          draws, instances;
+  u16          size[2];
+  u16          draws;
+  u32          instances;
   u64          vertices, primitives;
   u64          shadersVert, shadersFrag;
 } RendStatPass;
 
 ecs_comp_extern_public(RendStatsComp) {
   String gpuName;
-  u16    renderSize[2];
 
   TimeDuration renderDur, waitForRenderDur;
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;

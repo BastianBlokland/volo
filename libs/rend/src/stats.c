@@ -91,8 +91,6 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RvkSwapchainStats swapchainStats = rvk_canvas_swapchain_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
-    stats->renderSize[0] = renderStats.resolution.width;
-    stats->renderSize[1] = renderStats.resolution.height;
 
     stats->renderDur         = renderStats.renderDur;
     stats->waitForRenderDur  = renderStats.waitForRenderDur;

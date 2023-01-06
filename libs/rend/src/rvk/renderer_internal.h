@@ -22,7 +22,6 @@ typedef enum {
 } RvkRenderPass;
 
 typedef struct {
-  RvkSize      resolution;
   TimeDuration renderDur, waitForRenderDur;
   RendStatPass passes[RvkRenderPass_Count];
 } RvkRenderStats;

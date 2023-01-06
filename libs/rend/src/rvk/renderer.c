@@ -29,7 +29,6 @@ struct sRvkRenderer {
   VkCommandBuffer  vkDrawBuffer;
   RvkRendererFlags flags;
 
-  RvkSize            currentResolution;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
   TimeDuration       waitForRenderDur;
 };
@@ -208,7 +207,6 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
   RvkRenderStats result;
-  result.resolution       = rend->currentResolution;
   result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
   result.waitForRenderDur = rend->waitForRenderDur;
 
@@ -217,7 +215,9 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
     if (rvk_pass_recorded(pass)) {
       result.passes[passIdx] = (RendStatPass){
           .dur         = rvk_pass_duration(pass),
-          .draws       = (u32)rvk_pass_stat(pass, RvkStat_Draws),
+          .size[0]     = rvk_pass_size(pass).width,
+          .size[1]     = rvk_pass_size(pass).height,
+          .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
           .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
           .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
           .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
@@ -237,8 +237,7 @@ void rvk_renderer_begin(RvkRenderer* rend, const RendSettingsComp* settings, con
   diag_assert_msg(!(rend->flags & RvkRenderer_Active), "Renderer already active");
 
   rend->flags |= RvkRenderer_Active;
-  rend->currentResolution = rvk_size_scale(size, settings->resolutionScale);
-  rend->waitForRenderDur  = 0;
+  rend->waitForRenderDur = 0;
 
   rvk_renderer_wait_for_done(rend);
   rvk_uniform_reset(rend->uniformPool);
@@ -249,10 +248,11 @@ void rvk_renderer_begin(RvkRenderer* rend, const RendSettingsComp* settings, con
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_reset(*itr); }
 
+  const RvkSize scaledRes        = rvk_size_scale(size, settings->resolutionScale);
   const RvkSize shadowResolution = {settings->shadowResolution, settings->shadowResolution};
-  const RvkSize aoRes = rvk_size_scale(rend->currentResolution, settings->aoResolutionScale);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_Geometry], rend->currentResolution);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_Forward], rend->currentResolution);
+  const RvkSize aoRes            = rvk_size_scale(scaledRes, settings->aoResolutionScale);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_Geometry], scaledRes);
+  rvk_pass_set_size(rend->passes[RvkRenderPass_Forward], scaledRes);
   rvk_pass_set_size(rend->passes[RvkRenderPass_Shadow], shadowResolution);
   rvk_pass_set_size(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
 
