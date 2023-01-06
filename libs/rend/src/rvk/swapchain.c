@@ -22,6 +22,8 @@
 ASSERT(false, "Unsupported platform");
 #endif
 
+#define swapchain_images_max 5
+
 typedef enum {
   RvkSwapchainFlags_OutOfDate,
 } RvkSwapchainFlags;
@@ -34,9 +36,11 @@ struct sRvkSwapchain {
   RendPresentMode    presentModeSetting;
   RvkSwapchainFlags  flags;
   RvkSize            size;
-  DynArray           images; // RvkImage[]
-  TimeDuration       lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
-  u64                curPresentId; // NOTE: Present-id zero is unused.
+  RvkImage           images[swapchain_images_max];
+  u32                imageCount;
+
+  TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
+  u64          curPresentId; // NOTE: Present-id zero is unused.
 
 #ifdef VK_KHR_present_wait
   PFN_vkWaitForPresentKHR vkWaitForPresentFunc;
@@ -112,10 +116,10 @@ rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const RendSettingsComp
     imgCount = 3; // one on-screen, one ready, and one being rendered to.
     break;
   }
-  if (caps->minImageCount > imgCount) {
+  if (imgCount < caps->minImageCount) {
     imgCount = caps->minImageCount;
   }
-  if (caps->maxImageCount && caps->maxImageCount < imgCount) {
+  if (caps->maxImageCount && imgCount > caps->maxImageCount) {
     imgCount = caps->maxImageCount;
   }
   return imgCount;
@@ -173,8 +177,9 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
     return false;
   }
 
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
-  dynarray_clear(&swapchain->images);
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+  }
 
   const VkDevice           vkDev   = swapchain->dev->vkDev;
   VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
@@ -207,16 +212,18 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
     vkDestroySwapchainKHR(vkDev, oldSwapchain, &swapchain->dev->vkAlloc);
   }
 
-  u32 imageCount;
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, null);
-  VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, null);
+  if (swapchain->imageCount >= swapchain_images_max) {
+    diag_crash_msg("Vulkan surface uses more swapchain images then are supported");
+  }
+
+  VkImage vkImgs[swapchain_images_max];
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, vkImgs);
 
   const VkFormat format = swapchain->vkSurfFormat.format;
-  for (u32 i = 0; i != imageCount; ++i) {
-    RvkImage* img = dynarray_push_t(&swapchain->images, RvkImage);
-    *img          = rvk_image_create_swapchain(swapchain->dev, images[i], format, size);
-    rvk_debug_name_img(swapchain->dev->debug, img->vkImage, "swapchain_{}", fmt_int(i));
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    swapchain->images[i] = rvk_image_create_swapchain(swapchain->dev, vkImgs[i], format, size);
+    rvk_debug_name_img(swapchain->dev->debug, vkImgs[i], "swapchain_{}", fmt_int(i));
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -229,7 +236,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
       log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(presentMode))),
-      log_param("image-count", fmt_int(imageCount)));
+      log_param("image-count", fmt_int(swapchain->imageCount)));
 
   return true;
 }
@@ -237,11 +244,11 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
-  *swapchain              = (RvkSwapchain){
-                   .dev          = dev,
-                   .vkSurf       = vkSurf,
-                   .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
-                   .images       = dynarray_create_t(g_alloc_heap, RvkImage, 3),
+
+  *swapchain = (RvkSwapchain){
+      .dev          = dev,
+      .vkSurf       = vkSurf,
+      .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
   };
 
   VkBool32 supported;
@@ -264,9 +271,9 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
 }
 
 void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
-  dynarray_destroy(&swapchain->images);
-
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+  }
   if (swapchain->vkSwapchain) {
     vkDestroySwapchainKHR(swapchain->dev->vkDev, swapchain->vkSwapchain, &swapchain->dev->vkAlloc);
   }
@@ -285,9 +292,9 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
   };
 }
 
-RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
-  diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
-  return dynarray_at_t(&swapchain->images, idx, RvkImage);
+RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
+  diag_assert_msg(idx < swapchain->imageCount, "Swapchain index {} is out of bounds", fmt_int(idx));
+  return &swapchain->images[idx];
 }
 
 RvkSwapchainIdx rvk_swapchain_acquire(
