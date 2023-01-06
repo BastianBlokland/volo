@@ -13,8 +13,8 @@
  * Does not do any defragging at the moment so will get fragmented over time.
  */
 
-// #define VOLO_RVK_MEM_DEBUG
-// #define VOLO_RVK_MEM_LOGGING
+#define VOLO_RVK_MEM_DEBUG 0
+#define VOLO_RVK_MEM_LOGGING 0
 
 #define rvk_mem_chunk_size (64 * usize_mebibyte)
 
@@ -182,7 +182,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
   diag_assert(rvk_mem_chunk_size_free(chunk) == size);
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory chunk created",
       log_param("id", fmt_int(chunk->id)),
@@ -213,7 +213,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
   dynarray_destroy(&chunk->freeBlocks);
   alloc_free_t(g_alloc_heap, chunk);
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory chunk destroyed",
       log_param("id", fmt_int(chunk->id)),
@@ -225,7 +225,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 }
 
 static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 align) {
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
@@ -257,7 +257,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
       };
     }
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
     if (UNLIKELY(dbgFreeSize - rvk_mem_chunk_size_free(chunk) != size)) {
       diag_crash_msg(
           "Memory-pool corrupt after allocate (size: {}, chunk: {}, pre-alloc: {}, post-alloc: {})",
@@ -270,7 +270,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
     rvk_mem_assert_block_sorting(chunk);
 #endif
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
     log_d(
         "Vulkan memory block allocated",
         log_param("size", fmt_size(size)),
@@ -288,7 +288,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
 static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   diag_assert(mem.chunk == chunk);
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     if (UNLIKELY(rvk_mem_overlap(*freeBlock, mem))) {
       diag_crash_msg(
@@ -298,36 +298,32 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
-  // Check if there already is a free block before or after this one, if so then 'grow' that.
-  // TODO: Merge blocks if they become adjacent due to the given block being freed.
-  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
-    // Check if this freeBlock is right before the given block.
-    if (rvk_mem_end_offset(*freeBlock) == mem.offset) {
-      freeBlock->size += mem.size;
-      goto Done;
-    }
+  // Insert free block.
+  *dynarray_insert_sorted_t(&chunk->freeBlocks, RvkMem, rend_mem_compare, &mem) = mem;
 
-    // Check if this freeBlock is right after the given block.
-    if (freeBlock->offset == rvk_mem_end_offset(mem)) {
-      freeBlock->offset -= mem.size;
-      freeBlock->size += mem.size;
-      goto Done;
+  // Merge adjacent free blocks.
+  // TODO: Does allot of redundant checks in unchanged free-blocks.
+  MAYBE_UNUSED u32 mergedBlocks = 0;
+  for (usize i = chunk->freeBlocks.size; i-- > 1;) {
+    RvkMem* blockCur  = dynarray_at_t(&chunk->freeBlocks, i, RvkMem);
+    RvkMem* blockPrev = dynarray_at_t(&chunk->freeBlocks, i - 1, RvkMem);
+
+    if (rvk_mem_end_offset(*blockPrev) == blockCur->offset) {
+      blockPrev->size += blockCur->size;
+      dynarray_remove(&chunk->freeBlocks, i, 1);
+      ++mergedBlocks;
     }
   }
 
-  // No block to join, add as a new block.
-  *dynarray_insert_sorted_t(&chunk->freeBlocks, RvkMem, rend_mem_compare, &mem) = mem;
-
-Done:;
-
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory block freed",
       log_param("size", fmt_size(mem.size)),
-      log_param("chunk", fmt_int(chunk->id)));
+      log_param("chunk", fmt_int(chunk->id)),
+      log_param("merged-blocks", fmt_int(mergedBlocks)));
 #endif
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   if (UNLIKELY(rvk_mem_chunk_size_free(chunk) - dbgFreeSize != mem.size)) {
     diag_crash_msg(
         "Memory-pool corrupt after free (size: {}, chunk: {}, pre-free: {}, post-free: {})",
