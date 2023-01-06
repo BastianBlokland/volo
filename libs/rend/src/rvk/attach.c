@@ -35,8 +35,8 @@ static bool rvk_attach_is_available(RvkAttachPool* pool, const RvkAttachIndex sl
   return bitset_test(bitset_from_array(pool->availableMask), slot);
 }
 
-static RvkAttachIndex rvk_attach_from_ptr(RvkAttachPool* pool, RvkImage* image) {
-  const usize slot = image - pool->images;
+static RvkAttachIndex rvk_attach_from_ptr(RvkAttachPool* pool, const RvkImage* img) {
+  const usize slot = img - pool->images;
   diag_assert_msg(slot < rvk_attach_max_images, "Invalid attachment pointer");
   return (RvkAttachIndex)slot;
 }
@@ -174,6 +174,38 @@ void rvk_attach_pool_flush(RvkAttachPool* pool) {
   }
 }
 
+bool rvk_attach_validate_color(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+  if (img->type != RvkImageType_ColorAttachment) {
+    return false; // Wrong type.
+  }
+  if (img->vkFormat != spec.vkFormat) {
+    return false; // Wrong format.
+  }
+  if (!(img->caps & spec.capabilities)) {
+    return false; // Missing capability.
+  }
+  if (img->size.data != size.data) {
+    return false; // Wrong size.
+  }
+  return true;
+}
+
+bool rvk_attach_validate_depth(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+  if (img->type != RvkImageType_DepthAttachment) {
+    return false; // Wrong type.
+  }
+  if (img->vkFormat != spec.vkFormat) {
+    return false; // Wrong format.
+  }
+  if (!(img->caps & spec.capabilities)) {
+    return false; // Missing capability.
+  }
+  if (img->size.data != size.data) {
+    return false; // Wrong size.
+  }
+  return true;
+}
+
 RvkImage*
 rvk_attach_acquire_color(RvkAttachPool* pool, const RvkAttachSpec spec, const RvkSize size) {
   return rvk_attach_acquire(pool, RvkImageType_ColorAttachment, spec, size);
@@ -184,8 +216,8 @@ rvk_attach_acquire_depth(RvkAttachPool* pool, const RvkAttachSpec spec, const Rv
   return rvk_attach_acquire(pool, RvkImageType_DepthAttachment, spec, size);
 }
 
-void rvk_attach_release(RvkAttachPool* pool, RvkImage* image) {
-  const RvkAttachIndex slot = rvk_attach_from_ptr(pool, image);
+void rvk_attach_release(RvkAttachPool* pool, RvkImage* img) {
+  const RvkAttachIndex slot = rvk_attach_from_ptr(pool, img);
 
   // Sanity check the slot.
   diag_assert_msg(pool->states[slot] != RvkAttachState_Empty, "Attachment invalid");
