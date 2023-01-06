@@ -21,9 +21,8 @@
 typedef RvkGraphic* RvkGraphicPtr;
 
 typedef enum {
-  RvkPassPrivateFlags_Setup    = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 1),
-  RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 2),
+  RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 1),
 } RvkPassPrivateFlags;
 
 struct sRvkPass {
@@ -305,8 +304,6 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
     const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
     pass->attachDepth        = rvk_attach_acquire_depth(pass->attachPool, spec, size);
   }
-
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass);
 }
 
 static void rvk_pass_resource_destroy(RvkPass* pass) {
@@ -320,7 +317,6 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   if (pass->flags & RvkPassFlags_Depth) {
     rvk_attach_release(pass->attachPool, pass->attachDepth);
   }
-  vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
 static void rvk_pass_free_dyn_desc(RvkPass* pass) {
@@ -409,7 +405,12 @@ void rvk_pass_destroy(RvkPass* pass) {
 
   rvk_statrecorder_destroy(pass->statrecorder);
   rvk_pass_resource_destroy(pass);
+
+  if (pass->vkFrameBuffer) {
+    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
+  }
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
+
   rvk_desc_free(pass->globalDescSet);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
   if (rvk_sampler_initialized(&pass->globalImageSampler)) {
@@ -502,17 +503,21 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
   return time_nanoseconds(timestampEnd - timestampBegin);
 }
 
-void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
+void rvk_pass_reset(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
   pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
+
+  if (pass->vkFrameBuffer) {
+    // Destroy last frame's vkFrameBuffer.
+    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
+  }
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 
   if (rvk_size_equal(pass->size, size)) {
     return;
   }
-  pass->flags |= RvkPassPrivateFlags_Setup;
   rvk_pass_resource_destroy(pass);
   rvk_pass_resource_create(pass, size);
 }
@@ -528,7 +533,7 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
 }
 
 void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(pass->flags & RvkPassFlags_ExternalDepth, "Pass does not support external depth");
 
@@ -543,7 +548,7 @@ void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   const u32 globalDataBinding = 0;
@@ -560,7 +565,7 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
 }
 
 void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   const u32 bindIndex = 1 + imageIndex;
@@ -587,7 +592,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
 }
 
 void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   const u32 bindIndex = 1 + imageIndex;
@@ -615,10 +620,11 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   pass->flags |= RvkPassPrivateFlags_Active;
+  pass->vkFrameBuffer = rvk_framebuffer_create(pass);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 

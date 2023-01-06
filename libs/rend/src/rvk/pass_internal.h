@@ -82,7 +82,7 @@ RvkImage*    rvk_pass_output(RvkPass*, RvkPassOutput);
 u64          rvk_pass_stat(const RvkPass*, RvkStat);
 TimeDuration rvk_pass_duration(const RvkPass*);
 
-void rvk_pass_setup(RvkPass*, RvkSize size);
+void rvk_pass_reset(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
