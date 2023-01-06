@@ -308,6 +308,8 @@ void rvk_renderer_end(RvkRenderer* rend) {
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend);
 
+  array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_flush(*itr); }
+
   rend->flags &= ~RvkRenderer_Active;
   rend->currentTarget = null;
 }

@@ -95,3 +95,4 @@ void rvk_pass_bind_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);
+void rvk_pass_flush(RvkPass*);

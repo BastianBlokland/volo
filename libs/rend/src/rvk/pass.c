@@ -291,31 +291,28 @@ static void rvk_pass_vkrenderpass_begin(
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
-  pass->size = size;
-
+static void rvk_pass_attachments_acquire(RvkPass* pass) {
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, i);
-    pass->attachColors[i]    = rvk_attach_acquire_color(pass->attachPool, spec, size);
+    pass->attachColors[i]    = rvk_attach_acquire_color(pass->attachPool, spec, pass->size);
     pass->attachColorMask |= 1 << i;
   }
 
-  if (pass->flags & RvkPassFlags_Depth) {
+  if (pass->flags & RvkPassFlags_Depth && !pass->attachDepth) {
     const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
-    pass->attachDepth        = rvk_attach_acquire_depth(pass->attachPool, spec, size);
+    pass->attachDepth        = rvk_attach_acquire_depth(pass->attachPool, spec, pass->size);
   }
 }
 
-static void rvk_pass_resource_destroy(RvkPass* pass) {
-  if (!pass->size.width || !pass->size.height) {
-    return;
-  }
+static void rvk_pass_attachments_release(RvkPass* pass) {
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     rvk_attach_release(pass->attachPool, pass->attachColors[i]);
+    pass->attachColors[i] = null;
   }
   pass->attachColorMask = 0;
-  if (pass->flags & RvkPassFlags_Depth) {
+  if (pass->attachDepth) {
     rvk_attach_release(pass->attachPool, pass->attachDepth);
+    pass->attachDepth = null;
   }
 }
 
@@ -400,11 +397,12 @@ RvkPass* rvk_pass_create(
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass still active");
+
   string_free(g_alloc_heap, pass->name);
   rvk_pass_free_dyn_desc(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
-  rvk_pass_resource_destroy(pass);
 
   if (pass->vkFrameBuffer) {
     vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
@@ -506,6 +504,7 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
 void rvk_pass_reset(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
+  pass->size = size;
   pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
 
@@ -514,12 +513,6 @@ void rvk_pass_reset(RvkPass* pass, const RvkSize size) {
     vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
   }
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
-
-  if (rvk_size_equal(pass->size, size)) {
-    return;
-  }
-  rvk_pass_resource_destroy(pass);
-  rvk_pass_resource_create(pass, size);
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
@@ -538,6 +531,11 @@ void rvk_pass_use_depth(RvkPass* pass, RvkImage* image) {
   diag_assert_msg(pass->flags & RvkPassFlags_ExternalDepth, "Pass does not support external depth");
 
   rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, geo_color_purple, "copy_depth");
+
+  if (!pass->attachDepth) {
+    const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
+    pass->attachDepth        = rvk_attach_acquire_depth(pass->attachPool, spec, pass->size);
+  }
 
   rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_TransferSource);
   rvk_image_transition(pass->attachDepth, pass->vkCmdBuf, RvkImagePhase_TransferDest);
@@ -624,6 +622,7 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   pass->flags |= RvkPassPrivateFlags_Active;
+  rvk_pass_attachments_acquire(pass);
   pass->vkFrameBuffer = rvk_framebuffer_create(pass);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
@@ -760,4 +759,10 @@ void rvk_pass_end(RvkPass* pass) {
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
   pass->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+}
+
+void rvk_pass_flush(RvkPass* pass) {
+  if (pass->flags & RvkPassPrivateFlags_Recorded) {
+    rvk_pass_attachments_release(pass);
+  }
 }
