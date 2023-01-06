@@ -28,7 +28,7 @@ struct sRvkMemChunk {
   RvkMemAccess   access : 8;
   u32            size;
   u32            memType;
-  DynArray       freeBlocks; // RvkMem[]
+  DynArray       freeBlocks; // RvkMem[], sorted on offset.
   VkDeviceMemory vkMem;
   void*          map;
 };
@@ -43,6 +43,10 @@ struct sRvkMemPool {
   RvkMemChunk*                     chunkHead;
   RvkMemChunk*                     chunkTail;
 };
+
+static i8 rend_mem_compare(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, RvkMem, offset), field_ptr(b, RvkMem, offset));
+}
 
 MAYBE_UNUSED static String rvk_mem_loc_str(const RvkMemLoc loc) {
   switch (loc) {
@@ -130,6 +134,23 @@ static u32 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
  */
 static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
+}
+
+/**
+ * Verify that all free blocks are correctly sorted.
+ */
+MAYBE_UNUSED static bool rvk_mem_assert_block_sorting(const RvkMemChunk* chunk) {
+  u32 offset = 0;
+  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
+    diag_assert_msg(
+        freeBlock->offset >= offset,
+        "Out of order free-block (offset: {}, size: {}) in chunk {}",
+        fmt_int(freeBlock->offset),
+        fmt_int(freeBlock->size),
+        fmt_int(chunk->id));
+    offset = freeBlock->offset;
+  }
+  return offset;
 }
 
 static RvkMemChunk* rvk_mem_chunk_create(
@@ -225,12 +246,15 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
       block->offset += paddedSize;
       block->size = (u32)remainingSize;
     } else {
-      dynarray_remove_unordered(&chunk->freeBlocks, i, 1);
+      dynarray_remove(&chunk->freeBlocks, i, 1);
     }
 
     if (padding) {
       // Add the lost padding space as a new block.
-      *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = offset, .size = padding};
+      *dynarray_insert_t(&chunk->freeBlocks, i, RvkMem) = (RvkMem){
+          .offset = offset,
+          .size   = padding,
+      };
     }
 
 #if defined(VOLO_RVK_MEM_DEBUG)
@@ -243,6 +267,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
           fmt_int(dbgFreeSize),
           fmt_int(rvk_mem_chunk_size_free(chunk)));
     }
+    rvk_mem_assert_block_sorting(chunk);
 #endif
 
 #if defined(VOLO_RVK_MEM_LOGGING)
@@ -291,7 +316,7 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   }
 
   // No block to join, add as a new block.
-  *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = mem.offset, .size = mem.size};
+  *dynarray_insert_sorted_t(&chunk->freeBlocks, RvkMem, rend_mem_compare, &mem) = mem;
 
 Done:;
 
@@ -311,6 +336,7 @@ Done:;
         fmt_int(dbgFreeSize),
         fmt_int(rvk_mem_chunk_size_free(chunk)));
   }
+  rvk_mem_assert_block_sorting(chunk);
 #endif
 }
 
