@@ -18,7 +18,8 @@ typedef RvkRenderer* RvkRendererPtr;
 #define canvas_renderer_count 2
 
 typedef enum {
-  RvkCanvasFlags_Active = 1 << 0,
+  RvkCanvasFlags_Active    = 1 << 0,
+  RvkCanvasFlags_Submitted = 1 << 1, // Submitted at least once.
 } RvkCanvasFlags;
 
 struct sRvkCanvas {
@@ -118,8 +119,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
+  const VkSemaphore depsAvailable   = null;
   const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
-  rvk_renderer_end(renderer, targetAvailable);
+
+  rvk_renderer_end(renderer, depsAvailable, targetAvailable);
   rvk_attach_pool_flush(canvas->attachPool);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
@@ -127,6 +130,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;
+  canvas->flags |= RvkCanvasFlags_Submitted;
   canvas->flags &= ~RvkCanvasFlags_Active;
 }
 

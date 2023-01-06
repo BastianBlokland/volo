@@ -93,17 +93,30 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
   rvk_call(vkEndCommandBuffer, vkCmdBuf);
 }
 
-static void rvk_renderer_submit(RvkRenderer* rend, VkSemaphore targetAvailable) {
+static void
+rvk_renderer_submit(RvkRenderer* rend, VkSemaphore depsAvailable, VkSemaphore targetAvailable) {
 
-  const VkCommandBuffer      commandBuffers[]   = {rend->vkDrawBuffer};
-  const VkSemaphore          waitSemaphores[]   = {targetAvailable};
-  const VkPipelineStageFlags waitStages[]       = {VK_PIPELINE_STAGE_TRANSFER_BIT};
-  const VkSemaphore          signalSemaphores[] = {rend->semaphoreRenderDone};
+  VkSemaphore          waitSemaphores[2];
+  VkPipelineStageFlags waitStages[2];
+  u32                  waitCount = 0;
 
-  const VkSubmitInfo submitInfos[] = {
+  if (depsAvailable) {
+    waitSemaphores[waitCount] = depsAvailable;
+    waitStages[waitCount]     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    ++waitCount;
+  }
+  if (targetAvailable) {
+    waitSemaphores[waitCount] = targetAvailable;
+    waitStages[waitCount]     = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    ++waitCount;
+  }
+
+  const VkCommandBuffer commandBuffers[]   = {rend->vkDrawBuffer};
+  const VkSemaphore     signalSemaphores[] = {rend->semaphoreRenderDone};
+  const VkSubmitInfo    submitInfos[]      = {
       {
           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-          .waitSemaphoreCount   = array_elems(waitSemaphores),
+          .waitSemaphoreCount   = waitCount,
           .pWaitSemaphores      = waitSemaphores,
           .pWaitDstStageMask    = waitStages,
           .commandBufferCount   = array_elems(commandBuffers),
@@ -290,7 +303,7 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   return rend->passes[pass];
 }
 
-void rvk_renderer_end(RvkRenderer* rend, VkSemaphore targetAvailable) {
+void rvk_renderer_end(RvkRenderer* rend, VkSemaphore depsAvailable, VkSemaphore targetAvailable) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
@@ -304,7 +317,7 @@ void rvk_renderer_end(RvkRenderer* rend, VkSemaphore targetAvailable) {
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
-  rvk_renderer_submit(rend, targetAvailable);
+  rvk_renderer_submit(rend, depsAvailable, targetAvailable);
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_flush(*itr); }
 
