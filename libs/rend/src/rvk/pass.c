@@ -42,9 +42,10 @@ struct sRvkPass {
   VkPipelineLayout   globalPipelineLayout;
   RvkDescSet         globalDescSet;
   u32                globalDataOffset;
-  u16                globalBoundMask; // Bitset of the bound global resources;
+  u16                globalBoundMask; // Bitset of the bound global resources.
   u16                attachColorMask;
   RvkSampler         globalImageSampler, globalShadowSampler;
+  RvkImage*          globalImages[pass_global_image_max];
   DynArray           dynDescSets; // RvkDescSet[]
 };
 
@@ -471,6 +472,8 @@ void rvk_pass_reset(RvkPass* pass) {
   mem_set(array_mem(pass->attachColors), 0);
   pass->attachColorMask = 0;
   pass->attachDepth     = null;
+  mem_set(array_mem(pass->globalImages), 0);
+  pass->globalBoundMask = 0;
 
   // Free last frame's dynamic descriptors.
   rvk_pass_free_dyn_desc(pass);
@@ -564,8 +567,6 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
 
-  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
-
   if (!rvk_sampler_initialized(&pass->globalImageSampler)) {
     const u8 mipLevels       = 1;
     pass->globalImageSampler = rvk_sampler_create(
@@ -581,6 +582,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
 
   pass->globalBoundMask |= 1 << bindIndex;
+  pass->globalImages[imageIndex] = image;
 }
 
 void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
@@ -591,8 +593,6 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
-
-  rvk_image_transition(image, pass->vkCmdBuf, RvkImagePhase_ShaderRead);
 
   if (!rvk_sampler_initialized(&pass->globalShadowSampler)) {
     const u8 mipLevels        = 1;
@@ -609,6 +609,7 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
   pass->globalBoundMask |= 1 << bindIndex;
+  pass->globalImages[imageIndex] = image;
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
@@ -624,8 +625,16 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
+  // Transition all global images to ShaderRead.
+  for (u32 i = 0; i != pass_global_image_max; ++i) {
+    if (pass->globalImages[i]) {
+      rvk_image_transition(pass->globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+    }
+  }
+
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->size, clearColor);
 
+  // Update attachments to reflect the transitions applied by the render-pass itself.
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     rvk_image_transition_external(pass->attachColors[i], RvkImagePhase_ColorAttachment);
   }
@@ -745,7 +754,6 @@ void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
   pass->flags |= RvkPassPrivateFlags_Recorded;
-  pass->globalBoundMask = 0;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);
