@@ -199,9 +199,16 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    diag_assert_msg(
+        pass->attachColors[i],
+        "Pass {} is missing color attachment {}",
+        fmt_text(pass->name),
+        fmt_int(i));
     attachments[attachCount++] = pass->attachColors[i]->vkImageView;
   }
   if (pass->flags & RvkPassFlags_Depth) {
+    diag_assert_msg(
+        pass->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->name));
     attachments[attachCount++] = pass->attachDepth->vkImageView;
   }
 
@@ -261,7 +268,7 @@ static void rvk_pass_vkrenderpass_begin(
 
   if (pass->flags & RvkPassFlags_ExternalDepth) {
     diag_assert_msg(
-        pass->attachDepth->phase == RvkImagePhase_TransferDest,
+        pass->attachDepth && pass->attachDepth->phase == RvkImagePhase_TransferDest,
         "Pass is marked with 'ExternalDepth' but nothing is copied to the depth-buffer");
   }
 
@@ -475,12 +482,15 @@ RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {
   case RvkPassOutput_Color1:
     diag_assert_msg(pass->flags & RvkPassFlags_Color1, "Pass does not have a color1 output");
+    diag_assert_msg(pass->attachColors[0], "Pass is missing a color1 attachment");
     return pass->attachColors[0];
   case RvkPassOutput_Color2:
     diag_assert_msg(pass->flags & RvkPassFlags_Color2, "Pass does not have a color2 output");
+    diag_assert_msg(pass->attachColors[1], "Pass is missing a color1 attachment");
     return pass->attachColors[1];
   case RvkPassOutput_Depth:
     diag_assert_msg(pass->flags & RvkPassFlags_DepthOutput, "Pass does not output depth");
+    diag_assert_msg(pass->attachDepth, "Pass is missing a depth attachment");
     return pass->attachDepth;
   case RvkPassOutput_Count:
     break;
