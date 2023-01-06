@@ -518,6 +518,7 @@ void rvk_pass_reset(RvkPass* pass) {
   if (pass->vkFrameBuffer) {
     // Destroy last frame's vkFrameBuffer.
     vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
+    pass->vkFrameBuffer = null;
   }
   rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 }
