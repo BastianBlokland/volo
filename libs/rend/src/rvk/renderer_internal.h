@@ -30,7 +30,6 @@ typedef struct {
 
 RvkRenderer*   rvk_renderer_create(RvkDevice*, RvkAttachPool*, u32 rendererId);
 void           rvk_renderer_destroy(RvkRenderer*);
-VkSemaphore    rvk_renderer_semaphore_begin(RvkRenderer*);
 VkSemaphore    rvk_renderer_semaphore_done(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
@@ -38,4 +37,4 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 void rvk_renderer_begin(
     RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
-void     rvk_renderer_end(RvkRenderer*);
+void     rvk_renderer_end(RvkRenderer*, VkSemaphore targetAvailable);

@@ -10,19 +10,34 @@
 
 typedef RvkRenderer* RvkRendererPtr;
 
+/**
+ * Use two renderers for double bufferring:
+ * - One being recorded on the cpu.
+ * - One being rendered on the gpu.
+ */
+#define canvas_renderer_count 2
+
 typedef enum {
   RvkCanvasFlags_Active = 1 << 0,
 } RvkCanvasFlags;
 
 struct sRvkCanvas {
-  RvkDevice*      device;
+  RvkDevice*      dev;
   RvkSwapchain*   swapchain;
   RvkAttachPool*  attachPool;
   RvkCanvasFlags  flags;
-  RvkRenderer*    renderers[2];
+  RvkRenderer*    renderers[canvas_renderer_count];
+  VkSemaphore     rendererTargetAvailable[canvas_renderer_count];
   u32             rendererIdx;
   RvkSwapchainIdx swapchainIdx;
 };
+
+static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
+  VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  VkSemaphore           result;
+  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  return result;
+}
 
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
@@ -30,12 +45,15 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   RvkCanvas*     canvas     = alloc_alloc_t(g_alloc_heap, RvkCanvas);
 
   *canvas = (RvkCanvas){
-      .device       = dev,
-      .swapchain    = swapchain,
-      .attachPool   = attachPool,
-      .renderers[0] = rvk_renderer_create(dev, attachPool, 0),
-      .renderers[1] = rvk_renderer_create(dev, attachPool, 1),
+      .dev        = dev,
+      .swapchain  = swapchain,
+      .attachPool = attachPool,
   };
+
+  for (u32 i = 0; i != canvas_renderer_count; ++i) {
+    canvas->renderers[i]               = rvk_renderer_create(dev, attachPool, i);
+    canvas->rendererTargetAvailable[i] = rvk_semaphore_create(dev);
+  }
 
   log_d(
       "Vulkan canvas created",
@@ -45,9 +63,14 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
 }
 
 void rvk_canvas_destroy(RvkCanvas* canvas) {
-  rvk_device_wait_idle(canvas->device);
+  rvk_device_wait_idle(canvas->dev);
 
-  array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
+  for (u32 i = 0; i != canvas_renderer_count; ++i) {
+    rvk_renderer_destroy(canvas->renderers[i]);
+    vkDestroySemaphore(
+        canvas->dev->vkDev, canvas->rendererTargetAvailable[i], &canvas->dev->vkAlloc);
+  }
+
   rvk_swapchain_destroy(canvas->swapchain);
   rvk_attach_pool_destroy(canvas->attachPool);
 
@@ -57,7 +80,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 }
 
 RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
-RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->device->repository; }
+RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
 RvkRenderStats rvk_canvas_render_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
@@ -73,8 +96,8 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  const VkSemaphore beginSemaphore = rvk_renderer_semaphore_begin(renderer);
-  canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, beginSemaphore, size);
+  const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
+  canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, targetAvailable, size);
   if (sentinel_check(canvas->swapchainIdx)) {
     return false;
   }
@@ -95,7 +118,8 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  rvk_renderer_end(renderer);
+  const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
+  rvk_renderer_end(renderer, targetAvailable);
   rvk_attach_pool_flush(canvas->attachPool);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
