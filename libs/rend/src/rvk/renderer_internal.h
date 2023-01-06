@@ -39,4 +39,8 @@ void rvk_renderer_begin(
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
 
 void rvk_renderer_end(
-    RvkRenderer*, VkSemaphore signalDone, VkSemaphore waitForDeps, VkSemaphore waitForTarget);
+    RvkRenderer*,
+    VkSemaphore        waitForDeps,
+    VkSemaphore        waitForTarget,
+    const VkSemaphore* signals,
+    u32                signalCount);

@@ -86,7 +86,11 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(
-    RvkRenderer* rend, VkSemaphore signalDone, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
+    RvkRenderer*       rend,
+    VkSemaphore        waitForDeps,
+    VkSemaphore        waitForTarget,
+    const VkSemaphore* signals,
+    u32                signalCount) {
 
   VkSemaphore          waitSemaphores[2];
   VkPipelineStageFlags waitStages[2];
@@ -103,9 +107,8 @@ static void rvk_renderer_submit(
     ++waitCount;
   }
 
-  const VkCommandBuffer commandBuffers[]   = {rend->vkDrawBuffer};
-  const VkSemaphore     signalSemaphores[] = {signalDone};
-  const VkSubmitInfo    submitInfos[]      = {
+  const VkCommandBuffer commandBuffers[] = {rend->vkDrawBuffer};
+  const VkSubmitInfo    submitInfos[]    = {
       {
           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
           .waitSemaphoreCount   = waitCount,
@@ -113,8 +116,8 @@ static void rvk_renderer_submit(
           .pWaitDstStageMask    = waitStages,
           .commandBufferCount   = array_elems(commandBuffers),
           .pCommandBuffers      = commandBuffers,
-          .signalSemaphoreCount = array_elems(signalSemaphores),
-          .pSignalSemaphores    = signalSemaphores,
+          .signalSemaphoreCount = signalCount,
+          .pSignalSemaphores    = signals,
       },
   };
   thread_mutex_lock(rend->dev->queueSubmitMutex);
@@ -292,7 +295,11 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
 }
 
 void rvk_renderer_end(
-    RvkRenderer* rend, VkSemaphore signalDone, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
+    RvkRenderer*       rend,
+    VkSemaphore        waitForDeps,
+    VkSemaphore        waitForTarget,
+    const VkSemaphore* signals,
+    u32                signalCount) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
@@ -306,7 +313,7 @@ void rvk_renderer_end(
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
-  rvk_renderer_submit(rend, signalDone, waitForDeps, waitForTarget);
+  rvk_renderer_submit(rend, waitForDeps, waitForTarget, signals, signalCount);
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_flush(*itr); }
 

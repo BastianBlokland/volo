@@ -126,7 +126,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   const VkSemaphore depsAvailable   = null;
   const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
 
-  rvk_renderer_end(renderer, renderDone, depsAvailable, targetAvailable);
+  const VkSemaphore renderEndSignals[] = {renderDone};
+
+  rvk_renderer_end(
+      renderer, depsAvailable, targetAvailable, renderEndSignals, array_elems(renderEndSignals));
   rvk_attach_pool_flush(canvas->attachPool);
 
   rvk_swapchain_enqueue_present(canvas->swapchain, renderDone, canvas->swapchainIdx);
