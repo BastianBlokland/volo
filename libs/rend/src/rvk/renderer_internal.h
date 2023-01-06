@@ -7,9 +7,8 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkAttachPool RvkAttachPool;
-typedef struct sRvkDevice     RvkDevice;
-typedef struct sRvkPass       RvkPass;
+typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkRenderer RvkRenderer;
 
@@ -28,7 +27,7 @@ typedef struct {
   RendStatPass passes[RvkRenderPass_Count];
 } RvkRenderStats;
 
-RvkRenderer*   rvk_renderer_create(RvkDevice*, RvkAttachPool*, u32 rendererId);
+RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);
 void           rvk_renderer_destroy(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);

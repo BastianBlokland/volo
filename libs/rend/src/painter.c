@@ -398,6 +398,23 @@ static void painter_flush(RendPaintContext* ctx) {
   dynarray_clear(&ctx->painter->drawBuffer);
 }
 
+static RvkImage* rend_attach_acquire_color(RendPainterComp* painter, RvkPass* pass, const u32 i) {
+  RvkAttachPool*      pool = rvk_canvas_attach_pool(painter->canvas);
+  const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, i);
+  return rvk_attach_acquire_color(pool, spec, rvk_pass_size(pass));
+}
+
+static RvkImage* rend_attach_acquire_depth(RendPainterComp* painter, RvkPass* pass) {
+  RvkAttachPool*      pool = rvk_canvas_attach_pool(painter->canvas);
+  const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
+  return rvk_attach_acquire_depth(pool, spec, rvk_pass_size(pass));
+}
+
+static void rend_attach_release(RendPainterComp* painter, RvkImage* img) {
+  RvkAttachPool* pool = rvk_canvas_attach_pool(painter->canvas);
+  rvk_attach_release(pool, img);
+}
+
 static bool rend_canvas_paint(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
@@ -423,7 +440,10 @@ static bool rend_canvas_paint(
   }
 
   // Geometry pass.
-  RvkPass*  geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  RvkPass*  geoPass       = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  RvkImage* geoColorRough = rend_attach_acquire_color(painter, geoPass, 0);
+  RvkImage* geoNormTags   = rend_attach_acquire_color(painter, geoPass, 1);
+  RvkImage* geoDepth      = rend_attach_acquire_depth(painter, geoPass);
   SceneTags geoTagMask;
   {
     RendPaintContext ctx = painter_context(
@@ -432,6 +452,9 @@ static bool rend_canvas_paint(
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
+    rvk_pass_bind_attach_color(geoPass, geoColorRough, 0);
+    rvk_pass_bind_attach_color(geoPass, geoNormTags, 1);
+    rvk_pass_bind_attach_depth(geoPass, geoDepth);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     rvk_pass_begin(geoPass, geo_color_clear);
     painter_flush(&ctx);
@@ -439,13 +462,15 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
+  RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
+  RvkImage* shadowDepth = rend_attach_acquire_depth(painter, shadowPass);
   {
     const GeoMatrix* sTrans = rend_light_shadow_trans(light);
     const GeoMatrix* sProj  = rend_light_shadow_proj(light);
     RendPaintContext ctx    = painter_context(
         sTrans, sProj, camEntity, filter, painter, settings, settingsGlobal, time, shadowPass);
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
+    rvk_pass_bind_attach_depth(shadowPass, shadowDepth);
     if (rend_light_has_shadow(light)) {
       // TODO: Skip entire shadow pass if disabled.
       painter_push_shadow(&ctx, drawView, graphicView);
@@ -456,7 +481,8 @@ static bool rend_canvas_paint(
   }
 
   // Ambient occlusion.
-  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
+  RvkPass*  aoPass   = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
+  RvkImage* aoBuffer = rend_attach_acquire_color(painter, aoPass, 0);
   {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, aoPass);
@@ -466,6 +492,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 0);
     rvk_pass_bind_global_image(aoPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 1);
+    rvk_pass_bind_attach_color(aoPass, aoBuffer, 0);
     if (settings->flags & RendFlags_AmbientOcclusion) {
       // TODO: Skip entire ao pass if disabled.
       painter_push_ambient_occlusion(&ctx);
@@ -476,20 +503,24 @@ static bool rend_canvas_paint(
   }
 
   // Forward pass.
-  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  RvkImage* fwdColor = rend_attach_acquire_color(painter, fwdPass, 0);
+  RvkImage* fwdDepth = rend_attach_acquire_depth(painter, fwdPass);
   {
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
     if (settings->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
     rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color1), 0);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Color2), 1);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth), 2);
     rvk_pass_bind_global_image(fwdPass, rvk_pass_output(aoPass, RvkPassOutput_Color1), 3);
     rvk_pass_bind_global_shadow(fwdPass, rvk_pass_output(shadowPass, RvkPassOutput_Depth), 4);
+    rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
+    rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
+    rvk_pass_use_depth(fwdPass, rvk_pass_output(geoPass, RvkPassOutput_Depth));
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     if (geoTagMask & SceneTags_Outline) {
@@ -510,8 +541,17 @@ static bool rend_canvas_paint(
     rvk_pass_end(fwdPass);
   }
 
+  rend_attach_release(painter, geoColorRough);
+  rend_attach_release(painter, geoNormTags);
+  rend_attach_release(painter, geoDepth);
+  rend_attach_release(painter, shadowDepth);
+  rend_attach_release(painter, aoBuffer);
+  rend_attach_release(painter, fwdColor);
+  rend_attach_release(painter, fwdDepth);
+
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
+
   return true;
 }
 

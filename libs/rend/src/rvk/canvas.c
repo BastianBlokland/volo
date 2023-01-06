@@ -54,7 +54,7 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   };
 
   for (u32 i = 0; i != canvas_renderer_count; ++i) {
-    canvas->renderers[i]           = rvk_renderer_create(dev, attachPool, i);
+    canvas->renderers[i]           = rvk_renderer_create(dev, i);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
