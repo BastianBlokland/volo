@@ -302,7 +302,7 @@ Done:
 #if defined(VOLO_RVK_MEM_LOGGING)
   log_d(
       "Vulkan memory block freed",
-      log_param("size", fmt_int(mem.size)),
+      log_param("size", fmt_size(mem.size)),
       log_param("chunk", fmt_int(chunk->id)));
 #endif
 
@@ -310,7 +310,7 @@ Done:
   if (UNLIKELY(rvk_mem_chunk_size_free(chunk) - dbgFreeSize != mem.size)) {
     diag_crash_msg(
         "Memory-pool corrupt after free (size: {}, chunk: {}, pre-free: {}, post-free: {})",
-        fmt_int(mem.size),
+        fmt_size(mem.size),
         fmt_int(chunk->id),
         fmt_int(dbgFreeSize),
         fmt_int(rvk_mem_chunk_size_free(chunk)));
