@@ -24,7 +24,6 @@ struct sRvkRenderer {
   RvkUniformPool*  uniformPool;
   RvkStopwatch*    stopwatch;
   RvkPass*         passes[RvkRenderPass_Count];
-  VkSemaphore      semaphoreRenderDone;
   VkFence          fenceRenderDone;
   VkCommandPool    vkCmdPool;
   VkCommandBuffer  vkDrawBuffer;
@@ -36,13 +35,6 @@ struct sRvkRenderer {
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
   TimeDuration       waitForRenderDur;
 };
-
-static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
-  VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-  VkSemaphore           result;
-  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
-  return result;
-}
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
   const VkFenceCreateInfo fenceInfo = {
@@ -93,8 +85,8 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
   rvk_call(vkEndCommandBuffer, vkCmdBuf);
 }
 
-static void
-rvk_renderer_submit(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
+static void rvk_renderer_submit(
+    RvkRenderer* rend, VkSemaphore signalDone, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
 
   VkSemaphore          waitSemaphores[2];
   VkPipelineStageFlags waitStages[2];
@@ -112,7 +104,7 @@ rvk_renderer_submit(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore wait
   }
 
   const VkCommandBuffer commandBuffers[]   = {rend->vkDrawBuffer};
-  const VkSemaphore     signalSemaphores[] = {rend->semaphoreRenderDone};
+  const VkSemaphore     signalSemaphores[] = {signalDone};
   const VkSubmitInfo    submitInfos[]      = {
       {
           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -163,14 +155,13 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkAttachPool* attachPool, cons
   VkCommandBuffer vkDrawBuffer = rvk_commandbuffer_create(dev, vkCmdPool);
 
   *renderer = (RvkRenderer){
-      .dev                 = dev,
-      .uniformPool         = uniformPool,
-      .stopwatch           = stopwatch,
-      .rendererId          = rendererId,
-      .semaphoreRenderDone = rvk_semaphore_create(dev),
-      .fenceRenderDone     = rvk_fence_create(dev, true),
-      .vkCmdPool           = vkCmdPool,
-      .vkDrawBuffer        = vkDrawBuffer,
+      .dev             = dev,
+      .uniformPool     = uniformPool,
+      .stopwatch       = stopwatch,
+      .rendererId      = rendererId,
+      .fenceRenderDone = rvk_fence_create(dev, true),
+      .vkCmdPool       = vkCmdPool,
+      .vkDrawBuffer    = vkDrawBuffer,
   };
 
   // clang-format off
@@ -211,13 +202,10 @@ void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_stopwatch_destroy(rend->stopwatch);
 
   vkDestroyCommandPool(rend->dev->vkDev, rend->vkCmdPool, &rend->dev->vkAlloc);
-  vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreRenderDone, &rend->dev->vkAlloc);
   vkDestroyFence(rend->dev->vkDev, rend->fenceRenderDone, &rend->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, rend);
 }
-
-VkSemaphore rvk_renderer_semaphore_done(RvkRenderer* rend) { return rend->semaphoreRenderDone; }
 
 void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   const TimeSteady waitStart = time_steady_clock();
@@ -303,7 +291,8 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   return rend->passes[pass];
 }
 
-void rvk_renderer_end(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
+void rvk_renderer_end(
+    RvkRenderer* rend, VkSemaphore signalDone, VkSemaphore waitForDeps, VkSemaphore waitForTarget) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
@@ -317,7 +306,7 @@ void rvk_renderer_end(RvkRenderer* rend, VkSemaphore waitForDeps, VkSemaphore wa
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
-  rvk_renderer_submit(rend, waitForDeps, waitForTarget);
+  rvk_renderer_submit(rend, signalDone, waitForDeps, waitForTarget);
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_flush(*itr); }
 

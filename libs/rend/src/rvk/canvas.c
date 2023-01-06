@@ -29,6 +29,7 @@ struct sRvkCanvas {
   RvkCanvasFlags  flags;
   RvkRenderer*    renderers[canvas_renderer_count];
   VkSemaphore     rendererTargetAvailable[canvas_renderer_count];
+  VkSemaphore     rendererDone[canvas_renderer_count];
   u32             rendererIdx;
   RvkSwapchainIdx swapchainIdx;
 };
@@ -54,6 +55,7 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   for (u32 i = 0; i != canvas_renderer_count; ++i) {
     canvas->renderers[i]               = rvk_renderer_create(dev, attachPool, i);
     canvas->rendererTargetAvailable[i] = rvk_semaphore_create(dev);
+    canvas->rendererDone[i]            = rvk_semaphore_create(dev);
   }
 
   log_d(
@@ -70,6 +72,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
     rvk_renderer_destroy(canvas->renderers[i]);
     vkDestroySemaphore(
         canvas->dev->vkDev, canvas->rendererTargetAvailable[i], &canvas->dev->vkAlloc);
+    vkDestroySemaphore(canvas->dev->vkDev, canvas->rendererDone[i], &canvas->dev->vkAlloc);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
@@ -119,14 +122,14 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  const VkSemaphore waitForDeps   = null;
-  const VkSemaphore waitForTarget = canvas->rendererTargetAvailable[canvas->rendererIdx];
+  const VkSemaphore renderDone      = canvas->rendererDone[canvas->rendererIdx];
+  const VkSemaphore depsAvailable   = null;
+  const VkSemaphore targetAvailable = canvas->rendererTargetAvailable[canvas->rendererIdx];
 
-  rvk_renderer_end(renderer, waitForDeps, waitForTarget);
+  rvk_renderer_end(renderer, renderDone, depsAvailable, targetAvailable);
   rvk_attach_pool_flush(canvas->attachPool);
 
-  const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
-  rvk_swapchain_enqueue_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);
+  rvk_swapchain_enqueue_present(canvas->swapchain, renderDone, canvas->swapchainIdx);
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;
