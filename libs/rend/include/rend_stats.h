@@ -28,6 +28,7 @@ ecs_comp_extern_public(RendStatsComp) {
 
   RendStatPass passGeometry, passForward, passShadow, passAmbientOcclusion;
 
+  u16 memChunks;
   u64 ramOccupied, ramReserved;
   u64 vramOccupied, vramReserved;
   u16 descSetsOccupied, descSetsReserved, descLayouts;

@@ -36,6 +36,7 @@ void   rvk_mem_flush(RvkMem);
 
 u64 rvk_mem_occupied(const RvkMemPool*, RvkMemLoc);
 u64 rvk_mem_reserved(const RvkMemPool*, RvkMemLoc);
+u16 rvk_mem_chunks(const RvkMemPool*);
 
 /**
  * AllocationCallbacks for Vulkan to allocate host memory using the given allocator.

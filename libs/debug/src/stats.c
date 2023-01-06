@@ -393,6 +393,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
   }

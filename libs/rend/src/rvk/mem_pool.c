@@ -472,3 +472,15 @@ u64 rvk_mem_reserved(const RvkMemPool* pool, const RvkMemLoc loc) {
   thread_mutex_unlock(pool->lock);
   return reserved;
 }
+
+u16 rvk_mem_chunks(const RvkMemPool* pool) {
+  thread_mutex_lock(pool->lock);
+
+  u16 chunks = 0;
+  for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    ++chunks;
+  }
+
+  thread_mutex_unlock(pool->lock);
+  return chunks;
+}
