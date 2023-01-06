@@ -174,7 +174,6 @@ static RvkMemChunk* rvk_mem_chunk_create(
 }
 
 static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
-
   const u32 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
   if (UNLIKELY(leakedBytes)) {
     diag_crash_msg(
@@ -205,7 +204,6 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 }
 
 static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 align) {
-
 #if defined(VOLO_RVK_MEM_DEBUG)
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
@@ -219,8 +217,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
     const i32 remainingSize = (i32)block->size - (i32)paddedSize;
 
     if (remainingSize < 0) {
-      // Doesn't fit in this block.
-      continue;
+      continue; // Doesn't fit in this block.
     }
 
     // Either shrink the block to 'remove' the space, or remove the block entirely.
@@ -296,8 +293,7 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   // No block to join, add as a new block.
   *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = mem.offset, .size = mem.size};
 
-Done:
-  (void)0;
+Done:;
 
 #if defined(VOLO_RVK_MEM_LOGGING)
   log_d(
