@@ -5,7 +5,6 @@
 #include "core_math.h"
 #include "log_logger.h"
 
-#include "attach_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
@@ -297,23 +296,14 @@ static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->size = size;
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    const RvkAttachSpec spec = {
-        .vkFormat     = rvk_attach_color_format_at_index(pass->flags, i),
-        .capabilities = RvkImageCapability_TransferSource | RvkImageCapability_Sampled,
-    };
-    pass->attachColors[i] = rvk_attach_acquire_color(pass->attachPool, spec, size);
+    const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, i);
+    pass->attachColors[i]    = rvk_attach_acquire_color(pass->attachPool, spec, size);
     pass->attachColorMask |= 1 << i;
   }
 
   if (pass->flags & RvkPassFlags_Depth) {
-    RvkAttachSpec spec = {.vkFormat = pass->dev->vkDepthFormat};
-    if (pass->flags & RvkPassFlags_DepthOutput) {
-      spec.capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-    }
-    if (pass->flags & RvkPassFlags_ExternalDepth) {
-      spec.capabilities |= RvkImageCapability_TransferDest;
-    }
-    pass->attachDepth = rvk_attach_acquire_depth(pass->attachPool, spec, size);
+    const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
+    pass->attachDepth        = rvk_attach_acquire_depth(pass->attachPool, spec, size);
   }
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass);
@@ -463,6 +453,24 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 }
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
+
+RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
+  RvkImageCapability capabilities = 0;
+  if (pass->flags & RvkPassFlags_DepthOutput) {
+    capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  }
+  if (pass->flags & RvkPassFlags_ExternalDepth) {
+    capabilities |= RvkImageCapability_TransferDest;
+  }
+  return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
+}
+
+RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
+  return (RvkAttachSpec){
+      .vkFormat     = rvk_attach_color_format_at_index(pass->flags, colorAttachIndex),
+      .capabilities = RvkImageCapability_TransferSource | RvkImageCapability_Sampled,
+  };
+}
 
 RvkImage* rvk_pass_output(RvkPass* pass, const RvkPassOutput output) {
   switch (output) {

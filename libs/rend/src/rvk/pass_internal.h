@@ -2,12 +2,12 @@
 #include "core_time.h"
 #include "geo_color.h"
 
+#include "attach_internal.h"
 #include "statrecorder_internal.h"
 #include "types_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkAttachPool  RvkAttachPool;
 typedef struct sRvkDescMeta    RvkDescMeta;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
@@ -74,6 +74,9 @@ RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta  rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
+
+RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
+RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 
 RvkImage*    rvk_pass_output(RvkPass*, RvkPassOutput);
 u64          rvk_pass_stat(const RvkPass*, RvkStat);
