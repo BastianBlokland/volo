@@ -36,6 +36,7 @@ void rvk_renderer_begin(
     RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
 
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
+void     rvk_renderer_copy(RvkRenderer*, RvkImage* src, RvkImage* dst);
 void     rvk_renderer_output(RvkRenderer*, RvkImage* src);
 
 void rvk_renderer_end(

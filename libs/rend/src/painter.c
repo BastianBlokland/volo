@@ -502,6 +502,8 @@ static bool rend_canvas_paint(
   RvkImage* fwdColor = rend_attach_acquire_color(painter, fwdPass, 0);
   RvkImage* fwdDepth = rend_attach_acquire_depth(painter, fwdPass);
   {
+    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize it to the geometry depth.
+
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
     if (settings->flags & RendFlags_DebugCamera) {
@@ -515,7 +517,6 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
-    rvk_pass_use_depth(fwdPass, geoDepth);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     if (geoTagMask & SceneTags_Outline) {

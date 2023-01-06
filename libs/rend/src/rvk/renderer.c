@@ -109,7 +109,8 @@ static void rvk_renderer_submit(
   }
 
   const VkCommandBuffer commandBuffers[] = {rend->vkDrawBuffer};
-  const VkSubmitInfo    submitInfos[]    = {
+
+  const VkSubmitInfo submitInfos[] = {
       {
           .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
           .waitSemaphoreCount   = waitCount,
@@ -292,6 +293,19 @@ RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   diag_assert(pass < RvkRenderPass_Count);
   return rend->passes[pass];
+}
+
+void rvk_renderer_copy(RvkRenderer* rend, RvkImage* src, RvkImage* dst) {
+  diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
+
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "copy");
+
+  rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
+  rvk_image_transition(dst, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+
+  rvk_image_copy(src, dst, rend->vkDrawBuffer);
+
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
 void rvk_renderer_output(RvkRenderer* rend, RvkImage* src) {
