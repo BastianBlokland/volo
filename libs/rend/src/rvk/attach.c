@@ -41,11 +41,7 @@ static RvkAttachIndex rvk_attach_from_ptr(RvkAttachPool* pool, RvkImage* image) 
 }
 
 static RvkAttachIndex rvk_attach_find_available(
-    RvkAttachPool*           pool,
-    const RvkImageType       type,
-    const VkFormat           vkFormat,
-    const RvkSize            size,
-    const RvkImageCapability caps) {
+    RvkAttachPool* pool, const RvkImageType type, const RvkAttachSpec spec, const RvkSize size) {
 
   bitset_for(bitset_from_array(pool->availableMask), slot) {
     RvkImage* img = &pool->images[slot];
@@ -53,14 +49,14 @@ static RvkAttachIndex rvk_attach_find_available(
     if (img->type != type) {
       continue; // Wrong type.
     }
-    if (img->vkFormat != vkFormat) {
+    if (img->vkFormat != spec.vkFormat) {
       continue; // Wrong format.
+    }
+    if (!(img->caps & spec.capabilities)) {
+      continue; // Missing capability.
     }
     if (img->size.data != size.data) {
       continue; // Wrong size.
-    }
-    if (!(img->caps & caps)) {
-      continue; // Missing capability.
     }
     return (RvkAttachIndex)slot;
   }
@@ -68,11 +64,7 @@ static RvkAttachIndex rvk_attach_find_available(
 }
 
 static RvkAttachIndex rvk_attach_create(
-    RvkAttachPool*           pool,
-    const RvkImageType       type,
-    const VkFormat           vkFormat,
-    const RvkSize            size,
-    const RvkImageCapability caps) {
+    RvkAttachPool* pool, const RvkImageType type, const RvkAttachSpec spec, const RvkSize size) {
 
   const usize slot = bitset_next(bitset_from_array(pool->emptyMask), 0);
   if (sentinel_check(slot)) {
@@ -83,12 +75,14 @@ static RvkAttachIndex rvk_attach_create(
   MAYBE_UNUSED String typeName;
   switch (type) {
   case RvkImageType_ColorAttachment:
-    typeName           = string_lit("color");
-    pool->images[slot] = rvk_image_create_attach_color(pool->device, vkFormat, size, caps);
+    typeName = string_lit("color");
+    pool->images[slot] =
+        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, spec.capabilities);
     break;
   case RvkImageType_DepthAttachment:
-    typeName           = string_lit("depth");
-    pool->images[slot] = rvk_image_create_attach_depth(pool->device, vkFormat, size, caps);
+    typeName = string_lit("depth");
+    pool->images[slot] =
+        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, spec.capabilities);
     break;
   default:
     UNREACHABLE
@@ -113,15 +107,11 @@ static RvkAttachIndex rvk_attach_create(
 }
 
 RvkImage* rvk_attach_acquire(
-    RvkAttachPool*           pool,
-    const RvkImageType       type,
-    const VkFormat           vkFormat,
-    const RvkSize            size,
-    const RvkImageCapability caps) {
+    RvkAttachPool* pool, const RvkImageType type, const RvkAttachSpec spec, const RvkSize size) {
 
-  RvkAttachIndex slot = rvk_attach_find_available(pool, type, vkFormat, size, caps);
+  RvkAttachIndex slot = rvk_attach_find_available(pool, type, spec, size);
   if (sentinel_check(slot)) {
-    slot = rvk_attach_create(pool, type, vkFormat, size, caps);
+    slot = rvk_attach_create(pool, type, spec, size);
   } else {
     pool->states[slot] = RvkAttachState_Pending;
   }
@@ -183,20 +173,14 @@ void rvk_attach_pool_flush(RvkAttachPool* pool) {
   }
 }
 
-RvkImage* rvk_attach_acquire_color(
-    RvkAttachPool*           pool,
-    const VkFormat           vkFormat,
-    const RvkSize            size,
-    const RvkImageCapability caps) {
-  return rvk_attach_acquire(pool, RvkImageType_ColorAttachment, vkFormat, size, caps);
+RvkImage*
+rvk_attach_acquire_color(RvkAttachPool* pool, const RvkAttachSpec spec, const RvkSize size) {
+  return rvk_attach_acquire(pool, RvkImageType_ColorAttachment, spec, size);
 }
 
-RvkImage* rvk_attach_acquire_depth(
-    RvkAttachPool*           pool,
-    const VkFormat           vkFormat,
-    const RvkSize            size,
-    const RvkImageCapability caps) {
-  return rvk_attach_acquire(pool, RvkImageType_DepthAttachment, vkFormat, size, caps);
+RvkImage*
+rvk_attach_acquire_depth(RvkAttachPool* pool, const RvkAttachSpec spec, const RvkSize size) {
+  return rvk_attach_acquire(pool, RvkImageType_DepthAttachment, spec, size);
 }
 
 void rvk_attach_release(RvkAttachPool* pool, RvkImage* image) {

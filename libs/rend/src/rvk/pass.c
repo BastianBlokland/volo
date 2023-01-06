@@ -296,25 +296,24 @@ static void rvk_pass_vkrenderpass_begin(
 static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->size = size;
 
-  RvkImageCapability colorCap = 0;
-  colorCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    const VkFormat vkFormat = rvk_attach_color_format_at_index(pass->flags, i);
-    pass->attachColors[i]   = rvk_attach_acquire_color(pass->attachPool, vkFormat, size, colorCap);
+    const RvkAttachSpec spec = {
+        .vkFormat     = rvk_attach_color_format_at_index(pass->flags, i),
+        .capabilities = RvkImageCapability_TransferSource | RvkImageCapability_Sampled,
+    };
+    pass->attachColors[i] = rvk_attach_acquire_color(pass->attachPool, spec, size);
     pass->attachColorMask |= 1 << i;
   }
 
   if (pass->flags & RvkPassFlags_Depth) {
-    RvkImageCapability depthCap = 0;
+    RvkAttachSpec spec = {.vkFormat = pass->dev->vkDepthFormat};
     if (pass->flags & RvkPassFlags_DepthOutput) {
-      depthCap |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+      spec.capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
     }
     if (pass->flags & RvkPassFlags_ExternalDepth) {
-      depthCap |= RvkImageCapability_TransferDest;
+      spec.capabilities |= RvkImageCapability_TransferDest;
     }
-    pass->attachDepth =
-        rvk_attach_acquire_depth(pass->attachPool, pass->dev->vkDepthFormat, size, depthCap);
+    pass->attachDepth = rvk_attach_acquire_depth(pass->attachPool, spec, size);
   }
 
   pass->vkFrameBuffer = rvk_framebuffer_create(pass);

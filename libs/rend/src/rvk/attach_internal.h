@@ -18,6 +18,11 @@ u16            rvk_attach_pool_count(const RvkAttachPool*);
 u64            rvk_attach_pool_memory(const RvkAttachPool*);
 void           rvk_attach_pool_flush(RvkAttachPool*);
 
-RvkImage* rvk_attach_acquire_color(RvkAttachPool*, VkFormat, RvkSize, RvkImageCapability);
-RvkImage* rvk_attach_acquire_depth(RvkAttachPool*, VkFormat, RvkSize, RvkImageCapability);
+typedef struct {
+  VkFormat           vkFormat;
+  RvkImageCapability capabilities;
+} RvkAttachSpec;
+
+RvkImage* rvk_attach_acquire_color(RvkAttachPool*, RvkAttachSpec, RvkSize);
+RvkImage* rvk_attach_acquire_depth(RvkAttachPool*, RvkAttachSpec, RvkSize);
 void      rvk_attach_release(RvkAttachPool*, RvkImage*);
