@@ -32,12 +32,12 @@ void           rvk_renderer_destroy(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 
-void rvk_renderer_begin(
-    RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
+void rvk_renderer_begin(RvkRenderer*, const RendSettingsComp*, RvkSize size);
 
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
 void     rvk_renderer_copy(RvkRenderer*, RvkImage* src, RvkImage* dst);
-void     rvk_renderer_output(RvkRenderer*, RvkImage* src);
+void     rvk_renderer_blit(RvkRenderer*, RvkImage* src, RvkImage* dst);
+void     rvk_renderer_transition(RvkRenderer*, RvkImage* img, RvkImagePhase targetPhase);
 
 void rvk_renderer_end(
     RvkRenderer*,

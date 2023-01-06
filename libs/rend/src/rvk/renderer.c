@@ -15,8 +15,7 @@
 typedef RvkPass* RvkPassPtr;
 
 typedef enum {
-  RvkRenderer_Active        = 1 << 0,
-  RvkRenderer_OutputWritten = 1 << 1,
+  RvkRenderer_Active = 1 << 0,
 } RvkRendererFlags;
 
 struct sRvkRenderer {
@@ -30,8 +29,6 @@ struct sRvkRenderer {
   VkCommandBuffer  vkDrawBuffer;
   RvkRendererFlags flags;
 
-  RvkImage*          currentTarget;
-  RvkImagePhase      currentTargetPhase;
   RvkSize            currentResolution;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
   TimeDuration       waitForRenderDur;
@@ -130,21 +127,6 @@ static void rvk_renderer_submit(
       submitInfos,
       rend->fenceRenderDone);
   thread_mutex_unlock(rend->dev->queueSubmitMutex);
-}
-
-static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkImage* src) {
-  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_output");
-
-  RvkImage* dest = rend->currentTarget;
-
-  rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
-  rvk_image_transition(dest, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
-
-  rvk_image_blit(src, dest, rend->vkDrawBuffer);
-
-  rvk_image_transition(dest, rend->vkDrawBuffer, rend->currentTargetPhase);
-
-  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
@@ -251,18 +233,12 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   return result;
 }
 
-void rvk_renderer_begin(
-    RvkRenderer*            rend,
-    const RendSettingsComp* settings,
-    RvkImage*               target,
-    const RvkImagePhase     targetPhase) {
+void rvk_renderer_begin(RvkRenderer* rend, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(rend->flags & RvkRenderer_Active), "Renderer already active");
 
   rend->flags |= RvkRenderer_Active;
-  rend->currentTarget      = target;
-  rend->currentTargetPhase = targetPhase;
-  rend->currentResolution  = rvk_size_scale(target->size, settings->resolutionScale);
-  rend->waitForRenderDur   = 0;
+  rend->currentResolution = rvk_size_scale(size, settings->resolutionScale);
+  rend->waitForRenderDur  = 0;
 
   rvk_renderer_wait_for_done(rend);
   rvk_uniform_reset(rend->uniformPool);
@@ -308,12 +284,27 @@ void rvk_renderer_copy(RvkRenderer* rend, RvkImage* src, RvkImage* dst) {
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
-void rvk_renderer_output(RvkRenderer* rend, RvkImage* src) {
+void rvk_renderer_blit(RvkRenderer* rend, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  diag_assert_msg(!(rend->flags & RvkRenderer_OutputWritten), "Renderer output already written");
 
-  rend->flags |= RvkRenderer_OutputWritten;
-  rvk_renderer_blit_to_output(rend, src);
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit");
+
+  rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
+  rvk_image_transition(dst, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+
+  rvk_image_blit(src, dst, rend->vkDrawBuffer);
+
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
+}
+
+void rvk_renderer_transition(RvkRenderer* rend, RvkImage* img, const RvkImagePhase targetPhase) {
+  diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
+
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "transition");
+
+  rvk_image_transition(img, rend->vkDrawBuffer, targetPhase);
+
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
 void rvk_renderer_end(
@@ -323,7 +314,6 @@ void rvk_renderer_end(
     const VkSemaphore* signals,
     u32                signalCount) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  diag_assert_msg(rend->flags & RvkRenderer_OutputWritten, "Renderer output not written");
 
   array_for_t(rend->passes, RvkPassPtr, itr) {
     diag_assert_msg(
@@ -337,6 +327,5 @@ void rvk_renderer_end(
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend, waitForDeps, waitForTarget, signals, signalCount);
 
-  rend->flags &= ~(RvkRenderer_Active | RvkRenderer_OutputWritten);
-  rend->currentTarget = null;
+  rend->flags &= ~RvkRenderer_Active;
 }

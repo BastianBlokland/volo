@@ -31,11 +31,12 @@ RvkRenderStats rvk_canvas_render_stats(const RvkCanvas*);
  */
 RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 
-bool     rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
-RvkPass* rvk_canvas_pass(RvkCanvas*, RvkRenderPass);
-void     rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void     rvk_canvas_output(RvkCanvas*, RvkImage* src);
-void     rvk_canvas_end(RvkCanvas*);
+bool      rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkRenderPass);
+RvkImage* rvk_canvas_output(RvkCanvas*);
+void      rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void      rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void      rvk_canvas_end(RvkCanvas*);
 
 /**
  * Wait for the previously rendered image to be presented to the user.

@@ -109,8 +109,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
-  RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_begin(renderer, settings, targetImage, RvkImagePhase_Present);
+  rvk_renderer_begin(renderer, settings, size);
   return true;
 }
 
@@ -120,21 +119,30 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkRenderPass pass) {
   return rvk_renderer_pass(renderer, pass);
 }
 
+RvkImage* rvk_canvas_output(RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+}
+
 void rvk_canvas_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   rvk_renderer_copy(renderer, src, dst);
 }
 
-void rvk_canvas_output(RvkCanvas* canvas, RvkImage* src) {
+void rvk_canvas_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  rvk_renderer_output(renderer, src);
+  rvk_renderer_blit(renderer, src, dst);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+
+  // Transition the swapchain-image to the present phase.
+  RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+  rvk_renderer_transition(renderer, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
   if (canvas->flags & RvkCanvasFlags_Submitted) {

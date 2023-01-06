@@ -537,7 +537,8 @@ static bool rend_canvas_paint(
     rvk_pass_end(fwdPass);
   }
 
-  rvk_canvas_output(painter->canvas, fwdColor);
+  RvkImage* outputImage = rvk_canvas_output(painter->canvas);
+  rvk_canvas_blit(painter->canvas, fwdColor, outputImage);
 
   rend_attach_release(painter, geoColorRough);
   rend_attach_release(painter, geoNormTags);
