@@ -589,6 +589,8 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
           .dstOffsets[1].z           = 1,
       },
   };
+
+  const bool srcIsDepth = src->type == RvkImageType_DepthAttachment;
   vkCmdBlitImage(
       vkCmdBuf,
       src->vkImage,
@@ -597,7 +599,7 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       rvk_image_vklayout(dest->phase),
       array_elems(regions),
       regions,
-      VK_FILTER_LINEAR);
+      srcIsDepth ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
 }
 
 void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
