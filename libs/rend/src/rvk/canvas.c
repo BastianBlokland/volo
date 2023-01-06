@@ -28,6 +28,7 @@ struct sRvkCanvas {
   RvkAttachPool*  attachPool;
   RvkCanvasFlags  flags;
   RvkRenderer*    renderers[canvas_renderer_count];
+  VkSemaphore     attachmentsReleased[canvas_renderer_count];
   VkSemaphore     swapchainAvailable[canvas_renderer_count];
   VkSemaphore     swapchainPresent[canvas_renderer_count];
   u32             rendererIdx;
@@ -53,9 +54,10 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   };
 
   for (u32 i = 0; i != canvas_renderer_count; ++i) {
-    canvas->renderers[i]          = rvk_renderer_create(dev, attachPool, i);
-    canvas->swapchainAvailable[i] = rvk_semaphore_create(dev);
-    canvas->swapchainPresent[i]   = rvk_semaphore_create(dev);
+    canvas->renderers[i]           = rvk_renderer_create(dev, attachPool, i);
+    canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
+    canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
+    canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
   }
 
   log_d(
@@ -70,6 +72,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   for (u32 i = 0; i != canvas_renderer_count; ++i) {
     rvk_renderer_destroy(canvas->renderers[i]);
+    vkDestroySemaphore(canvas->dev->vkDev, canvas->attachmentsReleased[i], &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, canvas->swapchainAvailable[i], &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, canvas->swapchainPresent[i], &canvas->dev->vkAlloc);
   }
@@ -121,16 +124,26 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  const VkSemaphore depsAvailable      = null;
-  const VkSemaphore swapchainPresent   = canvas->swapchainPresent[canvas->rendererIdx];
-  const VkSemaphore swapchainAvailable = canvas->swapchainAvailable[canvas->rendererIdx];
+  VkSemaphore attachmentsReady = null;
+  if (canvas->flags & RvkCanvasFlags_Submitted) {
+    /**
+     * Wait for the other renderer to release the attachments.
+     * Reason is we reuse the attachments in both renderers to avoid wasting gpu memory.
+     */
+    attachmentsReady = canvas->attachmentsReleased[canvas->rendererIdx ^ 1];
+  }
+  const VkSemaphore endSignals[] = {
+      canvas->swapchainPresent[canvas->rendererIdx],    // Trigger the present.
+      canvas->attachmentsReleased[canvas->rendererIdx], // Trigger the next renderer.
+  };
 
-  const VkSemaphore renderEndSema[] = {swapchainPresent};
-  rvk_renderer_end(
-      renderer, depsAvailable, swapchainAvailable, renderEndSema, array_elems(renderEndSema));
+  const VkSemaphore swapchainSema = canvas->swapchainAvailable[canvas->rendererIdx];
+  rvk_renderer_end(renderer, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
+
+  rvk_swapchain_enqueue_present(
+      canvas->swapchain, canvas->swapchainPresent[canvas->rendererIdx], canvas->swapchainIdx);
+
   rvk_attach_pool_flush(canvas->attachPool);
-
-  rvk_swapchain_enqueue_present(canvas->swapchain, swapchainPresent, canvas->swapchainIdx);
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;
