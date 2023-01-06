@@ -234,16 +234,24 @@ static void painter_push_compose(RendPaintContext* ctx) {
                                         : RvkRepositoryId_ComposeDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    const u32 mode  = ctx->settings->composeMode;
-    u32       flags = 0;
-    if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
-      flags |= 1 << 0;
-    }
+    typedef enum {
+      ComposeFlags_AmbientOcclusion     = 1 << 0,
+      ComposeFlags_AmbientOcclusionBlur = 1 << 1,
+    } ComposeFlags;
 
     typedef struct {
       ALIGNAS(16)
       GeoVector packed; // x: ambient, y: mode, z: flags, w: unused.
     } ComposeData;
+
+    const u32    mode  = ctx->settings->composeMode;
+    ComposeFlags flags = 0;
+    if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
+      flags |= ComposeFlags_AmbientOcclusion;
+    }
+    if (ctx->settings->flags & RendFlags_AmbientOcclusionBlur) {
+      flags |= ComposeFlags_AmbientOcclusionBlur;
+    }
 
     ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
     data->packed.x    = ctx->settingsGlobal->lightAmbient;

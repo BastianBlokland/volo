@@ -6,12 +6,13 @@
 #define rend_ao_kernel_size 16
 
 typedef enum {
-  RendFlags_FrustumCulling   = 1 << 0,
-  RendFlags_AmbientOcclusion = 1 << 1,
-  RendFlags_Wireframe        = 1 << 2,
-  RendFlags_DebugCamera      = 1 << 3,
-  RendFlags_DebugSkinning    = 1 << 4,
-  RendFlags_DebugShadow      = 1 << 5,
+  RendFlags_FrustumCulling       = 1 << 0,
+  RendFlags_AmbientOcclusion     = 1 << 1,
+  RendFlags_AmbientOcclusionBlur = 1 << 2,
+  RendFlags_Wireframe            = 1 << 3,
+  RendFlags_DebugCamera          = 1 << 4,
+  RendFlags_DebugSkinning        = 1 << 5,
+  RendFlags_DebugShadow          = 1 << 6,
 } RendFlags;
 
 typedef enum {

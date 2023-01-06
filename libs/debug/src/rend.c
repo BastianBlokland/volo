@@ -259,7 +259,7 @@ static void rend_settings_tab_draw(
       &settings->resolutionScale,
       .min     = 0.2f,
       .max     = 2.0f,
-      .step    = 0.1f,
+      .step    = 0.05f,
       .tooltip = g_tooltipScale);
 
   ui_table_next_row(canvas, &table);
@@ -685,6 +685,11 @@ static void rend_light_tab_draw(
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("AO Blur"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AO angle"));
   ui_table_next_column(canvas, &table);
   f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
@@ -715,7 +720,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AO resolution scale"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
+  ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
 }
 
 static void rend_panel_draw(

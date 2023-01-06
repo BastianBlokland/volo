@@ -46,8 +46,8 @@ f32 shadow_frac(const f32v3 worldPos) {
   const f32v2 baseShadowCoord = shadowClipPos.xy * 0.5 + 0.5;
 
   f32 shadowSum = 0;
-  for (i32 y = -1; y <= 1; y += 1) {
-    for (i32 x = -1; x <= 1; x += 1) {
+  for (i32 y = -1; y <= 1; ++y) {
+    for (i32 x = -1; x <= 1; ++x) {
       const f32v2 shadowCoord = baseShadowCoord + f32v2(x, y) * shadowTexelSize;
       shadowSum += texture(u_texShadow, f32v3(shadowCoord, shadowClipPos.z));
     }
