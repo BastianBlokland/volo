@@ -17,9 +17,10 @@ ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple 
 typedef u32 RvkAttachIndex;
 
 typedef enum {
-  RvkAttachState_Empty   = 0, // Image has not been created.
-  RvkAttachState_Busy    = 1, // Currently being rendered to.
-  RvkAttachState_Pending = 2, // Will be rendered to in the next submit.
+  RvkAttachState_Empty     = 0, // Image has not been created.
+  RvkAttachState_Busy      = 1, // Currently being rendered to.
+  RvkAttachState_Submitted = 2, // Submitted to the gpu.
+  RvkAttachState_Pending   = 3, // Will be rendered to in the next submit.
 } RvkAttachState;
 
 struct sRvkAttachPool {
