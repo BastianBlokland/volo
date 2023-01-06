@@ -259,7 +259,7 @@ static void rend_settings_tab_draw(
       &settings->resolutionScale,
       .min     = 0.2f,
       .max     = 2.0f,
-      .step    = 0.1f,
+      .step    = 0.05f,
       .tooltip = g_tooltipScale);
 
   ui_table_next_row(canvas, &table);
@@ -684,38 +684,46 @@ static void rend_light_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
 
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AO angle"));
-  ui_table_next_column(canvas, &table);
-  f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
-  if (ui_slider(canvas, &aoAngleDeg, .max = 180)) {
-    settings->aoAngle = aoAngleDeg * math_deg_to_rad;
-    rend_settings_generate_ao_kernel(settings);
+  if (settings->flags & RendFlags_AmbientOcclusion) {
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO Blur"));
+    ui_table_next_column(canvas, &table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur);
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO angle"));
+    ui_table_next_column(canvas, &table);
+    f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
+    if (ui_slider(canvas, &aoAngleDeg, .max = 180)) {
+      settings->aoAngle = aoAngleDeg * math_deg_to_rad;
+      rend_settings_generate_ao_kernel(settings);
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO radius"));
+    ui_table_next_column(canvas, &table);
+    if (ui_slider(canvas, &settings->aoRadius)) {
+      rend_settings_generate_ao_kernel(settings);
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO radius power"));
+    ui_table_next_column(canvas, &table);
+    if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f)) {
+      rend_settings_generate_ao_kernel(settings);
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO power"));
+    ui_table_next_column(canvas, &table);
+    ui_slider(canvas, &settings->aoPower, .max = 7.5f);
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("AO resolution scale"));
+    ui_table_next_column(canvas, &table);
+    ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
   }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AO radius"));
-  ui_table_next_column(canvas, &table);
-  if (ui_slider(canvas, &settings->aoRadius)) {
-    rend_settings_generate_ao_kernel(settings);
-  }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AO radius power"));
-  ui_table_next_column(canvas, &table);
-  if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f)) {
-    rend_settings_generate_ao_kernel(settings);
-  }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AO power"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->aoPower, .max = 5.0f);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AO resolution scale"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.1f);
+  ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
 
 static void rend_panel_draw(

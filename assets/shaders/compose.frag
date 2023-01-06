@@ -19,7 +19,8 @@ const u32 c_modeDebugDepth            = 4;
 const u32 c_modeDebugTags             = 5;
 const u32 c_modeDebugAmbientOcclusion = 6;
 
-const u32 c_flagsAmbientOcclusion = 1 << 0;
+const u32 c_flagsAmbientOcclusion     = 1 << 0;
+const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(1) uniform sampler2D u_texGeoColorRough;
@@ -31,6 +32,20 @@ bind_draw_data(0) readonly uniform Draw { ComposeData u_draw; };
 bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v4 out_color;
+
+f32 ao_sample_single() { return texture(u_texAmbientOcclusion, in_texcoord).r; }
+
+f32 ao_sample_blur() {
+  const f32v2 aoTexelSize = 1.0 / f32v2(textureSize(u_texAmbientOcclusion, 0));
+  f32         aoSum       = 0.0;
+  for (i32 x = -1; x <= 1; ++x) {
+    for (i32 y = -1; y <= 1; ++y) {
+      const f32v2 aoCoord = in_texcoord + f32v2(x, y) * aoTexelSize;
+      aoSum += texture(u_texAmbientOcclusion, aoCoord).r;
+    }
+  }
+  return aoSum / 9;
+}
 
 f32v3 clip_to_view(const f32v3 clipPos) {
   const f32v4 v = u_global.projInv * f32v4(clipPos, 1);
@@ -59,10 +74,12 @@ void main() {
   const u32   flags     = floatBitsToUint(u_draw.packed.z);
 
   f32 ambientOcclusion;
-  if ((flags & c_flagsAmbientOcclusion) != 0) {
-    ambientOcclusion = texture(u_texAmbientOcclusion, in_texcoord).r;
-  } else {
+  if ((flags & c_flagsAmbientOcclusion) == 0) {
     ambientOcclusion = 1.0;
+  } else if ((flags & c_flagsAmbientOcclusionBlur) != 0) {
+    ambientOcclusion = ao_sample_blur();
+  } else {
+    ambientOcclusion = ao_sample_single();
   }
 
   if (s_debug) {

@@ -21,15 +21,15 @@ ecs_module_init(rend_settings_module) {
 }
 
 void rend_settings_to_default(RendSettingsComp* s) {
-  s->flags             = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion;
+  s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion | RendFlags_AmbientOcclusionBlur;
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->composeMode       = RendComposeMode_Normal;
   s->resolutionScale   = 1.0f;
-  s->aoAngle           = 80 * math_deg_to_rad;
-  s->aoRadius          = 0.15f;
-  s->aoRadiusPower     = 2.5f;
-  s->aoPower           = 3.5f;
-  s->aoResolutionScale = 0.5f;
+  s->aoAngle           = 85 * math_deg_to_rad;
+  s->aoRadius          = 0.1f;
+  s->aoRadiusPower     = 3.0f;
+  s->aoPower           = 3.0f;
+  s->aoResolutionScale = 0.75f;
   s->shadowResolution  = 2048;
 
   rend_settings_generate_ao_kernel(s);
