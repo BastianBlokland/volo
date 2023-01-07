@@ -29,6 +29,7 @@ RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);
 void           rvk_renderer_destroy(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
+String         rvk_renderer_pass_name(RvkRenderPass);
 
 void rvk_renderer_begin(RvkRenderer*);
 

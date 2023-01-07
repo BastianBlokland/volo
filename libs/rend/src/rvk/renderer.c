@@ -161,23 +161,23 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb |      // Attachment color1 (srgb)  : color (rgb) and roughness (a).
       RvkPassFlags_Color2 |                                // Attachment color2 (linear): normal (rgb) and tags (a).
       RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("geometry"));
+    renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Geometry));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearColor |
       RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb    |   // Attachment color1 (srgb): color (rgb).
       RvkPassFlags_Depth | RvkPassFlags_DepthLoadTransfer; // Attachment depth.
-    renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("forward"));
+    renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Forward));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearDepth |
       RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("shadow"));
+    renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Shadow));
   }
   {
     const RvkPassFlags flags =
       RvkPassFlags_Color1 | RvkPassFlags_Color1Single;     // Attachment color1 (linear): occlusion (r).
-    renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, string_lit("ambient-occlusion"));
+    renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_AmbientOcclusion));
   }
   // clang-format on
 
@@ -237,6 +237,17 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   }
 
   return result;
+}
+
+String rvk_renderer_pass_name(const RvkRenderPass pass) {
+  static const String g_names[] = {
+      string_static("geometry"),
+      string_static("forward"),
+      string_static("shadow"),
+      string_static("ambient-occlusion"),
+  };
+  ASSERT(array_elems(g_names) == RvkRenderPass_Count, "Incorrect number of names");
+  return g_names[pass];
 }
 
 void rvk_renderer_begin(RvkRenderer* rend) {
