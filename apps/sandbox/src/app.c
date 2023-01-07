@@ -42,8 +42,9 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       SceneTransformComp,
-      .position = {10, 65.0f, -25.0f},
-      .rotation = geo_quat_angle_axis(geo_right, 70 * math_deg_to_rad));
+      .position = {50, 75, 0},
+      .rotation = geo_quat_mul(
+          geo_quat_forward_to_left, geo_quat_angle_axis(geo_right, 70 * math_deg_to_rad)));
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {

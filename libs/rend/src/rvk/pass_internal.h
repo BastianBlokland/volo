@@ -22,22 +22,21 @@ typedef struct sRvkPass RvkPass;
 
 typedef enum eRvkPassFlags {
   RvkPassFlags_None              = 0,
-  RvkPassFlags_ClearColor        = 1 << 0,
-  RvkPassFlags_ClearDepth        = 1 << 1,
-  RvkPassFlags_Color1            = 1 << 2, // Enable the color1 attachment.
-  RvkPassFlags_Color1Srgb        = 1 << 3, // Use an SRGB format for the color1 attachment.
-  RvkPassFlags_Color1Single      = 1 << 4, // Use a single channel format for the color1 attachment.
-  RvkPassFlags_Color1Swapchain   = 1 << 5, // Use a swapchain image for the color1 attachment.
-  RvkPassFlags_Color2            = 1 << 6, // Enable the color2 attachment.
-  RvkPassFlags_Color2Srgb        = 1 << 7, // Use an SRGB format for the color2 attachment.
-  RvkPassFlags_Color2Single      = 1 << 8, // Use a single channel format for the color2 attachment.
+  RvkPassFlags_Color1            = 1 << 0, // Enable the color1 attachment.
+  RvkPassFlags_Color1Srgb        = 1 << 1, // Use an SRGB format for the color1 attachment.
+  RvkPassFlags_Color1Single      = 1 << 2, // Use a single channel format for the color1 attachment.
+  RvkPassFlags_Color1Swapchain   = 1 << 3, // Use a swapchain image for the color1 attachment.
+  RvkPassFlags_Color2            = 1 << 4, // Enable the color2 attachment.
+  RvkPassFlags_Color2Srgb        = 1 << 5, // Use an SRGB format for the color2 attachment.
+  RvkPassFlags_Color2Single      = 1 << 6, // Use a single channel format for the color2 attachment.
+  RvkPassFlags_ColorClear        = 1 << 7, // Clear the color attachment.
+  RvkPassFlags_ColorLoadTransfer = 1 << 8, // Load the color from transferred color attachments.
   RvkPassFlags_Depth             = 1 << 9, // Enable a depth attachment.
-  RvkPassFlags_DepthLoadTransfer = 1 << 10, // Load the depth from a transferred depth attachment.
-  RvkPassFlags_DepthStore        = 1 << 11, // Store the depth attachment for use in a later pass.
+  RvkPassFlags_DepthClear        = 1 << 10, // Clear the depth attachment.
+  RvkPassFlags_DepthLoadTransfer = 1 << 11, // Load the depth from a transferred depth attachment.
+  RvkPassFlags_DepthStore        = 1 << 12, // Store the depth attachment for use in a later pass.
 
-  RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
-
-  RvkPassFlags_Count = 12,
+  RvkPassFlags_Count = 13,
 } RvkPassFlags;
 
 typedef struct sRvkPassDraw {

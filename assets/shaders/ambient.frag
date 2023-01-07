@@ -6,8 +6,8 @@
 #include "tags.glsl"
 #include "texture.glsl"
 
-struct ComposeData {
-  f32v4 packed; // x: ambient, y: mode, z, flags, w: unused
+struct AmbientData {
+  f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
 bind_spec(0) const bool s_debug = false;
@@ -27,7 +27,7 @@ bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
-bind_draw_data(0) readonly uniform Draw { ComposeData u_draw; };
+bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 
@@ -62,16 +62,16 @@ void main() {
   const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
   const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
-  const f32v3 color     = colorRough.rgb;
-  const f32   roughness = colorRough.a;
-  const u32   tags      = tags_tex_decode(normalTags.w);
-  const f32v3 clipPos   = f32v3(in_texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos  = clip_to_world(clipPos);
-  const f32v3 normal    = normal_tex_decode(normalTags.xyz);
-  const f32v3 viewDir   = normalize(u_global.camPosition.xyz - worldPos);
-  const f32   ambient   = u_draw.packed.x;
-  const u32   mode      = floatBitsToUint(u_draw.packed.y);
-  const u32   flags     = floatBitsToUint(u_draw.packed.z);
+  const f32v3 color        = colorRough.rgb;
+  const f32   roughness    = colorRough.a;
+  const u32   tags         = tags_tex_decode(normalTags.w);
+  const f32v3 clipPos      = f32v3(in_texcoord * 2.0 - 1.0, depth);
+  const f32v3 worldPos     = clip_to_world(clipPos);
+  const f32v3 normal       = normal_tex_decode(normalTags.xyz);
+  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
+  const f32   ambientLight = u_draw.packed.x;
+  const u32   mode         = floatBitsToUint(u_draw.packed.y);
+  const u32   flags        = floatBitsToUint(u_draw.packed.z);
 
   f32 ambientOcclusion;
   if ((flags & c_flagsAmbientOcclusion) == 0) {
@@ -109,7 +109,7 @@ void main() {
     }
   } else {
     // Main color with ambient lighting.
-    out_color = f32v4(color * ambient * ambientOcclusion, 0.0);
+    out_color = f32v4(color * ambientLight * ambientOcclusion, 0.0);
 
     // Additional effects.
     if (tag_is_set(tags, tag_damaged_bit)) {

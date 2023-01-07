@@ -23,7 +23,7 @@ ecs_module_init(rend_settings_module) {
 void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion | RendFlags_AmbientOcclusionBlur;
   s->presentMode       = RendPresentMode_VSyncRelaxed;
-  s->composeMode       = RendComposeMode_Normal;
+  s->ambientMode       = RendAmbientMode_Normal;
   s->resolutionScale   = 0.75f;
   s->aoAngle           = 85 * math_deg_to_rad;
   s->aoRadius          = 0.1f;

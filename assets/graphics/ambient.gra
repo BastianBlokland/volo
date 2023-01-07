@@ -4,7 +4,7 @@
       "shaderId": "shaders/fullscreen.vert.spv"
     },
     {
-      "shaderId": "shaders/compose.frag.spv"
+      "shaderId": "shaders/ambient.frag.spv"
     }
   ],
   "samplers": [],

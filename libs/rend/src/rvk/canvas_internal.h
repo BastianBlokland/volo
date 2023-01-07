@@ -17,6 +17,7 @@ typedef struct sRvkSwapchainStats RvkSwapchainStats;
 typedef enum eRvkCanvasPass {
   RvkCanvasPass_Geometry,
   RvkCanvasPass_Forward,
+  RvkCanvasPass_Post,
   RvkCanvasPass_Shadow,
   RvkCanvasPass_AmbientOcclusion,
 

@@ -8,7 +8,7 @@ configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
     shaders/ambient_occlusion.frag
-    shaders/compose.frag
+    shaders/ambient.frag
     shaders/debug/debug_shadow.frag
     shaders/debug/debug_shadow.vert
     shaders/debug/debug_skinning.frag

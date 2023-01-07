@@ -28,22 +28,23 @@
 // clang-format off
 static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
   [RvkCanvasPass_Geometry] =
-    RvkPassFlags_Clear      |
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb        | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
-    RvkPassFlags_Color2     |                                  // Attachment color2 (linear): normal (rgb) and tags (a).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
-
-  [RvkCanvasPass_Forward] =
-    RvkPassFlags_ClearColor |
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Swapchain   | // Attachment color1 (swapchain): color (rgb).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,  // Attachment depth.
+    RvkPassFlags_ColorClear | RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
+                              RvkPassFlags_Color2     |                           // Attachment color2 (linear): normal (rgb) and tags (a).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,  // Attachment depth.
 
   [RvkCanvasPass_Shadow] =
-    RvkPassFlags_ClearDepth |
-    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
+    RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore, // Attachment depth.
 
   [RvkCanvasPass_AmbientOcclusion] =
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Single,       // Attachment color1 (linear): occlusion (r).
+    RvkPassFlags_Color1 | RvkPassFlags_Color1Single, // Attachment color1 (linear): occlusion (r).
+
+  [RvkCanvasPass_Forward] =
+    RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb): color (rgb).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                            // Attachment depth.
+
+  [RvkCanvasPass_Post] =
+    RvkPassFlags_Color1 | RvkPassFlags_ColorLoadTransfer | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
+
 };
 // clang-format on
 
@@ -250,33 +251,33 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id)
   }
 }
 
-static void painter_push_compose(RendPaintContext* ctx) {
+static void painter_push_ambient(RendPaintContext* ctx) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = ctx->settings->composeMode == RendComposeMode_Normal
-                                        ? RvkRepositoryId_ComposeGraphic
-                                        : RvkRepositoryId_ComposeDebugGraphic;
+  const RvkRepositoryId graphicId = ctx->settings->ambientMode == RendAmbientMode_Normal
+                                        ? RvkRepositoryId_AmbientGraphic
+                                        : RvkRepositoryId_AmbientDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef enum {
-      ComposeFlags_AmbientOcclusion     = 1 << 0,
-      ComposeFlags_AmbientOcclusionBlur = 1 << 1,
-    } ComposeFlags;
+      AmbientFlags_AmbientOcclusion     = 1 << 0,
+      AmbientFlags_AmbientOcclusionBlur = 1 << 1,
+    } AmbientFlags;
 
     typedef struct {
       ALIGNAS(16)
-      GeoVector packed; // x: ambient, y: mode, z: flags, w: unused.
-    } ComposeData;
+      GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
+    } AmbientData;
 
-    const u32    mode  = ctx->settings->composeMode;
-    ComposeFlags flags = 0;
+    const u32    mode  = ctx->settings->ambientMode;
+    AmbientFlags flags = 0;
     if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
-      flags |= ComposeFlags_AmbientOcclusion;
+      flags |= AmbientFlags_AmbientOcclusion;
     }
     if (ctx->settings->flags & RendFlags_AmbientOcclusionBlur) {
-      flags |= ComposeFlags_AmbientOcclusionBlur;
+      flags |= AmbientFlags_AmbientOcclusionBlur;
     }
 
-    ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
+    AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
     data->packed.x    = ctx->settingsGlobal->lightAmbient;
     data->packed.y    = bits_u32_as_f32(mode);
     data->packed.z    = bits_u32_as_f32(flags);
@@ -286,7 +287,7 @@ static void painter_push_compose(RendPaintContext* ctx) {
         (RvkPassDraw){
             .graphic   = graphic,
             .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ComposeData)),
+            .drawData  = mem_create(data, sizeof(AmbientData)),
         });
   }
 }
@@ -322,9 +323,10 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
+  ignoreFlags |= RendDrawFlags_Post;     // Ignore post (should be drawn in the post pass).
 
-  if (ctx->settings->composeMode != RendComposeMode_Normal) {
-    // Disable lighting when using any of the debug compose modes.
+  if (ctx->settings->ambientMode != RendAmbientMode_Normal) {
+    // Disable lighting when using any of the debug ambient modes.
     ignoreFlags |= RendDrawFlags_Light;
   }
 
@@ -411,6 +413,26 @@ static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView,
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       painter_push(ctx, rend_draw_output(draw, debugGraphic, mesh));
+    }
+  }
+}
+
+static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Post)) {
+      continue; // Shouldn't be included in the post pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic, null));
     }
   }
 }
@@ -511,10 +533,11 @@ static bool rend_canvas_paint(
 
   // Forward pass.
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Forward);
-  rvk_pass_set_size(fwdPass, swapchainSize);
+  rvk_pass_set_size(fwdPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
+  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
   {
-    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize it to the geometry depth.
+    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
@@ -527,9 +550,9 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, geoDepth, 2);
     rvk_pass_bind_global_image(fwdPass, aoBuffer, 3);
     rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
-    rvk_pass_bind_attach_color(fwdPass, swapchainImage, 0);
+    rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
-    painter_push_compose(&ctx);
+    painter_push_ambient(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     if (geoTagMask & SceneTags_Outline) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic);
@@ -555,6 +578,27 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
+
+  // Post pass.
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Post);
+  rvk_pass_set_size(postPass, swapchainSize);
+  {
+    rvk_canvas_blit(painter->canvas, fwdColor, swapchainImage); // Initialize to the forward color.
+
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
+    if (settings->flags & RendFlags_DebugCamera) {
+      painter_set_debug_camera(&ctx);
+    }
+    rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
+    painter_push_post(&ctx, drawView, graphicView);
+    rvk_pass_begin(postPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(postPass);
+  }
+
+  rvk_canvas_attach_release(painter->canvas, fwdColor);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
