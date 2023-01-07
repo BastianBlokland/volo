@@ -408,7 +408,6 @@ RvkImage rvk_image_create_attach_depth(
 
 RvkImage
 rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RvkSize size) {
-  (void)dev;
   RvkImageCapability capabilities = RvkImageCapability_Present;
 
   /**
@@ -418,23 +417,31 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
   capabilities |= RvkImageCapability_AttachmentColor;
   capabilities |= RvkImageCapability_TransferDest;
 
+  const u8 layers    = 1;
+  const u8 mipLevels = 1;
+
+  const VkImageAspectFlags vkAspect = rvk_image_vkaspect(RvkImageType_Swapchain);
+  const VkImageView        vkView   = rvk_vkimageview_create(
+      dev, RvkImageType_Swapchain, vkImage, vkFormat, vkAspect, layers, mipLevels);
+
   return (RvkImage){
-      .type      = RvkImageType_Swapchain,
-      .phase     = RvkImagePhase_Undefined,
-      .caps      = capabilities,
-      .vkFormat  = vkFormat,
-      .size      = size,
-      .layers    = 1,
-      .mipLevels = 1,
-      .vkImage   = vkImage,
+      .type        = RvkImageType_Swapchain,
+      .phase       = RvkImagePhase_Undefined,
+      .caps        = capabilities,
+      .vkFormat    = vkFormat,
+      .size        = size,
+      .layers      = layers,
+      .mipLevels   = mipLevels,
+      .vkImage     = vkImage,
+      .vkImageView = vkView,
   };
 }
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
     vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
-    vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   }
+  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
