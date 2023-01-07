@@ -111,13 +111,14 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
                                                             : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .storeOp        = (flags & RvkPassFlags_DepthOutput) ? VK_ATTACHMENT_STORE_OP_STORE
-                                                             : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .storeOp        = (flags & RvkPassFlags_DepthStore) ? VK_ATTACHMENT_STORE_OP_STORE
+                                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = (flags & RvkPassFlags_ExternalDepth) ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                                                              : VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout   = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        .initialLayout  = (flags & RvkPassFlags_DepthLoadTransfer)
+                              ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                              : VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     };
     depthRef = (VkAttachmentReference){
         .attachment = attachmentCount - 1,
@@ -150,7 +151,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
   };
 
-  if (flags & RvkPassFlags_ExternalDepth) {
+  if (flags & RvkPassFlags_DepthLoadTransfer) {
     /**
      * Synchronize the transferring to the depth-buffer with this pass reading / writing to it.
      */
@@ -266,10 +267,10 @@ static void rvk_pass_bind_global(RvkPass* pass) {
 static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
 
-  if (pass->flags & RvkPassFlags_ExternalDepth) {
+  if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
     diag_assert_msg(
         pass->attachDepth && pass->attachDepth->phase == RvkImagePhase_TransferDest,
-        "Pass is marked with 'ExternalDepth' but nothing is copied to the depth-buffer");
+        "Unable to load the depth from transfer: Unexpected image phase");
   }
 
   VkClearValue clearValues[pass_attachment_max];
@@ -344,8 +345,8 @@ RvkPass* rvk_pass_create(
   diag_assert(!string_is_empty(name));
   diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
   diag_assert(!(flags & RvkPassFlags_Color2Srgb) || (flags & RvkPassFlags_Color2));
-  diag_assert(!(flags & RvkPassFlags_DepthOutput) || (flags & RvkPassFlags_Depth));
-  diag_assert(!(flags & RvkPassFlags_ExternalDepth) || (flags & RvkPassFlags_Depth));
+  diag_assert(!(flags & RvkPassFlags_DepthLoadTransfer) || (flags & RvkPassFlags_Depth));
+  diag_assert(!(flags & RvkPassFlags_DepthStore) || (flags & RvkPassFlags_Depth));
 
   RvkDescMeta globalDescMeta = {
       .bindings[0] = RvkDescKind_UniformBufferDynamic,
@@ -442,10 +443,12 @@ RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAtt
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   RvkImageCapability capabilities = 0;
-  if (pass->flags & RvkPassFlags_DepthOutput) {
+  if (pass->flags & RvkPassFlags_DepthStore) {
+    // TODO: Specifying these capabilities is not the responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
-  if (pass->flags & RvkPassFlags_ExternalDepth) {
+  if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
+    // TODO: Specifying these capabilities is not the responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferDest;
   }
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};

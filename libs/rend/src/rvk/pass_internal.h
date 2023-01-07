@@ -19,18 +19,18 @@ typedef struct sRvkUniformPool RvkUniformPool;
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_None          = 0,
-  RvkPassFlags_ClearColor    = 1 << 0,
-  RvkPassFlags_ClearDepth    = 1 << 1,
-  RvkPassFlags_Color1        = 1 << 2,  // Enable the color1 attachment.
-  RvkPassFlags_Color1Srgb    = 1 << 3,  // Use an SRGB format for the color1 attachment.
-  RvkPassFlags_Color1Single  = 1 << 4,  // Use a single channel format for the color1 attachment.
-  RvkPassFlags_Color2        = 1 << 5,  // Enable the color2 attachment.
-  RvkPassFlags_Color2Srgb    = 1 << 6,  // Use an SRGB format for the color2 attachment.
-  RvkPassFlags_Color2Single  = 1 << 7,  // Use a single channel format for the color2 attachment.
-  RvkPassFlags_Depth         = 1 << 8,  // Enable a depth attachment.
-  RvkPassFlags_DepthOutput   = 1 << 9,  // Support outputting the depth attachment.
-  RvkPassFlags_ExternalDepth = 1 << 10, // Call 'rvk_pass_use_depth()' with a source depth image.
+  RvkPassFlags_None              = 0,
+  RvkPassFlags_ClearColor        = 1 << 0,
+  RvkPassFlags_ClearDepth        = 1 << 1,
+  RvkPassFlags_Color1            = 1 << 2, // Enable the color1 attachment.
+  RvkPassFlags_Color1Srgb        = 1 << 3, // Use an SRGB format for the color1 attachment.
+  RvkPassFlags_Color1Single      = 1 << 4, // Use a single channel format for the color1 attachment.
+  RvkPassFlags_Color2            = 1 << 5, // Enable the color2 attachment.
+  RvkPassFlags_Color2Srgb        = 1 << 6, // Use an SRGB format for the color2 attachment.
+  RvkPassFlags_Color2Single      = 1 << 7, // Use a single channel format for the color2 attachment.
+  RvkPassFlags_Depth             = 1 << 8, // Enable a depth attachment.
+  RvkPassFlags_DepthLoadTransfer = 1 << 9, // Load the depth from a transferred depth attachment.
+  RvkPassFlags_DepthStore        = 1 << 10, // Store the depth attachment for use in a later pass.
 
   RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
