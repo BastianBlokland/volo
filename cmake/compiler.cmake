@@ -134,6 +134,11 @@ macro(set_clang_compile_options)
   # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
 
+  if(${VOLO_PLATFORM} STREQUAL "win32")
+    # Forward declaration of enums is defined in c as all enums use int as underlying the type.
+    add_compile_options(-Wno-microsoft-enum-forward-reference)
+  endif()
+
   # Enable various clang sanitizers on supported platforms.
   if(${SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
     set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,undefined")
