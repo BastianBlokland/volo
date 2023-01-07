@@ -84,25 +84,63 @@ static u32 rvk_attach_color_count(const RvkPassFlags flags) {
   return result;
 }
 
-static void
-rvk_attach_assert_color(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+#ifndef VOLO_FAST
+static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
+  const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentColor,
-      "Does not support usage as a color attachment");
-  diag_assert_msg(img->caps & spec.capabilities, "Missing capability");
-  diag_assert_msg(img->vkFormat == spec.vkFormat, "Wrong format");
-  diag_assert_msg(img->size.data == size.data, "Wrong size");
+      "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
+      fmt_text(pass->name),
+      fmt_int(idx));
+  diag_assert_msg(
+      img->caps & spec.capabilities,
+      "Pass {} color attachment {} invalid: Missing capabilities",
+      fmt_text(pass->name),
+      fmt_int(idx));
+  diag_assert_msg(
+      img->vkFormat == spec.vkFormat,
+      "Pass {} color attachment {} invalid: Invalid format (expected: {}, actual: {})",
+      fmt_text(pass->name),
+      fmt_int(idx),
+      fmt_text(rvk_format_info(spec.vkFormat).name),
+      fmt_text(rvk_format_info(img->vkFormat).name));
+  diag_assert_msg(
+      img->size.data == pass->size.data,
+      "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
+      fmt_text(pass->name),
+      fmt_int(idx),
+      fmt_int(pass->size.width),
+      fmt_int(pass->size.height),
+      fmt_int(img->size.width),
+      fmt_int(img->size.height));
 }
 
-static void
-rvk_attach_assert_depth(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
+  const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentDepth,
-      "Does not support usage as a depth attachment");
-  diag_assert_msg(img->caps & spec.capabilities, "Missing capability");
-  diag_assert_msg(img->vkFormat == spec.vkFormat, "Wrong format");
-  diag_assert_msg(img->size.data == size.data, "Wrong size");
+      "Pass {} depth attachment invalid: Missing AttachmentDepth capability",
+      fmt_text(pass->name));
+  diag_assert_msg(
+      img->caps & spec.capabilities,
+      "Pass {} depth attachment invalid: Missing capabilities",
+      fmt_text(pass->name));
+  diag_assert_msg(
+      img->vkFormat == spec.vkFormat,
+      "Pass {} depth attachment invalid: Invalid format (expected: {}, actual: {})",
+      fmt_text(pass->name),
+      fmt_text(rvk_format_info(spec.vkFormat).name),
+      fmt_text(rvk_format_info(img->vkFormat).name));
+  diag_assert_msg(
+      img->size.data == pass->size.data,
+      "Pass {} depth attachment invalid: Invalid size (expected: {}x{}, actual: {}x{})",
+      fmt_text(pass->name),
+      fmt_int(pass->size.width),
+      fmt_int(pass->size.height),
+      fmt_int(img->size.width),
+      fmt_int(img->size.height));
 }
+#endif
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
   VkAttachmentDescription attachments[pass_attachment_max];
@@ -542,7 +580,9 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
   diag_assert_msg(!pass->attachColors[idx], "Color attachment already bound");
 
-  rvk_attach_assert_color(img, rvk_pass_spec_attach_color(pass, idx), pass->size);
+#ifndef VOLO_FAST
+  rvk_attach_assert_color(pass, idx, img);
+#endif
 
   pass->attachColors[idx] = img;
   pass->attachColorMask |= 1 << idx;
@@ -554,7 +594,9 @@ void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!pass->attachDepth, "Depth attachment already bound");
   diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
 
-  rvk_attach_assert_depth(img, rvk_pass_spec_attach_depth(pass), pass->size);
+#ifndef VOLO_FAST
+  rvk_attach_assert_depth(pass, img);
+#endif
 
   pass->attachDepth = img;
 }
