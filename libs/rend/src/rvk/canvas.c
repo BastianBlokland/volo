@@ -6,18 +6,18 @@
 #include "attach_internal.h"
 #include "canvas_internal.h"
 #include "device_internal.h"
+#include "job_internal.h"
 #include "pass_internal.h"
-#include "renderer_internal.h"
 #include "swapchain_internal.h"
 
-typedef RvkRenderer* RvkRendererPtr;
+typedef RvkJob* RvkJobPtr;
 
 /**
- * Use two renderers for double bufferring:
+ * Use two jobs for double bufferring:
  * - One being recorded on the cpu.
  * - One being rendered on the gpu.
  */
-#define canvas_renderer_count 2
+#define canvas_job_count 2
 
 typedef enum {
   RvkCanvasFlags_Active    = 1 << 0,
@@ -29,11 +29,11 @@ struct sRvkCanvas {
   RvkSwapchain*   swapchain;
   RvkAttachPool*  attachPool;
   RvkCanvasFlags  flags;
-  RvkRenderer*    renderers[canvas_renderer_count];
-  VkSemaphore     attachmentsReleased[canvas_renderer_count];
-  VkSemaphore     swapchainAvailable[canvas_renderer_count];
-  VkSemaphore     swapchainPresent[canvas_renderer_count];
-  u32             rendererIdx;
+  RvkJob*         jobs[canvas_job_count];
+  VkSemaphore     attachmentsReleased[canvas_job_count];
+  VkSemaphore     swapchainAvailable[canvas_job_count];
+  VkSemaphore     swapchainPresent[canvas_job_count];
+  u32             jobIdx;
   RvkSwapchainIdx swapchainIdx;
 };
 
@@ -58,8 +58,8 @@ RvkCanvas* rvk_canvas_create(
       .attachPool = attachPool,
   };
 
-  for (u32 i = 0; i != canvas_renderer_count; ++i) {
-    canvas->renderers[i]           = rvk_renderer_create(dev, i, passConfig);
+  for (u32 i = 0; i != canvas_job_count; ++i) {
+    canvas->jobs[i]                = rvk_job_create(dev, i, passConfig);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
@@ -75,8 +75,8 @@ RvkCanvas* rvk_canvas_create(
 void rvk_canvas_destroy(RvkCanvas* canvas) {
   rvk_device_wait_idle(canvas->dev);
 
-  for (u32 i = 0; i != canvas_renderer_count; ++i) {
-    rvk_renderer_destroy(canvas->renderers[i]);
+  for (u32 i = 0; i != canvas_job_count; ++i) {
+    rvk_job_destroy(canvas->jobs[i]);
     vkDestroySemaphore(canvas->dev->vkDev, canvas->attachmentsReleased[i], &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, canvas->swapchainAvailable[i], &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, canvas->swapchainPresent[i], &canvas->dev->vkAlloc);
@@ -104,8 +104,8 @@ String rvk_canvas_pass_name(const RvkCanvasPass pass) {
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  return rvk_renderer_stats(renderer);
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  return rvk_job_stats(job);
 }
 
 u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
@@ -123,23 +123,23 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
 
-  const VkSemaphore availableSema = canvas->swapchainAvailable[canvas->rendererIdx];
+  const VkSemaphore availableSema = canvas->swapchainAvailable[canvas->jobIdx];
   canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
   if (sentinel_check(canvas->swapchainIdx)) {
     return false;
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
-  rvk_renderer_begin(renderer);
+  rvk_job_begin(job);
   return true;
 }
 
 RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  return rvk_renderer_pass(renderer, pass);
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  return rvk_job_pass(job, pass);
 }
 
 RvkImage* rvk_canvas_output(RvkCanvas* canvas) {
@@ -163,47 +163,47 @@ void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {
 
 void rvk_canvas_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  rvk_renderer_copy(renderer, src, dst);
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_copy(job, src, dst);
 }
 
 void rvk_canvas_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  rvk_renderer_blit(renderer, src, dst);
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_blit(job, src, dst);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
 
   // Transition the swapchain-image to the present phase.
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_transition(renderer, swapchainImage, RvkImagePhase_Present);
+  rvk_job_transition(job, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
   if (canvas->flags & RvkCanvasFlags_Submitted) {
     /**
-     * Wait for the other renderer to release the attachments.
-     * Reason is we reuse the attachments in both renderers to avoid wasting gpu memory.
+     * Wait for the other job to release the attachments.
+     * Reason is we reuse the attachments in both jobs to avoid wasting gpu memory.
      */
-    attachmentsReady = canvas->attachmentsReleased[canvas->rendererIdx ^ 1];
+    attachmentsReady = canvas->attachmentsReleased[canvas->jobIdx ^ 1];
   }
   const VkSemaphore endSignals[] = {
-      canvas->swapchainPresent[canvas->rendererIdx],    // Trigger the present.
-      canvas->attachmentsReleased[canvas->rendererIdx], // Trigger the next renderer.
+      canvas->swapchainPresent[canvas->jobIdx],    // Trigger the present.
+      canvas->attachmentsReleased[canvas->jobIdx], // Trigger the next job.
   };
 
-  const VkSemaphore swapchainSema = canvas->swapchainAvailable[canvas->rendererIdx];
-  rvk_renderer_end(renderer, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
+  const VkSemaphore swapchainSema = canvas->swapchainAvailable[canvas->jobIdx];
+  rvk_job_end(job, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
 
   rvk_swapchain_enqueue_present(
-      canvas->swapchain, canvas->swapchainPresent[canvas->rendererIdx], canvas->swapchainIdx);
+      canvas->swapchain, canvas->swapchainPresent[canvas->jobIdx], canvas->swapchainIdx);
 
   rvk_attach_pool_flush(canvas->attachPool);
 
   canvas->swapchainIdx = sentinel_u32;
-  canvas->rendererIdx ^= 1;
+  canvas->jobIdx ^= 1;
   canvas->flags |= RvkCanvasFlags_Submitted;
   canvas->flags &= ~RvkCanvasFlags_Active;
 }
