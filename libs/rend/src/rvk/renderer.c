@@ -309,11 +309,7 @@ void rvk_renderer_blit(RvkRenderer* rend, RvkImage* src, RvkImage* dst) {
 void rvk_renderer_transition(RvkRenderer* rend, RvkImage* img, const RvkImagePhase targetPhase) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
 
-  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "transition");
-
   rvk_image_transition(img, rend->vkDrawBuffer, targetPhase);
-
-  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
 
 void rvk_renderer_end(
