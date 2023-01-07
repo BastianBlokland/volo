@@ -323,6 +323,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
+  ignoreFlags |= RendDrawFlags_Post;     // Ignore post (should be drawn in the post pass).
 
   if (ctx->settings->ambientMode != RendAmbientMode_Normal) {
     // Disable lighting when using any of the debug ambient modes.
@@ -412,6 +413,26 @@ static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView,
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       painter_push(ctx, rend_draw_output(draw, debugGraphic, mesh));
+    }
+  }
+}
+
+static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Post)) {
+      continue; // Shouldn't be included in the post pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic, null));
     }
   }
 }
@@ -564,13 +585,14 @@ static bool rend_canvas_paint(
   {
     rvk_canvas_blit(painter->canvas, fwdColor, swapchainImage); // Initialize to the forward color.
 
-    const GeoMatrix  pTrans = geo_matrix_ident();
-    const GeoMatrix  pProj  = geo_matrix_proj_ortho(1, 1, 0, 1);
-    RendPaintContext ctx    = painter_context(
-        &pTrans, &pProj, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
-
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
+    if (settings->flags & RendFlags_DebugCamera) {
+      painter_set_debug_camera(&ctx);
+    }
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
+    painter_push_post(&ctx, drawView, graphicView);
     rvk_pass_begin(postPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(postPass);
