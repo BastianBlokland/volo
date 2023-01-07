@@ -102,6 +102,9 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
     if (formatInfo.flags & RvkFormat_RGBA) {
       // Prefer RGBA as it matches what the renderer uses for textures and temporary attachments,
       // unfortunately BGRA is also quite common for window surfaces.
+      score += 2;
+    }
+    if (formatInfo.flags & RvkFormat_BGRA) {
       score += 1;
     }
     if (formatInfo.flags & RvkFormat_Srgb) {
