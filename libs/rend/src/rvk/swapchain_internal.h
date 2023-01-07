@@ -2,17 +2,18 @@
 #include "gap_window.h"
 #include "rend_settings.h"
 
-#include "image_internal.h"
+#include "vulkan_internal.h"
 
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkImage  RvkImage;
+typedef union uRvkSize    RvkSize;
 
 typedef u32 RvkSwapchainIdx;
 
 typedef struct sRvkSwapchain RvkSwapchain;
 
-typedef struct {
+typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
 } RvkSwapchainStats;

@@ -1,13 +1,15 @@
 #pragma once
 #include "core_time.h"
-#include "geo_color.h"
 
-#include "attach_internal.h"
-#include "statrecorder_internal.h"
 #include "types_internal.h"
 #include "vulkan_internal.h"
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Internal forward declarations:
+typedef enum eRvkStat          RvkStat;
+typedef struct sRvkAttachSpec  RvkAttachSpec;
 typedef struct sRvkDescMeta    RvkDescMeta;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
@@ -18,7 +20,7 @@ typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
 
-typedef enum {
+typedef enum eRvkPassFlags {
   RvkPassFlags_None              = 0,
   RvkPassFlags_ClearColor        = 1 << 0,
   RvkPassFlags_ClearDepth        = 1 << 1,

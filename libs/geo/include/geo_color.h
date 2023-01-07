@@ -2,7 +2,7 @@
 #include "core_annotation.h"
 #include "core_types.h"
 
-typedef union {
+typedef union uGeoColor {
   struct {
     f32 r, g, b, a;
   };

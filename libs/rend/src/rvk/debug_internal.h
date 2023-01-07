@@ -1,13 +1,20 @@
 #pragma once
-#include "geo_color.h"
 
 #include "vulkan_internal.h"
+
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
+// Internal forward declarations:
 
 typedef enum {
   RvkDebugFlags_None    = 0,
   RvkDebugFlags_Verbose = 1 << 0,
 } RvkDebugFlags;
 
+/**
+ * GPU debug helper.
+ */
 typedef struct sRvkDebug RvkDebug;
 
 RvkDebug* rvk_debug_create(VkInstance, VkDevice, VkAllocationCallbacks*, RvkDebugFlags);

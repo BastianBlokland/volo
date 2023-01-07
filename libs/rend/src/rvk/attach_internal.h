@@ -18,7 +18,7 @@ u16            rvk_attach_pool_count(const RvkAttachPool*);
 u64            rvk_attach_pool_memory(const RvkAttachPool*);
 void           rvk_attach_pool_flush(RvkAttachPool*);
 
-typedef struct {
+typedef struct sRvkAttachSpec {
   VkFormat           vkFormat;
   RvkImageCapability capabilities;
 } RvkAttachSpec;

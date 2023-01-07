@@ -2,10 +2,10 @@
 #include "core_thread.h"
 #include "rend_settings.h"
 
-#include "debug_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
+typedef struct sRvkDebug      RvkDebug;
 typedef struct sRvkDescPool   RvkDescPool;
 typedef struct sRvkMemPool    RvkMemPool;
 typedef struct sRvkRepository RvkRepository;

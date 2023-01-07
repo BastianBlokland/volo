@@ -2,16 +2,21 @@
 #include "gap_window.h"
 #include "rend_settings.h"
 
-#include "renderer_internal.h"
-#include "swapchain_internal.h"
 #include "types_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkAttachPool RvkAttachPool;
-typedef struct sRvkDevice     RvkDevice;
-typedef struct sRvkPass       RvkPass;
-typedef struct sRvkRepository RvkRepository;
+typedef enum eRvkRenderPass       RvkRenderPass;
+typedef struct sRvkAttachPool     RvkAttachPool;
+typedef struct sRvkDevice         RvkDevice;
+typedef struct sRvkImage          RvkImage;
+typedef struct sRvkPass           RvkPass;
+typedef struct sRvkRenderStats    RvkRenderStats;
+typedef struct sRvkRepository     RvkRepository;
+typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
+/**
+ * Canvas for rendering onto a window.
+ */
 typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);

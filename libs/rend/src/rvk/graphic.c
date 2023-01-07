@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "log_logger.h"
 
+#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"

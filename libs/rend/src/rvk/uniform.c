@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
+#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "uniform_internal.h"

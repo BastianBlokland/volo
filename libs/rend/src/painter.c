@@ -18,10 +18,12 @@
 #include "platform_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
+#include "rvk/attach_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/mesh_internal.h"
 #include "rvk/pass_internal.h"
+#include "rvk/renderer_internal.h"
 #include "rvk/repository_internal.h"
 
 ecs_comp_define_public(RendPainterComp);

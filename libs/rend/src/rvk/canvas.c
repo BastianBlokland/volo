@@ -7,6 +7,7 @@
 #include "canvas_internal.h"
 #include "device_internal.h"
 #include "renderer_internal.h"
+#include "swapchain_internal.h"
 
 typedef RvkRenderer* RvkRendererPtr;
 

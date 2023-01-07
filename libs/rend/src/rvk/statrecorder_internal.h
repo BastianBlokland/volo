@@ -9,7 +9,7 @@ typedef struct sRvkDevice RvkDevice;
 /**
  * Tracked statistic.
  */
-typedef enum {
+typedef enum eRvkStat {
   /**
    * Stats that are automatically tracked for you when using 'start()' / 'stop()'.
    */

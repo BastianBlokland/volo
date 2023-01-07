@@ -12,6 +12,8 @@
 #include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
+#include "rvk/renderer_internal.h"
+#include "rvk/swapchain_internal.h"
 
 ecs_comp_define_public(RendStatsComp);
 

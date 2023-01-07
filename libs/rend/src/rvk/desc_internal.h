@@ -11,7 +11,7 @@ typedef struct sRvkSampler RvkSampler;
 typedef struct sRvkDescPool  RvkDescPool;
 typedef struct sRvkDescChunk RvkDescChunk;
 
-typedef enum {
+typedef enum eRvkDescKind {
   RvkDescKind_None,
   RvkDescKind_CombinedImageSampler2D,
   RvkDescKind_CombinedImageSamplerCube,
@@ -26,7 +26,7 @@ typedef struct sRvkDescMeta {
   u8 bindings[rvk_desc_bindings_max]; // RvkDescKind[]
 } RvkDescMeta;
 
-typedef struct {
+typedef struct sRvkDescSet {
   RvkDescChunk* chunk;
   usize         idx;
 } RvkDescSet;

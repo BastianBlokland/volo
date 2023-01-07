@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "pass_internal.h"

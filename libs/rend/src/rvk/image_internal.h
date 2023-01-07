@@ -1,13 +1,15 @@
 #pragma once
-#include "geo_color.h"
 
 #include "mem_internal.h"
 #include "types_internal.h"
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 
-typedef enum {
+typedef enum eRvkImagePhase {
   RvkImagePhase_Undefined,
   RvkImagePhase_TransferSource,
   RvkImagePhase_TransferDest,
@@ -19,7 +21,7 @@ typedef enum {
   RvkImagePhase_Count,
 } RvkImagePhase;
 
-typedef enum {
+typedef enum eRvkImageType {
   RvkImageType_ColorSource,
   RvkImageType_ColorSourceCube,
   RvkImageType_ColorAttachment,
@@ -29,7 +31,7 @@ typedef enum {
   RvkImageType_Count,
 } RvkImageType;
 
-typedef enum {
+typedef enum eRvkImageCapability {
   RvkImageCapability_None            = 0,
   RvkImageCapability_TransferSource  = 1 << 0,
   RvkImageCapability_TransferDest    = 1 << 1,

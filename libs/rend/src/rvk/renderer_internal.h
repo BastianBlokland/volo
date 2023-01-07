@@ -2,16 +2,17 @@
 #include "core_time.h"
 #include "rend_stats.h"
 
-#include "image_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
-typedef struct sRvkPass   RvkPass;
+typedef enum eRvkImagePhase RvkImagePhase;
+typedef struct sRvkDevice   RvkDevice;
+typedef struct sRvkImage    RvkImage;
+typedef struct sRvkPass     RvkPass;
 
 typedef struct sRvkRenderer RvkRenderer;
 
-typedef enum {
+typedef enum eRvkRenderPass {
   RvkRenderPass_Geometry,
   RvkRenderPass_Forward,
   RvkRenderPass_Shadow,
@@ -20,7 +21,7 @@ typedef enum {
   RvkRenderPass_Count,
 } RvkRenderPass;
 
-typedef struct {
+typedef struct sRvkRenderStats {
   TimeDuration renderDur, waitForRenderDur;
   RendStatPass passes[RvkRenderPass_Count];
 } RvkRenderStats;

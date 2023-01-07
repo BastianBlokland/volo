@@ -5,10 +5,14 @@
 #include "core_math.h"
 #include "log_logger.h"
 
+#include "attach_internal.h"
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
+#include "image_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
+#include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
