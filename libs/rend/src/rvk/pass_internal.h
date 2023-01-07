@@ -55,14 +55,13 @@ String  rvk_pass_name(const RvkPass*);
 RvkSize rvk_pass_size(const RvkPass*);
 bool    rvk_pass_recorded(const RvkPass*);
 
-RvkDescMeta  rvk_pass_meta_global(const RvkPass*);
-RvkDescMeta  rvk_pass_meta_dynamic(const RvkPass*);
-RvkDescMeta  rvk_pass_meta_draw(const RvkPass*);
-RvkDescMeta  rvk_pass_meta_instance(const RvkPass*);
-VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
-
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
+RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
+RvkDescMeta   rvk_pass_meta_dynamic(const RvkPass*);
+RvkDescMeta   rvk_pass_meta_draw(const RvkPass*);
+RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
+VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
 u64          rvk_pass_stat(const RvkPass*, RvkStat);
 TimeDuration rvk_pass_duration(const RvkPass*);

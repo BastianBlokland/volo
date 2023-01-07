@@ -270,7 +270,8 @@ static void rvk_pass_vkrenderpass_begin(
   if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
     diag_assert_msg(
         pass->attachDepth && pass->attachDepth->phase == RvkImagePhase_TransferDest,
-        "Unable to load the depth from transfer: Unexpected image phase");
+        "Pass {} unable to load the depth from transfer: Unexpected image phase",
+        fmt_text(pass->name));
   }
 
   VkClearValue clearValues[pass_attachment_max];
@@ -281,7 +282,7 @@ static void rvk_pass_vkrenderpass_begin(
       clearValues[clearValueCount++].color = *(VkClearColorValue*)&clearColor;
     }
     if (pass->flags & RvkImageType_DepthAttachment) {
-      // Init depth to zero for a reversed-z depthbuffer.
+      // Init depth to zero for a reversed-z depth-buffer.
       clearValues[clearValueCount++].depthStencil = (VkClearDepthStencilValue){.depth = 0.0f};
     }
   }
@@ -414,26 +415,6 @@ bool rvk_pass_recorded(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
 }
 
-RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
-  return rvk_desc_set_meta(pass->globalDescSet);
-}
-
-RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
-  (void)pass;
-  /**
-   * Single StorageBuffer for the vertices.
-   */
-  return (RvkDescMeta){.bindings[0] = RvkDescKind_StorageBuffer};
-}
-
-RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
-
-RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
-  return rvk_uniform_meta(pass->uniformPool);
-}
-
-VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
-
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   return (RvkAttachSpec){
       .vkFormat     = rvk_attach_color_format_at_index(pass->flags, colorAttachIndex),
@@ -453,6 +434,26 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   }
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
 }
+
+RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
+  return rvk_desc_set_meta(pass->globalDescSet);
+}
+
+RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
+  (void)pass;
+  /**
+   * Single StorageBuffer for the vertices.
+   */
+  return (RvkDescMeta){.bindings[0] = RvkDescKind_StorageBuffer};
+}
+
+RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
+
+RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
+  return rvk_uniform_meta(pass->uniformPool);
+}
+
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
@@ -500,6 +501,7 @@ void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
 }
 
