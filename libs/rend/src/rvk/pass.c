@@ -93,7 +93,7 @@ static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const Rv
       fmt_text(pass->name),
       fmt_int(idx));
   diag_assert_msg(
-      img->caps & spec.capabilities,
+      (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} color attachment {} invalid: Missing capabilities",
       fmt_text(pass->name),
       fmt_int(idx));
@@ -122,7 +122,7 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
       "Pass {} depth attachment invalid: Missing AttachmentDepth capability",
       fmt_text(pass->name));
   diag_assert_msg(
-      img->caps & spec.capabilities,
+      (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} depth attachment invalid: Missing capabilities",
       fmt_text(pass->name));
   diag_assert_msg(
@@ -625,6 +625,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   const u32 bindIndex = 1 + imageIndex;
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
+  diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   if (!rvk_sampler_initialized(&pass->globalImageSampler)) {
     const u8 mipLevels       = 1;
@@ -652,6 +653,7 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
+  diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   if (!rvk_sampler_initialized(&pass->globalShadowSampler)) {
     const u8 mipLevels        = 1;
