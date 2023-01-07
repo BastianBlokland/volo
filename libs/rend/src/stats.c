@@ -12,7 +12,6 @@
 #include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
-#include "rvk/renderer_internal.h"
 #include "rvk/swapchain_internal.h"
 
 ecs_comp_define_public(RendStatsComp);
@@ -89,22 +88,22 @@ ecs_system_define(RendUpdateCamStatsSys) {
     }
 
     // NOTE: Can potentially block if the previous draw has not finished.
-    const RvkRenderStats    renderStats    = rvk_canvas_render_stats(painter->canvas);
+    const RvkCanvasStats    canvasStats    = rvk_canvas_stats(painter->canvas);
     const RvkSwapchainStats swapchainStats = rvk_canvas_swapchain_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
 
-    stats->renderDur         = renderStats.renderDur;
-    stats->waitForRenderDur  = renderStats.waitForRenderDur;
+    stats->renderDur         = canvasStats.renderDur;
+    stats->waitForRenderDur  = canvasStats.waitForRenderDur;
     stats->presentAcquireDur = swapchainStats.acquireDur;
     stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
     stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
 
-    stats->passGeometry = renderStats.passes[RvkRenderPass_Geometry];
-    stats->passForward  = renderStats.passes[RvkRenderPass_Forward];
-    stats->passShadow   = renderStats.passes[RvkRenderPass_Shadow];
-    stats->passAo       = renderStats.passes[RvkRenderPass_AmbientOcclusion];
+    stats->passGeometry = canvasStats.passes[RvkCanvasPass_Geometry];
+    stats->passForward  = canvasStats.passes[RvkCanvasPass_Forward];
+    stats->passShadow   = canvasStats.passes[RvkCanvasPass_Shadow];
+    stats->passAo       = canvasStats.passes[RvkCanvasPass_AmbientOcclusion];
 
     stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);

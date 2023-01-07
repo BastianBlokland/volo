@@ -23,7 +23,6 @@
 #include "rvk/graphic_internal.h"
 #include "rvk/mesh_internal.h"
 #include "rvk/pass_internal.h"
-#include "rvk/renderer_internal.h"
 #include "rvk/repository_internal.h"
 
 ecs_comp_define_public(RendPainterComp);
@@ -442,7 +441,7 @@ static bool rend_canvas_paint(
   }
 
   // Geometry pass.
-  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Geometry);
+  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Geometry);
   rvk_pass_set_size(geoPass, rvk_size_scale(winSize, settings->resolutionScale));
   RvkImage* geoColorRough = rend_attach_acquire_color(painter, geoPass, 0);
   RvkImage* geoNormTags   = rend_attach_acquire_color(painter, geoPass, 1);
@@ -465,7 +464,7 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Shadow);
+  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Shadow);
   rvk_pass_set_size(shadowPass, (RvkSize){settings->shadowResolution, settings->shadowResolution});
   RvkImage* shadowDepth = rend_attach_acquire_depth(painter, shadowPass);
   if (rend_light_has_shadow(light)) {
@@ -482,7 +481,7 @@ static bool rend_canvas_paint(
   }
 
   // Ambient occlusion.
-  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_AmbientOcclusion);
+  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_AmbientOcclusion);
   rvk_pass_set_size(aoPass, rvk_size_scale(rvk_pass_size(geoPass), settings->aoResolutionScale));
   RvkImage* aoBuffer = rend_attach_acquire_color(painter, aoPass, 0);
   if (settings->flags & RendFlags_AmbientOcclusion) {
@@ -503,7 +502,7 @@ static bool rend_canvas_paint(
   }
 
   // Forward pass.
-  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkRenderPass_Forward);
+  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Forward);
   rvk_pass_set_size(fwdPass, rvk_size_scale(winSize, settings->resolutionScale));
   RvkImage* fwdColor = rend_attach_acquire_color(painter, fwdPass, 0);
   RvkImage* fwdDepth = rend_attach_acquire_depth(painter, fwdPass);

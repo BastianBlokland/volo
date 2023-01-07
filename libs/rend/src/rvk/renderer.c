@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
+#include "canvas_internal.h"
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
@@ -10,7 +11,6 @@
 #include "renderer_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
-#include "types_internal.h"
 #include "uniform_internal.h"
 
 typedef RvkPass* RvkPassPtr;
@@ -24,7 +24,7 @@ struct sRvkRenderer {
   u32              rendererId;
   RvkUniformPool*  uniformPool;
   RvkStopwatch*    stopwatch;
-  RvkPass*         passes[RvkRenderPass_Count];
+  RvkPass*         passes[RvkCanvasPass_Count];
   VkFence          fenceRenderDone;
   VkCommandPool    vkCmdPool;
   VkCommandBuffer  vkDrawBuffer;
@@ -162,23 +162,23 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb |      // Attachment color1 (srgb)  : color (rgb) and roughness (a).
       RvkPassFlags_Color2 |                                // Attachment color2 (linear): normal (rgb) and tags (a).
       RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkRenderPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Geometry));
+    renderer->passes[RvkCanvasPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Geometry));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearColor |
       RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb    |   // Attachment color1 (srgb): color (rgb).
       RvkPassFlags_Depth | RvkPassFlags_DepthLoadTransfer; // Attachment depth.
-    renderer->passes[RvkRenderPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Forward));
+    renderer->passes[RvkCanvasPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Forward));
   }
   {
     const RvkPassFlags flags = RvkPassFlags_ClearDepth |
       RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkRenderPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_Shadow));
+    renderer->passes[RvkCanvasPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Shadow));
   }
   {
     const RvkPassFlags flags =
       RvkPassFlags_Color1 | RvkPassFlags_Color1Single;     // Attachment color1 (linear): occlusion (r).
-    renderer->passes[RvkRenderPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_renderer_pass_name(RvkRenderPass_AmbientOcclusion));
+    renderer->passes[RvkCanvasPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_AmbientOcclusion));
   }
   // clang-format on
 
@@ -207,17 +207,17 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   ((RvkRenderer*)rend)->waitForRenderDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
-RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
+RvkCanvasStats rvk_renderer_stats(const RvkRenderer* rend) {
   rvk_renderer_wait_for_done(rend);
 
   const u64 timestampBegin = rvk_stopwatch_query(rend->stopwatch, rend->timeRecBegin);
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
-  RvkRenderStats result;
+  RvkCanvasStats result;
   result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
   result.waitForRenderDur = rend->waitForRenderDur;
 
-  for (RvkRenderPass passIdx = 0; passIdx != RvkRenderPass_Count; ++passIdx) {
+  for (RvkCanvasPass passIdx = 0; passIdx != RvkCanvasPass_Count; ++passIdx) {
     const RvkPass* pass = rend->passes[passIdx];
     if (rvk_pass_recorded(pass)) {
       result.passes[passIdx] = (RendStatPass){
@@ -238,17 +238,6 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   }
 
   return result;
-}
-
-String rvk_renderer_pass_name(const RvkRenderPass pass) {
-  static const String g_names[] = {
-      string_static("geometry"),
-      string_static("forward"),
-      string_static("shadow"),
-      string_static("ambient-occlusion"),
-  };
-  ASSERT(array_elems(g_names) == RvkRenderPass_Count, "Incorrect number of names");
-  return g_names[pass];
 }
 
 void rvk_renderer_begin(RvkRenderer* rend) {
@@ -275,9 +264,9 @@ void rvk_renderer_begin(RvkRenderer* rend) {
       fmt_int(rend->rendererId));
 }
 
-RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkRenderPass pass) {
+RvkPass* rvk_renderer_pass(RvkRenderer* rend, const RvkCanvasPass pass) {
   diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
-  diag_assert(pass < RvkRenderPass_Count);
+  diag_assert(pass < RvkCanvasPass_Count);
   return rend->passes[pass];
 }
 

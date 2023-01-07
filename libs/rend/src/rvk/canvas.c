@@ -86,10 +86,21 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
+String rvk_canvas_pass_name(const RvkCanvasPass pass) {
+  static const String g_names[] = {
+      string_static("geometry"),
+      string_static("forward"),
+      string_static("shadow"),
+      string_static("ambient-occlusion"),
+  };
+  ASSERT(array_elems(g_names) == RvkCanvasPass_Count, "Incorrect number of names");
+  return g_names[pass];
+}
+
 RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
-RvkRenderStats rvk_canvas_render_stats(const RvkCanvas* canvas) {
+RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
 }
@@ -114,7 +125,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
-RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkRenderPass pass) {
+RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_pass(renderer, pass);

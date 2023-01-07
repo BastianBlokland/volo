@@ -1,11 +1,11 @@
 #pragma once
 #include "gap_window.h"
 #include "rend_settings.h"
+#include "rend_stats.h"
 
 #include "types_internal.h"
 
 // Internal forward declarations:
-typedef enum eRvkRenderPass       RvkRenderPass;
 typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
@@ -14,6 +14,20 @@ typedef struct sRvkRenderStats    RvkRenderStats;
 typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
+typedef enum eRvkCanvasPass {
+  RvkCanvasPass_Geometry,
+  RvkCanvasPass_Forward,
+  RvkCanvasPass_Shadow,
+  RvkCanvasPass_AmbientOcclusion,
+
+  RvkCanvasPass_Count,
+} RvkCanvasPass;
+
+typedef struct sRvkCanvasStats {
+  TimeDuration renderDur, waitForRenderDur;
+  RendStatPass passes[RvkCanvasPass_Count];
+} RvkCanvasStats;
+
 /**
  * Canvas for rendering onto a window.
  */
@@ -21,6 +35,7 @@ typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
+String     rvk_canvas_pass_name(RvkCanvasPass);
 
 RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas*);
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
@@ -29,7 +44,7 @@ RvkRepository* rvk_canvas_repository(RvkCanvas*);
  * Query statistics about the previous submitted draw.
  * NOTE: Will block until the previous draw has finished.
  */
-RvkRenderStats rvk_canvas_render_stats(const RvkCanvas*);
+RvkCanvasStats rvk_canvas_stats(const RvkCanvas*);
 
 /**
  * Query swapchain statistics.
@@ -37,7 +52,7 @@ RvkRenderStats rvk_canvas_render_stats(const RvkCanvas*);
 RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 
 bool      rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
-RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkRenderPass);
+RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkCanvasPass);
 RvkImage* rvk_canvas_output(RvkCanvas*);
 void      rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
 void      rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
