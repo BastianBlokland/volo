@@ -27,7 +27,7 @@ ecs_comp_extern_public(RendStatsComp) {
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 
-  RendStatPass passGeometry, passForward, passShadow, passAo;
+  RendStatPass passGeometry, passForward, passPost, passShadow, passAo;
 
   u16 memChunks;
   u64 ramOccupied, ramReserved;

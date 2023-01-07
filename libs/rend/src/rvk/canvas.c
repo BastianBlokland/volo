@@ -95,6 +95,7 @@ String rvk_canvas_pass_name(const RvkCanvasPass pass) {
   static const String g_names[] = {
       string_static("geometry"),
       string_static("forward"),
+      string_static("post"),
       string_static("shadow"),
       string_static("ambient-occlusion"),
   };

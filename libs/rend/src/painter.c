@@ -32,15 +32,19 @@ static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
                               RvkPassFlags_Color2     |                           // Attachment color2 (linear): normal (rgb) and tags (a).
     RvkPassFlags_Depth      | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,  // Attachment depth.
 
-  [RvkCanvasPass_Forward] =
-    RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Swapchain | // Attachment color1 (swapchain): color (rgb).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                                 // Attachment depth.
-
   [RvkCanvasPass_Shadow] =
     RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore, // Attachment depth.
 
   [RvkCanvasPass_AmbientOcclusion] =
     RvkPassFlags_Color1 | RvkPassFlags_Color1Single, // Attachment color1 (linear): occlusion (r).
+
+  [RvkCanvasPass_Forward] =
+    RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb): color (rgb).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                            // Attachment depth.
+
+  [RvkCanvasPass_Post] =
+    RvkPassFlags_Color1 | RvkPassFlags_ColorLoadTransfer | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
+
 };
 // clang-format on
 
@@ -508,10 +512,11 @@ static bool rend_canvas_paint(
 
   // Forward pass.
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Forward);
-  rvk_pass_set_size(fwdPass, swapchainSize);
+  rvk_pass_set_size(fwdPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
+  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
   {
-    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize it to the geometry depth.
+    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
@@ -524,7 +529,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, geoDepth, 2);
     rvk_pass_bind_global_image(fwdPass, aoBuffer, 3);
     rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
-    rvk_pass_bind_attach_color(fwdPass, swapchainImage, 0);
+    rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
     painter_push_ambient(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
@@ -552,6 +557,26 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
+
+  // Post pass.
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Post);
+  rvk_pass_set_size(postPass, swapchainSize);
+  {
+    rvk_canvas_blit(painter->canvas, fwdColor, swapchainImage); // Initialize to the forward color.
+
+    const GeoMatrix  pTrans = geo_matrix_ident();
+    const GeoMatrix  pProj  = geo_matrix_proj_ortho(1, 1, 0, 1);
+    RendPaintContext ctx    = painter_context(
+        &pTrans, &pProj, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
+
+    rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
+    rvk_pass_begin(postPass, geo_color_clear);
+    painter_flush(&ctx);
+    rvk_pass_end(postPass);
+  }
+
+  rvk_canvas_attach_release(painter->canvas, fwdColor);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);

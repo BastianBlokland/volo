@@ -102,6 +102,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
 
     stats->passGeometry = canvasStats.passes[RvkCanvasPass_Geometry];
     stats->passForward  = canvasStats.passes[RvkCanvasPass_Forward];
+    stats->passPost     = canvasStats.passes[RvkCanvasPass_Post];
     stats->passShadow   = canvasStats.passes[RvkCanvasPass_Shadow];
     stats->passAo       = canvasStats.passes[RvkCanvasPass_AmbientOcclusion];
 
