@@ -1,7 +1,7 @@
 #pragma once
 #include "core_types.h"
 
-typedef union {
+typedef union uRvkSize {
   struct {
     u16 width, height;
   };

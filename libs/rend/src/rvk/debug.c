@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "geo_color.h"
 #include "log_logger.h"
 
 #include "debug_internal.h"

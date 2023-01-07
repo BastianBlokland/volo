@@ -5,6 +5,7 @@
 
 #include "alloc_internal.h"
 
+#include <errno.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -49,7 +50,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   const u32 pages = alloc_page_num_pages(allocPage, mem.size);
   const int res   = munmap(mem.ptr, pages * allocPage->pageSize);
   if (UNLIKELY(res != 0)) {
-    diag_crash_msg("munmap() failed: {}", fmt_int(res));
+    diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }
   thread_atomic_sub_i64(&allocPage->allocatedPages, pages);
 }

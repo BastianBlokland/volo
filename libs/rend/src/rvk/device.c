@@ -5,6 +5,7 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
+#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
@@ -293,10 +294,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
   queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
-          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-          .queueFamilyIndex = dev->graphicsQueueIndex,
-          .queueCount       = 1,
-          .pQueuePriorities = &queuePriorities[0],
+      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueFamilyIndex = dev->graphicsQueueIndex,
+      .queueCount       = 1,
+      .pQueuePriorities = &queuePriorities[0],
   };
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
@@ -391,8 +392,8 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
-                .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
-                .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
+      .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
+      .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
   const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;

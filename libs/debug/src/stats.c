@@ -362,7 +362,9 @@ static void debug_stats_draw_interface(
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution fwd"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passForward.size[0]), fmt_int(rendStats->passForward.size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution ao"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passAo.size[0]), fmt_int(rendStats->passAo.size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution shadow"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passShadow.size[0]), fmt_int(rendStats->passShadow.size[1])));
 
     stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.draws), fmt_int(rendStats->passForward.draws)));
     stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.instances), fmt_int(rendStats->passForward.instances)));
@@ -371,6 +373,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersVert), fmt_int(rendStats->passForward.shadersVert)));
     stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersFrag), fmt_int(rendStats->passForward.shadersFrag)));
 
+    stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
     stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
@@ -392,6 +395,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
   }
@@ -468,7 +472,7 @@ static void debug_stats_update(
   stats->gpuRenderGeoDur     = rendStats->passGeometry.dur;
   stats->gpuRenderShadowDur  = rendStats->passShadow.dur;
   stats->gpuRenderForwardDur = rendStats->passForward.dur;
-  stats->gpuRenderAoDur      = rendStats->passAmbientOcclusion.dur;
+  stats->gpuRenderAoDur      = rendStats->passAo.dur;
 
   const f32 ref = (f32)stats->frameDur;
   debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));

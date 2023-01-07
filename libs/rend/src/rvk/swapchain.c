@@ -5,7 +5,9 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
+#include "debug_internal.h"
 #include "device_internal.h"
+#include "image_internal.h"
 #include "swapchain_internal.h"
 
 #if defined(VOLO_LINUX)
@@ -22,6 +24,8 @@
 ASSERT(false, "Unsupported platform");
 #endif
 
+#define swapchain_images_max 5
+
 typedef enum {
   RvkSwapchainFlags_OutOfDate,
 } RvkSwapchainFlags;
@@ -34,9 +38,11 @@ struct sRvkSwapchain {
   RendPresentMode    presentModeSetting;
   RvkSwapchainFlags  flags;
   RvkSize            size;
-  DynArray           images; // RvkImage[]
-  TimeDuration       lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
-  u64                curPresentId; // NOTE: Present-id zero is unused.
+  RvkImage           images[swapchain_images_max];
+  u32                imageCount;
+
+  TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
+  u64          curPresentId; // NOTE: Present-id zero is unused.
 
 #ifdef VK_KHR_present_wait
   PFN_vkWaitForPresentKHR vkWaitForPresentFunc;
@@ -85,18 +91,45 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   if (!formatCount) {
     diag_crash_msg("No Vulkan surface formats available");
   }
-  VkSurfaceFormatKHR* formats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
-  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, formats);
+  VkSurfaceFormatKHR* surfFormats = mem_stack(sizeof(VkSurfaceFormatKHR) * formatCount).ptr;
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, surfFormats);
 
-  // Prefer srgb, so the gpu can itself perform the linear to srgb conversion.
+  VkSurfaceFormatKHR bestSurfFormat;
+  u32                bestScore = sentinel_u32;
+
   for (u32 i = 0; i != formatCount; ++i) {
-    if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
-      return formats[i];
+    const RvkFormatInfo formatInfo = rvk_format_info(surfFormats[i].format);
+
+    u32 score = 0;
+    if (formatInfo.flags & RvkFormat_RGBA) {
+      // Prefer RGBA as it matches what the renderer uses for textures and temporary attachments,
+      // unfortunately BGRA is also quite common for window surfaces.
+      score += 2;
+    }
+    if (formatInfo.flags & RvkFormat_BGRA) {
+      score += 1;
+    }
+    if (formatInfo.flags & RvkFormat_Srgb) {
+      // Prefer an Srgb format so the gpu can perform the linear -> srgb conversion.
+      score += 10;
+    }
+
+    log_d(
+        "Found surface format",
+        log_param("format", fmt_text(formatInfo.name)),
+        log_param("color", fmt_text(rvk_colorspace_str(surfFormats[i].colorSpace))),
+        log_param("score", fmt_int(score)));
+
+    if (sentinel_check(bestScore) || score > bestScore) {
+      bestSurfFormat = surfFormats[i];
+      bestScore      = score;
     }
   }
 
-  log_w("No SRGB surface format available");
-  return formats[0];
+  if (!(rvk_format_info(bestSurfFormat.format).flags & RvkFormat_Srgb)) {
+    log_w("No Srgb surface format available");
+  }
+  return bestSurfFormat;
 }
 
 static u32
@@ -112,10 +145,10 @@ rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const RendSettingsComp
     imgCount = 3; // one on-screen, one ready, and one being rendered to.
     break;
   }
-  if (caps->minImageCount > imgCount) {
+  if (imgCount < caps->minImageCount) {
     imgCount = caps->minImageCount;
   }
-  if (caps->maxImageCount && caps->maxImageCount < imgCount) {
+  if (caps->maxImageCount && imgCount > caps->maxImageCount) {
     imgCount = caps->maxImageCount;
   }
   return imgCount;
@@ -173,8 +206,9 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
     return false;
   }
 
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
-  dynarray_clear(&swapchain->images);
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+  }
 
   const VkDevice           vkDev   = swapchain->dev->vkDev;
   VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
@@ -186,37 +220,39 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 
   const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   const VkSwapchainCreateInfoKHR createInfo   = {
-        .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface            = swapchain->vkSurf,
-        .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
-        .imageFormat        = swapchain->vkSurfFormat.format,
-        .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
-        .imageExtent.width  = size.width,
-        .imageExtent.height = size.height,
-        .imageArrayLayers   = 1,
-        .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-        .preTransform       = vkCaps.currentTransform,
-        .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode        = presentMode,
-        .clipped            = true,
-        .oldSwapchain       = oldSwapchain,
+      .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .surface            = swapchain->vkSurf,
+      .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
+      .imageFormat        = swapchain->vkSurfFormat.format,
+      .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
+      .imageExtent.width  = size.width,
+      .imageExtent.height = size.height,
+      .imageArrayLayers   = 1,
+      .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+      .preTransform       = vkCaps.currentTransform,
+      .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      .presentMode        = presentMode,
+      .clipped            = true,
+      .oldSwapchain       = oldSwapchain,
   };
   rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
   if (oldSwapchain) {
     vkDestroySwapchainKHR(vkDev, oldSwapchain, &swapchain->dev->vkAlloc);
   }
 
-  u32 imageCount;
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, null);
-  VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, null);
+  if (swapchain->imageCount >= swapchain_images_max) {
+    diag_crash_msg("Vulkan surface uses more swapchain images then are supported");
+  }
+
+  VkImage vkImgs[swapchain_images_max];
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, vkImgs);
 
   const VkFormat format = swapchain->vkSurfFormat.format;
-  for (u32 i = 0; i != imageCount; ++i) {
-    RvkImage* img = dynarray_push_t(&swapchain->images, RvkImage);
-    *img          = rvk_image_create_swapchain(swapchain->dev, images[i], format, size);
-    rvk_debug_name_img(swapchain->dev->debug, img->vkImage, "swapchain_{}", fmt_int(i));
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    swapchain->images[i] = rvk_image_create_swapchain(swapchain->dev, vkImgs[i], format, size);
+    rvk_debug_name_img(swapchain->dev->debug, vkImgs[i], "swapchain_{}", fmt_int(i));
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -229,7 +265,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
       log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(presentMode))),
-      log_param("image-count", fmt_int(imageCount)));
+      log_param("image-count", fmt_int(swapchain->imageCount)));
 
   return true;
 }
@@ -237,11 +273,11 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
-  *swapchain              = (RvkSwapchain){
-                   .dev          = dev,
-                   .vkSurf       = vkSurf,
-                   .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
-                   .images       = dynarray_create_t(g_alloc_heap, RvkImage, 3),
+
+  *swapchain = (RvkSwapchain){
+      .dev          = dev,
+      .vkSurf       = vkSurf,
+      .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
   };
 
   VkBool32 supported;
@@ -264,9 +300,9 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
 }
 
 void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
-  dynarray_destroy(&swapchain->images);
-
+  for (u32 i = 0; i != swapchain->imageCount; ++i) {
+    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+  }
   if (swapchain->vkSwapchain) {
     vkDestroySwapchainKHR(swapchain->dev->vkDev, swapchain->vkSwapchain, &swapchain->dev->vkAlloc);
   }
@@ -285,9 +321,9 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
   };
 }
 
-RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
-  diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
-  return dynarray_at_t(&swapchain->images, idx, RvkImage);
+RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
+  diag_assert_msg(idx < swapchain->imageCount, "Swapchain index {} is out of bounds", fmt_int(idx));
+  return &swapchain->images[idx];
 }
 
 RvkSwapchainIdx rvk_swapchain_acquire(

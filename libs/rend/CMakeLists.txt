@@ -14,6 +14,7 @@ add_library(lib_rend STATIC
   src/register.c
   src/reset.c
   src/resource.c
+  src/rvk/attach.c
   src/rvk/buffer.c
   src/rvk/canvas.c
   src/rvk/debug.c
@@ -21,12 +22,12 @@ add_library(lib_rend STATIC
   src/rvk/device.c
   src/rvk/graphic.c
   src/rvk/image.c
+  src/rvk/job.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c
   src/rvk/mesh.c
   src/rvk/pass.c
   src/rvk/psocache.c
-  src/rvk/renderer.c
   src/rvk/repository.c
   src/rvk/sampler.c
   src/rvk/shader.c

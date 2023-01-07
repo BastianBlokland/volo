@@ -13,22 +13,22 @@
  * Does not do any defragging at the moment so will get fragmented over time.
  */
 
-// #define VOLO_RVK_MEM_DEBUG
-// #define VOLO_RVK_MEM_LOGGING
+#define VOLO_RVK_MEM_DEBUG 0
+#define VOLO_RVK_MEM_LOGGING 0
 
 #define rvk_mem_chunk_size (64 * usize_mebibyte)
 
-typedef u32 RvkChunkId;
+typedef u16 RvkChunkId;
 
 struct sRvkMemChunk {
-  RvkChunkId     id;
   RvkMemPool*    pool;
   RvkMemChunk*   next;
-  RvkMemLoc      loc;
-  RvkMemAccess   access;
+  RvkChunkId     id;
+  RvkMemLoc      loc : 8;
+  RvkMemAccess   access : 8;
   u32            size;
   u32            memType;
-  DynArray       freeBlocks; // RvkMem[]
+  DynArray       freeBlocks; // RvkMem[], sorted on offset.
   VkDeviceMemory vkMem;
   void*          map;
 };
@@ -43,6 +43,10 @@ struct sRvkMemPool {
   RvkMemChunk*                     chunkHead;
   RvkMemChunk*                     chunkTail;
 };
+
+static i8 rend_mem_compare(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, RvkMem, offset), field_ptr(b, RvkMem, offset));
+}
 
 MAYBE_UNUSED static String rvk_mem_loc_str(const RvkMemLoc loc) {
   switch (loc) {
@@ -96,7 +100,7 @@ MAYBE_UNUSED static bool rvk_mem_overlap(const RvkMem a, const RvkMem b) {
 
 /**
  * Allocate a continuous block of device memory from Vulkan.
- * NOTE: To avoid gpu memory fragmention only large blocks should be allocated from Vulkan.
+ * NOTE: To avoid gpu memory fragmentation only large blocks should be allocated from Vulkan.
  */
 static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u32 memType) {
   VkMemoryAllocateInfo allocInfo = {
@@ -132,6 +136,23 @@ static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
 }
 
+/**
+ * Verify that all free blocks are correctly sorted.
+ */
+MAYBE_UNUSED static bool rvk_mem_assert_block_sorting(const RvkMemChunk* chunk) {
+  u32 offset = 0;
+  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
+    diag_assert_msg(
+        freeBlock->offset >= offset,
+        "Out of order free-block (offset: {}, size: {}) in chunk {}",
+        fmt_int(freeBlock->offset),
+        fmt_int(freeBlock->size),
+        fmt_int(chunk->id));
+    offset = freeBlock->offset;
+  }
+  return offset;
+}
+
 static RvkMemChunk* rvk_mem_chunk_create(
     RvkMemPool*        pool,
     const u32          id,
@@ -161,7 +182,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
   diag_assert(rvk_mem_chunk_size_free(chunk) == size);
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory chunk created",
       log_param("id", fmt_int(chunk->id)),
@@ -174,7 +195,6 @@ static RvkMemChunk* rvk_mem_chunk_create(
 }
 
 static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
-
   const u32 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
   if (UNLIKELY(leakedBytes)) {
     diag_crash_msg(
@@ -193,7 +213,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
   dynarray_destroy(&chunk->freeBlocks);
   alloc_free_t(g_alloc_heap, chunk);
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory chunk destroyed",
       log_param("id", fmt_int(chunk->id)),
@@ -205,8 +225,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 }
 
 static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 align) {
-
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
@@ -219,8 +238,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
     const i32 remainingSize = (i32)block->size - (i32)paddedSize;
 
     if (remainingSize < 0) {
-      // Doesn't fit in this block.
-      continue;
+      continue; // Doesn't fit in this block.
     }
 
     // Either shrink the block to 'remove' the space, or remove the block entirely.
@@ -228,15 +246,18 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
       block->offset += paddedSize;
       block->size = (u32)remainingSize;
     } else {
-      dynarray_remove_unordered(&chunk->freeBlocks, i, 1);
+      dynarray_remove(&chunk->freeBlocks, i, 1);
     }
 
     if (padding) {
       // Add the lost padding space as a new block.
-      *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = offset, .size = padding};
+      *dynarray_insert_t(&chunk->freeBlocks, i, RvkMem) = (RvkMem){
+          .offset = offset,
+          .size   = padding,
+      };
     }
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
     if (UNLIKELY(dbgFreeSize - rvk_mem_chunk_size_free(chunk) != size)) {
       diag_crash_msg(
           "Memory-pool corrupt after allocate (size: {}, chunk: {}, pre-alloc: {}, post-alloc: {})",
@@ -246,9 +267,10 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
           fmt_int(dbgFreeSize),
           fmt_int(rvk_mem_chunk_size_free(chunk)));
     }
+    rvk_mem_assert_block_sorting(chunk);
 #endif
 
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
     log_d(
         "Vulkan memory block allocated",
         log_param("size", fmt_size(size)),
@@ -266,7 +288,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
 static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   diag_assert(mem.chunk == chunk);
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     if (UNLIKELY(rvk_mem_overlap(*freeBlock, mem))) {
       diag_crash_msg(
@@ -276,45 +298,41 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
-  // Check if there already is a free block before or after this one, if so then 'grow' that.
-  // TODO: Merge blocks if they become adjacent due to the given block being freed.
-  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
-    // Check if this freeBlock is right before the given block.
-    if (rvk_mem_end_offset(*freeBlock) == mem.offset) {
-      freeBlock->size += mem.size;
-      goto Done;
-    }
+  // Insert free block.
+  *dynarray_insert_sorted_t(&chunk->freeBlocks, RvkMem, rend_mem_compare, &mem) = mem;
 
-    // Check if this freeBlock is right after the given block.
-    if (freeBlock->offset == rvk_mem_end_offset(mem)) {
-      freeBlock->offset -= mem.size;
-      freeBlock->size += mem.size;
-      goto Done;
+  // Merge adjacent free blocks.
+  // TODO: Does allot of redundant checks in unchanged free-blocks.
+  MAYBE_UNUSED u32 mergedBlocks = 0;
+  for (usize i = chunk->freeBlocks.size; i-- > 1;) {
+    RvkMem* blockCur  = dynarray_at_t(&chunk->freeBlocks, i, RvkMem);
+    RvkMem* blockPrev = dynarray_at_t(&chunk->freeBlocks, i - 1, RvkMem);
+
+    if (rvk_mem_end_offset(*blockPrev) == blockCur->offset) {
+      blockPrev->size += blockCur->size;
+      dynarray_remove(&chunk->freeBlocks, i, 1);
+      ++mergedBlocks;
     }
   }
 
-  // No block to join, add as a new block.
-  *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = mem.offset, .size = mem.size};
-
-Done:
-  (void)0;
-
-#if defined(VOLO_RVK_MEM_LOGGING)
+#if VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory block freed",
-      log_param("size", fmt_int(mem.size)),
-      log_param("chunk", fmt_int(chunk->id)));
+      log_param("size", fmt_size(mem.size)),
+      log_param("chunk", fmt_int(chunk->id)),
+      log_param("merged-blocks", fmt_int(mergedBlocks)));
 #endif
 
-#if defined(VOLO_RVK_MEM_DEBUG)
+#if VOLO_RVK_MEM_DEBUG
   if (UNLIKELY(rvk_mem_chunk_size_free(chunk) - dbgFreeSize != mem.size)) {
     diag_crash_msg(
         "Memory-pool corrupt after free (size: {}, chunk: {}, pre-free: {}, post-free: {})",
-        fmt_int(mem.size),
+        fmt_size(mem.size),
         fmt_int(chunk->id),
         fmt_int(dbgFreeSize),
         fmt_int(rvk_mem_chunk_size_free(chunk)));
   }
+  rvk_mem_assert_block_sorting(chunk);
 #endif
 }
 
@@ -475,4 +493,16 @@ u64 rvk_mem_reserved(const RvkMemPool* pool, const RvkMemLoc loc) {
 
   thread_mutex_unlock(pool->lock);
   return reserved;
+}
+
+u16 rvk_mem_chunks(const RvkMemPool* pool) {
+  thread_mutex_lock(pool->lock);
+
+  u16 chunks = 0;
+  for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    ++chunks;
+  }
+
+  thread_mutex_unlock(pool->lock);
+  return chunks;
 }

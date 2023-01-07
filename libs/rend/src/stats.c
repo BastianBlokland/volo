@@ -7,10 +7,12 @@
 #include "platform_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
+#include "rvk/attach_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
+#include "rvk/swapchain_internal.h"
 
 ecs_comp_define_public(RendStatsComp);
 
@@ -46,8 +48,8 @@ ecs_view_define(LoadedResourceView) {
   ecs_access_with(RendResFinishedComp);
 }
 
-static void rend_stat_update_resources(EcsWorld* world, u32 resources[RendStatRes_Count]) {
-  mem_set(mem_create(resources, sizeof(u32) * RendStatRes_Count), 0);
+static void rend_stat_update_resources(EcsWorld* world, u16 resources[RendStatRes_Count]) {
+  mem_set(mem_create(resources, sizeof(u16) * RendStatRes_Count), 0);
 
   EcsView* loadedResView = ecs_world_view_t(world, LoadedResourceView);
   for (EcsIterator* itr = ecs_view_itr(loadedResView); ecs_view_walk(itr);) {
@@ -86,25 +88,24 @@ ecs_system_define(RendUpdateCamStatsSys) {
     }
 
     // NOTE: Can potentially block if the previous draw has not finished.
-    const RvkRenderStats    renderStats    = rvk_canvas_render_stats(painter->canvas);
+    const RvkCanvasStats    canvasStats    = rvk_canvas_stats(painter->canvas);
     const RvkSwapchainStats swapchainStats = rvk_canvas_swapchain_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
-    stats->renderSize[0] = renderStats.resolution.width;
-    stats->renderSize[1] = renderStats.resolution.height;
 
-    stats->renderDur         = renderStats.renderDur;
-    stats->waitForRenderDur  = renderStats.waitForRenderDur;
+    stats->renderDur         = canvasStats.renderDur;
+    stats->waitForRenderDur  = canvasStats.waitForRenderDur;
     stats->presentAcquireDur = swapchainStats.acquireDur;
     stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
     stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
 
-    stats->passGeometry         = renderStats.passes[RvkRenderPass_Geometry];
-    stats->passForward          = renderStats.passes[RvkRenderPass_Forward];
-    stats->passShadow           = renderStats.passes[RvkRenderPass_Shadow];
-    stats->passAmbientOcclusion = renderStats.passes[RvkRenderPass_AmbientOcclusion];
+    stats->passGeometry = canvasStats.passes[RvkCanvasPass_Geometry];
+    stats->passForward  = canvasStats.passes[RvkCanvasPass_Forward];
+    stats->passShadow   = canvasStats.passes[RvkCanvasPass_Shadow];
+    stats->passAo       = canvasStats.passes[RvkCanvasPass_AmbientOcclusion];
 
+    stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
     stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
     stats->vramOccupied = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
@@ -113,6 +114,8 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->descSetsOccupied = rvk_desc_pool_sets_occupied(plat->device->descPool);
     stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);
     stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
+    stats->attachCount      = rvk_canvas_attach_count(painter->canvas);
+    stats->attachMemory     = rvk_canvas_attach_memory(painter->canvas);
     rend_stat_update_resources(world, stats->resources);
   }
 }

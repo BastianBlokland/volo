@@ -2,11 +2,11 @@
 #include "asset_texture.h"
 #include "core_string.h"
 
-#include "desc_internal.h"
 #include "image_internal.h"
 #include "transfer_internal.h"
 
 // Internal forward declarations:
+typedef enum eRvkDescKind RvkDescKind;
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 

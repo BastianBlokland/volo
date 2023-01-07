@@ -29,9 +29,16 @@ String rvk_vendor_str(u32 vendorId);
 String rvk_colorspace_str(VkColorSpaceKHR);
 String rvk_presentmode_str(VkPresentModeKHR);
 
+typedef enum {
+  RvkFormat_RGBA = 1 << 0,
+  RvkFormat_BGRA = 1 << 1,
+  RvkFormat_Srgb = 1 << 2,
+} RvkFormatFlags;
+
 typedef struct {
-  String name;
-  u32    size, channels;
+  String         name;
+  u32            size, channels;
+  RvkFormatFlags flags;
 } RvkFormatInfo;
 
 RvkFormatInfo rvk_format_info(VkFormat format);

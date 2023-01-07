@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "log_logger.h"
 
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "mesh_internal.h"
 #include "transfer_internal.h"

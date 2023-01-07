@@ -4,6 +4,7 @@
 #include "log_logger.h"
 
 #include "debug_internal.h"
+#include "desc_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "texture_internal.h"
@@ -72,8 +73,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
 
   const VkFormat vkFormat = rvk_texture_format(asset->type, asset->flags, asset->channels);

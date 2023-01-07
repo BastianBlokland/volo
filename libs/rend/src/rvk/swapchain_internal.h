@@ -2,17 +2,18 @@
 #include "gap_window.h"
 #include "rend_settings.h"
 
-#include "image_internal.h"
+#include "vulkan_internal.h"
 
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkImage  RvkImage;
+typedef union uRvkSize    RvkSize;
 
 typedef u32 RvkSwapchainIdx;
 
 typedef struct sRvkSwapchain RvkSwapchain;
 
-typedef struct {
+typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
 } RvkSwapchainStats;
@@ -21,7 +22,7 @@ RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
 void              rvk_swapchain_destroy(RvkSwapchain*);
 RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain*);
 RvkSize           rvk_swapchain_size(const RvkSwapchain*);
-RvkImage*         rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
+RvkImage*         rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 
 /**
  * Acquire a new image to render into.
