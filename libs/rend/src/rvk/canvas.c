@@ -109,7 +109,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
-  rvk_renderer_begin(renderer, settings, size);
+  rvk_renderer_begin(renderer);
   return true;
 }
 

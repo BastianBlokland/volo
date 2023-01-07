@@ -239,7 +239,7 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   return result;
 }
 
-void rvk_renderer_begin(RvkRenderer* rend, const RendSettingsComp* settings, const RvkSize size) {
+void rvk_renderer_begin(RvkRenderer* rend) {
   diag_assert_msg(!(rend->flags & RvkRenderer_Active), "Renderer already active");
 
   rend->flags |= RvkRenderer_Active;
@@ -253,14 +253,6 @@ void rvk_renderer_begin(RvkRenderer* rend, const RendSettingsComp* settings, con
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
 
   array_for_t(rend->passes, RvkPassPtr, itr) { rvk_pass_reset(*itr); }
-
-  const RvkSize scaledRes        = rvk_size_scale(size, settings->resolutionScale);
-  const RvkSize shadowResolution = {settings->shadowResolution, settings->shadowResolution};
-  const RvkSize aoRes            = rvk_size_scale(scaledRes, settings->aoResolutionScale);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_Geometry], scaledRes);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_Forward], scaledRes);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_Shadow], shadowResolution);
-  rvk_pass_set_size(rend->passes[RvkRenderPass_AmbientOcclusion], aoRes);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(

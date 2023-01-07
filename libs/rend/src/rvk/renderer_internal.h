@@ -1,6 +1,5 @@
 #pragma once
 #include "core_time.h"
-#include "rend_settings.h"
 #include "rend_stats.h"
 
 #include "image_internal.h"
@@ -31,7 +30,7 @@ void           rvk_renderer_destroy(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 
-void rvk_renderer_begin(RvkRenderer*, const RendSettingsComp*, RvkSize size);
+void rvk_renderer_begin(RvkRenderer*);
 
 RvkPass* rvk_renderer_pass(RvkRenderer*, RvkRenderPass);
 void     rvk_renderer_copy(RvkRenderer*, RvkImage* src, RvkImage* dst);
