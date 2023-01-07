@@ -175,8 +175,8 @@ void rvk_attach_pool_flush(RvkAttachPool* pool) {
 }
 
 bool rvk_attach_validate_color(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
-  if (img->type != RvkImageType_ColorAttachment) {
-    return false; // Wrong type.
+  if (!(img->caps & RvkImageCapability_AttachmentColor)) {
+    return false; // Does not support usage as a color attachment.
   }
   if (img->vkFormat != spec.vkFormat) {
     return false; // Wrong format.
@@ -191,8 +191,8 @@ bool rvk_attach_validate_color(const RvkImage* img, const RvkAttachSpec spec, co
 }
 
 bool rvk_attach_validate_depth(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
-  if (img->type != RvkImageType_DepthAttachment) {
-    return false; // Wrong type.
+  if (!(img->caps & RvkImageCapability_AttachmentDepth)) {
+    return false; // Does not support usage as a depth attachment.
   }
   if (img->vkFormat != spec.vkFormat) {
     return false; // Wrong format.
