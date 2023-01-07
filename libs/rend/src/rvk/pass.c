@@ -489,6 +489,7 @@ void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!pass->attachColorMask && !pass->attachDepth, "Pass attachments already bound");
 
   pass->size = size;
 }
@@ -511,6 +512,7 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
   diag_assert_msg(!pass->attachColors[idx], "Color attachment already bound");
+  diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
   diag_assert(rvk_attach_validate_color(img, rvk_pass_spec_attach_color(pass, idx), pass->size));
 
   pass->attachColors[idx] = img;
@@ -521,6 +523,7 @@ void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(!pass->attachDepth, "Depth attachment already bound");
+  diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
   diag_assert(rvk_attach_validate_depth(img, rvk_pass_spec_attach_depth(pass), pass->size));
 
   pass->attachDepth = img;
