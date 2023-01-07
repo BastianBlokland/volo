@@ -218,8 +218,9 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
   const VkPresentModeKHR presentMode =
       rvk_pick_presentmode(swapchain->dev, settings, swapchain->vkSurf);
 
-  const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
-  const VkSwapchainCreateInfoKHR createInfo   = {
+  const VkSwapchainKHR oldSwapchain = swapchain->vkSwapchain;
+
+  const VkSwapchainCreateInfoKHR createInfo = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swapchain->vkSurf,
       .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
@@ -236,6 +237,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
       .clipped            = true,
       .oldSwapchain       = oldSwapchain,
   };
+
   rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
   if (oldSwapchain) {
     vkDestroySwapchainKHR(vkDev, oldSwapchain, &swapchain->dev->vkAlloc);
@@ -309,6 +311,10 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
 
   vkDestroySurfaceKHR(swapchain->dev->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
   alloc_free_t(g_alloc_heap, swapchain);
+}
+
+VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {
+  return swapchain->vkSurfFormat.format;
 }
 
 RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }

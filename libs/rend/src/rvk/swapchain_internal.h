@@ -20,6 +20,7 @@ typedef struct sRvkSwapchainStats {
 
 RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
 void              rvk_swapchain_destroy(RvkSwapchain*);
+VkFormat          rvk_swapchain_format(const RvkSwapchain*);
 RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain*);
 RvkSize           rvk_swapchain_size(const RvkSwapchain*);
 RvkImage*         rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
