@@ -250,33 +250,33 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id)
   }
 }
 
-static void painter_push_compose(RendPaintContext* ctx) {
+static void painter_push_ambient(RendPaintContext* ctx) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = ctx->settings->composeMode == RendComposeMode_Normal
-                                        ? RvkRepositoryId_ComposeGraphic
-                                        : RvkRepositoryId_ComposeDebugGraphic;
+  const RvkRepositoryId graphicId = ctx->settings->ambientMode == RendAmbientMode_Normal
+                                        ? RvkRepositoryId_AmbientGraphic
+                                        : RvkRepositoryId_AmbientDebugGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef enum {
-      ComposeFlags_AmbientOcclusion     = 1 << 0,
-      ComposeFlags_AmbientOcclusionBlur = 1 << 1,
-    } ComposeFlags;
+      AmbientFlags_AmbientOcclusion     = 1 << 0,
+      AmbientFlags_AmbientOcclusionBlur = 1 << 1,
+    } AmbientFlags;
 
     typedef struct {
       ALIGNAS(16)
-      GeoVector packed; // x: ambient, y: mode, z: flags, w: unused.
-    } ComposeData;
+      GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
+    } AmbientData;
 
-    const u32    mode  = ctx->settings->composeMode;
-    ComposeFlags flags = 0;
+    const u32    mode  = ctx->settings->ambientMode;
+    AmbientFlags flags = 0;
     if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
-      flags |= ComposeFlags_AmbientOcclusion;
+      flags |= AmbientFlags_AmbientOcclusion;
     }
     if (ctx->settings->flags & RendFlags_AmbientOcclusionBlur) {
-      flags |= ComposeFlags_AmbientOcclusionBlur;
+      flags |= AmbientFlags_AmbientOcclusionBlur;
     }
 
-    ComposeData* data = alloc_alloc_t(g_alloc_scratch, ComposeData);
+    AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
     data->packed.x    = ctx->settingsGlobal->lightAmbient;
     data->packed.y    = bits_u32_as_f32(mode);
     data->packed.z    = bits_u32_as_f32(flags);
@@ -286,7 +286,7 @@ static void painter_push_compose(RendPaintContext* ctx) {
         (RvkPassDraw){
             .graphic   = graphic,
             .instCount = 1,
-            .drawData  = mem_create(data, sizeof(ComposeData)),
+            .drawData  = mem_create(data, sizeof(AmbientData)),
         });
   }
 }
@@ -323,8 +323,8 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
 
-  if (ctx->settings->composeMode != RendComposeMode_Normal) {
-    // Disable lighting when using any of the debug compose modes.
+  if (ctx->settings->ambientMode != RendAmbientMode_Normal) {
+    // Disable lighting when using any of the debug ambient modes.
     ignoreFlags |= RendDrawFlags_Light;
   }
 
@@ -529,7 +529,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(fwdPass, swapchainImage, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
-    painter_push_compose(&ctx);
+    painter_push_ambient(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
     if (geoTagMask & SceneTags_Outline) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic);

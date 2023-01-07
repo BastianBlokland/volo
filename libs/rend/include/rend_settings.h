@@ -44,19 +44,19 @@ typedef enum {
 } RendPresentMode;
 
 typedef enum {
-  RendComposeMode_Normal,
-  RendComposeMode_DebugColor,
-  RendComposeMode_DebugRoughness,
-  RendComposeMode_DebugNormal,
-  RendComposeMode_DebugDepth,
-  RendComposeMode_DebugTags,
-  RendComposeMode_DebugAmbientOcclusion,
-} RendComposeMode;
+  RendAmbientMode_Normal,
+  RendAmbientMode_DebugColor,
+  RendAmbientMode_DebugRoughness,
+  RendAmbientMode_DebugNormal,
+  RendAmbientMode_DebugDepth,
+  RendAmbientMode_DebugTags,
+  RendAmbientMode_DebugAmbientOcclusion,
+} RendAmbientMode;
 
 ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
-  RendComposeMode composeMode;
+  RendAmbientMode ambientMode;
   f32             resolutionScale;
   u16             shadowResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;

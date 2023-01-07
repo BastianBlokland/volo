@@ -105,7 +105,7 @@ static const String g_presentOptions[] = {
     string_static("Mailbox"),
 };
 
-static const String g_composeModeNames[] = {
+static const String g_ambientModeNames[] = {
     string_static("Normal"),
     string_static("DebugColor"),
     string_static("DebugRoughness"),
@@ -269,10 +269,10 @@ static void rend_settings_tab_draw(
       canvas, (u32*)&settings->flags, RendFlags_FrustumCulling, .tooltip = g_tooltipFrustumCulling);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Compose"));
+  ui_label(canvas, string_lit("Ambient mode"));
   ui_table_next_column(canvas, &table);
   ui_select(
-      canvas, (i32*)&settings->composeMode, g_composeModeNames, array_elems(g_composeModeNames));
+      canvas, (i32*)&settings->ambientMode, g_ambientModeNames, array_elems(g_ambientModeNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));

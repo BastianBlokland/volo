@@ -75,13 +75,13 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
-        .repoId     = RvkRepositoryId_ComposeGraphic,
-        .assetId    = string_static("graphics/compose.gra"),
+        .repoId     = RvkRepositoryId_AmbientGraphic,
+        .assetId    = string_static("graphics/ambient.gra"),
         .reloadable = true,
     },
     {
-        .repoId     = RvkRepositoryId_ComposeDebugGraphic,
-        .assetId    = string_static("graphics/compose_debug.gra"),
+        .repoId     = RvkRepositoryId_AmbientDebugGraphic,
+        .assetId    = string_static("graphics/ambient_debug.gra"),
         .reloadable = true,
     },
     {
