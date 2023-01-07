@@ -84,6 +84,26 @@ static u32 rvk_attach_color_count(const RvkPassFlags flags) {
   return result;
 }
 
+static void
+rvk_attach_assert_color(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+  diag_assert_msg(
+      img->caps & RvkImageCapability_AttachmentColor,
+      "Does not support usage as a color attachment");
+  diag_assert_msg(img->caps & spec.capabilities, "Missing capability");
+  diag_assert_msg(img->vkFormat == spec.vkFormat, "Wrong format");
+  diag_assert_msg(img->size.data == size.data, "Wrong size");
+}
+
+static void
+rvk_attach_assert_depth(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
+  diag_assert_msg(
+      img->caps & RvkImageCapability_AttachmentDepth,
+      "Does not support usage as a depth attachment");
+  diag_assert_msg(img->caps & spec.capabilities, "Missing capability");
+  diag_assert_msg(img->vkFormat == spec.vkFormat, "Wrong format");
+  diag_assert_msg(img->size.data == size.data, "Wrong size");
+}
+
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
@@ -521,8 +541,8 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
   diag_assert_msg(!pass->attachColors[idx], "Color attachment already bound");
-  diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
-  diag_assert(rvk_attach_validate_color(img, rvk_pass_spec_attach_color(pass, idx), pass->size));
+
+  rvk_attach_assert_color(img, rvk_pass_spec_attach_color(pass, idx), pass->size);
 
   pass->attachColors[idx] = img;
   pass->attachColorMask |= 1 << idx;
@@ -533,7 +553,8 @@ void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   diag_assert_msg(!pass->attachDepth, "Depth attachment already bound");
   diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
-  diag_assert(rvk_attach_validate_depth(img, rvk_pass_spec_attach_depth(pass), pass->size));
+
+  rvk_attach_assert_depth(img, rvk_pass_spec_attach_depth(pass), pass->size);
 
   pass->attachDepth = img;
 }

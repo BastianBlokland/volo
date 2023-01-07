@@ -174,38 +174,6 @@ void rvk_attach_pool_flush(RvkAttachPool* pool) {
   }
 }
 
-bool rvk_attach_validate_color(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
-  if (!(img->caps & RvkImageCapability_AttachmentColor)) {
-    return false; // Does not support usage as a color attachment.
-  }
-  if (img->vkFormat != spec.vkFormat) {
-    return false; // Wrong format.
-  }
-  if (!(img->caps & spec.capabilities)) {
-    return false; // Missing capability.
-  }
-  if (img->size.data != size.data) {
-    return false; // Wrong size.
-  }
-  return true;
-}
-
-bool rvk_attach_validate_depth(const RvkImage* img, const RvkAttachSpec spec, const RvkSize size) {
-  if (!(img->caps & RvkImageCapability_AttachmentDepth)) {
-    return false; // Does not support usage as a depth attachment.
-  }
-  if (img->vkFormat != spec.vkFormat) {
-    return false; // Wrong format.
-  }
-  if (!(img->caps & spec.capabilities)) {
-    return false; // Missing capability.
-  }
-  if (img->size.data != size.data) {
-    return false; // Wrong size.
-  }
-  return true;
-}
-
 RvkImage*
 rvk_attach_acquire_color(RvkAttachPool* pool, const RvkAttachSpec spec, const RvkSize size) {
   return rvk_attach_acquire(pool, RvkImageType_ColorAttachment, spec, size);

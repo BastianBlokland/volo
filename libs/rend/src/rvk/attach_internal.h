@@ -23,9 +23,6 @@ typedef struct sRvkAttachSpec {
   RvkImageCapability capabilities;
 } RvkAttachSpec;
 
-bool rvk_attach_validate_color(const RvkImage*, RvkAttachSpec, RvkSize);
-bool rvk_attach_validate_depth(const RvkImage*, RvkAttachSpec, RvkSize);
-
 RvkImage* rvk_attach_acquire_color(RvkAttachPool*, RvkAttachSpec, RvkSize);
 RvkImage* rvk_attach_acquire_depth(RvkAttachPool*, RvkAttachSpec, RvkSize);
 void      rvk_attach_release(RvkAttachPool*, RvkImage*);
