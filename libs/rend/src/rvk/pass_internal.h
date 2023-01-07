@@ -30,12 +30,13 @@ typedef enum eRvkPassFlags {
   RvkPassFlags_Color2Srgb        = 1 << 5, // Use an SRGB format for the color2 attachment.
   RvkPassFlags_Color2Single      = 1 << 6, // Use a single channel format for the color2 attachment.
   RvkPassFlags_ColorClear        = 1 << 7, // Clear the color attachment.
-  RvkPassFlags_Depth             = 1 << 8, // Enable a depth attachment.
-  RvkPassFlags_DepthClear        = 1 << 9, // Clear the depth attachment.
-  RvkPassFlags_DepthLoadTransfer = 1 << 10, // Load the depth from a transferred depth attachment.
-  RvkPassFlags_DepthStore        = 1 << 11, // Store the depth attachment for use in a later pass.
+  RvkPassFlags_ColorLoadTransfer = 1 << 8, // Load the color from transferred color attachments.
+  RvkPassFlags_Depth             = 1 << 9, // Enable a depth attachment.
+  RvkPassFlags_DepthClear        = 1 << 10, // Clear the depth attachment.
+  RvkPassFlags_DepthLoadTransfer = 1 << 11, // Load the depth from a transferred depth attachment.
+  RvkPassFlags_DepthStore        = 1 << 12, // Store the depth attachment for use in a later pass.
 
-  RvkPassFlags_Count = 12,
+  RvkPassFlags_Count = 13,
 } RvkPassFlags;
 
 typedef struct sRvkPassDraw {
