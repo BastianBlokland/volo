@@ -6,7 +6,6 @@
 #include "types_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkPass           RvkPass;
@@ -37,7 +36,6 @@ RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
 String     rvk_canvas_pass_name(RvkCanvasPass);
 
-RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas*);
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
 
 /**
@@ -45,18 +43,27 @@ RvkRepository* rvk_canvas_repository(RvkCanvas*);
  * NOTE: Will block until the previous draw has finished.
  */
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas*);
+u16            rvk_canvas_attach_count(const RvkCanvas*);
+u64            rvk_canvas_attach_memory(const RvkCanvas*);
 
 /**
  * Query swapchain statistics.
  */
 RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 
-bool      rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+
 RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkCanvasPass);
 RvkImage* rvk_canvas_output(RvkCanvas*);
-void      rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void      rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void      rvk_canvas_end(RvkCanvas*);
+
+RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i);
+RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*);
+void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
+
+void rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
+
+void rvk_canvas_end(RvkCanvas*);
 
 /**
  * Wait for the previously rendered image to be presented to the user.

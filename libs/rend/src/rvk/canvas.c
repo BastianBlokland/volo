@@ -6,6 +6,7 @@
 #include "attach_internal.h"
 #include "canvas_internal.h"
 #include "device_internal.h"
+#include "pass_internal.h"
 #include "renderer_internal.h"
 #include "swapchain_internal.h"
 
@@ -97,12 +98,19 @@ String rvk_canvas_pass_name(const RvkCanvasPass pass) {
   return g_names[pass];
 }
 
-RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
+}
+
+u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
+  return rvk_attach_pool_count(canvas->attachPool);
+}
+
+u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
+  return rvk_attach_pool_memory(canvas->attachPool);
 }
 
 RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
@@ -134,6 +142,20 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
 RvkImage* rvk_canvas_output(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+}
+
+RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas* canvas, RvkPass* pass, const u32 i) {
+  const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, i);
+  return rvk_attach_acquire_color(canvas->attachPool, spec, rvk_pass_size(pass));
+}
+
+RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas* canvas, RvkPass* pass) {
+  const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
+  return rvk_attach_acquire_depth(canvas->attachPool, spec, rvk_pass_size(pass));
+}
+
+void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {
+  rvk_attach_release(canvas->attachPool, img);
 }
 
 void rvk_canvas_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
