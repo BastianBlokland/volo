@@ -409,10 +409,19 @@ RvkImage rvk_image_create_attach_depth(
 RvkImage
 rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RvkSize size) {
   (void)dev;
+  RvkImageCapability capabilities = RvkImageCapability_Present;
+
+  /**
+   * Support both rendering into a swapchain image and blitting / copying into it.
+   * TODO: Consider allowing the caller to specify how they want to populate the swapchain-image.
+   */
+  capabilities |= RvkImageCapability_AttachmentColor;
+  capabilities |= RvkImageCapability_TransferDest;
+
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
       .phase     = RvkImagePhase_Undefined,
-      .caps      = RvkImageCapability_Present | RvkImageCapability_TransferDest,
+      .caps      = capabilities,
       .vkFormat  = vkFormat,
       .size      = size,
       .layers    = 1,
