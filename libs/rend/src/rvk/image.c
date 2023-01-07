@@ -553,6 +553,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(rvk_size_equal(src->size, dest->size), "Image copy requires matching sizes");
   diag_assert_msg(src->layers == dest->layers, "Image copy requires matching layer counts");
+  diag_assert_msg(src->vkFormat == dest->vkFormat, "Image copy requires matching formats");
 
   const VkImageCopy regions[] = {
       {
@@ -616,12 +617,12 @@ void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer 
 
   const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
   const VkImageSubresourceRange ranges[]   = {
-        {
-            .aspectMask     = rvk_image_vkaspect(img->type),
-            .baseMipLevel   = 0,
-            .levelCount     = img->mipLevels,
-            .baseArrayLayer = 0,
-            .layerCount     = img->layers,
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = img->layers,
       },
   };
   vkCmdClearColorImage(
