@@ -99,8 +99,14 @@ static void rvk_renderer_submit(
     ++waitCount;
   }
   if (waitForTarget) {
+    /**
+     * At the moment we do a single submit for the whole frame and thus we need to wait with all
+     * output until the target image is available. Potentially this could be improved by splitting
+     * the rendering into multiple submits.
+     */
     waitSemaphores[waitCount] = waitForTarget;
-    waitStages[waitCount]     = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    waitStages[waitCount] =
+        VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     ++waitCount;
   }
 
