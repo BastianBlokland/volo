@@ -30,7 +30,8 @@ String rvk_colorspace_str(VkColorSpaceKHR);
 String rvk_presentmode_str(VkPresentModeKHR);
 
 typedef enum {
-  RvkFormat_Srgb = 1 << 0,
+  RvkFormat_RGBA = 1 << 0,
+  RvkFormat_Srgb = 1 << 1,
 } RvkFormatFlags;
 
 typedef struct {

@@ -89,18 +89,41 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   if (!formatCount) {
     diag_crash_msg("No Vulkan surface formats available");
   }
-  VkSurfaceFormatKHR* formats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
-  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, formats);
+  VkSurfaceFormatKHR* surfFormats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, surfFormats);
 
-  // Prefer srgb, so the gpu can itself perform the linear to srgb conversion.
+  VkSurfaceFormatKHR bestSurfFormat;
+  u32                bestScore = sentinel_u32;
+
   for (u32 i = 0; i != formatCount; ++i) {
-    if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
-      return formats[i];
+    const RvkFormatInfo formatInfo = rvk_format_info(surfFormats[i].format);
+
+    u32 score = 0;
+    if (formatInfo.flags & RvkFormat_RGBA) {
+      // Prefer RGBA as it matches what the renderer uses for textures and temporary attachments,
+      // unfortunately BGRA is also quite common for window surfaces.
+      score += 1;
+    }
+    if (formatInfo.flags & RvkFormat_Srgb) {
+      // Prefer an Srgb format so the gpu can perform the linear -> srgb conversion.
+      score += 10;
+    }
+
+    log_d(
+        "Found surface format",
+        log_param("format", fmt_text(formatInfo.name)),
+        log_param("color", fmt_text(rvk_colorspace_str(surfFormats[i].colorSpace))),
+        log_param("score", fmt_int(score)));
+
+    if (sentinel_check(bestScore) || score > bestScore) {
+      bestSurfFormat = surfFormats[i];
     }
   }
 
-  log_w("No SRGB surface format available");
-  return formats[0];
+  if (!(rvk_format_info(bestSurfFormat.format).flags & RvkFormat_Srgb)) {
+    log_w("No Srgb surface format available");
+  }
+  return bestSurfFormat;
 }
 
 static u32
@@ -191,21 +214,21 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 
   const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   const VkSwapchainCreateInfoKHR createInfo   = {
-        .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface            = swapchain->vkSurf,
-        .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
-        .imageFormat        = swapchain->vkSurfFormat.format,
-        .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
-        .imageExtent.width  = size.width,
-        .imageExtent.height = size.height,
-        .imageArrayLayers   = 1,
-        .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-        .preTransform       = vkCaps.currentTransform,
-        .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode        = presentMode,
-        .clipped            = true,
-        .oldSwapchain       = oldSwapchain,
+      .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .surface            = swapchain->vkSurf,
+      .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
+      .imageFormat        = swapchain->vkSurfFormat.format,
+      .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
+      .imageExtent.width  = size.width,
+      .imageExtent.height = size.height,
+      .imageArrayLayers   = 1,
+      .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+      .preTransform       = vkCaps.currentTransform,
+      .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      .presentMode        = presentMode,
+      .clipped            = true,
+      .oldSwapchain       = oldSwapchain,
   };
   rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
   if (oldSwapchain) {
