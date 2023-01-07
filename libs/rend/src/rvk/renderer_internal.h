@@ -6,6 +6,7 @@
 // Internal forward declarations:
 typedef enum eRvkCanvasPass    RvkCanvasPass;
 typedef enum eRvkImagePhase    RvkImagePhase;
+typedef enum eRvkPassFlags     RvkPassFlags;
 typedef struct sRvkCanvasStats RvkCanvasStats;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkImage       RvkImage;
@@ -13,7 +14,8 @@ typedef struct sRvkPass        RvkPass;
 
 typedef struct sRvkRenderer RvkRenderer;
 
-RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);
+RvkRenderer* rvk_renderer_create(
+    RvkDevice*, u32 rendererId, const RvkPassFlags* passConfig /* [ RvkCanvasPass_Count ] */);
 void           rvk_renderer_destroy(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkCanvasStats rvk_renderer_stats(const RvkRenderer*);

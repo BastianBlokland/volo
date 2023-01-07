@@ -44,7 +44,10 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   return result;
 }
 
-RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
+RvkCanvas* rvk_canvas_create(
+    RvkDevice*           dev,
+    const GapWindowComp* window,
+    const RvkPassFlags*  passConfig /* [ RvkCanvasPass_Count ] */) {
   RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
   RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
   RvkCanvas*     canvas     = alloc_alloc_t(g_alloc_heap, RvkCanvas);
@@ -56,7 +59,7 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   };
 
   for (u32 i = 0; i != canvas_renderer_count; ++i) {
-    canvas->renderers[i]           = rvk_renderer_create(dev, i);
+    canvas->renderers[i]           = rvk_renderer_create(dev, i, passConfig);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);

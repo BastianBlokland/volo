@@ -6,6 +6,7 @@
 #include "types_internal.h"
 
 // Internal forward declarations:
+typedef enum eRvkPassFlags        RvkPassFlags;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkPass           RvkPass;
@@ -32,9 +33,10 @@ typedef struct sRvkCanvasStats {
  */
 typedef struct sRvkCanvas RvkCanvas;
 
-RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
-void       rvk_canvas_destroy(RvkCanvas*);
-String     rvk_canvas_pass_name(RvkCanvasPass);
+RvkCanvas* rvk_canvas_create(
+    RvkDevice*, const GapWindowComp*, const RvkPassFlags* passConfig /* [ RvkCanvasPass_Count ] */);
+void   rvk_canvas_destroy(RvkCanvas*);
+String rvk_canvas_pass_name(RvkCanvasPass);
 
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
 

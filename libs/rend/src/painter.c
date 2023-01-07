@@ -24,6 +24,28 @@
 #include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
 
+// clang-format off
+static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
+  [RvkCanvasPass_Geometry] =
+    RvkPassFlags_Clear      |
+    RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb        | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
+    RvkPassFlags_Color2     |                                  // Attachment color2 (linear): normal (rgb) and tags (a).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
+
+  [RvkCanvasPass_Forward] =
+    RvkPassFlags_ClearColor |
+    RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb        | // Attachment color1 (srgb): color (rgb).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,  // Attachment depth.
+
+  [RvkCanvasPass_Shadow] =
+    RvkPassFlags_ClearDepth |
+    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
+
+  [RvkCanvasPass_AmbientOcclusion] =
+    RvkPassFlags_Color1     | RvkPassFlags_Color1Single,       // Attachment color1 (linear): occlusion (r).
+};
+// clang-format on
+
 ecs_comp_define_public(RendPainterComp);
 
 static void ecs_destruct_painter(void* data) {
@@ -561,7 +583,7 @@ ecs_system_define(RendPainterCreateSys) {
         entity,
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
-        .canvas     = rvk_canvas_create(plat->device, windowComp));
+        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
       RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);

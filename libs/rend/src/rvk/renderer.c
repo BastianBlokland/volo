@@ -135,7 +135,10 @@ static void rvk_renderer_submit(
   thread_mutex_unlock(rend->dev->queueSubmitMutex);
 }
 
-RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
+RvkRenderer* rvk_renderer_create(
+    RvkDevice*          dev,
+    const u32           rendererId,
+    const RvkPassFlags* passConfig /* [ RvkCanvasPass_Count ] */) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
@@ -156,31 +159,10 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       .vkDrawBuffer    = vkDrawBuffer,
   };
 
-  // clang-format off
-  {
-    const RvkPassFlags flags = RvkPassFlags_Clear |
-      RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb |      // Attachment color1 (srgb)  : color (rgb) and roughness (a).
-      RvkPassFlags_Color2 |                                // Attachment color2 (linear): normal (rgb) and tags (a).
-      RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkCanvasPass_Geometry] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Geometry));
+  for (RvkCanvasPass pass = 0; pass != RvkCanvasPass_Count; ++pass) {
+    renderer->passes[pass] = rvk_pass_create(
+        dev, vkDrawBuffer, uniformPool, stopwatch, passConfig[pass], rvk_canvas_pass_name(pass));
   }
-  {
-    const RvkPassFlags flags = RvkPassFlags_ClearColor |
-      RvkPassFlags_Color1 | RvkPassFlags_Color1Srgb    |   // Attachment color1 (srgb): color (rgb).
-      RvkPassFlags_Depth | RvkPassFlags_DepthLoadTransfer; // Attachment depth.
-    renderer->passes[RvkCanvasPass_Forward] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Forward));
-  }
-  {
-    const RvkPassFlags flags = RvkPassFlags_ClearDepth |
-      RvkPassFlags_Depth | RvkPassFlags_DepthStore;        // Attachment depth.
-    renderer->passes[RvkCanvasPass_Shadow] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_Shadow));
-  }
-  {
-    const RvkPassFlags flags =
-      RvkPassFlags_Color1 | RvkPassFlags_Color1Single;     // Attachment color1 (linear): occlusion (r).
-    renderer->passes[RvkCanvasPass_AmbientOcclusion] = rvk_pass_create(dev, vkDrawBuffer, uniformPool, stopwatch, flags, rvk_canvas_pass_name(RvkCanvasPass_AmbientOcclusion));
-  }
-  // clang-format on
 
   return renderer;
 }
