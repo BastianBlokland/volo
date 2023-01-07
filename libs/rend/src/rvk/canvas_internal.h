@@ -56,7 +56,7 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
 RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkCanvasPass);
-RvkImage* rvk_canvas_output(RvkCanvas*);
+RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
 RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i);
 RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*);

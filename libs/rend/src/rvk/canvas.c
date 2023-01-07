@@ -48,9 +48,10 @@ RvkCanvas* rvk_canvas_create(
     RvkDevice*           dev,
     const GapWindowComp* window,
     const RvkPassFlags*  passConfig /* [ RvkCanvasPass_Count ] */) {
-  RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
-  RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
-  RvkCanvas*     canvas     = alloc_alloc_t(g_alloc_heap, RvkCanvas);
+  RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
+  const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
+  RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);
+  RvkCanvas*     canvas          = alloc_alloc_t(g_alloc_heap, RvkCanvas);
 
   *canvas = (RvkCanvas){
       .dev        = dev,
@@ -59,7 +60,7 @@ RvkCanvas* rvk_canvas_create(
   };
 
   for (u32 i = 0; i != canvas_job_count; ++i) {
-    canvas->jobs[i]                = rvk_job_create(dev, i, passConfig);
+    canvas->jobs[i]                = rvk_job_create(dev, swapchainFormat, i, passConfig);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
@@ -142,7 +143,7 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
   return rvk_job_pass(job, pass);
 }
 
-RvkImage* rvk_canvas_output(RvkCanvas* canvas) {
+RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
 }

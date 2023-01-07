@@ -20,6 +20,7 @@
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
+#include "rvk/image_internal.h"
 #include "rvk/mesh_internal.h"
 #include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
@@ -34,7 +35,7 @@ static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
 
   [RvkCanvasPass_Forward] =
     RvkPassFlags_ClearColor |
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb        | // Attachment color1 (srgb): color (rgb).
+    RvkPassFlags_Color1     | RvkPassFlags_Color1Swapchain   | // Attachment color1 (swapchain): color (rgb).
     RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,  // Attachment depth.
 
   [RvkCanvasPass_Shadow] =
@@ -444,9 +445,12 @@ static bool rend_canvas_paint(
     return false; // Canvas not ready for rendering.
   }
 
+  RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  const RvkSize swapchainSize  = swapchainImage->size;
+
   // Geometry pass.
   RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Geometry);
-  rvk_pass_set_size(geoPass, rvk_size_scale(winSize, settings->resolutionScale));
+  rvk_pass_set_size(geoPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
   RvkImage* geoColorRough = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0);
   RvkImage* geoNormTags   = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1);
   RvkImage* geoDepth      = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass);
@@ -507,11 +511,10 @@ static bool rend_canvas_paint(
 
   // Forward pass.
   RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Forward);
-  rvk_pass_set_size(fwdPass, rvk_size_scale(winSize, settings->resolutionScale));
-  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
+  rvk_pass_set_size(fwdPass, swapchainSize);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
   {
-    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize it to the geometry depth.
+    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize it to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
@@ -524,7 +527,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(fwdPass, geoDepth, 2);
     rvk_pass_bind_global_image(fwdPass, aoBuffer, 3);
     rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
-    rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
+    rvk_pass_bind_attach_color(fwdPass, swapchainImage, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
     painter_push_compose(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
@@ -546,15 +549,11 @@ static bool rend_canvas_paint(
     rvk_pass_end(fwdPass);
   }
 
-  RvkImage* outputImage = rvk_canvas_output(painter->canvas);
-  rvk_canvas_blit(painter->canvas, fwdColor, outputImage);
-
   rvk_canvas_attach_release(painter->canvas, geoColorRough);
   rvk_canvas_attach_release(painter->canvas, geoNormTags);
   rvk_canvas_attach_release(painter->canvas, geoDepth);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
-  rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
   // Finish the frame.

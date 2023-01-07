@@ -408,24 +408,40 @@ RvkImage rvk_image_create_attach_depth(
 
 RvkImage
 rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RvkSize size) {
-  (void)dev;
+  RvkImageCapability capabilities = RvkImageCapability_Present;
+
+  /**
+   * Support both rendering into a swapchain image and blitting / copying into it.
+   * TODO: Consider allowing the caller to specify how they want to populate the swapchain-image.
+   */
+  capabilities |= RvkImageCapability_AttachmentColor;
+  capabilities |= RvkImageCapability_TransferDest;
+
+  const u8 layers    = 1;
+  const u8 mipLevels = 1;
+
+  const VkImageAspectFlags vkAspect = rvk_image_vkaspect(RvkImageType_Swapchain);
+  const VkImageView        vkView   = rvk_vkimageview_create(
+      dev, RvkImageType_Swapchain, vkImage, vkFormat, vkAspect, layers, mipLevels);
+
   return (RvkImage){
-      .type      = RvkImageType_Swapchain,
-      .phase     = RvkImagePhase_Undefined,
-      .caps      = RvkImageCapability_Present | RvkImageCapability_TransferDest,
-      .vkFormat  = vkFormat,
-      .size      = size,
-      .layers    = 1,
-      .mipLevels = 1,
-      .vkImage   = vkImage,
+      .type        = RvkImageType_Swapchain,
+      .phase       = RvkImagePhase_Undefined,
+      .caps        = capabilities,
+      .vkFormat    = vkFormat,
+      .size        = size,
+      .layers      = layers,
+      .mipLevels   = mipLevels,
+      .vkImage     = vkImage,
+      .vkImageView = vkView,
   };
 }
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
     vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
-    vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   }
+  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
@@ -544,6 +560,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(rvk_size_equal(src->size, dest->size), "Image copy requires matching sizes");
   diag_assert_msg(src->layers == dest->layers, "Image copy requires matching layer counts");
+  diag_assert_msg(src->vkFormat == dest->vkFormat, "Image copy requires matching formats");
 
   const VkImageCopy regions[] = {
       {
@@ -607,12 +624,12 @@ void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer 
 
   const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
   const VkImageSubresourceRange ranges[]   = {
-        {
-            .aspectMask     = rvk_image_vkaspect(img->type),
-            .baseMipLevel   = 0,
-            .levelCount     = img->mipLevels,
-            .baseArrayLayer = 0,
-            .layerCount     = img->layers,
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = img->layers,
       },
   };
   vkCmdClearColorImage(

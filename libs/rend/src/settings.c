@@ -24,7 +24,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion | RendFlags_AmbientOcclusionBlur;
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->composeMode       = RendComposeMode_Normal;
-  s->resolutionScale   = 1.0f;
+  s->resolutionScale   = 0.75f;
   s->aoAngle           = 85 * math_deg_to_rad;
   s->aoRadius          = 0.1f;
   s->aoRadiusPower     = 3.0f;
