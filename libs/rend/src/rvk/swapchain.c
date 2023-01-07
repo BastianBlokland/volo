@@ -117,6 +117,7 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
 
     if (sentinel_check(bestScore) || score > bestScore) {
       bestSurfFormat = surfFormats[i];
+      bestScore      = score;
     }
   }
 
