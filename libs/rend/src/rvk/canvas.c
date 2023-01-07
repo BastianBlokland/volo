@@ -143,7 +143,7 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
   return rvk_job_pass(job, pass);
 }
 
-RvkImage* rvk_canvas_output(RvkCanvas* canvas) {
+RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
 }
