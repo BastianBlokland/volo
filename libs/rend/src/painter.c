@@ -28,22 +28,19 @@
 // clang-format off
 static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
   [RvkCanvasPass_Geometry] =
-    RvkPassFlags_Clear      |
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb        | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
-    RvkPassFlags_Color2     |                                  // Attachment color2 (linear): normal (rgb) and tags (a).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
+    RvkPassFlags_ColorClear | RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
+                              RvkPassFlags_Color2     |                           // Attachment color2 (linear): normal (rgb) and tags (a).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,  // Attachment depth.
 
   [RvkCanvasPass_Forward] =
-    RvkPassFlags_ClearColor |
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Swapchain   | // Attachment color1 (swapchain): color (rgb).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,  // Attachment depth.
+    RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Swapchain | // Attachment color1 (swapchain): color (rgb).
+    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                                 // Attachment depth.
 
   [RvkCanvasPass_Shadow] =
-    RvkPassFlags_ClearDepth |
-    RvkPassFlags_Depth      | RvkPassFlags_DepthStore,         // Attachment depth.
+    RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore, // Attachment depth.
 
   [RvkCanvasPass_AmbientOcclusion] =
-    RvkPassFlags_Color1     | RvkPassFlags_Color1Single,       // Attachment color1 (linear): occlusion (r).
+    RvkPassFlags_Color1 | RvkPassFlags_Color1Single, // Attachment color1 (linear): occlusion (r).
 };
 // clang-format on
 
