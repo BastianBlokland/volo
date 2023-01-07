@@ -31,6 +31,7 @@ typedef enum {
 
 struct sRvkPass {
   RvkDevice*         dev;
+  VkFormat           swapchainFormat;
   RvkStatRecorder*   statrecorder;
   RvkStopwatch*      stopwatch;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
@@ -60,16 +61,19 @@ static VkFormat rvk_attach_color_format(const bool srgb, const bool single) {
   return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 }
 
-static VkFormat rvk_attach_color_format_at_index(const RvkPassFlags flags, const u32 index) {
+static VkFormat rvk_attach_color_format_at_index(const RvkPass* pass, const u32 index) {
   switch (index) {
   case 0: {
-    const bool srgb   = (flags & RvkPassFlags_Color1Srgb) != 0;
-    const bool single = (flags & RvkPassFlags_Color1Single) != 0;
+    if (pass->flags & RvkPassFlags_Color1Swapchain) {
+      return pass->swapchainFormat;
+    }
+    const bool srgb   = (pass->flags & RvkPassFlags_Color1Srgb) != 0;
+    const bool single = (pass->flags & RvkPassFlags_Color1Single) != 0;
     return rvk_attach_color_format(srgb, single);
   }
   case 1: {
-    const bool srgb   = (flags & RvkPassFlags_Color2Srgb) != 0;
-    const bool single = (flags & RvkPassFlags_Color2Single) != 0;
+    const bool srgb   = (pass->flags & RvkPassFlags_Color2Srgb) != 0;
+    const bool single = (pass->flags & RvkPassFlags_Color2Single) != 0;
     return rvk_attach_color_format(srgb, single);
   }
   default:
@@ -87,6 +91,13 @@ static u32 rvk_attach_color_count(const RvkPassFlags flags) {
 #ifndef VOLO_FAST
 static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
+  if (idx == 0 && pass->flags & RvkPassFlags_Color1Swapchain) {
+    diag_assert_msg(
+        img->type == RvkImageType_Swapchain,
+        "Pass {} color attachment {} invalid: Expected a swapchain image",
+        fmt_text(pass->name),
+        fmt_int(idx));
+  }
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentColor,
       "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
@@ -142,19 +153,19 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
 }
 #endif
 
-static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
+static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
   VkAttachmentReference   colorRefs[pass_attachment_color_max];
   VkAttachmentReference   depthRef;
   bool                    hasDepthRef = false;
 
-  for (u32 i = 0; i != rvk_attach_color_count(flags); ++i) {
+  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
-        .format         = rvk_attach_color_format_at_index(flags, i),
+        .format         = rvk_attach_color_format_at_index(pass, i),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                            : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .loadOp         = (pass->flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -167,17 +178,17 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
     };
   }
 
-  if (flags & RvkPassFlags_Depth) {
+  if (pass->flags & RvkPassFlags_Depth) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
-        .format         = dev->vkDepthFormat,
+        .format         = pass->dev->vkDepthFormat,
         .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                            : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .storeOp        = (flags & RvkPassFlags_DepthStore) ? VK_ATTACHMENT_STORE_OP_STORE
-                                                            : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .loadOp         = (pass->flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .storeOp        = (pass->flags & RvkPassFlags_DepthStore) ? VK_ATTACHMENT_STORE_OP_STORE
+                                                                  : VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = (flags & RvkPassFlags_DepthLoadTransfer)
+        .initialLayout  = (pass->flags & RvkPassFlags_DepthLoadTransfer)
                               ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
                               : VK_IMAGE_LAYOUT_UNDEFINED,
         .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -190,7 +201,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   }
   const VkSubpassDescription subpass = {
       .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-      .colorAttachmentCount    = rvk_attach_color_count(flags),
+      .colorAttachmentCount    = rvk_attach_color_count(pass->flags),
       .pColorAttachments       = colorRefs,
       .pDepthStencilAttachment = hasDepthRef ? &depthRef : null,
   };
@@ -213,7 +224,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
   };
 
-  if (flags & RvkPassFlags_DepthLoadTransfer) {
+  if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
     /**
      * Synchronize the transferring to the depth-buffer with this pass reading / writing to it.
      */
@@ -237,7 +248,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .pDependencies   = dependencies,
   };
   VkRenderPass result;
-  rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateRenderPass, pass->dev->vkDev, &renderPassInfo, &pass->dev->vkAlloc, &result);
   return result;
 }
 
@@ -400,6 +411,7 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
 
 RvkPass* rvk_pass_create(
     RvkDevice*         dev,
+    const VkFormat     swapchainFormat,
     VkCommandBuffer    vkCmdBuf,
     RvkUniformPool*    uniformPool,
     RvkStopwatch*      stopwatch,
@@ -407,6 +419,9 @@ RvkPass* rvk_pass_create(
     const String       name) {
   diag_assert(!string_is_empty(name));
   diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
+  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || (flags & RvkPassFlags_Color1));
+  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Srgb));
+  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Single));
   diag_assert(!(flags & RvkPassFlags_Color2Srgb) || (flags & RvkPassFlags_Color2));
   diag_assert(!(flags & RvkPassFlags_DepthLoadTransfer) || (flags & RvkPassFlags_Depth));
   diag_assert(!(flags & RvkPassFlags_DepthStore) || (flags & RvkPassFlags_Depth));
@@ -424,10 +439,10 @@ RvkPass* rvk_pass_create(
 
   *pass = (RvkPass){
       .dev                  = dev,
+      .swapchainFormat      = swapchainFormat,
       .name                 = string_dup(g_alloc_heap, name),
       .statrecorder         = rvk_statrecorder_create(dev),
       .stopwatch            = stopwatch,
-      .vkRendPass           = rvk_renderpass_create(dev, flags),
       .vkCmdBuf             = vkCmdBuf,
       .uniformPool          = uniformPool,
       .flags                = flags,
@@ -435,6 +450,8 @@ RvkPass* rvk_pass_create(
       .globalPipelineLayout = globalPipelineLayout,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
+
+  pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
 
   return pass;
@@ -478,20 +495,25 @@ bool rvk_pass_recorded(const RvkPass* pass) {
 }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
+  RvkImageCapability capabilities = 0;
+  if (colorAttachIndex != 0 || !(pass->flags & RvkPassFlags_Color1Swapchain)) {
+    // TODO: Specifying these capabilities should not be responsibilty of the pass.
+    capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+  }
   return (RvkAttachSpec){
-      .vkFormat     = rvk_attach_color_format_at_index(pass->flags, colorAttachIndex),
-      .capabilities = RvkImageCapability_TransferSource | RvkImageCapability_Sampled,
+      .vkFormat     = rvk_attach_color_format_at_index(pass, colorAttachIndex),
+      .capabilities = capabilities,
   };
 }
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   RvkImageCapability capabilities = 0;
   if (pass->flags & RvkPassFlags_DepthStore) {
-    // TODO: Specifying these capabilities is not the responsibilty of the pass.
+    // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
   if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
-    // TODO: Specifying these capabilities is not the responsibilty of the pass.
+    // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferDest;
   }
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};

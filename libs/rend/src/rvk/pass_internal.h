@@ -27,16 +27,17 @@ typedef enum eRvkPassFlags {
   RvkPassFlags_Color1            = 1 << 2, // Enable the color1 attachment.
   RvkPassFlags_Color1Srgb        = 1 << 3, // Use an SRGB format for the color1 attachment.
   RvkPassFlags_Color1Single      = 1 << 4, // Use a single channel format for the color1 attachment.
-  RvkPassFlags_Color2            = 1 << 5, // Enable the color2 attachment.
-  RvkPassFlags_Color2Srgb        = 1 << 6, // Use an SRGB format for the color2 attachment.
-  RvkPassFlags_Color2Single      = 1 << 7, // Use a single channel format for the color2 attachment.
-  RvkPassFlags_Depth             = 1 << 8, // Enable a depth attachment.
-  RvkPassFlags_DepthLoadTransfer = 1 << 9, // Load the depth from a transferred depth attachment.
-  RvkPassFlags_DepthStore        = 1 << 10, // Store the depth attachment for use in a later pass.
+  RvkPassFlags_Color1Swapchain   = 1 << 5, // Use a swapchain image for the color1 attachment.
+  RvkPassFlags_Color2            = 1 << 6, // Enable the color2 attachment.
+  RvkPassFlags_Color2Srgb        = 1 << 7, // Use an SRGB format for the color2 attachment.
+  RvkPassFlags_Color2Single      = 1 << 8, // Use a single channel format for the color2 attachment.
+  RvkPassFlags_Depth             = 1 << 9, // Enable a depth attachment.
+  RvkPassFlags_DepthLoadTransfer = 1 << 10, // Load the depth from a transferred depth attachment.
+  RvkPassFlags_DepthStore        = 1 << 11, // Store the depth attachment for use in a later pass.
 
   RvkPassFlags_Clear = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
 
-  RvkPassFlags_Count = 11,
+  RvkPassFlags_Count = 12,
 } RvkPassFlags;
 
 typedef struct sRvkPassDraw {
@@ -50,7 +51,13 @@ typedef struct sRvkPassDraw {
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(
-    RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkStopwatch*, RvkPassFlags, String name);
+    RvkDevice*,
+    VkFormat swapchainFormat,
+    VkCommandBuffer,
+    RvkUniformPool*,
+    RvkStopwatch*,
+    RvkPassFlags,
+    String name);
 void    rvk_pass_destroy(RvkPass*);
 bool    rvk_pass_active(const RvkPass*);
 String  rvk_pass_name(const RvkPass*);
