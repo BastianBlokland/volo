@@ -89,7 +89,7 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   if (!formatCount) {
     diag_crash_msg("No Vulkan surface formats available");
   }
-  VkSurfaceFormatKHR* surfFormats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
+  VkSurfaceFormatKHR* surfFormats = mem_stack(sizeof(VkSurfaceFormatKHR) * formatCount).ptr;
   rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, surfFormats);
 
   VkSurfaceFormatKHR bestSurfFormat;
