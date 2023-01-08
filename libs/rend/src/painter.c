@@ -564,9 +564,6 @@ static bool rend_canvas_paint(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
-    if (settings->flags & RendFlags_DebugShadow) {
-      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
-    }
     rvk_pass_begin(fwdPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(fwdPass);
@@ -591,8 +588,12 @@ static bool rend_canvas_paint(
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
     painter_push_post(&ctx, drawView, graphicView);
+    if (settings->flags & RendFlags_DebugShadow) {
+      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
+    }
     rvk_pass_begin(postPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(postPass);
