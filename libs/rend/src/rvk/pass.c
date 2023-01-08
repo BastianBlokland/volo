@@ -521,6 +521,8 @@ bool rvk_pass_recorded(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
 }
 
+bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Depth) != 0; }
+
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;
   if (colorAttachIndex != 0 || !(pass->flags & RvkPassFlags_Color1Swapchain)) {
