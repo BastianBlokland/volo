@@ -33,7 +33,11 @@ static const String g_tooltipAmbientMode    = string_static("Controls the ambien
                                                             "- \a.bDebugNormal\ar: Geometry world-space normals output.\n"
                                                             "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
                                                             "- \a.bDebugTags\ar: Geometry tags output.\n"
-                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.\n");
+                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.");
+static const String g_tooltipWireframe      = string_static("Enable a geometry wireframe overlay.");
+static const String g_tooltipDebugCamera    = string_static("Enable a top-down orthographic debug camera projection.\n\n\a.bNote\ar: The view properties of the 'real' camera will be used, this is useful for debugging the frustum culling.");
+static const String g_tooltipDebugSkinning  = string_static("Enable a skinning-weight debug overlay.");
+static const String g_tooltipDebugShadow    = string_static("Draw the shadow-map as a fullscreen overlay.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipDebugGpu       = string_static("Should additional gpu debug info be emitted?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
@@ -291,22 +295,26 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Wireframe);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_Wireframe, .tooltip = g_tooltipWireframe);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Camera"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugCamera);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugCamera, .tooltip = g_tooltipDebugCamera);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Skinning"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugSkinning, .tooltip = g_tooltipDebugSkinning);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug shadow"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugShadow);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
 
   if (settings->flags & RendFlags_DebugShadow && ui_canvas_input_any(canvas)) {
     settings->flags &= ~RendFlags_DebugShadow;
