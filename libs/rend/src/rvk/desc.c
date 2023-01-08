@@ -446,7 +446,9 @@ void rvk_desc_set_attach_sampler(
   }
 
   VkDescriptorImageInfo imgInfo = {
-      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      .imageLayout = image->type == RvkImageType_DepthAttachment
+                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                         : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       .imageView   = image->vkImageView,
       .sampler     = sampler->vkSampler,
   };
