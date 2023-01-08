@@ -537,7 +537,7 @@ static bool rend_canvas_paint(
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
   {
-    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
+    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
