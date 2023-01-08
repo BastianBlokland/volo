@@ -153,6 +153,49 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
 }
 #endif
 
+static VkAttachmentLoadOp rvk_attach_color_load_op(const RvkPass* pass, const u32 idx) {
+  (void)idx;
+  if (pass->flags & RvkPassFlags_ColorClear) {
+    return VK_ATTACHMENT_LOAD_OP_CLEAR;
+  }
+  if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
+    return VK_ATTACHMENT_LOAD_OP_LOAD;
+  }
+  return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+}
+
+static VkImageLayout rvk_attach_color_initial_layout(const RvkPass* pass, const u32 idx) {
+  (void)idx;
+  if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
+    return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  }
+  return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
+static VkAttachmentLoadOp rvk_attach_depth_load_op(const RvkPass* pass) {
+  if (pass->flags & RvkPassFlags_DepthClear) {
+    return VK_ATTACHMENT_LOAD_OP_CLEAR;
+  }
+  if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
+    return VK_ATTACHMENT_LOAD_OP_LOAD;
+  }
+  return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+}
+
+static VkAttachmentStoreOp rvk_attach_depth_store_op(const RvkPass* pass) {
+  if (pass->flags & RvkPassFlags_DepthStore) {
+    return VK_ATTACHMENT_STORE_OP_STORE;
+  }
+  return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+}
+
+static VkImageLayout rvk_attach_depth_initial_layout(const RvkPass* pass) {
+  if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
+    return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  }
+  return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
 static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
@@ -161,22 +204,14 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   bool                    hasDepthRef = false;
 
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    VkAttachmentLoadOp colorLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    if (pass->flags & RvkPassFlags_ColorClear) {
-      colorLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
-      colorLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    }
     attachments[attachmentCount++] = (VkAttachmentDescription){
         .format         = rvk_attach_color_format_at_index(pass, i),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = colorLoadOp,
+        .loadOp         = rvk_attach_color_load_op(pass, i),
         .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = (pass->flags & RvkPassFlags_ColorLoadTransfer)
-                              ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                              : VK_IMAGE_LAYOUT_UNDEFINED,
+        .initialLayout  = rvk_attach_color_initial_layout(pass, i),
         .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
     colorRefs[i] = (VkAttachmentReference){
@@ -186,23 +221,14 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   }
 
   if (pass->flags & RvkPassFlags_Depth) {
-    VkAttachmentLoadOp depthLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    if (pass->flags & RvkPassFlags_DepthClear) {
-      depthLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    } else if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
-      depthLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    }
     attachments[attachmentCount++] = (VkAttachmentDescription){
         .format         = pass->dev->vkDepthFormat,
         .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = depthLoadOp,
-        .storeOp        = (pass->flags & RvkPassFlags_DepthStore) ? VK_ATTACHMENT_STORE_OP_STORE
-                                                                  : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .loadOp         = rvk_attach_depth_load_op(pass),
+        .storeOp        = rvk_attach_depth_store_op(pass),
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = (pass->flags & RvkPassFlags_DepthLoadTransfer)
-                              ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-                              : VK_IMAGE_LAYOUT_UNDEFINED,
+        .initialLayout  = rvk_attach_depth_initial_layout(pass),
         .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     };
     depthRef = (VkAttachmentReference){
@@ -235,7 +261,6 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
   };
-
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
     /**
      * Synchronize the transferring to the color attachments with this pass writing to them.
@@ -520,6 +545,8 @@ RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 bool rvk_pass_recorded(const RvkPass* pass) {
   return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
 }
+
+bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Depth) != 0; }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;

@@ -101,7 +101,7 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
   diag_crash_msg("Unsupported image phase");
 }
 
-static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
+static VkImageLayout rvk_image_vklayout(const RvkImageType type, const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
     return VK_IMAGE_LAYOUT_UNDEFINED;
@@ -114,7 +114,8 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
   case RvkImagePhase_DepthAttachment:
     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_ShaderRead:
-    return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    return type == RvkImageType_DepthAttachment ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                                : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   case RvkImagePhase_Present:
     return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   case RvkImagePhase_Count:
@@ -239,8 +240,8 @@ static void rvk_image_barrier_from_to(
       image,
       VK_QUEUE_FAMILY_IGNORED,
       VK_QUEUE_FAMILY_IGNORED,
-      rvk_image_vklayout(from),
-      rvk_image_vklayout(to),
+      rvk_image_vklayout(image->type, from),
+      rvk_image_vklayout(image->type, to),
       rvk_image_vkaccess_write(from),
       rvk_image_vkaccess_read(to) | rvk_image_vkaccess_write(to),
       rvk_image_vkpipelinestage(from),
@@ -542,9 +543,9 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
     vkCmdBlitImage(
         vkCmdBuf,
         image->vkImage,
-        rvk_image_vklayout(RvkImagePhase_TransferSource),
+        rvk_image_vklayout(image->type, RvkImagePhase_TransferSource),
         image->vkImage,
-        rvk_image_vklayout(RvkImagePhase_TransferDest),
+        rvk_image_vklayout(image->type, RvkImagePhase_TransferDest),
         1,
         &blit,
         VK_FILTER_LINEAR);
@@ -578,9 +579,9 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   vkCmdCopyImage(
       vkCmdBuf,
       src->vkImage,
-      rvk_image_vklayout(src->phase),
+      rvk_image_vklayout(src->type, src->phase),
       dest->vkImage,
-      rvk_image_vklayout(dest->phase),
+      rvk_image_vklayout(dest->type, dest->phase),
       array_elems(regions),
       regions);
 }
@@ -611,9 +612,9 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   vkCmdBlitImage(
       vkCmdBuf,
       src->vkImage,
-      rvk_image_vklayout(src->phase),
+      rvk_image_vklayout(src->type, src->phase),
       dest->vkImage,
-      rvk_image_vklayout(dest->phase),
+      rvk_image_vklayout(dest->type, dest->phase),
       array_elems(regions),
       regions,
       srcIsDepth ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
@@ -635,7 +636,7 @@ void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer 
   vkCmdClearColorImage(
       vkCmdBuf,
       img->vkImage,
-      rvk_image_vklayout(img->phase),
+      rvk_image_vklayout(img->type, img->phase),
       &clearColor,
       array_elems(ranges),
       ranges);
@@ -657,8 +658,8 @@ void rvk_image_transfer_ownership(
       img,
       srcQueueFamIdx,
       dstQueueFamIdx,
-      rvk_image_vklayout(img->phase),
-      rvk_image_vklayout(img->phase),
+      rvk_image_vklayout(img->type, img->phase),
+      rvk_image_vklayout(img->type, img->phase),
       rvk_image_vkaccess_write(img->phase),
       0,
       rvk_image_vkpipelinestage(img->phase),
@@ -672,8 +673,8 @@ void rvk_image_transfer_ownership(
       img,
       srcQueueFamIdx,
       dstQueueFamIdx,
-      rvk_image_vklayout(img->phase),
-      rvk_image_vklayout(img->phase),
+      rvk_image_vklayout(img->type, img->phase),
+      rvk_image_vklayout(img->type, img->phase),
       0,
       rvk_image_vkaccess_read(img->phase) | rvk_image_vkaccess_write(img->phase),
       rvk_image_vkpipelinestage(img->phase),

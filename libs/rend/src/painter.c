@@ -537,7 +537,7 @@ static bool rend_canvas_paint(
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
   {
-    rvk_canvas_blit(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
+    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
@@ -564,9 +564,6 @@ static bool rend_canvas_paint(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
-    if (settings->flags & RendFlags_DebugShadow) {
-      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
-    }
     rvk_pass_begin(fwdPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(fwdPass);
@@ -575,7 +572,6 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, geoColorRough);
   rvk_canvas_attach_release(painter->canvas, geoNormTags);
   rvk_canvas_attach_release(painter->canvas, geoDepth);
-  rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
@@ -591,14 +587,19 @@ static bool rend_canvas_paint(
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
     painter_push_post(&ctx, drawView, graphicView);
+    if (settings->flags & RendFlags_DebugShadow) {
+      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
+    }
     rvk_pass_begin(postPass, geo_color_clear);
     painter_flush(&ctx);
     rvk_pass_end(postPass);
   }
 
   rvk_canvas_attach_release(painter->canvas, fwdColor);
+  rvk_canvas_attach_release(painter->canvas, shadowDepth);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);

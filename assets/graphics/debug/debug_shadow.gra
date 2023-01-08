@@ -8,7 +8,7 @@
     }
   ],
   "vertexCount": 4,
-  "renderOrder": 2000,
+  "renderOrder": 1,
   "topology": "TriangleFan",
   "rasterizer": "Fill",
   "blend": "None",

@@ -1,7 +1,7 @@
 {
   "size": 512,
   "entrySize": 64,
-  "entryPadding": 1,
+  "entryPadding": 2,
   "mipmaps": true,
   "srgb": false,
   "entries": [

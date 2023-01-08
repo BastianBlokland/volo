@@ -351,6 +351,16 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   diag_crash();
 }
 
+static bool rvk_pipeline_depth_test(RvkGraphic* graphic) {
+  switch (graphic->depth) {
+  case AssetGraphicDepth_Always:
+  case AssetGraphicDepth_AlwaysNoWrite:
+    return false;
+  default:
+    return true;
+  }
+}
+
 static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGraphic* graphic) {
   const VkColorComponentFlags colorMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -453,12 +463,12 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
 
+  const bool                                  passHasDepth = rvk_pass_has_depth(pass);
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .depthWriteEnable = rvk_pipeline_depth_write(graphic),
-      .depthTestEnable  = graphic->depth != AssetGraphicDepth_Always &&
-                         graphic->depth != AssetGraphicDepth_AlwaysNoWrite,
-      .depthCompareOp = rvk_pipeline_depth_compare(graphic),
+      .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(graphic),
+      .depthTestEnable  = passHasDepth && rvk_pipeline_depth_test(graphic),
+      .depthCompareOp   = rvk_pipeline_depth_compare(graphic),
   };
 
   const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);

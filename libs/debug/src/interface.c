@@ -79,7 +79,8 @@ static EcsEntityId debug_ftx_draw_create(
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = panelEntity);
 
-  RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_NoAutoClear);
+  const RendDrawFlags drawFlags = RendDrawFlags_Post | RendDrawFlags_NoAutoClear;
+  RendDrawComp*       draw      = rend_draw_create(world, drawEntity, drawFlags);
   rend_draw_set_graphic(
       draw, asset_lookup(world, assets, string_lit("graphics/debug/interface_ftx.gra")));
   rend_draw_set_camera_filter(draw, windowEntity);
