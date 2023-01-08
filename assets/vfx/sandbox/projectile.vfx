@@ -8,10 +8,16 @@
       },
       "sprite": {
         "atlasEntry": "trail",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1.6
+        },
         "blend": "Additive",
         "size": {
           "x": 3.5,
-          "y": 0.08
+          "y": 0.09
         },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
@@ -31,10 +37,16 @@
       },
       "sprite": {
         "atlasEntry": "trail",
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 1,
+          "a": 1.6
+        },
         "blend": "Additive",
         "size": {
           "x": 3.5,
-          "y": 0.08
+          "y": 0.09
         },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
