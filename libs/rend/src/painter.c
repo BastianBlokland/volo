@@ -572,7 +572,6 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, geoColorRough);
   rvk_canvas_attach_release(painter->canvas, geoNormTags);
   rvk_canvas_attach_release(painter->canvas, geoDepth);
-  rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
@@ -600,6 +599,7 @@ static bool rend_canvas_paint(
   }
 
   rvk_canvas_attach_release(painter->canvas, fwdColor);
+  rvk_canvas_attach_release(painter->canvas, shadowDepth);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
