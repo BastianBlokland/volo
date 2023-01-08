@@ -24,6 +24,16 @@ static const String g_tooltipPresent        = string_static("Presentation mode.\
 static const String g_tooltipScale          = string_static("Render resolution scale.");
 static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
 static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
+static const String g_tooltipAmbientMode    = string_static("Controls the ambient draw in the forward pass.\n\n"
+                                                            "Options:\n"
+                                                            "- \a.bNormal\ar: Geometry color is multiplied by the ambient lighting.\n\n"
+                                                            "Debug options:\n"
+                                                            "- \a.bDebugColor\ar: Geometry color output.\n"
+                                                            "- \a.bDebugRoughness\ar: Geometry roughness output.\n"
+                                                            "- \a.bDebugNormal\ar: Geometry world-space normals output.\n"
+                                                            "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
+                                                            "- \a.bDebugTags\ar: Geometry tags output.\n"
+                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.\n");
 static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipDebugGpu       = string_static("Should additional gpu debug info be emitted?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
@@ -272,7 +282,11 @@ static void rend_settings_tab_draw(
   ui_label(canvas, string_lit("Ambient mode"));
   ui_table_next_column(canvas, &table);
   ui_select(
-      canvas, (i32*)&settings->ambientMode, g_ambientModeNames, array_elems(g_ambientModeNames));
+      canvas,
+      (i32*)&settings->ambientMode,
+      g_ambientModeNames,
+      array_elems(g_ambientModeNames),
+      .tooltip = g_tooltipAmbientMode);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
