@@ -21,7 +21,7 @@ static const String g_tooltipDebugShading   = string_static("Enable the debug sh
                                                             "- \a#001CFFFF\a|01\a.bBlue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
                                                             "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
                                                             "- \a#00FF00FF\a|01\a.bGreen\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
-static const String g_tooltipDebugFtx       = string_static("Show the \a.bFont TeXture\ar used for the interface rendering.");
+static const String g_tooltipDebugFtx       = string_static("Show the \a.bFont TeXture\ar used for the interface rendering.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 static const String g_tooltipApply          = string_static("Apply outstanding interface setting changes.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
