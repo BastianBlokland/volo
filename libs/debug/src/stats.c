@@ -326,8 +326,6 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       fmt_duration(stats->gpuRendDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
-  ui_layout_next(canvas, Ui_Down, 0);
-
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
   ui_layout_next(canvas, Ui_Down, 0);
