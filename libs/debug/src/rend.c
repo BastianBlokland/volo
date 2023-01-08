@@ -15,22 +15,51 @@
 
 // clang-format off
 
-static const String g_tooltipPresent        = string_static("Presentation mode.\n\n"
+static const String g_tooltipPresent          = string_static("Presentation mode.\n\n"
                                                             "Options:\n"
                                                             "- \a.bImmediate\ar: Don't wait for a vblank but immediately output the new image.\n"
                                                             "- \a.bSync\ar: Wait for the next vblank to output the new image.\n"
                                                             "- \a.bVSyncRelaxed\ar: Wait for the next vblank if the application is early, if the application is late then immediately output the new image.\n"
                                                             "- \a.bMailbox\ar: Wait for the next vblank to output a new image, but does not block acquiring a next image. If the application finishes another image before the vblank then it will replace the currently waiting image.");
-static const String g_tooltipScale          = string_static("Render resolution scale.");
-static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
-static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
-static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
-static const String g_tooltipDebugGpu       = string_static("Should additional gpu debug info be emitted?\n\a.bNote\ar: Requires a reset to take effect.");
-static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
-static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
-static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
-static const String g_tooltipFreeze         = string_static("Freeze the data set (halts data collection).");
-static const String g_tooltipResourceFilter = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipScale            = string_static("Render resolution scale.");
+static const String g_tooltipLimiter          = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
+static const String g_tooltipFrustumCulling   = string_static("Should draws be culled if their bounds are outside of the view frustum?");
+static const String g_tooltipAmbientMode      = string_static("Controls the ambient draw in the forward pass.\n\n"
+                                                            "Options:\n"
+                                                            "- \a.bNormal\ar: Geometry color is multiplied by the ambient lighting.\n\n"
+                                                            "Debug options:\n"
+                                                            "- \a.bDebugColor\ar: Geometry color output.\n"
+                                                            "- \a.bDebugRoughness\ar: Geometry roughness output.\n"
+                                                            "- \a.bDebugNormal\ar: Geometry world-space normals output.\n"
+                                                            "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
+                                                            "- \a.bDebugTags\ar: Geometry tags output.\n"
+                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.");
+static const String g_tooltipWireframe        = string_static("Enable a geometry wireframe overlay.");
+static const String g_tooltipDebugCamera      = string_static("Enable a top-down orthographic debug camera projection.\n\n\a.bNote\ar: The view properties of the 'real' camera will be used, this is useful for debugging the frustum culling.");
+static const String g_tooltipDebugSkinning    = string_static("Enable a skinning-weight debug overlay.");
+static const String g_tooltipDebugShadow      = string_static("Draw the shadow-map as a fullscreen overlay.\n\a.bNote\ar: Click anywhere on the screen to disable.");
+static const String g_tooltipDebugLight       = string_static("Visualize the (point) light draws.\n\a.bNote\ar: The brightness represents the light attenuation.");
+static const String g_tooltipValidation       = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
+static const String g_tooltipDebugGpu         = string_static("Should additional gpu debug info be emitted?\n\a.bNote\ar: Requires a reset to take effect.");
+static const String g_tooltipVerbose          = string_static("Should verbose logging be enabled?");
+static const String g_tooltipDefaults         = string_static("Reset all settings to their defaults.");
+static const String g_tooltipReset            = string_static("Re-initialize the renderer.");
+static const String g_tooltipFreeze           = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipResourceFilter   = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipSunShadows       = string_static("Use a directional shadow map to allow geometry to occlude the sun radiance.");
+static const String g_tooltipSunCoverage      = string_static("Use a panning coverage mask to simulate clouds absorbing some of the sun radiance.");
+static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
+static const String g_tooltipAmbientOcclusion = string_static("\a.b[SSAO]\ar Sample the geometry depth-buffer to compute a occlusion factor (how exposed it is to ambient lighting) for each fragment.");
+static const String g_tooltipAoBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
+static const String g_tooltipAoAngle          = string_static("\a.b[SSAO]\ar Angle (in degrees) of the sample kernel cone.\nA wider angle will include more of the surrounding geometry.");
+static const String g_tooltipAoRadius         = string_static("\a.b[SSAO]\ar Radius (in meters) of the sample kernel cone.\nA higher radius will include more of the surrounding geometry.");
+static const String g_tooltipAoRadiusPow      = string_static("\a.b[SSAO]\ar Controls the distribution of the samples in the kernel cone.\n\n"
+                                                              "Values:\n"
+                                                              " < 1: Samples are distributed away from the origin.\n"
+                                                              " == 1: Samples are distributed uniformly.\n"
+                                                              " > 1: Samples are distributed closer to the origin.\n");
+static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Power of the resulting occlusion factor, the higher the value the more occluded.");
+static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
 
 // clang-format on
 
@@ -272,27 +301,35 @@ static void rend_settings_tab_draw(
   ui_label(canvas, string_lit("Ambient mode"));
   ui_table_next_column(canvas, &table);
   ui_select(
-      canvas, (i32*)&settings->ambientMode, g_ambientModeNames, array_elems(g_ambientModeNames));
+      canvas,
+      (i32*)&settings->ambientMode,
+      g_ambientModeNames,
+      array_elems(g_ambientModeNames),
+      .tooltip = g_tooltipAmbientMode);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Wireframe);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_Wireframe, .tooltip = g_tooltipWireframe);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Camera"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugCamera);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugCamera, .tooltip = g_tooltipDebugCamera);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Skinning"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugSkinning, .tooltip = g_tooltipDebugSkinning);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug shadow"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugShadow);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
 
   if (settings->flags & RendFlags_DebugShadow && ui_canvas_input_any(canvas)) {
     settings->flags &= ~RendFlags_DebugShadow;
@@ -301,7 +338,11 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_DebugLight);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_DebugLight,
+      .tooltip = g_tooltipDebugLight);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Gpu"));
@@ -656,12 +697,20 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun shadows"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunShadows);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_SunShadows,
+      .tooltip = g_tooltipSunShadows);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun coverage"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_SunCoverage);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settingsGlobal->flags,
+      RendGlobalFlags_SunCoverage,
+      .tooltip = g_tooltipSunCoverage);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadow resolution"));
@@ -677,24 +726,29 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("AmbientOcclusion"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusion);
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settings->flags,
+      RendFlags_AmbientOcclusion,
+      .tooltip = g_tooltipAmbientOcclusion);
 
   if (settings->flags & RendFlags_AmbientOcclusion) {
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO Blur"));
     ui_table_next_column(canvas, &table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur);
+    ui_toggle_flag(
+        canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur, .tooltip = g_tooltipAoBlur);
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO angle"));
     ui_table_next_column(canvas, &table);
     f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
-    if (ui_slider(canvas, &aoAngleDeg, .max = 180)) {
+    if (ui_slider(canvas, &aoAngleDeg, .max = 180, .tooltip = g_tooltipAoAngle)) {
       settings->aoAngle = aoAngleDeg * math_deg_to_rad;
       rend_settings_generate_ao_kernel(settings);
     }
@@ -702,26 +756,32 @@ static void rend_light_tab_draw(
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO radius"));
     ui_table_next_column(canvas, &table);
-    if (ui_slider(canvas, &settings->aoRadius)) {
+    if (ui_slider(canvas, &settings->aoRadius, .tooltip = g_tooltipAoRadius)) {
       rend_settings_generate_ao_kernel(settings);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO radius power"));
     ui_table_next_column(canvas, &table);
-    if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f)) {
+    if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f, .tooltip = g_tooltipAoRadiusPow)) {
       rend_settings_generate_ao_kernel(settings);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO power"));
     ui_table_next_column(canvas, &table);
-    ui_slider(canvas, &settings->aoPower, .max = 7.5f);
+    ui_slider(canvas, &settings->aoPower, .max = 7.5f, .tooltip = g_tooltipAoPow);
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO resolution scale"));
     ui_table_next_column(canvas, &table);
-    ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
+    ui_slider(
+        canvas,
+        &settings->aoResolutionScale,
+        .min     = 0.1f,
+        .max     = 1.0f,
+        .step    = 0.05f,
+        .tooltip = g_tooltipAoResScale);
   }
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
