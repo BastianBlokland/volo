@@ -50,7 +50,16 @@ static const String g_tooltipSunShadows       = string_static("Use a directional
 static const String g_tooltipSunCoverage      = string_static("Use a panning coverage mask to simulate clouds absorbing some of the sun radiance.");
 static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
 static const String g_tooltipAmbientOcclusion = string_static("\a.b[SSAO]\ar Sample the geometry depth-buffer to compute a occlusion factor (how exposed it is to ambient lighting) for each fragment.");
-static const String g_tooltipAOBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
+static const String g_tooltipAoBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
+static const String g_tooltipAoAngle          = string_static("\a.b[SSAO]\ar Angle (in degrees) of the sample kernel cone.\nA wider angle will include more of the surrounding geometry.");
+static const String g_tooltipAoRadius         = string_static("\a.b[SSAO]\ar Radius (in meters) of the sample kernel cone.\nA higher radius will include more of the surrounding geometry.");
+static const String g_tooltipAoRadiusPow      = string_static("\a.b[SSAO]\ar Controls the distribution of the samples in the kernel cone.\n\n"
+                                                              "Values:\n"
+                                                              " < 1: Samples are distributed away from the origin.\n"
+                                                              " == 1: Samples are distributed uniformly.\n"
+                                                              " > 1: Samples are distributed closer to the origin.\n");
+static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Power of the resulting occlusion factor, the higher the value the more occluded.");
+static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
 
 // clang-format on
 
@@ -733,13 +742,13 @@ static void rend_light_tab_draw(
     ui_label(canvas, string_lit("AO Blur"));
     ui_table_next_column(canvas, &table);
     ui_toggle_flag(
-        canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur, .tooltip = g_tooltipAOBlur);
+        canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur, .tooltip = g_tooltipAoBlur);
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO angle"));
     ui_table_next_column(canvas, &table);
     f32 aoAngleDeg = settings->aoAngle * math_rad_to_deg;
-    if (ui_slider(canvas, &aoAngleDeg, .max = 180)) {
+    if (ui_slider(canvas, &aoAngleDeg, .max = 180, .tooltip = g_tooltipAoAngle)) {
       settings->aoAngle = aoAngleDeg * math_deg_to_rad;
       rend_settings_generate_ao_kernel(settings);
     }
@@ -747,26 +756,32 @@ static void rend_light_tab_draw(
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO radius"));
     ui_table_next_column(canvas, &table);
-    if (ui_slider(canvas, &settings->aoRadius)) {
+    if (ui_slider(canvas, &settings->aoRadius, .tooltip = g_tooltipAoRadius)) {
       rend_settings_generate_ao_kernel(settings);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO radius power"));
     ui_table_next_column(canvas, &table);
-    if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f)) {
+    if (ui_slider(canvas, &settings->aoRadiusPower, .max = 5.0f, .tooltip = g_tooltipAoRadiusPow)) {
       rend_settings_generate_ao_kernel(settings);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO power"));
     ui_table_next_column(canvas, &table);
-    ui_slider(canvas, &settings->aoPower, .max = 7.5f);
+    ui_slider(canvas, &settings->aoPower, .max = 7.5f, .tooltip = g_tooltipAoPow);
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("AO resolution scale"));
     ui_table_next_column(canvas, &table);
-    ui_slider(canvas, &settings->aoResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
+    ui_slider(
+        canvas,
+        &settings->aoResolutionScale,
+        .min     = 0.1f,
+        .max     = 1.0f,
+        .step    = 0.05f,
+        .tooltip = g_tooltipAoResScale);
   }
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
