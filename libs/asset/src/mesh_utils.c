@@ -71,14 +71,9 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVerte
 
   builder->indexTable = alloc_array_t(alloc, AssetMeshIndex, builder->tableSize);
   for (u32 i = 0; i != builder->tableSize; ++i) {
-    builder->indexTable[i] = asset_mesh_indices_max;
+    builder->indexTable[i] = asset_mesh_vertices_max;
   }
 
-  diag_assert_msg(
-      maxVertexCount < asset_mesh_indices_max,
-      "Vertex count {} exceeds the maximum capacity {} of the index-type",
-      fmt_int(maxVertexCount),
-      fmt_int(asset_mesh_indices_max - 1));
   return builder;
 }
 
@@ -100,7 +95,7 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
 
   // Reset the index table.
   for (u32 i = 0; i != builder->tableSize; ++i) {
-    builder->indexTable[i] = asset_mesh_indices_max;
+    builder->indexTable[i] = asset_mesh_vertices_max;
   }
 }
 
@@ -113,9 +108,11 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
   for (usize i = 0; i != builder->tableSize; ++i) {
     AssetMeshIndex* slot = &builder->indexTable[bucket];
 
-    if (LIKELY(*slot == asset_mesh_indices_max)) {
+    if (LIKELY(*slot == asset_mesh_vertices_max)) {
       diag_assert_msg(
-          builder->vertexData.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
+          builder->vertexData.size < builder->maxVertexCount,
+          "Vertex count exceeds the maximum capacity {} of the index-type",
+          fmt_int(asset_mesh_vertices_max - 1));
 
       // Unique vertex, copy to output and save the index in the table.
       *slot = (AssetMeshIndex)builder->vertexData.size;
