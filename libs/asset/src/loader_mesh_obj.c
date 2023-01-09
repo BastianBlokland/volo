@@ -427,7 +427,8 @@ void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
 
   const u32 numVerts = data.totalTris * 3;
-  if (numVerts > asset_mesh_indices_max) {
+  // TODO: This check is very conservative as the index buffer could reuse many vertices.
+  if (numVerts > asset_mesh_vertices_max) {
     obj_load_fail(world, entity, ObjError_TooManyVertices);
     goto Done;
   }

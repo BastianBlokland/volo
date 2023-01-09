@@ -3,11 +3,11 @@
 #include "geo_box.h"
 #include "geo_matrix.h"
 
-#define asset_mesh_indices_max u32_max
+#define asset_mesh_vertices_max u16_max
 #define asset_mesh_joints_max 75
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
 
-typedef u32 AssetMeshIndex;
+typedef u16 AssetMeshIndex;
 typedef u32 AssetMeshAnimPtr;
 
 typedef struct {
