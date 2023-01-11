@@ -1,6 +1,7 @@
 #pragma once
 #include "core_time.h"
 #include "ecs_module.h"
+#include "rend_pass.h"
 
 typedef enum {
   RendStatRes_Graphic,
@@ -27,7 +28,7 @@ ecs_comp_extern_public(RendStatsComp) {
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 
-  RendStatPass passGeometry, passForward, passPost, passShadow, passAo;
+  RendStatPass passes[RendPass_Count];
 
   u16 memChunks;
   u64 ramOccupied, ramReserved;

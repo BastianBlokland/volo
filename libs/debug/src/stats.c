@@ -363,18 +363,18 @@ static void debug_stats_draw_interface(
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Resolution geo"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passGeometry.size[0]), fmt_int(rendStats->passGeometry.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution fwd"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passForward.size[0]), fmt_int(rendStats->passForward.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution post"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passPost.size[0]), fmt_int(rendStats->passPost.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution ao"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passAo.size[0]), fmt_int(rendStats->passAo.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution shadow"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passShadow.size[0]), fmt_int(rendStats->passShadow.size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution geo"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Geometry].size[0]), fmt_int(rendStats->passes[RendPass_Geometry].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution fwd"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Forward].size[0]), fmt_int(rendStats->passes[RendPass_Forward].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution post"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Post].size[0]), fmt_int(rendStats->passes[RendPass_Post].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution ao"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_AmbientOcclusion].size[0]), fmt_int(rendStats->passes[RendPass_AmbientOcclusion].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Resolution shadow"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Shadow].size[0]), fmt_int(rendStats->passes[RendPass_Shadow].size[1])));
 
-    stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.draws), fmt_int(rendStats->passForward.draws)));
-    stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.instances), fmt_int(rendStats->passForward.instances)));
-    stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.vertices), fmt_int(rendStats->passForward.vertices)));
-    stats_draw_val_entry(canvas, string_lit("Primitives"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.primitives), fmt_int(rendStats->passForward.primitives)));
-    stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersVert), fmt_int(rendStats->passForward.shadersVert)));
-    stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersFrag), fmt_int(rendStats->passForward.shadersFrag)));
+    stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].draws), fmt_int(rendStats->passes[RendPass_Forward].draws)));
+    stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].instances), fmt_int(rendStats->passes[RendPass_Forward].instances)));
+    stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].vertices), fmt_int(rendStats->passes[RendPass_Forward].vertices)));
+    stats_draw_val_entry(canvas, string_lit("Primitives"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].primitives), fmt_int(rendStats->passes[RendPass_Forward].primitives)));
+    stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].shadersVert), fmt_int(rendStats->passes[RendPass_Forward].shadersVert)));
+    stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].shadersFrag), fmt_int(rendStats->passes[RendPass_Forward].shadersFrag)));
 
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
@@ -472,11 +472,11 @@ static void debug_stats_update(
   stats->presentEnqDur     = rendStats->presentEnqueueDur;
   stats->presentWaitDur    = rendStats->presentWaitDur;
   stats->gpuRendDur        = rendStats->renderDur;
-  stats->gpuRendGeoDur     = rendStats->passGeometry.dur;
-  stats->gpuRendForwardDur = rendStats->passForward.dur;
-  stats->gpuRendPostDur    = rendStats->passPost.dur;
-  stats->gpuRendShadowDur  = rendStats->passShadow.dur;
-  stats->gpuRendAoDur      = rendStats->passAo.dur;
+  stats->gpuRendGeoDur     = rendStats->passes[RendPass_Geometry].dur;
+  stats->gpuRendForwardDur = rendStats->passes[RendPass_Forward].dur;
+  stats->gpuRendPostDur    = rendStats->passes[RendPass_Post].dur;
+  stats->gpuRendShadowDur  = rendStats->passes[RendPass_Shadow].dur;
+  stats->gpuRendAoDur      = rendStats->passes[RendPass_AmbientOcclusion].dur;
 
   const f32 ref = (f32)stats->frameDur;
   debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));
