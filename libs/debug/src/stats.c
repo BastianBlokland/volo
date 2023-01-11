@@ -56,10 +56,12 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
-  f32 gpuPassFrac[RendPass_Count];
+  // Cpu frame fractions.
+  f32 rendWaitFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
 
-  f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
+  // Gpu frame fractions.
   f32 gpuRendFrac;
+  f32 gpuPassFrac[RendPass_Count];
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -220,7 +222,7 @@ static void stats_draw_graph(
   for (u32 i = 0; i != sectionCount; ++i) {
     const f32 frac = math_min(sections[i].frac, 1.0f - t);
     if (frac < 0.0) {
-      break; // TODO: This can happen as values are averaged independently.
+      break; // NOTE: This can happen as values are averaged independently.
     }
     if (frac < f32_epsilon) {
       continue;
@@ -256,16 +258,23 @@ static void stats_draw_cpu_graph(
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 busyFrac = 1.0f - stats->rendWaitFrac - stats->presAcqFrac - stats->presEnqFrac -
-                       stats->presWaitFrac - stats->limiterFrac;
+  /**
+   * We determine the cpu 'busy' time by subtracting the time we've spend blocking on the renderer.
+   */
+  f32 busyFrac = 1.0f;
+  busyFrac -= stats->rendWaitFrac;
+  busyFrac -= stats->rendPresAcqFrac;
+  busyFrac -= stats->rendPresEnqFrac;
+  busyFrac -= stats->rendPresWaitFrac;
+  busyFrac -= stats->rendLimiterFrac;
 
   const StatGraphSection sections[] = {
       {math_max(busyFrac, 0), ui_color(0, 128, 0, 178)},
       {stats->rendWaitFrac, ui_color(255, 0, 0, 178)},
-      {stats->presAcqFrac, ui_color(128, 0, 128, 178)},
-      {stats->presEnqFrac, ui_color(0, 0, 255, 178)},
-      {stats->presWaitFrac, ui_color(0, 128, 128, 128)},
-      {stats->limiterFrac, ui_color(128, 128, 128, 128)},
+      {stats->rendPresAcqFrac, ui_color(128, 0, 128, 178)},
+      {stats->rendPresEnqFrac, ui_color(0, 0, 255, 178)},
+      {stats->rendPresWaitFrac, ui_color(0, 128, 128, 128)},
+      {stats->rendLimiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:    {>8}\n"
@@ -297,19 +306,15 @@ static void stats_draw_gpu_graph(
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 idleFrac        = 1.0f - stats->gpuRendFrac;
-  const f32 renderOtherFrac = stats->gpuRendFrac - stats->gpuPassFrac[RendPass_Geometry] -
-                              stats->gpuPassFrac[RendPass_Post] -
-                              stats->gpuPassFrac[RendPass_Shadow] -
-                              stats->gpuPassFrac[RendPass_AmbientOcclusion];
-
+  /**
+   * TODO: This does not take into account that some passes could run in parallel on the gpu.
+   */
   const StatGraphSection sections[] = {
       {stats->gpuPassFrac[RendPass_Geometry], ui_color(0, 128, 128, 178)},
       {stats->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
       {stats->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
-      {renderOtherFrac, ui_color(0, 128, 0, 178)},
+      {stats->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
       {stats->gpuPassFrac[RendPass_Post], ui_color(128, 0, 0, 178)},
-      {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~teal\a.bGeometry\ar:         {>7}\n"
@@ -469,10 +474,10 @@ static void debug_stats_update(
 
   const f32 ref = (f32)stats->frameDur;
   debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(rendStats->waitForRenderDur / ref, 0, 1));
-  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(rendStats->presentAcquireDur / ref, 0, 1));
-  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(rendStats->presentEnqueueDur / ref, 0, 1));
-  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(rendStats->presentWaitDur / ref, 0, 1));
-  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(rendStats->limiterDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresAcqFrac, math_clamp_f32(rendStats->presentAcquireDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresEnqFrac, math_clamp_f32(rendStats->presentEnqueueDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresWaitFrac, math_clamp_f32(rendStats->presentWaitDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendLimiterFrac, math_clamp_f32(rendStats->limiterDur / ref, 0, 1));
   debug_avg_f32(&stats->gpuRendFrac, math_clamp_f32(rendStats->renderDur / ref, 0, 1));
 
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
