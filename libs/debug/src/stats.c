@@ -56,11 +56,6 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
-  TimeDuration limiterDur;
-  TimeDuration rendWaitDur;
-  TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
-  TimeDuration gpuRendDur;
-
   f32 gpuPassFrac[RendPass_Count];
 
   f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
@@ -249,7 +244,8 @@ static void stats_draw_graph(
   ui_style_pop(canvas);
 }
 
-static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+static void stats_draw_cpu_graph(
+    UiCanvasComp* canvas, const DebugStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, string_lit("CPU"));
 
@@ -277,11 +273,11 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       "\a~blue\a.bPresent enqueue\ar: {>8}\n"
       "\a~teal\a.bPresent wait\ar:    {>8}\n"
       "\a.bLimiter\ar:         {>8}",
-      fmt_duration(stats->rendWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentAcqDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentEnqDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
+      fmt_duration(rendStats->waitForRenderDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentAcquireDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentEnqueueDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -328,7 +324,7 @@ static void stats_draw_gpu_graph(
           rendStats->passes[RendPass_AmbientOcclusion].dur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendStats->passes[RendPass_Forward].dur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendStats->passes[RendPass_Post].dur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendDur, .minDecDigits = 1, .maxDecDigits = 1));
+      fmt_duration(rendStats->renderDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -362,7 +358,7 @@ static void debug_stats_draw_interface(
 
   // clang-format off
   stats_draw_frametime(canvas, stats);
-  stats_draw_cpu_graph(canvas, stats);
+  stats_draw_cpu_graph(canvas, stats, rendStats);
   stats_draw_gpu_graph(canvas, stats, rendStats);
   stats_draw_notifications(canvas, statsGlobal);
 
@@ -471,20 +467,13 @@ static void debug_stats_update(
                                ? time_second / rendGlobalSettings->limiterFreq
                                : time_second / 60; // TODO: This assumes a 60 hz display.
 
-  stats->limiterDur     = rendStats->limiterDur;
-  stats->rendWaitDur    = rendStats->waitForRenderDur;
-  stats->presentAcqDur  = rendStats->presentAcquireDur;
-  stats->presentEnqDur  = rendStats->presentEnqueueDur;
-  stats->presentWaitDur = rendStats->presentWaitDur;
-  stats->gpuRendDur     = rendStats->renderDur;
-
   const f32 ref = (f32)stats->frameDur;
-  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));
-  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(stats->presentAcqDur / ref, 0, 1));
-  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(stats->presentEnqDur / ref, 0, 1));
-  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(stats->presentWaitDur / ref, 0, 1));
-  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(stats->limiterDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendFrac, math_clamp_f32(stats->gpuRendDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(rendStats->waitForRenderDur / ref, 0, 1));
+  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(rendStats->presentAcquireDur / ref, 0, 1));
+  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(rendStats->presentEnqueueDur / ref, 0, 1));
+  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(rendStats->presentWaitDur / ref, 0, 1));
+  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(rendStats->limiterDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRendFrac, math_clamp_f32(rendStats->renderDur / ref, 0, 1));
 
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
     debug_avg_f32(
