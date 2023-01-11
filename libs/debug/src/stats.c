@@ -56,6 +56,8 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
+  RendPass passInspect; // Pass to show stats for.
+
   // Cpu frame fractions.
   f32 rendWaitFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
 
@@ -337,6 +339,30 @@ static void stats_draw_gpu_graph(
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
+static void stats_draw_renderer_pass_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  stats_draw_bg(canvas, DebugBgFlags_None);
+  stats_draw_label(canvas, string_lit("Pass select"));
+  {
+    ui_layout_push(canvas);
+    ui_style_push(canvas);
+
+    ui_layout_grow(
+        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+
+    ui_select(
+        canvas,
+        (i32*)&stats->passInspect,
+        g_rendPassNames,
+        RendPass_Count,
+        .frameColor     = ui_color(24, 24, 24, 128),
+        .dropFrameColor = ui_color(24, 24, 24, 225));
+
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  }
+  ui_layout_next(canvas, Ui_Down, 0);
+}
+
 static void
 stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* statsGlobal) {
   dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
@@ -369,18 +395,6 @@ static void debug_stats_draw_interface(
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Resolution geo"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Geometry].size[0]), fmt_int(rendStats->passes[RendPass_Geometry].size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution fwd"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Forward].size[0]), fmt_int(rendStats->passes[RendPass_Forward].size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution post"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Post].size[0]), fmt_int(rendStats->passes[RendPass_Post].size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution ao"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_AmbientOcclusion].size[0]), fmt_int(rendStats->passes[RendPass_AmbientOcclusion].size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution shadow"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[RendPass_Shadow].size[0]), fmt_int(rendStats->passes[RendPass_Shadow].size[1])));
-
-    stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].draws), fmt_int(rendStats->passes[RendPass_Forward].draws)));
-    stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].instances), fmt_int(rendStats->passes[RendPass_Forward].instances)));
-    stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].vertices), fmt_int(rendStats->passes[RendPass_Forward].vertices)));
-    stats_draw_val_entry(canvas, string_lit("Primitives"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].primitives), fmt_int(rendStats->passes[RendPass_Forward].primitives)));
-    stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].shadersVert), fmt_int(rendStats->passes[RendPass_Forward].shadersVert)));
-    stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passes[RendPass_Geometry].shadersFrag), fmt_int(rendStats->passes[RendPass_Forward].shadersFrag)));
 
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
@@ -389,6 +403,16 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
     stats_draw_val_entry(canvas, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
+
+    stats_draw_renderer_pass_dropdown(canvas, stats);
+    stats_draw_val_entry(canvas, string_lit("Pass resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].size[0]), fmt_int(rendStats->passes[stats->passInspect].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Pass duration"), fmt_write_scratch("{<10} avg-frac: {}", fmt_duration(rendStats->passes[stats->passInspect].dur), fmt_float(stats->gpuPassFrac[stats->passInspect], .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(canvas, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
+    stats_draw_val_entry(canvas, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
+    stats_draw_val_entry(canvas, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
+    stats_draw_val_entry(canvas, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].primitives)));
+    stats_draw_val_entry(canvas, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersVert)));
+    stats_draw_val_entry(canvas, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersFrag)));
   }
   if(stats_draw_section(canvas, string_lit("Memory"))) {
     const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;

@@ -11,4 +11,6 @@ typedef enum {
   RendPass_Count,
 } RendPass;
 
+extern const String g_rendPassNames[RendPass_Count];
+
 String rend_pass_name(RendPass);
