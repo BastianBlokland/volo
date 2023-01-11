@@ -10,6 +10,7 @@ add_library(lib_rend STATIC
   src/light.c
   src/limiter.c
   src/painter.c
+  src/pass.c
   src/platform.c
   src/register.c
   src/reset.c
