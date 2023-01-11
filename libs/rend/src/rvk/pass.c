@@ -54,11 +54,13 @@ struct sRvkPass {
   DynArray           dynDescSets; // RvkDescSet[]
 };
 
-static VkFormat rvk_attach_color_format(const bool srgb, const bool single) {
+static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const bool single) {
   if (single) {
-    return srgb ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
+    return srgb ? VK_FORMAT_R8_SRGB : flt ? VK_FORMAT_R16_SFLOAT : VK_FORMAT_R8_UNORM;
   }
-  return srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+  return srgb  ? VK_FORMAT_R8G8B8A8_SRGB
+         : flt ? VK_FORMAT_R16G16B16A16_SFLOAT
+               : VK_FORMAT_R8G8B8A8_UNORM;
 }
 
 static VkFormat rvk_attach_color_format_at_index(const RvkPass* pass, const u32 index) {
@@ -68,13 +70,15 @@ static VkFormat rvk_attach_color_format_at_index(const RvkPass* pass, const u32 
       return pass->swapchainFormat;
     }
     const bool srgb   = (pass->flags & RvkPassFlags_Color1Srgb) != 0;
+    const bool flt    = (pass->flags & RvkPassFlags_Color1Float) != 0;
     const bool single = (pass->flags & RvkPassFlags_Color1Single) != 0;
-    return rvk_attach_color_format(srgb, single);
+    return rvk_attach_color_format(srgb, flt, single);
   }
   case 1: {
     const bool srgb   = (pass->flags & RvkPassFlags_Color2Srgb) != 0;
+    const bool flt    = false;
     const bool single = (pass->flags & RvkPassFlags_Color2Single) != 0;
-    return rvk_attach_color_format(srgb, single);
+    return rvk_attach_color_format(srgb, flt, single);
   }
   default:
     diag_crash_msg("Unsupported color attachment index: {}", fmt_int(index));
@@ -468,9 +472,13 @@ RvkPass* rvk_pass_create(
     const RvkPassFlags flags,
     const String       name) {
   diag_assert(!string_is_empty(name));
+
+  // TODO: These exclusion checks are unwieldy and a clear sign that these should not be flags :)
   diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
   diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || (flags & RvkPassFlags_Color1));
   diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Srgb));
+  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Float));
+  diag_assert(!(flags & RvkPassFlags_Color1Srgb) || !(flags & RvkPassFlags_Color1Float));
   diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Single));
   diag_assert(!(flags & RvkPassFlags_Color2Srgb) || (flags & RvkPassFlags_Color2));
   diag_assert(!(flags & RvkPassFlags_ColorLoadTransfer) || !(flags & RvkPassFlags_ColorClear));
