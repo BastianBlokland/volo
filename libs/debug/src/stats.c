@@ -56,14 +56,14 @@ ecs_comp_define(DebugStatsComp) {
   f32           frameFreqAvg;
   TimeDuration  frameDurDesired;
 
-  TimeDuration limiterDur;
-  TimeDuration rendWaitDur;
-  TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
-  TimeDuration gpuRendDur;
-  TimeDuration gpuRendGeoDur, gpuRendForwardDur, gpuRendPostDur, gpuRendShadowDur, gpuRendAoDur;
+  RendPass passInspect; // Pass to show stats for.
 
-  f32 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac;
-  f32 gpuRendFrac, gpuRendGeoFrac, gpuRendPostFrac, gpuRendShadowFrac, gpuRendAoFrac;
+  // Cpu frame fractions.
+  f32 rendWaitFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
+
+  // Gpu frame fractions.
+  f32 gpuRendFrac;
+  f32 gpuPassFrac[RendPass_Count];
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -224,7 +224,7 @@ static void stats_draw_graph(
   for (u32 i = 0; i != sectionCount; ++i) {
     const f32 frac = math_min(sections[i].frac, 1.0f - t);
     if (frac < 0.0) {
-      break; // TODO: This can happen as values are averaged independently.
+      break; // NOTE: This can happen as values are averaged independently.
     }
     if (frac < f32_epsilon) {
       continue;
@@ -248,7 +248,8 @@ static void stats_draw_graph(
   ui_style_pop(canvas);
 }
 
-static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+static void stats_draw_cpu_graph(
+    UiCanvasComp* canvas, const DebugStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, string_lit("CPU"));
 
@@ -259,16 +260,23 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 busyFrac = 1.0f - stats->rendWaitFrac - stats->presAcqFrac - stats->presEnqFrac -
-                       stats->presWaitFrac - stats->limiterFrac;
+  /**
+   * We determine the cpu 'busy' time by subtracting the time we've spend blocking on the renderer.
+   */
+  f32 busyFrac = 1.0f;
+  busyFrac -= stats->rendWaitFrac;
+  busyFrac -= stats->rendPresAcqFrac;
+  busyFrac -= stats->rendPresEnqFrac;
+  busyFrac -= stats->rendPresWaitFrac;
+  busyFrac -= stats->rendLimiterFrac;
 
   const StatGraphSection sections[] = {
       {math_max(busyFrac, 0), ui_color(0, 128, 0, 178)},
       {stats->rendWaitFrac, ui_color(255, 0, 0, 178)},
-      {stats->presAcqFrac, ui_color(128, 0, 128, 178)},
-      {stats->presEnqFrac, ui_color(0, 0, 255, 178)},
-      {stats->presWaitFrac, ui_color(0, 128, 128, 128)},
-      {stats->limiterFrac, ui_color(128, 128, 128, 128)},
+      {stats->rendPresAcqFrac, ui_color(128, 0, 128, 178)},
+      {stats->rendPresEnqFrac, ui_color(0, 0, 255, 178)},
+      {stats->rendPresWaitFrac, ui_color(0, 128, 128, 128)},
+      {stats->rendLimiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:    {>8}\n"
@@ -276,11 +284,11 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       "\a~blue\a.bPresent enqueue\ar: {>8}\n"
       "\a~teal\a.bPresent wait\ar:    {>8}\n"
       "\a.bLimiter\ar:         {>8}",
-      fmt_duration(stats->rendWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentAcqDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentEnqDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
+      fmt_duration(rendStats->waitForRenderDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentAcquireDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentEnqueueDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -288,7 +296,8 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
-static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+static void stats_draw_gpu_graph(
+    UiCanvasComp* canvas, const DebugStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, string_lit("GPU"));
 
@@ -299,17 +308,15 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f32 idleFrac        = 1.0f - stats->gpuRendFrac;
-  const f32 renderOtherFrac = stats->gpuRendFrac - stats->gpuRendGeoFrac - stats->gpuRendPostFrac -
-                              stats->gpuRendShadowFrac - stats->gpuRendAoFrac;
-
+  /**
+   * TODO: This does not take into account that some passes could run in parallel on the gpu.
+   */
   const StatGraphSection sections[] = {
-      {stats->gpuRendGeoFrac, ui_color(0, 128, 128, 178)},
-      {stats->gpuRendShadowFrac, ui_color(128, 0, 128, 178)},
-      {stats->gpuRendAoFrac, ui_color(128, 128, 0, 178)},
-      {renderOtherFrac, ui_color(0, 128, 0, 178)},
-      {stats->gpuRendPostFrac, ui_color(128, 0, 0, 178)},
-      {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
+      {stats->gpuPassFrac[RendPass_Geometry], ui_color(0, 128, 128, 178)},
+      {stats->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
+      {stats->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
+      {stats->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
+      {stats->gpuPassFrac[RendPass_Post], ui_color(128, 0, 0, 178)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~teal\a.bGeometry\ar:         {>7}\n"
@@ -318,18 +325,41 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       "\a~green\a.bForward\ar:          {>7}\n"
       "\a~maroon\a.bPost\ar:             {>7}\n"
       "\a.bTotal\ar:            {>7}",
-      fmt_duration(stats->gpuRendGeoDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendShadowDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendAoDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendForwardDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendPostDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(stats->gpuRendDur, .minDecDigits = 1, .maxDecDigits = 1));
+      fmt_duration(rendStats->passes[RendPass_Geometry].dur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->passes[RendPass_Shadow].dur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(
+          rendStats->passes[RendPass_AmbientOcclusion].dur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->passes[RendPass_Forward].dur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->passes[RendPass_Post].dur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendStats->renderDur, .minDecDigits = 1, .maxDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
-
-  ui_layout_next(canvas, Ui_Down, 0);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
+  ui_layout_next(canvas, Ui_Down, 0);
+}
+
+static void stats_draw_renderer_pass_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  stats_draw_bg(canvas, DebugBgFlags_None);
+  stats_draw_label(canvas, string_lit("Pass select"));
+  {
+    ui_layout_push(canvas);
+    ui_style_push(canvas);
+
+    ui_layout_grow(
+        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+
+    ui_select(
+        canvas,
+        (i32*)&stats->passInspect,
+        g_rendPassNames,
+        RendPass_Count,
+        .frameColor     = ui_color(24, 24, 24, 128),
+        .dropFrameColor = ui_color(24, 24, 24, 225));
+
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  }
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
@@ -359,24 +389,12 @@ static void debug_stats_draw_interface(
 
   // clang-format off
   stats_draw_frametime(canvas, stats);
-  stats_draw_cpu_graph(canvas, stats);
-  stats_draw_gpu_graph(canvas, stats);
+  stats_draw_cpu_graph(canvas, stats, rendStats);
+  stats_draw_gpu_graph(canvas, stats, rendStats);
   stats_draw_notifications(canvas, statsGlobal);
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Resolution geo"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passGeometry.size[0]), fmt_int(rendStats->passGeometry.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution fwd"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passForward.size[0]), fmt_int(rendStats->passForward.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution post"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passPost.size[0]), fmt_int(rendStats->passPost.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution ao"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passAo.size[0]), fmt_int(rendStats->passAo.size[1])));
-    stats_draw_val_entry(canvas, string_lit("Resolution shadow"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passShadow.size[0]), fmt_int(rendStats->passShadow.size[1])));
-
-    stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.draws), fmt_int(rendStats->passForward.draws)));
-    stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.instances), fmt_int(rendStats->passForward.instances)));
-    stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.vertices), fmt_int(rendStats->passForward.vertices)));
-    stats_draw_val_entry(canvas, string_lit("Primitives"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.primitives), fmt_int(rendStats->passForward.primitives)));
-    stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersVert), fmt_int(rendStats->passForward.shadersVert)));
-    stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("geo: {<8} fwd: {}", fmt_int(rendStats->passGeometry.shadersFrag), fmt_int(rendStats->passForward.shadersFrag)));
 
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
@@ -385,6 +403,16 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
     stats_draw_val_entry(canvas, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
+
+    stats_draw_renderer_pass_dropdown(canvas, stats);
+    stats_draw_val_entry(canvas, string_lit("Pass resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].size[0]), fmt_int(rendStats->passes[stats->passInspect].size[1])));
+    stats_draw_val_entry(canvas, string_lit("Pass duration"), fmt_write_scratch("{<10} avg-frac: {}", fmt_duration(rendStats->passes[stats->passInspect].dur), fmt_float(stats->gpuPassFrac[stats->passInspect], .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(canvas, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
+    stats_draw_val_entry(canvas, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
+    stats_draw_val_entry(canvas, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
+    stats_draw_val_entry(canvas, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].primitives)));
+    stats_draw_val_entry(canvas, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersVert)));
+    stats_draw_val_entry(canvas, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersFrag)));
   }
   if(stats_draw_section(canvas, string_lit("Memory"))) {
     const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;
@@ -468,29 +496,18 @@ static void debug_stats_update(
                                ? time_second / rendGlobalSettings->limiterFreq
                                : time_second / 60; // TODO: This assumes a 60 hz display.
 
-  stats->limiterDur        = rendStats->limiterDur;
-  stats->rendWaitDur       = rendStats->waitForRenderDur;
-  stats->presentAcqDur     = rendStats->presentAcquireDur;
-  stats->presentEnqDur     = rendStats->presentEnqueueDur;
-  stats->presentWaitDur    = rendStats->presentWaitDur;
-  stats->gpuRendDur        = rendStats->renderDur;
-  stats->gpuRendGeoDur     = rendStats->passGeometry.dur;
-  stats->gpuRendForwardDur = rendStats->passForward.dur;
-  stats->gpuRendPostDur    = rendStats->passPost.dur;
-  stats->gpuRendShadowDur  = rendStats->passShadow.dur;
-  stats->gpuRendAoDur      = rendStats->passAo.dur;
-
   const f32 ref = (f32)stats->frameDur;
-  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(stats->rendWaitDur / ref, 0, 1));
-  debug_avg_f32(&stats->presAcqFrac, math_clamp_f32(stats->presentAcqDur / ref, 0, 1));
-  debug_avg_f32(&stats->presEnqFrac, math_clamp_f32(stats->presentEnqDur / ref, 0, 1));
-  debug_avg_f32(&stats->presWaitFrac, math_clamp_f32(stats->presentWaitDur / ref, 0, 1));
-  debug_avg_f32(&stats->limiterFrac, math_clamp_f32(stats->limiterDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendFrac, math_clamp_f32(stats->gpuRendDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendGeoFrac, math_clamp_f32(stats->gpuRendGeoDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendPostFrac, math_clamp_f32(stats->gpuRendPostDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendShadowFrac, math_clamp_f32(stats->gpuRendShadowDur / ref, 0, 1));
-  debug_avg_f32(&stats->gpuRendAoFrac, math_clamp_f32(stats->gpuRendAoDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendWaitFrac, math_clamp_f32(rendStats->waitForRenderDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresAcqFrac, math_clamp_f32(rendStats->presentAcquireDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresEnqFrac, math_clamp_f32(rendStats->presentEnqueueDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendPresWaitFrac, math_clamp_f32(rendStats->presentWaitDur / ref, 0, 1));
+  debug_avg_f32(&stats->rendLimiterFrac, math_clamp_f32(rendStats->limiterDur / ref, 0, 1));
+  debug_avg_f32(&stats->gpuRendFrac, math_clamp_f32(rendStats->renderDur / ref, 0, 1));
+
+  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
+    debug_avg_f32(
+        &stats->gpuPassFrac[pass], math_clamp_f32(rendStats->passes[pass].dur / ref, 0, 1));
+  }
 }
 
 static void

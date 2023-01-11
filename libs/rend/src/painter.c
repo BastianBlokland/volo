@@ -26,23 +26,23 @@
 #include "rvk/repository_internal.h"
 
 // clang-format off
-static const RvkPassFlags g_passConfig[RvkCanvasPass_Count] = {
-  [RvkCanvasPass_Geometry] =
+static const RvkPassFlags g_passConfig[RendPass_Count] = {
+  [RendPass_Geometry] =
     RvkPassFlags_ColorClear | RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
                               RvkPassFlags_Color2     |                           // Attachment color2 (linear): normal (rgb) and tags (a).
     RvkPassFlags_Depth      | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,  // Attachment depth.
 
-  [RvkCanvasPass_Shadow] =
+  [RendPass_Shadow] =
     RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore, // Attachment depth.
 
-  [RvkCanvasPass_AmbientOcclusion] =
+  [RendPass_AmbientOcclusion] =
     RvkPassFlags_Color1 | RvkPassFlags_Color1Single, // Attachment color1 (linear): occlusion (r).
 
-  [RvkCanvasPass_Forward] =
+  [RendPass_Forward] =
     RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb): color (rgb).
     RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                            // Attachment depth.
 
-  [RvkCanvasPass_Post] =
+  [RendPass_Post] =
     RvkPassFlags_Color1 | RvkPassFlags_ColorLoadTransfer | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
 
 };
@@ -471,7 +471,7 @@ static bool rend_canvas_paint(
   const RvkSize swapchainSize  = swapchainImage->size;
 
   // Geometry pass.
-  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Geometry);
+  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RendPass_Geometry);
   rvk_pass_set_size(geoPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
   RvkImage* geoColorRough = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0);
   RvkImage* geoNormTags   = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1);
@@ -494,7 +494,7 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Shadow);
+  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   rvk_pass_set_size(shadowPass, (RvkSize){settings->shadowResolution, settings->shadowResolution});
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass);
   if (rend_light_has_shadow(light)) {
@@ -511,7 +511,7 @@ static bool rend_canvas_paint(
   }
 
   // Ambient occlusion.
-  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_AmbientOcclusion);
+  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   rvk_pass_set_size(aoPass, rvk_size_scale(rvk_pass_size(geoPass), settings->aoResolutionScale));
   RvkImage* aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0);
   if (settings->flags & RendFlags_AmbientOcclusion) {
@@ -532,7 +532,7 @@ static bool rend_canvas_paint(
   }
 
   // Forward pass.
-  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Forward);
+  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RendPass_Forward);
   rvk_pass_set_size(fwdPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
   RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
@@ -576,7 +576,7 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
   // Post pass.
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RvkCanvasPass_Post);
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   rvk_pass_set_size(postPass, swapchainSize);
   {
     rvk_canvas_blit(painter->canvas, fwdColor, swapchainImage); // Initialize to the forward color.

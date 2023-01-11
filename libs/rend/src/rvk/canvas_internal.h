@@ -1,5 +1,6 @@
 #pragma once
 #include "gap_window.h"
+#include "rend_pass.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 
@@ -14,19 +15,9 @@ typedef struct sRvkRenderStats    RvkRenderStats;
 typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
-typedef enum eRvkCanvasPass {
-  RvkCanvasPass_Geometry,
-  RvkCanvasPass_Forward,
-  RvkCanvasPass_Post,
-  RvkCanvasPass_Shadow,
-  RvkCanvasPass_AmbientOcclusion,
-
-  RvkCanvasPass_Count,
-} RvkCanvasPass;
-
 typedef struct sRvkCanvasStats {
   TimeDuration renderDur, waitForRenderDur;
-  RendStatPass passes[RvkCanvasPass_Count];
+  RendStatPass passes[RendPass_Count];
 } RvkCanvasStats;
 
 /**
@@ -35,9 +26,8 @@ typedef struct sRvkCanvasStats {
 typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(
-    RvkDevice*, const GapWindowComp*, const RvkPassFlags* passConfig /* [ RvkCanvasPass_Count ] */);
-void   rvk_canvas_destroy(RvkCanvas*);
-String rvk_canvas_pass_name(RvkCanvasPass);
+    RvkDevice*, const GapWindowComp*, const RvkPassFlags* passConfig /* [ RendPass_Count ] */);
+void rvk_canvas_destroy(RvkCanvas*);
 
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
 
@@ -56,7 +46,7 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
-RvkPass*  rvk_canvas_pass(RvkCanvas*, RvkCanvasPass);
+RvkPass*  rvk_canvas_pass(RvkCanvas*, RendPass);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
 RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i);

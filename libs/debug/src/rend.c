@@ -729,7 +729,7 @@ static void rend_light_tab_draw(
   ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("AmbientOcclusion"));
+  ui_label(canvas, string_lit("Ambient occlusion"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas,
@@ -739,7 +739,7 @@ static void rend_light_tab_draw(
 
   if (settings->flags & RendFlags_AmbientOcclusion) {
     ui_table_next_row(canvas, &table);
-    ui_label(canvas, string_lit("AO Blur"));
+    ui_label(canvas, string_lit("AO blur"));
     ui_table_next_column(canvas, &table);
     ui_toggle_flag(
         canvas, (u32*)&settings->flags, RendFlags_AmbientOcclusionBlur, .tooltip = g_tooltipAoBlur);

@@ -47,7 +47,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 RvkCanvas* rvk_canvas_create(
     RvkDevice*           dev,
     const GapWindowComp* window,
-    const RvkPassFlags*  passConfig /* [ RvkCanvasPass_Count ] */) {
+    const RvkPassFlags*  passConfig /* [ RendPass_Count ] */) {
   RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
   const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
   RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);
@@ -91,18 +91,6 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-String rvk_canvas_pass_name(const RvkCanvasPass pass) {
-  static const String g_names[] = {
-      string_static("geometry"),
-      string_static("forward"),
-      string_static("post"),
-      string_static("shadow"),
-      string_static("ambient-occlusion"),
-  };
-  ASSERT(array_elems(g_names) == RvkCanvasPass_Count, "Incorrect number of names");
-  return g_names[pass];
-}
-
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
@@ -138,7 +126,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
-RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RvkCanvasPass pass) {
+RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RendPass pass) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];
   return rvk_job_pass(job, pass);

@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "rend_stats.h"
@@ -100,11 +101,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
 
-    stats->passGeometry = canvasStats.passes[RvkCanvasPass_Geometry];
-    stats->passForward  = canvasStats.passes[RvkCanvasPass_Forward];
-    stats->passPost     = canvasStats.passes[RvkCanvasPass_Post];
-    stats->passShadow   = canvasStats.passes[RvkCanvasPass_Shadow];
-    stats->passAo       = canvasStats.passes[RvkCanvasPass_AmbientOcclusion];
+    mem_cpy(array_mem(stats->passes), array_mem(canvasStats.passes));
 
     stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);

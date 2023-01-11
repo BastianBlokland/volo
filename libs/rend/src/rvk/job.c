@@ -32,7 +32,7 @@ struct sRvkJob {
    * TODO: a better design would be that the passes themselves track their state
    * per-invocation, this would also allow rendering a single pass multiple times per job.
    */
-  RvkPass* passes[RvkCanvasPass_Count];
+  RvkPass* passes[RendPass_Count];
 
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
@@ -148,7 +148,7 @@ RvkJob* rvk_job_create(
     RvkDevice*          dev,
     const VkFormat      swapchainFormat,
     const u32           jobId,
-    const RvkPassFlags* passConfig /* [ RvkCanvasPass_Count ] */) {
+    const RvkPassFlags* passConfig /* [ RendPass_Count ] */) {
   RvkJob* job = alloc_alloc_t(g_alloc_heap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
@@ -169,7 +169,7 @@ RvkJob* rvk_job_create(
       .vkDrawBuffer = vkDrawBuffer,
   };
 
-  for (RvkCanvasPass pass = 0; pass != RvkCanvasPass_Count; ++pass) {
+  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
     job->passes[pass] = rvk_pass_create(
         dev,
         swapchainFormat,
@@ -177,7 +177,7 @@ RvkJob* rvk_job_create(
         uniformPool,
         stopwatch,
         passConfig[pass],
-        rvk_canvas_pass_name(pass));
+        rend_pass_name(pass));
   }
 
   return job;
@@ -215,7 +215,7 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
   result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
   result.waitForRenderDur = job->waitForGpuDur;
 
-  for (RvkCanvasPass passIdx = 0; passIdx != RvkCanvasPass_Count; ++passIdx) {
+  for (RendPass passIdx = 0; passIdx != RendPass_Count; ++passIdx) {
     const RvkPass* pass = job->passes[passIdx];
     if (rvk_pass_recorded(pass)) {
       result.passes[passIdx] = (RendStatPass){
@@ -258,9 +258,9 @@ void rvk_job_begin(RvkJob* job) {
       job->dev->debug, job->vkDrawBuffer, geo_color_teal, "job_{}", fmt_int(job->jobId));
 }
 
-RvkPass* rvk_job_pass(RvkJob* job, const RvkCanvasPass pass) {
+RvkPass* rvk_job_pass(RvkJob* job, const RendPass pass) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
-  diag_assert(pass < RvkCanvasPass_Count);
+  diag_assert(pass < RendPass_Count);
   return job->passes[pass];
 }
 
