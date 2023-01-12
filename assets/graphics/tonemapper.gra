@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/tonemapper.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "vertexCount": 3,
+  "renderOrder": -100,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

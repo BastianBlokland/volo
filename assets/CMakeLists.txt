@@ -39,6 +39,7 @@ configure_shaders(volo_shaders
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
+    shaders/tonemapper.frag
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
     shaders/vfx/particle.frag

@@ -579,16 +579,16 @@ static bool rend_canvas_paint(
   RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   rvk_pass_set_size(postPass, swapchainSize);
   {
-    rvk_canvas_blit(painter->canvas, fwdColor, swapchainImage); // Initialize to the forward color.
-
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
     if (settings->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_bind_global_image(postPass, fwdColor, 0);
     rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
+    painter_push_simple(&ctx, RvkRepositoryId_TonemapperGraphic);
     painter_push_post(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_DebugShadow) {
       painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
