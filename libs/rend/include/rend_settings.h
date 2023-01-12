@@ -53,10 +53,20 @@ typedef enum {
   RendAmbientMode_DebugAmbientOcclusion,
 } RendAmbientMode;
 
+typedef enum {
+  RendTonemapper_Linear,
+  RendTonemapper_LinearSmooth,
+  RendTonemapper_Reinhard,
+  RendTonemapper_ReinhardJodie,
+  RendTonemapper_Aces,
+} RendTonemapper;
+
 ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
   RendAmbientMode ambientMode;
+  f32             exposure;
+  RendTonemapper  tonemapper;
   f32             resolutionScale;
   u16             shadowResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;

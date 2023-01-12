@@ -60,6 +60,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
+        .repoId     = RvkRepositoryId_TonemapperGraphic,
+        .assetId    = string_static("graphics/tonemapper.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_OutlineGraphic,
         .assetId    = string_static("graphics/outline.gra"),
         .reloadable = true,

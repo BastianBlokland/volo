@@ -24,10 +24,10 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 5
+          "a": 30
         },
         "attenuationLinear": 0.7,
-        "attenuationQuad": 1.8,
+        "attenuationQuad": 5,
         "fadeInTime": 0.05,
         "fadeOutTime": 0.05
       }

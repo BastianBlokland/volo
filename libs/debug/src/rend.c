@@ -144,6 +144,14 @@ static const String g_ambientModeNames[] = {
     string_static("DebugAmbientOcclusion"),
 };
 
+static const String g_tonemapperNames[] = {
+    string_static("Linear"),
+    string_static("LinearSmooth"),
+    string_static("Reinhard"),
+    string_static("ReinhardJodie"),
+    string_static("Aces"),
+};
+
 typedef struct {
   String graphicName;
   i32    renderOrder;
@@ -679,6 +687,16 @@ static void rend_light_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Exposure"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Tonemapper"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);
@@ -726,7 +744,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f, .tooltip = g_tooltipAmbient);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 1.0f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient occlusion"));

@@ -42,5 +42,5 @@ void main() {
   }
 
   out_color.rgb = texSample.rgb * in_color.rgb * alpha;
-  out_color.a   = alpha * in_opacity;
+  out_color.a   = clamp(alpha * in_opacity, 0, 1);
 }
