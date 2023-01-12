@@ -679,6 +679,11 @@ static void rend_light_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Exposure"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->exposure, .min = 0.1f, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);

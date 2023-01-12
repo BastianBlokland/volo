@@ -301,6 +301,19 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_AmbientOcclusionGraphic, mem_create(data, sizeof(AoData)));
 }
 
+static void painter_push_tonemapping(RendPaintContext* ctx) {
+  typedef struct {
+    ALIGNAS(16)
+    f32 exposure;
+  } TonemapperData;
+
+  TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
+  data->exposure       = ctx->settings->exposure;
+
+  painter_push_simple(
+      ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
+}
+
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
@@ -569,7 +582,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(postPass, fwdColor, 0);
     rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
-    painter_push_simple(&ctx, RvkRepositoryId_TonemapperGraphic, mem_empty);
+    painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_DebugShadow) {
       painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
