@@ -55,6 +55,7 @@ typedef enum {
 
 typedef enum {
   RendTonemapper_Linear,
+  RendTonemapper_LinearSmooth,
   RendTonemapper_Reinhard,
   RendTonemapper_ReinhardJodie,
   RendTonemapper_Aces,
