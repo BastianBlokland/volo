@@ -48,6 +48,7 @@ f32v3 tonemap_reinhard_jodie(const f32v3 hdr) {
 /**
  * ACES - (Academy Color Encoding System) Filmic Tone Mapping Curve.
  * Approximated ACES fit by Krzysztof Narkowicz.
+ * https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
  */
 f32v3 tonemap_aces_approx(const f32v3 hdr) {
   const f32 a = 2.51;
