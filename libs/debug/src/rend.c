@@ -144,6 +144,11 @@ static const String g_ambientModeNames[] = {
     string_static("DebugAmbientOcclusion"),
 };
 
+static const String g_tonemapperNames[] = {
+    string_static("Linear"),
+    string_static("Reinhard"),
+};
+
 typedef struct {
   String graphicName;
   i32    renderOrder;
@@ -681,7 +686,12 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Exposure"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->exposure, .min = 0.1f, .max = 5.0f);
+  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Tonemapper"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));

@@ -305,10 +305,12 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
   typedef struct {
     ALIGNAS(16)
     f32 exposure;
+    u32 mode;
   } TonemapperData;
 
   TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
   data->exposure       = ctx->settings->exposure;
+  data->mode           = ctx->settings->tonemapper;
 
   painter_push_simple(
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));

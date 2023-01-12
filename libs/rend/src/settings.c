@@ -25,6 +25,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->ambientMode       = RendAmbientMode_Normal;
   s->exposure          = 1.0f;
+  s->tonemapper        = RendTonemapper_Reinhard;
   s->resolutionScale   = 0.75f;
   s->aoAngle           = 85 * math_deg_to_rad;
   s->aoRadius          = 0.1f;
