@@ -11,6 +11,7 @@ struct TonemapperData {
 
 const u32 c_modeLinear   = 0;
 const u32 c_modeReinhard = 1;
+const u32 c_modeAces     = 2;
 
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_draw_data(0) readonly uniform Draw { TonemapperData u_draw; };
@@ -22,13 +23,26 @@ bind_internal(0) out f32v4 out_color;
 /**
  * Linear.
  */
-f32v3 tonemap_linear(const f32v3 colorHdr) { return clamp(colorHdr, 0, 1); }
+f32v3 tonemap_linear(const f32v3 hdr) { return clamp(hdr, 0, 1); }
 
 /**
  * Reinhard.
  * Presented by Erik Reinhard at Siggraph 2002.
  */
-f32v3 tonemap_reinhard(const f32v3 colorHdr) { return colorHdr / (f32v3(1.0) + colorHdr); }
+f32v3 tonemap_reinhard(const f32v3 hdr) { return hdr / (f32v3(1.0) + hdr); }
+
+/**
+ * ACES - (Academy Color Encoding System) Filmic Tone Mapping Curve.
+ * Approximated ACES fit by Krzysztof Narkowicz.
+ */
+f32v3 tonemap_aces_approx(const f32v3 hdr) {
+  const f32 a = 2.51;
+  const f32 b = 0.03;
+  const f32 c = 2.43;
+  const f32 d = 0.59;
+  const f32 e = 0.14;
+  return clamp((hdr * (a * hdr + b)) / (hdr * (c * hdr + d) + e), 0.0, 1.0);
+}
 
 void main() {
   const f32v3 colorHdr = texture(u_texGeoColorRough, in_texcoord).rgb * u_draw.exposure;
@@ -41,6 +55,9 @@ void main() {
     break;
   case c_modeReinhard:
     colorSdr = tonemap_reinhard(colorHdr);
+    break;
+  case c_modeAces:
+    colorSdr = tonemap_aces_approx(colorHdr);
     break;
   }
 

@@ -56,6 +56,7 @@ typedef enum {
 typedef enum {
   RendTonemapper_Linear,
   RendTonemapper_Reinhard,
+  RendTonemapper_Aces,
 } RendTonemapper;
 
 ecs_comp_extern_public(RendSettingsComp) {

@@ -147,6 +147,7 @@ static const String g_ambientModeNames[] = {
 static const String g_tonemapperNames[] = {
     string_static("Linear"),
     string_static("Reinhard"),
+    string_static("Aces"),
 };
 
 typedef struct {
