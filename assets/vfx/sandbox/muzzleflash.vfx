@@ -13,6 +13,12 @@
           "x": 1,
           "y": 0.4
         },
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 0.6,
+          "a": 1.5
+        },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125
       },
@@ -21,10 +27,10 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 5
+          "a": 50
         },
-        "attenuationLinear": 0.7,
-        "attenuationQuad": 1.8,
+        "attenuationLinear": 0.5,
+        "attenuationQuad": 10,
         "fadeInTime": 0.05,
         "fadeOutTime": 0.05
       },
@@ -57,6 +63,12 @@
         "size": {
           "x": 1,
           "y": 0.4
+        },
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 0.6,
+          "a": 1.5
         },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125
@@ -91,6 +103,12 @@
         "size": {
           "x": 0.6,
           "y": 0.6
+        },
+        "color": {
+          "r": 1,
+          "g": 1,
+          "b": 0.6,
+          "a": 1.5
         },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125
