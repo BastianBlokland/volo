@@ -21,30 +21,26 @@ bind_internal(0) out f32v4 out_color;
 
 /**
  * Linear.
- * Applies exposure and clamps the result.
  */
-f32v3 map_linear(const f32v3 colorHdr) { return clamp(colorHdr * u_draw.exposure, 0, 1); }
+f32v3 tonemap_linear(const f32v3 colorHdr) { return clamp(colorHdr, 0, 1); }
 
 /**
  * Reinhard.
  * Presented by Erik Reinhard at Siggraph 2002.
  */
-f32v3 map_reinhard(const f32v3 colorHdr) {
-  const f32v3 colorExposed = colorHdr * u_draw.exposure;
-  return colorExposed / (f32v3(1.0) + colorExposed);
-}
+f32v3 tonemap_reinhard(const f32v3 colorHdr) { return colorHdr / (f32v3(1.0) + colorHdr); }
 
 void main() {
-  const f32v3 colorHdr = texture(u_texGeoColorRough, in_texcoord).rgb;
+  const f32v3 colorHdr = texture(u_texGeoColorRough, in_texcoord).rgb * u_draw.exposure;
 
   f32v3 colorSdr;
   switch (u_draw.mode) {
   default:
   case c_modeLinear:
-    colorSdr = map_linear(colorHdr);
+    colorSdr = tonemap_linear(colorHdr);
     break;
   case c_modeReinhard:
-    colorSdr = map_reinhard(colorHdr);
+    colorSdr = tonemap_reinhard(colorHdr);
     break;
   }
 
