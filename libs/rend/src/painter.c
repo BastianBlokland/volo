@@ -243,81 +243,62 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
   }
 }
 
-static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id) {
+static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
   RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
   RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    painter_push(ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1});
+    painter_push(ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1, .drawData = data});
   }
 }
 
 static void painter_push_ambient(RendPaintContext* ctx) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  typedef enum {
+    AmbientFlags_AmbientOcclusion     = 1 << 0,
+    AmbientFlags_AmbientOcclusionBlur = 1 << 1,
+  } AmbientFlags;
+
+  typedef struct {
+    ALIGNAS(16)
+    GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
+  } AmbientData;
+
+  const u32    mode  = ctx->settings->ambientMode;
+  AmbientFlags flags = 0;
+  if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
+    flags |= AmbientFlags_AmbientOcclusion;
+  }
+  if (ctx->settings->flags & RendFlags_AmbientOcclusionBlur) {
+    flags |= AmbientFlags_AmbientOcclusionBlur;
+  }
+
+  AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
+  data->packed.x    = ctx->settingsGlobal->lightAmbient;
+  data->packed.y    = bits_u32_as_f32(mode);
+  data->packed.z    = bits_u32_as_f32(flags);
+
   const RvkRepositoryId graphicId = ctx->settings->ambientMode == RendAmbientMode_Normal
                                         ? RvkRepositoryId_AmbientGraphic
                                         : RvkRepositoryId_AmbientDebugGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    typedef enum {
-      AmbientFlags_AmbientOcclusion     = 1 << 0,
-      AmbientFlags_AmbientOcclusionBlur = 1 << 1,
-    } AmbientFlags;
 
-    typedef struct {
-      ALIGNAS(16)
-      GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
-    } AmbientData;
-
-    const u32    mode  = ctx->settings->ambientMode;
-    AmbientFlags flags = 0;
-    if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
-      flags |= AmbientFlags_AmbientOcclusion;
-    }
-    if (ctx->settings->flags & RendFlags_AmbientOcclusionBlur) {
-      flags |= AmbientFlags_AmbientOcclusionBlur;
-    }
-
-    AmbientData* data = alloc_alloc_t(g_alloc_scratch, AmbientData);
-    data->packed.x    = ctx->settingsGlobal->lightAmbient;
-    data->packed.y    = bits_u32_as_f32(mode);
-    data->packed.z    = bits_u32_as_f32(flags);
-
-    painter_push(
-        ctx,
-        (RvkPassDraw){
-            .graphic   = graphic,
-            .instCount = 1,
-            .drawData  = mem_create(data, sizeof(AmbientData)),
-        });
-  }
+  painter_push_simple(ctx, graphicId, mem_create(data, sizeof(AmbientData)));
 }
 
 static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_AmbientOcclusionGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    typedef struct {
-      ALIGNAS(16)
-      f32       radius;
-      f32       power;
-      GeoVector kernel[rend_ao_kernel_size];
-    } AoData;
+  typedef struct {
+    ALIGNAS(16)
+    f32       radius;
+    f32       power;
+    GeoVector kernel[rend_ao_kernel_size];
+  } AoData;
 
-    AoData* data     = alloc_alloc_t(g_alloc_scratch, AoData);
-    data->radius     = ctx->settings->aoRadius;
-    data->power      = ctx->settings->aoPower;
-    const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
-    mem_cpy(array_mem(data->kernel), kernel);
+  AoData* data     = alloc_alloc_t(g_alloc_scratch, AoData);
+  data->radius     = ctx->settings->aoRadius;
+  data->power      = ctx->settings->aoPower;
+  const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
+  mem_cpy(array_mem(data->kernel), kernel);
 
-    painter_push(
-        ctx,
-        (RvkPassDraw){
-            .graphic   = graphic,
-            .instCount = 1,
-            .drawData  = mem_create(data, sizeof(AoData)),
-        });
-  }
+  painter_push_simple(
+      ctx, RvkRepositoryId_AmbientOcclusionGraphic, mem_create(data, sizeof(AoData)));
 }
 
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
@@ -553,9 +534,9 @@ static bool rend_canvas_paint(
     rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
     painter_push_ambient(&ctx);
-    painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic);
+    painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic, mem_empty);
     if (geoTagMask & SceneTags_Outline) {
-      painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic);
+      painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_Wireframe) {
@@ -588,10 +569,10 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(postPass, fwdColor, 0);
     rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
-    painter_push_simple(&ctx, RvkRepositoryId_TonemapperGraphic);
+    painter_push_simple(&ctx, RvkRepositoryId_TonemapperGraphic, mem_empty);
     painter_push_post(&ctx, drawView, graphicView);
     if (settings->flags & RendFlags_DebugShadow) {
-      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic);
+      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
     }
     rvk_pass_begin(postPass, geo_color_clear);
     painter_flush(&ctx);
