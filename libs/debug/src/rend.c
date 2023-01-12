@@ -744,7 +744,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 0.5f, .tooltip = g_tooltipAmbient);
+  ui_slider(canvas, &settingsGlobal->lightAmbient, .max = 1.0f, .tooltip = g_tooltipAmbient);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient occlusion"));
