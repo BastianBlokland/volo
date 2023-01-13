@@ -43,7 +43,7 @@ static const RvkPassFlags g_passConfig[RendPass_Count] = {
     RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                             // Attachment depth.
 
   [RendPass_Post] =
-    RvkPassFlags_Color1 | RvkPassFlags_ColorLoadTransfer | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
+    RvkPassFlags_Color1 | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
 
 };
 // clang-format on
