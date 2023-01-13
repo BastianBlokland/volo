@@ -394,6 +394,15 @@ static void rvk_pass_bind_global(RvkPass* pass) {
 static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
 
+  if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
+    for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+      diag_assert_msg(
+          pass->attachColors[i] && pass->attachColors[i]->phase == RvkImagePhase_TransferDest,
+          "Pass {} unable to load the color{} from transfer: Unexpected image phase",
+          fmt_text(pass->name),
+          fmt_int(i));
+    }
+  }
   if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
     diag_assert_msg(
         pass->attachDepth && pass->attachDepth->phase == RvkImagePhase_TransferDest,
