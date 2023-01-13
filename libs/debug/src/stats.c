@@ -62,6 +62,7 @@ ecs_comp_define(DebugStatsComp) {
   f32 rendWaitForGpuFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
 
   // Gpu frame fractions.
+  f32 gpuExecFrac;
   f32 gpuPassFrac[RendPass_Count];
 };
 
@@ -307,12 +308,18 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
   ui_layout_grow(
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
+  f32 otherFrac = st->gpuExecFrac;
+  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
+    otherFrac -= st->gpuPassFrac[pass];
+  }
+
   const StatChartEntry entries[] = {
       {st->gpuPassFrac[RendPass_Geometry], ui_color(0, 128, 128, 178)},
       {st->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
       {st->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
       {st->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
       {st->gpuPassFrac[RendPass_Post], ui_color(128, 0, 0, 178)},
+      {otherFrac, ui_color(128, 128, 128, 178)},
   };
   // clang-format off
   const String tooltip = fmt_write_scratch(
@@ -393,7 +400,7 @@ static void debug_stats_draw_interface(
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{}", fmt_duration(rendStats->gpuExecDur)));
+    stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
@@ -500,6 +507,7 @@ static void debug_stats_update(
   debug_avg_f32(&stats->rendPresEnqFrac, debug_frame_frac(stats, rendStats->presentEnqueueDur));
   debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(stats, rendStats->presentWaitDur));
   debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(stats, rendStats->limiterDur));
+  debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(stats, rendStats->gpuExecDur));
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
     debug_avg_f32(
         &stats->gpuPassFrac[pass], debug_frame_frac(stats, rendStats->passes[pass].gpuExecDur));
