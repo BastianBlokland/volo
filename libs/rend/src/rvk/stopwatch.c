@@ -89,7 +89,7 @@ void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   sw->flags &= ~RvkStopwatch_HasResults;
 }
 
-u64 rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord record) {
+TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord record) {
   diag_assert(record < rvk_stopwatch_timestamps_max);
   if (UNLIKELY(!(sw->flags & RvkStopwatch_Supported))) {
     return 0;
@@ -100,7 +100,7 @@ u64 rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord record)
     rvk_stopwatch_retrieve_results(swMutable);
   }
 
-  return (u64)(sw->results[record] * (f64)sw->dev->vkProperties.limits.timestampPeriod);
+  return (TimeSteady)(sw->results[record] * (f64)sw->dev->vkProperties.limits.timestampPeriod);
 }
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
