@@ -392,8 +392,8 @@ static void debug_stats_draw_interface(
   stats_draw_notifications(canvas, statsGlobal);
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
-    stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-
+    stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
+    stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{}", fmt_duration(rendStats->gpuExecDur)));
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
@@ -405,7 +405,7 @@ static void debug_stats_draw_interface(
     stats_draw_renderer_pass_dropdown(canvas, stats);
     const f32 passDurFrac = debug_frame_frac(stats, rendStats->passes[stats->passInspect].gpuExecDur);
     stats_draw_val_entry(canvas, string_lit("Pass resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].size[0]), fmt_int(rendStats->passes[stats->passInspect].size[1])));
-    stats_draw_val_entry(canvas, string_lit("Pass duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(canvas, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(canvas, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
     stats_draw_val_entry(canvas, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
     stats_draw_val_entry(canvas, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
