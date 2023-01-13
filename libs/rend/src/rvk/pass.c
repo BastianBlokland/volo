@@ -622,9 +622,9 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
   if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
     return 0;
   }
-  const u64 timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
-  const u64 timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
-  return time_nanoseconds(timestampEnd - timestampBegin);
+  const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
+  const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
+  return time_steady_duration(timestampBegin, timestampEnd);
 }
 
 void rvk_pass_reset(RvkPass* pass) {

@@ -16,7 +16,8 @@ typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
 typedef struct sRvkCanvasStats {
-  TimeDuration renderDur, waitForRenderDur;
+  TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
+  TimeDuration gpuExecDur;
   RendStatPass passes[RendPass_Count];
 } RvkCanvasStats;
 

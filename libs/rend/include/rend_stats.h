@@ -13,7 +13,7 @@ typedef enum {
 } RendStatRes;
 
 typedef struct {
-  TimeDuration dur;
+  TimeDuration gpuExecDur;
   u16          size[2];
   u16          draws;
   u32          instances;
@@ -24,7 +24,8 @@ typedef struct {
 ecs_comp_extern_public(RendStatsComp) {
   String gpuName;
 
-  TimeDuration renderDur, waitForRenderDur;
+  TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
+  TimeDuration gpuExecDur;
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 

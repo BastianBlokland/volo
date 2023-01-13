@@ -94,8 +94,8 @@ ecs_system_define(RendUpdateCamStatsSys) {
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
 
-    stats->renderDur         = canvasStats.renderDur;
-    stats->waitForRenderDur  = canvasStats.waitForRenderDur;
+    stats->waitForGpuDur     = canvasStats.waitForGpuDur;
+    stats->gpuExecDur        = canvasStats.gpuExecDur;
     stats->presentAcquireDur = swapchainStats.acquireDur;
     stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
     stats->presentWaitDur    = swapchainStats.presentWaitDur;

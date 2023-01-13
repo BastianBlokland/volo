@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core_time.h"
 
 #include "vulkan_internal.h"
 
@@ -26,8 +26,9 @@ void rvk_stopwatch_reset(RvkStopwatch*, VkCommandBuffer);
 /**
  * Retrieve the result of a previously marked timestamp (in nanoseconds).
  * NOTE: Make sure the gpu work has finished before calling this.
+ * NOTE: Time-stamp is related the gpu timer, cannot be compared to cpu time.
  */
-u64 rvk_stopwatch_query(const RvkStopwatch*, RvkStopwatchRecord);
+TimeSteady rvk_stopwatch_query(const RvkStopwatch*, RvkStopwatchRecord);
 
 /**
  * Mark a timestamp to be recorded.
