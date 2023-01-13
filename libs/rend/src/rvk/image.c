@@ -382,7 +382,6 @@ RvkImage rvk_image_create_attach_color(
     const VkFormat           vkFormat,
     const RvkSize            size,
     const RvkImageCapability extraCaps) {
-  diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 4);
   diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
 
   const RvkImageCapability caps      = RvkImageCapability_AttachmentColor | extraCaps;

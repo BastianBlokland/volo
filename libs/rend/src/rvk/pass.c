@@ -59,7 +59,7 @@ static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const b
     return srgb ? VK_FORMAT_R8_SRGB : flt ? VK_FORMAT_R16_SFLOAT : VK_FORMAT_R8_UNORM;
   }
   return srgb  ? VK_FORMAT_R8G8B8A8_SRGB
-         : flt ? VK_FORMAT_R16G16B16A16_SFLOAT
+         : flt ? VK_FORMAT_B10G11R11_UFLOAT_PACK32
                : VK_FORMAT_R8G8B8A8_UNORM;
 }
 
