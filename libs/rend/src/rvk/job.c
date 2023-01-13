@@ -208,18 +208,18 @@ void rvk_job_wait_for_done(const RvkJob* job) {
 RvkCanvasStats rvk_job_stats(const RvkJob* job) {
   rvk_job_wait_for_done(job);
 
-  const u64 timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
-  const u64 timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
+  const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
+  const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
 
   RvkCanvasStats result;
-  result.renderDur        = time_nanoseconds(timestampEnd - timestampBegin);
-  result.waitForRenderDur = job->waitForGpuDur;
+  result.waitForGpuDur = job->waitForGpuDur;
+  result.gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
   for (RendPass passIdx = 0; passIdx != RendPass_Count; ++passIdx) {
     const RvkPass* pass = job->passes[passIdx];
     if (rvk_pass_recorded(pass)) {
       result.passes[passIdx] = (RendStatPass){
-          .dur         = rvk_pass_duration(pass),
+          .gpuExecDur  = rvk_pass_duration(pass),
           .size[0]     = rvk_pass_size(pass).width,
           .size[1]     = rvk_pass_size(pass).height,
           .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
