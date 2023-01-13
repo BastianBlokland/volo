@@ -455,7 +455,7 @@ static void editor_click(UiEditorClickInfo* click, GapWindowComp* win, const Tim
 }
 
 /**
- * Map from an index in the visual text  (including cursor etc) to the real text.
+ * Map from an index in the visual text (including cursor etc) to the real text.
  */
 static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
   usize index = editor->viewportOffset + visualIndex;
@@ -479,8 +479,11 @@ static void editor_viewport_update(UiEditor* editor, const UiBuildTextInfo textI
   }
 
   const usize viewportRight = editor_visual_index_to_text_index(editor, textInfo.maxLineCharWidth);
-  const usize cursorNext    = editor_next_index(editor, editor->cursor);
-  const usize rightRef      = sentinel_check(cursorNext) ? editor->cursor : cursorNext;
+  usize       rightRef      = editor_next_index(editor, editor->cursor);
+  if (sentinel_check(rightRef)) {
+    const bool cursorAtEnd = editor->cursor == editor->text.size;
+    rightRef               = cursorAtEnd ? editor->cursor : editor->cursor + 1;
+  }
   if (rightRef > viewportRight) {
     editor->viewportOffset += rightRef - viewportRight;
   }
