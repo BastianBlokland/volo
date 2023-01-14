@@ -29,6 +29,11 @@ typedef enum {
   RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 1),
 } RvkPassPrivateFlags;
 
+typedef struct {
+  RvkStopwatchRecord timeRecBegin, timeRecEnd;
+  VkFramebuffer      vkFrameBuffer;
+} RvkPassInvoc;
+
 struct sRvkPass {
   RvkDevice*         dev;
   VkFormat           swapchainFormat;
@@ -52,6 +57,7 @@ struct sRvkPass {
   RvkSampler         globalImageSampler, globalShadowSampler;
   RvkImage*          globalImages[pass_global_image_max];
   DynArray           dynDescSets; // RvkDescSet[]
+  DynArray           invocations; // RvkPassInvoc[]
 };
 
 static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const bool single) {
@@ -518,6 +524,7 @@ RvkPass* rvk_pass_create(
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .invocations          = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
@@ -548,6 +555,7 @@ void rvk_pass_destroy(RvkPass* pass) {
     rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
   }
   dynarray_destroy(&pass->dynDescSets);
+  dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_alloc_heap, pass);
 }
