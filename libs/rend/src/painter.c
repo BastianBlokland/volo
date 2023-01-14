@@ -480,7 +480,6 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_set_size(geoPass, geoSize);
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
     rvk_pass_bind_attach_color(geoPass, geoColorRough, 0);
     rvk_pass_bind_attach_color(geoPass, geoNormTags, 1);
@@ -500,7 +499,6 @@ static bool rend_canvas_paint(
     const GeoMatrix* sProj  = rend_light_shadow_proj(light);
     RendPaintContext ctx    = painter_context(
         sTrans, sProj, camEntity, filter, painter, set, setGlobal, time, shadowPass, shadowSize);
-    rvk_pass_set_size(shadowPass, shadowSize);
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
     rvk_pass_bind_attach_depth(shadowPass, shadowDepth);
     painter_push_shadow(&ctx, drawView, graphicView);
@@ -519,7 +517,6 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_set_size(aoPass, aoSize);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(aoPass, geoNormTags, 0);
     rvk_pass_bind_global_image(aoPass, geoDepth, 1);
@@ -543,7 +540,6 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_set_size(fwdPass, fwdSize);
     rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(fwdPass, geoColorRough, 0);
     rvk_pass_bind_global_image(fwdPass, geoNormTags, 1);
@@ -584,7 +580,6 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_set_size(postPass, postSize);
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(postPass, fwdColor, 0);
     rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
