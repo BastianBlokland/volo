@@ -70,6 +70,7 @@ struct sRvkPass {
 
   RvkPassFlags flags;
 
+  RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
   RvkDescSet       globalDescSet;
   RvkSampler       globalImageSampler, globalShadowSampler;
@@ -271,6 +272,16 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   return result;
 }
 
+static RvkDescMeta rvk_global_desc_meta() {
+  RvkDescMeta meta = {
+      .bindings[0] = RvkDescKind_UniformBufferDynamic,
+  };
+  for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
+    meta.bindings[1 + globalImgIdx] = RvkDescKind_CombinedImageSampler2D;
+  }
+  return meta;
+}
+
 /**
  * Create a pipeline layout with a single global descriptor-set 0.
  * All pipeline layouts have to be compatible with this layout.
@@ -450,34 +461,27 @@ RvkPass* rvk_pass_create(
     const String        name) {
   diag_assert(!string_is_empty(name));
 
-  RvkDescMeta globalDescMeta = {
-      .bindings[0] = RvkDescKind_UniformBufferDynamic,
-  };
-  for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
-    globalDescMeta.bindings[1 + globalImgIdx] = RvkDescKind_CombinedImageSampler2D;
-  }
-  const RvkDescSet       globalDescSet        = rvk_desc_alloc(dev->descPool, &globalDescMeta);
-  const VkPipelineLayout globalPipelineLayout = rvk_global_layout_create(dev, &globalDescMeta);
-
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
 
   *pass = (RvkPass){
-      .dev                  = dev,
-      .swapchainFormat      = swapchainFormat,
-      .name                 = string_dup(g_alloc_heap, name),
-      .statrecorder         = rvk_statrecorder_create(dev),
-      .stopwatch            = stopwatch,
-      .vkCmdBuf             = vkCmdBuf,
-      .uniformPool          = uniformPool,
-      .config               = config,
-      .globalDescSet        = globalDescSet,
-      .globalPipelineLayout = globalPipelineLayout,
-      .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
-      .invocations          = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
+      .dev             = dev,
+      .swapchainFormat = swapchainFormat,
+      .name            = string_dup(g_alloc_heap, name),
+      .statrecorder    = rvk_statrecorder_create(dev),
+      .stopwatch       = stopwatch,
+      .vkCmdBuf        = vkCmdBuf,
+      .uniformPool     = uniformPool,
+      .config          = config,
+      .dynDescSets     = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .invocations     = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
+
+  pass->globalDescMeta       = rvk_global_desc_meta();
+  pass->globalPipelineLayout = rvk_global_layout_create(dev, &pass->globalDescMeta);
+  pass->globalDescSet        = rvk_desc_alloc(dev->descPool, &pass->globalDescMeta);
 
   bool anyAttachmentNeedsClear = pass->config.attachDepthLoad == RvkPassLoad_Clear;
   array_for_t(pass->config.attachColorLoad, RvkPassLoad, load) {
@@ -544,9 +548,7 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
 }
 
-RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) {
-  return rvk_desc_set_meta(pass->globalDescSet);
-}
+RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }
 
 RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
   (void)pass;
