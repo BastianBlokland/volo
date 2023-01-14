@@ -23,18 +23,16 @@ typedef struct sRvkUniformPool RvkUniformPool;
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_None       = 0,
-  RvkPassFlags_Depth      = 1 << 0, // Enable a depth attachment.
-  RvkPassFlags_DepthStore = 1 << 1, // Store the depth attachment for use in a later pass.
-
-  RvkPassFlags_Count = 2,
-} RvkPassFlags;
-
-typedef enum {
   RvkPassLoad_DontCare = 0,
   RvkPassLoad_Clear,
   RvkPassLoad_Preserve,
 } RvkPassLoad;
+
+typedef enum {
+  RvkPassDepth_None,      // No depth attachment, depth testing will not be available.
+  RvkPassDepth_Transient, // Transient depth attachment, can only be used during this pass.
+  RvkPassDepth_Stored,    // Stored depth attachment, can be sampled by other passes later.
+} RvkPassDepth;
 
 typedef enum {
   RvkPassFormat_None = 0,
@@ -46,10 +44,10 @@ typedef enum {
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {
-  RvkPassFlags  flags;
+  RvkPassDepth  attachDepth : 8;
+  RvkPassLoad   attachDepthLoad : 8;
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
   RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
-  RvkPassLoad   attachDepthLoad;
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {

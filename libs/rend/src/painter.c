@@ -28,9 +28,8 @@
 static const RvkPassConfig g_passConfig[RendPass_Count] = {
     [RendPass_Geometry] =
         {
-            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthStore,
-
             // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
             .attachDepthLoad = RvkPassLoad_Clear,
 
             // Attachment color 0:  color (rgb) and roughness (a).
@@ -44,16 +43,13 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
     [RendPass_Shadow] =
         {
-            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthStore,
-
             // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
             .attachDepthLoad = RvkPassLoad_Clear,
         },
 
     [RendPass_AmbientOcclusion] =
         {
-            .flags = RvkPassFlags_None,
-
             // Attachment color 0: occlusion (r).
             .attachColorFormat[0] = RvkPassFormat_Color1Linear,
             .attachColorLoad[0]   = RvkPassLoad_DontCare,
@@ -61,9 +57,8 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
     [RendPass_Forward] =
         {
-            .flags = RvkPassFlags_Depth,
-
             // Attachment depth.
+            .attachDepth     = RvkPassDepth_Transient,
             .attachDepthLoad = RvkPassLoad_Preserve,
 
             // Attachment color 0: color (rgb).
@@ -73,8 +68,6 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
     [RendPass_Post] =
         {
-            .flags = RvkPassFlags_None,
-
             // Attachment color 0: color (rgba).
             .attachColorFormat[0] = RvkPassFormat_Swapchain,
             .attachColorLoad[0]   = RvkPassLoad_DontCare,
