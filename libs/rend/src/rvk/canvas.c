@@ -137,14 +137,15 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
 }
 
-RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas* canvas, RvkPass* pass, const u32 i) {
+RvkImage*
+rvk_canvas_attach_acquire_color(RvkCanvas* canvas, RvkPass* pass, const u32 i, const RvkSize size) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, i);
-  return rvk_attach_acquire_color(canvas->attachPool, spec, rvk_pass_size(pass));
+  return rvk_attach_acquire_color(canvas->attachPool, spec, size);
 }
 
-RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas* canvas, RvkPass* pass) {
+RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas* canvas, RvkPass* pass, const RvkSize size) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
-  return rvk_attach_acquire_depth(canvas->attachPool, spec, rvk_pass_size(pass));
+  return rvk_attach_acquire_depth(canvas->attachPool, spec, size);
 }
 
 void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {

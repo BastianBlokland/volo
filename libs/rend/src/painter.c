@@ -126,7 +126,8 @@ static RendPaintContext painter_context(
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
     const SceneTimeComp*          time,
-    RvkPass*                      pass) {
+    RvkPass*                      pass,
+    const RvkSize                 size) {
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
   const GeoVector cameraPosition = geo_matrix_to_translation(cameraMatrix);
@@ -147,9 +148,9 @@ static RendPaintContext painter_context(
               .viewProjInv  = geo_matrix_inverse(&viewProjMatrix),
               .camPosition  = cameraPosition,
               .camRotation  = cameraRotation,
-              .resolution.x = rvk_pass_size(pass).width,
-              .resolution.y = rvk_pass_size(pass).height,
-              .resolution.z = (f32)rvk_pass_size(pass).width / (f32)rvk_pass_size(pass).height,
+              .resolution.x = size.width,
+              .resolution.y = size.height,
+              .resolution.z = (f32)size.width / (f32)size.height,
               .time.x       = scene_time_seconds(time),
               .time.y       = scene_real_time_seconds(time),
           },
@@ -441,8 +442,8 @@ static void painter_flush(RendPaintContext* ctx) {
 
 static bool rend_canvas_paint(
     RendPainterComp*              painter,
-    const RendSettingsComp*       settings,
-    const RendSettingsGlobalComp* settingsGlobal,
+    const RendSettingsComp*       set,
+    const RendSettingsGlobalComp* setGlobal,
     const SceneTimeComp*          time,
     const RendLightRendererComp*  light,
     const GapWindowComp*          win,
@@ -459,7 +460,7 @@ static bool rend_canvas_paint(
                                      : geo_matrix_proj_ortho(2, 2.0f / winAspect, -100, 100);
   const SceneTagFilter filter  = cam ? cam->filter : (SceneTagFilter){0};
 
-  if (!rvk_canvas_begin(painter->canvas, settings, winSize)) {
+  if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
 
@@ -467,18 +468,19 @@ static bool rend_canvas_paint(
   const RvkSize swapchainSize  = swapchainImage->size;
 
   // Geometry pass.
-  RvkPass* geoPass = rvk_canvas_pass(painter->canvas, RendPass_Geometry);
-  rvk_pass_set_size(geoPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
-  RvkImage* geoColorRough = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0);
-  RvkImage* geoNormTags   = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1);
-  RvkImage* geoDepth      = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass);
+  const RvkSize geoSize   = rvk_size_scale(swapchainSize, set->resolutionScale);
+  RvkPass*      geoPass   = rvk_canvas_pass(painter->canvas, RendPass_Geometry);
+  RvkImage* geoColorRough = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
+  RvkImage* geoNormTags   = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
+  RvkImage* geoDepth      = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
   SceneTags geoTagMask;
   {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, geoPass);
-    if (settings->flags & RendFlags_DebugCamera) {
+        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, geoPass, geoSize);
+    if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
+    rvk_pass_set_size(geoPass, geoSize);
     rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
     rvk_pass_bind_attach_color(geoPass, geoColorRough, 0);
     rvk_pass_bind_attach_color(geoPass, geoNormTags, 1);
@@ -490,14 +492,15 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  RvkPass* shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
-  rvk_pass_set_size(shadowPass, (RvkSize){settings->shadowResolution, settings->shadowResolution});
-  RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass);
+  const RvkSize shadowSize = {set->shadowResolution, set->shadowResolution};
+  RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
+  RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (rend_light_has_shadow(light)) {
     const GeoMatrix* sTrans = rend_light_shadow_trans(light);
     const GeoMatrix* sProj  = rend_light_shadow_proj(light);
     RendPaintContext ctx    = painter_context(
-        sTrans, sProj, camEntity, filter, painter, settings, settingsGlobal, time, shadowPass);
+        sTrans, sProj, camEntity, filter, painter, set, setGlobal, time, shadowPass, shadowSize);
+    rvk_pass_set_size(shadowPass, shadowSize);
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
     rvk_pass_bind_attach_depth(shadowPass, shadowDepth);
     painter_push_shadow(&ctx, drawView, graphicView);
@@ -507,16 +510,16 @@ static bool rend_canvas_paint(
   }
 
   // Ambient occlusion.
-  RvkPass* aoPass = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
-  rvk_pass_set_size(aoPass, rvk_size_scale(rvk_pass_size(geoPass), settings->aoResolutionScale));
-  RvkImage* aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0);
-  if (settings->flags & RendFlags_AmbientOcclusion) {
-
+  const RvkSize aoSize   = rvk_size_scale(rvk_pass_size(geoPass), set->aoResolutionScale);
+  RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
+  RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
+  if (set->flags & RendFlags_AmbientOcclusion) {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, aoPass);
-    if (settings->flags & RendFlags_DebugCamera) {
+        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, aoPass, aoSize);
+    if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
+    rvk_pass_set_size(aoPass, aoSize);
     rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(aoPass, geoNormTags, 0);
     rvk_pass_bind_global_image(aoPass, geoDepth, 1);
@@ -528,18 +531,19 @@ static bool rend_canvas_paint(
   }
 
   // Forward pass.
-  RvkPass* fwdPass = rvk_canvas_pass(painter->canvas, RendPass_Forward);
-  rvk_pass_set_size(fwdPass, rvk_size_scale(swapchainSize, settings->resolutionScale));
-  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0);
-  RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass);
+  const RvkSize fwdSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
+  RvkPass*      fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
+  RvkImage*     fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, fwdSize);
+  RvkImage*     fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, fwdSize);
   {
     rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, fwdPass);
-    if (settings->flags & RendFlags_DebugCamera) {
+        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, fwdPass, fwdSize);
+    if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
+    rvk_pass_set_size(fwdPass, fwdSize);
     rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(fwdPass, geoColorRough, 0);
     rvk_pass_bind_global_image(fwdPass, geoNormTags, 1);
@@ -554,10 +558,10 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
-    if (settings->flags & RendFlags_Wireframe) {
+    if (set->flags & RendFlags_Wireframe) {
       painter_push_wireframe(&ctx, drawView, graphicView);
     }
-    if (settings->flags & RendFlags_DebugSkinning) {
+    if (set->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
     rvk_pass_begin(fwdPass);
@@ -572,21 +576,22 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
   // Post pass.
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
-  rvk_pass_set_size(postPass, swapchainSize);
+  const RvkSize postSize = swapchainSize;
+  RvkPass*      postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   {
     RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, settings, settingsGlobal, time, postPass);
-    if (settings->flags & RendFlags_DebugCamera) {
+        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, postPass, postSize);
+    if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
+    rvk_pass_set_size(postPass, postSize);
     rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
     rvk_pass_bind_global_image(postPass, fwdColor, 0);
     rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
-    if (settings->flags & RendFlags_DebugShadow) {
+    if (set->flags & RendFlags_DebugShadow) {
       painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
     }
     rvk_pass_begin(postPass);
