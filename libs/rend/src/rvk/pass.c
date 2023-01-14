@@ -559,10 +559,6 @@ bool rvk_pass_active(const RvkPass* pass) {
 String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
 RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
 
-bool rvk_pass_recorded(const RvkPass* pass) {
-  return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
-}
-
 bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Depth) != 0; }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
@@ -615,6 +611,9 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
+  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
+    return 0;
+  }
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 

@@ -216,23 +216,18 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
   result.gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
   for (RendPass passIdx = 0; passIdx != RendPass_Count; ++passIdx) {
-    const RvkPass* pass = job->passes[passIdx];
-    if (rvk_pass_recorded(pass)) {
-      result.passes[passIdx] = (RendStatPass){
-          .gpuExecDur  = rvk_pass_duration(pass),
-          .size[0]     = rvk_pass_size(pass).width,
-          .size[1]     = rvk_pass_size(pass).height,
-          .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
-          .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
-          .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
-          .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
-          .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
-          .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
-      };
-    } else {
-      // Pass has not been recorded; no stats available.
-      result.passes[passIdx] = (RendStatPass){0};
-    }
+    const RvkPass* pass    = job->passes[passIdx];
+    result.passes[passIdx] = (RendStatPass){
+        .gpuExecDur  = rvk_pass_duration(pass),
+        .size[0]     = rvk_pass_size(pass).width,
+        .size[1]     = rvk_pass_size(pass).height,
+        .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
+        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
+        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+    };
   }
 
   return result;

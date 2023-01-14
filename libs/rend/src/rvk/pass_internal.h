@@ -62,7 +62,6 @@ void    rvk_pass_destroy(RvkPass*);
 bool    rvk_pass_active(const RvkPass*);
 String  rvk_pass_name(const RvkPass*);
 RvkSize rvk_pass_size(const RvkPass*);
-bool    rvk_pass_recorded(const RvkPass*);
 bool    rvk_pass_has_depth(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
