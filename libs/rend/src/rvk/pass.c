@@ -552,7 +552,7 @@ RvkPass* rvk_pass_create(
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass still active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
   string_free(g_alloc_heap, pass->name);
   rvk_pass_free_dyn_desc(pass);
@@ -576,9 +576,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   alloc_free_t(g_alloc_heap, pass);
 }
 
-bool rvk_pass_active(const RvkPass* pass) {
-  return (pass->flags & RvkPassPrivateFlags_Active) != 0;
-}
+bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
 String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
 RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
@@ -668,26 +666,26 @@ void rvk_pass_reset(RvkPass* pass) {
 
 void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(!pass->attachColorMask && !pass->attachDepth, "Pass attachments already bound");
 
   pass->size = size;
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_mesh_prepare(mesh);
 }
 
 void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
   diag_assert_msg(!pass->attachColors[idx], "Color attachment already bound");
 
@@ -700,7 +698,7 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
 }
 
 void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(!pass->attachDepth, "Depth attachment already bound");
   diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
 
@@ -712,7 +710,7 @@ void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
 }
 
 void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 globalDataBinding = 0;
   diag_assert_msg(!(pass->globalBoundMask & (1 << globalDataBinding)), "Data already bound");
@@ -728,7 +726,7 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
 }
 
 void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
@@ -754,7 +752,7 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
 }
 
 void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
   diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
@@ -781,7 +779,7 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
   invoc->size          = pass->size;
@@ -827,7 +825,7 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+  diag_assert_msg(rvk_pass_invoc_active(pass), "Pass invocation not active");
 
   RvkGraphic* graphic           = draw->graphic;
   const u16   reqGlobalBindings = graphic->globalBindings;
