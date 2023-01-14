@@ -109,6 +109,7 @@ static RvkAttachIndex rvk_attach_create(
 
 RvkImage* rvk_attach_acquire(
     RvkAttachPool* pool, const RvkImageType type, const RvkAttachSpec spec, const RvkSize size) {
+  diag_assert_msg(size.width && size.height, "Zero sized attachments are not supported");
 
   RvkAttachIndex slot = rvk_attach_find_available(pool, type, spec, size);
   if (sentinel_check(slot)) {
