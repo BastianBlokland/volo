@@ -76,9 +76,11 @@ u64          rvk_pass_stat(const RvkPass*, RvkStat);
 TimeDuration rvk_pass_duration(const RvkPass*);
 
 void rvk_pass_reset(RvkPass*);
-void rvk_pass_set_size(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
+
+void rvk_pass_set_size(RvkPass*, RvkSize size);
+void rvk_pass_set_clear_color(RvkPass*, GeoColor clearColor);
 
 void rvk_pass_bind_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
 void rvk_pass_bind_attach_depth(RvkPass*, RvkImage*);
@@ -86,6 +88,6 @@ void rvk_pass_bind_global_data(RvkPass*, Mem);
 void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_bind_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 
-void rvk_pass_begin(RvkPass*, GeoColor clearColor);
+void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);

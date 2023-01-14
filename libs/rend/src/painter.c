@@ -484,7 +484,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_attach_color(geoPass, geoNormTags, 1);
     rvk_pass_bind_attach_depth(geoPass, geoDepth);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
-    rvk_pass_begin(geoPass, geo_color_clear);
+    rvk_pass_begin(geoPass);
     painter_flush(&ctx);
     rvk_pass_end(geoPass);
   }
@@ -501,7 +501,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
     rvk_pass_bind_attach_depth(shadowPass, shadowDepth);
     painter_push_shadow(&ctx, drawView, graphicView);
-    rvk_pass_begin(shadowPass, geo_color_clear);
+    rvk_pass_begin(shadowPass);
     painter_flush(&ctx);
     rvk_pass_end(shadowPass);
   }
@@ -522,7 +522,7 @@ static bool rend_canvas_paint(
     rvk_pass_bind_global_image(aoPass, geoDepth, 1);
     rvk_pass_bind_attach_color(aoPass, aoBuffer, 0);
     painter_push_ambient_occlusion(&ctx);
-    rvk_pass_begin(aoPass, geo_color_clear);
+    rvk_pass_begin(aoPass);
     painter_flush(&ctx);
     rvk_pass_end(aoPass);
   }
@@ -560,7 +560,7 @@ static bool rend_canvas_paint(
     if (settings->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
-    rvk_pass_begin(fwdPass, geo_color_clear);
+    rvk_pass_begin(fwdPass);
     painter_flush(&ctx);
     rvk_pass_end(fwdPass);
   }
@@ -589,7 +589,7 @@ static bool rend_canvas_paint(
     if (settings->flags & RendFlags_DebugShadow) {
       painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
     }
-    rvk_pass_begin(postPass, geo_color_clear);
+    rvk_pass_begin(postPass);
     painter_flush(&ctx);
     rvk_pass_end(postPass);
   }

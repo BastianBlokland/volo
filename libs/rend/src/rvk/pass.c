@@ -35,7 +35,8 @@ typedef struct {
 } RvkPassInvoc;
 
 typedef struct {
-  RvkSize size;
+  RvkSize  size;
+  GeoColor clearColor;
 
   // Attachments.
   RvkImage* attachColors[pass_attachment_color_max];
@@ -410,8 +411,7 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
       dynamicOffsets);
 }
 
-static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage, const GeoColor clearColor) {
+static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
       diag_assert_msg(
@@ -433,7 +433,7 @@ static void rvk_pass_vkrenderpass_begin(
 
   if (pass->flags & (RvkPassFlags_ColorClear | RvkPassFlags_DepthClear)) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-      clearValues[clearValueCount++].color = *(VkClearColorValue*)&clearColor;
+      clearValues[clearValueCount++].color = *(VkClearColorValue*)&stage->clearColor;
     }
     if (pass->flags & RvkPassFlags_Depth) {
       // Init depth to zero for a reversed-z depth-buffer.
@@ -670,16 +670,6 @@ void rvk_pass_reset(RvkPass* pass) {
   rvk_pass_free_invocations(pass);
 }
 
-void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
-  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-  diag_assert_msg(
-      !g_stage.attachColorMask && !g_stage.attachDepth, "Pass attachments already bound");
-
-  pass->size   = size; // TODO: Remove.
-  g_stage.size = size;
-}
-
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
@@ -690,6 +680,22 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_mesh_prepare(mesh);
+}
+
+void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
+  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+  diag_assert_msg(
+      !g_stage.attachColorMask && !g_stage.attachDepth, "Pass attachments already bound");
+
+  pass->size   = size; // TODO: Remove.
+  g_stage.size = size;
+}
+
+void rvk_pass_set_clear_color(RvkPass* pass, const GeoColor clearColor) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  g_stage.clearColor = clearColor;
 }
 
 void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
@@ -786,7 +792,7 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
   g_stage.globalImages[imageIndex] = image;
 }
 
-void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
+void rvk_pass_begin(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
@@ -806,7 +812,7 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
     }
   }
 
-  rvk_pass_vkrenderpass_begin(pass, invoc, &g_stage, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, invoc, &g_stage);
 
   // Update attachments to reflect the transitions applied by the render-pass itself.
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
