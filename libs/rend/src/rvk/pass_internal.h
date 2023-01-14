@@ -20,7 +20,7 @@ typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
 
-typedef enum eRvkPassFlags {
+typedef enum {
   RvkPassFlags_None              = 0,
   RvkPassFlags_Color1            = 1 << 0, // Enable the color1 attachment.
   RvkPassFlags_Color1Srgb        = 1 << 1, // Use an SRGB format for the color1 attachment.
@@ -40,6 +40,10 @@ typedef enum eRvkPassFlags {
   RvkPassFlags_Count = 14,
 } RvkPassFlags;
 
+typedef struct sRvkPassConfig {
+  RvkPassFlags flags;
+} RvkPassConfig;
+
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
   RvkMesh*    dynMesh; // Dynamic (late bound) mesh to use in this draw.
@@ -56,7 +60,7 @@ RvkPass* rvk_pass_create(
     VkCommandBuffer,
     RvkUniformPool*,
     RvkStopwatch*,
-    RvkPassFlags,
+    RvkPassConfig,
     String name);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);

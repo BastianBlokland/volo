@@ -497,16 +497,17 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
 }
 
 RvkPass* rvk_pass_create(
-    RvkDevice*         dev,
-    const VkFormat     swapchainFormat,
-    VkCommandBuffer    vkCmdBuf,
-    RvkUniformPool*    uniformPool,
-    RvkStopwatch*      stopwatch,
-    const RvkPassFlags flags,
-    const String       name) {
+    RvkDevice*          dev,
+    const VkFormat      swapchainFormat,
+    VkCommandBuffer     vkCmdBuf,
+    RvkUniformPool*     uniformPool,
+    RvkStopwatch*       stopwatch,
+    const RvkPassConfig config,
+    const String        name) {
   diag_assert(!string_is_empty(name));
 
   // TODO: These exclusion checks are unwieldy and a clear sign that these should not be flags :)
+  const RvkPassFlags flags = config.flags;
   diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
   diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || (flags & RvkPassFlags_Color1));
   diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Srgb));

@@ -47,7 +47,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 RvkCanvas* rvk_canvas_create(
     RvkDevice*           dev,
     const GapWindowComp* window,
-    const RvkPassFlags*  passConfig /* [ RendPass_Count ] */) {
+    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
   RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
   const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
   RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);

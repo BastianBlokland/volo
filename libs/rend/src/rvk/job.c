@@ -145,10 +145,10 @@ static void rvk_job_submit(
 }
 
 RvkJob* rvk_job_create(
-    RvkDevice*          dev,
-    const VkFormat      swapchainFormat,
-    const u32           jobId,
-    const RvkPassFlags* passConfig /* [ RendPass_Count ] */) {
+    RvkDevice*           dev,
+    const VkFormat       swapchainFormat,
+    const u32            jobId,
+    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
   RvkJob* job = alloc_alloc_t(g_alloc_heap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
