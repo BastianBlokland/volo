@@ -680,13 +680,13 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   return rvk_mesh_prepare(mesh);
 }
 
-void rvk_pass_stage_clear_color(RvkPass* pass, const GeoColor clearColor) {
+void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   rvk_pass_stage()->clearColor = clearColor;
 }
 
-void rvk_pass_stage_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
+void rvk_pass_stage_attach_color(MAYBE_UNUSED RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
 
@@ -715,7 +715,7 @@ void rvk_pass_stage_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   stage->attachColorMask |= 1 << idx;
 }
 
-void rvk_pass_stage_attach_depth(RvkPass* pass, RvkImage* img) {
+void rvk_pass_stage_attach_depth(MAYBE_UNUSED RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
@@ -741,7 +741,7 @@ void rvk_pass_stage_attach_depth(RvkPass* pass, RvkImage* img) {
   stage->attachDepth = img;
 }
 
-void rvk_pass_stage_global_data(RvkPass* pass, const Mem data) {
+void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
