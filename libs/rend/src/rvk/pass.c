@@ -941,6 +941,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 }
 
 void rvk_pass_end(RvkPass* pass) {
+  RvkPassStage* stage = rvk_pass_stage();
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass not active");
 
@@ -952,5 +953,10 @@ void rvk_pass_end(RvkPass* pass) {
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
   invoc->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
 
-  *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
+  if (stage->attachDepth && !(pass->config.flags & RvkPassFlags_DepthStore)) {
+    // When we're not storing the depth, the image's contents become undefined.
+    rvk_image_transition_external(stage->attachDepth, RvkImagePhase_Undefined);
+  }
+
+  *stage = (RvkPassStage){0}; // Reset the stage.
 }
