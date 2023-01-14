@@ -44,9 +44,10 @@ typedef struct {
   u16       attachColorMask;
 
   // Global resources.
-  u32       globalDataOffset;
-  u16       globalBoundMask; // Bitset of the bound global resources.
-  RvkImage* globalImages[pass_global_image_max];
+  RvkDescSet globalDescSet;
+  u32        globalDataOffset;
+  u16        globalBoundMask; // Bitset of the bound global resources.
+  RvkImage*  globalImages[pass_global_image_max];
 } RvkPassStage;
 
 /**
@@ -72,10 +73,9 @@ struct sRvkPass {
 
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
-  RvkDescSet       globalDescSet;
   RvkSampler       globalImageSampler, globalShadowSampler;
 
-  DynArray dynDescSets; // RvkDescSet[]
+  DynArray descSets;    // RvkDescSet[]
   DynArray invocations; // RvkPassInvoc[]
 };
 
@@ -354,7 +354,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
 static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
   diag_assert(stage->globalBoundMask != 0);
 
-  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(pass->globalDescSet)};
+  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(stage->globalDescSet)};
   const u32             dynamicOffsets[] = {stage->globalDataOffset};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
@@ -394,14 +394,14 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
   vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_free_dyn_desc(RvkPass* pass) {
-  dynarray_for_t(&pass->dynDescSets, RvkDescSet, set) { rvk_desc_free(*set); }
-  dynarray_clear(&pass->dynDescSets);
+static void rvk_pass_free_desc(RvkPass* pass) {
+  dynarray_for_t(&pass->descSets, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&pass->descSets);
 }
 
-static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta) {
-  const RvkDescSet res                             = rvk_desc_alloc(pass->dev->descPool, meta);
-  *dynarray_push_t(&pass->dynDescSets, RvkDescSet) = res;
+static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
+  const RvkDescSet res                          = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&pass->descSets, RvkDescSet) = res;
   return res;
 }
 
@@ -409,7 +409,7 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
   diag_assert_msg(mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
 
   const RvkDescMeta meta    = rvk_pass_meta_dynamic(pass);
-  const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
+  const RvkDescSet  descSet = rvk_pass_alloc_desc(pass, &meta);
   rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
@@ -472,7 +472,7 @@ RvkPass* rvk_pass_create(
       .vkCmdBuf        = vkCmdBuf,
       .uniformPool     = uniformPool,
       .config          = config,
-      .dynDescSets     = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .descSets        = dynarray_create_t(g_alloc_heap, RvkDescSet, 8),
       .invocations     = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
@@ -481,7 +481,6 @@ RvkPass* rvk_pass_create(
 
   pass->globalDescMeta       = rvk_global_desc_meta();
   pass->globalPipelineLayout = rvk_global_layout_create(dev, &pass->globalDescMeta);
-  pass->globalDescSet        = rvk_desc_alloc(dev->descPool, &pass->globalDescMeta);
 
   bool anyAttachmentNeedsClear = pass->config.attachDepthLoad == RvkPassLoad_Clear;
   array_for_t(pass->config.attachColorLoad, RvkPassLoad, load) {
@@ -498,14 +497,13 @@ void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
   string_free(g_alloc_heap, pass->name);
-  rvk_pass_free_dyn_desc(pass);
+  rvk_pass_free_desc(pass);
   rvk_pass_free_invocations(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
 
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
 
-  rvk_desc_free(pass->globalDescSet);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
   if (rvk_sampler_initialized(&pass->globalImageSampler)) {
     rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
@@ -513,7 +511,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   if (rvk_sampler_initialized(&pass->globalShadowSampler)) {
     rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
   }
-  dynarray_destroy(&pass->dynDescSets);
+  dynarray_destroy(&pass->descSets);
   dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_alloc_heap, pass);
@@ -598,7 +596,7 @@ TimeDuration rvk_pass_stat_duration(const RvkPass* pass) {
 
 void rvk_pass_reset(RvkPass* pass) {
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
-  rvk_pass_free_dyn_desc(pass);
+  rvk_pass_free_desc(pass);
   rvk_pass_free_invocations(pass);
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 }
@@ -688,8 +686,11 @@ void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
 
+  if (!rvk_desc_valid(stage->globalDescSet)) {
+    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+  }
   rvk_desc_set_attach_buffer(
-      pass->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
+      stage->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
 
   stage->globalDataOffset = dataHandle.offset;
   stage->globalBoundMask |= 1 << globalDataBinding;
@@ -717,7 +718,10 @@ void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 image
     rvk_debug_name_sampler(pass->dev->debug, pass->globalImageSampler.vkSampler, "global_image");
   }
 
-  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+  if (!rvk_desc_valid(stage->globalDescSet)) {
+    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+  }
+  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, &pass->globalImageSampler);
 
   stage->globalBoundMask |= 1 << bindIndex;
   stage->globalImages[imageIndex] = image;
@@ -746,7 +750,10 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
     rvk_debug_name_sampler(pass->dev->debug, pass->globalShadowSampler.vkSampler, "global_shadow");
   }
 
-  rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
+  if (!rvk_desc_valid(stage->globalDescSet)) {
+    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
+  }
+  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
   stage->globalBoundMask |= 1 << bindIndex;
   stage->globalImages[imageIndex] = image;
