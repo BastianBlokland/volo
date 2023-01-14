@@ -480,10 +480,10 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_bind_global_data(geoPass, mem_var(ctx.data));
-    rvk_pass_bind_attach_color(geoPass, geoColorRough, 0);
-    rvk_pass_bind_attach_color(geoPass, geoNormTags, 1);
-    rvk_pass_bind_attach_depth(geoPass, geoDepth);
+    rvk_pass_stage_global_data(geoPass, mem_var(ctx.data));
+    rvk_pass_stage_attach_color(geoPass, geoColorRough, 0);
+    rvk_pass_stage_attach_color(geoPass, geoNormTags, 1);
+    rvk_pass_stage_attach_depth(geoPass, geoDepth);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     rvk_pass_begin(geoPass);
     painter_flush(&ctx);
@@ -499,8 +499,8 @@ static bool rend_canvas_paint(
     const GeoMatrix* sProj  = rend_light_shadow_proj(light);
     RendPaintContext ctx    = painter_context(
         sTrans, sProj, camEntity, filter, painter, set, setGlobal, time, shadowPass, shadowSize);
-    rvk_pass_bind_global_data(shadowPass, mem_var(ctx.data));
-    rvk_pass_bind_attach_depth(shadowPass, shadowDepth);
+    rvk_pass_stage_global_data(shadowPass, mem_var(ctx.data));
+    rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_push_shadow(&ctx, drawView, graphicView);
     rvk_pass_begin(shadowPass);
     painter_flush(&ctx);
@@ -517,10 +517,10 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_bind_global_data(aoPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(aoPass, geoNormTags, 0);
-    rvk_pass_bind_global_image(aoPass, geoDepth, 1);
-    rvk_pass_bind_attach_color(aoPass, aoBuffer, 0);
+    rvk_pass_stage_global_data(aoPass, mem_var(ctx.data));
+    rvk_pass_stage_global_image(aoPass, geoNormTags, 0);
+    rvk_pass_stage_global_image(aoPass, geoDepth, 1);
+    rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
     painter_push_ambient_occlusion(&ctx);
     rvk_pass_begin(aoPass);
     painter_flush(&ctx);
@@ -540,14 +540,14 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_bind_global_data(fwdPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(fwdPass, geoColorRough, 0);
-    rvk_pass_bind_global_image(fwdPass, geoNormTags, 1);
-    rvk_pass_bind_global_image(fwdPass, geoDepth, 2);
-    rvk_pass_bind_global_image(fwdPass, aoBuffer, 3);
-    rvk_pass_bind_global_shadow(fwdPass, shadowDepth, 4);
-    rvk_pass_bind_attach_color(fwdPass, fwdColor, 0);
-    rvk_pass_bind_attach_depth(fwdPass, fwdDepth);
+    rvk_pass_stage_global_data(fwdPass, mem_var(ctx.data));
+    rvk_pass_stage_global_image(fwdPass, geoColorRough, 0);
+    rvk_pass_stage_global_image(fwdPass, geoNormTags, 1);
+    rvk_pass_stage_global_image(fwdPass, geoDepth, 2);
+    rvk_pass_stage_global_image(fwdPass, aoBuffer, 3);
+    rvk_pass_stage_global_shadow(fwdPass, shadowDepth, 4);
+    rvk_pass_stage_attach_color(fwdPass, fwdColor, 0);
+    rvk_pass_stage_attach_depth(fwdPass, fwdDepth);
     painter_push_ambient(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic, mem_empty);
     if (geoTagMask & SceneTags_Outline) {
@@ -580,10 +580,10 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugCamera) {
       painter_set_debug_camera(&ctx);
     }
-    rvk_pass_bind_global_data(postPass, mem_var(ctx.data));
-    rvk_pass_bind_global_image(postPass, fwdColor, 0);
-    rvk_pass_bind_global_shadow(postPass, shadowDepth, 4);
-    rvk_pass_bind_attach_color(postPass, swapchainImage, 0);
+    rvk_pass_stage_global_data(postPass, mem_var(ctx.data));
+    rvk_pass_stage_global_image(postPass, fwdColor, 0);
+    rvk_pass_stage_global_shadow(postPass, shadowDepth, 4);
+    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {

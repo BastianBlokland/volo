@@ -689,13 +689,13 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   return rvk_mesh_prepare(mesh);
 }
 
-void rvk_pass_set_clear_color(RvkPass* pass, const GeoColor clearColor) {
+void rvk_pass_stage_clear_color(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   g_stage.clearColor = clearColor;
 }
 
-void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
+void rvk_pass_stage_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
   diag_assert_msg(!g_stage.attachColors[idx], "Color attachment already bound");
@@ -712,7 +712,7 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
   g_stage.attachColorMask |= 1 << idx;
 }
 
-void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
+void rvk_pass_stage_attach_depth(RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(!g_stage.attachDepth, "Depth attachment already bound");
 
@@ -727,11 +727,11 @@ void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
   g_stage.attachDepth = img;
 }
 
-void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
+void rvk_pass_stage_global_data(RvkPass* pass, const Mem data) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 globalDataBinding = 0;
-  diag_assert_msg(!(g_stage.globalBoundMask & (1 << globalDataBinding)), "Data already bound");
+  diag_assert_msg(!(g_stage.globalBoundMask & (1 << globalDataBinding)), "Data already staged");
 
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
@@ -743,11 +743,11 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
   g_stage.globalBoundMask |= 1 << globalDataBinding;
 }
 
-void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(g_stage.globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(g_stage.globalBoundMask & (1 << bindIndex)), "Image already staged");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
@@ -769,11 +769,11 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
   g_stage.globalImages[imageIndex] = image;
 }
 
-void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(g_stage.globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(g_stage.globalBoundMask & (1 << bindIndex)), "Image already staged");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
