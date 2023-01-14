@@ -619,19 +619,20 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
-  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
+  if (dynarray_size(&pass->invocations) == 0) {
     return 0;
   }
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 
 TimeDuration rvk_pass_duration(const RvkPass* pass) {
-  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
-    return 0;
+  TimeDuration dur = 0;
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecBegin);
+    const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecEnd);
+    dur += time_steady_duration(timestampBegin, timestampEnd);
   }
-  const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
-  const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
-  return time_steady_duration(timestampBegin, timestampEnd);
+  return dur;
 }
 
 void rvk_pass_reset(RvkPass* pass) {
