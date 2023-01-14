@@ -478,6 +478,13 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
       sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
 }
 
+static void rvk_pass_free_invocations(RvkPass* pass) {
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
+  }
+  dynarray_clear(&pass->invocations);
+}
+
 RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     const VkFormat     swapchainFormat,
@@ -538,6 +545,7 @@ void rvk_pass_destroy(RvkPass* pass) {
 
   string_free(g_alloc_heap, pass->name);
   rvk_pass_free_dyn_desc(pass);
+  rvk_pass_free_invocations(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
 
@@ -646,8 +654,9 @@ void rvk_pass_reset(RvkPass* pass) {
   mem_set(array_mem(pass->globalImages), 0);
   pass->globalBoundMask = 0;
 
-  // Free last frame's dynamic descriptors.
+  // Free last frame's resources.
   rvk_pass_free_dyn_desc(pass);
+  rvk_pass_free_invocations(pass);
 
   // Destroy last frame's vkFrameBuffer.
   if (pass->vkFrameBuffer) {
