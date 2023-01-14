@@ -61,7 +61,8 @@ struct sRvkPass {
   VkFormat         swapchainFormat;
   RvkStatRecorder* statrecorder;
   RvkStopwatch*    stopwatch;
-  RvkPassFlags     flags;
+  RvkPassConfig    config;
+  RvkPassFlags     flags; // TODO: Remove as its included in config.
   String           name;
   VkRenderPass     vkRendPass;
   VkCommandBuffer  vkCmdBuf;
@@ -75,35 +76,24 @@ struct sRvkPass {
   DynArray invocations; // RvkPassInvoc[]
 };
 
-static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const bool single) {
-  if (single) {
-    return srgb ? VK_FORMAT_R8_SRGB : flt ? VK_FORMAT_R16_SFLOAT : VK_FORMAT_R8_UNORM;
-  }
-  return srgb  ? VK_FORMAT_R8G8B8A8_SRGB
-         : flt ? VK_FORMAT_B10G11R11_UFLOAT_PACK32
-               : VK_FORMAT_R8G8B8A8_UNORM;
-}
-
 static VkFormat rvk_attach_color_format_at_index(const RvkPass* pass, const u32 index) {
-  switch (index) {
-  case 0: {
-    if (pass->flags & RvkPassFlags_Color1Swapchain) {
-      return pass->swapchainFormat;
-    }
-    const bool srgb   = (pass->flags & RvkPassFlags_Color1Srgb) != 0;
-    const bool flt    = (pass->flags & RvkPassFlags_Color1Float) != 0;
-    const bool single = (pass->flags & RvkPassFlags_Color1Single) != 0;
-    return rvk_attach_color_format(srgb, flt, single);
+  diag_assert(index < rvk_pass_attach_color_max);
+  const RvkPassFormat format = pass->config.attachColor[index];
+  switch (format) {
+  case RvkPassFormat_None:
+    diag_crash_msg("Pass has no color attachment at index: {}", fmt_int(index));
+  case RvkPassFormat_Color1Linear:
+    return VK_FORMAT_R8_UNORM;
+  case RvkPassFormat_Color4Linear:
+    return VK_FORMAT_R8G8B8A8_UNORM;
+  case RvkPassFormat_Color4Srgb:
+    return VK_FORMAT_R8G8B8A8_SRGB;
+  case RvkPassFormat_Color3Float:
+    return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+  case RvkPassFormat_Swapchain:
+    return pass->swapchainFormat;
   }
-  case 1: {
-    const bool srgb   = (pass->flags & RvkPassFlags_Color2Srgb) != 0;
-    const bool flt    = false;
-    const bool single = (pass->flags & RvkPassFlags_Color2Single) != 0;
-    return rvk_attach_color_format(srgb, flt, single);
-  }
-  default:
-    diag_crash_msg("Unsupported color attachment index: {}", fmt_int(index));
-  }
+  diag_crash_msg("Unuspported pass color attachment format");
 }
 
 static u32 rvk_attach_color_count(const RvkPassFlags flags) {
@@ -539,6 +529,7 @@ RvkPass* rvk_pass_create(
       .vkCmdBuf             = vkCmdBuf,
       .uniformPool          = uniformPool,
       .flags                = flags,
+      .config               = config,
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
