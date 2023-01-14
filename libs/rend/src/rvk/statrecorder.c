@@ -12,8 +12,9 @@
 typedef enum {
   RvkStatRecorder_Supported   = 1 << 0,
   RvkStatRecorder_Capturing   = 1 << 1,
-  RvkStatRecorder_HasCaptured = 1 << 2,
-  RvkStatRecorder_HasResults  = 1 << 3,
+  RvkStatRecorder_Reset       = 1 << 2,
+  RvkStatRecorder_HasCaptured = 1 << 3,
+  RvkStatRecorder_HasResults  = 1 << 4,
 } RvkStatRecorderFlags;
 
 struct sRvkStatRecorder {
@@ -104,6 +105,7 @@ void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   }
   mem_set(mem_var(sr->results), 0);
   sr->flags &= ~RvkStatRecorder_HasResults;
+  sr->flags |= RvkStatRecorder_Reset;
 }
 
 u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
@@ -133,12 +135,14 @@ void rvk_statrecorder_report(RvkStatRecorder* sr, const RvkStat stat, const u32 
 }
 
 void rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(sr->flags & RvkStatRecorder_Reset, "Reset stat-recorder between uses");
   diag_assert(!(sr->flags & RvkStatRecorder_HasResults));
   diag_assert(!(sr->flags & RvkStatRecorder_Capturing));
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
     vkCmdBeginQuery(vkCmdBuf, sr->vkQueryPool, 0, 0);
   }
+  sr->flags &= ~RvkStatRecorder_Reset;
   sr->flags |= RvkStatRecorder_Capturing;
 }
 
