@@ -188,6 +188,9 @@ rvk_attach_acquire_depth(RvkAttachPool* pool, const RvkAttachSpec spec, const Rv
 void rvk_attach_release(RvkAttachPool* pool, RvkImage* img) {
   const RvkAttachIndex slot = rvk_attach_from_ptr(pool, img);
 
+  // Discard the contents.
+  rvk_image_transition_external(img, RvkImagePhase_Undefined);
+
   // Sanity check the slot.
   diag_assert_msg(pool->states[slot] != RvkAttachState_Empty, "Attachment invalid");
   diag_assert_msg(!rvk_attach_is_available(pool, slot), "Attachment already released");
