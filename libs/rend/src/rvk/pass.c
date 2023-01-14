@@ -35,10 +35,17 @@ typedef struct {
 } RvkPassInvoc;
 
 typedef struct {
-  RvkSize   size;
+  RvkSize size;
+
+  // Attachments.
   RvkImage* attachColors[pass_attachment_color_max];
   RvkImage* attachDepth;
   u16       attachColorMask;
+
+  // Global resources.
+  u32       globalDataOffset;
+  u16       globalBoundMask; // Bitset of the bound global resources.
+  RvkImage* globalImages[pass_global_image_max];
 } RvkPassStage;
 
 struct sRvkPass {
@@ -55,10 +62,7 @@ struct sRvkPass {
 
   VkPipelineLayout globalPipelineLayout;
   RvkDescSet       globalDescSet;
-  u32              globalDataOffset;
-  u16              globalBoundMask; // Bitset of the bound global resources.
   RvkSampler       globalImageSampler, globalShadowSampler;
-  RvkImage*        globalImages[pass_global_image_max];
 
   RvkPassStage stage;
 
@@ -387,11 +391,11 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
-static void rvk_pass_bind_global(RvkPass* pass) {
-  diag_assert(pass->globalBoundMask != 0);
+static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
+  diag_assert(stage->globalBoundMask != 0);
 
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(pass->globalDescSet)};
-  const u32             dynamicOffsets[] = {pass->globalDataOffset};
+  const u32             dynamicOffsets[] = {stage->globalDataOffset};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -659,12 +663,6 @@ TimeDuration rvk_pass_duration(const RvkPass* pass) {
 
 void rvk_pass_reset(RvkPass* pass) {
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
-
-  // Clear last frame's bound resources.
-  mem_set(array_mem(pass->globalImages), 0);
-  pass->globalBoundMask = 0;
-
-  // Free last frame's resources.
   rvk_pass_free_dyn_desc(pass);
   rvk_pass_free_invocations(pass);
 }
@@ -720,7 +718,7 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 globalDataBinding = 0;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << globalDataBinding)), "Data already bound");
+  diag_assert_msg(!(pass->stage.globalBoundMask & (1 << globalDataBinding)), "Data already bound");
 
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
@@ -728,15 +726,15 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
   rvk_desc_set_attach_buffer(
       pass->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
 
-  pass->globalDataOffset = dataHandle.offset;
-  pass->globalBoundMask |= 1 << globalDataBinding;
+  pass->stage.globalDataOffset = dataHandle.offset;
+  pass->stage.globalBoundMask |= 1 << globalDataBinding;
 }
 
 void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(pass->stage.globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
@@ -754,15 +752,15 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
 
-  pass->globalBoundMask |= 1 << bindIndex;
-  pass->globalImages[imageIndex] = image;
+  pass->stage.globalBoundMask |= 1 << bindIndex;
+  pass->stage.globalImages[imageIndex] = image;
 }
 
 void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(pass->stage.globalBoundMask & (1 << bindIndex)), "Image already bound");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
@@ -781,8 +779,8 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
-  pass->globalBoundMask |= 1 << bindIndex;
-  pass->globalImages[imageIndex] = image;
+  pass->stage.globalBoundMask |= 1 << bindIndex;
+  pass->stage.globalImages[imageIndex] = image;
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
@@ -801,8 +799,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
 
   // Transition all global images to ShaderRead.
   for (u32 i = 0; i != pass_global_image_max; ++i) {
-    if (pass->globalImages[i]) {
-      rvk_image_transition(pass->globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+    if (pass->stage.globalImages[i]) {
+      rvk_image_transition(pass->stage.globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
     }
   }
 
@@ -819,8 +817,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   rvk_pass_viewport_set(pass->vkCmdBuf, invoc->size);
   rvk_pass_scissor_set(pass->vkCmdBuf, invoc->size);
 
-  if (pass->globalBoundMask != 0) {
-    rvk_pass_bind_global(pass);
+  if (stage->globalBoundMask != 0) {
+    rvk_pass_bind_global(pass, stage);
   }
 }
 
@@ -846,7 +844,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY((reqGlobalBindings & pass->globalBoundMask) != reqGlobalBindings)) {
+  if (UNLIKELY((reqGlobalBindings & stage->globalBoundMask) != reqGlobalBindings)) {
     log_e(
         "Graphic requires additional global bindings",
         log_param("graphic", fmt_text(graphic->dbgName)));
