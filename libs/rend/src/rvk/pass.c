@@ -152,7 +152,37 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
 }
-#endif
+
+static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassStage* stage) {
+  // Validate preserved color attachment contents.
+  for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
+    if (pass->config.attachColorLoad[i] == RvkPassLoad_Preserve) {
+      diag_assert_msg(
+          stage->attachColors[i]->phase,
+          "Pass {} preserved color attachment {} has undefined contents",
+          fmt_text(pass->name),
+          fmt_int(i));
+    }
+  }
+  // Validate preserved depth attachment contents.
+  if (pass->config.attachDepthLoad == RvkPassLoad_Preserve) {
+    diag_assert_msg(
+        stage->attachDepth->phase,
+        "Pass {} preserved depth attachment has undefined contents",
+        fmt_text(pass->name));
+  }
+  // Validate global image contents.
+  for (u32 i = 0; i != pass_global_image_max; ++i) {
+    if (stage->globalImages[i]) {
+      diag_assert_msg(
+          stage->globalImages[i]->phase,
+          "Pass {} global image {} has undefined contents",
+          fmt_text(pass->name),
+          fmt_int(i));
+    }
+  }
+}
+#endif // !VOLO_FAST
 
 static VkAttachmentLoadOp rvk_attach_color_load_op(const RvkPass* pass, const u32 idx) {
   switch (pass->config.attachColorLoad[idx]) {
@@ -734,6 +764,11 @@ void rvk_pass_begin(RvkPass* pass) {
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
   invoc->size          = stage->size;
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, stage);
+
+#ifndef VOLO_FAST
+  // Validate that all images we load have contents loaded in them.
+  rvk_pass_assert_image_contents(pass, stage);
+#endif
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 
