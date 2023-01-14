@@ -24,7 +24,8 @@
 typedef RvkGraphic* RvkGraphicPtr;
 
 typedef enum {
-  RvkPassPrivateFlags_Active = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active     = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_NeedsClear = 1 << (RvkPassFlags_Count + 1),
 } RvkPassPrivateFlags;
 
 typedef struct {
@@ -77,7 +78,7 @@ struct sRvkPass {
 
 static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
   diag_assert(index < rvk_pass_attach_color_max);
-  const RvkPassFormat format = pass->config.attachColor[index];
+  const RvkPassFormat format = pass->config.attachColorFormat[index];
   switch (format) {
   case RvkPassFormat_None:
     diag_crash_msg("Pass has no color attachment at index: {}", fmt_int(index));
@@ -98,7 +99,7 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
 static u32 rvk_attach_color_count(const RvkPassConfig* config) {
   u32 result = 0;
   for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
-    result += config->attachColor[i] != RvkPassFormat_None;
+    result += config->attachColorFormat[i] != RvkPassFormat_None;
   }
   return result;
 }
@@ -106,7 +107,7 @@ static u32 rvk_attach_color_count(const RvkPassConfig* config) {
 #ifndef VOLO_FAST
 static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
-  if (pass->config.attachColor[idx] == RvkPassFormat_Swapchain) {
+  if (pass->config.attachColorFormat[idx] == RvkPassFormat_Swapchain) {
     diag_assert_msg(
         img->type == RvkImageType_Swapchain,
         "Pass {} color attachment {} invalid: Expected a swapchain image",
@@ -152,14 +153,14 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
 #endif
 
 static VkAttachmentLoadOp rvk_attach_color_load_op(const RvkPass* pass, const u32 idx) {
-  (void)idx;
-  if (pass->config.flags & RvkPassFlags_ColorClear) {
+  switch (pass->config.attachColorLoad[idx]) {
+  case RvkPassLoad_Clear:
     return VK_ATTACHMENT_LOAD_OP_CLEAR;
-  }
-  if (pass->config.flags & RvkPassFlags_ColorPreserve) {
+  case RvkPassLoad_Preserve:
     return VK_ATTACHMENT_LOAD_OP_LOAD;
+  default:
+    return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   }
-  return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 }
 
 static VkAttachmentLoadOp rvk_attach_depth_load_op(const RvkPass* pass) {
@@ -328,7 +329,7 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
   VkClearValue clearValues[pass_attachment_max];
   u32          clearValueCount = 0;
 
-  if (pass->config.flags & (RvkPassFlags_ColorClear | RvkPassFlags_DepthClear)) {
+  if (pass->config.flags & RvkPassPrivateFlags_NeedsClear) {
     for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
       clearValues[clearValueCount++].color = *(VkClearColorValue*)&stage->clearColor;
     }
@@ -419,7 +420,6 @@ RvkPass* rvk_pass_create(
   diag_assert(!string_is_empty(name));
 
   const RvkPassFlags flags = config.flags;
-  diag_assert(!(flags & RvkPassFlags_ColorPreserve) || !(flags & RvkPassFlags_ColorClear));
   diag_assert(!(flags & RvkPassFlags_DepthPreserve) || !(flags & RvkPassFlags_DepthClear));
   diag_assert(!(flags & RvkPassFlags_DepthPreserve) || (flags & RvkPassFlags_Depth));
   diag_assert(!(flags & RvkPassFlags_DepthStore) || (flags & RvkPassFlags_Depth));
@@ -452,6 +452,14 @@ RvkPass* rvk_pass_create(
 
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
+
+  bool anyAttachmentNeedsClear = (pass->config.flags & RvkPassFlags_DepthClear) != 0;
+  array_for_t(pass->config.attachColorLoad, RvkPassLoad, load) {
+    anyAttachmentNeedsClear |= *load == RvkPassLoad_Clear;
+  }
+  if (anyAttachmentNeedsClear) {
+    pass->config.flags |= RvkPassPrivateFlags_NeedsClear;
+  }
 
   return pass;
 }
@@ -491,11 +499,11 @@ bool rvk_pass_has_depth(const RvkPass* pass) {
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;
-  if (pass->config.attachColor[colorAttachIndex] != RvkPassFormat_Swapchain) {
+  if (pass->config.attachColorFormat[colorAttachIndex] != RvkPassFormat_Swapchain) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
-  if (pass->config.flags & RvkPassFlags_ColorPreserve) {
+  if (pass->config.attachColorLoad[colorAttachIndex] == RvkPassLoad_Preserve) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferDest;
   }

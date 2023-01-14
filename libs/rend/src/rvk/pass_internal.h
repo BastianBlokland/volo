@@ -24,15 +24,19 @@ typedef struct sRvkPass RvkPass;
 
 typedef enum {
   RvkPassFlags_None          = 0,
-  RvkPassFlags_ColorClear    = 1 << 0, // Clear the color attachments.
-  RvkPassFlags_ColorPreserve = 1 << 1, // Preserve the color attachment content.
-  RvkPassFlags_Depth         = 1 << 2, // Enable a depth attachment.
-  RvkPassFlags_DepthClear    = 1 << 3, // Clear the depth attachment.
-  RvkPassFlags_DepthPreserve = 1 << 4, // Preserve the depth attachment content.
-  RvkPassFlags_DepthStore    = 1 << 5, // Store the depth attachment for use in a later pass.
+  RvkPassFlags_Depth         = 1 << 0, // Enable a depth attachment.
+  RvkPassFlags_DepthClear    = 1 << 1, // Clear the depth attachment.
+  RvkPassFlags_DepthPreserve = 1 << 2, // Preserve the depth attachment content.
+  RvkPassFlags_DepthStore    = 1 << 3, // Store the depth attachment for use in a later pass.
 
-  RvkPassFlags_Count = 6,
+  RvkPassFlags_Count = 4,
 } RvkPassFlags;
+
+typedef enum {
+  RvkPassLoad_DontCare = 0,
+  RvkPassLoad_Clear,
+  RvkPassLoad_Preserve,
+} RvkPassLoad;
 
 typedef enum {
   RvkPassFormat_None = 0,
@@ -45,7 +49,8 @@ typedef enum {
 
 typedef struct sRvkPassConfig {
   RvkPassFlags  flags;
-  RvkPassFormat attachColor[rvk_pass_attach_color_max];
+  RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
+  RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {

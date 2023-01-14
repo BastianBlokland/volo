@@ -28,10 +28,15 @@
 static const RvkPassConfig g_passConfig[RendPass_Count] = {
     [RendPass_Geometry] =
         {
-            .flags = RvkPassFlags_ColorClear | RvkPassFlags_Depth | RvkPassFlags_DepthClear |
-                     RvkPassFlags_DepthStore,
-            .attachColor[0] = RvkPassFormat_Color4Srgb,   // color (rgb) and roughness (a).
-            .attachColor[1] = RvkPassFormat_Color4Linear, // normal (rgb) and tags (a).
+            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,
+
+            // Attachment 0:  color (rgb) and roughness (a).
+            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
+
+            // Attachment 1: normal (rgb) and tags (a).
+            .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+            .attachColorLoad[1]   = RvkPassLoad_Clear,
         },
 
     [RendPass_Shadow] =
@@ -42,20 +47,29 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
     [RendPass_AmbientOcclusion] =
         {
-            .flags          = RvkPassFlags_None,
-            .attachColor[0] = RvkPassFormat_Color1Linear, // occlusion (r).
+            .flags = RvkPassFlags_None,
+
+            // Attachment 0: occlusion (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Forward] =
         {
-            .flags = RvkPassFlags_ColorClear | RvkPassFlags_Depth | RvkPassFlags_DepthPreserve,
-            .attachColor[0] = RvkPassFormat_Color3Float, // color (rgb).
+            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthPreserve,
+
+            // Attachment 0: color (rgb).
+            .attachColorFormat[0] = RvkPassFormat_Color3Float,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
         },
 
     [RendPass_Post] =
         {
-            .flags          = RvkPassFlags_None,
-            .attachColor[0] = RvkPassFormat_Swapchain,
+            .flags = RvkPassFlags_None,
+
+            // Attachment 0: color (rgba).
+            .attachColorFormat[0] = RvkPassFormat_Swapchain,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 };
 
