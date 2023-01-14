@@ -1,6 +1,9 @@
 #pragma once
 #include "ecs_module.h"
 
+// Forward declare from 'ui_canvas.h'.
+typedef u64 UiId;
+
 ecs_comp_extern(UiCanvasComp);
 
 typedef enum {
@@ -10,6 +13,7 @@ typedef enum {
 typedef struct {
   UiScrollviewFlags flags;
   f32               offset;
+  UiId              lastContentId;
 } UiScrollview;
 
 /**

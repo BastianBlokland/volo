@@ -10,13 +10,17 @@ static const f32 g_scrollSensitivity = 30;
 static const f32 g_scrollBarWidth    = 10;
 
 typedef enum {
-  UiScrollviewStatusFlags_HoveredBg  = 1 << 0,
-  UiScrollviewStatusFlags_HoveredBar = 1 << 1,
-  UiScrollviewStatusFlags_PressedBar = 1 << 2,
+  UiScrollviewStatus_HoveredBg        = 1 << 0,
+  UiScrollviewStatus_HoveredBar       = 1 << 1,
+  UiScrollviewStatus_HoveredContent   = 1 << 2,
+  UiScrollviewStatus_PressedBar       = 1 << 3,
+  UiScrollviewStatus_HoveringViewport = UiScrollviewStatus_HoveredBg |
+                                        UiScrollviewStatus_HoveredBar |
+                                        UiScrollviewStatus_HoveredContent,
 } UiScrollviewStatusFlags;
 
 typedef struct {
-  UiId                    bgId, barId, handleId;
+  UiId                    bgId, barId, handleId, firstContentId;
   UiScrollviewStatusFlags flags;
   UiRect                  viewport;
   f32                     offscreenHeight;
@@ -25,21 +29,30 @@ typedef struct {
   UiVector                inputPos, inputScroll; // In absolute canvas pixels.
 } UiScrollviewStatus;
 
+static bool ui_scrollview_content_hovered(UiCanvasComp* canvas, const UiId first, const UiId last) {
+  const UiStatus status = ui_canvas_group_status(canvas, first, last);
+  return status == UiStatus_Hovered;
+}
+
 static UiScrollviewStatus
 ui_scrollview_query_status(UiCanvasComp* canvas, const UiScrollview* scrollview, const f32 height) {
   UiScrollviewStatus status = {
-      .bgId     = ui_canvas_id_peek(canvas),
-      .barId    = ui_canvas_id_peek(canvas) + 1,
-      .handleId = ui_canvas_id_peek(canvas) + 2,
+      .bgId           = ui_canvas_id_peek(canvas),
+      .barId          = ui_canvas_id_peek(canvas) + 1,
+      .handleId       = ui_canvas_id_peek(canvas) + 2,
+      .firstContentId = ui_canvas_id_peek(canvas) + 3,
   };
   if (ui_canvas_elem_status(canvas, status.bgId) >= UiStatus_Hovered) {
-    status.flags |= UiScrollviewStatusFlags_HoveredBg;
+    status.flags |= UiScrollviewStatus_HoveredBg;
   }
   if (ui_canvas_elem_status(canvas, status.barId) >= UiStatus_Hovered) {
-    status.flags |= UiScrollviewStatusFlags_HoveredBar;
+    status.flags |= UiScrollviewStatus_HoveredBar;
+  }
+  if (ui_scrollview_content_hovered(canvas, status.firstContentId, scrollview->lastContentId)) {
+    status.flags |= UiScrollviewStatus_HoveredContent;
   }
   if (ui_canvas_elem_status(canvas, status.barId) >= UiStatus_Pressed) {
-    status.flags |= UiScrollviewStatusFlags_PressedBar;
+    status.flags |= UiScrollviewStatus_PressedBar;
   }
   status.viewport        = ui_canvas_elem_rect(canvas, status.bgId);
   status.offscreenHeight = math_max(height - status.viewport.height, 0);
@@ -56,16 +69,15 @@ static void ui_scrollview_update(
     UiCanvasComp* canvas, UiScrollview* scrollview, const UiScrollviewStatus* status) {
   /**
    * Allow scrolling when hovering over the viewport.
-   * TODO: Support scrolling when there are interactable elements drawn over the viewport.
    */
-  if (status->flags & (UiScrollviewStatusFlags_HoveredBg | UiScrollviewStatusFlags_HoveredBar)) {
+  if (status->flags & UiScrollviewStatus_HoveringViewport) {
     scrollview->offset -= status->inputScroll.y * g_scrollSensitivity;
   }
 
   /**
    * Jump to a specific offset when clicking the bar.
    */
-  if (status->offscreenHeight > 0 && status->flags & UiScrollviewStatusFlags_PressedBar) {
+  if (status->offscreenHeight > 0 && status->flags & UiScrollviewStatus_PressedBar) {
     const f32 inputFrac = math_unlerp(
         status->viewport.y, status->viewport.y + status->viewport.height, status->inputPos.y);
     const f32 halfViewportFrac = status->viewportFrac * 0.5f;
@@ -74,7 +86,7 @@ static void ui_scrollview_update(
     scrollview->offset         = remappedFrac * status->offscreenHeight;
   }
 
-  if (status->flags & UiScrollviewStatusFlags_HoveredBar) {
+  if (status->flags & UiScrollviewStatus_HoveredBar) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 
@@ -90,8 +102,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
 
   const UiColor barColor    = ui_color(16, 16, 16, 192);
   const UiColor handleColor = ui_color_white;
-  const bool    hovered =
-      status->flags & UiScrollviewStatusFlags_HoveredBar && status->offscreenHeight > 0;
+  const bool hovered = status->flags & UiScrollviewStatus_HoveredBar && status->offscreenHeight > 0;
 
   ui_style_push(canvas);
 
@@ -154,6 +165,12 @@ void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
   diag_assert_msg(
       scrollview->flags & UiScrollviewFlags_Active, "The given scrollview is not active");
   scrollview->flags &= ~UiScrollviewFlags_Active;
+
+  /**
+   * Track the last id of the content that was drawn inside this scrollview.
+   * Will be used the next frame to determine if any of the content is being hovered by the user.
+   */
+  scrollview->lastContentId = ui_canvas_id_peek(canvas) - 1;
 
   ui_layout_container_pop(canvas);
   ui_layout_container_pop(canvas);
