@@ -70,6 +70,7 @@ void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 
 void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
 void rvk_image_clear_color(const RvkImage*, GeoColor, VkCommandBuffer);
+void rvk_image_clear_depth(const RvkImage*, f32 depth, VkCommandBuffer);
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 

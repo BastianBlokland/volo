@@ -531,6 +531,8 @@ static bool rend_canvas_paint(
     rvk_pass_begin(shadowPass);
     painter_flush(&ctx);
     rvk_pass_end(shadowPass);
+  } else {
+    rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 1);
   }
 
   // Ambient occlusion.

@@ -6,6 +6,8 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+#include <vulkan/vulkan_core.h>
+
 // clang-format off
 MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
     RvkImageCapability_TransferSource |
@@ -574,6 +576,29 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
       img->vkImage,
       rvk_image_vklayout(img->type, img->phase),
       &clearColor,
+      array_elems(ranges),
+      ranges);
+}
+
+void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
+  diag_assert(img->type == RvkImageType_DepthAttachment);
+
+  const VkClearDepthStencilValue clearValue = {.depth = depth};
+  const VkImageSubresourceRange  ranges[]   = {
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = img->layers,
+      },
+  };
+  vkCmdClearDepthStencilImage(
+      vkCmdBuf,
+      img->vkImage,
+      rvk_image_vklayout(img->type, img->phase),
+      &clearValue,
       array_elems(ranges),
       ranges);
 }

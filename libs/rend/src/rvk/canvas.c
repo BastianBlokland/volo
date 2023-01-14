@@ -158,6 +158,12 @@ void rvk_canvas_img_clear_color(RvkCanvas* canvas, RvkImage* img, const GeoColor
   rvk_job_img_clear_color(job, img, color);
 }
 
+void rvk_canvas_img_clear_depth(RvkCanvas* canvas, RvkImage* img, const f32 depth) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_img_clear_depth(job, img, depth);
+}
+
 void rvk_canvas_img_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];

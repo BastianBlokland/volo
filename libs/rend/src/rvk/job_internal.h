@@ -31,6 +31,7 @@ void rvk_job_begin(RvkJob*);
 RvkPass* rvk_job_pass(RvkJob*, RendPass);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
+void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
 void rvk_job_img_copy(RvkJob*, RvkImage* src, RvkImage* dst);
 void rvk_job_img_blit(RvkJob*, RvkImage* src, RvkImage* dst);
 void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);

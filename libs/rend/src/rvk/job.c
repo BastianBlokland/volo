@@ -264,10 +264,21 @@ RvkPass* rvk_job_pass(RvkJob* job, const RendPass pass) {
 void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear");
+  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-color");
 
   rvk_image_transition(img, job->vkDrawBuffer, RvkImagePhase_TransferDest);
   rvk_image_clear_color(img, color, job->vkDrawBuffer);
+
+  rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
+}
+
+void rvk_job_img_clear_depth(RvkJob* job, RvkImage* img, const f32 depth) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+
+  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-depth");
+
+  rvk_image_transition(img, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_clear_depth(img, depth, job->vkDrawBuffer);
 
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
 }
