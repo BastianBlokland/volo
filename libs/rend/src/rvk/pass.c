@@ -96,10 +96,11 @@ static VkFormat rvk_attach_color_format_at_index(const RvkPass* pass, const u32 
   diag_crash_msg("Unuspported pass color attachment format");
 }
 
-static u32 rvk_attach_color_count(const RvkPassFlags flags) {
+static u32 rvk_attach_color_count(const RvkPassConfig* config) {
   u32 result = 0;
-  result += (flags & RvkPassFlags_Color1) != 0;
-  result += (flags & RvkPassFlags_Color2) != 0;
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+    result += config->attachColor[i] != RvkPassFormat_None;
+  }
   return result;
 }
 
@@ -201,7 +202,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   VkAttachmentReference   depthRef;
   bool                    hasDepthRef = false;
 
-  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+  for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
         .format         = rvk_attach_color_format_at_index(pass, i),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
@@ -237,7 +238,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   }
   const VkSubpassDescription subpass = {
       .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-      .colorAttachmentCount    = rvk_attach_color_count(pass->flags),
+      .colorAttachmentCount    = rvk_attach_color_count(&pass->config),
       .pColorAttachments       = colorRefs,
       .pDepthStencilAttachment = hasDepthRef ? &depthRef : null,
   };
@@ -320,7 +321,7 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
 static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkPassStage* stage) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
-  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+  for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
     diag_assert_msg(
         stage->attachColors[i],
         "Pass {} is missing color attachment {}",
@@ -387,7 +388,7 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
 
 static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
-    for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
       diag_assert_msg(
           stage->attachColors[i] && stage->attachColors[i]->phase == RvkImagePhase_TransferDest,
           "Pass {} unable to load the color{} from transfer: Unexpected image phase",
@@ -406,7 +407,7 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
   u32          clearValueCount = 0;
 
   if (pass->flags & (RvkPassFlags_ColorClear | RvkPassFlags_DepthClear)) {
-    for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+    for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
       clearValues[clearValueCount++].color = *(VkClearColorValue*)&stage->clearColor;
     }
     if (pass->flags & RvkPassFlags_Depth) {
@@ -679,7 +680,7 @@ void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clear
 
 void rvk_pass_stage_attach_color(MAYBE_UNUSED RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-  diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
+  diag_assert_msg(idx < rvk_attach_color_count(&pass->config), "Invalid color attachment-index");
 
   RvkPassStage* stage = rvk_pass_stage();
   diag_assert_msg(!stage->attachColors[idx], "Color attachment already bound");
@@ -831,7 +832,7 @@ void rvk_pass_begin(RvkPass* pass) {
   rvk_pass_vkrenderpass_begin(pass, invoc, stage);
 
   // Update attachments to reflect the transitions applied by the render-pass itself.
-  for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
+  for (u32 i = 0; i != rvk_attach_color_count(&pass->config); ++i) {
     rvk_image_transition_external(stage->attachColors[i], RvkImagePhase_ColorAttachment);
   }
   if (pass->flags & RvkPassFlags_Depth) {
