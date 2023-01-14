@@ -555,6 +555,29 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
   image->phase = RvkImagePhase_TransferSource; // All mips are now at the TransferSource phase.
 }
 
+void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
+  diag_assert(img->type != RvkImageType_DepthAttachment);
+
+  const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
+  const VkImageSubresourceRange ranges[]   = {
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = img->layers,
+      },
+  };
+  vkCmdClearColorImage(
+      vkCmdBuf,
+      img->vkImage,
+      rvk_image_vklayout(img->type, img->phase),
+      &clearColor,
+      array_elems(ranges),
+      ranges);
+}
+
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
@@ -617,28 +640,6 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       array_elems(regions),
       regions,
       srcIsDepth ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
-}
-
-void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
-  rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
-
-  const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
-  const VkImageSubresourceRange ranges[]   = {
-      {
-          .aspectMask     = rvk_image_vkaspect(img->type),
-          .baseMipLevel   = 0,
-          .levelCount     = img->mipLevels,
-          .baseArrayLayer = 0,
-          .layerCount     = img->layers,
-      },
-  };
-  vkCmdClearColorImage(
-      vkCmdBuf,
-      img->vkImage,
-      rvk_image_vklayout(img->type, img->phase),
-      &clearColor,
-      array_elems(ranges),
-      ranges);
 }
 
 void rvk_image_transfer_ownership(

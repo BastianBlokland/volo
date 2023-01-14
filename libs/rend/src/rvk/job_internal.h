@@ -4,6 +4,9 @@
 
 #include "vulkan_internal.h"
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Internal forward declarations:
 typedef enum eRvkImagePhase    RvkImagePhase;
 typedef struct sRvkCanvasStats RvkCanvasStats;
@@ -26,9 +29,11 @@ RvkCanvasStats rvk_job_stats(const RvkJob*);
 void rvk_job_begin(RvkJob*);
 
 RvkPass* rvk_job_pass(RvkJob*, RendPass);
-void     rvk_job_copy(RvkJob*, RvkImage* src, RvkImage* dst);
-void     rvk_job_blit(RvkJob*, RvkImage* src, RvkImage* dst);
-void     rvk_job_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
+
+void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
+void rvk_job_img_copy(RvkJob*, RvkImage* src, RvkImage* dst);
+void rvk_job_img_blit(RvkJob*, RvkImage* src, RvkImage* dst);
+void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
 
 void rvk_job_end(
     RvkJob*,

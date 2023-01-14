@@ -6,6 +6,9 @@
 
 #include "types_internal.h"
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Internal forward declarations:
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
@@ -56,8 +59,9 @@ RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, Rvk
 RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*, RvkSize);
 void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
 
-void rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
+void rvk_canvas_img_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void rvk_canvas_img_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
 
 void rvk_canvas_end(RvkCanvas*);
 

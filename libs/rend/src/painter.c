@@ -551,6 +551,8 @@ static bool rend_canvas_paint(
     rvk_pass_begin(aoPass);
     painter_flush(&ctx);
     rvk_pass_end(aoPass);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, aoBuffer, geo_color_white);
   }
 
   // Forward pass.
@@ -559,7 +561,7 @@ static bool rend_canvas_paint(
   RvkImage*     fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, fwdSize);
   RvkImage*     fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, fwdSize);
   {
-    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
+    rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, fwdPass, fwdSize);

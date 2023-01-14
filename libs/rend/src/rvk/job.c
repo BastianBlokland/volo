@@ -261,7 +261,18 @@ RvkPass* rvk_job_pass(RvkJob* job, const RendPass pass) {
   return job->passes[pass];
 }
 
-void rvk_job_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+
+  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear");
+
+  rvk_image_transition(img, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_clear_color(img, color, job->vkDrawBuffer);
+
+  rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
+}
+
+void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "copy");
@@ -274,7 +285,7 @@ void rvk_job_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
 }
 
-void rvk_job_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "blit");
@@ -287,7 +298,7 @@ void rvk_job_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
 }
 
-void rvk_job_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
+void rvk_job_img_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   rvk_image_transition(img, job->vkDrawBuffer, targetPhase);

@@ -152,16 +152,22 @@ void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {
   rvk_attach_release(canvas->attachPool, img);
 }
 
-void rvk_canvas_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
+void rvk_canvas_img_clear_color(RvkCanvas* canvas, RvkImage* img, const GeoColor color) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];
-  rvk_job_copy(job, src, dst);
+  rvk_job_img_clear_color(job, img, color);
 }
 
-void rvk_canvas_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
+void rvk_canvas_img_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];
-  rvk_job_blit(job, src, dst);
+  rvk_job_img_copy(job, src, dst);
+}
+
+void rvk_canvas_img_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_img_blit(job, src, dst);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {
@@ -170,7 +176,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 
   // Transition the swapchain-image to the present phase.
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_job_transition(job, swapchainImage, RvkImagePhase_Present);
+  rvk_job_img_transition(job, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
   if (canvas->flags & RvkCanvasFlags_Submitted) {
