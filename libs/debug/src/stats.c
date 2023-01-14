@@ -413,6 +413,7 @@ static void debug_stats_draw_interface(
     const f32 passDurFrac = debug_frame_frac(stats, rendStats->passes[stats->passInspect].gpuExecDur);
     stats_draw_val_entry(canvas, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].sizeMax[0]), fmt_int(rendStats->passes[stats->passInspect].sizeMax[1])));
     stats_draw_val_entry(canvas, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(canvas, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].invocations)));
     stats_draw_val_entry(canvas, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
     stats_draw_val_entry(canvas, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
     stats_draw_val_entry(canvas, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
