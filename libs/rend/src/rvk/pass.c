@@ -35,29 +35,27 @@ typedef struct {
 } RvkPassInvoc;
 
 struct sRvkPass {
-  RvkDevice*         dev;
-  VkFormat           swapchainFormat;
-  RvkStatRecorder*   statrecorder;
-  RvkStopwatch*      stopwatch;
-  RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  RvkPassFlags       flags;
-  String             name;
-  RvkSize            size;
-  VkRenderPass       vkRendPass;
-  RvkImage*          attachColors[pass_attachment_color_max];
-  RvkImage*          attachDepth;
-  VkFramebuffer      vkFrameBuffer;
-  VkCommandBuffer    vkCmdBuf;
-  RvkUniformPool*    uniformPool;
-  VkPipelineLayout   globalPipelineLayout;
-  RvkDescSet         globalDescSet;
-  u32                globalDataOffset;
-  u16                globalBoundMask; // Bitset of the bound global resources.
-  u16                attachColorMask;
-  RvkSampler         globalImageSampler, globalShadowSampler;
-  RvkImage*          globalImages[pass_global_image_max];
-  DynArray           dynDescSets; // RvkDescSet[]
-  DynArray           invocations; // RvkPassInvoc[]
+  RvkDevice*       dev;
+  VkFormat         swapchainFormat;
+  RvkStatRecorder* statrecorder;
+  RvkStopwatch*    stopwatch;
+  RvkPassFlags     flags;
+  String           name;
+  RvkSize          size;
+  VkRenderPass     vkRendPass;
+  RvkImage*        attachColors[pass_attachment_color_max];
+  RvkImage*        attachDepth;
+  VkCommandBuffer  vkCmdBuf;
+  RvkUniformPool*  uniformPool;
+  VkPipelineLayout globalPipelineLayout;
+  RvkDescSet       globalDescSet;
+  u32              globalDataOffset;
+  u16              globalBoundMask; // Bitset of the bound global resources.
+  u16              attachColorMask;
+  RvkSampler       globalImageSampler, globalShadowSampler;
+  RvkImage*        globalImages[pass_global_image_max];
+  DynArray         dynDescSets; // RvkDescSet[]
+  DynArray         invocations; // RvkPassInvoc[]
 };
 
 static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const bool single) {
@@ -398,7 +396,7 @@ static void rvk_pass_bind_global(RvkPass* pass) {
 }
 
 static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
+    RvkPass* pass, RvkPassInvoc* invoc, const RvkSize size, const GeoColor clearColor) {
 
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
@@ -432,14 +430,14 @@ static void rvk_pass_vkrenderpass_begin(
   const VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .renderPass               = pass->vkRendPass,
-      .framebuffer              = pass->vkFrameBuffer,
+      .framebuffer              = invoc->vkFrameBuffer,
       .renderArea.offset        = {0, 0},
       .renderArea.extent.width  = size.width,
       .renderArea.extent.height = size.height,
       .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
-  vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 static void rvk_pass_free_dyn_desc(RvkPass* pass) {
@@ -483,6 +481,20 @@ static void rvk_pass_free_invocations(RvkPass* pass) {
     vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
   }
   dynarray_clear(&pass->invocations);
+}
+
+static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass) {
+  pass->flags |= RvkPassPrivateFlags_Active;
+  RvkPassInvoc* res = dynarray_push_t(&pass->invocations, RvkPassInvoc);
+  *res              = (RvkPassInvoc){0};
+  return res;
+}
+
+static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
+  if (!(pass->flags & RvkPassPrivateFlags_Active)) {
+    return null;
+  }
+  return dynarray_at_t(&pass->invocations, pass->invocations.size - 1, RvkPassInvoc);
 }
 
 RvkPass* rvk_pass_create(
@@ -549,9 +561,6 @@ void rvk_pass_destroy(RvkPass* pass) {
 
   rvk_statrecorder_destroy(pass->statrecorder);
 
-  if (pass->vkFrameBuffer) {
-    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
-  }
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
 
   rvk_desc_free(pass->globalDescSet);
@@ -657,12 +666,6 @@ void rvk_pass_reset(RvkPass* pass) {
   // Free last frame's resources.
   rvk_pass_free_dyn_desc(pass);
   rvk_pass_free_invocations(pass);
-
-  // Destroy last frame's vkFrameBuffer.
-  if (pass->vkFrameBuffer) {
-    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
-    pass->vkFrameBuffer = null;
-  }
 }
 
 void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
@@ -791,12 +794,12 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
-  pass->flags |= RvkPassPrivateFlags_Active;
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass);
+  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
+  invoc->vkFrameBuffer = rvk_framebuffer_create(pass);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 
-  pass->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
@@ -807,7 +810,7 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
     }
   }
 
-  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->size, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, invoc, pass->size, clearColor);
 
   // Update attachments to reflect the transitions applied by the render-pass itself.
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
@@ -926,7 +929,9 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 }
 
 void rvk_pass_end(RvkPass* pass) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
+  diag_assert_msg(invoc, "Pass not active");
+
   pass->flags &= ~RvkPassPrivateFlags_Active;
   pass->flags |= RvkPassPrivateFlags_Recorded;
 
@@ -934,5 +939,5 @@ void rvk_pass_end(RvkPass* pass) {
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
-  pass->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  invoc->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
 }
