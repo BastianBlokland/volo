@@ -107,7 +107,7 @@ static u32 rvk_attach_color_count(const RvkPassConfig* config) {
 #ifndef VOLO_FAST
 static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
-  if (idx == 0 && pass->flags & RvkPassFlags_Color1Swapchain) {
+  if (pass->config.attachColor[idx] == RvkPassFormat_Swapchain) {
     diag_assert_msg(
         img->type == RvkImageType_Swapchain,
         "Pass {} color attachment {} invalid: Expected a swapchain image",
@@ -496,15 +496,7 @@ RvkPass* rvk_pass_create(
     const String        name) {
   diag_assert(!string_is_empty(name));
 
-  // TODO: These exclusion checks are unwieldy and a clear sign that these should not be flags :)
   const RvkPassFlags flags = config.flags;
-  diag_assert(!(flags & RvkPassFlags_Color1Srgb) || (flags & RvkPassFlags_Color1));
-  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || (flags & RvkPassFlags_Color1));
-  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Srgb));
-  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Float));
-  diag_assert(!(flags & RvkPassFlags_Color1Srgb) || !(flags & RvkPassFlags_Color1Float));
-  diag_assert(!(flags & RvkPassFlags_Color1Swapchain) || !(flags & RvkPassFlags_Color1Single));
-  diag_assert(!(flags & RvkPassFlags_Color2Srgb) || (flags & RvkPassFlags_Color2));
   diag_assert(!(flags & RvkPassFlags_ColorLoadTransfer) || !(flags & RvkPassFlags_ColorClear));
   diag_assert(!(flags & RvkPassFlags_DepthLoadTransfer) || !(flags & RvkPassFlags_DepthClear));
   diag_assert(!(flags & RvkPassFlags_DepthLoadTransfer) || (flags & RvkPassFlags_Depth));
@@ -576,7 +568,7 @@ bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlag
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;
-  if (colorAttachIndex != 0 || !(pass->flags & RvkPassFlags_Color1Swapchain)) {
+  if (pass->config.attachColor[colorAttachIndex] != RvkPassFormat_Swapchain) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
