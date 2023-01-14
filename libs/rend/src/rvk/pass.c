@@ -25,33 +25,55 @@
 typedef RvkGraphic* RvkGraphicPtr;
 
 typedef enum {
-  RvkPassPrivateFlags_Active   = 1 << (RvkPassFlags_Count + 0),
-  RvkPassPrivateFlags_Recorded = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_Active = 1 << (RvkPassFlags_Count + 0),
 } RvkPassPrivateFlags;
 
-struct sRvkPass {
-  RvkDevice*         dev;
-  VkFormat           swapchainFormat;
-  RvkStatRecorder*   statrecorder;
-  RvkStopwatch*      stopwatch;
-  RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  RvkPassFlags       flags;
-  String             name;
+typedef struct {
   RvkSize            size;
-  VkRenderPass       vkRendPass;
-  RvkImage*          attachColors[pass_attachment_color_max];
-  RvkImage*          attachDepth;
+  RvkStopwatchRecord timeRecBegin, timeRecEnd;
   VkFramebuffer      vkFrameBuffer;
-  VkCommandBuffer    vkCmdBuf;
-  RvkUniformPool*    uniformPool;
-  VkPipelineLayout   globalPipelineLayout;
-  RvkDescSet         globalDescSet;
-  u32                globalDataOffset;
-  u16                globalBoundMask; // Bitset of the bound global resources.
-  u16                attachColorMask;
-  RvkSampler         globalImageSampler, globalShadowSampler;
-  RvkImage*          globalImages[pass_global_image_max];
-  DynArray           dynDescSets; // RvkDescSet[]
+} RvkPassInvoc;
+
+typedef struct {
+  RvkSize  size;
+  GeoColor clearColor;
+
+  // Attachments.
+  RvkImage* attachColors[pass_attachment_color_max];
+  RvkImage* attachDepth;
+  u16       attachColorMask;
+
+  // Global resources.
+  u32       globalDataOffset;
+  u16       globalBoundMask; // Bitset of the bound global resources.
+  RvkImage* globalImages[pass_global_image_max];
+} RvkPassStage;
+
+/**
+ * Stage is a place to build-up the pass state before beginning a render pass.
+ */
+static RvkPassStage* rvk_pass_stage() {
+  static THREAD_LOCAL RvkPassStage g_stage;
+  return &g_stage;
+}
+
+struct sRvkPass {
+  RvkDevice*       dev;
+  VkFormat         swapchainFormat;
+  RvkStatRecorder* statrecorder;
+  RvkStopwatch*    stopwatch;
+  RvkPassFlags     flags;
+  String           name;
+  VkRenderPass     vkRendPass;
+  VkCommandBuffer  vkCmdBuf;
+  RvkUniformPool*  uniformPool;
+
+  VkPipelineLayout globalPipelineLayout;
+  RvkDescSet       globalDescSet;
+  RvkSampler       globalImageSampler, globalShadowSampler;
+
+  DynArray dynDescSets; // RvkDescSet[]
+  DynArray invocations; // RvkPassInvoc[]
 };
 
 static VkFormat rvk_attach_color_format(const bool srgb, const bool flt, const bool single) {
@@ -119,15 +141,6 @@ static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const Rv
       fmt_int(idx),
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
-  diag_assert_msg(
-      img->size.data == pass->size.data,
-      "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
-      fmt_text(pass->name),
-      fmt_int(idx),
-      fmt_int(pass->size.width),
-      fmt_int(pass->size.height),
-      fmt_int(img->size.width),
-      fmt_int(img->size.height));
 }
 
 static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
@@ -146,14 +159,6 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
       fmt_text(pass->name),
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
-  diag_assert_msg(
-      img->size.data == pass->size.data,
-      "Pass {} depth attachment invalid: Invalid size (expected: {}x{}, actual: {}x{})",
-      fmt_text(pass->name),
-      fmt_int(pass->size.width),
-      fmt_int(pass->size.height),
-      fmt_int(img->size.width),
-      fmt_int(img->size.height));
 }
 #endif
 
@@ -323,21 +328,21 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
   return result;
 }
 
-static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
+static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkPassStage* stage) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
     diag_assert_msg(
-        pass->attachColors[i],
+        stage->attachColors[i],
         "Pass {} is missing color attachment {}",
         fmt_text(pass->name),
         fmt_int(i));
-    attachments[attachCount++] = pass->attachColors[i]->vkImageView;
+    attachments[attachCount++] = stage->attachColors[i]->vkImageView;
   }
   if (pass->flags & RvkPassFlags_Depth) {
     diag_assert_msg(
-        pass->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->name));
-    attachments[attachCount++] = pass->attachDepth->vkImageView;
+        stage->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->name));
+    attachments[attachCount++] = stage->attachDepth->vkImageView;
   }
 
   const VkFramebufferCreateInfo framebufferInfo = {
@@ -345,8 +350,8 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
       .renderPass      = pass->vkRendPass,
       .attachmentCount = attachCount,
       .pAttachments    = attachments,
-      .width           = pass->size.width,
-      .height          = pass->size.height,
+      .width           = stage->size.width,
+      .height          = stage->size.height,
       .layers          = 1,
   };
   VkFramebuffer result;
@@ -375,11 +380,11 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
-static void rvk_pass_bind_global(RvkPass* pass) {
-  diag_assert(pass->globalBoundMask != 0);
+static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
+  diag_assert(stage->globalBoundMask != 0);
 
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(pass->globalDescSet)};
-  const u32             dynamicOffsets[] = {pass->globalDataOffset};
+  const u32             dynamicOffsets[] = {stage->globalDataOffset};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -391,13 +396,11 @@ static void rvk_pass_bind_global(RvkPass* pass) {
       dynamicOffsets);
 }
 
-static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
-
+static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
       diag_assert_msg(
-          pass->attachColors[i] && pass->attachColors[i]->phase == RvkImagePhase_TransferDest,
+          stage->attachColors[i] && stage->attachColors[i]->phase == RvkImagePhase_TransferDest,
           "Pass {} unable to load the color{} from transfer: Unexpected image phase",
           fmt_text(pass->name),
           fmt_int(i));
@@ -405,7 +408,7 @@ static void rvk_pass_vkrenderpass_begin(
   }
   if (pass->flags & RvkPassFlags_DepthLoadTransfer) {
     diag_assert_msg(
-        pass->attachDepth && pass->attachDepth->phase == RvkImagePhase_TransferDest,
+        stage->attachDepth && stage->attachDepth->phase == RvkImagePhase_TransferDest,
         "Pass {} unable to load the depth from transfer: Unexpected image phase",
         fmt_text(pass->name));
   }
@@ -415,7 +418,7 @@ static void rvk_pass_vkrenderpass_begin(
 
   if (pass->flags & (RvkPassFlags_ColorClear | RvkPassFlags_DepthClear)) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-      clearValues[clearValueCount++].color = *(VkClearColorValue*)&clearColor;
+      clearValues[clearValueCount++].color = *(VkClearColorValue*)&stage->clearColor;
     }
     if (pass->flags & RvkPassFlags_Depth) {
       // Init depth to zero for a reversed-z depth-buffer.
@@ -426,14 +429,14 @@ static void rvk_pass_vkrenderpass_begin(
   const VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .renderPass               = pass->vkRendPass,
-      .framebuffer              = pass->vkFrameBuffer,
+      .framebuffer              = invoc->vkFrameBuffer,
       .renderArea.offset        = {0, 0},
-      .renderArea.extent.width  = size.width,
-      .renderArea.extent.height = size.height,
+      .renderArea.extent.width  = invoc->size.width,
+      .renderArea.extent.height = invoc->size.height,
       .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
-  vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 static void rvk_pass_free_dyn_desc(RvkPass* pass) {
@@ -470,6 +473,27 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
       mesh->indexBuffer.vkBuffer,
       0,
       sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+}
+
+static void rvk_pass_free_invocations(RvkPass* pass) {
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
+  }
+  dynarray_clear(&pass->invocations);
+}
+
+static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass) {
+  pass->flags |= RvkPassPrivateFlags_Active;
+  RvkPassInvoc* res = dynarray_push_t(&pass->invocations, RvkPassInvoc);
+  *res              = (RvkPassInvoc){0};
+  return res;
+}
+
+static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
+  if (!(pass->flags & RvkPassPrivateFlags_Active)) {
+    return null;
+  }
+  return dynarray_at_t(&pass->invocations, pass->invocations.size - 1, RvkPassInvoc);
 }
 
 RvkPass* rvk_pass_create(
@@ -518,6 +542,7 @@ RvkPass* rvk_pass_create(
       .globalDescSet        = globalDescSet,
       .globalPipelineLayout = globalPipelineLayout,
       .dynDescSets          = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+      .invocations          = dynarray_create_t(g_alloc_heap, RvkPassInvoc, 1),
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
@@ -527,16 +552,14 @@ RvkPass* rvk_pass_create(
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass still active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
   string_free(g_alloc_heap, pass->name);
   rvk_pass_free_dyn_desc(pass);
+  rvk_pass_free_invocations(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
 
-  if (pass->vkFrameBuffer) {
-    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
-  }
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
 
   rvk_desc_free(pass->globalDescSet);
@@ -548,20 +571,14 @@ void rvk_pass_destroy(RvkPass* pass) {
     rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
   }
   dynarray_destroy(&pass->dynDescSets);
+  dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_alloc_heap, pass);
 }
 
-bool rvk_pass_active(const RvkPass* pass) {
-  return (pass->flags & RvkPassPrivateFlags_Active) != 0;
-}
+bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
-String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
-RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
-
-bool rvk_pass_recorded(const RvkPass* pass) {
-  return (pass->flags & RvkPassPrivateFlags_Recorded) != 0;
-}
+String rvk_pass_name(const RvkPass* pass) { return pass->name; }
 
 bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Depth) != 0; }
 
@@ -615,95 +632,122 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
+  if (dynarray_size(&pass->invocations) == 0) {
+    return 0;
+  }
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 
-TimeDuration rvk_pass_duration(const RvkPass* pass) {
-  if (!(pass->flags & RvkPassPrivateFlags_Recorded)) {
-    return 0;
+u16 rvk_pass_stat_invocations(const RvkPass* pass) {
+  return (u16)dynarray_size(&pass->invocations);
+}
+
+RvkSize rvk_pass_stat_size_max(const RvkPass* pass) {
+  RvkSize size = {0};
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    size.width  = math_max(size.width, invoc->size.width);
+    size.height = math_max(size.height, invoc->size.height);
   }
-  const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, pass->timeRecBegin);
-  const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, pass->timeRecEnd);
-  return time_steady_duration(timestampBegin, timestampEnd);
+  return size;
+}
+
+TimeDuration rvk_pass_stat_duration(const RvkPass* pass) {
+  TimeDuration dur = 0;
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecBegin);
+    const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecEnd);
+    dur += time_steady_duration(timestampBegin, timestampEnd);
+  }
+  return dur;
 }
 
 void rvk_pass_reset(RvkPass* pass) {
-  pass->flags &= ~RvkPassPrivateFlags_Recorded;
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
-
-  // Clear last frame's bound resources.
-  mem_set(array_mem(pass->attachColors), 0);
-  pass->attachColorMask = 0;
-  pass->attachDepth     = null;
-  mem_set(array_mem(pass->globalImages), 0);
-  pass->globalBoundMask = 0;
-
-  // Free last frame's dynamic descriptors.
   rvk_pass_free_dyn_desc(pass);
-
-  // Destroy last frame's vkFrameBuffer.
-  if (pass->vkFrameBuffer) {
-    vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
-    pass->vkFrameBuffer = null;
-  }
-}
-
-void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
-  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
-  diag_assert_msg(!pass->attachColorMask && !pass->attachDepth, "Pass attachments already bound");
-
-  pass->size = size;
+  rvk_pass_free_invocations(pass);
+  *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_mesh_prepare(mesh);
 }
 
-void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  rvk_pass_stage()->clearColor = clearColor;
+}
+
+void rvk_pass_stage_attach_color(MAYBE_UNUSED RvkPass* pass, RvkImage* img, const u16 idx) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(idx < rvk_attach_color_count(pass->flags), "Invalid color attachment-index");
-  diag_assert_msg(!pass->attachColors[idx], "Color attachment already bound");
+
+  RvkPassStage* stage = rvk_pass_stage();
+  diag_assert_msg(!stage->attachColors[idx], "Color attachment already bound");
+
+  if (!stage->size.data) {
+    stage->size = img->size;
+  } else {
+    diag_assert_msg(
+        img->size.data == stage->size.data,
+        "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
+        fmt_text(pass->name),
+        fmt_int(idx),
+        fmt_int(stage->size.width),
+        fmt_int(stage->size.height),
+        fmt_int(img->size.width),
+        fmt_int(img->size.height));
+  }
 
 #ifndef VOLO_FAST
   rvk_attach_assert_color(pass, idx, img);
 #endif
 
-  pass->attachColors[idx] = img;
-  pass->attachColorMask |= 1 << idx;
+  stage->attachColors[idx] = img;
+  stage->attachColorMask |= 1 << idx;
 }
 
-void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
-  diag_assert_msg(!pass->attachDepth, "Depth attachment already bound");
-  diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
+void rvk_pass_stage_attach_depth(MAYBE_UNUSED RvkPass* pass, RvkImage* img) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  RvkPassStage* stage = rvk_pass_stage();
+  diag_assert_msg(!stage->attachDepth, "Depth attachment already bound");
+
+  if (!stage->size.data) {
+    stage->size = img->size;
+  } else {
+    diag_assert_msg(
+        img->size.data == stage->size.data,
+        "Pass {} depth attachment invalid: Invalid size (expected: {}x{}, actual: {}x{})",
+        fmt_text(pass->name),
+        fmt_int(stage->size.width),
+        fmt_int(stage->size.height),
+        fmt_int(img->size.width),
+        fmt_int(img->size.height));
+  }
 
 #ifndef VOLO_FAST
   rvk_attach_assert_depth(pass, img);
 #endif
 
-  pass->attachDepth = img;
+  stage->attachDepth = img;
 }
 
-void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  RvkPassStage* stage = rvk_pass_stage();
 
   const u32 globalDataBinding = 0;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << globalDataBinding)), "Data already bound");
+  diag_assert_msg(!(stage->globalBoundMask & (1 << globalDataBinding)), "Data already staged");
 
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
   const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
@@ -711,16 +755,17 @@ void rvk_pass_bind_global_data(RvkPass* pass, const Mem data) {
   rvk_desc_set_attach_buffer(
       pass->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
 
-  pass->globalDataOffset = dataHandle.offset;
-  pass->globalBoundMask |= 1 << globalDataBinding;
+  stage->globalDataOffset = dataHandle.offset;
+  stage->globalBoundMask |= 1 << globalDataBinding;
 }
 
-void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  RvkPassStage* stage = rvk_pass_stage();
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(stage->globalBoundMask & (1 << bindIndex)), "Image already staged");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
@@ -738,16 +783,17 @@ void rvk_pass_bind_global_image(RvkPass* pass, RvkImage* image, const u16 imageI
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalImageSampler);
 
-  pass->globalBoundMask |= 1 << bindIndex;
-  pass->globalImages[imageIndex] = image;
+  stage->globalBoundMask |= 1 << bindIndex;
+  stage->globalImages[imageIndex] = image;
 }
 
-void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  RvkPassStage* stage = rvk_pass_stage();
 
   const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(pass->globalBoundMask & (1 << bindIndex)), "Image already bound");
+  diag_assert_msg(!(stage->globalBoundMask & (1 << bindIndex)), "Image already staged");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
@@ -766,45 +812,46 @@ void rvk_pass_bind_global_shadow(RvkPass* pass, RvkImage* image, const u16 image
 
   rvk_desc_set_attach_sampler(pass->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
 
-  pass->globalBoundMask |= 1 << bindIndex;
-  pass->globalImages[imageIndex] = image;
+  stage->globalBoundMask |= 1 << bindIndex;
+  stage->globalImages[imageIndex] = image;
 }
 
-void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Recorded), "Pass already recorded");
-  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+void rvk_pass_begin(RvkPass* pass) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  pass->flags |= RvkPassPrivateFlags_Active;
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass);
+  RvkPassStage* stage  = rvk_pass_stage();
+  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
+  invoc->size          = stage->size;
+  invoc->vkFrameBuffer = rvk_framebuffer_create(pass, stage);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 
-  pass->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
   // Transition all global images to ShaderRead.
   for (u32 i = 0; i != pass_global_image_max; ++i) {
-    if (pass->globalImages[i]) {
-      rvk_image_transition(pass->globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+    if (stage->globalImages[i]) {
+      rvk_image_transition(stage->globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
     }
   }
 
-  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->size, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, invoc, stage);
 
   // Update attachments to reflect the transitions applied by the render-pass itself.
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
-    rvk_image_transition_external(pass->attachColors[i], RvkImagePhase_ColorAttachment);
+    rvk_image_transition_external(stage->attachColors[i], RvkImagePhase_ColorAttachment);
   }
   if (pass->flags & RvkPassFlags_Depth) {
-    rvk_image_transition_external(pass->attachDepth, RvkImagePhase_DepthAttachment);
+    rvk_image_transition_external(stage->attachDepth, RvkImagePhase_DepthAttachment);
   }
 
-  rvk_pass_viewport_set(pass->vkCmdBuf, pass->size);
-  rvk_pass_scissor_set(pass->vkCmdBuf, pass->size);
+  rvk_pass_viewport_set(pass->vkCmdBuf, invoc->size);
+  rvk_pass_scissor_set(pass->vkCmdBuf, invoc->size);
 
-  if (pass->globalBoundMask != 0) {
-    rvk_pass_bind_global(pass);
+  if (stage->globalBoundMask != 0) {
+    rvk_pass_bind_global(pass, stage);
   }
 }
 
@@ -817,18 +864,19 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+  diag_assert_msg(rvk_pass_invoc_active(pass), "Pass invocation not active");
 
-  RvkGraphic* graphic           = draw->graphic;
-  const u16   reqGlobalBindings = graphic->globalBindings;
+  RvkPassStage* stage             = rvk_pass_stage();
+  RvkGraphic*   graphic           = draw->graphic;
+  const u16     reqGlobalBindings = graphic->globalBindings;
 
-  if (UNLIKELY(graphic->outputMask != pass->attachColorMask)) {
+  if (UNLIKELY(graphic->outputMask != stage->attachColorMask)) {
     log_e(
         "Graphic output does not match bound color attachments",
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY((reqGlobalBindings & pass->globalBoundMask) != reqGlobalBindings)) {
+  if (UNLIKELY((reqGlobalBindings & stage->globalBoundMask) != reqGlobalBindings)) {
     log_e(
         "Graphic requires additional global bindings",
         log_param("graphic", fmt_text(graphic->dbgName)));
@@ -909,13 +957,16 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 }
 
 void rvk_pass_end(RvkPass* pass) {
-  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
+  diag_assert_msg(invoc, "Pass not active");
+
   pass->flags &= ~RvkPassPrivateFlags_Active;
-  pass->flags |= RvkPassPrivateFlags_Recorded;
 
   rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
-  pass->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  invoc->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+
+  *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 }

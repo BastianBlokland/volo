@@ -14,7 +14,8 @@ typedef enum {
 
 typedef struct {
   TimeDuration gpuExecDur;
-  u16          size[2];
+  u16          sizeMax[2];
+  u16          invocations;
   u16          draws;
   u32          instances;
   u64          vertices, primitives;

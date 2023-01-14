@@ -58,12 +58,10 @@ RvkPass* rvk_pass_create(
     RvkStopwatch*,
     RvkPassFlags,
     String name);
-void    rvk_pass_destroy(RvkPass*);
-bool    rvk_pass_active(const RvkPass*);
-String  rvk_pass_name(const RvkPass*);
-RvkSize rvk_pass_size(const RvkPass*);
-bool    rvk_pass_recorded(const RvkPass*);
-bool    rvk_pass_has_depth(const RvkPass*);
+void   rvk_pass_destroy(RvkPass*);
+bool   rvk_pass_active(const RvkPass*);
+String rvk_pass_name(const RvkPass*);
+bool   rvk_pass_has_depth(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
@@ -74,19 +72,21 @@ RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
 u64          rvk_pass_stat(const RvkPass*, RvkStat);
-TimeDuration rvk_pass_duration(const RvkPass*);
+u16          rvk_pass_stat_invocations(const RvkPass*);
+RvkSize      rvk_pass_stat_size_max(const RvkPass*);
+TimeDuration rvk_pass_stat_duration(const RvkPass*);
 
 void rvk_pass_reset(RvkPass*);
-void rvk_pass_set_size(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
-void rvk_pass_bind_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
-void rvk_pass_bind_attach_depth(RvkPass*, RvkImage*);
-void rvk_pass_bind_global_data(RvkPass*, Mem);
-void rvk_pass_bind_global_image(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_bind_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
+void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
+void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
+void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
+void rvk_pass_stage_global_data(RvkPass*, Mem);
+void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
+void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 
-void rvk_pass_begin(RvkPass*, GeoColor clearColor);
+void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);
