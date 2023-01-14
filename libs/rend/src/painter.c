@@ -510,7 +510,7 @@ static bool rend_canvas_paint(
   }
 
   // Ambient occlusion.
-  const RvkSize aoSize   = rvk_size_scale(rvk_pass_size(geoPass), set->aoResolutionScale);
+  const RvkSize aoSize   = rvk_size_scale(geoSize, set->aoResolutionScale);
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {

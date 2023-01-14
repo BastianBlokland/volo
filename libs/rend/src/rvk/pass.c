@@ -654,6 +654,15 @@ u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 
+RvkSize rvk_pass_stat_size_max(const RvkPass* pass) {
+  RvkSize size = {0};
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    size.width  = math_max(size.width, invoc->size.width);
+    size.height = math_max(size.height, invoc->size.height);
+  }
+  return size;
+}
+
 TimeDuration rvk_pass_duration(const RvkPass* pass) {
   TimeDuration dur = 0;
   dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {

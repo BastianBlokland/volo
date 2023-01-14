@@ -58,11 +58,10 @@ RvkPass* rvk_pass_create(
     RvkStopwatch*,
     RvkPassFlags,
     String name);
-void    rvk_pass_destroy(RvkPass*);
-bool    rvk_pass_active(const RvkPass*);
-String  rvk_pass_name(const RvkPass*);
-RvkSize rvk_pass_size(const RvkPass*);
-bool    rvk_pass_has_depth(const RvkPass*);
+void   rvk_pass_destroy(RvkPass*);
+bool   rvk_pass_active(const RvkPass*);
+String rvk_pass_name(const RvkPass*);
+bool   rvk_pass_has_depth(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
@@ -73,6 +72,7 @@ RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
 u64          rvk_pass_stat(const RvkPass*, RvkStat);
+RvkSize      rvk_pass_stat_size_max(const RvkPass*);
 TimeDuration rvk_pass_duration(const RvkPass*);
 
 void rvk_pass_reset(RvkPass*);

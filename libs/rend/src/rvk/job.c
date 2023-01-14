@@ -217,10 +217,11 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
 
   for (RendPass passIdx = 0; passIdx != RendPass_Count; ++passIdx) {
     const RvkPass* pass    = job->passes[passIdx];
+    const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
     result.passes[passIdx] = (RendStatPass){
         .gpuExecDur  = rvk_pass_duration(pass),
-        .size[0]     = rvk_pass_size(pass).width,
-        .size[1]     = rvk_pass_size(pass).height,
+        .sizeMax[0]  = sizeMax.width,
+        .sizeMax[1]  = sizeMax.height,
         .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
         .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
         .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
