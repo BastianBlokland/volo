@@ -517,7 +517,9 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  const RvkSize shadowSize = {set->shadowResolution, set->shadowResolution};
+  const RvkSize shadowSize = rend_light_has_shadow(light)
+                                 ? (RvkSize){set->shadowResolution, set->shadowResolution}
+                                 : (RvkSize){1, 1};
   RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (rend_light_has_shadow(light)) {
@@ -532,11 +534,13 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
     rvk_pass_end(shadowPass);
   } else {
-    rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 1);
+    rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 0);
   }
 
   // Ambient occlusion.
-  const RvkSize aoSize   = rvk_size_scale(geoSize, set->aoResolutionScale);
+  const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
+                               ? rvk_size_scale(geoSize, set->aoResolutionScale)
+                               : (RvkSize){1, 1};
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
