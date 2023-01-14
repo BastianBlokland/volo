@@ -4,6 +4,8 @@
 #include "types_internal.h"
 #include "vulkan_internal.h"
 
+#define rvk_pass_attach_color_max 2
+
 // Forward declare from 'geo_color.h'.
 typedef union uGeoColor GeoColor;
 

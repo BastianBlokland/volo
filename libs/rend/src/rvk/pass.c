@@ -17,8 +17,7 @@
 #include "uniform_internal.h"
 
 #define pass_instance_count_max 2048
-#define pass_attachment_color_max 2
-#define pass_attachment_max (pass_attachment_color_max + 1)
+#define pass_attachment_max (rvk_pass_attach_color_max + 1)
 #define pass_dependencies_max 8
 #define pass_global_image_max 5
 
@@ -39,7 +38,7 @@ typedef struct {
   GeoColor clearColor;
 
   // Attachments.
-  RvkImage* attachColors[pass_attachment_color_max];
+  RvkImage* attachColors[rvk_pass_attach_color_max];
   RvkImage* attachDepth;
   u16       attachColorMask;
 
@@ -208,7 +207,7 @@ static VkImageLayout rvk_attach_depth_initial_layout(const RvkPass* pass) {
 static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
-  VkAttachmentReference   colorRefs[pass_attachment_color_max];
+  VkAttachmentReference   colorRefs[rvk_pass_attach_color_max];
   VkAttachmentReference   depthRef;
   bool                    hasDepthRef = false;
 
