@@ -30,6 +30,7 @@ typedef enum {
 } RvkPassPrivateFlags;
 
 typedef struct {
+  RvkSize            size;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
   VkFramebuffer      vkFrameBuffer;
 } RvkPassInvoc;
@@ -327,7 +328,7 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
   return result;
 }
 
-static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
+static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, const RvkSize size) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
@@ -349,8 +350,8 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass) {
       .renderPass      = pass->vkRendPass,
       .attachmentCount = attachCount,
       .pAttachments    = attachments,
-      .width           = pass->size.width,
-      .height          = pass->size.height,
+      .width           = size.width,
+      .height          = size.height,
       .layers          = 1,
   };
   VkFramebuffer result;
@@ -395,9 +396,8 @@ static void rvk_pass_bind_global(RvkPass* pass) {
       dynamicOffsets);
 }
 
-static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, RvkPassInvoc* invoc, const RvkSize size, const GeoColor clearColor) {
-
+static void
+rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, const GeoColor clearColor) {
   if (pass->flags & RvkPassFlags_ColorLoadTransfer) {
     for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
       diag_assert_msg(
@@ -432,8 +432,8 @@ static void rvk_pass_vkrenderpass_begin(
       .renderPass               = pass->vkRendPass,
       .framebuffer              = invoc->vkFrameBuffer,
       .renderArea.offset        = {0, 0},
-      .renderArea.extent.width  = size.width,
-      .renderArea.extent.height = size.height,
+      .renderArea.extent.width  = invoc->size.width,
+      .renderArea.extent.height = invoc->size.height,
       .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
@@ -795,7 +795,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
-  invoc->vkFrameBuffer = rvk_framebuffer_create(pass);
+  invoc->size          = pass->size;
+  invoc->vkFrameBuffer = rvk_framebuffer_create(pass, invoc->size);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 
@@ -810,7 +811,7 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
     }
   }
 
-  rvk_pass_vkrenderpass_begin(pass, invoc, pass->size, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, invoc, clearColor);
 
   // Update attachments to reflect the transitions applied by the render-pass itself.
   for (u32 i = 0; i != rvk_attach_color_count(pass->flags); ++i) {
@@ -820,8 +821,8 @@ void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
     rvk_image_transition_external(pass->attachDepth, RvkImagePhase_DepthAttachment);
   }
 
-  rvk_pass_viewport_set(pass->vkCmdBuf, pass->size);
-  rvk_pass_scissor_set(pass->vkCmdBuf, pass->size);
+  rvk_pass_viewport_set(pass->vkCmdBuf, invoc->size);
+  rvk_pass_scissor_set(pass->vkCmdBuf, invoc->size);
 
   if (pass->globalBoundMask != 0) {
     rvk_pass_bind_global(pass);
