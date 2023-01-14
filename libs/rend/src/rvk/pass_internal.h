@@ -23,13 +23,11 @@ typedef struct sRvkUniformPool RvkUniformPool;
 typedef struct sRvkPass RvkPass;
 
 typedef enum {
-  RvkPassFlags_None          = 0,
-  RvkPassFlags_Depth         = 1 << 0, // Enable a depth attachment.
-  RvkPassFlags_DepthClear    = 1 << 1, // Clear the depth attachment.
-  RvkPassFlags_DepthPreserve = 1 << 2, // Preserve the depth attachment content.
-  RvkPassFlags_DepthStore    = 1 << 3, // Store the depth attachment for use in a later pass.
+  RvkPassFlags_None       = 0,
+  RvkPassFlags_Depth      = 1 << 0, // Enable a depth attachment.
+  RvkPassFlags_DepthStore = 1 << 1, // Store the depth attachment for use in a later pass.
 
-  RvkPassFlags_Count = 4,
+  RvkPassFlags_Count = 2,
 } RvkPassFlags;
 
 typedef enum {
@@ -51,6 +49,7 @@ typedef struct sRvkPassConfig {
   RvkPassFlags  flags;
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
   RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
+  RvkPassLoad   attachDepthLoad;
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {

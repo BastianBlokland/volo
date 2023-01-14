@@ -164,13 +164,14 @@ static VkAttachmentLoadOp rvk_attach_color_load_op(const RvkPass* pass, const u3
 }
 
 static VkAttachmentLoadOp rvk_attach_depth_load_op(const RvkPass* pass) {
-  if (pass->config.flags & RvkPassFlags_DepthClear) {
+  switch (pass->config.attachDepthLoad) {
+  case RvkPassLoad_Clear:
     return VK_ATTACHMENT_LOAD_OP_CLEAR;
-  }
-  if (pass->config.flags & RvkPassFlags_DepthPreserve) {
+  case RvkPassLoad_Preserve:
     return VK_ATTACHMENT_LOAD_OP_LOAD;
+  default:
+    return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   }
-  return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 }
 
 static VkAttachmentStoreOp rvk_attach_depth_store_op(const RvkPass* pass) {
@@ -420,8 +421,6 @@ RvkPass* rvk_pass_create(
   diag_assert(!string_is_empty(name));
 
   const RvkPassFlags flags = config.flags;
-  diag_assert(!(flags & RvkPassFlags_DepthPreserve) || !(flags & RvkPassFlags_DepthClear));
-  diag_assert(!(flags & RvkPassFlags_DepthPreserve) || (flags & RvkPassFlags_Depth));
   diag_assert(!(flags & RvkPassFlags_DepthStore) || (flags & RvkPassFlags_Depth));
 
   RvkDescMeta globalDescMeta = {
@@ -453,7 +452,7 @@ RvkPass* rvk_pass_create(
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
 
-  bool anyAttachmentNeedsClear = (pass->config.flags & RvkPassFlags_DepthClear) != 0;
+  bool anyAttachmentNeedsClear = pass->config.attachDepthLoad == RvkPassLoad_Clear;
   array_for_t(pass->config.attachColorLoad, RvkPassLoad, load) {
     anyAttachmentNeedsClear |= *load == RvkPassLoad_Clear;
   }
@@ -519,7 +518,7 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
-  if (pass->config.flags & RvkPassFlags_DepthPreserve) {
+  if (pass->config.attachDepthLoad == RvkPassLoad_Preserve) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferDest;
   }

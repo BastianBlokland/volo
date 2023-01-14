@@ -28,37 +28,45 @@
 static const RvkPassConfig g_passConfig[RendPass_Count] = {
     [RendPass_Geometry] =
         {
-            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,
+            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthStore,
 
-            // Attachment 0:  color (rgb) and roughness (a).
+            // Attachment depth.
+            .attachDepthLoad = RvkPassLoad_Clear,
+
+            // Attachment color 0:  color (rgb) and roughness (a).
             .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
             .attachColorLoad[0]   = RvkPassLoad_Clear,
 
-            // Attachment 1: normal (rgb) and tags (a).
+            // Attachment color 1: normal (rgb) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
             .attachColorLoad[1]   = RvkPassLoad_Clear,
         },
 
     [RendPass_Shadow] =
         {
-            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthClear |
-                     RvkPassFlags_DepthStore, // Attachment depth.
+            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthStore,
+
+            // Attachment depth.
+            .attachDepthLoad = RvkPassLoad_Clear,
         },
 
     [RendPass_AmbientOcclusion] =
         {
             .flags = RvkPassFlags_None,
 
-            // Attachment 0: occlusion (r).
+            // Attachment color 0: occlusion (r).
             .attachColorFormat[0] = RvkPassFormat_Color1Linear,
             .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Forward] =
         {
-            .flags = RvkPassFlags_Depth | RvkPassFlags_DepthPreserve,
+            .flags = RvkPassFlags_Depth,
 
-            // Attachment 0: color (rgb).
+            // Attachment depth.
+            .attachDepthLoad = RvkPassLoad_Preserve,
+
+            // Attachment color 0: color (rgb).
             .attachColorFormat[0] = RvkPassFormat_Color3Float,
             .attachColorLoad[0]   = RvkPassLoad_Clear,
         },
@@ -67,7 +75,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         {
             .flags = RvkPassFlags_None,
 
-            // Attachment 0: color (rgba).
+            // Attachment color 0: color (rgba).
             .attachColorFormat[0] = RvkPassFormat_Swapchain,
             .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
