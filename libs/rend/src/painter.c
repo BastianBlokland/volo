@@ -48,7 +48,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
     [RendPass_Forward] =
         {
-            .flags = RvkPassFlags_ColorClear | RvkPassFlags_Depth | RvkPassFlags_DepthLoadTransfer,
+            .flags = RvkPassFlags_ColorClear | RvkPassFlags_Depth | RvkPassFlags_DepthPreserve,
             .attachColor[0] = RvkPassFormat_Color3Float, // color (rgb).
         },
 
