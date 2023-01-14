@@ -772,7 +772,10 @@ void rvk_pass_begin(RvkPass* pass) {
   rvk_pass_assert_image_contents(pass, stage);
 #endif
 
-  rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
+  // TODO: Support stats for all invocations.
+  if (dynarray_size(&pass->invocations) == 1) {
+    rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
+  }
 
   invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
@@ -911,7 +914,11 @@ void rvk_pass_end(RvkPass* pass) {
 
   pass->flags &= ~RvkPassFlags_Active;
 
-  rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
+  // TODO: Support stats for all invocations.
+  if (dynarray_size(&pass->invocations) == 1) {
+    rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
+  }
+
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
