@@ -607,6 +607,13 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   return ui_canvas_tracked((UiCanvasComp*)comp, id)->rect;
 }
 
+UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId begin, const UiId end) {
+  if (comp->activeId < begin || comp->activeId > end) {
+    return UiStatus_Idle;
+  }
+  return comp->activeStatus;
+}
+
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
