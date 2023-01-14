@@ -14,6 +14,12 @@
 #define rvk_attach_max_images 32
 ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple of 8");
 
+/**
+ * Capabilities that all attachments will have.
+ * TODO: Investigate if these have any (serious) performance impact.
+ */
+static const RvkImageCapability g_attachDefaultCapabilities = RvkImageCapability_TransferDest;
+
 typedef u32 RvkAttachIndex;
 
 typedef enum {
@@ -73,17 +79,19 @@ static RvkAttachIndex rvk_attach_create(
   }
   bitset_clear(bitset_from_array(pool->emptyMask), slot);
 
+  const RvkImageCapability capabilities = spec.capabilities | g_attachDefaultCapabilities;
+
   MAYBE_UNUSED String typeName;
   switch (type) {
   case RvkImageType_ColorAttachment:
     typeName = string_lit("color");
     pool->images[slot] =
-        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, spec.capabilities);
+        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, capabilities);
     break;
   case RvkImageType_DepthAttachment:
     typeName = string_lit("depth");
     pool->images[slot] =
-        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, spec.capabilities);
+        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, capabilities);
     break;
   default:
     UNREACHABLE

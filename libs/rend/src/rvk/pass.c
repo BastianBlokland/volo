@@ -529,10 +529,6 @@ RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAtt
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
   }
-  if (pass->config.attachColorLoad[colorAttachIndex] == RvkPassLoad_Preserve) {
-    // TODO: Specifying these capabilities should not be responsibilty of the pass.
-    capabilities |= RvkImageCapability_TransferDest;
-  }
   return (RvkAttachSpec){
       .vkFormat     = rvk_attach_color_format(pass, colorAttachIndex),
       .capabilities = capabilities,
@@ -544,10 +540,6 @@ RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   if (pass->config.attachDepth == RvkPassDepth_Stored) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-  }
-  if (pass->config.attachDepthLoad == RvkPassLoad_Preserve) {
-    // TODO: Specifying these capabilities should not be responsibilty of the pass.
-    capabilities |= RvkImageCapability_TransferDest;
   }
   return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
 }
