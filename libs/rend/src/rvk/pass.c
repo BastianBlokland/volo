@@ -61,7 +61,6 @@ struct sRvkPass {
   RvkStopwatch*    stopwatch;
   RvkPassFlags     flags;
   String           name;
-  RvkSize          size; // TODO: Should not be here.
   VkRenderPass     vkRendPass;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
@@ -140,12 +139,12 @@ static void rvk_attach_assert_color(const RvkPass* pass, const u32 idx, const Rv
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
   diag_assert_msg(
-      img->size.data == pass->size.data,
+      img->size.data == g_stage.size.data,
       "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
       fmt_text(pass->name),
       fmt_int(idx),
-      fmt_int(pass->size.width),
-      fmt_int(pass->size.height),
+      fmt_int(g_stage.size.width),
+      fmt_int(g_stage.size.height),
       fmt_int(img->size.width),
       fmt_int(img->size.height));
 }
@@ -167,11 +166,11 @@ static void rvk_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
   diag_assert_msg(
-      img->size.data == pass->size.data,
+      img->size.data == g_stage.size.data,
       "Pass {} depth attachment invalid: Invalid size (expected: {}x{}, actual: {}x{})",
       fmt_text(pass->name),
-      fmt_int(pass->size.width),
-      fmt_int(pass->size.height),
+      fmt_int(g_stage.size.width),
+      fmt_int(g_stage.size.height),
       fmt_int(img->size.width),
       fmt_int(img->size.height));
 }
@@ -593,8 +592,7 @@ void rvk_pass_destroy(RvkPass* pass) {
 
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
-String  rvk_pass_name(const RvkPass* pass) { return pass->name; }
-RvkSize rvk_pass_size(const RvkPass* pass) { return pass->size; }
+String rvk_pass_name(const RvkPass* pass) { return pass->name; }
 
 bool rvk_pass_has_depth(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Depth) != 0; }
 
@@ -697,7 +695,6 @@ void rvk_pass_set_size(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(
       !g_stage.attachColorMask && !g_stage.attachDepth, "Pass attachments already bound");
 
-  pass->size   = size; // TODO: Remove.
   g_stage.size = size;
 }
 
@@ -723,7 +720,7 @@ void rvk_pass_bind_attach_color(RvkPass* pass, RvkImage* img, const u16 idx) {
 void rvk_pass_bind_attach_depth(RvkPass* pass, RvkImage* img) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(!g_stage.attachDepth, "Depth attachment already bound");
-  diag_assert_msg(img->size.data == pass->size.data, "Invalid attachment size");
+  diag_assert_msg(img->size.data == g_stage.size.data, "Invalid attachment size");
 
 #ifndef VOLO_FAST
   rvk_attach_assert_depth(pass, img);
@@ -805,7 +802,7 @@ void rvk_pass_begin(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
-  invoc->size          = pass->size;
+  invoc->size          = g_stage.size;
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, &g_stage);
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
