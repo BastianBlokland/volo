@@ -11,7 +11,7 @@
 
 #define VOLO_RVK_ATTACH_LOGGING 0
 
-#define rvk_attach_max_images 32
+#define rvk_attach_max_images 64
 ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple of 8");
 
 /**
