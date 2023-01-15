@@ -70,7 +70,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         {
             // Attachment color 0: bloom (rgb).
             .attachColorFormat[0] = RvkPassFormat_Color3Float,
-            .attachColorLoad[0]   = RvkPassLoad_Preserve,
+            .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
         },
 
     [RendPass_Post] =

@@ -10,7 +10,7 @@
   "vertexCount": 3,
   "topology": "Triangles",
   "rasterizer": "Fill",
-  "blend": "None",
+  "blend": "Additive",
   "depth": "AlwaysNoWrite",
   "cull": "None"
 }
