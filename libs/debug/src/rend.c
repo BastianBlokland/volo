@@ -60,6 +60,8 @@ static const String g_tooltipAoRadiusPow      = string_static("\a.b[SSAO]\ar Con
                                                               " > 1: Samples are distributed closer to the origin.\n");
 static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Power of the resulting occlusion factor, the higher the value the more occluded.");
 static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
+static const String g_tooltipExposure         = string_static("Multiplier over the hdr output before tone-mapping.");
+static const String g_tooltipTonemapper       = string_static("Tone-mapper to map the hdr output to sdr.");
 
 // clang-format on
 
@@ -804,12 +806,17 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Exposure"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
+  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipExposure);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Tonemapper"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
+  ui_select(
+      canvas,
+      (i32*)&settings->tonemapper,
+      g_tonemapperNames,
+      array_elems(g_tonemapperNames),
+      .tooltip = g_tooltipTonemapper);
 }
 
 static void rend_panel_draw(
