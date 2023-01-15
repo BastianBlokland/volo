@@ -327,7 +327,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  rvk_image_transition(dest, buffer->vkCmdBufferTransfer, RvkImagePhase_TransferDest);
+  rvk_image_transition(dest, RvkImagePhase_TransferDest, buffer->vkCmdBufferTransfer);
 
   const VkBufferImageCopy regions[] = {
       {

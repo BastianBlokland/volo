@@ -25,28 +25,54 @@
 #include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
 
-// clang-format off
-static const RvkPassFlags g_passConfig[RendPass_Count] = {
-  [RendPass_Geometry] =
-    RvkPassFlags_ColorClear | RvkPassFlags_Color1     | RvkPassFlags_Color1Srgb | // Attachment color1 (srgb)  : color (rgb) and roughness (a).
-                              RvkPassFlags_Color2     |                           // Attachment color2 (linear): normal (rgb) and tags (a).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore,  // Attachment depth.
+static const RvkPassConfig g_passConfig[RendPass_Count] = {
+    [RendPass_Geometry] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
+            .attachDepthLoad = RvkPassLoad_Clear,
 
-  [RendPass_Shadow] =
-    RvkPassFlags_Depth | RvkPassFlags_DepthClear | RvkPassFlags_DepthStore, // Attachment depth.
+            // Attachment color 0:  color (rgb) and roughness (a).
+            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
 
-  [RendPass_AmbientOcclusion] =
-    RvkPassFlags_Color1 | RvkPassFlags_Color1Single, // Attachment color1 (linear): occlusion (r).
+            // Attachment color 1: normal (rgb) and tags (a).
+            .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+            .attachColorLoad[1]   = RvkPassLoad_Clear,
+        },
 
-  [RendPass_Forward] =
-    RvkPassFlags_ColorClear | RvkPassFlags_Color1            | RvkPassFlags_Color1Float | // Attachment color1 (float): color (rgb).
-    RvkPassFlags_Depth      | RvkPassFlags_DepthLoadTransfer,                             // Attachment depth.
+    [RendPass_Shadow] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
+            .attachDepthLoad = RvkPassLoad_Clear,
+        },
 
-  [RendPass_Post] =
-    RvkPassFlags_Color1 | RvkPassFlags_Color1Swapchain, // Attachment color1 (swapchain): color (rgb).
+    [RendPass_AmbientOcclusion] =
+        {
+            // Attachment color 0: occlusion (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
+        },
 
+    [RendPass_Forward] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Transient,
+            .attachDepthLoad = RvkPassLoad_Preserve,
+
+            // Attachment color 0: color (rgb).
+            .attachColorFormat[0] = RvkPassFormat_Color3Float,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
+        },
+
+    [RendPass_Post] =
+        {
+            // Attachment color 0: color (rgba).
+            .attachColorFormat[0] = RvkPassFormat_Swapchain,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
+        },
 };
-// clang-format on
 
 ecs_comp_define_public(RendPainterComp);
 
@@ -491,7 +517,9 @@ static bool rend_canvas_paint(
   }
 
   // Shadow pass.
-  const RvkSize shadowSize = {set->shadowResolution, set->shadowResolution};
+  const RvkSize shadowSize = rend_light_has_shadow(light)
+                                 ? (RvkSize){set->shadowResolution, set->shadowResolution}
+                                 : (RvkSize){1, 1};
   RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (rend_light_has_shadow(light)) {
@@ -505,10 +533,14 @@ static bool rend_canvas_paint(
     rvk_pass_begin(shadowPass);
     painter_flush(&ctx);
     rvk_pass_end(shadowPass);
+  } else {
+    rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 0);
   }
 
   // Ambient occlusion.
-  const RvkSize aoSize   = rvk_size_scale(geoSize, set->aoResolutionScale);
+  const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
+                               ? rvk_size_scale(geoSize, set->aoResolutionScale)
+                               : (RvkSize){1, 1};
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
@@ -525,6 +557,8 @@ static bool rend_canvas_paint(
     rvk_pass_begin(aoPass);
     painter_flush(&ctx);
     rvk_pass_end(aoPass);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, aoBuffer, geo_color_white);
   }
 
   // Forward pass.
@@ -533,7 +567,7 @@ static bool rend_canvas_paint(
   RvkImage*     fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, fwdSize);
   RvkImage*     fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, fwdSize);
   {
-    rvk_canvas_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
+    rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, fwdPass, fwdSize);

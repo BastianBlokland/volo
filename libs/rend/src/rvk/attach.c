@@ -14,6 +14,12 @@
 #define rvk_attach_max_images 32
 ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple of 8");
 
+/**
+ * Capabilities that all attachments will have.
+ * TODO: Investigate if these have any (serious) performance impact.
+ */
+static const RvkImageCapability g_attachDefaultCapabilities = RvkImageCapability_TransferDest;
+
 typedef u32 RvkAttachIndex;
 
 typedef enum {
@@ -53,7 +59,7 @@ static RvkAttachIndex rvk_attach_find_available(
     if (img->vkFormat != spec.vkFormat) {
       continue; // Wrong format.
     }
-    if (!(img->caps & spec.capabilities)) {
+    if ((img->caps & spec.capabilities) != spec.capabilities) {
       continue; // Missing capability.
     }
     if (img->size.data != size.data) {
@@ -73,17 +79,19 @@ static RvkAttachIndex rvk_attach_create(
   }
   bitset_clear(bitset_from_array(pool->emptyMask), slot);
 
+  const RvkImageCapability capabilities = spec.capabilities | g_attachDefaultCapabilities;
+
   MAYBE_UNUSED String typeName;
   switch (type) {
   case RvkImageType_ColorAttachment:
     typeName = string_lit("color");
     pool->images[slot] =
-        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, spec.capabilities);
+        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, capabilities);
     break;
   case RvkImageType_DepthAttachment:
     typeName = string_lit("depth");
     pool->images[slot] =
-        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, spec.capabilities);
+        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, capabilities);
     break;
   default:
     UNREACHABLE
@@ -100,7 +108,7 @@ static RvkAttachIndex rvk_attach_create(
       "Vulkan attachment image created",
       log_param("slot", fmt_int(slot)),
       log_param("type", fmt_text(rvk_image_type_str(type))),
-      log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
+      log_param("format", fmt_text(rvk_format_info(spec.vkFormat).name)),
       log_param("size", fmt_list_lit(fmt_int(size.width), fmt_int(size.height))));
 #endif
 
@@ -187,6 +195,9 @@ rvk_attach_acquire_depth(RvkAttachPool* pool, const RvkAttachSpec spec, const Rv
 
 void rvk_attach_release(RvkAttachPool* pool, RvkImage* img) {
   const RvkAttachIndex slot = rvk_attach_from_ptr(pool, img);
+
+  // Discard the contents.
+  rvk_image_transition_external(img, RvkImagePhase_Undefined);
 
   // Sanity check the slot.
   diag_assert_msg(pool->states[slot] != RvkAttachState_Empty, "Attachment invalid");

@@ -4,6 +4,8 @@
 #include "types_internal.h"
 #include "vulkan_internal.h"
 
+#define rvk_pass_attach_color_max 2
+
 // Forward declare from 'geo_color.h'.
 typedef union uGeoColor GeoColor;
 
@@ -20,25 +22,33 @@ typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
 
-typedef enum eRvkPassFlags {
-  RvkPassFlags_None              = 0,
-  RvkPassFlags_Color1            = 1 << 0, // Enable the color1 attachment.
-  RvkPassFlags_Color1Srgb        = 1 << 1, // Use an SRGB format for the color1 attachment.
-  RvkPassFlags_Color1Float       = 1 << 2, // Use an float format for the color1 attachment.
-  RvkPassFlags_Color1Single      = 1 << 3, // Use a single channel format for the color1 attachment.
-  RvkPassFlags_Color1Swapchain   = 1 << 4, // Use a swapchain image for the color1 attachment.
-  RvkPassFlags_Color2            = 1 << 5, // Enable the color2 attachment.
-  RvkPassFlags_Color2Srgb        = 1 << 6, // Use an SRGB format for the color2 attachment.
-  RvkPassFlags_Color2Single      = 1 << 7, // Use a single channel format for the color2 attachment.
-  RvkPassFlags_ColorClear        = 1 << 8, // Clear the color attachment.
-  RvkPassFlags_ColorLoadTransfer = 1 << 9, // Load the color from transferred color attachments.
-  RvkPassFlags_Depth             = 1 << 10, // Enable a depth attachment.
-  RvkPassFlags_DepthClear        = 1 << 11, // Clear the depth attachment.
-  RvkPassFlags_DepthLoadTransfer = 1 << 12, // Load the depth from a transferred depth attachment.
-  RvkPassFlags_DepthStore        = 1 << 13, // Store the depth attachment for use in a later pass.
+typedef enum {
+  RvkPassLoad_DontCare = 0,
+  RvkPassLoad_Clear,
+  RvkPassLoad_Preserve,
+} RvkPassLoad;
 
-  RvkPassFlags_Count = 14,
-} RvkPassFlags;
+typedef enum {
+  RvkPassDepth_None,      // No depth attachment, depth testing will not be available.
+  RvkPassDepth_Transient, // Transient depth attachment, can only be used during this pass.
+  RvkPassDepth_Stored,    // Stored depth attachment, can be sampled by other passes later.
+} RvkPassDepth;
+
+typedef enum {
+  RvkPassFormat_None = 0,
+  RvkPassFormat_Color1Linear, // R    (unorm)  sdr linear.
+  RvkPassFormat_Color4Linear, // RGBA (unorm)  sdr linear.
+  RvkPassFormat_Color4Srgb,   // RGBA (unorm)  sdr srgb.
+  RvkPassFormat_Color3Float,  // RGB  (ufloat) hdr.
+  RvkPassFormat_Swapchain,    // Format matching the window's swapchain.
+} RvkPassFormat;
+
+typedef struct sRvkPassConfig {
+  RvkPassDepth  attachDepth : 8;
+  RvkPassLoad   attachDepthLoad : 8;
+  RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
+  RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
+} RvkPassConfig;
 
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
@@ -56,7 +66,7 @@ RvkPass* rvk_pass_create(
     VkCommandBuffer,
     RvkUniformPool*,
     RvkStopwatch*,
-    RvkPassFlags,
+    RvkPassConfig,
     String name);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);
@@ -71,10 +81,12 @@ RvkDescMeta   rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
-u64          rvk_pass_stat(const RvkPass*, RvkStat);
 u16          rvk_pass_stat_invocations(const RvkPass*);
+u16          rvk_pass_stat_draws(const RvkPass*);
+u32          rvk_pass_stat_instances(const RvkPass*);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*);
 TimeDuration rvk_pass_stat_duration(const RvkPass*);
+u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
 void rvk_pass_reset(RvkPass*);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);

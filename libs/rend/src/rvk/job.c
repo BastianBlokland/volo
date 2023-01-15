@@ -145,10 +145,10 @@ static void rvk_job_submit(
 }
 
 RvkJob* rvk_job_create(
-    RvkDevice*          dev,
-    const VkFormat      swapchainFormat,
-    const u32           jobId,
-    const RvkPassFlags* passConfig /* [ RendPass_Count ] */) {
+    RvkDevice*           dev,
+    const VkFormat       swapchainFormat,
+    const u32            jobId,
+    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
   RvkJob* job = alloc_alloc_t(g_alloc_heap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
@@ -223,12 +223,12 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
         .invocations = rvk_pass_stat_invocations(pass),
-        .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
-        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
-        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+        .draws       = rvk_pass_stat_draws(pass),
+        .instances   = rvk_pass_stat_instances(pass),
+        .vertices    = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsFrag),
     };
   }
 
@@ -261,36 +261,64 @@ RvkPass* rvk_job_pass(RvkJob* job, const RendPass pass) {
   return job->passes[pass];
 }
 
-void rvk_job_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+
+  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-color");
+
+  rvk_image_transition(img, RvkImagePhase_TransferDest, job->vkDrawBuffer);
+  rvk_image_clear_color(img, color, job->vkDrawBuffer);
+
+  rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
+}
+
+void rvk_job_img_clear_depth(RvkJob* job, RvkImage* img, const f32 depth) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+
+  rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-depth");
+
+  rvk_image_transition(img, RvkImagePhase_TransferDest, job->vkDrawBuffer);
+  rvk_image_clear_depth(img, depth, job->vkDrawBuffer);
+
+  rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
+}
+
+void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "copy");
 
-  rvk_image_transition(src, job->vkDrawBuffer, RvkImagePhase_TransferSource);
-  rvk_image_transition(dst, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  const RvkImageTransition transitions[] = {
+      {.img = src, .phase = RvkImagePhase_TransferSource},
+      {.img = dst, .phase = RvkImagePhase_TransferDest},
+  };
+  rvk_image_transition_batch(transitions, array_elems(transitions), job->vkDrawBuffer);
 
   rvk_image_copy(src, dst, job->vkDrawBuffer);
 
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
 }
 
-void rvk_job_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "blit");
 
-  rvk_image_transition(src, job->vkDrawBuffer, RvkImagePhase_TransferSource);
-  rvk_image_transition(dst, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  const RvkImageTransition transitions[] = {
+      {.img = src, .phase = RvkImagePhase_TransferSource},
+      {.img = dst, .phase = RvkImagePhase_TransferDest},
+  };
+  rvk_image_transition_batch(transitions, array_elems(transitions), job->vkDrawBuffer);
 
   rvk_image_blit(src, dst, job->vkDrawBuffer);
 
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
 }
 
-void rvk_job_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
+void rvk_job_img_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  rvk_image_transition(img, job->vkDrawBuffer, targetPhase);
+  rvk_image_transition(img, targetPhase, job->vkDrawBuffer);
 }
 
 void rvk_job_end(

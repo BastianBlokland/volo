@@ -9,6 +9,8 @@
 #include "device_internal.h"
 #include "statrecorder_internal.h"
 
+#define rvk_statrecorder_queries_max 16
+
 typedef enum {
   RvkStatRecorder_Supported   = 1 << 0,
   RvkStatRecorder_Capturing   = 1 << 1,
@@ -20,27 +22,23 @@ struct sRvkStatRecorder {
   RvkDevice*           dev;
   ThreadMutex          retrieveResultsMutex;
   VkQueryPool          vkQueryPool;
+  u16                  counter;
   RvkStatRecorderFlags flags;
-  u64                  results[RvkStatMeta_CountTotal];
+  u64                  results[rvk_statrecorder_queries_max * RvkStat_Count];
 };
-
-MAYBE_UNUSED static bool rvk_statrecorder_is_manual(const RvkStat stat) {
-  return stat >= RvkStatMeta_CountAuto;
-}
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {
       .sType              = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
       .queryType          = VK_QUERY_TYPE_PIPELINE_STATISTICS,
-      .queryCount         = RvkStatMeta_CountAuto,
+      .queryCount         = rvk_statrecorder_queries_max,
       .pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT,
   };
 
-  diag_assert(
-      bitset_count(bitset_from_var(createInfo.pipelineStatistics)) == RvkStatMeta_CountAuto);
+  diag_assert(bitset_count(bitset_from_var(createInfo.pipelineStatistics)) == RvkStat_Count);
 
   VkQueryPool result;
   rvk_call(vkCreateQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
@@ -54,13 +52,13 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
         sr->dev->vkDev,
         sr->vkQueryPool,
         0,
-        1,
+        sr->counter,
         sizeof(sr->results),
         sr->results,
-        sizeof(u64),
+        sizeof(u64) * RvkStat_Count,
         VK_QUERY_RESULT_64_BIT);
     if (vkQueryRes == VK_NOT_READY) {
-      mem_set(mem_create(sr->results, RvkStatMeta_CountAuto * sizeof(u64)), 0);
+      mem_set(array_mem(sr->results), 0);
     } else {
       rvk_check(string_lit("vkGetQueryPoolResults"), vkQueryRes);
     }
@@ -100,13 +98,16 @@ bool rvk_statrecorder_is_supported(const RvkStatRecorder* sr) {
 
 void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStatMeta_CountAuto);
+    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStat_Count);
   }
-  mem_set(mem_var(sr->results), 0);
+  sr->counter = 0;
   sr->flags &= ~RvkStatRecorder_HasResults;
+  mem_set(array_mem(sr->results), 0);
 }
 
-u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
+u64 rvk_statrecorder_query(
+    const RvkStatRecorder* sr, const RvkStatRecord record, const RvkStat stat) {
+  diag_assert(record < rvk_statrecorder_queries_max);
   diag_assert_msg(
       sr->flags & RvkStatRecorder_HasCaptured,
       "Unable to query recorder: No stats have been captured yet");
@@ -120,33 +121,31 @@ u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
     rvk_statrecorder_retrieve_results(srMutable);
   }
 
-  return sr->results[stat];
+  return sr->results[record * RvkStat_Count + stat];
 }
 
-void rvk_statrecorder_report(RvkStatRecorder* sr, const RvkStat stat, const u32 count) {
-  diag_assert(rvk_statrecorder_is_manual(stat));
-  /**
-   * NOTE: This adding using a signed atomic operation is hacky but at the moment we don't have u64
-   * atomic apis. It will work okay as long as we don't overflow i64_max.
-   */
-  thread_atomic_add_i64((i64*)&sr->results[stat], (i64)count);
-}
-
-void rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
+RvkStatRecord rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   diag_assert(!(sr->flags & RvkStatRecorder_HasResults));
   diag_assert(!(sr->flags & RvkStatRecorder_Capturing));
+  diag_assert_msg(
+      sr->counter != rvk_statrecorder_queries_max,
+      "Maximum statrecorder records ({}) exceeded",
+      fmt_int(rvk_statrecorder_queries_max));
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdBeginQuery(vkCmdBuf, sr->vkQueryPool, 0, 0);
+    vkCmdBeginQuery(vkCmdBuf, sr->vkQueryPool, sr->counter, 0);
   }
   sr->flags |= RvkStatRecorder_Capturing;
+  return (RvkStatRecord)sr->counter++;
 }
 
-void rvk_statrecorder_stop(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
+void rvk_statrecorder_stop(
+    RvkStatRecorder* sr, const RvkStatRecord record, VkCommandBuffer vkCmdBuf) {
+  diag_assert(record < rvk_statrecorder_queries_max);
   diag_assert(sr->flags & RvkStatRecorder_Capturing);
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdEndQuery(vkCmdBuf, sr->vkQueryPool, 0);
+    vkCmdEndQuery(vkCmdBuf, sr->vkQueryPool, record);
   }
   sr->flags &= ~RvkStatRecorder_Capturing;
   sr->flags |= RvkStatRecorder_HasCaptured;

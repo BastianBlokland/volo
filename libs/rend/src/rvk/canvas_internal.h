@@ -6,11 +6,14 @@
 
 #include "types_internal.h"
 
+// Forward declare from 'geo_color.h'.
+typedef union uGeoColor GeoColor;
+
 // Internal forward declarations:
-typedef enum eRvkPassFlags        RvkPassFlags;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkPass           RvkPass;
+typedef struct sRvkPassConfig     RvkPassConfig;
 typedef struct sRvkRenderStats    RvkRenderStats;
 typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
@@ -27,7 +30,9 @@ typedef struct sRvkCanvasStats {
 typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(
-    RvkDevice*, const GapWindowComp*, const RvkPassFlags* passConfig /* [ RendPass_Count ] */);
+    RvkDevice*,
+    const GapWindowComp*,
+    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */);
 void rvk_canvas_destroy(RvkCanvas*);
 
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
@@ -54,8 +59,10 @@ RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, Rvk
 RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*, RvkSize);
 void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
 
-void rvk_canvas_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void rvk_canvas_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
+void rvk_canvas_img_clear_depth(RvkCanvas*, RvkImage*, f32 depth);
+void rvk_canvas_img_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
+void rvk_canvas_img_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
 
 void rvk_canvas_end(RvkCanvas*);
 
