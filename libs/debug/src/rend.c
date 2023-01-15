@@ -68,6 +68,7 @@ typedef enum {
   DebugRendTab_Draws,
   DebugRendTab_Resources,
   DebugRendTab_Light,
+  DebugRendTab_Post,
 
   DebugRendTab_Count,
 } DebugRendTab;
@@ -77,6 +78,7 @@ static const String g_rendTabNames[] = {
     string_static("Draws"),
     string_static("Resources"),
     string_static("\uE518 Light"),
+    string_static("\uE429 Post"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
@@ -687,16 +689,6 @@ static void rend_light_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Exposure"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Tonemapper"));
-  ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);
@@ -804,6 +796,22 @@ static void rend_light_tab_draw(
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
 
+static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Exposure"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Tonemapper"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -833,6 +841,9 @@ static void rend_panel_draw(
     break;
   case DebugRendTab_Light:
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
+    break;
+  case DebugRendTab_Post:
+    rend_post_tab_draw(canvas, settings);
     break;
   }
 
