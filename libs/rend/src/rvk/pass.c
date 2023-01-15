@@ -798,16 +798,16 @@ void rvk_pass_begin(RvkPass* pass) {
 
   // Transition all attachment images to color/depth-attachment-optimal.
   for (u32 i = 0; i != rvk_pass_attach_color_count(&pass->config); ++i) {
-    rvk_image_transition(stage->attachColors[i], pass->vkCmdBuf, RvkImagePhase_ColorAttachment);
+    rvk_image_transition(stage->attachColors[i], RvkImagePhase_ColorAttachment, pass->vkCmdBuf);
   }
   if (pass->config.attachDepth) {
-    rvk_image_transition(stage->attachDepth, pass->vkCmdBuf, RvkImagePhase_DepthAttachment);
+    rvk_image_transition(stage->attachDepth, RvkImagePhase_DepthAttachment, pass->vkCmdBuf);
   }
 
   // Transition all global images to ShaderRead.
   for (u32 i = 0; i != pass_global_image_max; ++i) {
     if (stage->globalImages[i]) {
-      rvk_image_transition(stage->globalImages[i], pass->vkCmdBuf, RvkImagePhase_ShaderRead);
+      rvk_image_transition(stage->globalImages[i], RvkImagePhase_ShaderRead, pass->vkCmdBuf);
     }
   }
 

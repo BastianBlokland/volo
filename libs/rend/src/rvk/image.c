@@ -485,7 +485,7 @@ void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
       fmt_text(rvk_image_phase_str(image->phase)));
 }
 
-void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkImagePhase phase) {
+void rvk_image_transition(RvkImage* image, const RvkImagePhase phase, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(
       rvk_image_phase_supported(image->caps, phase),
       "Image does not support the '{}' phase",

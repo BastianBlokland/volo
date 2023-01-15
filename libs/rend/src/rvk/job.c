@@ -266,7 +266,7 @@ void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-color");
 
-  rvk_image_transition(img, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_transition(img, RvkImagePhase_TransferDest, job->vkDrawBuffer);
   rvk_image_clear_color(img, color, job->vkDrawBuffer);
 
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
@@ -277,7 +277,7 @@ void rvk_job_img_clear_depth(RvkJob* job, RvkImage* img, const f32 depth) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "clear-depth");
 
-  rvk_image_transition(img, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_transition(img, RvkImagePhase_TransferDest, job->vkDrawBuffer);
   rvk_image_clear_depth(img, depth, job->vkDrawBuffer);
 
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
@@ -288,8 +288,8 @@ void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "copy");
 
-  rvk_image_transition(src, job->vkDrawBuffer, RvkImagePhase_TransferSource);
-  rvk_image_transition(dst, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_transition(src, RvkImagePhase_TransferSource, job->vkDrawBuffer);
+  rvk_image_transition(dst, RvkImagePhase_TransferDest, job->vkDrawBuffer);
 
   rvk_image_copy(src, dst, job->vkDrawBuffer);
 
@@ -301,8 +301,8 @@ void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "blit");
 
-  rvk_image_transition(src, job->vkDrawBuffer, RvkImagePhase_TransferSource);
-  rvk_image_transition(dst, job->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_transition(src, RvkImagePhase_TransferSource, job->vkDrawBuffer);
+  rvk_image_transition(dst, RvkImagePhase_TransferDest, job->vkDrawBuffer);
 
   rvk_image_blit(src, dst, job->vkDrawBuffer);
 
@@ -312,7 +312,7 @@ void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
 void rvk_job_img_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  rvk_image_transition(img, job->vkDrawBuffer, targetPhase);
+  rvk_image_transition(img, targetPhase, job->vkDrawBuffer);
 }
 
 void rvk_job_end(
