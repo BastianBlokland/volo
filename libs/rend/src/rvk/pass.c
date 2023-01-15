@@ -796,19 +796,35 @@ void rvk_pass_begin(RvkPass* pass) {
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
 
-  // Transition all attachment images to color/depth-attachment-optimal.
-  for (u32 i = 0; i != rvk_pass_attach_color_count(&pass->config); ++i) {
-    rvk_image_transition(stage->attachColors[i], RvkImagePhase_ColorAttachment, pass->vkCmdBuf);
-  }
-  if (pass->config.attachDepth) {
-    rvk_image_transition(stage->attachDepth, RvkImagePhase_DepthAttachment, pass->vkCmdBuf);
-  }
-
-  // Transition all global images to ShaderRead.
-  for (u32 i = 0; i != pass_global_image_max; ++i) {
-    if (stage->globalImages[i]) {
-      rvk_image_transition(stage->globalImages[i], RvkImagePhase_ShaderRead, pass->vkCmdBuf);
+  /**
+   * Execute image transitions:
+   * - Attachment images to color/depth-attachment-optimal.
+   * - Global images to ShaderRead.
+   */
+  {
+    RvkImageTransition transitions[16];
+    u32                transitionCount = 0;
+    for (u32 i = 0; i != rvk_pass_attach_color_count(&pass->config); ++i) {
+      transitions[transitionCount++] = (RvkImageTransition){
+          .img   = stage->attachColors[i],
+          .phase = RvkImagePhase_ColorAttachment,
+      };
     }
+    if (pass->config.attachDepth) {
+      transitions[transitionCount++] = (RvkImageTransition){
+          .img   = stage->attachDepth,
+          .phase = RvkImagePhase_DepthAttachment,
+      };
+    }
+    for (u32 i = 0; i != pass_global_image_max; ++i) {
+      if (stage->globalImages[i]) {
+        transitions[transitionCount++] = (RvkImageTransition){
+            .img   = stage->globalImages[i],
+            .phase = RvkImagePhase_ShaderRead,
+        };
+      }
+    }
+    rvk_image_transition_batch(transitions, transitionCount, pass->vkCmdBuf);
   }
 
   rvk_pass_vkrenderpass_begin(pass, invoc, stage);
