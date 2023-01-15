@@ -40,6 +40,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("AmbientOcclusionGraphic"),
       string_static("SkyGraphic"),
       string_static("BloomDownGraphic"),
+      string_static("BloomUpGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];
