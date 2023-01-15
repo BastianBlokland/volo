@@ -488,9 +488,37 @@ void rvk_image_transition(RvkImage* img, const RvkImagePhase phase, VkCommandBuf
 
   const VkPipelineStageFlags srcStageFlags = rvk_image_vkpipelinestage(img->phase);
   const VkPipelineStageFlags dstStageFlags = rvk_image_vkpipelinestage(phase);
-  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
 
   img->phase = phase;
+  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+}
+
+void rvk_image_transition_batch(
+    const RvkImageTransition* transitions, const u32 count, VkCommandBuffer vkCmdBuf) {
+  VkImageMemoryBarrier barriers[16];
+  diag_assert(count <= array_elems(barriers));
+
+  VkPipelineStageFlags srcStageFlags = 0;
+  VkPipelineStageFlags dstStageFlags = 0;
+
+  for (u32 i = 0; i != count; ++i) {
+    RvkImage*     img   = transitions[i].img;
+    RvkImagePhase phase = transitions[i].phase;
+
+    diag_assert_msg(
+        rvk_image_phase_supported(img->caps, phase),
+        "Image does not support the '{}' phase",
+        fmt_text(rvk_image_phase_str(phase)));
+
+    srcStageFlags |= rvk_image_vkpipelinestage(img->phase);
+    dstStageFlags |= rvk_image_vkpipelinestage(phase);
+
+    barriers[i] = rvk_image_barrier_from_to(img, img->phase, phase, 0, img->mipLevels);
+    img->phase  = phase;
+  }
+
+  vkCmdPipelineBarrier(
+      vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, count, barriers);
 }
 
 void rvk_image_transition_external(RvkImage* img, const RvkImagePhase phase) {

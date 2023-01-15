@@ -65,7 +65,14 @@ String rvk_image_type_str(RvkImageType);
 String rvk_image_phase_str(RvkImagePhase);
 
 void rvk_image_assert_phase(const RvkImage*, RvkImagePhase);
+
+typedef struct {
+  RvkImage*     img;
+  RvkImagePhase phase;
+} RvkImageTransition;
+
 void rvk_image_transition(RvkImage*, RvkImagePhase, VkCommandBuffer);
+void rvk_image_transition_batch(const RvkImageTransition*, u32 count, VkCommandBuffer);
 void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 
 void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
