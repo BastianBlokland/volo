@@ -612,6 +612,53 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
+  // Bloom pass.
+  RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
+  RvkImage* bloomOutput;
+  {
+    // TODO: 'RendPaintContext' is too heavy weight, we don't need any global data here.
+    RendPaintContext ctx = painter_context(
+        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
+
+    RvkSize   size = fwdSize;
+    RvkImage* images[4];
+    for (u32 i = 0; i != array_elems(images); ++i) {
+      size      = rvk_size_scale(size, 0.5f);
+      images[i] = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, size);
+    }
+
+    struct {
+      ALIGNAS(16)
+      f32 filterKernel;
+    } bloomData = {.filterKernel = 0.005f};
+
+    // Render down samples.
+    for (u32 i = 0; i != array_elems(images); ++i) {
+      rvk_pass_stage_global_image(bloomPass, i == 0 ? fwdColor : images[i - 1], 0);
+      rvk_pass_stage_attach_color(bloomPass, images[i], 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BloomDownGraphic, mem_empty);
+      rvk_pass_begin(bloomPass);
+      painter_flush(&ctx);
+      rvk_pass_end(bloomPass);
+    }
+
+    // Render up samples.
+    for (u32 i = array_elems(images); i-- > 1;) {
+      rvk_pass_stage_global_image(bloomPass, images[i], 0);
+      rvk_pass_stage_attach_color(bloomPass, images[i - 1], 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BloomUpGraphic, mem_var(bloomData));
+      rvk_pass_begin(bloomPass);
+      painter_flush(&ctx);
+      rvk_pass_end(bloomPass);
+    }
+
+    // Keep the largest image as the output, release the others.
+    bloomOutput = images[0];
+    for (u32 i = 1; i != array_elems(images); ++i) {
+      rvk_canvas_attach_release(painter->canvas, images[i]);
+    }
+  }
+
   // Post pass.
   const RvkSize postSize = swapchainSize;
   RvkPass*      postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
@@ -622,7 +669,7 @@ static bool rend_canvas_paint(
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_stage_global_data(postPass, mem_var(ctx.data));
-    rvk_pass_stage_global_image(postPass, fwdColor, 0);
+    rvk_pass_stage_global_image(postPass, bloomOutput, 0);
     rvk_pass_stage_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_push_tonemapping(&ctx);
@@ -637,6 +684,7 @@ static bool rend_canvas_paint(
 
   rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
+  rvk_canvas_attach_release(painter->canvas, bloomOutput);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
