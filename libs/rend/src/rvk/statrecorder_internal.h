@@ -18,6 +18,11 @@ typedef enum eRvkStat {
   RvkStat_Count,
 } RvkStat;
 
+/**
+ * Identifier for a stat record.
+ */
+typedef u32 RvkStatRecord;
+
 typedef struct sRvkStatRecorder RvkStatRecorder;
 
 RvkStatRecorder* rvk_statrecorder_create(RvkDevice*);
@@ -34,7 +39,7 @@ void rvk_statrecorder_reset(RvkStatRecorder*, VkCommandBuffer);
  * Retrieve the result statistic of the last capture.
  * NOTE: Make sure the gpu work has finished before calling this.
  */
-u64 rvk_statrecorder_query(const RvkStatRecorder*, RvkStat);
+u64 rvk_statrecorder_query(const RvkStatRecorder*, RvkStatRecord, RvkStat);
 
-void rvk_statrecorder_start(RvkStatRecorder*, VkCommandBuffer);
-void rvk_statrecorder_stop(RvkStatRecorder*, VkCommandBuffer);
+RvkStatRecord rvk_statrecorder_start(RvkStatRecorder*, VkCommandBuffer);
+void          rvk_statrecorder_stop(RvkStatRecorder*, RvkStatRecord, VkCommandBuffer);

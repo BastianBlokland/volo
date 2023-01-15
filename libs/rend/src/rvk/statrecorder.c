@@ -9,27 +9,29 @@
 #include "device_internal.h"
 #include "statrecorder_internal.h"
 
+#define rvk_statrecorder_queries_max 16
+
 typedef enum {
   RvkStatRecorder_Supported   = 1 << 0,
   RvkStatRecorder_Capturing   = 1 << 1,
-  RvkStatRecorder_Reset       = 1 << 2,
-  RvkStatRecorder_HasCaptured = 1 << 3,
-  RvkStatRecorder_HasResults  = 1 << 4,
+  RvkStatRecorder_HasCaptured = 1 << 2,
+  RvkStatRecorder_HasResults  = 1 << 3,
 } RvkStatRecorderFlags;
 
 struct sRvkStatRecorder {
   RvkDevice*           dev;
   ThreadMutex          retrieveResultsMutex;
   VkQueryPool          vkQueryPool;
+  u16                  counter;
   RvkStatRecorderFlags flags;
-  u64                  results[RvkStat_Count];
+  u64                  results[rvk_statrecorder_queries_max * RvkStat_Count];
 };
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {
       .sType              = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
       .queryType          = VK_QUERY_TYPE_PIPELINE_STATISTICS,
-      .queryCount         = 1,
+      .queryCount         = rvk_statrecorder_queries_max,
       .pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
@@ -50,10 +52,10 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
         sr->dev->vkDev,
         sr->vkQueryPool,
         0,
-        1,
+        sr->counter,
         sizeof(sr->results),
         sr->results,
-        sizeof(u64),
+        sizeof(u64) * RvkStat_Count,
         VK_QUERY_RESULT_64_BIT);
     if (vkQueryRes == VK_NOT_READY) {
       mem_set(array_mem(sr->results), 0);
@@ -98,12 +100,14 @@ void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
     vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStat_Count);
   }
-  mem_set(mem_var(sr->results), 0);
+  sr->counter = 0;
   sr->flags &= ~RvkStatRecorder_HasResults;
-  sr->flags |= RvkStatRecorder_Reset;
+  mem_set(array_mem(sr->results), 0);
 }
 
-u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
+u64 rvk_statrecorder_query(
+    const RvkStatRecorder* sr, const RvkStatRecord record, const RvkStat stat) {
+  diag_assert(record < rvk_statrecorder_queries_max);
   diag_assert_msg(
       sr->flags & RvkStatRecorder_HasCaptured,
       "Unable to query recorder: No stats have been captured yet");
@@ -117,26 +121,31 @@ u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
     rvk_statrecorder_retrieve_results(srMutable);
   }
 
-  return sr->results[stat];
+  return sr->results[record * RvkStat_Count + stat];
 }
 
-void rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
-  diag_assert_msg(sr->flags & RvkStatRecorder_Reset, "Reset stat-recorder between uses");
+RvkStatRecord rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   diag_assert(!(sr->flags & RvkStatRecorder_HasResults));
   diag_assert(!(sr->flags & RvkStatRecorder_Capturing));
+  diag_assert_msg(
+      sr->counter != rvk_statrecorder_queries_max,
+      "Maximum statrecorder records ({}) exceeded",
+      fmt_int(rvk_statrecorder_queries_max));
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdBeginQuery(vkCmdBuf, sr->vkQueryPool, 0, 0);
+    vkCmdBeginQuery(vkCmdBuf, sr->vkQueryPool, sr->counter, 0);
   }
-  sr->flags &= ~RvkStatRecorder_Reset;
   sr->flags |= RvkStatRecorder_Capturing;
+  return (RvkStatRecord)sr->counter++;
 }
 
-void rvk_statrecorder_stop(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
+void rvk_statrecorder_stop(
+    RvkStatRecorder* sr, const RvkStatRecord record, VkCommandBuffer vkCmdBuf) {
+  diag_assert(record < rvk_statrecorder_queries_max);
   diag_assert(sr->flags & RvkStatRecorder_Capturing);
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdEndQuery(vkCmdBuf, sr->vkQueryPool, 0);
+    vkCmdEndQuery(vkCmdBuf, sr->vkQueryPool, record);
   }
   sr->flags &= ~RvkStatRecorder_Capturing;
   sr->flags |= RvkStatRecorder_HasCaptured;

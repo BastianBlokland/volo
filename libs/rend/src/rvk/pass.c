@@ -35,6 +35,7 @@ typedef struct {
   u16 drawCount;
   u32 instanceCount;
 
+  RvkStatRecord      statsRecord;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
 } RvkPassInvoc;
 
@@ -604,10 +605,11 @@ TimeDuration rvk_pass_stat_duration(const RvkPass* pass) {
 }
 
 u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
-  if (dynarray_size(&pass->invocations) == 0) {
-    return 0;
+  u64 res = 0;
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+    res += rvk_statrecorder_query(pass->statrecorder, invoc->statsRecord, stat);
   }
-  return rvk_statrecorder_query(pass->statrecorder, stat);
+  return res;
 }
 
 void rvk_pass_reset(RvkPass* pass) {
@@ -788,10 +790,7 @@ void rvk_pass_begin(RvkPass* pass) {
   rvk_pass_assert_image_contents(pass, stage);
 #endif
 
-  // TODO: Support stats for all invocations.
-  if (dynarray_size(&pass->invocations) == 1) {
-    rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
-  }
+  invoc->statsRecord = rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
 
   invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
@@ -931,11 +930,7 @@ void rvk_pass_end(RvkPass* pass) {
 
   pass->flags &= ~RvkPassFlags_Active;
 
-  // TODO: Support stats for all invocations.
-  if (dynarray_size(&pass->invocations) == 1) {
-    rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
-  }
-
+  rvk_statrecorder_stop(pass->statrecorder, invoc->statsRecord, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
