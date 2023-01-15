@@ -71,6 +71,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   u16             shadowResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
   GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
+  f32             bloomRadius;
 };
 
 typedef enum {

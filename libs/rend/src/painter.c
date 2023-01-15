@@ -629,8 +629,8 @@ static bool rend_canvas_paint(
 
     struct {
       ALIGNAS(16)
-      f32 filterKernel;
-    } bloomData = {.filterKernel = 0.005f};
+      f32 filterRadius;
+    } bloomData = {.filterRadius = set->bloomRadius};
 
     // Render down samples.
     for (u32 i = 0; i != array_elems(images); ++i) {
