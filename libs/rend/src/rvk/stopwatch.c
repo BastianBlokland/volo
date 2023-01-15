@@ -105,6 +105,11 @@ TimeSteady rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord 
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(!(sw->flags & RvkStopwatch_HasResults), "Stopwatch is already finished");
+  diag_assert_msg(
+      sw->counter != rvk_stopwatch_timestamps_max,
+      "Maximum stopwatch records ({}) exceeded",
+      fmt_int(rvk_stopwatch_timestamps_max));
+
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {
     // Record the timestamp after all commands have completely finished executing (bottom of pipe).
     vkCmdWriteTimestamp(
