@@ -99,6 +99,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId    = string_static("graphics/sky.gra"),
         .reloadable = true,
     },
+    {
+        .repoId     = RvkRepositoryId_BloomDownGraphic,
+        .assetId    = string_static("graphics/bloom_down.gra"),
+        .reloadable = true,
+    },
 };
 
 ecs_comp_define_public(RendResGraphicComp);

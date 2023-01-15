@@ -20,6 +20,7 @@ typedef enum {
   RvkRepositoryId_AmbientDebugGraphic,
   RvkRepositoryId_AmbientOcclusionGraphic,
   RvkRepositoryId_SkyGraphic,
+  RvkRepositoryId_BloomDownGraphic,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;
