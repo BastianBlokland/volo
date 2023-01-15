@@ -29,9 +29,13 @@ typedef enum {
 } RvkPassFlags;
 
 typedef struct {
-  RvkSize            size;
+  RvkSize       size;
+  VkFramebuffer vkFrameBuffer;
+
+  u16 drawCount;
+  u32 instanceCount;
+
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  VkFramebuffer      vkFrameBuffer;
 } RvkPassInvoc;
 
 typedef struct {
@@ -564,15 +568,20 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
-u64 rvk_pass_stat(const RvkPass* pass, const RvkStat stat) {
-  if (dynarray_size(&pass->invocations) == 0) {
-    return 0;
-  }
-  return rvk_statrecorder_query(pass->statrecorder, stat);
-}
-
 u16 rvk_pass_stat_invocations(const RvkPass* pass) {
   return (u16)dynarray_size(&pass->invocations);
+}
+
+u16 rvk_pass_stat_draws(const RvkPass* pass) {
+  u16 draws = 0;
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
+  return draws;
+}
+
+u32 rvk_pass_stat_instances(const RvkPass* pass) {
+  u32 draws = 0;
+  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
+  return draws;
 }
 
 RvkSize rvk_pass_stat_size_max(const RvkPass* pass) {
@@ -592,6 +601,13 @@ TimeDuration rvk_pass_stat_duration(const RvkPass* pass) {
     dur += time_steady_duration(timestampBegin, timestampEnd);
   }
   return dur;
+}
+
+u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
+  if (dynarray_size(&pass->invocations) == 0) {
+    return 0;
+  }
+  return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 
 void rvk_pass_reset(RvkPass* pass) {
@@ -815,7 +831,8 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
-  diag_assert_msg(rvk_pass_invoc_active(pass), "Pass invocation not active");
+  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
+  diag_assert_msg(invoc, "Pass invocation not active");
 
   RvkPassStage* stage             = rvk_pass_stage();
   RvkGraphic*   graphic           = draw->graphic;
@@ -854,7 +871,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     return;
   }
 
-  rvk_statrecorder_report(pass->statrecorder, RvkStat_Draws, 1);
+  ++invoc->drawCount;
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
@@ -878,7 +895,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
     const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);
-    rvk_statrecorder_report(pass->statrecorder, RvkStat_Instances, instCount);
+    invoc->instanceCount += instCount;
 
     if (dataStride) {
       const u32 dataSize = instCount * dataStride;

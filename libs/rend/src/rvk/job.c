@@ -223,12 +223,12 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
         .invocations = rvk_pass_stat_invocations(pass),
-        .draws       = (u16)rvk_pass_stat(pass, RvkStat_Draws),
-        .instances   = (u32)rvk_pass_stat(pass, RvkStat_Instances),
-        .vertices    = rvk_pass_stat(pass, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat(pass, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat(pass, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat(pass, RvkStat_ShaderInvocationsFrag),
+        .draws       = rvk_pass_stat_draws(pass),
+        .instances   = rvk_pass_stat_instances(pass),
+        .vertices    = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsFrag),
     };
   }
 

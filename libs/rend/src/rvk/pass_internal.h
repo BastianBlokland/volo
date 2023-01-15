@@ -81,10 +81,12 @@ RvkDescMeta   rvk_pass_meta_draw(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
-u64          rvk_pass_stat(const RvkPass*, RvkStat);
 u16          rvk_pass_stat_invocations(const RvkPass*);
+u16          rvk_pass_stat_draws(const RvkPass*);
+u32          rvk_pass_stat_instances(const RvkPass*);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*);
 TimeDuration rvk_pass_stat_duration(const RvkPass*);
+u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
 void rvk_pass_reset(RvkPass*);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
