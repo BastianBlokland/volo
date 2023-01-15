@@ -59,7 +59,7 @@ static RvkAttachIndex rvk_attach_find_available(
     if (img->vkFormat != spec.vkFormat) {
       continue; // Wrong format.
     }
-    if (!(img->caps & spec.capabilities)) {
+    if ((img->caps & spec.capabilities) != spec.capabilities) {
       continue; // Missing capability.
     }
     if (img->size.data != size.data) {
