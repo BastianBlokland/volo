@@ -288,8 +288,11 @@ void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "copy");
 
-  rvk_image_transition(src, RvkImagePhase_TransferSource, job->vkDrawBuffer);
-  rvk_image_transition(dst, RvkImagePhase_TransferDest, job->vkDrawBuffer);
+  const RvkImageTransition transitions[] = {
+      {.img = src, .phase = RvkImagePhase_TransferSource},
+      {.img = dst, .phase = RvkImagePhase_TransferDest},
+  };
+  rvk_image_transition_batch(transitions, array_elems(transitions), job->vkDrawBuffer);
 
   rvk_image_copy(src, dst, job->vkDrawBuffer);
 
@@ -301,8 +304,11 @@ void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
 
   rvk_debug_label_begin(job->dev->debug, job->vkDrawBuffer, geo_color_purple, "blit");
 
-  rvk_image_transition(src, RvkImagePhase_TransferSource, job->vkDrawBuffer);
-  rvk_image_transition(dst, RvkImagePhase_TransferDest, job->vkDrawBuffer);
+  const RvkImageTransition transitions[] = {
+      {.img = src, .phase = RvkImagePhase_TransferSource},
+      {.img = dst, .phase = RvkImagePhase_TransferDest},
+  };
+  rvk_image_transition_batch(transitions, array_elems(transitions), job->vkDrawBuffer);
 
   rvk_image_blit(src, dst, job->vkDrawBuffer);
 
