@@ -47,7 +47,7 @@ static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
   case RvkImagePhase_TransferDest:
     return 0;
   case RvkImagePhase_ColorAttachment:
-    return 0;
+    return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
   case RvkImagePhase_DepthAttachment:
     return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
   case RvkImagePhase_ShaderRead:
