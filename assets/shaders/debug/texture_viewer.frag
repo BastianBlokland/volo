@@ -10,9 +10,9 @@ bind_graphic(1) uniform sampler2D u_tex;
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 void main() {
   const f32v4 color = texture(u_tex, in_texcoord);
-  out_color         = s_onlyRChannel ? f32v4(color.r) : color;
+  out_color         = s_onlyRChannel ? color.rrr : color.rgb;
 }

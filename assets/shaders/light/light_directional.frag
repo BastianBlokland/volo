@@ -24,7 +24,7 @@ bind_internal(1) in flat f32v3 in_direction;
 bind_internal(2) in flat f32v4 in_radianceFlags; // x, y, z: radiance, w: flags.
 bind_internal(3) in flat f32m4 in_shadowViewProj;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 f32v3 clip_to_world(const f32v3 clipPos) {
   const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
@@ -83,5 +83,5 @@ void main() {
     effectiveRadiance *= 1.0 - shadow_frac(worldPos);
   }
 
-  out_color = f32v4(pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf), 1.0);
+  out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);
 }

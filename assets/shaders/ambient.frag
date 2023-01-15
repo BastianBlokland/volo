@@ -31,7 +31,7 @@ bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 f32 ao_sample_single() { return texture(u_texAmbientOcclusion, in_texcoord).r; }
 
@@ -86,34 +86,34 @@ void main() {
     const f32 linearDepth = clip_to_view(clipPos).z;
     switch (mode) {
     case c_modeDebugColor:
-      out_color = f32v4(color, 0);
+      out_color = color;
       break;
     case c_modeDebugRoughness:
-      out_color = f32v4(roughness.rrr, 0);
+      out_color = roughness.rrr;
       break;
     case c_modeDebugNormal:
-      out_color = f32v4(normal, 0);
+      out_color = normal;
       break;
     case c_modeDebugDepth:
       const f32 debugMaxDist = 100.0;
-      out_color              = f32v4(linearDepth.rrr, 0) / debugMaxDist;
+      out_color              = linearDepth.rrr / debugMaxDist;
       break;
     case c_modeDebugTags:
-      out_color = f32v4(color_from_hsv(tags / 255.0, 1, 1), 0);
+      out_color = color_from_hsv(tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
-      out_color = f32v4(ambientOcclusion.rrr, 0);
+      out_color = ambientOcclusion.rrr;
       break;
     default:
       discard;
     }
   } else {
     // Main color with ambient lighting.
-    out_color = f32v4(color * ambientLight * ambientOcclusion, 0.0);
+    out_color = color * ambientLight * ambientOcclusion;
 
     // Additional effects.
     if (tag_is_set(tags, tag_damaged_bit)) {
-      out_color.rgb = mix(out_color.rgb, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
+      out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
     }
   }
 }

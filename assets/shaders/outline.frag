@@ -9,7 +9,7 @@ bind_global(2) uniform sampler2D u_texGeoNormalTags;
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 #define tags_at_offset(_OFFSET_X_, _OFFSET_Y_)                                                     \
   tags_tex_decode(textureOffset(u_texGeoNormalTags, in_texcoord, i32v2(_OFFSET_X_, _OFFSET_Y_)).w)
@@ -26,5 +26,5 @@ void main() {
 
   tags ^= tags_at_offset(0, 0);
 
-  out_color.rgb = f32v3(tag_is_set(tags, tag_outline_bit));
+  out_color = f32v3(tag_is_set(tags, tag_outline_bit));
 }
