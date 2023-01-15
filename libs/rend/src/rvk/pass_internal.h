@@ -26,6 +26,7 @@ typedef enum {
   RvkPassLoad_DontCare = 0,
   RvkPassLoad_Clear,
   RvkPassLoad_Preserve,
+  RvkPassLoad_PreserveDontCheck, // Preserve but don't validate contents, here be dragons.
 } RvkPassLoad;
 
 typedef enum {

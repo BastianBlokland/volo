@@ -195,6 +195,7 @@ static VkAttachmentLoadOp rvk_pass_attach_color_load_op(const RvkPass* pass, con
   case RvkPassLoad_Clear:
     return VK_ATTACHMENT_LOAD_OP_CLEAR;
   case RvkPassLoad_Preserve:
+  case RvkPassLoad_PreserveDontCheck:
     return VK_ATTACHMENT_LOAD_OP_LOAD;
   default:
     return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -206,6 +207,7 @@ static VkAttachmentLoadOp rvk_pass_attach_depth_load_op(const RvkPass* pass) {
   case RvkPassLoad_Clear:
     return VK_ATTACHMENT_LOAD_OP_CLEAR;
   case RvkPassLoad_Preserve:
+  case RvkPassLoad_PreserveDontCheck:
     return VK_ATTACHMENT_LOAD_OP_LOAD;
   default:
     return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
