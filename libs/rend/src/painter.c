@@ -621,8 +621,10 @@ static bool rend_canvas_paint(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
 
     RvkSize   size = fwdSize;
-    RvkImage* images[4];
-    for (u32 i = 0; i != array_elems(images); ++i) {
+    RvkImage* images[5];
+    diag_assert(set->bloomSteps <= array_elems(images));
+
+    for (u32 i = 0; i != set->bloomSteps; ++i) {
       size      = rvk_size_scale(size, 0.5f);
       images[i] = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, size);
     }
@@ -633,7 +635,7 @@ static bool rend_canvas_paint(
     } bloomData = {.filterRadius = set->bloomRadius};
 
     // Render down samples.
-    for (u32 i = 0; i != array_elems(images); ++i) {
+    for (u32 i = 0; i != set->bloomSteps; ++i) {
       rvk_pass_stage_global_image(bloomPass, i == 0 ? fwdColor : images[i - 1], 0);
       rvk_pass_stage_attach_color(bloomPass, images[i], 0);
       painter_push_simple(&ctx, RvkRepositoryId_BloomDownGraphic, mem_empty);
@@ -643,7 +645,7 @@ static bool rend_canvas_paint(
     }
 
     // Render up samples.
-    for (u32 i = array_elems(images); i-- > 1;) {
+    for (u32 i = set->bloomSteps; i-- > 1;) {
       rvk_pass_stage_global_image(bloomPass, images[i], 0);
       rvk_pass_stage_attach_color(bloomPass, images[i - 1], 0);
       painter_push_simple(&ctx, RvkRepositoryId_BloomUpGraphic, mem_var(bloomData));
@@ -654,7 +656,7 @@ static bool rend_canvas_paint(
 
     // Keep the largest image as the output, release the others.
     bloomOutput = images[0];
-    for (u32 i = 1; i != array_elems(images); ++i) {
+    for (u32 i = 1; i != set->bloomSteps; ++i) {
       rvk_canvas_attach_release(painter->canvas, images[i]);
     }
   }

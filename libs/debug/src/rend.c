@@ -62,6 +62,7 @@ static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Pow
 static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
 static const String g_tooltipExposure         = string_static("Multiplier over the hdr output before tone-mapping.");
 static const String g_tooltipTonemapper       = string_static("Tone-mapper to map the hdr output to sdr.");
+static const String g_tooltipBloomSteps       = string_static("Amount of bloom blur steps to use.");
 static const String g_tooltipBloomRadius      = string_static("Filter radius to use during the up-sample phase of the bloom blurring.");
 
 // clang-format on
@@ -818,6 +819,14 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
       g_tonemapperNames,
       array_elems(g_tonemapperNames),
       .tooltip = g_tooltipTonemapper);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom steps"));
+  ui_table_next_column(canvas, &table);
+  f32 blSteps = (f32)settings->bloomSteps;
+  if (ui_slider(canvas, &blSteps, .min = 1, .max = 5, .step = 1, .tooltip = g_tooltipBloomSteps)) {
+    settings->bloomSteps = (u32)blSteps;
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom radius"));
