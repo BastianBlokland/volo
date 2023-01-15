@@ -8,6 +8,7 @@ const String g_rendPassNames[] = {
     string_static("post"),
     string_static("shadow"),
     string_static("ambient-occlusion"),
+    string_static("bloom"),
 };
 ASSERT(array_elems(g_rendPassNames) == RendPass_Count, "Incorrect number of names");
 

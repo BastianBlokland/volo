@@ -318,6 +318,7 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       {st->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
       {st->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
       {st->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
+      {st->gpuPassFrac[RendPass_Bloom], ui_color(0, 0, 255, 178)},
       {st->gpuPassFrac[RendPass_Post], ui_color(128, 0, 0, 178)},
       {otherFrac, ui_color(128, 128, 128, 178)},
   };
@@ -327,15 +328,17 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       "\a~purple\a.bShadow\ar:           {>7}\n"
       "\a~orange\a.bAmbientOcclusion\ar: {>7}\n"
       "\a~green\a.bForward\ar:          {>7}\n"
+      "\a~blue\a.bBloom\ar:            {>7}\n"
       "\a~maroon\a.bPost\ar:             {>7}\n"
       "\a.bTotal\ar:            {>7}",
       fmt_duration(rendSt->passes[RendPass_Geometry].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Shadow].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_AmbientOcclusion].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Forward].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendSt->passes[RendPass_Bloom].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Post].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
-    // clang-format off
+  // clang-format off
 
   stats_draw_chart(canvas, entries, array_elems(entries), tooltip);
 
