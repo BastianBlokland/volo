@@ -22,26 +22,21 @@ struct sRvkStatRecorder {
   ThreadMutex          retrieveResultsMutex;
   VkQueryPool          vkQueryPool;
   RvkStatRecorderFlags flags;
-  u64                  results[RvkStatMeta_CountTotal];
+  u64                  results[RvkStat_Count];
 };
-
-MAYBE_UNUSED static bool rvk_statrecorder_is_manual(const RvkStat stat) {
-  return stat >= RvkStatMeta_CountAuto;
-}
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {
       .sType              = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
       .queryType          = VK_QUERY_TYPE_PIPELINE_STATISTICS,
-      .queryCount         = RvkStatMeta_CountAuto,
+      .queryCount         = 1,
       .pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT,
   };
 
-  diag_assert(
-      bitset_count(bitset_from_var(createInfo.pipelineStatistics)) == RvkStatMeta_CountAuto);
+  diag_assert(bitset_count(bitset_from_var(createInfo.pipelineStatistics)) == RvkStat_Count);
 
   VkQueryPool result;
   rvk_call(vkCreateQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
@@ -61,7 +56,7 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
         sizeof(u64),
         VK_QUERY_RESULT_64_BIT);
     if (vkQueryRes == VK_NOT_READY) {
-      mem_set(mem_create(sr->results, RvkStatMeta_CountAuto * sizeof(u64)), 0);
+      mem_set(array_mem(sr->results), 0);
     } else {
       rvk_check(string_lit("vkGetQueryPoolResults"), vkQueryRes);
     }
@@ -101,7 +96,7 @@ bool rvk_statrecorder_is_supported(const RvkStatRecorder* sr) {
 
 void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStatMeta_CountAuto);
+    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStat_Count);
   }
   mem_set(mem_var(sr->results), 0);
   sr->flags &= ~RvkStatRecorder_HasResults;
@@ -123,15 +118,6 @@ u64 rvk_statrecorder_query(const RvkStatRecorder* sr, const RvkStat stat) {
   }
 
   return sr->results[stat];
-}
-
-void rvk_statrecorder_report(RvkStatRecorder* sr, const RvkStat stat, const u32 count) {
-  diag_assert(rvk_statrecorder_is_manual(stat));
-  /**
-   * NOTE: This adding using a signed atomic operation is hacky but at the moment we don't have u64
-   * atomic apis. It will work okay as long as we don't overflow i64_max.
-   */
-  thread_atomic_add_i64((i64*)&sr->results[stat], (i64)count);
 }
 
 void rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
