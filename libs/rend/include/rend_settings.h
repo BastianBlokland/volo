@@ -9,10 +9,11 @@ typedef enum {
   RendFlags_FrustumCulling       = 1 << 0,
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
-  RendFlags_Wireframe            = 1 << 3,
-  RendFlags_DebugCamera          = 1 << 4,
-  RendFlags_DebugSkinning        = 1 << 5,
-  RendFlags_DebugShadow          = 1 << 6,
+  RendFlags_Bloom                = 1 << 3,
+  RendFlags_Wireframe            = 1 << 4,
+  RendFlags_DebugCamera          = 1 << 5,
+  RendFlags_DebugSkinning        = 1 << 6,
+  RendFlags_DebugShadow          = 1 << 7,
 } RendFlags;
 
 typedef enum {

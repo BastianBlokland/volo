@@ -821,6 +821,11 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
       .tooltip = g_tooltipTonemapper);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Bloom);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom steps"));
   ui_table_next_column(canvas, &table);
   f32 blSteps = (f32)settings->bloomSteps;

@@ -615,7 +615,7 @@ static bool rend_canvas_paint(
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
   RvkImage* bloomOutput;
-  {
+  if (set->flags & RendFlags_Bloom) {
     // TODO: 'RendPaintContext' is too heavy weight, we don't need any global data here.
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
@@ -659,6 +659,9 @@ static bool rend_canvas_paint(
     for (u32 i = 1; i != set->bloomSteps; ++i) {
       rvk_canvas_attach_release(painter->canvas, images[i]);
     }
+  } else {
+    bloomOutput = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, (RvkSize){1, 1});
+    rvk_canvas_img_clear_color(painter->canvas, bloomOutput, geo_color_white);
   }
 
   // Post pass.

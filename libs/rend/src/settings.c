@@ -21,7 +21,8 @@ ecs_module_init(rend_settings_module) {
 }
 
 void rend_settings_to_default(RendSettingsComp* s) {
-  s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion | RendFlags_AmbientOcclusionBlur;
+  s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion |
+             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom;
   s->presentMode       = RendPresentMode_VSyncRelaxed;
   s->ambientMode       = RendAmbientMode_Normal;
   s->exposure          = 1.0f;
