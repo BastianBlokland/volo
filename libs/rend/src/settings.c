@@ -27,14 +27,14 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->ambientMode       = RendAmbientMode_Normal;
   s->exposure          = 1.0f;
   s->tonemapper        = RendTonemapper_LinearSmooth;
-  s->resolutionScale   = 0.75f;
+  s->resolutionScale   = 1.0f;
   s->aoAngle           = 85 * math_deg_to_rad;
   s->aoRadius          = 0.1f;
   s->aoRadiusPower     = 3.0f;
   s->aoPower           = 3.0f;
   s->aoResolutionScale = 0.75f;
   s->shadowResolution  = 2048;
-  s->bloomIntensity    = 0.05f;
+  s->bloomIntensity    = 0.04f;
   s->bloomSteps        = 3;
   s->bloomRadius       = 0.0035f;
 

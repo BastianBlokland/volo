@@ -623,7 +623,7 @@ static bool rend_canvas_paint(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
 
     RvkSize   size = fwdSize;
-    RvkImage* images[5];
+    RvkImage* images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
 
     for (u32 i = 0; i != set->bloomSteps; ++i) {

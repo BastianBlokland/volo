@@ -834,7 +834,7 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_label(canvas, string_lit("Bloom steps"));
   ui_table_next_column(canvas, &table);
   f32 blSteps = (f32)settings->bloomSteps;
-  if (ui_slider(canvas, &blSteps, .min = 1, .max = 5, .step = 1, .tooltip = g_tooltipBloomSteps)) {
+  if (ui_slider(canvas, &blSteps, .min = 1, .max = 6, .step = 1, .tooltip = g_tooltipBloomSteps)) {
     settings->bloomSteps = (u32)blSteps;
   }
 
