@@ -671,7 +671,8 @@ static bool rend_canvas_paint(
       painter_set_debug_camera(&ctx);
     }
     rvk_pass_stage_global_data(postPass, mem_var(ctx.data));
-    rvk_pass_stage_global_image(postPass, bloomOutput, 0);
+    rvk_pass_stage_global_image(postPass, fwdColor, 0);
+    rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_push_tonemapping(&ctx);
