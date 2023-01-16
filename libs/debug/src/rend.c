@@ -826,6 +826,11 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Bloom);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom intensity"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->bloomIntensity);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom steps"));
   ui_table_next_column(canvas, &table);
   f32 blSteps = (f32)settings->bloomSteps;
@@ -836,12 +841,10 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom radius"));
   ui_table_next_column(canvas, &table);
-  ui_slider(
-      canvas,
-      &settings->bloomRadius,
-      .min     = 0.0005f,
-      .max     = 0.05f,
-      .tooltip = g_tooltipBloomRadius);
+  f32 blRadius = settings->bloomRadius * 1e3f;
+  if (ui_slider(canvas, &blRadius, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipBloomRadius)) {
+    settings->bloomRadius = blRadius * 1e-3f;
+  }
 }
 
 static void rend_panel_draw(

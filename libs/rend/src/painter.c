@@ -340,11 +340,13 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
     ALIGNAS(16)
     f32 exposure;
     u32 mode;
+    f32 bloomIntensity;
   } TonemapperData;
 
   TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
   data->exposure       = ctx->settings->exposure;
   data->mode           = ctx->settings->tonemapper;
+  data->bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
 
   painter_push_simple(
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
@@ -615,7 +617,7 @@ static bool rend_canvas_paint(
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
   RvkImage* bloomOutput;
-  if (set->flags & RendFlags_Bloom) {
+  if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     // TODO: 'RendPaintContext' is too heavy weight, we don't need any global data here.
     RendPaintContext ctx = painter_context(
         &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
