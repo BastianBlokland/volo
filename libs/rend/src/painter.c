@@ -470,9 +470,13 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
 }
 
 static void painter_flush(RendPaintContext* ctx) {
-  dynarray_sort(&ctx->painter->drawBuffer, painter_compare_pass_draw);
-  dynarray_for_t(&ctx->painter->drawBuffer, RvkPassDraw, draw) { rvk_pass_draw(ctx->pass, draw); }
-  dynarray_clear(&ctx->painter->drawBuffer);
+  rvk_pass_begin(ctx->pass);
+  {
+    dynarray_sort(&ctx->painter->drawBuffer, painter_compare_pass_draw);
+    dynarray_for_t(&ctx->painter->drawBuffer, RvkPassDraw, draw) { rvk_pass_draw(ctx->pass, draw); }
+    dynarray_clear(&ctx->painter->drawBuffer);
+  }
+  rvk_pass_end(ctx->pass);
 }
 
 static bool rend_canvas_paint(
@@ -520,9 +524,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(geoPass, geoNormTags, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
-    rvk_pass_begin(geoPass);
     painter_flush(&ctx);
-    rvk_pass_end(geoPass);
   }
 
   // Shadow pass.
@@ -539,9 +541,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_data(shadowPass, mem_var(ctx.data));
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_push_shadow(&ctx, drawView, graphicView);
-    rvk_pass_begin(shadowPass);
     painter_flush(&ctx);
-    rvk_pass_end(shadowPass);
   } else {
     rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 0);
   }
@@ -563,9 +563,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_image(aoPass, geoDepth, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
     painter_push_ambient_occlusion(&ctx);
-    rvk_pass_begin(aoPass);
     painter_flush(&ctx);
-    rvk_pass_end(aoPass);
   } else {
     rvk_canvas_img_clear_color(painter->canvas, aoBuffer, geo_color_white);
   }
@@ -603,9 +601,7 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugSkinning) {
       painter_push_debugskinning(&ctx, drawView, graphicView);
     }
-    rvk_pass_begin(fwdPass);
     painter_flush(&ctx);
-    rvk_pass_end(fwdPass);
   }
 
   rvk_canvas_attach_release(painter->canvas, geoColorRough);
@@ -641,9 +637,7 @@ static bool rend_canvas_paint(
       rvk_pass_stage_global_image(bloomPass, i == 0 ? fwdColor : images[i - 1], 0);
       rvk_pass_stage_attach_color(bloomPass, images[i], 0);
       painter_push_simple(&ctx, RvkRepositoryId_BloomDownGraphic, mem_empty);
-      rvk_pass_begin(bloomPass);
       painter_flush(&ctx);
-      rvk_pass_end(bloomPass);
     }
 
     // Render up samples.
@@ -651,9 +645,7 @@ static bool rend_canvas_paint(
       rvk_pass_stage_global_image(bloomPass, images[i], 0);
       rvk_pass_stage_attach_color(bloomPass, images[i - 1], 0);
       painter_push_simple(&ctx, RvkRepositoryId_BloomUpGraphic, mem_var(bloomData));
-      rvk_pass_begin(bloomPass);
       painter_flush(&ctx);
-      rvk_pass_end(bloomPass);
     }
 
     // Keep the largest image as the output, release the others.
@@ -685,9 +677,7 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugShadow) {
       painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
     }
-    rvk_pass_begin(postPass);
     painter_flush(&ctx);
-    rvk_pass_end(postPass);
   }
 
   rvk_canvas_attach_release(painter->canvas, fwdColor);
