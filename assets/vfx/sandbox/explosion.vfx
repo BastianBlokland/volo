@@ -65,9 +65,9 @@
           "r": 1,
           "g": 0.2,
           "b": 0.05,
-          "a": 25
+          "a": 50
         },
-        "blend": "AdditiveDouble",
+        "blend": "Additive",
         "facing": "BillboardSphere",
         "size": {
           "x": 5,
