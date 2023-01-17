@@ -35,8 +35,8 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->aoResolutionScale = 0.75f;
   s->shadowResolution  = 2048;
   s->bloomIntensity    = 0.04f;
-  s->bloomSteps        = 3;
-  s->bloomRadius       = 0.0035f;
+  s->bloomSteps        = 4;
+  s->bloomRadius       = 0.003f;
 
   rend_settings_generate_ao_kernel(s);
 }
