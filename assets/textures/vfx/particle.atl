@@ -1,7 +1,7 @@
 {
-  "size": 512,
-  "entrySize": 64,
-  "entryPadding": 2,
+  "size": 1024,
+  "entrySize": 128,
+  "entryPadding": 5,
   "mipmaps": true,
   "srgb": false,
   "entries": [
@@ -11,15 +11,15 @@
     },
     {
       "name": "flash",
-      "texture": "external/vfx/flash.tga"
+      "texture": "external/vfx/flash_2.tga"
     },
     {
       "name": "flash-star",
-      "texture": "external/vfx/flash_star.tga"
+      "texture": "external/vfx/flash_star_2.tga"
     },
     {
       "name": "trail",
-      "texture": "external/vfx/trail.tga"
+      "texture": "external/vfx/trail_2.tga"
     },
     {
       "name": "smoke",
@@ -31,67 +31,67 @@
     },
     {
       "name": "fire_0",
-      "texture": "external/fire/fire_0.tga"
+      "texture": "external/fire_2/fire_0.tga"
     },
     {
       "name": "fire_1",
-      "texture": "external/fire/fire_1.tga"
+      "texture": "external/fire_2/fire_1.tga"
     },
     {
       "name": "fire_2",
-      "texture": "external/fire/fire_2.tga"
+      "texture": "external/fire_2/fire_2.tga"
     },
     {
       "name": "fire_3",
-      "texture": "external/fire/fire_3.tga"
+      "texture": "external/fire_2/fire_3.tga"
     },
     {
       "name": "fire_4",
-      "texture": "external/fire/fire_4.tga"
+      "texture": "external/fire_2/fire_4.tga"
     },
     {
       "name": "fire_5",
-      "texture": "external/fire/fire_5.tga"
+      "texture": "external/fire_2/fire_5.tga"
     },
     {
       "name": "fire_6",
-      "texture": "external/fire/fire_6.tga"
+      "texture": "external/fire_2/fire_6.tga"
     },
     {
       "name": "fire_7",
-      "texture": "external/fire/fire_7.tga"
+      "texture": "external/fire_2/fire_7.tga"
     },
     {
       "name": "fire_8",
-      "texture": "external/fire/fire_8.tga"
+      "texture": "external/fire_2/fire_8.tga"
     },
     {
       "name": "fire_9",
-      "texture": "external/fire/fire_9.tga"
+      "texture": "external/fire_2/fire_9.tga"
     },
     {
       "name": "fire_10",
-      "texture": "external/fire/fire_10.tga"
+      "texture": "external/fire_2/fire_10.tga"
     },
     {
       "name": "fire_11",
-      "texture": "external/fire/fire_11.tga"
+      "texture": "external/fire_2/fire_11.tga"
     },
     {
       "name": "fire_12",
-      "texture": "external/fire/fire_12.tga"
+      "texture": "external/fire_2/fire_12.tga"
     },
     {
       "name": "fire_13",
-      "texture": "external/fire/fire_13.tga"
+      "texture": "external/fire_2/fire_13.tga"
     },
     {
       "name": "fire_14",
-      "texture": "external/fire/fire_14.tga"
+      "texture": "external/fire_2/fire_14.tga"
     },
     {
       "name": "fire_15",
-      "texture": "external/fire/fire_15.tga"
+      "texture": "external/fire_2/fire_15.tga"
     }
   ]
 }

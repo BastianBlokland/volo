@@ -127,7 +127,7 @@
           "speed": 20,
           "damage": 250,
           "damageRadius": 3,
-          "destroyDelay": 0.5,
+          "destroyDelay": 0.75,
           "impactLifetime": 3,
           "vfxIdProjectile": "vfx/sandbox/projectile_missile.vfx",
           "vfxIdImpact": "vfx/sandbox/explosion.vfx"

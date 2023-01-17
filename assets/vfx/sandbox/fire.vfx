@@ -16,9 +16,9 @@
         "atlasEntry": "fire_0",
         "color": {
           "r": 1,
-          "g": 1,
-          "b": 1,
-          "a": 0.9
+          "g": 0.3,
+          "b": 0.1,
+          "a": 100
         },
         "blend": "Additive",
         "facing": "BillboardSphere",

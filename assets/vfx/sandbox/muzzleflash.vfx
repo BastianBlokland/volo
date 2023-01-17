@@ -2,6 +2,9 @@
   "emitters": [
     {
       "cone": {
+        "position": {
+          "y": -0.025
+        },
         "rotation": {
           "x": -90
         }
@@ -10,14 +13,14 @@
         "atlasEntry": "flash",
         "blend": "Additive",
         "size": {
-          "x": 1,
-          "y": 0.4
+          "x": 0.8,
+          "y": 0.3
         },
         "color": {
           "r": 1,
-          "g": 1,
-          "b": 0.6,
-          "a": 1.5
+          "g": 0.3,
+          "b": 0.1,
+          "a": 100
         },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125
@@ -53,6 +56,9 @@
     },
     {
       "cone": {
+        "position": {
+          "y": -0.025
+        },
         "rotation": {
           "x": -90
         }
@@ -61,14 +67,14 @@
         "atlasEntry": "flash",
         "blend": "Additive",
         "size": {
-          "x": 1,
-          "y": 0.4
+          "x": 0.8,
+          "y": 0.3
         },
         "color": {
           "r": 1,
-          "g": 1,
-          "b": 0.6,
-          "a": 1.5
+          "g": 0.3,
+          "b": 0.1,
+          "a": 100
         },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125
@@ -101,14 +107,14 @@
         "atlasEntry": "flash-star",
         "blend": "Additive",
         "size": {
-          "x": 0.6,
-          "y": 0.6
+          "x": 0.5,
+          "y": 0.5
         },
         "color": {
           "r": 1,
-          "g": 1,
-          "b": 0.6,
-          "a": 1.5
+          "g": 0.3,
+          "b": 0.1,
+          "a": 100
         },
         "fadeOutTime": 0.075,
         "scaleInTime": 0.125

@@ -58,22 +58,22 @@ if(${EXTERNAL_ASSETS})
       fence/fence_1_normal.tga
       fence/fence_1.bin
       fence/fence_1.gltf
-      fire/fire_0.tga
-      fire/fire_1.tga
-      fire/fire_10.tga
-      fire/fire_11.tga
-      fire/fire_12.tga
-      fire/fire_13.tga
-      fire/fire_14.tga
-      fire/fire_15.tga
-      fire/fire_2.tga
-      fire/fire_3.tga
-      fire/fire_4.tga
-      fire/fire_5.tga
-      fire/fire_6.tga
-      fire/fire_7.tga
-      fire/fire_8.tga
-      fire/fire_9.tga
+      fire_2/fire_0.tga
+      fire_2/fire_1.tga
+      fire_2/fire_10.tga
+      fire_2/fire_11.tga
+      fire_2/fire_12.tga
+      fire_2/fire_13.tga
+      fire_2/fire_14.tga
+      fire_2/fire_15.tga
+      fire_2/fire_2.tga
+      fire_2/fire_3.tga
+      fire_2/fire_4.tga
+      fire_2/fire_5.tga
+      fire_2/fire_6.tga
+      fire_2/fire_7.tga
+      fire_2/fire_8.tga
+      fire_2/fire_9.tga
       maynard/maynard_color_rough.tga
       maynard/maynard_nrm.tga
       maynard/maynard.bin
@@ -101,11 +101,11 @@ if(${EXTERNAL_ASSETS})
       turret/turret_missile.gltf
       turret/turret_nrm.tga
       turret/turret.bin
-      vfx/flash_star.tga
-      vfx/flash.tga
+      vfx/flash_2.tga
+      vfx/flash_star_2.tga
       vfx/rock.tga
       vfx/smoke.tga
-      vfx/trail.tga
+      vfx/trail_2.tga
     )
 endif()
 
