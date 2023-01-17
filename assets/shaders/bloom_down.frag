@@ -68,5 +68,4 @@ void main() {
   out_color += (a + c + g + i) * 0.03125;
   out_color += (b + d + f + h) * 0.0625;
   out_color += (j + k + l + m) * 0.125;
-  out_color = max(out_color, 0.0001); // Avoid fully black pixels.
 }
