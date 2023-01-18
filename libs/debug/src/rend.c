@@ -62,8 +62,10 @@ static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Pow
 static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
 static const String g_tooltipExposure         = string_static("Multiplier over the hdr output before tone-mapping.");
 static const String g_tooltipTonemapper       = string_static("Tone-mapper to map the hdr output to sdr.");
-static const String g_tooltipBloomSteps       = string_static("Amount of bloom blur steps to use.");
-static const String g_tooltipBloomRadius      = string_static("Filter radius to use during the up-sample phase of the bloom blurring.");
+static const String g_tooltipBloom            = string_static("\a.b[Bloom]\ar Enable the bloom effect.\nCauses bright pixels to 'bleed' into the surrounding pixels.");
+static const String g_tooltipBloomIntensity   = string_static("\a.b[Bloom]\ar Fraction of bloom to mix into the hdr output before tone-mapping.");
+static const String g_tooltipBloomSteps       = string_static("\a.b[Bloom]\ar Number of blur steps.\nHigher gives a larger bloom area at the expense of additional gpu time and memory.");
+static const String g_tooltipBloomRadius      = string_static("\a.b[Bloom]\ar Filter radius to use during the up-sample phase of the bloom blurring.\nToo high can result in ghosting or discontinuities in the bloom and too low requires many blur steps.");
 
 // clang-format on
 
@@ -823,12 +825,12 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Bloom);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Bloom, .tooltip = g_tooltipBloom);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom intensity"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->bloomIntensity);
+  ui_slider(canvas, &settings->bloomIntensity, .tooltip = g_tooltipBloomIntensity);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Bloom steps"));
