@@ -129,26 +129,17 @@ static RvkSize painter_win_size(const GapWindowComp* win) {
 }
 
 typedef struct {
-  ALIGNAS(16)
-  GeoMatrix view, viewInv;
-  GeoMatrix proj, projInv;
-  GeoMatrix viewProj, viewProjInv;
-  GeoVector camPosition;
-  GeoQuat   camRotation;
-  GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
-  GeoVector time;       // x: time seconds, y: real-time seconds, z, w: unused.
-} RendPainterGlobalData;
-
-ASSERT(sizeof(RendPainterGlobalData) == 448, "Size needs to match the size defined in glsl");
-
-typedef struct {
   RendPainterComp*              painter;
-  RvkPass*                      pass;
   const RendSettingsComp*       settings;
   const RendSettingsGlobalComp* settingsGlobal;
-  RendPainterGlobalData         data;
+  RvkPass*                      pass;
   RendView                      view;
 } RendPaintContext;
+
+typedef enum {
+  RendViewType_Main,
+  RendViewType_Shadow,
+} RendViewType;
 
 static RendPaintContext painter_context(
     const GeoMatrix*              cameraMatrix,
@@ -158,58 +149,73 @@ static RendPaintContext painter_context(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
-    const SceneTimeComp*          time,
-    RvkPass*                      pass,
-    const RvkSize                 size) {
+    RvkPass*                      pass) {
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
   const GeoVector cameraPosition = geo_matrix_to_translation(cameraMatrix);
-  const GeoQuat   cameraRotation = geo_matrix_to_quat(cameraMatrix);
 
   return (RendPaintContext){
       .painter        = painter,
       .settings       = settings,
       .settingsGlobal = settingsGlobal,
       .pass           = pass,
-      .data =
-          {
-              .view         = viewMatrix,
-              .viewInv      = *cameraMatrix,
-              .proj         = *projMatrix,
-              .projInv      = geo_matrix_inverse(projMatrix),
-              .viewProj     = viewProjMatrix,
-              .viewProjInv  = geo_matrix_inverse(&viewProjMatrix),
-              .camPosition  = cameraPosition,
-              .camRotation  = cameraRotation,
-              .resolution.x = size.width,
-              .resolution.y = size.height,
-              .resolution.z = (f32)size.width / (f32)size.height,
-              .time.x       = scene_time_seconds(time),
-              .time.y       = scene_real_time_seconds(time),
-          },
       .view = rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter),
   };
 }
 
-static void painter_set_debug_camera(RendPaintContext* ctx) {
-  static const f32 g_size     = 300;
-  static const f32 g_depthMin = -200;
-  static const f32 g_depthMax = 200;
+static void painter_stage_global_data(
+    RendPaintContext*    ctx,
+    const GeoMatrix*     cameraMatrix,
+    const GeoMatrix*     projMatrix,
+    const RvkSize        size,
+    const SceneTimeComp* time,
+    const RendViewType   viewType) {
+  const f32 aspect = (f32)size.width / (f32)size.height;
 
-  const f32       aspect  = ctx->data.resolution.z;
-  const GeoMatrix camMat  = geo_matrix_rotate_x(math_pi_f32 * 0.5f);
-  const GeoMatrix viewMat = geo_matrix_inverse(&camMat);
-  const GeoMatrix projMat = geo_matrix_proj_ortho(g_size, g_size / aspect, g_depthMin, g_depthMax);
-  const GeoMatrix viewProjMat = geo_matrix_mul(&projMat, &viewMat);
+  typedef struct {
+    ALIGNAS(16)
+    GeoMatrix view, viewInv;
+    GeoMatrix proj, projInv;
+    GeoMatrix viewProj, viewProjInv;
+    GeoVector camPosition;
+    GeoQuat   camRotation;
+    GeoVector resolution; // x: width, y: height, z: aspect ratio (width / height), w: unused.
+    GeoVector time;       // x: time seconds, y: real-time seconds, z, w: unused.
+  } RendPainterGlobalData;
+  ASSERT(sizeof(RendPainterGlobalData) == 448, "Size needs to match the size defined in glsl");
 
-  ctx->data.view        = viewMat;
-  ctx->data.viewInv     = camMat;
-  ctx->data.proj        = projMat;
-  ctx->data.projInv     = geo_matrix_inverse(&projMat);
-  ctx->data.viewProj    = viewProjMat;
-  ctx->data.viewProjInv = geo_matrix_inverse(&viewProjMat);
-  ctx->data.camPosition = geo_vector(0, 0, 0);
-  ctx->data.camRotation = geo_quat_forward_to_down;
+  RendPainterGlobalData data = {
+      .resolution.x = size.width,
+      .resolution.y = size.height,
+      .resolution.z = aspect,
+      .time.x       = scene_time_seconds(time),
+      .time.y       = scene_real_time_seconds(time),
+  };
+
+  if (viewType == RendViewType_Main && ctx->settings->flags & RendFlags_DebugCamera) {
+    static const f32 g_size     = 300;
+    static const f32 g_depthMin = -200;
+    static const f32 g_depthMax = 200;
+
+    data.viewInv     = geo_matrix_rotate_x(math_pi_f32 * 0.5f);
+    data.view        = geo_matrix_inverse(&data.viewInv);
+    data.proj        = geo_matrix_proj_ortho(g_size, g_size / aspect, g_depthMin, g_depthMax);
+    data.projInv     = geo_matrix_inverse(&data.proj);
+    data.viewProj    = geo_matrix_mul(&data.proj, &data.view);
+    data.viewProjInv = geo_matrix_inverse(&data.viewProj);
+    data.camPosition = geo_vector(0, 0, 0);
+    data.camRotation = geo_quat_forward_to_down;
+  } else {
+    data.view        = geo_matrix_inverse(cameraMatrix);
+    data.viewInv     = *cameraMatrix;
+    data.proj        = *projMatrix;
+    data.projInv     = geo_matrix_inverse(projMatrix);
+    data.viewProj    = geo_matrix_mul(&data.proj, &data.view);
+    data.viewProjInv = geo_matrix_inverse(&data.viewProj);
+    data.camPosition = geo_matrix_to_translation(cameraMatrix);
+    data.camRotation = geo_matrix_to_quat(cameraMatrix);
+  }
+  rvk_pass_stage_global_data(ctx->pass, mem_var(data));
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
@@ -514,15 +520,12 @@ static bool rend_canvas_paint(
   RvkImage* geoDepth      = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
   SceneTags geoTagMask;
   {
-    RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, geoPass, geoSize);
-    if (set->flags & RendFlags_DebugCamera) {
-      painter_set_debug_camera(&ctx);
-    }
-    rvk_pass_stage_global_data(geoPass, mem_var(ctx.data));
+    RendPaintContext ctx =
+        painter_context(&camMat, &projMat, camEntity, filter, painter, set, setGlobal, geoPass);
     rvk_pass_stage_attach_color(geoPass, geoColorRough, 0);
     rvk_pass_stage_attach_color(geoPass, geoNormTags, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
+    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   }
@@ -536,10 +539,10 @@ static bool rend_canvas_paint(
   if (rend_light_has_shadow(light)) {
     const GeoMatrix* sTrans = rend_light_shadow_trans(light);
     const GeoMatrix* sProj  = rend_light_shadow_proj(light);
-    RendPaintContext ctx    = painter_context(
-        sTrans, sProj, camEntity, filter, painter, set, setGlobal, time, shadowPass, shadowSize);
-    rvk_pass_stage_global_data(shadowPass, mem_var(ctx.data));
+    RendPaintContext ctx =
+        painter_context(sTrans, sProj, camEntity, filter, painter, set, setGlobal, shadowPass);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
+    painter_stage_global_data(&ctx, sTrans, sProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   } else {
@@ -553,15 +556,12 @@ static bool rend_canvas_paint(
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
-    RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, aoPass, aoSize);
-    if (set->flags & RendFlags_DebugCamera) {
-      painter_set_debug_camera(&ctx);
-    }
-    rvk_pass_stage_global_data(aoPass, mem_var(ctx.data));
+    RendPaintContext ctx =
+        painter_context(&camMat, &projMat, camEntity, filter, painter, set, setGlobal, aoPass);
     rvk_pass_stage_global_image(aoPass, geoNormTags, 0);
     rvk_pass_stage_global_image(aoPass, geoDepth, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
+    painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
     painter_push_ambient_occlusion(&ctx);
     painter_flush(&ctx);
   } else {
@@ -576,12 +576,9 @@ static bool rend_canvas_paint(
   {
     rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
-    RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, fwdPass, fwdSize);
-    if (set->flags & RendFlags_DebugCamera) {
-      painter_set_debug_camera(&ctx);
-    }
-    rvk_pass_stage_global_data(fwdPass, mem_var(ctx.data));
+    RendPaintContext ctx =
+        painter_context(&camMat, &projMat, camEntity, filter, painter, set, setGlobal, fwdPass);
+
     rvk_pass_stage_global_image(fwdPass, geoColorRough, 0);
     rvk_pass_stage_global_image(fwdPass, geoNormTags, 1);
     rvk_pass_stage_global_image(fwdPass, geoDepth, 2);
@@ -589,6 +586,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_shadow(fwdPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_stage_attach_depth(fwdPass, fwdDepth);
+    painter_stage_global_data(&ctx, &camMat, &projMat, fwdSize, time, RendViewType_Main);
     painter_push_ambient(&ctx);
     painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic, mem_empty);
     if (geoTagMask & SceneTags_Outline) {
@@ -615,8 +613,8 @@ static bool rend_canvas_paint(
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     // TODO: 'RendPaintContext' is too heavy weight, we don't need any global data here.
-    RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, bloomPass, fwdSize);
+    RendPaintContext ctx =
+        painter_context(&camMat, &projMat, camEntity, filter, painter, set, setGlobal, bloomPass);
 
     RvkSize   size = fwdSize;
     RvkImage* images[6];
@@ -662,16 +660,14 @@ static bool rend_canvas_paint(
   const RvkSize postSize = swapchainSize;
   RvkPass*      postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   {
-    RendPaintContext ctx = painter_context(
-        &camMat, &projMat, camEntity, filter, painter, set, setGlobal, time, postPass, postSize);
-    if (set->flags & RendFlags_DebugCamera) {
-      painter_set_debug_camera(&ctx);
-    }
-    rvk_pass_stage_global_data(postPass, mem_var(ctx.data));
+    RendPaintContext ctx =
+        painter_context(&camMat, &projMat, camEntity, filter, painter, set, setGlobal, postPass);
+
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
+    painter_stage_global_data(&ctx, &camMat, &projMat, postSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
