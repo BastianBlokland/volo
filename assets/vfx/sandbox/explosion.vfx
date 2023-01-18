@@ -17,9 +17,9 @@
         "atlasEntry": "fire_0",
         "color": {
           "r": 1,
-          "g": 1,
-          "b": 1,
-          "a": 0.9
+          "g": 0.2,
+          "b": 0.05,
+          "a": 75
         },
         "blend": "Additive",
         "facing": "BillboardSphere",
@@ -35,8 +35,8 @@
         "scaleOutTime": 0.3
       },
       "speed": {
-        "min": 4.5,
-        "max": 5.5
+        "min": 2.5,
+        "max": 3.5
       },
       "scale": {
         "min": 0.5,
@@ -63,15 +63,15 @@
         "atlasEntry": "glow",
         "color": {
           "r": 1,
-          "g": 0.5,
-          "b": 0.1,
-          "a": 1
+          "g": 0.2,
+          "b": 0.05,
+          "a": 50
         },
-        "blend": "AdditiveDouble",
+        "blend": "Additive",
         "facing": "BillboardSphere",
         "size": {
-          "x": 10,
-          "y": 10
+          "x": 5,
+          "y": 5
         },
         "fadeOutTime": 0.2,
         "fadeInTime": 0.05,

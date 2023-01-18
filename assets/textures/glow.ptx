@@ -1,7 +1,7 @@
 {
   "type": "Circle",
   "channels": 1,
-  "size": 64,
+  "size": 128,
   "frequency": 1,
   "power": 3,
   "seed": 1

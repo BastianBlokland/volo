@@ -15,7 +15,7 @@ bind_internal(0) in flat f32v3 in_position;
 bind_internal(1) in flat f32v3 in_radiance;
 bind_internal(2) in flat f32v3 in_attenuation;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 f32v3 clip_to_world(const f32v3 clipPos) {
   const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
@@ -39,5 +39,5 @@ void main() {
   surf.roughness    = colorRough.a;
   surf.metallicness = 0.0; // TODO: Support metals.
 
-  out_color = f32v4(pbr_light_point(in_radiance, in_position, in_attenuation, viewDir, surf), 1.0);
+  out_color = pbr_light_point(in_radiance, in_position, in_attenuation, viewDir, surf);
 }

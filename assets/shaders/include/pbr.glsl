@@ -25,7 +25,8 @@ f32 pbr_distribution_ggx(const f32v3 normal, const f32v3 halfDir, const f32 roug
   const f32 nom   = a2;
   const f32 denom = (normDotHalf2 * (a2 - 1.0) + 1.0);
 
-  return nom / (c_pi * denom * denom);
+  // NOTE: Minimum of 0.0001 to avoid NaN's and very bright fireflies.
+  return nom / max(c_pi * denom * denom, 0.0001);
 }
 
 f32 pbr_geometry_schlick_ggx(const f32 normDotView, const f32 roughness) {

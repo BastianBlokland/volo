@@ -15,6 +15,7 @@
   X(0xE3AE, Brush)                                                                                 \
   X(0xE412, PhotoCamera)                                                                           \
   X(0xE425, Timer)                                                                                 \
+  X(0xE429, Tune)                                                                                  \
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE518, Light)                                                                                 \
   X(0xE53B, Layers)                                                                                \

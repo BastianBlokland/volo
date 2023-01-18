@@ -60,6 +60,12 @@ static const String g_tooltipAoRadiusPow      = string_static("\a.b[SSAO]\ar Con
                                                               " > 1: Samples are distributed closer to the origin.\n");
 static const String g_tooltipAoPow            = string_static("\a.b[SSAO]\ar Power of the resulting occlusion factor, the higher the value the more occluded.");
 static const String g_tooltipAoResScale       = string_static("Fraction of the geometry render resolution to use for the occlusion buffer.");
+static const String g_tooltipExposure         = string_static("Multiplier over the hdr output before tone-mapping.");
+static const String g_tooltipTonemapper       = string_static("Tone-mapper to map the hdr output to sdr.");
+static const String g_tooltipBloom            = string_static("\a.b[Bloom]\ar Enable the bloom effect.\nCauses bright pixels to 'bleed' into the surrounding pixels.");
+static const String g_tooltipBloomIntensity   = string_static("\a.b[Bloom]\ar Fraction of bloom to mix into the hdr output before tone-mapping.");
+static const String g_tooltipBloomSteps       = string_static("\a.b[Bloom]\ar Number of blur steps.\nHigher gives a larger bloom area at the expense of additional gpu time and memory.");
+static const String g_tooltipBloomRadius      = string_static("\a.b[Bloom]\ar Filter radius to use during the up-sample phase of the bloom blurring.\nToo high can result in ghosting or discontinuities in the bloom and too low requires many blur steps.");
 
 // clang-format on
 
@@ -68,6 +74,7 @@ typedef enum {
   DebugRendTab_Draws,
   DebugRendTab_Resources,
   DebugRendTab_Light,
+  DebugRendTab_Post,
 
   DebugRendTab_Count,
 } DebugRendTab;
@@ -77,6 +84,7 @@ static const String g_rendTabNames[] = {
     string_static("Draws"),
     string_static("Resources"),
     string_static("\uE518 Light"),
+    string_static("\uE429 Post"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
@@ -687,16 +695,6 @@ static void rend_light_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Exposure"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Tonemapper"));
-  ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&settings->tonemapper, g_tonemapperNames, array_elems(g_tonemapperNames));
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sun light"));
   ui_table_next_column(canvas, &table);
   debug_widget_editor_color(canvas, &settingsGlobal->lightSunRadiance, UiWidget_Default);
@@ -804,6 +802,53 @@ static void rend_light_tab_draw(
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
 
+static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings) {
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Exposure"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->exposure, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipExposure);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Tonemapper"));
+  ui_table_next_column(canvas, &table);
+  ui_select(
+      canvas,
+      (i32*)&settings->tonemapper,
+      g_tonemapperNames,
+      array_elems(g_tonemapperNames),
+      .tooltip = g_tooltipTonemapper);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Bloom, .tooltip = g_tooltipBloom);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom intensity"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->bloomIntensity, .tooltip = g_tooltipBloomIntensity);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom steps"));
+  ui_table_next_column(canvas, &table);
+  f32 blSteps = (f32)settings->bloomSteps;
+  if (ui_slider(canvas, &blSteps, .min = 1, .max = 6, .step = 1, .tooltip = g_tooltipBloomSteps)) {
+    settings->bloomSteps = (u32)blSteps;
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Bloom radius"));
+  ui_table_next_column(canvas, &table);
+  f32 blRadius = settings->bloomRadius * 1e3f;
+  if (ui_slider(canvas, &blRadius, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipBloomRadius)) {
+    settings->bloomRadius = blRadius * 1e-3f;
+  }
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -833,6 +878,9 @@ static void rend_panel_draw(
     break;
   case DebugRendTab_Light:
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
+    break;
+  case DebugRendTab_Post:
+    rend_post_tab_draw(canvas, settings);
     break;
   }
 

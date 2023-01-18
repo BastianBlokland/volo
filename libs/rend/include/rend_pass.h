@@ -7,6 +7,7 @@ typedef enum {
   RendPass_Post,
   RendPass_Shadow,
   RendPass_AmbientOcclusion,
+  RendPass_Bloom,
 
   RendPass_Count,
 } RendPass;

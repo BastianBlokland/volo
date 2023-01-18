@@ -98,7 +98,7 @@ bool rvk_statrecorder_is_supported(const RvkStatRecorder* sr) {
 
 void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, RvkStat_Count);
+    vkCmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, rvk_statrecorder_queries_max);
   }
   sr->counter = 0;
   sr->flags &= ~RvkStatRecorder_HasResults;

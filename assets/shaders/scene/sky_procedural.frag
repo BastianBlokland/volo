@@ -6,13 +6,13 @@
 /**
  * 3 color gradient based on the y component of the world direction.
  */
-const f32v4 c_colorTop    = f32v4(0.4, 0.5, 0.8, 1);
-const f32v4 c_colorMiddle = f32v4(1.0, 0.9, 0.9, 1);
-const f32v4 c_colorBottom = f32v4(1.0, 0.85, 0.55, 1);
+const f32v3 c_colorTop    = f32v3(0.4, 0.5, 0.8);
+const f32v3 c_colorMiddle = f32v3(1.0, 0.9, 0.9);
+const f32v3 c_colorBottom = f32v3(1.0, 0.85, 0.55);
 
 bind_internal(0) in f32v3 in_worldViewDir; // NOTE: non-normalized
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32v3 out_color;
 
 void main() {
   const f32 dirY        = normalize(in_worldViewDir).y; /* -1 to 1 */

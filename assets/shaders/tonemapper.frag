@@ -7,6 +7,7 @@
 struct TonemapperData {
   f32 exposure;
   u32 mode;
+  f32 bloomIntensity;
 };
 
 const u32 c_modeLinear        = 0;
@@ -16,6 +17,7 @@ const u32 c_modeReinhardJodie = 3;
 const u32 c_modeAces          = 4;
 
 bind_global(1) uniform sampler2D u_texGeoColorRough;
+bind_global(2) uniform sampler2D u_texBloom;
 bind_draw_data(0) readonly uniform Draw { TonemapperData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -68,7 +70,9 @@ f32v3 tonemap_aces_approx(const f32v3 hdr) {
   return clamp((hdr * (a * hdr + b)) / (hdr * (c * hdr + d) + e), 0.0, 1.0);
 }
 void main() {
-  const f32v3 colorHdr = texture(u_texGeoColorRough, in_texcoord).rgb * u_draw.exposure;
+  const f32v3 colorHdrInput = texture(u_texGeoColorRough, in_texcoord).rgb;
+  const f32v3 bloomInput    = texture(u_texBloom, in_texcoord).rgb;
+  const f32v3 colorHdr = mix(colorHdrInput, bloomInput, u_draw.bloomIntensity) * u_draw.exposure;
 
   f32v3 colorSdr;
   switch (u_draw.mode) {

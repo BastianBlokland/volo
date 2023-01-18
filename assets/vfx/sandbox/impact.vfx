@@ -12,13 +12,13 @@
           "r": 1,
           "g": 0.25,
           "b": 0.1,
-          "a": 1
+          "a": 20
         },
-        "blend": "AdditiveDouble",
+        "blend": "Additive",
         "facing": "BillboardSphere",
         "size": {
-          "x": 0.7,
-          "y": 0.7
+          "x": 0.25,
+          "y": 0.25
         },
         "fadeInTime": 0.05,
         "scaleOutTime": 0.2

@@ -5,19 +5,20 @@
         "atlasEntry": "glow",
         "color": {
           "r": 1,
-          "g": 0.25,
-          "b": 0.1,
-          "a": 1
+          "g": 0.2,
+          "b": 0.05,
+          "a": 750
         },
-        "blend": "AdditiveQuad",
+        "blend": "Additive",
         "facing": "BillboardSphere",
         "size": {
-          "x": 0.75,
-          "y": 0.75
+          "x": 0.4,
+          "y": 0.4
         },
         "fadeInTime": 0.025,
+        "fadeOutTime": 0.75,
         "scaleInTime": 0.05,
-        "scaleOutTime": 0.05
+        "scaleOutTime": 0.75
       },
       "light": {
         "radiance": {
@@ -29,7 +30,7 @@
         "attenuationLinear": 0.7,
         "attenuationQuad": 5,
         "fadeInTime": 0.05,
-        "fadeOutTime": 0.05
+        "fadeOutTime": 0.75
       }
     },
     {

@@ -9,10 +9,11 @@ typedef enum {
   RendFlags_FrustumCulling       = 1 << 0,
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
-  RendFlags_Wireframe            = 1 << 3,
-  RendFlags_DebugCamera          = 1 << 4,
-  RendFlags_DebugSkinning        = 1 << 5,
-  RendFlags_DebugShadow          = 1 << 6,
+  RendFlags_Bloom                = 1 << 3,
+  RendFlags_Wireframe            = 1 << 4,
+  RendFlags_DebugCamera          = 1 << 5,
+  RendFlags_DebugSkinning        = 1 << 6,
+  RendFlags_DebugShadow          = 1 << 7,
 } RendFlags;
 
 typedef enum {
@@ -71,6 +72,9 @@ ecs_comp_extern_public(RendSettingsComp) {
   u16             shadowResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
   GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
+  f32             bloomIntensity;
+  u32             bloomSteps;
+  f32             bloomRadius;
 };
 
 typedef enum {
