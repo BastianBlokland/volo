@@ -87,6 +87,7 @@ typedef enum {
   AtxError_MismatchEncoding,
   AtxError_MismatchSize,
   AtxError_InvalidCubeMapTextureCount,
+  AtxError_InvalidDiffuseIrradianceInputType,
 
   AtxError_Count,
 } AtxError;
@@ -102,7 +103,8 @@ static String atx_error_str(const AtxError err) {
       string_static("Atx textures have different channel counts"),
       string_static("Atx textures have different encodings"),
       string_static("Atx textures have different sizes"),
-      string_static("Atx cubemap needs 6 textures"),
+      string_static("Atx cubemap / diffuse-irradiance needs 6 textures"),
+      string_static("Atx diffuse-irradiance map needs rgba 8bit input textures"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
@@ -138,6 +140,12 @@ static void atx_generate(
   const bool                 srgb     = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
   const u32                  width = textures[0]->width, height = textures[0]->height;
   u32                        layers = math_max(1, textures[0]->layers);
+
+  if (UNLIKELY(def->type == AtxType_DiffuseIrradiance && type != AssetTextureType_U8)) {
+    // TODO: Support hdr input texture for diffuse irradiance maps.
+    *err = AtxError_InvalidDiffuseIrradianceInputType;
+    return;
+  }
 
   for (usize i = 1; i != def->textures.count; ++i) {
     if (UNLIKELY(textures[i]->type != type)) {
