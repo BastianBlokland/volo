@@ -27,6 +27,7 @@ static DataMeta g_dataAtxDefMeta;
 typedef enum {
   AtxType_Array,
   AtxType_CubeMap,
+  AtxType_DiffuseIrradiance,
 } AtxType;
 
 typedef struct {
@@ -51,6 +52,7 @@ static void atx_datareg_init() {
     data_reg_enum_t(g_dataReg, AtxType);
     data_reg_const_t(g_dataReg, AtxType, Array);
     data_reg_const_t(g_dataReg, AtxType, CubeMap);
+    data_reg_const_t(g_dataReg, AtxType, DiffuseIrradiance);
 
     data_reg_struct_t(g_dataReg, AtxDef);
     data_reg_field_t(g_dataReg, AtxDef, type, t_AtxType);
@@ -112,6 +114,7 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   case AtxType_Array:
     break;
   case AtxType_CubeMap:
+  case AtxType_DiffuseIrradiance:
     flags |= AssetTextureFlags_CubeMap;
     break;
   }
@@ -159,7 +162,8 @@ static void atx_generate(
     *err = AtxError_TooManyLayers;
     return;
   }
-  if (UNLIKELY(def->type == AtxType_CubeMap && layers != 6)) {
+  const bool isCubeMap = def->type == AtxType_CubeMap || def->type == AtxType_DiffuseIrradiance;
+  if (UNLIKELY(isCubeMap && layers != 6)) {
     *err = AtxError_InvalidCubeMapTextureCount;
     return;
   }
