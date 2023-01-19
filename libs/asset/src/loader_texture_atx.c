@@ -129,6 +129,18 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   return flags;
 }
 
+static void atx_write_simple(const AtxDef* def, const AssetTextureComp** textures, Mem dest) {
+  /**
+   * Copy all pixel data to the output.
+   */
+  for (usize i = 0; i != def->textures.count; ++i) {
+    const Mem texMem = asset_texture_data(textures[i]);
+    mem_cpy(dest, texMem);
+    dest = mem_consume(dest, texMem.size);
+  }
+  diag_assert(!dest.size); // Verify we filled the entire output.
+}
+
 static void atx_generate(
     const AtxDef*            def,
     const AssetTextureComp** textures,
@@ -180,16 +192,13 @@ static void atx_generate(
   const usize textureDataSize = width * height * pixelDataSize * layers;
   const Mem   pixelsMem       = alloc_alloc(g_alloc_heap, textureDataSize, pixelDataSize);
 
-  /**
-   * Copy all pixel data to the final array texture.
-   */
-  Mem pixelWriteMem = pixelsMem;
-  for (usize i = 0; i != def->textures.count; ++i) {
-    const Mem texMem = asset_texture_data(textures[i]);
-    mem_cpy(pixelWriteMem, texMem);
-    pixelWriteMem = mem_consume(pixelWriteMem, texMem.size);
+  switch (def->type) {
+  case AtxType_Array:
+  case AtxType_CubeMap:
+  case AtxType_DiffuseIrradiance:
+    atx_write_simple(def, textures, pixelsMem);
+    break;
   }
-  diag_assert(!pixelWriteMem.size);
 
   *outTexture = (AssetTextureComp){
       .type      = type,
