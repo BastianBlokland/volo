@@ -9,6 +9,7 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_quat.h"
 #include "log_logger.h"
 
 #include "manager_internal.h"
@@ -139,6 +140,42 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   return flags;
 }
 
+struct AtxCubePoint {
+  u32 face;
+  f32 texcoordX, texcoordY;
+};
+
+static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
+  struct AtxCubePoint res;
+  float               scale;
+  const GeoVector     dirAbs = geo_vector_abs(dir);
+  if (dirAbs.z >= dirAbs.x && dirAbs.z >= dirAbs.y) {
+    res.face      = dir.z < 0.0f ? 5 : 4;
+    scale         = 0.5f / dirAbs.z;
+    res.texcoordX = dir.z < 0.0f ? -dir.x : dir.x;
+    res.texcoordY = dir.y;
+  } else if (dirAbs.y >= dirAbs.x) {
+    res.face      = dir.y < 0.0f ? 2 : 3;
+    scale         = 0.5f / dirAbs.y;
+    res.texcoordX = dir.x;
+    res.texcoordY = dir.y < 0.0f ? dir.z : -dir.z;
+  } else {
+    res.face      = dir.x < 0.0f ? 1 : 0;
+    scale         = 0.5f / dirAbs.x;
+    res.texcoordX = dir.x < 0.0 ? dir.z : -dir.z;
+    res.texcoordY = dir.y;
+  }
+  res.texcoordX = res.texcoordX * scale + 0.5f;
+  res.texcoordY = res.texcoordY * scale + 0.5f;
+  return res;
+}
+
+static AssetTexturePixelB4 atx_cube_sample_b4(const AssetTextureComp** array, GeoVector dir) {
+  struct AtxCubePoint     point       = atx_cube_lookup(dir);
+  const AssetTextureComp* faceTexture = array[point.face];
+  return asset_texture_sample_b4(faceTexture, point.texcoordX, point.texcoordY, 0);
+}
+
 /**
  * Copy all pixel data to the output.
  * NOTE: Requires all input textures as well as the output textures to have matching sizes.
@@ -171,6 +208,44 @@ static void atx_write_resample_b4(
       for (u32 x = 0; x != width; ++x) {
         const f32 xFrac                   = (x + 0.5f) * invWidth;
         *((AssetTexturePixelB4*)dest.ptr) = asset_texture_sample_b4(texture, xFrac, yFrac, 0);
+        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+      }
+    }
+  }
+  diag_assert(!dest.size); // Verify we filled the entire output.
+}
+
+/**
+ * Generate a diffuse irradiance map.
+ * NOTE: Support differently sized input and output textures.
+ */
+static void atx_write_irradiance_b4(
+    const AtxDef*            def,
+    const AssetTextureComp** textures,
+    const u32                width,
+    const u32                height,
+    Mem                      dest) {
+  const GeoQuat faceRot[] = {
+      geo_quat_forward_to_right,
+      geo_quat_forward_to_left,
+      geo_quat_forward_to_down,
+      geo_quat_forward_to_up,
+      geo_quat_forward_to_forward,
+      geo_quat_forward_to_backward,
+  };
+  const f32 invWidth  = 1.0f / width;
+  const f32 invHeight = 1.0f / height;
+  for (usize faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
+    for (u32 y = 0; y != height; ++y) {
+      const f32 yFrac = (y + 0.5f) * invHeight;
+      for (u32 x = 0; x != width; ++x) {
+        const f32 xFrac = (x + 0.5f) * invWidth;
+
+        // Compute the direction inside the unit cube for the current pixel in this face.
+        const GeoVector posLocal = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
+        const GeoVector dir      = geo_quat_rotate(faceRot[faceIdx], posLocal);
+
+        *((AssetTexturePixelB4*)dest.ptr) = atx_cube_sample_b4(textures, dir);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -246,12 +321,14 @@ static void atx_generate(
   switch (def->type) {
   case AtxType_Array:
   case AtxType_Cube:
-  case AtxType_CubeIrradiance:
     if (needsResample) {
       atx_write_resample_b4(def, textures, outWidth, outHeight, pixelsMem);
     } else {
       atx_write_simple(def, textures, pixelsMem);
     }
+    break;
+  case AtxType_CubeIrradiance:
+    atx_write_irradiance_b4(def, textures, outWidth, outHeight, pixelsMem);
     break;
   }
 
