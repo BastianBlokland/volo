@@ -29,6 +29,8 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
 #define geo_quat_forward_to_left ((GeoQuat){0, -0.7071068f, 0, 0.7071068f})
 #define geo_quat_forward_to_up ((GeoQuat){-0.7071068f, 0, 0, 0.7071068f})
 #define geo_quat_forward_to_down ((GeoQuat){0.7071068f, 0, 0, 0.7071068f})
+#define geo_quat_forward_to_forward ((GeoQuat){0, 0, 0, 1})
+#define geo_quat_forward_to_backward ((GeoQuat){0, 1, 0, 0})
 #define geo_quat_up_to_forward ((GeoQuat){0.7071068f, 0, 0, 0.7071068f})
 
 /**
