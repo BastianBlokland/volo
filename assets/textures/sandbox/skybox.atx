@@ -1,5 +1,5 @@
 {
-  "type": "CubeMap",
+  "type": "Cube",
   "mipmaps": true,
   "textures": [
     "external/skybox/teide_right.tga",

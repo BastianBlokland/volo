@@ -26,8 +26,8 @@ static DataMeta g_dataAtxDefMeta;
 
 typedef enum {
   AtxType_Array,
-  AtxType_CubeMap,
-  AtxType_DiffuseIrradiance,
+  AtxType_Cube,
+  AtxType_CubeIrradiance,
 } AtxType;
 
 typedef struct {
@@ -51,8 +51,8 @@ static void atx_datareg_init() {
     // clang-format off
     data_reg_enum_t(g_dataReg, AtxType);
     data_reg_const_t(g_dataReg, AtxType, Array);
-    data_reg_const_t(g_dataReg, AtxType, CubeMap);
-    data_reg_const_t(g_dataReg, AtxType, DiffuseIrradiance);
+    data_reg_const_t(g_dataReg, AtxType, Cube);
+    data_reg_const_t(g_dataReg, AtxType, CubeIrradiance);
 
     data_reg_struct_t(g_dataReg, AtxDef);
     data_reg_field_t(g_dataReg, AtxDef, type, t_AtxType);
@@ -86,8 +86,8 @@ typedef enum {
   AtxError_MismatchChannels,
   AtxError_MismatchEncoding,
   AtxError_MismatchSize,
-  AtxError_InvalidCubeMapTextureCount,
-  AtxError_InvalidDiffuseIrradianceInputType,
+  AtxError_InvalidCubeTextureCount,
+  AtxError_InvalidCubeIrradianceInputType,
 
   AtxError_Count,
 } AtxError;
@@ -103,8 +103,8 @@ static String atx_error_str(const AtxError err) {
       string_static("Atx textures have different channel counts"),
       string_static("Atx textures have different encodings"),
       string_static("Atx textures have different sizes"),
-      string_static("Atx cubemap / diffuse-irradiance needs 6 textures"),
-      string_static("Atx diffuse-irradiance map needs rgba 8bit input textures"),
+      string_static("Atx cube / cube-irradiance needs 6 textures"),
+      string_static("Atx cube-irradiance needs rgba 8bit input textures"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
@@ -115,8 +115,8 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   switch (def->type) {
   case AtxType_Array:
     break;
-  case AtxType_CubeMap:
-  case AtxType_DiffuseIrradiance:
+  case AtxType_Cube:
+  case AtxType_CubeIrradiance:
     flags |= AssetTextureFlags_CubeMap;
     break;
   }
@@ -153,9 +153,9 @@ static void atx_generate(
   const u32                  width = textures[0]->width, height = textures[0]->height;
   u32                        layers = math_max(1, textures[0]->layers);
 
-  if (UNLIKELY(def->type == AtxType_DiffuseIrradiance && type != AssetTextureType_U8)) {
-    // TODO: Support hdr input texture for diffuse irradiance maps.
-    *err = AtxError_InvalidDiffuseIrradianceInputType;
+  if (UNLIKELY(def->type == AtxType_CubeIrradiance && type != AssetTextureType_U8)) {
+    // TODO: Support hdr input texture for cube-irradiance maps.
+    *err = AtxError_InvalidCubeIrradianceInputType;
     return;
   }
 
@@ -182,9 +182,9 @@ static void atx_generate(
     *err = AtxError_TooManyLayers;
     return;
   }
-  const bool isCubeMap = def->type == AtxType_CubeMap || def->type == AtxType_DiffuseIrradiance;
+  const bool isCubeMap = def->type == AtxType_Cube || def->type == AtxType_CubeIrradiance;
   if (UNLIKELY(isCubeMap && layers != 6)) {
-    *err = AtxError_InvalidCubeMapTextureCount;
+    *err = AtxError_InvalidCubeTextureCount;
     return;
   }
 
@@ -194,8 +194,8 @@ static void atx_generate(
 
   switch (def->type) {
   case AtxType_Array:
-  case AtxType_CubeMap:
-  case AtxType_DiffuseIrradiance:
+  case AtxType_Cube:
+  case AtxType_CubeIrradiance:
     atx_write_simple(def, textures, pixelsMem);
     break;
   }
