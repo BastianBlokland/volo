@@ -188,9 +188,9 @@ static GeoColor atx_color_from_b4_srgb(const AssetTexturePixelB4 pixel) {
       math_pow_f32(pixel.a * g_u8MaxInv, g_gamma));
 }
 
-static GeoColor atx_color_from_cube_b4(const AssetTextureComp** array, const GeoVector dir) {
+static GeoColor atx_color_from_cube_b4(const AssetTextureComp** textures, const GeoVector dir) {
   struct AtxCubePoint       point = atx_cube_lookup(dir);
-  const AssetTextureComp*   tex   = array[point.face];
+  const AssetTextureComp*   tex   = textures[point.face];
   const AssetTexturePixelB4 pixel = asset_texture_sample_b4(tex, point.coordX, point.coordY, 0);
   return tex->flags & AssetTextureFlags_Srgb ? atx_color_from_b4_srgb(pixel)
                                              : atx_color_from_b4_linear(pixel);
@@ -248,6 +248,11 @@ static void atx_write_resample_b4(
   diag_assert(!dest.size); // Verify we filled the entire output.
 }
 
+static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const GeoVector dir) {
+  const GeoColor irradiance = atx_color_from_cube_b4(textures, dir);
+  return irradiance;
+}
+
 /**
  * Generate a diffuse irradiance map.
  * NOTE: Supports differently sized input and output textures.
@@ -258,6 +263,8 @@ static void atx_write_irradiance_b4(
     const u32                width,
     const u32                height,
     Mem                      dest) {
+  const f32     invWidth  = 1.0f / width;
+  const f32     invHeight = 1.0f / height;
   const GeoQuat faceRot[] = {
       geo_quat_forward_to_right,
       geo_quat_forward_to_left,
@@ -266,19 +273,15 @@ static void atx_write_irradiance_b4(
       geo_quat_forward_to_forward,
       geo_quat_forward_to_backward,
   };
-  const f32 invWidth  = 1.0f / width;
-  const f32 invHeight = 1.0f / height;
   for (usize faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
         const f32 xFrac = (x + 0.5f) * invWidth;
 
-        // Compute the direction inside the unit cube for the current pixel in this face.
-        const GeoVector posLocal = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
-        const GeoVector dir      = geo_quat_rotate(faceRot[faceIdx], posLocal);
-
-        const GeoColor irradiance = atx_color_from_cube_b4(textures, dir);
+        const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
+        const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
+        const GeoColor  irradiance = atx_irradiance_convolve(textures, dir);
 
         *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
