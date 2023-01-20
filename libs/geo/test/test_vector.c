@@ -56,7 +56,7 @@ spec(vector) {
         geo_vector(.x = -3, .y = -3, .z = -3));
   }
 
-  it("multiplies each component by the scalar when mutliplying") {
+  it("multiplies each component by the scalar when multiplying") {
     check_eq_vector(
         geo_vector_mul(geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8), 2),
         geo_vector(.x = 10, .y = -4.2f, .z = 12, .w = 16));
