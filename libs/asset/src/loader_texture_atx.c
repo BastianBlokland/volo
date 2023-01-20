@@ -248,9 +248,47 @@ static void atx_write_resample_b4(
   diag_assert(!dest.size); // Verify we filled the entire output.
 }
 
-static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const GeoVector dir) {
-  const GeoColor irradiance = atx_color_from_cube_b4(textures, dir);
-  return irradiance;
+/**
+ * Compute the irradiance at the given direction.
+ * Takes samples from hemisphere pointing in the given direction and combines the radiance.
+ */
+static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const GeoVector fwd) {
+  const GeoVector right = geo_vector_norm(geo_vector_cross3(geo_up, fwd));
+  const GeoVector up    = geo_vector_norm(geo_vector_cross3(fwd, right));
+
+  static const f32 g_sampleDelta = 0.1f;
+  static const f32 g_piTwo       = math_pi_f32 * 2.0f;
+  static const f32 g_piHalf      = math_pi_f32 * 0.5f;
+
+  GeoColor irradiance = geo_color(0, 0, 0, 0);
+  f32      numSamples = 0;
+  for (f32 phi = 0.0; phi < g_piTwo; phi += g_sampleDelta) {
+    const f32 cosPhi = math_cos_f32(phi);
+    const f32 sinPhi = math_sin_f32(phi);
+
+    for (f32 theta = 0.0; theta < g_piHalf; theta += g_sampleDelta) {
+      const f32 cosTheta = math_cos_f32(theta);
+      const f32 sinTheta = math_sin_f32(theta);
+
+      // Convert the spherical coordinates to cartesian coordinates in tangent space.
+      const GeoVector tangentDir = geo_vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+
+      // Convert tangent dir to world space.
+      GeoVector worldDir = geo_vector(0);
+      worldDir           = geo_vector_add(worldDir, geo_vector_mul(right, tangentDir.x));
+      worldDir           = geo_vector_add(worldDir, geo_vector_mul(up, tangentDir.y));
+      worldDir           = geo_vector_add(worldDir, geo_vector_mul(fwd, tangentDir.z));
+
+      // Sample the emitted radiance from this direction.
+      const GeoColor radiance = atx_color_from_cube_b4(textures, worldDir);
+
+      // Add the contribution of the sample.
+      irradiance = geo_color_add(irradiance, geo_color_mul(radiance, cosTheta * sinTheta));
+      ++numSamples;
+    }
+  }
+
+  return geo_color_mul(irradiance, (1.0f / numSamples) * math_pi_f32);
 }
 
 /**
