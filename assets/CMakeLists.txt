@@ -78,12 +78,12 @@ if(${EXTERNAL_ASSETS})
       maynard/maynard_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
-      skybox/teide_back.tga
-      skybox/teide_down.tga
-      skybox/teide_forward.tga
-      skybox/teide_left.tga
-      skybox/teide_right.tga
-      skybox/teide_up.tga
+      skybox/teide_small_back.tga
+      skybox/teide_small_down.tga
+      skybox/teide_small_forward.tga
+      skybox/teide_small_left.tga
+      skybox/teide_small_right.tga
+      skybox/teide_small_up.tga
       swat/swat_3.bin
       swat/swat_3.gltf
       swat/swat_color_rough.tga
