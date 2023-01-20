@@ -28,14 +28,14 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->exposure          = 1.0f;
   s->tonemapper        = RendTonemapper_LinearSmooth;
   s->resolutionScale   = 1.0f;
-  s->aoAngle           = 85 * math_deg_to_rad;
-  s->aoRadius          = 0.1f;
-  s->aoRadiusPower     = 3.0f;
-  s->aoPower           = 3.0f;
+  s->aoAngle           = 75 * math_deg_to_rad;
+  s->aoRadius          = 0.2f;
+  s->aoRadiusPower     = 3.5f;
+  s->aoPower           = 3.5f;
   s->aoResolutionScale = 0.75f;
   s->shadowResolution  = 2048;
   s->bloomIntensity    = 0.04f;
-  s->bloomSteps        = 4;
+  s->bloomSteps        = 5;
   s->bloomRadius       = 0.003f;
 
   rend_settings_generate_ao_kernel(s);
@@ -49,9 +49,9 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu | RendGlobalFlags_Verbose;
 #endif
 
-  s->lightSunRadiance = geo_color(1.0f, 0.8f, 0.6f, 4.5f);
+  s->lightSunRadiance = geo_color(1.0f, 0.8f, 0.4f, 4.5f);
   s->lightSunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(55, 15, 0), math_deg_to_rad));
-  s->lightAmbient     = 0.3f;
+  s->lightAmbient     = 1.5f;
 }
 
 void rend_settings_generate_ao_kernel(RendSettingsComp* s) {
