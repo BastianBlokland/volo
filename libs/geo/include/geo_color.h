@@ -50,6 +50,16 @@ ASSERT(sizeof(GeoColor) == 16, "GeoColor has to be 128 bits");
 GeoColor geo_color_get(u64 idx);
 
 /**
+ * Compute a color where each component is the result of adding the components of both colors.
+ */
+GeoColor geo_color_add(GeoColor a, GeoColor b);
+
+/**
+ * Compute a color where each component is the result of multiplying with the scalar.
+ */
+GeoColor geo_color_mul(GeoColor, f32 scalar);
+
+/**
  * Calculate the linearly interpolated color from x to y at time t.
  * NOTE: Does not clamp t (so can extrapolate too).
  */

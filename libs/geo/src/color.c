@@ -31,6 +31,26 @@ GeoColor geo_color_get(const u64 idx) {
   return g_colors[idx % array_elems(g_colors)];
 }
 
+GeoColor geo_color_add(const GeoColor a, const GeoColor b) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_add(simd_vec_load(a.data), simd_vec_load(b.data)), res.data);
+  return res;
+#else
+  return geo_color(a.r + b.r, a.g + b.g, a.b + b.b, a.a + b.a);
+#endif
+}
+
+GeoColor geo_color_mul(const GeoColor c, const f32 scalar) {
+#if geo_color_simd_enable
+  GeoColor res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(c.data), simd_vec_broadcast(scalar)), res.data);
+  return res;
+#else
+  return geo_color(c.r * scalar, c.g * scalar, c.b * scalar, c.a * scalar);
+#endif
+}
+
 GeoColor geo_color_lerp(const GeoColor x, const GeoColor y, const f32 t) {
 #if geo_color_simd_enable
   const SimdVec vX = simd_vec_load(x.data);
