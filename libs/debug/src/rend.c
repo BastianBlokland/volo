@@ -26,7 +26,8 @@ static const String g_tooltipLimiter          = string_static("Frame frequency l
 static const String g_tooltipFrustumCulling   = string_static("Should draws be culled if their bounds are outside of the view frustum?");
 static const String g_tooltipAmbientMode      = string_static("Controls the ambient draw in the forward pass.\n\n"
                                                             "Options:\n"
-                                                            "- \a.bNormal\ar: Geometry color is multiplied by the ambient lighting.\n\n"
+                                                            "- \a.bSolid\ar: Ambient radiance is white multiplied by the brightness.\n"
+                                                            "- \a.bDiffuseIrradiance\ar: Ambient radiance is sampled from an diffuse-irradiance map and multiplied by the brightness.\n\n"
                                                             "Debug options:\n"
                                                             "- \a.bDebugColor\ar: Geometry color output.\n"
                                                             "- \a.bDebugRoughness\ar: Geometry roughness output.\n"
@@ -143,7 +144,8 @@ static const String g_presentOptions[] = {
 };
 
 static const String g_ambientModeNames[] = {
-    string_static("Normal"),
+    string_static("Solid"),
+    string_static("DiffuseIrradiance"),
     string_static("DebugColor"),
     string_static("DebugRoughness"),
     string_static("DebugNormal"),

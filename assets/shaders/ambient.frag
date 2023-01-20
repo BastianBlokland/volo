@@ -12,12 +12,14 @@ struct AmbientData {
 
 bind_spec(0) const bool s_debug = false;
 
-const u32 c_modeDebugColor            = 1;
-const u32 c_modeDebugRoughness        = 2;
-const u32 c_modeDebugNormal           = 3;
-const u32 c_modeDebugDepth            = 4;
-const u32 c_modeDebugTags             = 5;
-const u32 c_modeDebugAmbientOcclusion = 6;
+const u32 c_modeSolid                 = 0;
+const u32 c_modeDiffuseIrradiance     = 1;
+const u32 c_modeDebugColor            = 2;
+const u32 c_modeDebugRoughness        = 3;
+const u32 c_modeDebugNormal           = 4;
+const u32 c_modeDebugDepth            = 5;
+const u32 c_modeDebugTags             = 6;
+const u32 c_modeDebugAmbientOcclusion = 7;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -27,6 +29,7 @@ bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
+bind_graphic(0) uniform samplerCube u_texDiffuseIrradiance;
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -108,8 +111,17 @@ void main() {
       discard;
     }
   } else {
-    // Main color with ambient lighting.
-    out_color = color * ambientLight * ambientOcclusion;
+    switch (mode) {
+    case c_modeSolid:
+      out_color = color * ambientLight * ambientOcclusion;
+      break;
+    case c_modeDiffuseIrradiance:
+      const f32v3 diffuseIrradiance = texture_cube(u_texDiffuseIrradiance, normal).rgb;
+      out_color                     = color * diffuseIrradiance * ambientLight * ambientOcclusion;
+      break;
+    default:
+      discard;
+    }
 
     // Additional effects.
     if (tag_is_set(tags, tag_damaged_bit)) {

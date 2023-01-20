@@ -24,7 +24,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion |
              RendFlags_AmbientOcclusionBlur | RendFlags_Bloom;
   s->presentMode       = RendPresentMode_VSyncRelaxed;
-  s->ambientMode       = RendAmbientMode_Normal;
+  s->ambientMode       = RendAmbientMode_DiffuseIrradiance;
   s->exposure          = 1.0f;
   s->tonemapper        = RendTonemapper_LinearSmooth;
   s->resolutionScale   = 1.0f;
