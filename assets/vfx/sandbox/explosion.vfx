@@ -70,8 +70,8 @@
         "blend": "Additive",
         "facing": "BillboardSphere",
         "size": {
-          "x": 5,
-          "y": 5
+          "x": 4.5,
+          "y": 4.5
         },
         "fadeOutTime": 0.2,
         "fadeInTime": 0.05,
@@ -88,10 +88,10 @@
         "attenuationLinear": 0.5,
         "attenuationQuad": 4,
         "fadeInTime": 0.1,
-        "fadeOutTime": 0.1
+        "fadeOutTime": 0.45
       },
       "lifetime": {
-        "min": 0.4
+        "min": 0.55
       }
     },
     {

@@ -56,7 +56,19 @@ f32 pbr_geometry_smith(
  * Compute the ratio of light that gets reflected over the light that gets refracted.
  */
 f32v3 pbr_fresnel_schlick(const f32 cosTheta, const f32v3 reflectance) {
-  return reflectance + (1.0 - reflectance) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+  const f32v3 r = 1.0 - reflectance;
+  return reflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+/**
+ * Compute the ratio of light that gets reflected over the light that gets refracted.
+ *
+ * Approximates fresnel attenuation based on the roughness as described in:
+ * https://seblagarde.wordpress.com/2011/08/17/hello-world/
+ */
+f32v3 pbr_fresnel_schlick_atten(const f32 cosTheta, const f32v3 reflectance, const f32 roughness) {
+  const f32v3 r = max(f32v3(1.0 - roughness), reflectance) - reflectance;
+  return reflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 struct PbrSurface {

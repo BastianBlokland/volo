@@ -3,6 +3,7 @@
 
 #include "binding.glsl"
 #include "global.glsl"
+#include "pbr.glsl"
 #include "tags.glsl"
 #include "texture.glsl"
 
@@ -12,12 +13,14 @@ struct AmbientData {
 
 bind_spec(0) const bool s_debug = false;
 
-const u32 c_modeDebugColor            = 1;
-const u32 c_modeDebugRoughness        = 2;
-const u32 c_modeDebugNormal           = 3;
-const u32 c_modeDebugDepth            = 4;
-const u32 c_modeDebugTags             = 5;
-const u32 c_modeDebugAmbientOcclusion = 6;
+const u32 c_modeSolid                 = 0;
+const u32 c_modeDiffuseIrradiance     = 1;
+const u32 c_modeDebugColor            = 2;
+const u32 c_modeDebugRoughness        = 3;
+const u32 c_modeDebugNormal           = 4;
+const u32 c_modeDebugDepth            = 5;
+const u32 c_modeDebugTags             = 6;
+const u32 c_modeDebugAmbientOcclusion = 7;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -27,6 +30,7 @@ bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
+bind_graphic(0) uniform samplerCube u_texDiffuseIrradiance;
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -57,17 +61,34 @@ f32v3 clip_to_world(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
+f32v3 ambient_solid(const PbrSurface surf, const f32 intensity) { return surf.color * intensity; }
+
+f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const f32v3 viewDir) {
+  const f32 viewDirFrac = max(dot(surf.normal, viewDir), 0.0);
+
+  const f32v3 reflectance = pbr_surf_reflectance(surf);
+  const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
+  const f32v3 irradiance  = texture_cube(u_texDiffuseIrradiance, surf.normal).rgb * intensity;
+
+  return (1.0 - fresnelFrac) * irradiance * surf.color;
+}
+
 void main() {
   const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
   const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
   const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
 
-  const f32v3 color        = colorRough.rgb;
-  const f32   roughness    = colorRough.a;
-  const u32   tags         = tags_tex_decode(normalTags.w);
-  const f32v3 clipPos      = f32v3(in_texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos     = clip_to_world(clipPos);
-  const f32v3 normal       = normal_tex_decode(normalTags.xyz);
+  const u32   tags     = tags_tex_decode(normalTags.w);
+  const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
+  const f32v3 worldPos = clip_to_world(clipPos);
+
+  PbrSurface surf;
+  surf.position     = worldPos;
+  surf.color        = colorRough.rgb;
+  surf.normal       = normal_tex_decode(normalTags.xyz);
+  surf.roughness    = colorRough.a;
+  surf.metallicness = 0.0; // TODO: Support metals.
+
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
   const u32   mode         = floatBitsToUint(u_draw.packed.y);
@@ -83,19 +104,19 @@ void main() {
   }
 
   if (s_debug) {
-    const f32 linearDepth = clip_to_view(clipPos).z;
     switch (mode) {
     case c_modeDebugColor:
-      out_color = color;
+      out_color = surf.color;
       break;
     case c_modeDebugRoughness:
-      out_color = roughness.rrr;
+      out_color = surf.roughness.rrr;
       break;
     case c_modeDebugNormal:
-      out_color = normal;
+      out_color = surf.normal;
       break;
     case c_modeDebugDepth:
       const f32 debugMaxDist = 100.0;
+      const f32 linearDepth  = clip_to_view(clipPos).z;
       out_color              = linearDepth.rrr / debugMaxDist;
       break;
     case c_modeDebugTags:
@@ -108,12 +129,22 @@ void main() {
       discard;
     }
   } else {
-    // Main color with ambient lighting.
-    out_color = color * ambientLight * ambientOcclusion;
+
+    // Ambient light.
+    switch (mode) {
+    case c_modeSolid:
+      out_color = ambient_solid(surf, ambientLight) * ambientOcclusion;
+      break;
+    case c_modeDiffuseIrradiance:
+      out_color = ambient_diff_irradiance(surf, ambientLight, viewDir) * ambientOcclusion;
+      break;
+    default:
+      discard;
+    }
 
     // Additional effects.
     if (tag_is_set(tags, tag_damaged_bit)) {
-      out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(normal, viewDir)));
+      out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(surf.normal, viewDir)));
     }
   }
 }

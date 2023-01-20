@@ -1,6 +1,8 @@
 {
-  "type": "Cube",
-  "mipmaps": true,
+  "type": "CubeIrradiance",
+  "mipmaps": false,
+  "sizeX": 16,
+  "sizeY": 16,
   "textures": [
     "external/skybox/teide_small_right.tga",
     "external/skybox/teide_small_left.tga",

@@ -279,7 +279,7 @@ struct FormatF64Exp {
 static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatOptsFloat* opts) {
 
   /**
-   * Uses binary jumps in the exponentiation, this is a reasonable compromize between the highly
+   * Uses binary jumps in the exponentiation, this is a reasonable compromise between the highly
    * inaccurate: 'just loop and keep dividing by 10' and the expensive 'log()' calculation.
    *
    * More info: https://blog.benoitblanchon.fr/lightweight-float-to-string/

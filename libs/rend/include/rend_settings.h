@@ -45,8 +45,12 @@ typedef enum {
 } RendPresentMode;
 
 typedef enum {
-  RendAmbientMode_Normal,
-  RendAmbientMode_DebugColor,
+  RendAmbientMode_Solid,
+  RendAmbientMode_DiffuseIrradiance,
+
+  // Debug modes.
+  RendAmbientMode_DebugStart,
+  RendAmbientMode_DebugColor = RendAmbientMode_DebugStart,
   RendAmbientMode_DebugRoughness,
   RendAmbientMode_DebugNormal,
   RendAmbientMode_DebugDepth,

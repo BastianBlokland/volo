@@ -7,7 +7,13 @@
       "shaderId": "shaders/ambient.frag.spv"
     }
   ],
-  "samplers": [],
+  "samplers": [
+    {
+      "textureId": "textures/sandbox/diffuse_irradiance.atx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
   "vertexCount": 3,
   "renderOrder": -100,
   "topology": "Triangles",

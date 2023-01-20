@@ -321,9 +321,9 @@ static void painter_push_ambient(RendPaintContext* ctx) {
   data->packed.y    = bits_u32_as_f32(mode);
   data->packed.z    = bits_u32_as_f32(flags);
 
-  const RvkRepositoryId graphicId = ctx->settings->ambientMode == RendAmbientMode_Normal
-                                        ? RvkRepositoryId_AmbientGraphic
-                                        : RvkRepositoryId_AmbientDebugGraphic;
+  const RvkRepositoryId graphicId = ctx->settings->ambientMode >= RendAmbientMode_DebugStart
+                                        ? RvkRepositoryId_AmbientDebugGraphic
+                                        : RvkRepositoryId_AmbientGraphic;
 
   painter_push_simple(ctx, graphicId, mem_create(data, sizeof(AmbientData)));
 }
@@ -368,7 +368,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
   ignoreFlags |= RendDrawFlags_Post;     // Ignore post (should be drawn in the post pass).
 
-  if (ctx->settings->ambientMode != RendAmbientMode_Normal) {
+  if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
     // Disable lighting when using any of the debug ambient modes.
     ignoreFlags |= RendDrawFlags_Light;
   }
