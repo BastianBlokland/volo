@@ -9,6 +9,7 @@
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_color.h"
 #include "geo_quat.h"
 #include "log_logger.h"
 
@@ -142,7 +143,7 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
 
 struct AtxCubePoint {
   u32 face;
-  f32 texcoordX, texcoordY;
+  f32 coordX, coordY;
 };
 
 static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
@@ -150,30 +151,59 @@ static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
   float               scale;
   const GeoVector     dirAbs = geo_vector_abs(dir);
   if (dirAbs.z >= dirAbs.x && dirAbs.z >= dirAbs.y) {
-    res.face      = dir.z < 0.0f ? 5 : 4;
-    scale         = 0.5f / dirAbs.z;
-    res.texcoordX = dir.z < 0.0f ? -dir.x : dir.x;
-    res.texcoordY = dir.y;
+    res.face   = dir.z < 0.0f ? 5 : 4;
+    scale      = 0.5f / dirAbs.z;
+    res.coordX = dir.z < 0.0f ? -dir.x : dir.x;
+    res.coordY = dir.y;
   } else if (dirAbs.y >= dirAbs.x) {
-    res.face      = dir.y < 0.0f ? 2 : 3;
-    scale         = 0.5f / dirAbs.y;
-    res.texcoordX = dir.x;
-    res.texcoordY = dir.y < 0.0f ? dir.z : -dir.z;
+    res.face   = dir.y < 0.0f ? 2 : 3;
+    scale      = 0.5f / dirAbs.y;
+    res.coordX = dir.x;
+    res.coordY = dir.y < 0.0f ? dir.z : -dir.z;
   } else {
-    res.face      = dir.x < 0.0f ? 1 : 0;
-    scale         = 0.5f / dirAbs.x;
-    res.texcoordX = dir.x < 0.0 ? dir.z : -dir.z;
-    res.texcoordY = dir.y;
+    res.face   = dir.x < 0.0f ? 1 : 0;
+    scale      = 0.5f / dirAbs.x;
+    res.coordX = dir.x < 0.0 ? dir.z : -dir.z;
+    res.coordY = dir.y;
   }
-  res.texcoordX = res.texcoordX * scale + 0.5f;
-  res.texcoordY = res.texcoordY * scale + 0.5f;
+  res.coordX = res.coordX * scale + 0.5f;
+  res.coordY = res.coordY * scale + 0.5f;
   return res;
 }
 
-static AssetTexturePixelB4 atx_cube_sample_b4(const AssetTextureComp** array, GeoVector dir) {
-  struct AtxCubePoint     point       = atx_cube_lookup(dir);
-  const AssetTextureComp* faceTexture = array[point.face];
-  return asset_texture_sample_b4(faceTexture, point.texcoordX, point.texcoordY, 0);
+static GeoColor atx_color_from_b4_linear(const AssetTexturePixelB4 pixel) {
+  static const f32 g_u8MaxInv = 1.0f / u8_max;
+  return geo_color(
+      pixel.r * g_u8MaxInv, pixel.g * g_u8MaxInv, pixel.b * g_u8MaxInv, pixel.a * g_u8MaxInv);
+}
+
+static GeoColor atx_color_from_b4_srgb(const AssetTexturePixelB4 pixel) {
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  static const f32 g_gamma    = 2.2f;
+  static const f32 g_u8MaxInv = 1.0f / u8_max;
+  return geo_color(
+      math_pow_f32(pixel.r * g_u8MaxInv, g_gamma),
+      math_pow_f32(pixel.g * g_u8MaxInv, g_gamma),
+      math_pow_f32(pixel.b * g_u8MaxInv, g_gamma),
+      math_pow_f32(pixel.a * g_u8MaxInv, g_gamma));
+}
+
+static GeoColor atx_color_from_cube_b4(const AssetTextureComp** array, const GeoVector dir) {
+  struct AtxCubePoint       point = atx_cube_lookup(dir);
+  const AssetTextureComp*   tex   = array[point.face];
+  const AssetTexturePixelB4 pixel = asset_texture_sample_b4(tex, point.coordX, point.coordY, 0);
+  return tex->flags & AssetTextureFlags_Srgb ? atx_color_from_b4_srgb(pixel)
+                                             : atx_color_from_b4_linear(pixel);
+}
+
+static AssetTexturePixelB4 atx_color_to_b4_linear(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
+  };
 }
 
 /**
@@ -191,7 +221,7 @@ static void atx_write_simple(const AtxDef* def, const AssetTextureComp** texture
 
 /**
  * Sample all pixels on all textures from the input textures.
- * NOTE: Support differently sized input and output textures.
+ * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_resample_b4(
     const AtxDef*            def,
@@ -202,12 +232,15 @@ static void atx_write_resample_b4(
   const f32 invWidth  = 1.0f / width;
   const f32 invHeight = 1.0f / height;
   for (usize texIndex = 0; texIndex != def->textures.count; ++texIndex) {
-    const AssetTextureComp* texture = textures[texIndex];
+    const AssetTextureComp* tex = textures[texIndex];
+    // TODO: Support input textures with multiple layers.
+    diag_assert(tex->layers == 0);
+
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
         const f32 xFrac                   = (x + 0.5f) * invWidth;
-        *((AssetTexturePixelB4*)dest.ptr) = asset_texture_sample_b4(texture, xFrac, yFrac, 0);
+        *((AssetTexturePixelB4*)dest.ptr) = asset_texture_sample_b4(tex, xFrac, yFrac, 0);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -217,7 +250,7 @@ static void atx_write_resample_b4(
 
 /**
  * Generate a diffuse irradiance map.
- * NOTE: Support differently sized input and output textures.
+ * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_irradiance_b4(
     const AtxDef*            def,
@@ -245,7 +278,9 @@ static void atx_write_irradiance_b4(
         const GeoVector posLocal = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
         const GeoVector dir      = geo_quat_rotate(faceRot[faceIdx], posLocal);
 
-        *((AssetTexturePixelB4*)dest.ptr) = atx_cube_sample_b4(textures, dir);
+        const GeoColor irradiance = atx_color_from_cube_b4(textures, dir);
+
+        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -261,7 +296,7 @@ static void atx_generate(
 
   const AssetTextureType     type     = textures[0]->type;
   const AssetTextureChannels channels = textures[0]->channels;
-  const bool                 srgb     = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
+  const bool                 inSrgb   = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
   const u32                  inWidth  = textures[0]->width;
   const u32                  inHeight = textures[0]->height;
   u32                        layers   = math_max(1, textures[0]->layers);
@@ -281,7 +316,7 @@ static void atx_generate(
       *err = AtxError_MismatchChannels;
       return;
     }
-    if (UNLIKELY(srgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
+    if (UNLIKELY(inSrgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
       *err = AtxError_MismatchEncoding;
       return;
     }
@@ -318,6 +353,7 @@ static void atx_generate(
   const usize textureDataSize = outWidth * outHeight * pixelDataSize * layers;
   const Mem   pixelsMem       = alloc_alloc(g_alloc_heap, textureDataSize, pixelDataSize);
 
+  bool outSrgb = inSrgb;
   switch (def->type) {
   case AtxType_Array:
   case AtxType_Cube:
@@ -329,13 +365,14 @@ static void atx_generate(
     break;
   case AtxType_CubeIrradiance:
     atx_write_irradiance_b4(def, textures, outWidth, outHeight, pixelsMem);
+    outSrgb = false; // Always output irradiance maps in linear encoding.
     break;
   }
 
   *outTexture = (AssetTextureComp){
       .type      = type,
       .channels  = channels,
-      .flags     = atx_texture_flags(def, srgb),
+      .flags     = atx_texture_flags(def, outSrgb),
       .pixelsRaw = pixelsMem.ptr,
       .width     = outWidth,
       .height    = outHeight,
