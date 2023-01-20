@@ -256,7 +256,7 @@ static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const
   const GeoVector right = geo_vector_norm(geo_vector_cross3(geo_up, fwd));
   const GeoVector up    = geo_vector_norm(geo_vector_cross3(fwd, right));
 
-  static const f32 g_sampleDelta = 0.1f;
+  static const f32 g_sampleDelta = 0.075f;
   static const f32 g_piTwo       = math_pi_f32 * 2.0f;
   static const f32 g_piHalf      = math_pi_f32 * 0.5f;
 
