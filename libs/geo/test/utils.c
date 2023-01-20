@@ -40,6 +40,18 @@ static bool test_vector_equal(const GeoVector a, const GeoVector b) {
   return true;
 }
 
+static bool test_color_equal(const GeoColor a, const GeoColor b) {
+  for (usize i = 0; i != 4; ++i) {
+    if (float_isnan(a.data[i]) || float_isnan(b.data[i])) {
+      return false;
+    }
+    if (math_abs(a.data[i] - b.data[i]) > test_geo_threshold) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static String test_matrix_fmt_scratch(const GeoMatrix* matrix) {
   DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
   for (usize i = 0; i != 4; ++i) {
@@ -72,5 +84,13 @@ void check_eq_vector_impl(
   if (UNLIKELY(!test_vector_equal(a, b))) {
     check_report_error(
         ctx, fmt_write_scratch("{} == {}", geo_vector_fmt(a), geo_vector_fmt(b)), src);
+  }
+}
+
+void check_eq_color_impl(
+    CheckTestContext* ctx, const GeoColor a, const GeoColor b, const SourceLoc src) {
+
+  if (UNLIKELY(!test_color_equal(a, b))) {
+    check_report_error(ctx, fmt_write_scratch("{} == {}", geo_color_fmt(a), geo_color_fmt(b)), src);
   }
 }
