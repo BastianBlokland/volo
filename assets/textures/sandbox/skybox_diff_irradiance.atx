@@ -1,6 +1,6 @@
 {
   "type": "CubeIrradiance",
-  "mipmaps": true,
+  "mipmaps": false,
   "textures": [
     "external/skybox/teide_right.tga",
     "external/skybox/teide_left.tga",
