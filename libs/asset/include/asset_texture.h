@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_color.h"
 
 typedef struct {
   u8 r;
@@ -67,9 +68,11 @@ usize asset_texture_pixel_size(const AssetTextureComp*);
 Mem   asset_texture_data(const AssetTextureComp*);
 
 /**
- * Sample the texture at the given normalized x and y coordinates.
- *
- * Pre-condition: texture.type == AssetTextureType_U8.
+ * Lookup the color of a specific pixel specified by the given index.
  */
-AssetTexturePixelB1 asset_texture_sample_b1(const AssetTextureComp*, f32 x, f32 y, u32 layer);
-AssetTexturePixelB4 asset_texture_sample_b4(const AssetTextureComp*, f32 x, f32 y, u32 layer);
+GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
+
+/**
+ * Sample the texture at the given normalized x and y coordinates.
+ */
+GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);

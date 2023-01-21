@@ -71,6 +71,102 @@ Mem asset_texture_data(const AssetTextureComp* texture) {
   return mem_create(texture->pixelsRaw, dataSize);
 }
 
+GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
+  const usize pixelCount    = tex->width * tex->height;
+  const usize layerDataSize = pixelCount * asset_texture_pixel_size(tex);
+  const void* pixels        = tex->pixelsRaw + (layerDataSize * layer);
+
+  GeoColor res;
+  switch (tex->type) {
+  // 8 bit unsigned pixels.
+  case AssetTextureType_U8: {
+    static const f32 g_u8MaxInv = 1.0f / u8_max;
+    switch (tex->channels) {
+    case AssetTextureChannels_One:
+      res.r = 1.0f;
+      res.g = 1.0f;
+      res.b = 1.0f;
+      res.a = ((AssetTexturePixelB1*)pixels)[index].r * g_u8MaxInv;
+      goto ColorDecode;
+    case AssetTextureChannels_Four:
+      res.r = ((AssetTexturePixelB4*)pixels)[index].r * g_u8MaxInv;
+      res.g = ((AssetTexturePixelB4*)pixels)[index].g * g_u8MaxInv;
+      res.b = ((AssetTexturePixelB4*)pixels)[index].b * g_u8MaxInv;
+      res.a = ((AssetTexturePixelB4*)pixels)[index].a * g_u8MaxInv;
+      goto ColorDecode;
+    }
+  }
+  // 16 bit unsigned pixels.
+  case AssetTextureType_U16: {
+    static const f32 g_u16MaxInv = 1.0f / u16_max;
+    switch (tex->channels) {
+    case AssetTextureChannels_One:
+      res.r = 1.0f;
+      res.g = 1.0f;
+      res.b = 1.0f;
+      res.a = ((AssetTexturePixelU1*)pixels)[index].r * g_u16MaxInv;
+      goto ColorDecode;
+    case AssetTextureChannels_Four:
+      res.r = ((AssetTexturePixelU4*)pixels)[index].r * g_u16MaxInv;
+      res.g = ((AssetTexturePixelU4*)pixels)[index].g * g_u16MaxInv;
+      res.b = ((AssetTexturePixelU4*)pixels)[index].b * g_u16MaxInv;
+      res.a = ((AssetTexturePixelU4*)pixels)[index].a * g_u16MaxInv;
+      goto ColorDecode;
+    }
+  }
+  // 32 bit floating point pixels.
+  case AssetTextureType_F32: {
+    switch (tex->channels) {
+    case AssetTextureChannels_One:
+      res.r = 1.0f;
+      res.g = 1.0f;
+      res.b = 1.0f;
+      res.a = ((AssetTexturePixelF1*)pixels)[index].r;
+      goto ColorDecode;
+    case AssetTextureChannels_Four:
+      res.r = ((AssetTexturePixelF4*)pixels)[index].r;
+      res.g = ((AssetTexturePixelF4*)pixels)[index].g;
+      res.b = ((AssetTexturePixelF4*)pixels)[index].b;
+      res.a = ((AssetTexturePixelF4*)pixels)[index].a;
+      goto ColorDecode;
+    }
+  }
+  case AssetTextureType_Count:
+    break;
+  }
+  UNREACHABLE
+
+ColorDecode:
+  if (tex->flags & AssetTextureFlags_Srgb) {
+    // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+    res.r = math_pow_f32(res.r, 2.2f);
+    res.g = math_pow_f32(res.g, 2.2f);
+    res.b = math_pow_f32(res.b, 2.2f);
+    res.a = math_pow_f32(res.a, 2.2f);
+  }
+  return res;
+}
+
+GeoColor asset_texture_sample(
+    const AssetTextureComp* tex, const f32 xNorm, const f32 yNorm, const u32 layer) {
+  diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
+  diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
+  diag_assert(layer < math_max(1, tex->layers));
+
+  const f32 x = xNorm * (tex->width - 1), y = yNorm * (tex->height - 1);
+
+  const f32 corner1x = math_min(tex->width - 2, math_round_down_f32(x));
+  const f32 corner1y = math_min(tex->height - 2, math_round_down_f32(y));
+  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
+
+  const GeoColor c1 = asset_texture_at(tex, layer, (usize)corner1y * tex->width + (usize)corner1x);
+  const GeoColor c2 = asset_texture_at(tex, layer, (usize)corner1y * tex->width + (usize)corner2x);
+  const GeoColor c3 = asset_texture_at(tex, layer, (usize)corner2y * tex->width + (usize)corner1x);
+  const GeoColor c4 = asset_texture_at(tex, layer, (usize)corner2y * tex->width + (usize)corner2x);
+
+  return geo_color_bilerp(c1, c2, c3, c4, x - corner1x, y - corner1y);
+}
+
 bool asset_texture_is_normalmap(const String id) {
   static const String g_patterns[] = {
       string_static("*_nrm.*"),
@@ -82,64 +178,4 @@ bool asset_texture_is_normalmap(const String id) {
     }
   }
   return false;
-}
-
-static GeoVector pixel_b4_to_vec(const AssetTexturePixelB4 p) {
-  return geo_vector(p.r, p.g, p.b, p.a);
-}
-
-static AssetTexturePixelB4 pixel_b4_from_vec(const GeoVector v) {
-  return (AssetTexturePixelB4){.r = (u8)v.x, .g = (u8)v.y, .b = (u8)v.z, .a = (u8)v.w};
-}
-
-AssetTexturePixelB1 asset_texture_sample_b1(
-    const AssetTextureComp* texture, const f32 xNorm, const f32 yNorm, const u32 layer) {
-  diag_assert(texture->type == AssetTextureType_U8);
-  diag_assert(texture->channels == AssetTextureChannels_One);
-  diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
-  diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
-  diag_assert(layer < math_max(1, texture->layers));
-
-  const usize                pixelCount    = texture->width * texture->height;
-  const usize                layerDataSize = pixelCount * sizeof(AssetTexturePixelB1);
-  const AssetTexturePixelB1* pixels        = texture->pixelsB1 + (layerDataSize * layer);
-
-  const f32 x = xNorm * (texture->width - 1), y = yNorm * (texture->height - 1);
-
-  const f32 corner1x = math_min(texture->width - 2, math_round_down_f32(x));
-  const f32 corner1y = math_min(texture->height - 2, math_round_down_f32(y));
-  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
-
-  const u8 p1 = pixels[(usize)corner1y * texture->width + (usize)corner1x].r;
-  const u8 p2 = pixels[(usize)corner1y * texture->width + (usize)corner2x].r;
-  const u8 p3 = pixels[(usize)corner2y * texture->width + (usize)corner1x].r;
-  const u8 p4 = pixels[(usize)corner2y * texture->width + (usize)corner2x].r;
-
-  const f32 tX = x - corner1x, tY = y - corner1y;
-  return (AssetTexturePixelB1){(u8)math_lerp(math_lerp(p1, p2, tX), math_lerp(p3, p4, tX), tY)};
-}
-
-AssetTexturePixelB4 asset_texture_sample_b4(
-    const AssetTextureComp* texture, const f32 xNorm, const f32 yNorm, const u32 layer) {
-  diag_assert(texture->type == AssetTextureType_U8);
-  diag_assert(texture->channels == AssetTextureChannels_Four);
-  diag_assert(xNorm >= 0.0 && xNorm <= 1.0f);
-  diag_assert(yNorm >= 0.0 && yNorm <= 1.0f);
-  diag_assert(layer < math_max(1, texture->layers));
-
-  const usize                pixelCount    = texture->width * texture->height;
-  const usize                layerDataSize = pixelCount * sizeof(AssetTexturePixelB4);
-  const AssetTexturePixelB4* pixels        = texture->pixelsB4 + (layerDataSize * layer);
-
-  const f32 x = xNorm * (texture->width - 1), y = yNorm * (texture->height - 1);
-
-  const f32 corner1x = math_min(texture->width - 2, math_round_down_f32(x));
-  const f32 corner1y = math_min(texture->height - 2, math_round_down_f32(y));
-  const f32 corner2x = corner1x + 1.0f, corner2y = corner1y + 1.0f;
-
-  const GeoVector v1 = pixel_b4_to_vec(pixels[(usize)corner1y * texture->width + (usize)corner1x]);
-  const GeoVector v2 = pixel_b4_to_vec(pixels[(usize)corner1y * texture->width + (usize)corner2x]);
-  const GeoVector v3 = pixel_b4_to_vec(pixels[(usize)corner2y * texture->width + (usize)corner1x]);
-  const GeoVector v4 = pixel_b4_to_vec(pixels[(usize)corner2y * texture->width + (usize)corner2x]);
-  return pixel_b4_from_vec(geo_vector_bilerp(v1, v2, v3, v4, x - corner1x, y - corner1y));
 }

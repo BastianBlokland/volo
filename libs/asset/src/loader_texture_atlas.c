@@ -126,26 +126,6 @@ static i8 atlas_compare_entry(const void* a, const void* b) {
       field_ptr(a, AssetAtlasEntry, name), field_ptr(b, AssetAtlasEntry, name));
 }
 
-AssetTexturePixelB4 srgb_approx_decode(const AssetTexturePixelB4 pixel) {
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 2.2f) * 255.999f),
-      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 2.2f) * 255.999f),
-      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 2.2f) * 255.999f),
-      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 2.2f) * 255.999f),
-  };
-}
-
-AssetTexturePixelB4 srgb_approx_encode(const AssetTexturePixelB4 pixel) {
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 1.0f / 2.2f) * 255.999f),
-  };
-}
-
 static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
@@ -155,6 +135,28 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
     flags |= AssetTextureFlags_Srgb;
   }
   return flags;
+}
+
+static AssetTexturePixelB4 atlas_color_to_b4_linear(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
+  };
+}
+
+static AssetTexturePixelB4 atlas_color_to_b4_srgb(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  static const f32 g_gammaInv = 1.0f / 2.2f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(math_pow_f32(color.a, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+  };
 }
 
 static void atlas_generate_entry(
@@ -174,30 +176,18 @@ static void atlas_generate_entry(
   for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
     const f32 yNorm = (entryPixelY + 0.5f) * texSizeInv;
     for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
-      const u32           layer = 0;
-      const f32           xNorm = (entryPixelX + 0.5f) * texSizeInv;
-      AssetTexturePixelB4 sample;
-      switch (texture->channels) {
-      case AssetTextureChannels_One:
-        sample = (AssetTexturePixelB4){
-            .r = 255,
-            .g = 255,
-            .b = 255,
-            .a = asset_texture_sample_b1(texture, xNorm, yNorm, layer).r};
-        break;
-      case AssetTextureChannels_Four:
-        sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
-        break;
-      }
-      if (def->srgb && !(texture->flags & AssetTextureFlags_Srgb)) {
-        sample = srgb_approx_encode(sample);
-      } else if (!def->srgb && (texture->flags & AssetTextureFlags_Srgb)) {
-        sample = srgb_approx_decode(sample);
-      }
+      const u32 layer = 0;
+      const f32 xNorm = (entryPixelX + 0.5f) * texSizeInv;
 
-      const usize texPixelY                  = texY + entryPixelY;
-      const usize texPixelX                  = texX + entryPixelX;
-      out[texPixelY * def->size + texPixelX] = sample;
+      const GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
+
+      const usize outTexPixelY = texY + entryPixelY;
+      const usize outTexPixelX = texX + entryPixelX;
+      if (def->srgb) {
+        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_srgb(color);
+      } else {
+        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_linear(color);
+      }
     }
   }
 }

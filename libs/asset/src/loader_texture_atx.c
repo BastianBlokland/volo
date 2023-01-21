@@ -171,31 +171,6 @@ static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static GeoColor atx_color_from_b4_linear(const AssetTexturePixelB4 pixel) {
-  static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return geo_color(
-      pixel.r * g_u8MaxInv, pixel.g * g_u8MaxInv, pixel.b * g_u8MaxInv, pixel.a * g_u8MaxInv);
-}
-
-static GeoColor atx_color_from_b4_srgb(const AssetTexturePixelB4 pixel) {
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  static const f32 g_gamma    = 2.2f;
-  static const f32 g_u8MaxInv = 1.0f / u8_max;
-  return geo_color(
-      math_pow_f32(pixel.r * g_u8MaxInv, g_gamma),
-      math_pow_f32(pixel.g * g_u8MaxInv, g_gamma),
-      math_pow_f32(pixel.b * g_u8MaxInv, g_gamma),
-      math_pow_f32(pixel.a * g_u8MaxInv, g_gamma));
-}
-
-static GeoColor atx_color_from_cube_b4(const AssetTextureComp** textures, const GeoVector dir) {
-  struct AtxCubePoint       point = atx_cube_lookup(dir);
-  const AssetTextureComp*   tex   = textures[point.face];
-  const AssetTexturePixelB4 pixel = asset_texture_sample_b4(tex, point.coordX, point.coordY, 0);
-  return tex->flags & AssetTextureFlags_Srgb ? atx_color_from_b4_srgb(pixel)
-                                             : atx_color_from_b4_linear(pixel);
-}
-
 static AssetTexturePixelB4 atx_color_to_b4_linear(const GeoColor color) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
   return (AssetTexturePixelB4){
@@ -204,6 +179,24 @@ static AssetTexturePixelB4 atx_color_to_b4_linear(const GeoColor color) {
       .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
       .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
   };
+}
+
+static AssetTexturePixelB4 atx_color_to_b4_srgb(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  static const f32 g_gammaInv = 1.0f / 2.2f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(math_pow_f32(color.a, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+  };
+}
+
+static GeoColor atx_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
+  struct AtxCubePoint     point = atx_cube_lookup(dir);
+  const AssetTextureComp* tex   = textures[point.face];
+  return asset_texture_sample(tex, point.coordX, point.coordY, 0);
 }
 
 /**
@@ -223,11 +216,12 @@ static void atx_write_simple(const AtxDef* def, const AssetTextureComp** texture
  * Sample all pixels on all textures from the input textures.
  * NOTE: Supports differently sized input and output textures.
  */
-static void atx_write_resample_b4(
+static void atx_write_resample(
     const AtxDef*            def,
     const AssetTextureComp** textures,
     const u32                width,
     const u32                height,
+    const bool               srgb,
     Mem                      dest) {
   const f32 invWidth  = 1.0f / width;
   const f32 invHeight = 1.0f / height;
@@ -239,9 +233,15 @@ static void atx_write_resample_b4(
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
-        const f32 xFrac                   = (x + 0.5f) * invWidth;
-        *((AssetTexturePixelB4*)dest.ptr) = asset_texture_sample_b4(tex, xFrac, yFrac, 0);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        const f32      xFrac = (x + 0.5f) * invWidth;
+        const GeoColor color = asset_texture_sample(tex, xFrac, yFrac, 0);
+
+        if (srgb) {
+          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_srgb(color);
+        } else {
+          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(color);
+        }
+        dest = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
   }
@@ -280,7 +280,7 @@ static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const
       worldDir           = geo_vector_add(worldDir, geo_vector_mul(fwd, tangentDir.z));
 
       // Sample the emitted radiance from this direction.
-      const GeoColor radiance = atx_color_from_cube_b4(textures, worldDir);
+      const GeoColor radiance = atx_sample_cube(textures, worldDir);
 
       // Add the contribution of the sample.
       irradiance = geo_color_add(irradiance, geo_color_mul(radiance, cosTheta * sinTheta));
@@ -399,7 +399,7 @@ static void atx_generate(
   case AtxType_Array:
   case AtxType_Cube:
     if (needsResample) {
-      atx_write_resample_b4(def, textures, outWidth, outHeight, pixelsMem);
+      atx_write_resample(def, textures, outWidth, outHeight, outSrgb, pixelsMem);
     } else {
       atx_write_simple(def, textures, pixelsMem);
     }
