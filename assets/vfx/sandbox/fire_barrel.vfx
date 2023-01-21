@@ -121,7 +121,8 @@
           "a": 100
         },
         "attenuationLinear": 0.7,
-        "attenuationQuad": 20
+        "attenuationQuad": 20,
+        "turbulenceFrequency": 5
       }
     }
   ]

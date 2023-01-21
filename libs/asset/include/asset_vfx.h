@@ -41,6 +41,7 @@ typedef struct {
   GeoColor     radiance;
   f32          attenuationLinear, attenuationQuad;
   TimeDuration fadeInTime, fadeOutTime;
+  f32          turbulenceFrequency; // Optional random scale turbulence.
 } AssetVfxLight;
 
 typedef struct {
