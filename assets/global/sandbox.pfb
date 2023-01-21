@@ -202,6 +202,27 @@
       ]
     },
     {
+      "name": "PropBarrel",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_barrel.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Capsule",
+            "offset": {
+              "y": 0.25
+            },
+            "radius": 0.35,
+            "height": 0.6
+          }
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {
