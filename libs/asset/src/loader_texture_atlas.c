@@ -96,8 +96,6 @@ typedef enum {
   AtlasError_SizeTooBig,
   AtlasError_EntrySizeNonPow2,
   AtlasError_EntryPaddingTooBig,
-  AtlasError_EntryTextureTypeUnsupported,
-  AtlasError_EntryTextureChannelCountUnsupported,
   AtlasError_EntryTextureLayerCountUnsupported,
 
   AtlasError_Count,
@@ -113,8 +111,6 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies a texture size larger then is supported"),
       string_static("Atlas specifies a non power-of-two entry size"),
       string_static("Atlas specifies an entry padding size that leaves no space for the texture"),
-      string_static("Atlas entry specifies texture with a non-supported type"),
-      string_static("Atlas entry specifies texture with a non-supported channel count"),
       string_static("Atlas entry specifies texture with a non-supported layer count"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
@@ -201,16 +197,6 @@ static void atlas_generate(
 
   // Validate textures.
   for (u32 i = 0; i != def->entries.count; ++i) {
-    if (UNLIKELY(textures[i]->type != AssetTextureType_U8)) {
-      *err = AtlasError_EntryTextureTypeUnsupported;
-      return;
-    }
-    if (UNLIKELY(
-            textures[i]->channels != AssetTextureChannels_One &&
-            textures[i]->channels != AssetTextureChannels_Four)) {
-      *err = AtlasError_EntryTextureChannelCountUnsupported;
-      return;
-    }
     if (UNLIKELY(textures[i]->layers > 1)) {
       *err = AtlasError_EntryTextureLayerCountUnsupported;
       return;
