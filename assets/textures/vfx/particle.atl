@@ -3,7 +3,7 @@
   "entrySize": 128,
   "entryPadding": 5,
   "mipmaps": true,
-  "srgb": false,
+  "srgb": true,
   "entries": [
     {
       "name": "glow",
