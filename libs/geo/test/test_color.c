@@ -24,6 +24,23 @@ spec(color) {
     check_eq_color(geo_color_lerp(c1, c2, .5f), c3);
   }
 
+  it("can bilinearly interpolate colors") {
+    const GeoColor c1 = geo_color(1, 2, 3, 4);
+    const GeoColor c2 = geo_color(5, 6, 7, 8);
+    const GeoColor c3 = geo_color(9, 10, 11, 12);
+    const GeoColor c4 = geo_color(13, 14, 15, 16);
+
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0, 0), c1);
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 1, 0), c2);
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0, 1), c3);
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 1, 1), c4);
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0.5, 0.5), geo_color(7, 8, 9, 10));
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0.5, 0), geo_color(3, 4, 5, 6));
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0.5, 1), geo_color(11, 12, 13, 14));
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 0, 0.5), geo_color(5, 6, 7, 8));
+    check_eq_color(geo_color_bilerp(c1, c2, c3, c4, 1, 0.5), geo_color(9, 10, 11, 12));
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_color_fmt(geo_color_white)), string_lit("1, 1, 1, 1"));

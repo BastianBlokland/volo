@@ -66,6 +66,13 @@ GeoColor geo_color_mul(GeoColor, f32 scalar);
 GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 
 /**
+ * Calculate the bilinearly interpolated color in the rectangle formed by v1, v2, v3 and v4.
+ * More info: https://en.wikipedia.org/wiki/Bilinear_interpolation
+ * NOTE: Does not clamp t (so can extrapolate too).
+ */
+GeoColor geo_color_bilerp(GeoColor v1, GeoColor v2, GeoColor v3, GeoColor v4, f32 tX, f32 tY);
+
+/**
  * Pack a color to 16 bit floats.
  */
 void geo_color_pack_f16(GeoColor, f16 out[4]);
