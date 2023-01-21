@@ -6,7 +6,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/swat.gra"
+          "graphicId": "graphics/sandbox/unit_swat.gra"
         },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -52,7 +52,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/maynard.gra"
+          "graphicId": "graphics/sandbox/unit_maynard.gra"
         },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -98,7 +98,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/turret_gun.gra"
+          "graphicId": "graphics/sandbox/unit_turret_gun.gra"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -138,7 +138,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/turret_missile.gra"
+          "graphicId": "graphics/sandbox/unit_turret_missile.gra"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -172,11 +172,11 @@
       ]
     },
     {
-      "name": "Wall",
+      "name": "PropFence",
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/fence.gra"
+          "graphicId": "graphics/sandbox/prop_fence.gra"
         },
         {
           "$type": "AssetPrefabTrait_Scale",

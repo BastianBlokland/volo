@@ -56,7 +56,7 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
 }
 
 static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
-  const StringHash wallPrefabId = string_hash_lit("Wall");
+  const StringHash fencePrefabId = string_hash_lit("PropFence");
 
   for (u32 i = 0; i != g_appWallCount; ++i) {
     const f32 posX  = rng_sample_range(rng, -100.0f, 100.0f);
@@ -66,7 +66,7 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
-            .prefabId = wallPrefabId,
+            .prefabId = fencePrefabId,
             .faction  = SceneFaction_None,
             .position = geo_vector(posX, posY, posZ),
             .rotation = geo_quat_angle_axis(geo_up, angle),
