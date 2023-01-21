@@ -163,18 +163,19 @@ static void atlas_generate_entry(
     const u32               index,
     AssetTexturePixelB4*    out) {
 
-  const u32 texY    = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
-  const u32 texX    = index * def->entrySize % def->size + def->entryPadding;
-  const u32 texSize = def->entrySize - def->entryPadding * 2;
+  const u32 texY       = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
+  const u32 texX       = index * def->entrySize % def->size + def->entryPadding;
+  const u32 texSize    = def->entrySize - def->entryPadding * 2;
+  const f32 texSizeInv = 1.0f / texSize;
 
   diag_assert(texY + texSize <= def->size);
   diag_assert(texX + texSize <= def->size);
 
   for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
+    const f32 yNorm = (entryPixelY + 0.5f) * texSizeInv;
     for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
       const u32           layer = 0;
-      const f32           xNorm = (f32)entryPixelX / (texSize - 1.0f);
-      const f32           yNorm = (f32)entryPixelY / (texSize - 1.0f);
+      const f32           xNorm = (entryPixelX + 0.5f) * texSizeInv;
       AssetTexturePixelB4 sample;
       switch (texture->channels) {
       case AssetTextureChannels_One:
