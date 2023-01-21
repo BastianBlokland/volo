@@ -219,6 +219,10 @@
             "radius": 0.35,
             "height": 0.6
           }
+        },
+        {
+          "$type": "AssetPrefabTrait_Vfx",
+          "assetId": "vfx/sandbox/fire_barrel.vfx"
         }
       ]
     },
@@ -244,28 +248,6 @@
           "maxInstances": 1000,
           "intervalMin": 0.1,
           "intervalMax": 0.2
-        }
-      ]
-    },
-    {
-      "name": "VfxFire",
-      "traits": [
-        {
-          "$type": "AssetPrefabTrait_Vfx",
-          "assetId": "vfx/sandbox/fire.vfx"
-        }
-      ]
-    },
-    {
-      "name": "VfxExplosion",
-      "traits": [
-        {
-          "$type": "AssetPrefabTrait_Vfx",
-          "assetId": "vfx/sandbox/explosion.vfx"
-        },
-        {
-          "$type": "AssetPrefabTrait_Lifetime",
-          "duration": 3
         }
       ]
     }

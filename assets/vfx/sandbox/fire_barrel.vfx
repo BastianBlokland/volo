@@ -1,0 +1,128 @@
+{
+  "emitters": [
+    {
+      "space": "World",
+      "cone": {
+        "angle": 15,
+        "radius": 0.1,
+        "position": {
+          "y": 0.75
+        },
+        "rotation": {
+          "x": -90
+        }
+      },
+      "force": {
+        "y": 1
+      },
+      "sprite": {
+        "atlasEntry": "fire_0",
+        "color": {
+          "r": 1,
+          "g": 0.3,
+          "b": 0.1,
+          "a": 125
+        },
+        "blend": "Additive",
+        "facing": "BillboardSphere",
+        "flipbookCount": 16,
+        "flipbookTime": 1.5,
+        "size": {
+          "x": 0.75,
+          "y": 0.75
+        },
+        "fadeInTime": 0.4,
+        "fadeOutTime": 0.6,
+        "scaleInTime": 0.25,
+        "scaleOutTime": 1
+      },
+      "speed": {
+        "min": 0.5,
+        "max": 1
+      },
+      "interval": 0.1,
+      "scale": {
+        "min": 0.8,
+        "max": 1.1
+      },
+      "lifetime": {
+        "min": 1,
+        "max": 1.25
+      },
+      "rotation": {
+        "random": {
+          "z": 360
+        }
+      }
+    },
+    {
+      "space": "World",
+      "cone": {
+        "angle": 10,
+        "position": {
+          "y": 0.75
+        },
+        "rotation": {
+          "x": -90
+        }
+      },
+      "force": {
+        "y": 1
+      },
+      "sprite": {
+        "atlasEntry": "smoke",
+        "color": {
+          "r": 0.1,
+          "g": 0.1,
+          "b": 0.1,
+          "a": 1
+        },
+        "blend": "Alpha",
+        "facing": "BillboardSphere",
+        "size": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "fadeInTime": 0.5,
+        "fadeOutTime": 1.1,
+        "geometryFade": true
+      },
+      "expandForce": 2,
+      "speed": {
+        "min": 0.25,
+        "max": 0.75
+      },
+      "interval": 0.45,
+      "scale": {
+        "min": 0.9,
+        "max": 1.1
+      },
+      "lifetime": {
+        "min": 1.75,
+        "max": 2.2
+      },
+      "rotation": {
+        "random": {
+          "z": 360
+        }
+      }
+    },
+    {
+      "cone": {
+        "position": {
+          "y": 1.25
+        }
+      },
+      "light": {
+        "radiance": {
+          "r": 1,
+          "g": 0.5,
+          "b": 0.2,
+          "a": 100
+        },
+        "attenuationLinear": 0.7,
+        "attenuationQuad": 20
+      }
+    }
+  ]
+}
