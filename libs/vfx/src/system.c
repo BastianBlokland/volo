@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_noise.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -409,6 +410,11 @@ static void vfx_instance_output_light(
   radiance.a *= scale;
   radiance.a *= math_min(instanceAge / (f32)light->fadeInTime, 1.0f);
   radiance.a *= math_min(timeRem / (f32)light->fadeOutTime, 1.0f);
+  if (light->turbulenceFrequency > 0.0f) {
+    // TODO: Make the turbulence scale configurable.
+    // TODO: Implement a 1d perlin noise as an optimization.
+    radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, 0, 0);
+  }
 
   rend_light_point(
       lightOutput,
