@@ -23,8 +23,8 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appWallCount  = 300;
-static const u64       g_appRngSeed    = 1337;
+static const u32       g_appPropCount  = 300;
+static const u64       g_appRngSeed    = 42;
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -55,10 +55,30 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
       isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
 }
 
-static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
-  const StringHash fencePrefabId = string_hash_lit("PropFence");
+static void app_scene_create_props(EcsWorld* world, Rng* rng) {
+  struct {
+    StringHash prefabId;
+    f32        weight;
+  } g_props[] = {
+      {string_hash_lit("PropFence"), .weight = 0.9f},
+      {string_hash_lit("PropBarrel"), .weight = 0.1f},
+  };
 
-  for (u32 i = 0; i != g_appWallCount; ++i) {
+  for (u32 instIdx = 0; instIdx != g_appPropCount; ++instIdx) {
+    /**
+     * Pick a random prop.
+     * NOTE: Weights need to be normalized.
+     */
+    f32        sample   = rng_sample_f32(rng);
+    StringHash prefabId = g_props[array_elems(g_props) - 1].prefabId;
+    for (u32 propIdx = 0; propIdx < (array_elems(g_props) - 1); ++propIdx) {
+      if (sample < g_props[propIdx].weight) {
+        prefabId = g_props[propIdx].prefabId;
+        break;
+      }
+      sample -= g_props[propIdx].weight;
+    }
+
     const f32 posX  = rng_sample_range(rng, -100.0f, 100.0f);
     const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
     const f32 posZ  = rng_sample_range(rng, -100.0f, 100.0f);
@@ -66,7 +86,7 @@ static void app_scene_create_walls(EcsWorld* world, Rng* rng) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
-            .prefabId = fencePrefabId,
+            .prefabId = prefabId,
             .faction  = SceneFaction_None,
             .position = geo_vector(posX, posY, posZ),
             .rotation = geo_quat_angle_axis(geo_up, angle),
@@ -159,7 +179,7 @@ ecs_system_define(AppUpdateSys) {
 
   // Create the scene.
   if (!app->sceneCreated) {
-    app_scene_create_walls(world, app->rng);
+    app_scene_create_props(world, app->rng);
     app_scene_create_units(world);
     app->sceneCreated = true;
   }
