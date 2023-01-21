@@ -96,8 +96,6 @@ typedef enum {
   AtlasError_SizeTooBig,
   AtlasError_EntrySizeNonPow2,
   AtlasError_EntryPaddingTooBig,
-  AtlasError_EntryTextureTypeUnsupported,
-  AtlasError_EntryTextureChannelCountUnsupported,
   AtlasError_EntryTextureLayerCountUnsupported,
 
   AtlasError_Count,
@@ -113,8 +111,6 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies a texture size larger then is supported"),
       string_static("Atlas specifies a non power-of-two entry size"),
       string_static("Atlas specifies an entry padding size that leaves no space for the texture"),
-      string_static("Atlas entry specifies texture with a non-supported type"),
-      string_static("Atlas entry specifies texture with a non-supported channel count"),
       string_static("Atlas entry specifies texture with a non-supported layer count"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
@@ -124,26 +120,6 @@ static String atlas_error_str(const AtlasError err) {
 static i8 atlas_compare_entry(const void* a, const void* b) {
   return compare_stringhash(
       field_ptr(a, AssetAtlasEntry, name), field_ptr(b, AssetAtlasEntry, name));
-}
-
-AssetTexturePixelB4 srgb_approx_decode(const AssetTexturePixelB4 pixel) {
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 2.2f) * 255.999f),
-      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 2.2f) * 255.999f),
-      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 2.2f) * 255.999f),
-      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 2.2f) * 255.999f),
-  };
-}
-
-AssetTexturePixelB4 srgb_approx_encode(const AssetTexturePixelB4 pixel) {
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 1.0f / 2.2f) * 255.999f),
-      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 1.0f / 2.2f) * 255.999f),
-  };
 }
 
 static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
@@ -157,46 +133,57 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   return flags;
 }
 
+static AssetTexturePixelB4 atlas_color_to_b4_linear(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
+  };
+}
+
+static AssetTexturePixelB4 atlas_color_to_b4_srgb(const GeoColor color) {
+  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  static const f32 g_gammaInv = 1.0f / 2.2f;
+  return (AssetTexturePixelB4){
+      .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(math_pow_f32(color.a, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+  };
+}
+
 static void atlas_generate_entry(
     const AtlasDef*         def,
     const AssetTextureComp* texture,
     const u32               index,
     AssetTexturePixelB4*    out) {
 
-  const u32 texY    = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
-  const u32 texX    = index * def->entrySize % def->size + def->entryPadding;
-  const u32 texSize = def->entrySize - def->entryPadding * 2;
+  const u32 texY       = index * def->entrySize / def->size * def->entrySize + def->entryPadding;
+  const u32 texX       = index * def->entrySize % def->size + def->entryPadding;
+  const u32 texSize    = def->entrySize - def->entryPadding * 2;
+  const f32 texSizeInv = 1.0f / texSize;
 
   diag_assert(texY + texSize <= def->size);
   diag_assert(texX + texSize <= def->size);
 
   for (u32 entryPixelY = 0; entryPixelY != texSize; ++entryPixelY) {
+    const f32 yNorm = (entryPixelY + 0.5f) * texSizeInv;
     for (u32 entryPixelX = 0; entryPixelX != texSize; ++entryPixelX) {
-      const u32           layer = 0;
-      const f32           xNorm = (f32)entryPixelX / (texSize - 1.0f);
-      const f32           yNorm = (f32)entryPixelY / (texSize - 1.0f);
-      AssetTexturePixelB4 sample;
-      switch (texture->channels) {
-      case AssetTextureChannels_One:
-        sample = (AssetTexturePixelB4){
-            .r = 255,
-            .g = 255,
-            .b = 255,
-            .a = asset_texture_sample_b1(texture, xNorm, yNorm, layer).r};
-        break;
-      case AssetTextureChannels_Four:
-        sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
-        break;
-      }
-      if (def->srgb && !(texture->flags & AssetTextureFlags_Srgb)) {
-        sample = srgb_approx_encode(sample);
-      } else if (!def->srgb && (texture->flags & AssetTextureFlags_Srgb)) {
-        sample = srgb_approx_decode(sample);
-      }
+      const u32 layer = 0;
+      const f32 xNorm = (entryPixelX + 0.5f) * texSizeInv;
 
-      const usize texPixelY                  = texY + entryPixelY;
-      const usize texPixelX                  = texX + entryPixelX;
-      out[texPixelY * def->size + texPixelX] = sample;
+      const GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
+
+      const usize outTexPixelY = texY + entryPixelY;
+      const usize outTexPixelX = texX + entryPixelX;
+      if (def->srgb) {
+        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_srgb(color);
+      } else {
+        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_linear(color);
+      }
     }
   }
 }
@@ -210,16 +197,6 @@ static void atlas_generate(
 
   // Validate textures.
   for (u32 i = 0; i != def->entries.count; ++i) {
-    if (UNLIKELY(textures[i]->type != AssetTextureType_U8)) {
-      *err = AtlasError_EntryTextureTypeUnsupported;
-      return;
-    }
-    if (UNLIKELY(
-            textures[i]->channels != AssetTextureChannels_One &&
-            textures[i]->channels != AssetTextureChannels_Four)) {
-      *err = AtlasError_EntryTextureChannelCountUnsupported;
-      return;
-    }
     if (UNLIKELY(textures[i]->layers > 1)) {
       *err = AtlasError_EntryTextureLayerCountUnsupported;
       return;

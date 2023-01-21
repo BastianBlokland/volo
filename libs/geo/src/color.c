@@ -68,6 +68,30 @@ GeoColor geo_color_lerp(const GeoColor x, const GeoColor y, const f32 t) {
 #endif
 }
 
+GeoColor geo_color_bilerp(
+    const GeoColor c1,
+    const GeoColor c2,
+    const GeoColor c3,
+    const GeoColor c4,
+    const f32      tX,
+    const f32      tY) {
+#if geo_color_simd_enable
+  const SimdVec vec1  = simd_vec_load(c1.data);
+  const SimdVec vec2  = simd_vec_load(c2.data);
+  const SimdVec vec3  = simd_vec_load(c3.data);
+  const SimdVec vec4  = simd_vec_load(c4.data);
+  const SimdVec vecTX = simd_vec_broadcast(tX);
+  const SimdVec vecTY = simd_vec_broadcast(tY);
+  const SimdVec tmp1  = simd_vec_add(vec1, simd_vec_mul(simd_vec_sub(vec2, vec1), vecTX));
+  const SimdVec tmp2  = simd_vec_add(vec3, simd_vec_mul(simd_vec_sub(vec4, vec3), vecTX));
+  GeoColor      res;
+  simd_vec_store(simd_vec_add(tmp1, simd_vec_mul(simd_vec_sub(tmp2, tmp1), vecTY)), res.data);
+  return res;
+#else
+  return geo_color_lerp(geo_color_lerp(c1, c2, tX), geo_color_lerp(c3, c4, tX), tY);
+#endif
+}
+
 void geo_color_pack_f16(const GeoColor color, f16 out[4]) {
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);
