@@ -22,8 +22,10 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
-    shaders/depth_only.frag
     shaders/depth_only_clip.frag
+    shaders/depth_only.frag
+    shaders/dyn_depth_standard_skinned.vert
+    shaders/dyn_depth_standard.vert
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
@@ -37,8 +39,6 @@ configure_shaders(volo_shaders
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
-    shaders/standard_position.vert
-    shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
