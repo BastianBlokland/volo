@@ -272,6 +272,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     if (!mesh) {
       continue; // Graphic does not have a mesh to draw a shadow for.
     }
+    if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard) {
+      continue; // TODO: Implement alpha clipped shadow graphic.
+    }
     RvkRepositoryId graphicId;
     if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
