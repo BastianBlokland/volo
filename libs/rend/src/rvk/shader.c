@@ -57,7 +57,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
-static bool rvk_shader_spec_type(RvkShader* shader, const u8 binding, AssetShaderType* out) {
+static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, AssetShaderType* out) {
   array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
       *out = spec->type;
@@ -65,6 +65,15 @@ static bool rvk_shader_spec_type(RvkShader* shader, const u8 binding, AssetShade
     }
   }
   return false;
+}
+
+static AssetShaderSpecDef rvk_shader_spec_default(const RvkShader* shader, const u8 binding) {
+  array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
+    if (spec->binding == binding) {
+      return spec->defVal;
+    }
+  }
+  return AssetShaderSpecDef_Other;
 }
 
 static usize rvk_shader_spec_size(const AssetShaderType type) {
@@ -126,14 +135,15 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
 
   *shader = (RvkShader){
-      .device     = dev,
-      .dbgName    = string_dup(g_alloc_heap, dbgName),
-      .vkModule   = rvk_shader_module_create(dev, asset),
-      .vkStage    = rvk_shader_stage(asset->kind),
-      .flags      = rvk_shader_flags(asset),
-      .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
-      .inputMask  = asset->inputMask,
-      .outputMask = asset->outputMask,
+      .device            = dev,
+      .dbgName           = string_dup(g_alloc_heap, dbgName),
+      .vkModule          = rvk_shader_module_create(dev, asset),
+      .vkStage           = rvk_shader_stage(asset->kind),
+      .flags             = rvk_shader_flags(asset),
+      .killSpecConstMask = asset->killSpecConstMask,
+      .entryPoint        = string_dup(g_alloc_heap, asset->entryPoint),
+      .inputMask         = asset->inputMask,
+      .outputMask        = asset->outputMask,
   };
 
   if (shader->flags & RvkShaderFlags_MayKill && asset->kind != AssetShaderKind_SpvFragment) {
@@ -207,14 +217,32 @@ bool rvk_shader_may_kill(
     const RvkShader* shader, const RvkShaderOverride* overrides, const usize overrideCount) {
 
   if (!(shader->flags & RvkShaderFlags_MayKill)) {
-    // Shader has no kill instruction at all.
-    return false;
+    return false; // Shader has no kill instruction at all.
   }
 
-  // Check if all of the required spec constants are true.
-  (void)overrides;
-  (void)overrideCount;
-  return true;
+  // Check if any required 'true' spec constant is actually 'false'.
+  const BitSet requiredTrueSpecConsts = bitset_from_var(shader->killSpecConstMask);
+  bitset_for(requiredTrueSpecConsts, requiredTrueSpecBinding) {
+    // Check if we have an override for the given spec binding.
+    for (u32 overrideIdx = 0; overrideIdx != overrideCount; ++overrideIdx) {
+      if (overrides[overrideIdx].binding != requiredTrueSpecBinding) {
+        continue; // Override is for a different specialization constant binding.
+      }
+      if (overrides[overrideIdx].value == 0) {
+        return false; // Required constant is 'false' meaning kill instruction cannot be reached.
+      }
+      goto NextRequiredSpecConstant;
+    }
+
+    // No override: Check if the default is 'false'.
+    if (rvk_shader_spec_default(shader, (u8)requiredTrueSpecBinding) == AssetShaderSpecDef_False) {
+      return false; // Required constant is 'false' meaning kill instruction cannot be reached.
+    }
+
+  NextRequiredSpecConstant:;
+  }
+
+  return true; // Kill instruction may be reachable.
 }
 
 VkSpecializationInfo rvk_shader_specialize_scratch(

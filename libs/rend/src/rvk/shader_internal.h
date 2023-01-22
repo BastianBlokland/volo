@@ -24,7 +24,8 @@ typedef struct sRvkShader {
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
-  RvkShaderFlags        flags;
+  RvkShaderFlags        flags : 8;
+  u16                   killSpecConstMask; // Mask of spec-consts that need to be true for kill.
   RvkDescMeta           descriptors[rvk_shader_desc_max];
   u16                   inputMask, outputMask;
   struct {
