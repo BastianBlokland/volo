@@ -50,9 +50,16 @@ typedef enum {
   AssetShaderType_Count,
 } AssetShaderType;
 
+typedef enum {
+  AssetShaderSpecDef_False,
+  AssetShaderSpecDef_True,
+  AssetShaderSpecDef_Other, // Non boolean spec constant.
+} AssetShaderSpecDef;
+
 typedef struct {
-  AssetShaderType type : 8;
-  u8              binding;
+  AssetShaderType    type : 8;
+  AssetShaderSpecDef defVal : 8;
+  u8                 binding;
 } AssetShaderSpec;
 
 ecs_comp_extern_public(AssetShaderComp) {

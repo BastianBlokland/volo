@@ -89,8 +89,10 @@ typedef enum {
 } SpvIdKind;
 
 typedef enum {
-  SpvIdFlags_HasSet     = 1 << 0,
-  SpvIdFlags_HasBinding = 1 << 1,
+  SpvIdFlags_HasSet           = 1 << 0,
+  SpvIdFlags_HasBinding       = 1 << 1,
+  SpvIdFlags_SpecDefaultTrue  = 1 << 2,
+  SpvIdFlags_SpecDefaultFalse = 1 << 3,
 } SpvIdFlags;
 
 typedef struct {
@@ -488,6 +490,12 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       out->ids[id].kind            = SpvIdKind_SpecConstant;
       out->ids[id].typeId          = typeId;
       out->ids[id].declInstruction = instructionId;
+      // Track default values for boolean spec constants.
+      if (header.opCode == SpvOp_SpecConstantTrue) {
+        out->ids[id].flags |= SpvIdFlags_SpecDefaultTrue;
+      } else if (header.opCode == SpvOp_SpecConstantFalse) {
+        out->ids[id].flags |= SpvIdFlags_SpecDefaultFalse;
+      }
     } break;
     case SpvOp_Label: {
       /**
@@ -644,6 +652,17 @@ static bool spv_is_output(const SpvId* id) {
     return false;
   }
   return id->storageClass == SpvStorageClass_Output && (id->flags & SpvIdFlags_HasBinding) != 0;
+}
+
+static AssetShaderSpecDef spv_specialization_default(const SpvId* id) {
+  diag_assert(id->kind == SpvIdKind_SpecConstant);
+  if (id->flags & SpvIdFlags_SpecDefaultTrue) {
+    return AssetShaderSpecDef_True;
+  }
+  if (id->flags & SpvIdFlags_SpecDefaultFalse) {
+    return AssetShaderSpecDef_False;
+  }
+  return AssetShaderSpecDef_Other;
 }
 
 static AssetShaderResKind spv_resource_kind(
@@ -806,6 +825,7 @@ static void spv_asset_shader_create(
       usedSpecSlots |= 1 << id->binding;
       out->specs.values[out->specs.count++] = (AssetShaderSpec){
           .type    = type,
+          .defVal  = spv_specialization_default(id),
           .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
