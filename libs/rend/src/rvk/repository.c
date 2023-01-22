@@ -28,6 +28,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("MissingTextureCube"),
       string_static("ShadowGraphic"),
       string_static("ShadowSkinnedGraphic"),
+      string_static("ShadowClippedGraphic"),
       string_static("WireframeGraphic"),
       string_static("WireframeSkinnedGraphic"),
       string_static("WireframeTerrainGraphic"),

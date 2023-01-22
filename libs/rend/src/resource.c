@@ -45,6 +45,11 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .reloadable = true,
     },
     {
+        .repoId     = RvkRepositoryId_ShadowClippedGraphic,
+        .assetId    = string_static("graphics/shadow_clipped.gra"),
+        .reloadable = true,
+    },
+    {
         .repoId     = RvkRepositoryId_WireframeGraphic,
         .assetId    = string_static("graphics/wireframe.gra"),
         .reloadable = true,
