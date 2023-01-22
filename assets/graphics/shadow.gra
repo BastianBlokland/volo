@@ -4,7 +4,7 @@
       "shaderId": "shaders/dyn_depth_standard.vert.spv"
     },
     {
-      "shaderId": "shaders/depth_only.frag.spv"
+      "shaderId": "shaders/dyn_depth.frag.spv"
     }
   ],
   "topology": "Triangles",

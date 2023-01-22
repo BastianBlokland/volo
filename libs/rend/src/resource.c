@@ -45,8 +45,8 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/shadow_skinned.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_ShadowClippedGraphic,
-        .assetId = string_static("graphics/shadow_clipped.gra"),
+        .repoId  = RvkRepositoryId_ShadowClipGraphic,
+        .assetId = string_static("graphics/shadow_clip.gra"),
     },
     {
         .repoId  = RvkRepositoryId_WireframeGraphic,
