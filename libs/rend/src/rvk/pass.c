@@ -633,6 +633,12 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   return rvk_mesh_prepare(mesh);
 }
 
+bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  return rvk_texture_prepare(texture, pass->vkCmdBuf);
+}
+
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 

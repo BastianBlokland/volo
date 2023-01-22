@@ -92,6 +92,7 @@ u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 void rvk_pass_reset(RvkPass*);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
+bool rvk_pass_prepare_texture(RvkPass*, RvkTexture*);
 
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
 void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
