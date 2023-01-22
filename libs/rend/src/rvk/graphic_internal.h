@@ -29,7 +29,8 @@ typedef struct {
 } RvkGraphicSampler;
 
 typedef enum {
-  RvkGraphicFlags_Ready               = 1 << 0,
+  RvkGraphicFlags_MayDiscard          = 1 << 0, // Graphic might discard a fragment.
+  RvkGraphicFlags_Ready               = 1 << 1,
   RvkGraphicFlags_RequireDynamicMesh  = 1 << 2,
   RvkGraphicFlags_RequireDrawData     = 1 << 3,
   RvkGraphicFlags_RequireInstanceData = 1 << 4,

@@ -698,8 +698,10 @@ void rvk_graphic_shader_add(
 
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (!itr->shader) {
+      // Store shader.
       itr->shader = shader;
 
+      // Store shader overrides.
       if (overrideCount) {
         itr->overrides.values = alloc_array_t(g_alloc_heap, RvkShaderOverride, overrideCount);
         itr->overrides.count  = overrideCount;
@@ -710,6 +712,11 @@ void rvk_graphic_shader_add(
               .value   = overrides[i].value,
           };
         }
+      }
+
+      // Set graphic flags based on shader features.
+      if (shader->flags & RvkShaderFlags_MayDiscard) {
+        graphic->flags |= RvkGraphicFlags_MayDiscard;
       }
       return;
     }
