@@ -8,7 +8,7 @@ const f32 c_alphaClipThreshold = 0.2;
 
 bind_graphic(3) uniform sampler2D u_texAlpha;
 
-bind_internal(2) in f32v2 in_texcoord;
+bind_internal(0) in f32v2 in_texcoord;
 
 void main() {
   // Discard fragment if the alpha is below the threshold.
