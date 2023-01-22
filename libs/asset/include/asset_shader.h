@@ -16,6 +16,10 @@ typedef enum {
 } AssetShaderKind;
 
 typedef enum {
+  AssetShaderFlags_MayDiscard = 1 << 0, // Shader might discard the invocation.
+} AssetShaderFlags;
+
+typedef enum {
   AssetShaderResKind_Texture2D,
   AssetShaderResKind_TextureCube,
   AssetShaderResKind_UniformBuffer,
@@ -52,9 +56,10 @@ typedef struct {
 } AssetShaderSpec;
 
 ecs_comp_extern_public(AssetShaderComp) {
-  AssetShaderKind kind;
-  u16             inputMask, outputMask;
-  String          entryPoint;
+  AssetShaderKind  kind : 16;
+  AssetShaderFlags flags : 16;
+  u16              inputMask, outputMask;
+  String           entryPoint;
   struct {
     AssetShaderRes* values;
     u32             count;

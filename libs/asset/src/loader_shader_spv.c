@@ -15,19 +15,22 @@
 #define spv_magic 0x07230203
 
 typedef enum {
-  SpvOp_EntryPoint        = 15,
-  SpvOp_TypeBool          = 20,
-  SpvOp_TypeInt           = 21,
-  SpvOp_TypeFloat         = 22,
-  SpvOp_TypeImage         = 25,
-  SpvOp_TypeSampledImage  = 27,
-  SpvOp_TypeStruct        = 30,
-  SpvOp_TypePointer       = 32,
-  SpvOp_SpecConstantTrue  = 48,
-  SpvOp_SpecConstantFalse = 49,
-  SpvOp_SpecConstant      = 50,
-  SpvOp_Variable          = 59,
-  SpvOp_Decorate          = 71,
+  SpvOp_EntryPoint               = 15,
+  SpvOp_TypeBool                 = 20,
+  SpvOp_TypeInt                  = 21,
+  SpvOp_TypeFloat                = 22,
+  SpvOp_TypeImage                = 25,
+  SpvOp_TypeSampledImage         = 27,
+  SpvOp_TypeStruct               = 30,
+  SpvOp_TypePointer              = 32,
+  SpvOp_SpecConstantTrue         = 48,
+  SpvOp_SpecConstantFalse        = 49,
+  SpvOp_SpecConstant             = 50,
+  SpvOp_Variable                 = 59,
+  SpvOp_Decorate                 = 71,
+  SpvOp_Kill                     = 252,
+  SpvOp_TerminateInvocation      = 4416,
+  SpvOp_DemoteToHelperInvocation = 5380,
 } SpvOp;
 
 typedef enum {
@@ -97,6 +100,7 @@ typedef struct {
   SpvId*            ids;
   u32               idCount;
   u32               wellknownTypes[AssetShaderType_Count];
+  bool              mayDiscardInvocation;
 } SpvProgram;
 
 typedef enum {
@@ -450,6 +454,11 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       out->ids[id].kind   = SpvIdKind_SpecConstant;
       out->ids[id].typeId = typeId;
     } break;
+    case SpvOp_Kill:
+    case SpvOp_TerminateInvocation:
+    case SpvOp_DemoteToHelperInvocation:
+      out->mayDiscardInvocation = true;
+      break;
     }
     data = spv_consume(data, header.opSize);
   }
@@ -547,8 +556,14 @@ static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, Sp
 static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
+  AssetShaderFlags flags = 0;
+  if (program->mayDiscardInvocation) {
+    flags |= AssetShaderFlags_MayDiscard;
+  }
+
   *out = (AssetShaderComp){
       .kind             = spv_shader_kind(program->execModel),
+      .flags            = flags,
       .entryPoint       = program->entryPoint,
       .resources.values = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
       .specs.values     = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset_shader_max_specs),

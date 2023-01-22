@@ -8,6 +8,10 @@ typedef struct sRvkDevice RvkDevice;
 
 #define rvk_shader_desc_max 5
 
+typedef enum {
+  RvkShaderFlags_MayDiscard = 1 << 0, // Shader might discard the invocation.
+} RvkShaderFlags;
+
 typedef struct sRvkShaderOverride {
   String name;
   u32    binding;
@@ -20,6 +24,7 @@ typedef struct sRvkShader {
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
+  RvkShaderFlags        flags;
   RvkDescMeta           descriptors[rvk_shader_desc_max];
   u16                   inputMask, outputMask;
   struct {
