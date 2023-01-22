@@ -6,7 +6,7 @@
 
 const f32 c_alphaClipThreshold = 0.2;
 
-bind_graphic(3) uniform sampler2D u_texAlpha;
+bind_dynamic(1) uniform sampler2D u_texAlpha;
 
 bind_internal(0) in f32v2 in_texcoord;
 
