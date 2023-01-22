@@ -99,6 +99,11 @@ if(${EXTERNAL_ASSETS})
       tiling/dirt_2_normal.tga
       tiling/sand_1_color_rough.tga
       tiling/sand_1_normal.tga
+      tree_acacia/tree_acacia_alpha.tga
+      tree_acacia/tree_acacia_color_rough.tga
+      tree_acacia/tree_acacia_normal.tga
+      tree_acacia/tree_acacia.bin
+      tree_acacia/tree_acacia.gltf
       turret/turret_big.gltf
       turret/turret_color_rough.tga
       turret/turret_missile.bin
