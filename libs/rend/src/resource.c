@@ -22,92 +22,83 @@ static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is 
 typedef struct {
   RvkRepositoryId repoId;
   String          assetId;
-  bool            reloadable;
+  bool            ignoreAssetChanges;
 } RendResGlobalDef;
 
 static const RendResGlobalDef g_rendResGlobal[] = {
     {
-        .repoId  = RvkRepositoryId_MissingTexture,
-        .assetId = string_static("textures/missing.ptx"),
+        .repoId             = RvkRepositoryId_MissingTexture,
+        .assetId            = string_static("textures/missing.ptx"),
+        .ignoreAssetChanges = true,
     },
     {
-        .repoId  = RvkRepositoryId_MissingTextureCube,
-        .assetId = string_static("textures/missing_cube.atx"),
+        .repoId             = RvkRepositoryId_MissingTextureCube,
+        .assetId            = string_static("textures/missing_cube.atx"),
+        .ignoreAssetChanges = true,
     },
     {
-        .repoId     = RvkRepositoryId_ShadowGraphic,
-        .assetId    = string_static("graphics/shadow.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_ShadowGraphic,
+        .assetId = string_static("graphics/shadow.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_ShadowSkinnedGraphic,
-        .assetId    = string_static("graphics/shadow_skinned.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_ShadowSkinnedGraphic,
+        .assetId = string_static("graphics/shadow_skinned.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_WireframeGraphic,
-        .assetId    = string_static("graphics/wireframe.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_ShadowClipGraphic,
+        .assetId = string_static("graphics/shadow_clip.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_WireframeSkinnedGraphic,
-        .assetId    = string_static("graphics/wireframe_skinned.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_WireframeGraphic,
+        .assetId = string_static("graphics/wireframe.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_WireframeTerrainGraphic,
-        .assetId    = string_static("graphics/wireframe_terrain.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_WireframeSkinnedGraphic,
+        .assetId = string_static("graphics/wireframe_skinned.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_TonemapperGraphic,
-        .assetId    = string_static("graphics/tonemapper.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_WireframeTerrainGraphic,
+        .assetId = string_static("graphics/wireframe_terrain.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_OutlineGraphic,
-        .assetId    = string_static("graphics/outline.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_TonemapperGraphic,
+        .assetId = string_static("graphics/tonemapper.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_DebugSkinningGraphic,
-        .assetId    = string_static("graphics/debug/debug_skinning.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_OutlineGraphic,
+        .assetId = string_static("graphics/outline.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_DebugShadowGraphic,
-        .assetId    = string_static("graphics/debug/debug_shadow.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
+        .assetId = string_static("graphics/debug/debug_skinning.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_AmbientGraphic,
-        .assetId    = string_static("graphics/ambient.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_DebugShadowGraphic,
+        .assetId = string_static("graphics/debug/debug_shadow.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_AmbientDebugGraphic,
-        .assetId    = string_static("graphics/ambient_debug.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_AmbientGraphic,
+        .assetId = string_static("graphics/ambient.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_AmbientOcclusionGraphic,
-        .assetId    = string_static("graphics/ambient_occlusion.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_AmbientDebugGraphic,
+        .assetId = string_static("graphics/ambient_debug.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_SkyGraphic,
-        .assetId    = string_static("graphics/sky.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_AmbientOcclusionGraphic,
+        .assetId = string_static("graphics/ambient_occlusion.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_BloomDownGraphic,
-        .assetId    = string_static("graphics/bloom_down.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_SkyGraphic,
+        .assetId = string_static("graphics/sky.gra"),
     },
     {
-        .repoId     = RvkRepositoryId_BloomUpGraphic,
-        .assetId    = string_static("graphics/bloom_up.gra"),
-        .reloadable = true,
+        .repoId  = RvkRepositoryId_BloomDownGraphic,
+        .assetId = string_static("graphics/bloom_down.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_BloomUpGraphic,
+        .assetId = string_static("graphics/bloom_up.gra"),
     },
 };
 
@@ -312,7 +303,7 @@ ecs_system_define(RendGlobalResourceUpdateSys) {
     const AssetComp*        assetComp = ecs_view_read_t(itr, AssetComp);
     const RendResGlobalDef* def       = rend_res_global_lookup(asset_id(assetComp));
     RendResFlags            flags     = RendResFlags_Persistent;
-    if (!def->reloadable) {
+    if (def->ignoreAssetChanges) {
       flags |= RendResFlags_IgnoreAssetChanges;
     }
     rend_res_request_internal(world, ecs_view_entity(itr), flags);
@@ -705,7 +696,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       const RendResGlobalDef* globalDef = rend_res_global_lookup(asset_id(assetComp));
       if (globalDef) {
         // Resource had a global definition; unregister it from the repository.
-        diag_assert(globalDef->reloadable); // Only reloadable global assets can be unloaded.
+        diag_assert(!globalDef->ignoreAssetChanges);
         rvk_repository_unset(device->repository, globalDef->repoId);
       }
 

@@ -167,9 +167,9 @@ static const struct {
         .entryPoint = string_static("main"),
         .specs =
             {
-                {.type = AssetShaderType_i32, .binding = 0},
-                {.type = AssetShaderType_bool, .binding = 3},
-                {.type = AssetShaderType_f32, .binding = 7},
+                {.type = AssetShaderType_i32, .defVal = AssetShaderSpecDef_Other, .binding = 0},
+                {.type = AssetShaderType_bool, .defVal = AssetShaderSpecDef_True, .binding = 3},
+                {.type = AssetShaderType_f32, .defVal = AssetShaderSpecDef_Other, .binding = 7},
             },
         .specCount = 3,
     },
@@ -242,6 +242,7 @@ spec(loader_shader_spv) {
       check_require(shader->specs.count == g_testData[i].specCount);
       for (usize p = 0; p != g_testData[i].specCount; ++p) {
         check_eq_int(shader->specs.values[p].binding, g_testData[i].specs[p].binding);
+        check_eq_int(shader->specs.values[p].defVal, g_testData[i].specs[p].defVal);
         check_eq_int(shader->specs.values[p].type, g_testData[i].specs[p].type);
       }
     }

@@ -13,6 +13,8 @@ bind_instance_data(0) readonly uniform InstanceSkinned {
   InstanceSkinnedData[c_maxInstances] u_instances;
 };
 
+bind_internal(0) out f32v2 out_texcoord;
+
 void main() {
   const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
 
@@ -26,4 +28,5 @@ void main() {
   const f32v3 worldPos = quat_rotate(instanceQuat, skinnedVertPos * instanceScale) + instancePos;
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
+  out_texcoord       = vert.texcoord;
 }

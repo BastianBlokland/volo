@@ -52,8 +52,15 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
 };
 
+/**
+ * TODO: 'Dynamic' binding set should be merged together with the 'Draw' binding set as they have
+ * the same frequency. Only reason why they are separate at the moment is the 'Draw' set has a fixed
+ * layout for the entire application.
+ */
+
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
     rend_storage_buffer_mask,
+    rend_image_sampler_2d_mask,
 };
 
 static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
@@ -580,10 +587,12 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
-  if (vertexShaderOutputs != fragmentShaderInputs) {
+  if ((vertexShaderOutputs & fragmentShaderInputs) != fragmentShaderInputs) {
     log_e(
-        "Vertex shader outputs do not match fragment inputs",
-        log_param("graphic", fmt_text(graphic->dbgName)));
+        "Fragment shader expects more data then the vertex shader provides",
+        log_param("graphic", fmt_text(graphic->dbgName)),
+        log_param("vertex-out", fmt_bitset(bitset_from_var(vertexShaderOutputs))),
+        log_param("fragment-in", fmt_bitset(bitset_from_var(fragmentShaderInputs))));
     return false;
   }
   return true;
@@ -696,8 +705,10 @@ void rvk_graphic_shader_add(
 
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (!itr->shader) {
+      // Store shader.
       itr->shader = shader;
 
+      // Store shader overrides.
       if (overrideCount) {
         itr->overrides.values = alloc_array_t(g_alloc_heap, RvkShaderOverride, overrideCount);
         itr->overrides.count  = overrideCount;
@@ -708,6 +719,11 @@ void rvk_graphic_shader_add(
               .value   = overrides[i].value,
           };
         }
+      }
+
+      // Set graphic flags based on shader features.
+      if (rvk_shader_may_kill(shader, itr->overrides.values, itr->overrides.count)) {
+        graphic->flags |= RvkGraphicFlags_MayDiscard;
       }
       return;
     }
@@ -778,6 +794,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     }
     if (dynamicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       graphic->flags |= RvkGraphicFlags_RequireDynamicMesh;
+    }
+    if (dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSampler2D) {
+      graphic->flags |= RvkGraphicFlags_RequireDynamicImage;
     }
 
     // Prepare draw set bindings.

@@ -13,6 +13,7 @@
  */
 
 #define spv_magic 0x07230203
+#define spv_spec_branches_max 5
 
 typedef enum {
   SpvOp_EntryPoint        = 15,
@@ -28,6 +29,11 @@ typedef enum {
   SpvOp_SpecConstant      = 50,
   SpvOp_Variable          = 59,
   SpvOp_Decorate          = 71,
+  SpvOp_Label             = 248,
+  SpvOp_Branch            = 249,
+  SpvOp_BranchConditional = 250,
+  SpvOp_Switch            = 251,
+  SpvOp_Kill              = 252,
 } SpvOp;
 
 typedef enum {
@@ -68,6 +74,8 @@ typedef struct {
   u16 opCode, opSize;
 } SpvInstructionHeader;
 
+typedef u32 SpvInstructionId;
+
 typedef enum {
   SpvIdKind_Unknown,
   SpvIdKind_Variable,
@@ -77,26 +85,47 @@ typedef enum {
   SpvIdKind_TypeImageCube,
   SpvIdKind_TypeSampledImage,
   SpvIdKind_SpecConstant,
+  SpvIdKind_Label,
 } SpvIdKind;
 
 typedef enum {
-  SpvIdFlags_HasSet     = 1 << 0,
-  SpvIdFlags_HasBinding = 1 << 1,
+  SpvIdFlags_HasSet           = 1 << 0,
+  SpvIdFlags_HasBinding       = 1 << 1,
+  SpvIdFlags_SpecDefaultTrue  = 1 << 2,
+  SpvIdFlags_SpecDefaultFalse = 1 << 3,
 } SpvIdFlags;
 
 typedef struct {
-  SpvIdKind       kind : 8;
-  SpvIdFlags      flags : 8;
-  SpvStorageClass storageClass : 8;
-  u32             set, binding, typeId;
+  SpvIdKind        kind : 8;
+  SpvIdFlags       flags : 8;
+  SpvStorageClass  storageClass : 8;
+  u32              set, binding, typeId;
+  SpvInstructionId declInstruction; // Identifier of the instruction that declared this id.
 } SpvId;
 
+typedef enum {
+  SpvFlags_HasBackwardBranches = 1 << 0, // eg Loops.
+} SpvFlags;
+
+/**
+ * Conditional branch on a specialization constant.
+ * Useful to determine if code is reachable given specific specialization constants.
+ */
 typedef struct {
-  SpvExecutionModel execModel;
+  u32 specBinding;
+  u32 labelTrue, labelFalse;
+} SpvSpecBranch;
+
+typedef struct {
+  SpvFlags          flags : 8;
+  SpvExecutionModel execModel : 8;
   String            entryPoint;
   SpvId*            ids;
   u32               idCount;
+  SpvInstructionId  killInstruction;
   u32               wellknownTypes[AssetShaderType_Count];
+  SpvSpecBranch     specBranches[spv_spec_branches_max];
+  u32               specBranchCount;
 } SpvProgram;
 
 typedef enum {
@@ -116,6 +145,8 @@ typedef enum {
   SpvError_UnsupportedInputExceedsMax,
   SpvError_UnsupportedOutputExceedsMax,
   SpvError_UnsupportedImageType,
+  SpvError_MultipleKillInstructions,
+  SpvError_TooManySpecConstBranches,
 
   SpvError_Count,
 } SpvError;
@@ -138,6 +169,8 @@ static String spv_error_str(SpvError res) {
       string_static("SpirV shader input binding exceeds maximum"),
       string_static("SpirV shader output binding exceeds maximum"),
       string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
+      string_static("SpirV shader uses multiple kill (aka discard) instructions"),
+      string_static("SpirV shader uses too many branches on specialization constants"),
   };
   ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
   return g_msgs[res];
@@ -192,12 +225,14 @@ static bool spv_validate_new_id(const u32 id, const SpvProgram* prog, SpvError* 
 
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
   *out = (SpvProgram){
-      .ids     = alloc_array_t(g_alloc_scratch, SpvId, maxId),
-      .idCount = maxId,
+      .ids             = alloc_array_t(g_alloc_scratch, SpvId, maxId),
+      .idCount         = maxId,
+      .killInstruction = sentinel_u32,
   };
   mem_set(mem_from_to(out->ids, out->ids + out->idCount), 0);
   array_for_t(out->wellknownTypes, u32, itr) { *itr = sentinel_u32; }
 
+  SpvInstructionId instructionId = 0;
   while (data.size) {
     SpvInstructionHeader header;
     spv_read_instruction_header(data, &header);
@@ -343,9 +378,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind         = SpvIdKind_Variable;
-      out->ids[id].typeId       = typeId;
-      out->ids[id].storageClass = (SpvStorageClass)data.ptr[3];
+      out->ids[id].kind            = SpvIdKind_Variable;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].storageClass    = (SpvStorageClass)data.ptr[3];
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypePointer: {
       /**
@@ -364,9 +400,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind         = SpvIdKind_TypePointer;
-      out->ids[id].typeId       = typeId;
-      out->ids[id].storageClass = (SpvStorageClass)data.ptr[2];
+      out->ids[id].kind            = SpvIdKind_TypePointer;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].storageClass    = (SpvStorageClass)data.ptr[2];
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeStruct: {
       /**
@@ -381,7 +418,8 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind = SpvIdKind_TypeStruct;
+      out->ids[id].kind            = SpvIdKind_TypeStruct;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeImage: {
       /**
@@ -407,6 +445,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         *err = SpvError_UnsupportedImageType;
         return data;
       }
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeSampledImage: {
       /**
@@ -425,8 +464,9 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_id(typeId, out, err)) {
         return data;
       }
-      out->ids[id].kind   = SpvIdKind_TypeSampledImage;
-      out->ids[id].typeId = typeId;
+      out->ids[id].kind            = SpvIdKind_TypeSampledImage;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_SpecConstant:
     case SpvOp_SpecConstantTrue:
@@ -447,10 +487,127 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind   = SpvIdKind_SpecConstant;
-      out->ids[id].typeId = typeId;
+      out->ids[id].kind            = SpvIdKind_SpecConstant;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].declInstruction = instructionId;
+      // Track default values for boolean spec constants.
+      if (header.opCode == SpvOp_SpecConstantTrue) {
+        out->ids[id].flags |= SpvIdFlags_SpecDefaultTrue;
+      } else if (header.opCode == SpvOp_SpecConstantFalse) {
+        out->ids[id].flags |= SpvIdFlags_SpecDefaultFalse;
+      }
     } break;
+    case SpvOp_Label: {
+      /**
+       * label declaration.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpLabel
+       */
+      if (data.size < 2) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 id = data.ptr[1];
+      if (!spv_validate_new_id(id, out, err)) {
+        return data;
+      }
+      out->ids[id].kind            = SpvIdKind_Label;
+      out->ids[id].declInstruction = instructionId;
+    } break;
+    case SpvOp_Branch: {
+      /**
+       * Branch instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpBranch
+       */
+      if (data.size < 2) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 labelId = data.ptr[1];
+      if (!spv_validate_id(labelId, out, err)) {
+        return data;
+      }
+      if (out->ids[labelId].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+    } break;
+    case SpvOp_BranchConditional: {
+      /**
+       * Branch-conditional instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpBranchConditional
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 conditionId  = data.ptr[1];
+      const u32 labelIdTrue  = data.ptr[2];
+      const u32 labelIdFalse = data.ptr[3];
+      if (!spv_validate_id(conditionId, out, err)) {
+        return data;
+      }
+      if (!spv_validate_id(labelIdTrue, out, err)) {
+        return data;
+      }
+      if (!spv_validate_id(labelIdFalse, out, err)) {
+        return data;
+      }
+      if (out->ids[labelIdTrue].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+      if (out->ids[labelIdFalse].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+      // Track specialization constant branches.
+      if (out->ids[conditionId].kind == SpvIdKind_SpecConstant) {
+        if (out->specBranchCount == spv_spec_branches_max) {
+          *err = SpvError_Malformed;
+          return data;
+        }
+        out->specBranches[out->specBranchCount++] = (SpvSpecBranch){
+            .specBinding = out->ids[conditionId].binding,
+            .labelTrue   = labelIdTrue,
+            .labelFalse  = labelIdFalse,
+        };
+      }
+    } break;
+    case SpvOp_Switch: {
+      /**
+       * Switch instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpSwitch
+       */
+      if (header.opSize < 3 || data.size < header.opSize) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 labelIdDefault = data.ptr[2];
+      if (!spv_validate_id(labelIdDefault, out, err)) {
+        return data;
+      }
+      if (out->ids[labelIdDefault].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+      const u32 targetCount = (header.opSize - 3) / 2;
+      for (u32 targetIdx = 0; targetIdx != targetCount; ++targetIdx) {
+        const u32 labelIdTarget = data.ptr[3 + (targetIdx * 2) + 1];
+        if (out->ids[labelIdTarget].kind != SpvIdKind_Unknown) {
+          out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+        }
+      }
+    } break;
+    case SpvOp_Kill:
+      /**
+       * Kill instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpKill
+       */
+      if (sentinel_check(out->killInstruction)) {
+        out->killInstruction = instructionId;
+      } else {
+        *err = SpvError_MultipleKillInstructions;
+        return data;
+      }
+      break;
     }
+    ++instructionId;
     data = spv_consume(data, header.opSize);
   }
   *err = SpvError_None;
@@ -495,6 +652,17 @@ static bool spv_is_output(const SpvId* id) {
     return false;
   }
   return id->storageClass == SpvStorageClass_Output && (id->flags & SpvIdFlags_HasBinding) != 0;
+}
+
+static AssetShaderSpecDef spv_specialization_default(const SpvId* id) {
+  diag_assert(id->kind == SpvIdKind_SpecConstant);
+  if (id->flags & SpvIdFlags_SpecDefaultTrue) {
+    return AssetShaderSpecDef_True;
+  }
+  if (id->flags & SpvIdFlags_SpecDefaultFalse) {
+    return AssetShaderSpecDef_False;
+  }
+  return AssetShaderSpecDef_Other;
 }
 
 static AssetShaderResKind spv_resource_kind(
@@ -544,6 +712,48 @@ static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, Sp
   return 0;
 }
 
+static SpvInstructionId spv_label_instruction(SpvProgram* program, const u32 labelId) {
+  diag_assert(labelId < program->idCount);
+  if (program->ids[labelId].kind != SpvIdKind_Label) {
+    return sentinel_u32;
+  }
+  return program->ids[labelId].declInstruction;
+}
+
+/**
+ * Compute a mask of specialization constants that need to be true to reach the given instruction.
+ *
+ * NOTE: This is conservative check, spec constants will only be added if we know for sure that
+ * control flow cannot reach the instruction without it being true.
+ */
+static u16 spv_instruction_spec_mask(SpvProgram* program, const SpvInstructionId instruction) {
+  if (program->flags & SpvFlags_HasBackwardBranches) {
+    /**
+     * Creating specialization-constant masks for shaders with backwards branches (eg loops)
+     * requires tracking more of the control flow.
+     */
+    return 0;
+  }
+  /**
+   * Construct a mask of all the specialization-constants that need to be 'true' to be able to reach
+   * this instruction.
+   */
+  u16 mask = 0;
+  for (u32 i = 0; i != program->specBranchCount; ++i) {
+    const SpvSpecBranch*   specBranch = &program->specBranches[i];
+    const SpvInstructionId instTrue   = spv_label_instruction(program, specBranch->labelTrue);
+    const SpvInstructionId instFalse  = spv_label_instruction(program, specBranch->labelFalse);
+    if (UNLIKELY(sentinel_check(instTrue) || sentinel_check(instFalse))) {
+      continue; // TODO: Getting here means the spir-v is invalid; report as an error.
+    }
+    if (instruction > instTrue && instruction < instFalse) {
+      // Instruction will only be reached if the specialization constant is true.
+      mask |= 1 << specBranch->specBinding;
+    }
+  }
+  return mask;
+}
+
 static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
@@ -555,7 +765,14 @@ static void spv_asset_shader_create(
       .data             = src->data,
   };
 
+  if (!sentinel_check(program->killInstruction)) {
+    out->flags |= AssetShaderFlags_MayKill;
+    out->killSpecConstMask = spv_instruction_spec_mask(program, program->killInstruction);
+  }
+
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
+  ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");
+
   u32 usedResSlots[asset_shader_max_bindings] = {0};
   u32 usedSpecSlots                           = 0;
 
@@ -608,7 +825,8 @@ static void spv_asset_shader_create(
       usedSpecSlots |= 1 << id->binding;
       out->specs.values[out->specs.count++] = (AssetShaderSpec){
           .type    = type,
-          .binding = id->binding,
+          .defVal  = spv_specialization_default(id),
+          .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
       if (id->binding >= asset_shader_max_inputs) {

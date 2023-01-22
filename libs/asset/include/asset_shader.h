@@ -16,6 +16,10 @@ typedef enum {
 } AssetShaderKind;
 
 typedef enum {
+  AssetShaderFlags_MayKill = 1 << 0, // Shader might kill (aka 'discard') the invocation.
+} AssetShaderFlags;
+
+typedef enum {
   AssetShaderResKind_Texture2D,
   AssetShaderResKind_TextureCube,
   AssetShaderResKind_UniformBuffer,
@@ -46,15 +50,24 @@ typedef enum {
   AssetShaderType_Count,
 } AssetShaderType;
 
+typedef enum {
+  AssetShaderSpecDef_False,
+  AssetShaderSpecDef_True,
+  AssetShaderSpecDef_Other, // Non boolean spec constant.
+} AssetShaderSpecDef;
+
 typedef struct {
-  AssetShaderType type;
-  u32             binding;
+  AssetShaderType    type : 8;
+  AssetShaderSpecDef defVal : 8;
+  u8                 binding;
 } AssetShaderSpec;
 
 ecs_comp_extern_public(AssetShaderComp) {
-  AssetShaderKind kind;
-  u16             inputMask, outputMask;
-  String          entryPoint;
+  AssetShaderKind  kind : 16;
+  AssetShaderFlags flags : 16;
+  u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
+  u16              inputMask, outputMask;
+  String           entryPoint;
   struct {
     AssetShaderRes* values;
     u32             count;

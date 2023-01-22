@@ -24,6 +24,7 @@
 #include "rvk/mesh_internal.h"
 #include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
+#include "rvk/texture_internal.h"
 
 static const RvkPassConfig g_passConfig[RendPass_Count] = {
     [RendPass_Geometry] =
@@ -244,7 +245,7 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
     if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic, null));
+      painter_push(ctx, rend_draw_output(draw, graphic));
       tagMask |= rend_draw_tag_mask(draw);
     }
   }
@@ -268,22 +269,34 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       continue; // Graphic not loaded.
     }
     RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    RvkMesh*    mesh            = graphicOriginal->mesh;
-    if (!mesh) {
+    RvkMesh*    dynMesh         = graphicOriginal->mesh;
+    if (!dynMesh || !rvk_pass_prepare_mesh(ctx->pass, dynMesh)) {
       continue; // Graphic does not have a mesh to draw a shadow for.
+    }
+    RvkImage* dynAlphaImage = null;
+    if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard) {
+      enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
+      RvkTexture* alphaTexture = graphicOriginal->samplers[AlphaTextureIndex].texture;
+      if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
+        continue; // Graphic uses discard but has no alpha texture.
+      }
+      dynAlphaImage = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
     if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
-      graphicId = RvkRepositoryId_ShadowGraphic;
+      graphicId = dynAlphaImage ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
     RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!shadowGraphic) {
       continue; // Shadow graphic not loaded.
     }
-    if (rvk_pass_prepare(ctx->pass, shadowGraphic) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      painter_push(ctx, rend_draw_output(draw, shadowGraphic, mesh));
+    if (rvk_pass_prepare(ctx->pass, shadowGraphic)) {
+      RvkPassDraw drawSpec = rend_draw_output(draw, shadowGraphic);
+      drawSpec.dynMesh     = dynMesh;
+      drawSpec.dynImage    = dynAlphaImage;
+      painter_push(ctx, drawSpec);
     }
   }
 }
@@ -387,7 +400,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
     if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic, null));
+      painter_push(ctx, rend_draw_output(draw, graphic));
     }
   }
 }
@@ -425,7 +438,9 @@ static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, Ecs
       continue; // Wireframe graphic not loaded.
     }
     if (rvk_pass_prepare(ctx->pass, graphicWireframe) && rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      painter_push(ctx, rend_draw_output(draw, graphicWireframe, mesh));
+      RvkPassDraw drawSpec = rend_draw_output(draw, graphicWireframe);
+      drawSpec.dynMesh     = mesh;
+      painter_push(ctx, drawSpec);
     }
   }
 }
@@ -455,7 +470,9 @@ static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView,
     diag_assert(mesh);
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
-      painter_push(ctx, rend_draw_output(draw, debugGraphic, mesh));
+      RvkPassDraw drawSpec = rend_draw_output(draw, debugGraphic);
+      drawSpec.dynMesh     = mesh;
+      painter_push(ctx, drawSpec);
     }
   }
 }
@@ -475,7 +492,7 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
     }
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
     if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic, null));
+      painter_push(ctx, rend_draw_output(draw, graphic));
     }
   }
 }

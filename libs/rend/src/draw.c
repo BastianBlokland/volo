@@ -289,7 +289,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   return draw->outputInstCount != 0;
 }
 
-RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkMesh* dynMesh) {
+RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
   u32 instCount;
   Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
@@ -301,7 +301,6 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkM
   }
   return (RvkPassDraw){
       .graphic             = graphic,
-      .dynMesh             = dynMesh,
       .vertexCountOverride = draw->vertexCountOverride,
       .drawData            = mem_slice(draw->dataMem, 0, draw->dataSize),
       .instCount           = instCount,

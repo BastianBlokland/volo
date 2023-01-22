@@ -22,7 +22,10 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
-    shaders/depth_only.frag
+    shaders/dyn_depth_clip.frag
+    shaders/dyn_depth_standard_skinned.vert
+    shaders/dyn_depth_standard.vert
+    shaders/dyn_depth.frag
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
@@ -36,8 +39,6 @@ configure_shaders(volo_shaders
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
-    shaders/standard_position.vert
-    shaders/standard_skinned_position.vert
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
@@ -99,6 +100,11 @@ if(${EXTERNAL_ASSETS})
       tiling/dirt_2_normal.tga
       tiling/sand_1_color_rough.tga
       tiling/sand_1_normal.tga
+      tree_acacia/tree_acacia_alpha.tga
+      tree_acacia/tree_acacia_color_rough.tga
+      tree_acacia/tree_acacia_normal.tga
+      tree_acacia/tree_acacia.bin
+      tree_acacia/tree_acacia.gltf
       turret/turret_big.gltf
       turret/turret_color_rough.tga
       turret/turret_missile.bin

@@ -18,6 +18,7 @@ typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkMesh        RvkMesh;
 typedef struct sRvkStopwatch   RvkStopwatch;
+typedef struct sRvkTexture     RvkTexture;
 typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
@@ -53,7 +54,8 @@ typedef struct sRvkPassConfig {
 
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
-  RvkMesh*    dynMesh; // Dynamic (late bound) mesh to use in this draw.
+  RvkMesh*    dynMesh;  // Dynamic (late bound) mesh to use in this draw.
+  RvkImage*   dynImage; // Dynamic (late bound) image to use in this draw.
   Mem         drawData;
   Mem         instData;
   u32         vertexCountOverride;
@@ -92,6 +94,7 @@ u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 void rvk_pass_reset(RvkPass*);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
+bool rvk_pass_prepare_texture(RvkPass*, RvkTexture*);
 
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
 void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);

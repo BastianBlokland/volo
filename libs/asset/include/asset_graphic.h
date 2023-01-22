@@ -75,7 +75,7 @@ typedef enum {
 
 typedef struct {
   String name;
-  u32    binding;
+  u8     binding;
   f64    value;
 } AssetGraphicOverride;
 

@@ -9,6 +9,7 @@ typedef enum {
   RvkRepositoryId_MissingTextureCube,
   RvkRepositoryId_ShadowGraphic,
   RvkRepositoryId_ShadowSkinnedGraphic,
+  RvkRepositoryId_ShadowClipGraphic,
   RvkRepositoryId_WireframeGraphic,
   RvkRepositoryId_WireframeSkinnedGraphic,
   RvkRepositoryId_WireframeTerrainGraphic,

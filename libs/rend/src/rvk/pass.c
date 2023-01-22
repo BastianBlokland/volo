@@ -14,6 +14,7 @@
 #include "pass_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
+#include "texture_internal.h"
 #include "uniform_internal.h"
 
 #define pass_instance_count_max 2048
@@ -79,6 +80,8 @@ struct sRvkPass {
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
   RvkSampler       globalImageSampler, globalShadowSampler;
+
+  RvkSampler dynImageSampler;
 
   DynArray descSets;    // RvkDescSet[]
   DynArray invocations; // RvkPassInvoc[]
@@ -412,12 +415,32 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
   return res;
 }
 
-static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
-  diag_assert_msg(mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
+static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh, RvkImage* img) {
+  if (!mesh && !img) {
+    return; // No dynamic resources to bind.
+  }
+  diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
+  diag_assert_msg(!img || img->phase == RvkImagePhase_ShaderRead, "Image is not ready for binding");
 
   const RvkDescMeta meta    = rvk_pass_meta_dynamic(pass);
   const RvkDescSet  descSet = rvk_pass_alloc_desc(pass, &meta);
-  rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
+  if (mesh) {
+    rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
+  }
+  if (img) {
+    if (!rvk_sampler_initialized(&pass->dynImageSampler)) {
+      const u8 mipLevels    = 1; // TODO: Support mip-mapping on dynamic images.
+      pass->dynImageSampler = rvk_sampler_create(
+          pass->dev,
+          RvkSamplerFlags_None,
+          RvkSamplerWrap_Clamp,
+          RvkSamplerFilter_Linear,
+          RvkSamplerAniso_x8,
+          mipLevels);
+      rvk_debug_name_sampler(pass->dev->debug, pass->dynImageSampler.vkSampler, "dyn_image");
+    }
+    rvk_desc_set_attach_sampler(descSet, 1, img, &pass->dynImageSampler);
+  }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
   vkCmdBindDescriptorSets(
@@ -430,11 +453,13 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
       0,
       null);
 
-  vkCmdBindIndexBuffer(
-      pass->vkCmdBuf,
-      mesh->indexBuffer.vkBuffer,
-      0,
-      sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+  if (mesh) {
+    vkCmdBindIndexBuffer(
+        pass->vkCmdBuf,
+        mesh->indexBuffer.vkBuffer,
+        0,
+        sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+  }
 }
 
 static void rvk_pass_free_invocations(RvkPass* pass) {
@@ -518,6 +543,9 @@ void rvk_pass_destroy(RvkPass* pass) {
   if (rvk_sampler_initialized(&pass->globalShadowSampler)) {
     rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
   }
+  if (rvk_sampler_initialized(&pass->dynImageSampler)) {
+    rvk_sampler_destroy(&pass->dynImageSampler, pass->dev);
+  }
   dynarray_destroy(&pass->descSets);
   dynarray_destroy(&pass->invocations);
 
@@ -557,10 +585,11 @@ RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescM
 
 RvkDescMeta rvk_pass_meta_dynamic(const RvkPass* pass) {
   (void)pass;
-  /**
-   * Single StorageBuffer for the vertices.
-   */
-  return (RvkDescMeta){.bindings[0] = RvkDescKind_StorageBuffer};
+  // Dynamic (late bound) draw resources.
+  return (RvkDescMeta){
+      .bindings[0] = RvkDescKind_StorageBuffer, // StorageBuffer for the dynamic mesh vertices.
+      .bindings[1] = RvkDescKind_CombinedImageSampler2D, // Dynamic image.
+  };
 }
 
 RvkDescMeta rvk_pass_meta_draw(const RvkPass* pass) { return rvk_uniform_meta(pass->uniformPool); }
@@ -631,6 +660,12 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_mesh_prepare(mesh);
+}
+
+bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+
+  return rvk_texture_prepare(texture, pass->vkCmdBuf);
 }
 
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
@@ -871,6 +906,10 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     log_e("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicImage && !draw->dynImage)) {
+    log_e("Graphic requires a dynamic image", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
     log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
@@ -893,10 +932,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
+  rvk_pass_bind_dyn(pass, graphic, draw->dynMesh, draw->dynImage);
 
-  if (draw->dynMesh) {
-    rvk_pass_bind_dyn_mesh(pass, graphic, draw->dynMesh);
-  }
   if (draw->drawData.size) {
     rvk_uniform_bind(
         pass->uniformPool,
