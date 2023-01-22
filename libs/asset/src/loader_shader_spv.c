@@ -71,6 +71,8 @@ typedef struct {
   u16 opCode, opSize;
 } SpvInstructionHeader;
 
+typedef u32 SpvInstructionId;
+
 typedef enum {
   SpvIdKind_Unknown,
   SpvIdKind_Variable,
@@ -100,7 +102,7 @@ typedef struct {
   SpvId*            ids;
   u32               idCount;
   u32               wellknownTypes[AssetShaderType_Count];
-  bool              mayDiscardInvocation;
+  SpvInstructionId  killInstruction;
 } SpvProgram;
 
 typedef enum {
@@ -120,6 +122,7 @@ typedef enum {
   SpvError_UnsupportedInputExceedsMax,
   SpvError_UnsupportedOutputExceedsMax,
   SpvError_UnsupportedImageType,
+  SpvError_MultipleKillInstructions,
 
   SpvError_Count,
 } SpvError;
@@ -142,6 +145,7 @@ static String spv_error_str(SpvError res) {
       string_static("SpirV shader input binding exceeds maximum"),
       string_static("SpirV shader output binding exceeds maximum"),
       string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
+      string_static("SpirV shader uses multiple kill (aka discard) instructions"),
   };
   ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
   return g_msgs[res];
@@ -196,12 +200,14 @@ static bool spv_validate_new_id(const u32 id, const SpvProgram* prog, SpvError* 
 
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
   *out = (SpvProgram){
-      .ids     = alloc_array_t(g_alloc_scratch, SpvId, maxId),
-      .idCount = maxId,
+      .ids             = alloc_array_t(g_alloc_scratch, SpvId, maxId),
+      .idCount         = maxId,
+      .killInstruction = sentinel_u32,
   };
   mem_set(mem_from_to(out->ids, out->ids + out->idCount), 0);
   array_for_t(out->wellknownTypes, u32, itr) { *itr = sentinel_u32; }
 
+  SpvInstructionId instructionId = 0;
   while (data.size) {
     SpvInstructionHeader header;
     spv_read_instruction_header(data, &header);
@@ -457,9 +463,15 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
     case SpvOp_Kill:
     case SpvOp_TerminateInvocation:
     case SpvOp_DemoteToHelperInvocation:
-      out->mayDiscardInvocation = true;
+      if (sentinel_check(out->killInstruction)) {
+        out->killInstruction = instructionId;
+      } else {
+        *err = SpvError_MultipleKillInstructions;
+        return data;
+      }
       break;
     }
+    ++instructionId;
     data = spv_consume(data, header.opSize);
   }
   *err = SpvError_None;
@@ -557,7 +569,7 @@ static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
   AssetShaderFlags flags = 0;
-  if (program->mayDiscardInvocation) {
+  if (!sentinel_check(program->killInstruction)) {
     flags |= AssetShaderFlags_MayDiscard;
   }
 
