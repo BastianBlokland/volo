@@ -31,6 +31,7 @@ typedef enum {
   SpvOp_Label             = 248,
   SpvOp_Branch            = 249,
   SpvOp_BranchConditional = 250,
+  SpvOp_Switch            = 251,
   SpvOp_Kill              = 252,
 } SpvOp;
 
@@ -528,6 +529,23 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
       }
       if (out->ids[labelIdFalse].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+      }
+    } break;
+    case SpvOp_Switch: {
+      /**
+       * Switch instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpSwitch
+       */
+      if (header.opSize < 3 || data.size < header.opSize) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 labelIdDefault = data.ptr[2];
+      if (!spv_validate_id(labelIdDefault, out, err)) {
+        return data;
+      }
+      if (out->ids[labelIdDefault].kind != SpvIdKind_Unknown) {
         out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
       }
     } break;
