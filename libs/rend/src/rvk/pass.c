@@ -871,6 +871,11 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     log_e("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicImage)) {
+    // TODO: Add support for dynamic images.
+    log_e("Graphic requires a dynamic image", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
     log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;

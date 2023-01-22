@@ -54,6 +54,7 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
 
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
     rend_storage_buffer_mask,
+    rend_image_sampler_2d_mask,
 };
 
 static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
@@ -787,6 +788,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
     }
     if (dynamicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       graphic->flags |= RvkGraphicFlags_RequireDynamicMesh;
+    }
+    if (dynamicDescMeta.bindings[1] == RvkDescKind_CombinedImageSampler2D) {
+      graphic->flags |= RvkGraphicFlags_RequireDynamicImage;
     }
 
     // Prepare draw set bindings.
