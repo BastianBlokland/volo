@@ -52,6 +52,12 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
 };
 
+/**
+ * TODO: 'Dynamic' binding set should be merged together with the 'Draw' binding set as they have
+ * the same frequency. Only reason why they are separate at the moment is the 'Draw' set has a fixed
+ * layout for the entire application.
+ */
+
 static const u32 g_rendSupportedDynamicBindings[rvk_desc_bindings_max] = {
     rend_storage_buffer_mask,
     rend_image_sampler_2d_mask,
