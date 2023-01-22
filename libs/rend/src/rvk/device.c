@@ -25,6 +25,14 @@ static const String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_16bit_storage"),
 };
+static const String g_optionalExts[] = {
+    /**
+     * 'VK_KHR_maintenance4' allows relaxed shader interface rules.
+     * For devices that do not support this we are technically violating the spec, however in
+     * practice all tested drivers handle this as expected.
+     */
+    string_static("VK_KHR_maintenance4"),
+};
 static const String g_debugExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
@@ -308,7 +316,21 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  // Query supported features.
+  // Add required extensions.
+  array_for_t(g_requiredExts, String, reqExt) {
+    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: Hacky as it assumes null-term.
+  }
+
+  // Add optional extensions.
+  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
+  array_for_t(g_optionalExts, String, optExt) {
+    if (rvk_device_has_ext(supportedExts, *optExt)) {
+      extsToEnable[extsToEnableCount++] = optExt->ptr; // TODO: Hacky as it assumes null-term.
+    }
+  }
+  rvk_vk_exts_free(supportedExts);
+
+  // Add optional features..
   void* nextOptFeature = null;
 #ifdef VK_KHR_present_id
   VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
@@ -330,12 +352,6 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   };
   vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
 
-  // Add required extensions.
-  array_for_t(g_requiredExts, String, reqExt) {
-    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: This is hacky as it assumes null-term.
-  }
-
-  // Add optional extensions.
 #ifdef VK_KHR_present_id
   if (g_rend_enable_vk_present_id && optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";

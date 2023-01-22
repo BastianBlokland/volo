@@ -580,10 +580,12 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
-  if (vertexShaderOutputs != fragmentShaderInputs) {
+  if ((vertexShaderOutputs & fragmentShaderInputs) != fragmentShaderInputs) {
     log_e(
-        "Vertex shader outputs do not match fragment inputs",
-        log_param("graphic", fmt_text(graphic->dbgName)));
+        "Fragment shader expects more data then the vertex shader provides",
+        log_param("graphic", fmt_text(graphic->dbgName)),
+        log_param("vertex-out", fmt_bitset(bitset_from_var(vertexShaderOutputs))),
+        log_param("fragment-in", fmt_bitset(bitset_from_var(fragmentShaderInputs))));
     return false;
   }
   return true;
