@@ -28,6 +28,7 @@ typedef enum {
   SpvOp_SpecConstant             = 50,
   SpvOp_Variable                 = 59,
   SpvOp_Decorate                 = 71,
+  SpvOp_Label                    = 248,
   SpvOp_Kill                     = 252,
   SpvOp_TerminateInvocation      = 4416,
   SpvOp_DemoteToHelperInvocation = 5380,
@@ -82,6 +83,7 @@ typedef enum {
   SpvIdKind_TypeImageCube,
   SpvIdKind_TypeSampledImage,
   SpvIdKind_SpecConstant,
+  SpvIdKind_Label,
 } SpvIdKind;
 
 typedef enum {
@@ -459,6 +461,21 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       }
       out->ids[id].kind   = SpvIdKind_SpecConstant;
       out->ids[id].typeId = typeId;
+    } break;
+    case SpvOp_Label: {
+      /**
+       * label declaration.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpLabel
+       */
+      if (data.size < 2) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 id = data.ptr[1];
+      if (!spv_validate_new_id(id, out, err)) {
+        return data;
+      }
+      out->ids[id].kind = SpvIdKind_Label;
     } break;
     case SpvOp_Kill:
     case SpvOp_TerminateInvocation:
