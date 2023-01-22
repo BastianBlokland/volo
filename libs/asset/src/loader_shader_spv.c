@@ -15,23 +15,23 @@
 #define spv_magic 0x07230203
 
 typedef enum {
-  SpvOp_EntryPoint               = 15,
-  SpvOp_TypeBool                 = 20,
-  SpvOp_TypeInt                  = 21,
-  SpvOp_TypeFloat                = 22,
-  SpvOp_TypeImage                = 25,
-  SpvOp_TypeSampledImage         = 27,
-  SpvOp_TypeStruct               = 30,
-  SpvOp_TypePointer              = 32,
-  SpvOp_SpecConstantTrue         = 48,
-  SpvOp_SpecConstantFalse        = 49,
-  SpvOp_SpecConstant             = 50,
-  SpvOp_Variable                 = 59,
-  SpvOp_Decorate                 = 71,
-  SpvOp_Label                    = 248,
-  SpvOp_Kill                     = 252,
-  SpvOp_TerminateInvocation      = 4416,
-  SpvOp_DemoteToHelperInvocation = 5380,
+  SpvOp_EntryPoint        = 15,
+  SpvOp_TypeBool          = 20,
+  SpvOp_TypeInt           = 21,
+  SpvOp_TypeFloat         = 22,
+  SpvOp_TypeImage         = 25,
+  SpvOp_TypeSampledImage  = 27,
+  SpvOp_TypeStruct        = 30,
+  SpvOp_TypePointer       = 32,
+  SpvOp_SpecConstantTrue  = 48,
+  SpvOp_SpecConstantFalse = 49,
+  SpvOp_SpecConstant      = 50,
+  SpvOp_Variable          = 59,
+  SpvOp_Decorate          = 71,
+  SpvOp_Label             = 248,
+  SpvOp_Branch            = 249,
+  SpvOp_BranchConditional = 250,
+  SpvOp_Kill              = 252,
 } SpvOp;
 
 typedef enum {
@@ -99,8 +99,13 @@ typedef struct {
   SpvInstructionId declInstruction; // Identifier of the instruction that declared this id.
 } SpvId;
 
+typedef enum {
+  SpvFlags_HasBackwardBranches = 1 << 0, // eg Loops.
+} SpvFlags;
+
 typedef struct {
-  SpvExecutionModel execModel;
+  SpvFlags          flags : 8;
+  SpvExecutionModel execModel : 8;
   String            entryPoint;
   SpvId*            ids;
   u32               idCount;
@@ -485,9 +490,52 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       out->ids[id].kind            = SpvIdKind_Label;
       out->ids[id].declInstruction = instructionId;
     } break;
+    case SpvOp_Branch: {
+      /**
+       * Branch instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpBranch
+       */
+      if (data.size < 2) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 labelId = data.ptr[1];
+      if (!spv_validate_id(labelId, out, err)) {
+        return data;
+      }
+      if (out->ids[labelId].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+      }
+    } break;
+    case SpvOp_BranchConditional: {
+      /**
+       * Branch-conditional instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpBranchConditional
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 labelIdTrue  = data.ptr[2];
+      const u32 labelIdFalse = data.ptr[3];
+      if (!spv_validate_id(labelIdTrue, out, err)) {
+        return data;
+      }
+      if (!spv_validate_id(labelIdFalse, out, err)) {
+        return data;
+      }
+      if (out->ids[labelIdTrue].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+      }
+      if (out->ids[labelIdFalse].kind != SpvIdKind_Unknown) {
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+      }
+    } break;
     case SpvOp_Kill:
-    case SpvOp_TerminateInvocation:
-    case SpvOp_DemoteToHelperInvocation:
+      /**
+       * Kill instruction.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpKill
+       */
       if (sentinel_check(out->killInstruction)) {
         out->killInstruction = instructionId;
       } else {
