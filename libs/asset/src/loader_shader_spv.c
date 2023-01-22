@@ -92,10 +92,11 @@ typedef enum {
 } SpvIdFlags;
 
 typedef struct {
-  SpvIdKind       kind : 8;
-  SpvIdFlags      flags : 8;
-  SpvStorageClass storageClass : 8;
-  u32             set, binding, typeId;
+  SpvIdKind        kind : 8;
+  SpvIdFlags       flags : 8;
+  SpvStorageClass  storageClass : 8;
+  u32              set, binding, typeId;
+  SpvInstructionId declInstruction; // Identifier of the instruction that declared this id.
 } SpvId;
 
 typedef struct {
@@ -355,9 +356,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind         = SpvIdKind_Variable;
-      out->ids[id].typeId       = typeId;
-      out->ids[id].storageClass = (SpvStorageClass)data.ptr[3];
+      out->ids[id].kind            = SpvIdKind_Variable;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].storageClass    = (SpvStorageClass)data.ptr[3];
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypePointer: {
       /**
@@ -376,9 +378,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind         = SpvIdKind_TypePointer;
-      out->ids[id].typeId       = typeId;
-      out->ids[id].storageClass = (SpvStorageClass)data.ptr[2];
+      out->ids[id].kind            = SpvIdKind_TypePointer;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].storageClass    = (SpvStorageClass)data.ptr[2];
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeStruct: {
       /**
@@ -393,7 +396,8 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind = SpvIdKind_TypeStruct;
+      out->ids[id].kind            = SpvIdKind_TypeStruct;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeImage: {
       /**
@@ -419,6 +423,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         *err = SpvError_UnsupportedImageType;
         return data;
       }
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_TypeSampledImage: {
       /**
@@ -437,8 +442,9 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_id(typeId, out, err)) {
         return data;
       }
-      out->ids[id].kind   = SpvIdKind_TypeSampledImage;
-      out->ids[id].typeId = typeId;
+      out->ids[id].kind            = SpvIdKind_TypeSampledImage;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_SpecConstant:
     case SpvOp_SpecConstantTrue:
@@ -459,8 +465,9 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind   = SpvIdKind_SpecConstant;
-      out->ids[id].typeId = typeId;
+      out->ids[id].kind            = SpvIdKind_SpecConstant;
+      out->ids[id].typeId          = typeId;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_Label: {
       /**
@@ -475,7 +482,8 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind = SpvIdKind_Label;
+      out->ids[id].kind            = SpvIdKind_Label;
+      out->ids[id].declInstruction = instructionId;
     } break;
     case SpvOp_Kill:
     case SpvOp_TerminateInvocation:
