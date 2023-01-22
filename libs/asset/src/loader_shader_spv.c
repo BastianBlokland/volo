@@ -693,22 +693,63 @@ static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, Sp
   return 0;
 }
 
+static SpvInstructionId spv_label_instruction(SpvProgram* program, const u32 labelId) {
+  diag_assert(labelId < program->idCount);
+  if (program->ids[labelId].kind != SpvIdKind_Label) {
+    return sentinel_u32;
+  }
+  return program->ids[labelId].declInstruction;
+}
+
+/**
+ * Compute a mask of specialization constants that need to be true to reach the given instruction.
+ *
+ * NOTE: This is conservative check, spec constants will only be added if we know for sure that
+ * control flow cannot reach the instruction without it being true.
+ */
+static u16 spv_instruction_spec_mask(SpvProgram* program, const SpvInstructionId instruction) {
+  if (program->flags & SpvFlags_HasBackwardBranches) {
+    /**
+     * Creating specialization-constant masks for shaders with backwards branches (eg loops)
+     * requires tracking more of the control flow.
+     */
+    return 0;
+  }
+  /**
+   * Construct a mask of all the specialization-constants that need to be 'true' to be able to reach
+   * this instruction.
+   */
+  u16 mask = 0;
+  for (u32 i = 0; i != program->specBranchCount; ++i) {
+    const SpvSpecBranch*   specBranch = &program->specBranches[i];
+    const SpvInstructionId instTrue   = spv_label_instruction(program, specBranch->labelTrue);
+    const SpvInstructionId instFalse  = spv_label_instruction(program, specBranch->labelFalse);
+    if (UNLIKELY(sentinel_check(instTrue) || sentinel_check(instFalse))) {
+      continue; // TODO: Getting here means the spir-v is invalid; report as an error.
+    }
+    if (instruction > instTrue && instruction < instFalse) {
+      // Instruction will only be reached if the specialization constant is true.
+      mask |= 1 << specBranch->specBinding;
+    }
+  }
+  return mask;
+}
+
 static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
-  AssetShaderFlags flags = 0;
-  if (!sentinel_check(program->killInstruction)) {
-    flags |= AssetShaderFlags_MayDiscard;
-  }
-
   *out = (AssetShaderComp){
       .kind             = spv_shader_kind(program->execModel),
-      .flags            = flags,
       .entryPoint       = program->entryPoint,
       .resources.values = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
       .specs.values     = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset_shader_max_specs),
       .data             = src->data,
   };
+
+  if (!sentinel_check(program->killInstruction)) {
+    out->flags |= AssetShaderFlags_MayKill;
+    out->killSpecConstMask = spv_instruction_spec_mask(program, program->killInstruction);
+  }
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
   ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");

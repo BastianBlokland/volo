@@ -116,8 +116,8 @@ static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f
 
 static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
   RvkShaderFlags flags = 0;
-  if (asset->flags & AssetShaderFlags_MayDiscard) {
-    flags |= AssetShaderFlags_MayDiscard;
+  if (asset->flags & AssetShaderFlags_MayKill) {
+    flags |= RvkShaderFlags_MayDiscard;
   }
   return flags;
 }
@@ -136,7 +136,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       .outputMask = asset->outputMask,
   };
 
-  if (shader->flags & AssetShaderFlags_MayDiscard && asset->kind != AssetShaderKind_SpvFragment) {
+  if (shader->flags & RvkShaderFlags_MayDiscard && asset->kind != AssetShaderKind_SpvFragment) {
     log_e("Non-fragment shader uses discard", log_param("shader", fmt_text(dbgName)));
   }
 

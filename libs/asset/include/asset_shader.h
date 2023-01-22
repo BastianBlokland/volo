@@ -16,7 +16,7 @@ typedef enum {
 } AssetShaderKind;
 
 typedef enum {
-  AssetShaderFlags_MayDiscard = 1 << 0, // Shader might discard the invocation.
+  AssetShaderFlags_MayKill = 1 << 0, // Shader might kill (aka 'discard') the invocation.
 } AssetShaderFlags;
 
 typedef enum {
@@ -58,6 +58,7 @@ typedef struct {
 ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind  kind : 16;
   AssetShaderFlags flags : 16;
+  u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
   u16              inputMask, outputMask;
   String           entryPoint;
   struct {
