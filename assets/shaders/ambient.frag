@@ -125,8 +125,6 @@ void main() {
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;
-    default:
-      discard;
     }
   } else {
 
@@ -138,8 +136,6 @@ void main() {
     case c_modeDiffuseIrradiance:
       out_color = ambient_diff_irradiance(surf, ambientLight, viewDir) * ambientOcclusion;
       break;
-    default:
-      discard;
     }
 
     // Additional effects.
