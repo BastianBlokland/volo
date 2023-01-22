@@ -44,5 +44,5 @@
   "rasterizer": "Fill",
   "blend": "None",
   "depth": "Less",
-  "cull": "None"
+  "cull": "Back"
 }
