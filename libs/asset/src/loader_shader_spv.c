@@ -505,7 +505,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       if (out->ids[labelId].kind != SpvIdKind_Unknown) {
-        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
       }
     } break;
     case SpvOp_BranchConditional: {
@@ -526,10 +526,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       if (out->ids[labelIdTrue].kind != SpvIdKind_Unknown) {
-        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
       }
       if (out->ids[labelIdFalse].kind != SpvIdKind_Unknown) {
-        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
       }
     } break;
     case SpvOp_Switch: {
@@ -546,7 +546,14 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       if (out->ids[labelIdDefault].kind != SpvIdKind_Unknown) {
-        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: a backward branch.
+        out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+      const u32 targetCount = (header.opSize - 3) / 2;
+      for (u32 targetIdx = 0; targetIdx != targetCount; ++targetIdx) {
+        const u32 labelIdTarget = data.ptr[3 + (targetIdx * 2) + 1];
+        if (out->ids[labelIdTarget].kind != SpvIdKind_Unknown) {
+          out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+        }
       }
     } break;
     case SpvOp_Kill:
