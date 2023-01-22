@@ -79,7 +79,7 @@ static void graphic_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetGraphicOverride);
     data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u8));
     data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
 
     data_reg_struct_t(g_dataReg, AssetGraphicShader);

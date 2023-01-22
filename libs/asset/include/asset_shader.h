@@ -51,8 +51,8 @@ typedef enum {
 } AssetShaderType;
 
 typedef struct {
-  AssetShaderType type;
-  u32             binding;
+  AssetShaderType type : 8;
+  u8              binding;
 } AssetShaderSpec;
 
 ecs_comp_extern_public(AssetShaderComp) {

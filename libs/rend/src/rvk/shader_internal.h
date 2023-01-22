@@ -14,7 +14,7 @@ typedef enum {
 
 typedef struct sRvkShaderOverride {
   String name;
-  u32    binding;
+  u8     binding;
   f64    value;
 } RvkShaderOverride;
 

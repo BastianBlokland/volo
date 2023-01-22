@@ -571,6 +571,8 @@ static void spv_asset_shader_create(
   };
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
+  ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");
+
   u32 usedResSlots[asset_shader_max_bindings] = {0};
   u32 usedSpecSlots                           = 0;
 
@@ -623,7 +625,7 @@ static void spv_asset_shader_create(
       usedSpecSlots |= 1 << id->binding;
       out->specs.values[out->specs.count++] = (AssetShaderSpec){
           .type    = type,
-          .binding = id->binding,
+          .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
       if (id->binding >= asset_shader_max_inputs) {
