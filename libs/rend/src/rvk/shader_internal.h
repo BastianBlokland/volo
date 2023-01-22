@@ -9,7 +9,7 @@ typedef struct sRvkDevice RvkDevice;
 #define rvk_shader_desc_max 5
 
 typedef enum {
-  RvkShaderFlags_MayDiscard = 1 << 0, // Shader might discard the invocation.
+  RvkShaderFlags_MayKill = 1 << 0, // Shader might kill (aka discard) the invocation.
 } RvkShaderFlags;
 
 typedef struct sRvkShaderOverride {
@@ -37,6 +37,7 @@ RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName)
 void       rvk_shader_destroy(RvkShader*);
 
 bool rvk_shader_set_used(const RvkShader*, u32 set);
+bool rvk_shader_may_kill(const RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);
 
 /**
  * Create a 'VkSpecializationInfo' structure for specializing this shader with the given overrides.
@@ -44,4 +45,4 @@ bool rvk_shader_set_used(const RvkShader*, u32 set);
  * be used immediately and not be stored.
  */
 VkSpecializationInfo
-rvk_shader_specialize_scratch(RvkShader*, RvkShaderOverride* overrides, usize overrideCount);
+rvk_shader_specialize_scratch(RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);

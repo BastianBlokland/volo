@@ -716,7 +716,7 @@ void rvk_graphic_shader_add(
       }
 
       // Set graphic flags based on shader features.
-      if (shader->flags & RvkShaderFlags_MayDiscard) {
+      if (rvk_shader_may_kill(shader, itr->overrides.values, itr->overrides.count)) {
         graphic->flags |= RvkGraphicFlags_MayDiscard;
       }
       return;

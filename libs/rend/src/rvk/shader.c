@@ -117,7 +117,7 @@ static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f
 static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
   RvkShaderFlags flags = 0;
   if (asset->flags & AssetShaderFlags_MayKill) {
-    flags |= RvkShaderFlags_MayDiscard;
+    flags |= RvkShaderFlags_MayKill;
   }
   return flags;
 }
@@ -136,8 +136,8 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       .outputMask = asset->outputMask,
   };
 
-  if (shader->flags & RvkShaderFlags_MayDiscard && asset->kind != AssetShaderKind_SpvFragment) {
-    log_e("Non-fragment shader uses discard", log_param("shader", fmt_text(dbgName)));
+  if (shader->flags & RvkShaderFlags_MayKill && asset->kind != AssetShaderKind_SpvFragment) {
+    log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));
   }
 
   rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
@@ -203,8 +203,22 @@ bool rvk_shader_set_used(const RvkShader* shader, const u32 set) {
   return false;
 }
 
+bool rvk_shader_may_kill(
+    const RvkShader* shader, const RvkShaderOverride* overrides, const usize overrideCount) {
+
+  if (!(shader->flags & RvkShaderFlags_MayKill)) {
+    // Shader has no kill instruction at all.
+    return false;
+  }
+
+  // Check if all of the required spec constants are true.
+  (void)overrides;
+  (void)overrideCount;
+  return true;
+}
+
 VkSpecializationInfo rvk_shader_specialize_scratch(
-    RvkShader* shader, RvkShaderOverride* overrides, usize overrideCount) {
+    RvkShader* shader, const RvkShaderOverride* overrides, const usize overrideCount) {
 
   enum {
     Limit_EntriesMax  = 64,
@@ -227,7 +241,7 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   Mem       remainingBuffer  = buffer;
 
   for (usize i = 0; i != math_min(overrideCount, Limit_EntriesMax); ++i) {
-    RvkShaderOverride* override = &overrides[i];
+    const RvkShaderOverride* override = &overrides[i];
 
     AssetShaderType type;
     if (UNLIKELY(!rvk_shader_spec_type(shader, override->binding, &type))) {
