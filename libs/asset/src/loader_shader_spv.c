@@ -13,6 +13,7 @@
  */
 
 #define spv_magic 0x07230203
+#define spv_spec_branches_max 5
 
 typedef enum {
   SpvOp_EntryPoint        = 15,
@@ -104,14 +105,25 @@ typedef enum {
   SpvFlags_HasBackwardBranches = 1 << 0, // eg Loops.
 } SpvFlags;
 
+/**
+ * Conditional branch on a specialization constant.
+ * Useful to determine if code is reachable given specific specialization constants.
+ */
+typedef struct {
+  u32 specBinding;
+  u32 labelTrue, labelFalse;
+} SpvSpecBranch;
+
 typedef struct {
   SpvFlags          flags : 8;
   SpvExecutionModel execModel : 8;
   String            entryPoint;
   SpvId*            ids;
   u32               idCount;
-  u32               wellknownTypes[AssetShaderType_Count];
   SpvInstructionId  killInstruction;
+  u32               wellknownTypes[AssetShaderType_Count];
+  SpvSpecBranch     specBranches[spv_spec_branches_max];
+  u32               specBranchCount;
 } SpvProgram;
 
 typedef enum {
@@ -132,6 +144,7 @@ typedef enum {
   SpvError_UnsupportedOutputExceedsMax,
   SpvError_UnsupportedImageType,
   SpvError_MultipleKillInstructions,
+  SpvError_TooManySpecConstBranches,
 
   SpvError_Count,
 } SpvError;
@@ -155,6 +168,7 @@ static String spv_error_str(SpvError res) {
       string_static("SpirV shader output binding exceeds maximum"),
       string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
       string_static("SpirV shader uses multiple kill (aka discard) instructions"),
+      string_static("SpirV shader uses too many branches on specialization constants"),
   };
   ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
   return g_msgs[res];
@@ -517,8 +531,12 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         *err = SpvError_Malformed;
         return data;
       }
+      const u32 conditionId  = data.ptr[1];
       const u32 labelIdTrue  = data.ptr[2];
       const u32 labelIdFalse = data.ptr[3];
+      if (!spv_validate_id(conditionId, out, err)) {
+        return data;
+      }
       if (!spv_validate_id(labelIdTrue, out, err)) {
         return data;
       }
@@ -530,6 +548,18 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       }
       if (out->ids[labelIdFalse].kind != SpvIdKind_Unknown) {
         out->flags |= SpvFlags_HasBackwardBranches; // Seen this label before: backward branch.
+      }
+      // Track specialization constant branches.
+      if (out->ids[conditionId].kind == SpvIdKind_SpecConstant) {
+        if (out->specBranchCount == spv_spec_branches_max) {
+          *err = SpvError_Malformed;
+          return data;
+        }
+        out->specBranches[out->specBranchCount++] = (SpvSpecBranch){
+            .specBinding = out->ids[conditionId].binding,
+            .labelTrue   = labelIdTrue,
+            .labelFalse  = labelIdFalse,
+        };
       }
     } break;
     case SpvOp_Switch: {
