@@ -430,10 +430,19 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      u32 imageChannels;
+    } ImageData;
+
+    ImageData* data     = alloc_alloc_t(g_alloc_scratch, ImageData);
+    data->imageChannels = rvk_format_info(image->vkFormat).channels;
+
     const RvkPassDraw draw = {
         .graphic   = graphic,
         .dynImage  = image,
         .instCount = 1,
+        .drawData  = mem_create(data, sizeof(ImageData)),
     };
     painter_push(ctx, draw);
   }
