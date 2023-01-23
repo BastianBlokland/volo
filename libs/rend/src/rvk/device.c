@@ -11,6 +11,7 @@
 #include "mem_internal.h"
 #include "psocache_internal.h"
 #include "repository_internal.h"
+#include "sampler_internal.h"
 #include "transfer_internal.h"
 
 static const String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
@@ -452,10 +453,11 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   }
 
   dev->vkPipelineCache = rvk_psocache_load(dev);
-  dev->memPool    = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool   = rvk_desc_pool_create(dev->vkDev);
-  dev->transferer = rvk_transferer_create(dev);
-  dev->repository = rvk_repository_create();
+  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool = rvk_desc_pool_create(dev->vkDev);
+  dev->samplerPool = rvk_sampler_pool_create(dev);
+  dev->transferer  = rvk_transferer_create(dev);
+  dev->repository  = rvk_repository_create();
 
   log_i(
       "Vulkan device created",
@@ -479,6 +481,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_repository_destroy(dev->repository);
   rvk_transferer_destroy(dev->transferer);
+  rvk_sampler_pool_destroy(dev->samplerPool);
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);
   vkDestroyDevice(dev->vkDev, &dev->vkAlloc);

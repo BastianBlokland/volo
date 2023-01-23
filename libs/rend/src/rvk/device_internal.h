@@ -5,11 +5,12 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDebug      RvkDebug;
-typedef struct sRvkDescPool   RvkDescPool;
-typedef struct sRvkMemPool    RvkMemPool;
-typedef struct sRvkRepository RvkRepository;
-typedef struct sRvkTransferer RvkTransferer;
+typedef struct sRvkDebug       RvkDebug;
+typedef struct sRvkDescPool    RvkDescPool;
+typedef struct sRvkMemPool     RvkMemPool;
+typedef struct sRvkRepository  RvkRepository;
+typedef struct sRvkSamplerPool RvkSamplerPool;
+typedef struct sRvkTransferer  RvkTransferer;
 
 typedef enum {
   RvkDeviceFlags_Validation               = 1 << 0,
@@ -38,6 +39,7 @@ typedef struct sRvkDevice {
   VkPipelineCache                  vkPipelineCache;
   RvkMemPool*                      memPool;
   RvkDescPool*                     descPool;
+  RvkSamplerPool*                  samplerPool;
   RvkTransferer*                   transferer;
   RvkRepository*                   repository;
 } RvkDevice;

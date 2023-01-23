@@ -46,12 +46,19 @@ typedef struct sRvkSampler {
   VkSampler vkSampler;
 } RvkSampler;
 
+/**
+ * Sampler pool.
+ * Manages sampler lifetime; caller is not responsible for releasing / destroying the samplers.
+ *
+ * NOTE: Api is thread-safe.
+ */
+typedef struct sRvkSamplerPool RvkSamplerPool;
+
+RvkSamplerPool* rvk_sampler_pool_create(RvkDevice*);
+void            rvk_sampler_pool_destroy(RvkSamplerPool*);
+
 RvkSampler rvk_sampler_create(RvkDevice*, RvkSamplerSpec);
 
 void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
 
 bool rvk_sampler_initialized(RvkSampler*);
-
-String rvk_sampler_wrap_str(RvkSamplerWrap);
-String rvk_sampler_filter_str(RvkSamplerFilter);
-String rvk_sampler_aniso_str(RvkSamplerAniso);

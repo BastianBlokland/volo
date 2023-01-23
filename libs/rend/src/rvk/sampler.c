@@ -1,8 +1,45 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 
 #include "device_internal.h"
 #include "sampler_internal.h"
+
+struct sRvkSamplerPool {
+  RvkDevice* device;
+};
+
+MAYBE_UNUSED static String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
+  static const String g_names[] = {
+      string_static("Repeat"),
+      string_static("Clamp"),
+      string_static("Zero"),
+  };
+  ASSERT(array_elems(g_names) == RvkSamplerWrap_Count, "Incorrect number of sampler-wrap names");
+  return g_names[wrap];
+}
+
+MAYBE_UNUSED static String rvk_sampler_filter_str(const RvkSamplerFilter filter) {
+  static const String g_names[] = {
+      string_static("Nearest"),
+      string_static("Linear"),
+  };
+  ASSERT(
+      array_elems(g_names) == RvkSamplerFilter_Count, "Incorrect number of sampler-filter names");
+  return g_names[filter];
+}
+
+MAYBE_UNUSED static String rvk_sampler_aniso_str(const RvkSamplerAniso aniso) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("x2"),
+      string_static("x4"),
+      string_static("x8"),
+      string_static("x16"),
+  };
+  ASSERT(array_elems(g_names) == RvkSamplerAniso_Count, "Incorrect number of sampler-aniso names");
+  return g_names[aniso];
+}
 
 static VkFilter rvk_sampler_vkfilter(const RvkSamplerFilter filter) {
   switch (filter) {
@@ -77,6 +114,14 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
   return result;
 }
 
+RvkSamplerPool* rvk_sampler_pool_create(RvkDevice* dev) {
+  RvkSamplerPool* pool = alloc_alloc_t(g_alloc_heap, RvkSamplerPool);
+  *pool                = (RvkSamplerPool){.device = dev};
+  return pool;
+}
+
+void rvk_sampler_pool_destroy(RvkSamplerPool* pool) { alloc_free_t(g_alloc_heap, pool); }
+
 RvkSampler rvk_sampler_create(RvkDevice* dev, const RvkSamplerSpec spec) {
   return (RvkSampler){
       .vkSampler = rvk_vksampler_create(dev, spec),
@@ -88,35 +133,3 @@ void rvk_sampler_destroy(RvkSampler* sampler, RvkDevice* dev) {
 }
 
 bool rvk_sampler_initialized(RvkSampler* sampler) { return sampler->vkSampler != null; }
-
-String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
-  static const String g_names[] = {
-      string_static("Repeat"),
-      string_static("Clamp"),
-      string_static("Zero"),
-  };
-  ASSERT(array_elems(g_names) == RvkSamplerWrap_Count, "Incorrect number of sampler-wrap names");
-  return g_names[wrap];
-}
-
-String rvk_sampler_filter_str(const RvkSamplerFilter filter) {
-  static const String g_names[] = {
-      string_static("Nearest"),
-      string_static("Linear"),
-  };
-  ASSERT(
-      array_elems(g_names) == RvkSamplerFilter_Count, "Incorrect number of sampler-filter names");
-  return g_names[filter];
-}
-
-String rvk_sampler_aniso_str(const RvkSamplerAniso aniso) {
-  static const String g_names[] = {
-      string_static("None"),
-      string_static("x2"),
-      string_static("x4"),
-      string_static("x8"),
-      string_static("x16"),
-  };
-  ASSERT(array_elems(g_names) == RvkSamplerAniso_Count, "Incorrect number of sampler-aniso names");
-  return g_names[aniso];
-}
