@@ -13,6 +13,7 @@
 #include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
+#include "rvk/sampler_internal.h"
 #include "rvk/swapchain_internal.h"
 
 ecs_comp_define_public(RendStatsComp);
@@ -114,6 +115,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
     stats->attachCount      = rvk_canvas_attach_count(painter->canvas);
     stats->attachMemory     = rvk_canvas_attach_memory(painter->canvas);
+    stats->samplerCount     = rvk_sampler_pool_count(plat->device->samplerPool);
     rend_stat_update_resources(world, stats->resources);
   }
 }

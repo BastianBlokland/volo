@@ -163,6 +163,19 @@ void rvk_sampler_pool_destroy(RvkSamplerPool* pool) {
   alloc_free_t(g_alloc_heap, pool);
 }
 
+u16 rvk_sampler_pool_count(const RvkSamplerPool* pool) {
+  RvkSamplerPool* poolMutable = (RvkSamplerPool*)pool;
+  u16             res         = 0;
+  thread_spinlock_lock(&poolMutable->spinLock);
+  {
+    for (u32 i = 0; i != rvk_samplers_max; ++i) {
+      res += pool->specHashes[i] != 0;
+    }
+  }
+  thread_spinlock_unlock(&poolMutable->spinLock);
+  return res;
+}
+
 VkSampler rvk_sampler_get(RvkSamplerPool* pool, const RvkSamplerSpec spec) {
   VkSampler res;
   thread_spinlock_lock(&pool->spinLock);

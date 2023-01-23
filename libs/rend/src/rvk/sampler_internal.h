@@ -52,5 +52,6 @@ typedef struct sRvkSamplerPool RvkSamplerPool;
 
 RvkSamplerPool* rvk_sampler_pool_create(RvkDevice*);
 void            rvk_sampler_pool_destroy(RvkSamplerPool*);
+u16             rvk_sampler_pool_count(const RvkSamplerPool*);
 
 VkSampler rvk_sampler_get(RvkSamplerPool*, RvkSamplerSpec);
