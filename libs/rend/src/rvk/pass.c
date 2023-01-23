@@ -417,7 +417,7 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
     return; // No dynamic resources to bind.
   }
   diag_assert_msg(!mesh || mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
-  diag_assert_msg(!img || img->phase == RvkImagePhase_ShaderRead, "Image is not ready for binding");
+  diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
   const RvkDescMeta meta    = rvk_pass_meta_dynamic(pass);
   const RvkDescSet  descSet = rvk_pass_alloc_desc(pass, &meta);
@@ -425,6 +425,9 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
   if (img) {
+    if (img->phase != RvkImagePhase_ShaderRead) {
+      rvk_image_transition(img, RvkImagePhase_ShaderRead, pass->vkCmdBuf);
+    }
     const RvkSamplerSpec samplerSpec = {
         .flags     = RvkSamplerFlags_None,
         .wrap      = RvkSamplerWrap_Clamp,
