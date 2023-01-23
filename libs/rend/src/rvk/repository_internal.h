@@ -12,10 +12,6 @@ typedef enum {
   RvkRepositoryId_ShadowClipGraphic,
   RvkRepositoryId_TonemapperGraphic,
   RvkRepositoryId_OutlineGraphic,
-  RvkRepositoryId_DebugWireframeGraphic,
-  RvkRepositoryId_DebugWireframeSkinnedGraphic,
-  RvkRepositoryId_DebugWireframeTerrainGraphic,
-  RvkRepositoryId_DebugSkinningGraphic,
   RvkRepositoryId_AmbientGraphic,
   RvkRepositoryId_AmbientDebugGraphic,
   RvkRepositoryId_AmbientOcclusionGraphic,
@@ -23,6 +19,10 @@ typedef enum {
   RvkRepositoryId_BloomDownGraphic,
   RvkRepositoryId_BloomUpGraphic,
   RvkRepositoryId_ImageViewerGraphic,
+  RvkRepositoryId_DebugWireframeGraphic,
+  RvkRepositoryId_DebugWireframeSkinnedGraphic,
+  RvkRepositoryId_DebugWireframeTerrainGraphic,
+  RvkRepositoryId_DebugSkinningGraphic,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;

@@ -31,10 +31,6 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("ShadowClipGraphic"),
       string_static("TonemapperGraphic"),
       string_static("OutlineGraphic"),
-      string_static("DebugWireframeGraphic"),
-      string_static("DebugWireframeSkinnedGraphic"),
-      string_static("DebugWireframeTerrainGraphic"),
-      string_static("DebugSkinningGraphic"),
       string_static("AmbientGraphic"),
       string_static("AmbientDebugGraphic"),
       string_static("AmbientOcclusionGraphic"),
@@ -42,6 +38,10 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("BloomDownGraphic"),
       string_static("BloomUpGraphic"),
       string_static("ImageViewerGraphic"),
+      string_static("DebugWireframeGraphic"),
+      string_static("DebugWireframeSkinnedGraphic"),
+      string_static("DebugWireframeTerrainGraphic"),
+      string_static("DebugSkinningGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];
