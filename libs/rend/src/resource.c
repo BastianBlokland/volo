@@ -49,32 +49,12 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/shadow_clip.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_WireframeGraphic,
-        .assetId = string_static("graphics/wireframe.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_WireframeSkinnedGraphic,
-        .assetId = string_static("graphics/wireframe_skinned.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_WireframeTerrainGraphic,
-        .assetId = string_static("graphics/wireframe_terrain.gra"),
-    },
-    {
         .repoId  = RvkRepositoryId_TonemapperGraphic,
         .assetId = string_static("graphics/tonemapper.gra"),
     },
     {
         .repoId  = RvkRepositoryId_OutlineGraphic,
         .assetId = string_static("graphics/outline.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
-        .assetId = string_static("graphics/debug/debug_skinning.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugShadowGraphic,
-        .assetId = string_static("graphics/debug/debug_shadow.gra"),
     },
     {
         .repoId  = RvkRepositoryId_AmbientGraphic,
@@ -90,7 +70,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
     },
     {
         .repoId  = RvkRepositoryId_SkyGraphic,
-        .assetId = string_static("graphics/sky.gra"),
+        .assetId = string_static("graphics/scene/sky.gra"),
     },
     {
         .repoId  = RvkRepositoryId_BloomDownGraphic,
@@ -99,6 +79,26 @@ static const RendResGlobalDef g_rendResGlobal[] = {
     {
         .repoId  = RvkRepositoryId_BloomUpGraphic,
         .assetId = string_static("graphics/bloom_up.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugImageViewerGraphic,
+        .assetId = string_static("graphics/debug/image_viewer.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugWireframeGraphic,
+        .assetId = string_static("graphics/debug/wireframe.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugWireframeSkinnedGraphic,
+        .assetId = string_static("graphics/debug/wireframe_skinned.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugWireframeTerrainGraphic,
+        .assetId = string_static("graphics/debug/wireframe_terrain.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
+        .assetId = string_static("graphics/debug/skinning.gra"),
     },
 };
 

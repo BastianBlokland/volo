@@ -35,8 +35,8 @@ static const String g_tooltipAmbientMode      = string_static("Controls the ambi
                                                             "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
                                                             "- \a.bDebugTags\ar: Geometry tags output.\n"
                                                             "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.");
-static const String g_tooltipWireframe        = string_static("Enable a geometry wireframe overlay.");
 static const String g_tooltipDebugCamera      = string_static("Enable a top-down orthographic debug camera projection.\n\n\a.bNote\ar: The view properties of the 'real' camera will be used, this is useful for debugging the frustum culling.");
+static const String g_tooltipDebugWireframe   = string_static("Enable a geometry wireframe debug overlay.");
 static const String g_tooltipDebugSkinning    = string_static("Enable a skinning-weight debug overlay.");
 static const String g_tooltipDebugShadow      = string_static("Draw the shadow-map as a fullscreen overlay.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 static const String g_tooltipDebugLight       = string_static("Visualize the (point) light draws.\n\a.bNote\ar: The brightness represents the light attenuation.");
@@ -326,16 +326,16 @@ static void rend_settings_tab_draw(
       .tooltip = g_tooltipAmbientMode);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Wireframe"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&settings->flags, RendFlags_Wireframe, .tooltip = g_tooltipWireframe);
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Camera"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_DebugCamera, .tooltip = g_tooltipDebugCamera);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug Wireframe"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_DebugWireframe, .tooltip = g_tooltipDebugWireframe);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Skinning"));

@@ -11,15 +11,15 @@ configure_shaders(volo_shaders
     shaders/ambient.frag
     shaders/bloom_down.frag
     shaders/bloom_up.frag
-    shaders/debug/debug_shadow.frag
-    shaders/debug/debug_shadow.vert
-    shaders/debug/debug_skinning.frag
-    shaders/debug/debug_skinning.vert
+    shaders/debug/dyn_image_viewer.frag
+    shaders/debug/dyn_image_viewer.vert
     shaders/debug/grid.frag
     shaders/debug/grid.vert
     shaders/debug/shape_line.vert
     shaders/debug/shape_mesh.vert
     shaders/debug/shape.frag
+    shaders/debug/skinning.frag
+    shaders/debug/skinning.vert
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
     shaders/dyn_depth_clip.frag
