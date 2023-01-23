@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "sampler_internal.h"
 
@@ -140,6 +141,7 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
       VkSampler newSampler     = rvk_vksampler_create(pool->device, spec);
       pool->specHashes[bucket] = specHash;
       pool->vkSamplers[bucket] = newSampler;
+      rvk_debug_name_sampler(pool->device->debug, newSampler, "sampler_{}", fmt_int(bucket));
       return newSampler;
     }
     // Hash collision, jump to a new place in the table (quadratic probing).
