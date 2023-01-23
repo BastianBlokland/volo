@@ -2,9 +2,10 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkBuffer  RvkBuffer;
-typedef struct sRvkImage   RvkImage;
-typedef struct sRvkSampler RvkSampler;
+typedef struct sRvkBuffer      RvkBuffer;
+typedef struct sRvkDevice      RvkDevice;
+typedef struct sRvkImage       RvkImage;
+typedef struct sRvkSamplerSpec RvkSamplerSpec;
 
 #define rvk_desc_bindings_max 8
 
@@ -33,7 +34,7 @@ typedef struct sRvkDescSet {
 
 #define rvk_desc_valid(_SET_) ((_SET_).chunk != null)
 
-RvkDescPool* rvk_desc_pool_create(VkDevice);
+RvkDescPool* rvk_desc_pool_create(RvkDevice*);
 void         rvk_desc_pool_destroy(RvkDescPool*);
 u16          rvk_desc_pool_sets_occupied(const RvkDescPool*);
 u16          rvk_desc_pool_sets_reserved(const RvkDescPool*);
@@ -50,4 +51,4 @@ RvkDescMeta           rvk_desc_set_meta(RvkDescSet);
 RvkDescKind           rvk_desc_set_kind(RvkDescSet, u32 binding);
 
 void rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 size);
-void rvk_desc_set_attach_sampler(RvkDescSet, u32 binding, const RvkImage*, const RvkSampler*);
+void rvk_desc_set_attach_sampler(RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);

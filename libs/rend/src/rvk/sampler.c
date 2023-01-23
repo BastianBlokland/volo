@@ -1,12 +1,21 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
+#include "core_thread.h"
 
 #include "device_internal.h"
 #include "sampler_internal.h"
 
+#define rvk_samplers_max 64
+
+ASSERT((rvk_samplers_max & (rvk_samplers_max - 1u)) == 0, "Max samplers has to be a power-of-two")
+
 struct sRvkSamplerPool {
-  RvkDevice* device;
+  RvkDevice*     device;
+  ThreadSpinLock spinLock;
+  u32            specHashes[rvk_samplers_max];
+  VkSampler      vkSamplers[rvk_samplers_max];
 };
 
 MAYBE_UNUSED static String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {
@@ -114,22 +123,50 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
   return result;
 }
 
+static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSpec spec) {
+  const u32 specHash = bits_hash_32(mem_var(spec));
+  diag_assert(specHash); // Hash of 0 is invalid.
+
+  u32 bucket = specHash & (rvk_samplers_max - 1);
+  for (usize i = 0; i != rvk_samplers_max; ++i) {
+    const u32 slotHash = pool->specHashes[bucket];
+    if (slotHash == specHash) {
+      // Matching sampler found; return it.
+      return pool->vkSamplers[bucket];
+    }
+    if (!slotHash) {
+      // Slot is empty; create a new sampler.
+      diag_assert(!pool->vkSamplers[bucket]);
+      VkSampler newSampler     = rvk_vksampler_create(pool->device, spec);
+      pool->specHashes[bucket] = specHash;
+      pool->vkSamplers[bucket] = newSampler;
+      return newSampler;
+    }
+    // Hash collision, jump to a new place in the table (quadratic probing).
+    bucket = (bucket + i + 1) & (rvk_samplers_max - 1);
+  }
+  diag_crash_msg("Maximum sampler count exceeded");
+}
+
 RvkSamplerPool* rvk_sampler_pool_create(RvkDevice* dev) {
   RvkSamplerPool* pool = alloc_alloc_t(g_alloc_heap, RvkSamplerPool);
   *pool                = (RvkSamplerPool){.device = dev};
   return pool;
 }
 
-void rvk_sampler_pool_destroy(RvkSamplerPool* pool) { alloc_free_t(g_alloc_heap, pool); }
-
-RvkSampler rvk_sampler_create(RvkDevice* dev, const RvkSamplerSpec spec) {
-  return (RvkSampler){
-      .vkSampler = rvk_vksampler_create(dev, spec),
-  };
+void rvk_sampler_pool_destroy(RvkSamplerPool* pool) {
+  for (u32 i = 0; i != rvk_samplers_max; ++i) {
+    if (pool->vkSamplers[i]) {
+      vkDestroySampler(pool->device->vkDev, pool->vkSamplers[i], &pool->device->vkAlloc);
+    }
+  }
+  alloc_free_t(g_alloc_heap, pool);
 }
 
-void rvk_sampler_destroy(RvkSampler* sampler, RvkDevice* dev) {
-  vkDestroySampler(dev->vkDev, sampler->vkSampler, &dev->vkAlloc);
+VkSampler rvk_sampler_get(RvkSamplerPool* pool, const RvkSamplerSpec spec) {
+  VkSampler res;
+  thread_spinlock_lock(&pool->spinLock);
+  res = rvk_sampler_get_locked(pool, spec);
+  thread_spinlock_unlock(&pool->spinLock);
+  return res;
 }
-
-bool rvk_sampler_initialized(RvkSampler* sampler) { return sampler->vkSampler != null; }

@@ -34,17 +34,13 @@ typedef enum {
   RvkSamplerAniso_Count,
 } RvkSamplerAniso;
 
-typedef struct {
+typedef struct sRvkSamplerSpec {
   RvkSamplerFlags  flags : 8;
   RvkSamplerWrap   wrap : 8;
   RvkSamplerFilter filter : 8;
   RvkSamplerAniso  aniso : 8;
   u8               mipLevels;
 } RvkSamplerSpec;
-
-typedef struct sRvkSampler {
-  VkSampler vkSampler;
-} RvkSampler;
 
 /**
  * Sampler pool.
@@ -57,8 +53,4 @@ typedef struct sRvkSamplerPool RvkSamplerPool;
 RvkSamplerPool* rvk_sampler_pool_create(RvkDevice*);
 void            rvk_sampler_pool_destroy(RvkSamplerPool*);
 
-RvkSampler rvk_sampler_create(RvkDevice*, RvkSamplerSpec);
-
-void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
-
-bool rvk_sampler_initialized(RvkSampler*);
+VkSampler rvk_sampler_get(RvkSamplerPool*, RvkSamplerSpec);

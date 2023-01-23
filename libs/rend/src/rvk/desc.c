@@ -7,6 +7,7 @@
 
 #include "buffer_internal.h"
 #include "desc_internal.h"
+#include "device_internal.h"
 #include "image_internal.h"
 #include "mem_internal.h"
 #include "sampler_internal.h"
@@ -31,13 +32,12 @@ struct sRvkDescChunk {
 };
 
 struct sRvkDescPool {
-  VkDevice              vkDev;
-  VkAllocationCallbacks vkAlloc;
-  ThreadMutex           layoutLock;
-  DynArray              layouts; // RvkDescLayout[], kept sorted on the metaHash.
-  ThreadMutex           chunkLock;
-  RvkDescChunk*         chunkHead;
-  RvkDescChunk*         chunkTail;
+  RvkDevice*    dev;
+  ThreadMutex   layoutLock;
+  DynArray      layouts; // RvkDescLayout[], kept sorted on the metaHash.
+  ThreadMutex   chunkLock;
+  RvkDescChunk* chunkHead;
+  RvkDescChunk* chunkTail;
 };
 
 static u32 rvk_desc_meta_hash(const RvkDescMeta* meta) {
@@ -101,7 +101,8 @@ static VkDescriptorSetLayout rvk_desc_vklayout_create(RvkDescPool* pool, const R
       .pBindings    = bindings,
   };
   VkDescriptorSetLayout result;
-  rvk_call(vkCreateDescriptorSetLayout, pool->vkDev, &layoutInfo, &pool->vkAlloc, &result);
+  rvk_call(
+      vkCreateDescriptorSetLayout, pool->dev->vkDev, &layoutInfo, &pool->dev->vkAlloc, &result);
   return result;
 }
 
@@ -140,7 +141,7 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
       .maxSets       = rvk_desc_sets_per_chunk,
   };
   VkDescriptorPool result;
-  rvk_call(vkCreateDescriptorPool, pool->vkDev, &poolInfo, &pool->vkAlloc, &result);
+  rvk_call(vkCreateDescriptorPool, pool->dev->vkDev, &poolInfo, &pool->dev->vkAlloc, &result);
   return result;
 }
 
@@ -169,7 +170,7 @@ static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta*
       .descriptorSetCount = rvk_desc_sets_per_chunk,
       .pSetLayouts        = layouts,
   };
-  rvk_call(vkAllocateDescriptorSets, pool->vkDev, &allocInfo, chunk->vkSets);
+  rvk_call(vkAllocateDescriptorSets, pool->dev->vkDev, &allocInfo, chunk->vkSets);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
   log_d(
@@ -186,7 +187,7 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
       bitset_count(rvk_desc_chunk_mask(chunk)) == rvk_desc_sets_per_chunk,
       "Not all descriptor sets have been freed");
 
-  vkDestroyDescriptorPool(chunk->pool->vkDev, chunk->vkPool, &chunk->pool->vkAlloc);
+  vkDestroyDescriptorPool(chunk->pool->dev->vkDev, chunk->vkPool, &chunk->pool->dev->vkAlloc);
   alloc_free_t(g_alloc_heap, chunk);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
@@ -212,12 +213,11 @@ static void rvk_desc_chunk_free(RvkDescChunk* chunk, const RvkDescSet set) {
   bitset_set(freeMask, set.idx);                // Mark the set as available.
 }
 
-RvkDescPool* rvk_desc_pool_create(const VkDevice vkDev) {
+RvkDescPool* rvk_desc_pool_create(RvkDevice* dev) {
   RvkDescPool* pool = alloc_alloc_t(g_alloc_heap, RvkDescPool);
 
   *pool = (RvkDescPool){
-      .vkDev      = vkDev,
-      .vkAlloc    = rvk_mem_allocator(g_alloc_heap),
+      .dev        = dev,
       .layoutLock = thread_mutex_create(g_alloc_heap),
       .layouts    = dynarray_create_t(g_alloc_heap, RvkDescLayout, 64),
       .chunkLock  = thread_mutex_create(g_alloc_heap),
@@ -239,7 +239,7 @@ void rvk_desc_pool_destroy(RvkDescPool* pool) {
   // Destroy all layouts.
   thread_mutex_destroy(pool->layoutLock);
   dynarray_for_t(&pool->layouts, RvkDescLayout, layout) {
-    vkDestroyDescriptorSetLayout(pool->vkDev, layout->vkLayout, &pool->vkAlloc);
+    vkDestroyDescriptorSetLayout(pool->dev->vkDev, layout->vkLayout, &pool->dev->vkAlloc);
   }
   dynarray_destroy(&pool->layouts);
 
@@ -408,9 +408,9 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
 
 void rvk_desc_set_attach_buffer(
     const RvkDescSet set, const u32 binding, const RvkBuffer* buffer, const u32 size) {
+  RvkDescPool*      pool = set.chunk->pool;
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   diag_assert(kind);
-
   const VkDescriptorBufferInfo bufferInfo = {
       .buffer = buffer->vkBuffer,
       .offset = 0,
@@ -425,12 +425,16 @@ void rvk_desc_set_attach_buffer(
       .descriptorCount = 1,
       .pBufferInfo     = &bufferInfo,
   };
-  vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
+  vkUpdateDescriptorSets(pool->dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
 void rvk_desc_set_attach_sampler(
-    const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSampler* sampler) {
+    const RvkDescSet     set,
+    const u32            binding,
+    const RvkImage*      image,
+    const RvkSamplerSpec samplerSpec) {
   diag_assert(image->caps & RvkImageCapability_Sampled);
+  RvkDescPool* pool = set.chunk->pool;
 
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   switch (kind) {
@@ -450,7 +454,7 @@ void rvk_desc_set_attach_sampler(
                          ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
                          : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       .imageView   = image->vkImageView,
-      .sampler     = sampler->vkSampler,
+      .sampler     = rvk_sampler_get(pool->dev->samplerPool, samplerSpec),
   };
   VkWriteDescriptorSet descriptorWrite = {
       .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -461,5 +465,5 @@ void rvk_desc_set_attach_sampler(
       .descriptorCount = 1,
       .pImageInfo      = &imgInfo,
   };
-  vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
+  vkUpdateDescriptorSets(pool->dev->vkDev, 1, &descriptorWrite, 0, null);
 }

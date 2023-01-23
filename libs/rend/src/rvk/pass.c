@@ -79,9 +79,6 @@ struct sRvkPass {
 
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
-  RvkSampler       globalImageSampler, globalShadowSampler;
-
-  RvkSampler dynImageSampler;
 
   DynArray descSets;    // RvkDescSet[]
   DynArray invocations; // RvkPassInvoc[]
@@ -428,20 +425,14 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
   if (img) {
-    if (!rvk_sampler_initialized(&pass->dynImageSampler)) {
-      const u8 mipLevels    = 1; // TODO: Support mip-mapping on dynamic images.
-      pass->dynImageSampler = rvk_sampler_create(
-          pass->dev,
-          (RvkSamplerSpec){
-              .flags     = RvkSamplerFlags_None,
-              .wrap      = RvkSamplerWrap_Clamp,
-              .filter    = RvkSamplerFilter_Linear,
-              .aniso     = RvkSamplerAniso_x8,
-              .mipLevels = mipLevels,
-          });
-      rvk_debug_name_sampler(pass->dev->debug, pass->dynImageSampler.vkSampler, "dyn_image");
-    }
-    rvk_desc_set_attach_sampler(descSet, 1, img, &pass->dynImageSampler);
+    const RvkSamplerSpec samplerSpec = {
+        .flags     = RvkSamplerFlags_None,
+        .wrap      = RvkSamplerWrap_Clamp,
+        .filter    = RvkSamplerFilter_Linear,
+        .aniso     = RvkSamplerAniso_x8,
+        .mipLevels = img->mipLevels,
+    };
+    rvk_desc_set_attach_sampler(descSet, 1, img, samplerSpec);
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
@@ -537,17 +528,8 @@ void rvk_pass_destroy(RvkPass* pass) {
   rvk_statrecorder_destroy(pass->statrecorder);
 
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
-
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
-  if (rvk_sampler_initialized(&pass->globalImageSampler)) {
-    rvk_sampler_destroy(&pass->globalImageSampler, pass->dev);
-  }
-  if (rvk_sampler_initialized(&pass->globalShadowSampler)) {
-    rvk_sampler_destroy(&pass->globalShadowSampler, pass->dev);
-  }
-  if (rvk_sampler_initialized(&pass->dynImageSampler)) {
-    rvk_sampler_destroy(&pass->dynImageSampler, pass->dev);
-  }
+
   dynarray_destroy(&pass->descSets);
   dynarray_destroy(&pass->invocations);
 
@@ -763,24 +745,18 @@ void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 image
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
-  if (!rvk_sampler_initialized(&pass->globalImageSampler)) {
-    const u8 mipLevels       = 1;
-    pass->globalImageSampler = rvk_sampler_create(
-        pass->dev,
-        (RvkSamplerSpec){
-            .flags     = RvkSamplerFlags_None,
-            .wrap      = RvkSamplerWrap_Clamp,
-            .filter    = RvkSamplerFilter_Linear,
-            .aniso     = RvkSamplerAniso_None,
-            .mipLevels = mipLevels,
-        });
-    rvk_debug_name_sampler(pass->dev->debug, pass->globalImageSampler.vkSampler, "global_image");
-  }
-
   if (!rvk_desc_valid(stage->globalDescSet)) {
     stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
   }
-  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, &pass->globalImageSampler);
+
+  const RvkSamplerSpec samplerSpec = {
+      .flags     = RvkSamplerFlags_None,
+      .wrap      = RvkSamplerWrap_Clamp,
+      .filter    = RvkSamplerFilter_Linear,
+      .aniso     = RvkSamplerAniso_None,
+      .mipLevels = image->mipLevels,
+  };
+  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
   stage->globalBoundMask |= 1 << bindIndex;
   stage->globalImages[imageIndex] = image;
@@ -797,24 +773,18 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
   diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
-  if (!rvk_sampler_initialized(&pass->globalShadowSampler)) {
-    const u8 mipLevels        = 1;
-    pass->globalShadowSampler = rvk_sampler_create(
-        pass->dev,
-        (RvkSamplerSpec){
-            .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-            .wrap      = RvkSamplerWrap_Zero,
-            .filter    = RvkSamplerFilter_Linear,
-            .aniso     = RvkSamplerAniso_None,
-            .mipLevels = mipLevels,
-        });
-    rvk_debug_name_sampler(pass->dev->debug, pass->globalShadowSampler.vkSampler, "global_shadow");
-  }
-
   if (!rvk_desc_valid(stage->globalDescSet)) {
     stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
   }
-  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, &pass->globalShadowSampler);
+
+  const RvkSamplerSpec samplerSpec = {
+      .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+      .wrap      = RvkSamplerWrap_Zero,
+      .filter    = RvkSamplerFilter_Linear,
+      .aniso     = RvkSamplerAniso_None,
+      .mipLevels = image->mipLevels,
+  };
+  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
   stage->globalBoundMask |= 1 << bindIndex;
   stage->globalImages[imageIndex] = image;

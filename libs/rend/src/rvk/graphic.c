@@ -539,15 +539,13 @@ static void rvk_graphic_set_missing_sampler(
   RvkTexture* tex = rvk_repository_texture_get(dev->repository, repoId);
 
   graphic->samplers[samplerIndex].texture = tex;
-  graphic->samplers[samplerIndex].sampler = rvk_sampler_create(
-      dev,
-      (RvkSamplerSpec){
-          .flags     = RvkSamplerFlags_None,
-          .wrap      = RvkSamplerWrap_Repeat,
-          .filter    = RvkSamplerFilter_Nearest,
-          .aniso     = RvkSamplerAniso_None,
-          .mipLevels = tex->image.mipLevels,
-      });
+  graphic->samplers[samplerIndex].spec    = (RvkSamplerSpec){
+      .flags     = RvkSamplerFlags_None,
+      .wrap      = RvkSamplerWrap_Repeat,
+      .filter    = RvkSamplerFilter_Nearest,
+      .aniso     = RvkSamplerAniso_None,
+      .mipLevels = tex->image.mipLevels,
+  };
 }
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
@@ -690,11 +688,6 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
       alloc_free_array_t(g_alloc_heap, itr->overrides.values, itr->overrides.count);
     }
   }
-  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture) {
-      rvk_sampler_destroy(&itr->sampler, dev);
-    }
-  }
 
   log_d("Vulkan graphic destroyed", log_param("name", fmt_text(graphic->dbgName)));
 
@@ -744,22 +737,16 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 void rvk_graphic_sampler_add(
     RvkGraphic* graphic, RvkTexture* tex, const AssetGraphicSampler* sampler) {
 
-  RvkDevice* dev = graphic->device;
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (!itr->texture) {
       itr->texture = tex;
-      itr->sampler = rvk_sampler_create(
-          dev,
-          (RvkSamplerSpec){
-              .flags  = RvkSamplerFlags_None,
-              .wrap   = rvk_graphic_wrap(sampler->wrap),
-              .filter = rvk_graphic_filter(sampler->filter),
-              .aniso  = rvk_graphic_aniso(sampler->anisotropy),
-              tex->image.mipLevels,
-          });
-
-      rvk_debug_name_sampler(
-          graphic->device->debug, itr->sampler.vkSampler, "{}", fmt_text(tex->dbgName));
+      itr->spec    = (RvkSamplerSpec){
+          .flags  = RvkSamplerFlags_None,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          tex->image.mipLevels,
+      };
       return;
     }
   }
@@ -874,9 +861,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
           graphic->flags |= RvkGraphicFlags_Invalid;
           break;
         }
-        const RvkImage*   image   = &graphic->samplers[samplerIndex].texture->image;
-        const RvkSampler* sampler = &graphic->samplers[samplerIndex].sampler;
-        rvk_desc_set_attach_sampler(graphic->descSet, i, image, sampler);
+        const RvkImage*      image       = &graphic->samplers[samplerIndex].texture->image;
+        const RvkSamplerSpec samplerSpec = graphic->samplers[samplerIndex].spec;
+        rvk_desc_set_attach_sampler(graphic->descSet, i, image, samplerSpec);
         ++samplerIndex;
       }
     }

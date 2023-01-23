@@ -454,7 +454,7 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
 
   dev->vkPipelineCache = rvk_psocache_load(dev);
   dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool = rvk_desc_pool_create(dev->vkDev);
+  dev->descPool = rvk_desc_pool_create(dev);
   dev->samplerPool = rvk_sampler_pool_create(dev);
   dev->transferer  = rvk_transferer_create(dev);
   dev->repository  = rvk_repository_create();
