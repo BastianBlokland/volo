@@ -70,7 +70,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
     },
     {
         .repoId  = RvkRepositoryId_SkyGraphic,
-        .assetId = string_static("graphics/sky.gra"),
+        .assetId = string_static("graphics/scene/sky.gra"),
     },
     {
         .repoId  = RvkRepositoryId_BloomDownGraphic,
