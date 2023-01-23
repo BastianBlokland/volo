@@ -81,8 +81,8 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/bloom_up.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_ImageViewerGraphic,
-        .assetId = string_static("graphics/image_viewer.gra"),
+        .repoId  = RvkRepositoryId_DebugImageViewerGraphic,
+        .assetId = string_static("graphics/debug/image_viewer.gra"),
     },
     {
         .repoId  = RvkRepositoryId_DebugWireframeGraphic,

@@ -497,9 +497,10 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
   }
 }
 
-static void painter_push_image_viewer(RendPaintContext* ctx, RvkImage* image) {
-  RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
-  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ImageViewerGraphic);
+static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     const RvkPassDraw draw = {
         .graphic   = graphic,
@@ -697,7 +698,7 @@ static bool rend_canvas_paint(
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
-      painter_push_image_viewer(&ctx, shadowDepth);
+      painter_push_debug_image_viewer(&ctx, shadowDepth);
     }
     painter_flush(&ctx);
   }

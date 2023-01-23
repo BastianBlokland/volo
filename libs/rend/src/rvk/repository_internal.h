@@ -18,7 +18,7 @@ typedef enum {
   RvkRepositoryId_SkyGraphic,
   RvkRepositoryId_BloomDownGraphic,
   RvkRepositoryId_BloomUpGraphic,
-  RvkRepositoryId_ImageViewerGraphic,
+  RvkRepositoryId_DebugImageViewerGraphic,
   RvkRepositoryId_DebugWireframeGraphic,
   RvkRepositoryId_DebugWireframeSkinnedGraphic,
   RvkRepositoryId_DebugWireframeTerrainGraphic,

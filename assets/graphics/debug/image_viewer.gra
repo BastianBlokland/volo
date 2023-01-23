@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/dyn_image_viewer.vert.spv"
+      "shaderId": "shaders/debug/dyn_image_viewer.vert.spv"
     },
     {
-      "shaderId": "shaders/dyn_image_viewer.frag.spv"
+      "shaderId": "shaders/debug/dyn_image_viewer.frag.spv"
     }
   ],
   "vertexCount": 4,

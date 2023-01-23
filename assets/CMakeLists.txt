@@ -11,6 +11,8 @@ configure_shaders(volo_shaders
     shaders/ambient.frag
     shaders/bloom_down.frag
     shaders/bloom_up.frag
+    shaders/debug/dyn_image_viewer.frag
+    shaders/debug/dyn_image_viewer.vert
     shaders/debug/grid.frag
     shaders/debug/grid.vert
     shaders/debug/shape_line.vert
@@ -24,8 +26,6 @@ configure_shaders(volo_shaders
     shaders/dyn_depth_standard_skinned.vert
     shaders/dyn_depth_standard.vert
     shaders/dyn_depth.frag
-    shaders/dyn_image_viewer.frag
-    shaders/dyn_image_viewer.vert
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
