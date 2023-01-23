@@ -405,11 +405,11 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   }
 }
 
-static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
+static void painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawVie, EcsView* graVie) {
   RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
-  EcsIterator*   graphicItr = ecs_view_itr(graphicView);
+  EcsIterator*   graphicItr = ecs_view_itr(graVie);
 
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+  for (EcsIterator* drawItr = ecs_view_itr(drawVie); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
       continue; // Not a draw we can render a wireframe for.
@@ -427,11 +427,11 @@ static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, Ecs
     }
     RvkRepositoryId graphicId;
     if (rend_draw_flags(draw) & RendDrawFlags_Terrain) {
-      graphicId = RvkRepositoryId_WireframeTerrainGraphic;
+      graphicId = RvkRepositoryId_DebugWireframeTerrainGraphic;
     } else if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
-      graphicId = RvkRepositoryId_WireframeSkinnedGraphic;
+      graphicId = RvkRepositoryId_DebugWireframeSkinnedGraphic;
     } else {
-      graphicId = RvkRepositoryId_WireframeGraphic;
+      graphicId = RvkRepositoryId_DebugWireframeGraphic;
     }
     RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!graphicWireframe) {
@@ -445,7 +445,7 @@ static void painter_push_wireframe(RendPaintContext* ctx, EcsView* drawView, Ecs
   }
 }
 
-static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawVie, EcsView* graVie) {
   RvkRepository*        repository     = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
   RvkGraphic*           debugGraphic   = rvk_repository_graphic_get(repository, debugGraphicId);
@@ -453,8 +453,8 @@ static void painter_push_debugskinning(RendPaintContext* ctx, EcsView* drawView,
     return; // Debug graphic not ready to be drawn.
   }
 
-  EcsIterator* graphicItr = ecs_view_itr(graView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+  EcsIterator* graphicItr = ecs_view_itr(graVie);
+  for (EcsIterator* drawItr = ecs_view_itr(drawVie); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (!(rend_draw_flags(draw) & RendDrawFlags_Skinned)) {
       continue; // Not a skinned draw.
@@ -625,11 +625,11 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
-    if (set->flags & RendFlags_Wireframe) {
-      painter_push_wireframe(&ctx, drawView, graphicView);
+    if (set->flags & RendFlags_DebugWireframe) {
+      painter_push_debug_wireframe(&ctx, drawView, graphicView);
     }
     if (set->flags & RendFlags_DebugSkinning) {
-      painter_push_debugskinning(&ctx, drawView, graphicView);
+      painter_push_debug_skinning(&ctx, drawView, graphicView);
     }
     painter_flush(&ctx);
   }

@@ -10,7 +10,7 @@ typedef enum {
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
   RendFlags_Bloom                = 1 << 3,
-  RendFlags_Wireframe            = 1 << 4,
+  RendFlags_DebugWireframe       = 1 << 4,
   RendFlags_DebugCamera          = 1 << 5,
   RendFlags_DebugSkinning        = 1 << 6,
   RendFlags_DebugShadow          = 1 << 7,
