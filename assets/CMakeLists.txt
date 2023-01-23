@@ -11,8 +11,6 @@ configure_shaders(volo_shaders
     shaders/ambient.frag
     shaders/bloom_down.frag
     shaders/bloom_up.frag
-    shaders/debug/debug_shadow.frag
-    shaders/debug/debug_shadow.vert
     shaders/debug/debug_skinning.frag
     shaders/debug/debug_skinning.vert
     shaders/debug/grid.frag

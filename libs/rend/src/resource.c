@@ -73,10 +73,6 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/debug/debug_skinning.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_DebugShadowGraphic,
-        .assetId = string_static("graphics/debug/debug_shadow.gra"),
-    },
-    {
         .repoId  = RvkRepositoryId_AmbientGraphic,
         .assetId = string_static("graphics/ambient.gra"),
     },
