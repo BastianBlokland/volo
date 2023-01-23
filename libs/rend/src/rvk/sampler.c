@@ -3,13 +3,15 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
+#include "log_logger.h"
 
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "sampler_internal.h"
 
-#define rvk_samplers_max 64
+#define VOLO_RVK_SAMPLER_LOGGING 0
 
+#define rvk_samplers_max 64
 ASSERT((rvk_samplers_max & (rvk_samplers_max - 1u)) == 0, "Max samplers has to be a power-of-two")
 
 struct sRvkSamplerPool {
@@ -142,6 +144,16 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
       pool->specHashes[bucket] = specHash;
       pool->vkSamplers[bucket] = newSampler;
       rvk_debug_name_sampler(pool->device->debug, newSampler, "sampler_{}", fmt_int(bucket));
+
+#if VOLO_RVK_SAMPLER_LOGGING
+      log_d(
+          "Vulkan sampler created",
+          log_param("wrap", fmt_text(rvk_sampler_wrap_str(spec.wrap))),
+          log_param("filter", fmt_text(rvk_sampler_filter_str(spec.filter))),
+          log_param("anisotropic", fmt_text(rvk_sampler_aniso_str(spec.aniso))),
+          log_param("mip-levels", fmt_int(spec.mipLevels)));
+#endif
+
       return newSampler;
     }
     // Hash collision, jump to a new place in the table (quadratic probing).
