@@ -100,6 +100,10 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .repoId  = RvkRepositoryId_BloomUpGraphic,
         .assetId = string_static("graphics/bloom_up.gra"),
     },
+    {
+        .repoId  = RvkRepositoryId_ImageViewerGraphic,
+        .assetId = string_static("graphics/image_viewer.gra"),
+    },
 };
 
 ecs_comp_define_public(RendResGraphicComp);
