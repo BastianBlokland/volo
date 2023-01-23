@@ -433,16 +433,30 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
     typedef struct {
       ALIGNAS(16)
       u32 imageChannels;
-    } ImageData;
+      u32 flags;
+    } ImageViewerData;
 
-    ImageData* data     = alloc_alloc_t(g_alloc_scratch, ImageData);
-    data->imageChannels = rvk_format_info(image->vkFormat).channels;
+    enum { ImageViewerFlags_FlipY = 1 << 0 };
+
+    u32 flags = 0;
+    if (image->type != RvkImageType_ColorSource && image->type != RvkImageType_ColorSourceCube) {
+      /**
+       * Volo is using source textures with the image origin at the bottom left (as opposed to the
+       * conventional top left). This is an historical mistake that should be corrected but until
+       * that time we need to flip non-source (attachments) images as they are using top-left.
+       */
+      flags |= ImageViewerFlags_FlipY;
+    }
+
+    ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
+    data->imageChannels   = rvk_format_info(image->vkFormat).channels;
+    data->flags           = flags;
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
         .dynImage  = image,
         .instCount = 1,
-        .drawData  = mem_create(data, sizeof(ImageData)),
+        .drawData  = mem_create(data, sizeof(ImageViewerData)),
     };
     painter_push(ctx, draw);
   }

@@ -6,7 +6,10 @@
 
 struct ImageData {
   u32 imageChannels;
+  u32 flags;
 };
+
+const u32 c_flagsFlipY = 1 << 0;
 
 bind_dynamic(1) uniform sampler2D u_tex;
 bind_draw_data(0) readonly uniform Draw { ImageData u_draw; };
@@ -16,7 +19,12 @@ bind_internal(0) in f32v2 in_texcoord;
 bind_internal(0) out f32v3 out_color;
 
 void main() {
-  const f32v4 imageColor = texture(u_tex, in_texcoord);
+  f32v2 coord = in_texcoord;
+  if ((u_draw.flags & c_flagsFlipY) != 0) {
+    coord.y = 1.0 - coord.y;
+  }
+
+  const f32v4 imageColor = texture(u_tex, coord);
   switch (u_draw.imageChannels) {
   case 1:
     out_color = imageColor.rrr;
