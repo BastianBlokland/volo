@@ -432,11 +432,13 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
       const u8 mipLevels    = 1; // TODO: Support mip-mapping on dynamic images.
       pass->dynImageSampler = rvk_sampler_create(
           pass->dev,
-          RvkSamplerFlags_None,
-          RvkSamplerWrap_Clamp,
-          RvkSamplerFilter_Linear,
-          RvkSamplerAniso_x8,
-          mipLevels);
+          (RvkSamplerSpec){
+              .flags     = RvkSamplerFlags_None,
+              .wrap      = RvkSamplerWrap_Clamp,
+              .filter    = RvkSamplerFilter_Linear,
+              .aniso     = RvkSamplerAniso_x8,
+              .mipLevels = mipLevels,
+          });
       rvk_debug_name_sampler(pass->dev->debug, pass->dynImageSampler.vkSampler, "dyn_image");
     }
     rvk_desc_set_attach_sampler(descSet, 1, img, &pass->dynImageSampler);
@@ -765,11 +767,13 @@ void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 image
     const u8 mipLevels       = 1;
     pass->globalImageSampler = rvk_sampler_create(
         pass->dev,
-        RvkSamplerFlags_None,
-        RvkSamplerWrap_Clamp,
-        RvkSamplerFilter_Linear,
-        RvkSamplerAniso_None,
-        mipLevels);
+        (RvkSamplerSpec){
+            .flags     = RvkSamplerFlags_None,
+            .wrap      = RvkSamplerWrap_Clamp,
+            .filter    = RvkSamplerFilter_Linear,
+            .aniso     = RvkSamplerAniso_None,
+            .mipLevels = mipLevels,
+        });
     rvk_debug_name_sampler(pass->dev->debug, pass->globalImageSampler.vkSampler, "global_image");
   }
 
@@ -797,11 +801,13 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
     const u8 mipLevels        = 1;
     pass->globalShadowSampler = rvk_sampler_create(
         pass->dev,
-        RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-        RvkSamplerWrap_Zero,
-        RvkSamplerFilter_Linear,
-        RvkSamplerAniso_None,
-        mipLevels);
+        (RvkSamplerSpec){
+            .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+            .wrap      = RvkSamplerWrap_Zero,
+            .filter    = RvkSamplerFilter_Linear,
+            .aniso     = RvkSamplerAniso_None,
+            .mipLevels = mipLevels,
+        });
     rvk_debug_name_sampler(pass->dev->debug, pass->globalShadowSampler.vkSampler, "global_shadow");
   }
 

@@ -48,35 +48,28 @@ static f32 rvk_sampler_aniso_level(const RvkSamplerAniso aniso) {
   diag_crash();
 }
 
-static VkSampler rvk_vksampler_create(
-    const RvkDevice*       dev,
-    const RvkSamplerFlags  flags,
-    const RvkSamplerWrap   wrap,
-    const RvkSamplerFilter filter,
-    const RvkSamplerAniso  aniso,
-    const u8               mipLevels) {
-
+static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec spec) {
   VkSamplerCreateInfo samplerInfo = {
       .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-      .magFilter               = rvk_sampler_vkfilter(filter),
-      .minFilter               = rvk_sampler_vkfilter(filter),
-      .addressModeU            = rvk_sampler_vkaddress(wrap),
-      .addressModeV            = rvk_sampler_vkaddress(wrap),
-      .addressModeW            = rvk_sampler_vkaddress(wrap),
+      .magFilter               = rvk_sampler_vkfilter(spec.filter),
+      .minFilter               = rvk_sampler_vkfilter(spec.filter),
+      .addressModeU            = rvk_sampler_vkaddress(spec.wrap),
+      .addressModeV            = rvk_sampler_vkaddress(spec.wrap),
+      .addressModeW            = rvk_sampler_vkaddress(spec.wrap),
       .maxAnisotropy           = 1,
       .borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
       .unnormalizedCoordinates = false,
-      .compareEnable           = (flags & RvkSamplerFlags_SupportCompare) != 0,
+      .compareEnable           = (spec.flags & RvkSamplerFlags_SupportCompare) != 0,
       .compareOp               = VK_COMPARE_OP_LESS,
       .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
       .mipLodBias              = 0,
       .minLod                  = 0,
-      .maxLod                  = mipLevels,
+      .maxLod                  = spec.mipLevels,
   };
 
   if (dev->flags & RvkDeviceFlags_SupportAnisotropy) {
-    samplerInfo.anisotropyEnable = aniso != RvkSamplerAniso_None;
-    samplerInfo.maxAnisotropy    = rvk_sampler_aniso_level(aniso);
+    samplerInfo.anisotropyEnable = spec.aniso != RvkSamplerAniso_None;
+    samplerInfo.maxAnisotropy    = rvk_sampler_aniso_level(spec.aniso);
   }
 
   VkSampler result;
@@ -84,16 +77,9 @@ static VkSampler rvk_vksampler_create(
   return result;
 }
 
-RvkSampler rvk_sampler_create(
-    RvkDevice*             dev,
-    const RvkSamplerFlags  flags,
-    const RvkSamplerWrap   wrap,
-    const RvkSamplerFilter filter,
-    const RvkSamplerAniso  aniso,
-    const u8               mipLevels) {
-
+RvkSampler rvk_sampler_create(RvkDevice* dev, const RvkSamplerSpec spec) {
   return (RvkSampler){
-      .vkSampler = rvk_vksampler_create(dev, flags, wrap, filter, aniso, mipLevels),
+      .vkSampler = rvk_vksampler_create(dev, spec),
   };
 }
 
