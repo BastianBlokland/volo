@@ -735,7 +735,8 @@ void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
   stage->globalBoundMask |= 1 << globalDataBinding;
 }
 
-void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+static void rvk_pass_stage_global_image_internal(
+    RvkPass* pass, RvkImage* image, const u16 imageIndex, const RvkSamplerSpec samplerSpec) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
@@ -748,46 +749,38 @@ void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 image
   if (!rvk_desc_valid(stage->globalDescSet)) {
     stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
   }
-
-  const RvkSamplerSpec samplerSpec = {
-      .flags     = RvkSamplerFlags_None,
-      .wrap      = RvkSamplerWrap_Clamp,
-      .filter    = RvkSamplerFilter_Linear,
-      .aniso     = RvkSamplerAniso_None,
-      .mipLevels = image->mipLevels,
-  };
   rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
   stage->globalBoundMask |= 1 << bindIndex;
   stage->globalImages[imageIndex] = image;
 }
 
+void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
+  rvk_pass_stage_global_image_internal(
+      pass,
+      image,
+      imageIndex,
+      (RvkSamplerSpec){
+          .flags     = RvkSamplerFlags_None,
+          .wrap      = RvkSamplerWrap_Clamp,
+          .filter    = RvkSamplerFilter_Linear,
+          .aniso     = RvkSamplerAniso_None,
+          .mipLevels = image->mipLevels,
+      });
+}
+
 void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imageIndex) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  RvkPassStage* stage = rvk_pass_stage();
-
-  const u32 bindIndex = 1 + imageIndex;
-  diag_assert_msg(!(stage->globalBoundMask & (1 << bindIndex)), "Image already staged");
-  diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
-  diag_assert_msg(image->type == RvkImageType_DepthAttachment, "Shadow image not a depth-image");
-  diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
-
-  if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc(pass, &pass->globalDescMeta);
-  }
-
-  const RvkSamplerSpec samplerSpec = {
-      .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-      .wrap      = RvkSamplerWrap_Zero,
-      .filter    = RvkSamplerFilter_Linear,
-      .aniso     = RvkSamplerAniso_None,
-      .mipLevels = image->mipLevels,
-  };
-  rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
-
-  stage->globalBoundMask |= 1 << bindIndex;
-  stage->globalImages[imageIndex] = image;
+  rvk_pass_stage_global_image_internal(
+      pass,
+      image,
+      imageIndex,
+      (RvkSamplerSpec){
+          .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+          .wrap      = RvkSamplerWrap_Zero,
+          .filter    = RvkSamplerFilter_Linear,
+          .aniso     = RvkSamplerAniso_None,
+          .mipLevels = image->mipLevels,
+      });
 }
 
 void rvk_pass_begin(RvkPass* pass) {
