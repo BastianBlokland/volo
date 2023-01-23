@@ -497,6 +497,19 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
   }
 }
 
+static void painter_push_image_viewer(RendPaintContext* ctx, RvkImage* image) {
+  RvkRepository* repo = rvk_canvas_repository(ctx->painter->canvas);
+  RvkGraphic* graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_ImageViewerGraphic);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynImage  = image,
+        .instCount = 1,
+    };
+    painter_push(ctx, draw);
+  }
+}
+
 static void painter_flush(RendPaintContext* ctx) {
   rvk_pass_begin(ctx->pass);
   {
@@ -679,13 +692,12 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(painter, set, setGlobal, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
-    rvk_pass_stage_global_shadow(postPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, postSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
-      painter_push_simple(&ctx, RvkRepositoryId_DebugShadowGraphic, mem_empty);
+      painter_push_image_viewer(&ctx, shadowDepth);
     }
     painter_flush(&ctx);
   }
