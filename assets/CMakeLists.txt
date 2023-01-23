@@ -26,6 +26,8 @@ configure_shaders(volo_shaders
     shaders/dyn_depth_standard_skinned.vert
     shaders/dyn_depth_standard.vert
     shaders/dyn_depth.frag
+    shaders/dyn_image_viewer.frag
+    shaders/dyn_image_viewer.vert
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
