@@ -34,17 +34,24 @@ typedef enum {
   RvkSamplerAniso_Count,
 } RvkSamplerAniso;
 
-typedef struct sRvkSampler {
-  VkSampler vkSampler;
-} RvkSampler;
+typedef struct sRvkSamplerSpec {
+  RvkSamplerFlags  flags : 8;
+  RvkSamplerWrap   wrap : 8;
+  RvkSamplerFilter filter : 8;
+  RvkSamplerAniso  aniso : 8;
+  u8               mipLevels;
+} RvkSamplerSpec;
 
-RvkSampler rvk_sampler_create(
-    RvkDevice*, RvkSamplerFlags, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u8 mipLevels);
+/**
+ * Sampler pool.
+ * Manages sampler lifetime; caller is not responsible for releasing / destroying the samplers.
+ *
+ * NOTE: Api is thread-safe.
+ */
+typedef struct sRvkSamplerPool RvkSamplerPool;
 
-void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
+RvkSamplerPool* rvk_sampler_pool_create(RvkDevice*);
+void            rvk_sampler_pool_destroy(RvkSamplerPool*);
+u16             rvk_sampler_pool_count(const RvkSamplerPool*);
 
-bool rvk_sampler_initialized(RvkSampler*);
-
-String rvk_sampler_wrap_str(RvkSamplerWrap);
-String rvk_sampler_filter_str(RvkSamplerFilter);
-String rvk_sampler_aniso_str(RvkSamplerAniso);
+VkSampler rvk_sampler_get(RvkSamplerPool*, RvkSamplerSpec);

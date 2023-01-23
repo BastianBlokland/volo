@@ -38,5 +38,6 @@ ecs_comp_extern_public(RendStatsComp) {
   u16 descSetsOccupied, descSetsReserved, descLayouts;
   u16 attachCount;
   u64 attachMemory;
+  u16 samplerCount;
   u16 resources[RendStatRes_Count];
 };

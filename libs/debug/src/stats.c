@@ -405,6 +405,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} {}", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
+    stats_draw_val_entry(canvas, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
     stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
     stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));

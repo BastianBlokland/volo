@@ -24,8 +24,8 @@ enum {
 #define rvk_graphic_samplers_max 6
 
 typedef struct {
-  RvkTexture* texture;
-  RvkSampler  sampler;
+  RvkTexture*    texture;
+  RvkSamplerSpec spec;
 } RvkGraphicSampler;
 
 typedef enum {
