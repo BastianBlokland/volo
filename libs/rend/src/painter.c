@@ -228,6 +228,14 @@ static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
   *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
 
+static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
+  RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
+  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    painter_push(ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1, .drawData = data});
+  }
+}
+
 static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
   SceneTags tagMask = 0;
 
@@ -301,14 +309,6 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
   }
 }
 
-static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
-  RvkRepository* repo    = rvk_canvas_repository(ctx->painter->canvas);
-  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    painter_push(ctx, (RvkPassDraw){.graphic = graphic, .instCount = 1, .drawData = data});
-  }
-}
-
 static void painter_push_ambient(RendPaintContext* ctx) {
   typedef enum {
     AmbientFlags_AmbientOcclusion     = 1 << 0,
@@ -359,23 +359,6 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_AmbientOcclusionGraphic, mem_create(data, sizeof(AoData)));
 }
 
-static void painter_push_tonemapping(RendPaintContext* ctx) {
-  typedef struct {
-    ALIGNAS(16)
-    f32 exposure;
-    u32 mode;
-    f32 bloomIntensity;
-  } TonemapperData;
-
-  TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
-  data->exposure       = ctx->settings->exposure;
-  data->mode           = ctx->settings->tonemapper;
-  data->bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
-
-  painter_push_simple(
-      ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
-}
-
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
@@ -402,6 +385,57 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
     if (rvk_pass_prepare(ctx->pass, graphic)) {
       painter_push(ctx, rend_draw_output(draw, graphic));
     }
+  }
+}
+
+static void painter_push_tonemapping(RendPaintContext* ctx) {
+  typedef struct {
+    ALIGNAS(16)
+    f32 exposure;
+    u32 mode;
+    f32 bloomIntensity;
+  } TonemapperData;
+
+  TonemapperData* data = alloc_alloc_t(g_alloc_scratch, TonemapperData);
+  data->exposure       = ctx->settings->exposure;
+  data->mode           = ctx->settings->tonemapper;
+  data->bloomIntensity = ctx->settings->flags & RendFlags_Bloom ? ctx->settings->bloomIntensity : 0;
+
+  painter_push_simple(
+      ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
+}
+
+static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Post)) {
+      continue; // Shouldn't be included in the post pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic));
+    }
+  }
+}
+
+static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynImage  = image,
+        .instCount = 1,
+    };
+    painter_push(ctx, draw);
   }
 }
 
@@ -474,40 +508,6 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawVie,
       drawSpec.dynMesh     = mesh;
       painter_push(ctx, drawSpec);
     }
-  }
-}
-
-static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
-  EcsIterator* graphicItr = ecs_view_itr(graView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_Post)) {
-      continue; // Shouldn't be included in the post pass.
-    }
-    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
-      continue; // Draw culled.
-    }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
-      continue; // Graphic not loaded.
-    }
-    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-    }
-  }
-}
-
-static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
-    const RvkPassDraw draw = {
-        .graphic   = graphic,
-        .dynImage  = image,
-        .instCount = 1,
-    };
-    painter_push(ctx, draw);
   }
 }
 
