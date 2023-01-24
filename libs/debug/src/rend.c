@@ -640,8 +640,9 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -650,10 +651,10 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the resource.")},
           {string_lit("Type"), string_lit("Type of the resource.")},
-          {string_lit("Unload delay"),
-           string_lit("How many ticks until resource asset will be unloaded.")},
+          {string_lit("Unload"), string_lit("Tick count until this resource will be unloaded.")},
           {string_lit("Size"), string_lit("Data size of the resource.")},
           {string_lit("Persistent"), string_lit("Is the resource persistent.")},
+          {string_lit("Actions"), string_empty},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
