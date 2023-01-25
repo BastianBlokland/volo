@@ -278,8 +278,9 @@ static bool debug_fullscreen_blocker(UiCanvasComp* canvas) {
   ui_style_push(canvas);
   {
     ui_layout_set(canvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas); // Fullscreen.
-    ui_style_layer(canvas, UiLayer_Overlay);                              // On top of everything.
-    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
+    ui_style_color(canvas, ui_color(0, 0, 0, 225));
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
   }
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -364,10 +365,6 @@ static void rend_settings_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
-
-  if (settings->flags & RendFlags_DebugShadow && debug_fullscreen_blocker(canvas)) {
-    settings->flags &= ~RendFlags_DebugShadow;
-  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
@@ -653,21 +650,17 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool canPreview    = resInfo->type == DebugRendResType_Texture;
-  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
+  const bool canPreview       = resInfo->type == DebugRendResType_Texture;
+  const bool anyPreviewActive = ecs_entity_valid(settings->debugViewerResource);
   if (canPreview &&
       ui_button(
           canvas,
-          .flags      = previewActive ? UiWidget_Disabled : 0,
+          .flags      = anyPreviewActive ? UiWidget_Disabled : 0,
           .label      = ui_shape_scratch(UiShape_Visiblity),
           .fontSize   = 18,
-          .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+          .frameColor = anyPreviewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
-  }
-
-  if (previewActive && debug_fullscreen_blocker(canvas)) {
-    settings->debugViewerResource = 0;
   }
 }
 
@@ -962,6 +955,16 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
+
+    // Check if any renderer debug overlay is active.
+    const bool overlayActive = ecs_entity_valid(settings->debugViewerResource) ||
+                               (settings->flags & RendFlags_DebugShadow) != 0;
+    if (overlayActive && debug_fullscreen_blocker(canvas)) {
+      // Close all renderer overlays.
+      settings->debugViewerResource = 0;
+      settings->flags &= ~RendFlags_DebugShadow;
+    }
+
     rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
