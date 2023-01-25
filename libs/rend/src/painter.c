@@ -103,6 +103,7 @@ ecs_view_define(GraphicView) {
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
 }
+ecs_view_define(TextureView) { ecs_access_write(RendResTextureComp); }
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
@@ -462,6 +463,18 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
   }
 }
 
+static void painter_push_debug_resource_viewer(
+    RendPaintContext* ctx, EcsView* textureView, const EcsEntityId resourceEntity) {
+
+  EcsIterator* resourceTextureItr = ecs_view_maybe_at(textureView, resourceEntity);
+  if (resourceTextureItr) {
+    RvkTexture* texture = ecs_view_write_t(resourceTextureItr, RendResTextureComp)->texture;
+    if (rvk_pass_prepare_texture(ctx->pass, texture)) {
+      painter_push_debug_image_viewer(ctx, &texture->image);
+    }
+  }
+}
+
 static void painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawVie, EcsView* graVie) {
   RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
   EcsIterator*   graphicItr = ecs_view_itr(graVie);
@@ -555,7 +568,8 @@ static bool rend_canvas_paint(
     const SceneCameraComp*        cam,
     const SceneTransformComp*     trans,
     EcsView*                      drawView,
-    EcsView*                      graphicView) {
+    EcsView*                      graphicView,
+    EcsView*                      textureView) {
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
@@ -722,6 +736,8 @@ static bool rend_canvas_paint(
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
       painter_push_debug_image_viewer(&ctx, shadowDepth);
+    } else if (set->debugViewerResource) {
+      painter_push_debug_resource_viewer(&ctx, textureView, set->debugViewerResource);
     }
     painter_flush(&ctx);
   }
@@ -778,6 +794,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
   EcsView* graphicView = ecs_world_view_t(world, GraphicView);
+  EcsView* textureView = ecs_world_view_t(world, TextureView);
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -799,7 +816,8 @@ ecs_system_define(RendPainterDrawBatchesSys) {
         camera,
         transform,
         drawView,
-        graphicView);
+        graphicView,
+        textureView);
   }
 
   if (!anyPainterDrawn) {
@@ -817,6 +835,7 @@ ecs_module_init(rend_painter_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(DrawView);
   ecs_register_view(GraphicView);
+  ecs_register_view(TextureView);
   ecs_register_view(PainterCreateView);
   ecs_register_view(PainterUpdateView);
 
@@ -828,7 +847,8 @@ ecs_module_init(rend_painter_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(PainterUpdateView),
       ecs_view_id(DrawView),
-      ecs_view_id(GraphicView));
+      ecs_view_id(GraphicView),
+      ecs_view_id(TextureView));
 
   ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
 }
