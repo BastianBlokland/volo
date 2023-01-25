@@ -20,8 +20,6 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/skinning.frag
     shaders/debug/skinning.vert
-    shaders/debug/texture_viewer.frag
-    shaders/debug/texture_viewer.vert
     shaders/dyn_depth_clip.frag
     shaders/dyn_depth_standard_skinned.vert
     shaders/dyn_depth_standard.vert

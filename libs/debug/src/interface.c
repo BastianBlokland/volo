@@ -3,7 +3,6 @@
 #include "core_format.h"
 #include "debug_interface.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "ui.h"
 #include "ui_settings.h"
@@ -21,7 +20,6 @@ static const String g_tooltipDebugShading   = string_static("Enable the debug sh
                                                             "- \a#001CFFFF\a|01\a.bBlue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
                                                             "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
                                                             "- \a#00FF00FF\a|01\a.bGreen\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
-static const String g_tooltipDebugFtx       = string_static("Show the \a.bFont TeXture\ar used for the interface rendering.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 static const String g_tooltipApply          = string_static("Apply outstanding interface setting changes.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
@@ -43,17 +41,11 @@ static const String g_defaultColorNames[] = {
 };
 ASSERT(array_elems(g_defaultColors) == array_elems(g_defaultColorNames), "Missing names");
 
-typedef enum {
-  DebugInterfaceFlags_DrawFtx = 1 << 0,
-} DebugInterfaceFlags;
-
 ecs_comp_define(DebugInterfacePanelComp) {
-  UiPanel             panel;
-  EcsEntityId         window;
-  DebugInterfaceFlags flags;
-  f32                 newScale;
-  i32                 defaultColorIndex;
-  EcsEntityId         debugFtxDraw;
+  UiPanel     panel;
+  EcsEntityId window;
+  f32         newScale;
+  i32         defaultColorIndex;
 };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -68,25 +60,6 @@ static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
-}
-
-static EcsEntityId debug_ftx_draw_create(
-    EcsWorld*         world,
-    AssetManagerComp* assets,
-    const EcsEntityId panelEntity,
-    const EcsEntityId windowEntity) {
-
-  const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = panelEntity);
-
-  const RendDrawFlags drawFlags = RendDrawFlags_Post | RendDrawFlags_NoAutoClear;
-  RendDrawComp*       draw      = rend_draw_create(world, drawEntity, drawFlags);
-  rend_draw_set_graphic(
-      draw, asset_lookup(world, assets, string_lit("graphics/debug/interface_ftx.gra")));
-  rend_draw_set_camera_filter(draw, windowEntity);
-  rend_draw_add_instance(draw, 0, SceneTags_Debug, geo_box_inverted3());
-
-  return drawEntity;
 }
 
 static void interface_panel_draw(
@@ -139,15 +112,8 @@ static void interface_panel_draw(
       .tooltip = g_tooltipDebugShading);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug Ftx"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&panelComp->flags, DebugInterfaceFlags_DrawFtx, .tooltip = g_tooltipDebugFtx);
-
-  ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     ui_settings_to_default(settings);
-    panelComp->flags             = 0;
     panelComp->newScale          = settings->scale;
     panelComp->defaultColorIndex = 0;
   }
@@ -190,15 +156,6 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     ui_canvas_reset(canvas);
     interface_panel_draw(canvas, panelComp, settings);
 
-    if (panelComp->flags & DebugInterfaceFlags_DrawFtx && !panelComp->debugFtxDraw) {
-      panelComp->debugFtxDraw = debug_ftx_draw_create(world, assets, entity, panelComp->window);
-    }
-    if (panelComp->debugFtxDraw && ui_canvas_input_any(canvas)) {
-      ecs_world_entity_destroy(world, panelComp->debugFtxDraw);
-      panelComp->flags &= ~DebugInterfaceFlags_DrawFtx;
-      panelComp->debugFtxDraw = 0;
-    }
-
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
     }
@@ -228,7 +185,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(330, 220)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(330, 190)),
       .window = window);
   return panelEntity;
 }
