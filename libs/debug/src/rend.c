@@ -284,7 +284,11 @@ static bool debug_fullscreen_blocker(UiCanvasComp* canvas) {
   }
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
-  return ui_canvas_elem_status(canvas, id) > UiStatus_Pressed;
+  const UiStatus status = ui_canvas_elem_status(canvas, id);
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  return status == UiStatus_Activated;
 }
 
 static void rend_settings_tab_draw(
