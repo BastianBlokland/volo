@@ -99,11 +99,16 @@ ecs_view_define(GlobalView) {
 }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
-  ecs_access_write(RendResGraphicComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
+  ecs_access_write(RendResGraphicComp);
 }
-ecs_view_define(TextureView) { ecs_access_write(RendResTextureComp); }
+ecs_view_define(TextureView) {
+  ecs_access_with(RendResFinishedComp);
+  ecs_access_without(RendResUnloadComp);
+  ecs_access_write(RendResComp);
+  ecs_access_write(RendResTextureComp);
+}
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
@@ -468,6 +473,8 @@ static void painter_push_debug_resource_viewer(
 
   EcsIterator* resourceTextureItr = ecs_view_maybe_at(textureView, resourceEntity);
   if (resourceTextureItr) {
+    rend_res_mark_used(ecs_view_write_t(resourceTextureItr, RendResComp));
+
     RvkTexture* texture = ecs_view_write_t(resourceTextureItr, RendResTextureComp)->texture;
     if (rvk_pass_prepare_texture(ctx->pass, texture)) {
       painter_push_debug_image_viewer(ctx, &texture->image);
