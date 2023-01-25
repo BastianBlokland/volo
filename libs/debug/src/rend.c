@@ -67,6 +67,7 @@ static const String g_tooltipBloom            = string_static("\a.b[Bloom]\ar En
 static const String g_tooltipBloomIntensity   = string_static("\a.b[Bloom]\ar Fraction of bloom to mix into the hdr output before tone-mapping.");
 static const String g_tooltipBloomSteps       = string_static("\a.b[Bloom]\ar Number of blur steps.\nHigher gives a larger bloom area at the expense of additional gpu time and memory.");
 static const String g_tooltipBloomRadius      = string_static("\a.b[Bloom]\ar Filter radius to use during the up-sample phase of the bloom blurring.\nToo high can result in ghosting or discontinuities in the bloom and too low requires many blur steps.");
+static const String g_tooltipResourcePreview  = string_static("Preview this resource.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 
 // clang-format on
 
@@ -634,22 +635,31 @@ static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
   return ui_color(48, 48, 48, 192);
 }
 
-static void rend_resource_actions_draw(UiCanvasComp* canvas, const DebugResourceInfo* resInfo) {
+static void rend_resource_actions_draw(
+    UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  if (resInfo->type == DebugRendResType_Texture) {
-    const bool previewActive = false;
-    if (ui_button(
-            canvas,
-            .flags      = previewActive ? UiWidget_Disabled : 0,
-            .label      = ui_shape_scratch(UiShape_Visiblity),
-            .fontSize   = 18,
-            .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192))) {
-    }
+  const bool canPreview    = resInfo->type == DebugRendResType_Texture;
+  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
+  if (canPreview &&
+      ui_button(
+          canvas,
+          .flags      = previewActive ? UiWidget_Disabled : 0,
+          .label      = ui_shape_scratch(UiShape_Visiblity),
+          .fontSize   = 18,
+          .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+          .tooltip    = g_tooltipResourcePreview)) {
+    settings->debugViewerResource = resInfo->entity;
+  }
+
+  // Disable preview on any input.
+  if (previewActive && ui_canvas_input_any(canvas)) {
+    settings->debugViewerResource = 0;
   }
 }
 
-static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+static void rend_resource_tab_draw(
+    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendSettingsComp* settings) {
   rend_resource_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
@@ -700,7 +710,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_label(canvas, fmt_write_scratch("{}", fmt_bool(isPersistent)));
 
     ui_table_next_column(canvas, &table);
-    rend_resource_actions_draw(canvas, resInfo);
+    rend_resource_actions_draw(canvas, settings, resInfo);
   }
   ui_canvas_id_block_next(canvas);
 
@@ -897,7 +907,7 @@ static void rend_panel_draw(
     break;
   case DebugRendTab_Resources:
     rend_resource_info_query(panelComp, world);
-    rend_resource_tab_draw(canvas, panelComp);
+    rend_resource_tab_draw(canvas, panelComp, settings);
     break;
   case DebugRendTab_Light:
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
