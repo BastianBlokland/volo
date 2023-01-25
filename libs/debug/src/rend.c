@@ -177,10 +177,11 @@ typedef enum {
 } DebugRendResFlags;
 
 typedef struct {
+  EcsEntityId       entity;
   String            name;
-  DebugRendResType  type;
-  DebugRendResFlags flags;
-  u64               ticksTillUnload;
+  DebugRendResType  type : 8;
+  DebugRendResFlags flags : 8;
+  u32               ticksTillUnload;
   usize             dataSize;
 } DebugResourceInfo;
 
@@ -244,7 +245,7 @@ static i8 rend_resource_compare_name(const void* a, const void* b) {
 static i8 rend_resource_compare_type(const void* a, const void* b) {
   const DebugResourceInfo* resA  = a;
   const DebugResourceInfo* resB  = b;
-  i8                       order = compare_i32(&resA->type, &resB->type);
+  i8                       order = resA->type < resB->type ? -1 : resA->type > resB->type ? 1 : 0;
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -595,6 +596,7 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       flags |= rend_res_is_persistent(resComp) ? DebugRendResFlags_IsPersistent : 0;
 
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
+          .entity          = ecs_view_entity(itr),
           .name            = name,
           .type            = type,
           .flags           = flags,

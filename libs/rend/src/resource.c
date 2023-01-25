@@ -136,9 +136,9 @@ typedef enum {
 } RendResUnloadState;
 
 ecs_comp_define(RendResComp) {
-  RendResLoadState state;
-  RendResFlags     flags;
-  u64              unusedTicks;
+  RendResLoadState state : 8;
+  RendResFlags     flags : 8;
+  u32              unusedTicks;
   DynArray         dependencies; // EcsEntityId[], resources this resource depends on.
   DynArray         dependents;   // EcsEntityId[], resources that depend on this resource.
 };
@@ -776,7 +776,7 @@ bool rend_res_is_persistent(const RendResComp* comp) {
   return (comp->flags & RendResFlags_Persistent) != 0;
 }
 
-u64 rend_res_ticks_until_unload(const RendResComp* comp) {
+u32 rend_res_ticks_until_unload(const RendResComp* comp) {
   if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
     return 0;
   }
