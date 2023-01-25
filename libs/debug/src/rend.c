@@ -272,6 +272,20 @@ static bool rend_panel_filter(DebugRendPanelComp* panelComp, const String name) 
   return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
+static bool debug_fullscreen_blocker(UiCanvasComp* canvas) {
+  const UiId id = ui_canvas_id_peek(canvas);
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+  {
+    ui_layout_set(canvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas); // Fullscreen.
+    ui_style_layer(canvas, UiLayer_Overlay);                              // On top of everything.
+    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
+  }
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+  return ui_canvas_elem_status(canvas, id) > UiStatus_Pressed;
+}
+
 static void rend_settings_tab_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -351,7 +365,7 @@ static void rend_settings_tab_draw(
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
 
-  if (settings->flags & RendFlags_DebugShadow && ui_canvas_input_any(canvas)) {
+  if (settings->flags & RendFlags_DebugShadow && debug_fullscreen_blocker(canvas)) {
     settings->flags &= ~RendFlags_DebugShadow;
   }
 
@@ -652,8 +666,7 @@ static void rend_resource_actions_draw(
     settings->debugViewerResource = resInfo->entity;
   }
 
-  // Disable preview on any input.
-  if (previewActive && ui_canvas_input_any(canvas)) {
+  if (previewActive && debug_fullscreen_blocker(canvas)) {
     settings->debugViewerResource = 0;
   }
 }
