@@ -632,6 +632,21 @@ static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
   return ui_color(48, 48, 48, 192);
 }
 
+static void rend_resource_actions_draw(UiCanvasComp* canvas, const DebugResourceInfo* resInfo) {
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+
+  if (resInfo->type == DebugRendResType_Texture) {
+    const bool previewActive = false;
+    if (ui_button(
+            canvas,
+            .flags      = previewActive ? UiWidget_Disabled : 0,
+            .label      = ui_shape_scratch(UiShape_Visiblity),
+            .fontSize   = 18,
+            .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192))) {
+    }
+  }
+}
+
 static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
   rend_resource_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
@@ -681,6 +696,9 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_table_next_column(canvas, &table);
     const bool isPersistent = (resInfo->flags & DebugRendResFlags_IsPersistent) != 0;
     ui_label(canvas, fmt_write_scratch("{}", fmt_bool(isPersistent)));
+
+    ui_table_next_column(canvas, &table);
+    rend_resource_actions_draw(canvas, resInfo);
   }
   ui_canvas_id_block_next(canvas);
 
