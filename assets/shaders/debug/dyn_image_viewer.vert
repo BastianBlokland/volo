@@ -35,8 +35,8 @@ void main() {
    * Rectangle to display the image onto.
    * NOTE: Display the image on the top 75% of the screen to leave some space for UI.
    */
-  const f32v2 rectOff    = f32v2(0, -0.25);
-  const f32v2 rectSize   = f32v2(1, 0.75);
+  const f32v2 rectOff    = f32v2(0, -0.2);
+  const f32v2 rectSize   = f32v2(1, 0.7);
   const f32   rectAspect = rectSize.x / rectSize.y * screenAspect;
 
   /**
