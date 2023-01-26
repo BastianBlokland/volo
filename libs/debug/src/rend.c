@@ -305,7 +305,7 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
   ui_layout_push(canvas);
   ui_style_push(canvas);
   {
-    const UiVector size = {0.25f, 0.25f};
+    const UiVector size = {0.5f, 0.25f};
     ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
     ui_style_layer(canvas, UiLayer_Overlay);
     ui_style_variation(canvas, UiVariation_Monospace);
@@ -313,6 +313,11 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
     DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
     fmt_write(&str, "Name:   {}\n", fmt_text(asset_id(assetComp)));
     fmt_write(&str, "Entity: {}\n", fmt_int(entity, .base = 16));
+
+    const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
+    if (texture) {
+      fmt_write(&str, "Memory: {}\n", fmt_size(rend_res_texture_data_size(texture)));
+    }
 
     ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
     dynstring_destroy(&str);
