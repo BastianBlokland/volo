@@ -787,6 +787,10 @@ usize rend_res_mesh_data_size(const RendResMeshComp* comp) {
   return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
 }
 
+bool rend_res_texture_is_cube(const RendResTextureComp* comp) {
+  return comp->texture->image.type == RvkImageType_ColorSourceCube;
+}
+
 usize rend_res_texture_data_size(const RendResTextureComp* comp) {
   return comp->texture->image.mem.size;
 }

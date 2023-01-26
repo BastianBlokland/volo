@@ -19,6 +19,7 @@ bool  rend_res_is_unused(const RendResComp*);
 bool  rend_res_is_persistent(const RendResComp*);
 u32   rend_res_ticks_until_unload(const RendResComp*);
 usize rend_res_mesh_data_size(const RendResMeshComp*);
+bool  rend_res_texture_is_cube(const RendResTextureComp*);
 usize rend_res_texture_data_size(const RendResTextureComp*);
 
 /**

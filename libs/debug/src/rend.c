@@ -124,6 +124,7 @@ typedef enum {
   DebugRendResType_Shader,
   DebugRendResType_Mesh,
   DebugRendResType_Texture,
+  DebugRendResType_TextureCube,
 
   DebugRendResType_Count,
 } DebugRendResType;
@@ -134,6 +135,7 @@ static const String g_resTypeNames[] = {
     string_static("Shader"),
     string_static("Mesh"),
     string_static("Texture"),
+    string_static("TextureCube"),
 };
 ASSERT(array_elems(g_resTypeNames) == DebugRendResType_Count, "Incorrect number of names");
 
@@ -602,7 +604,8 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
         type     = DebugRendResType_Mesh;
         dataSize = rend_res_mesh_data_size(mesh);
       } else if (texture) {
-        type     = DebugRendResType_Texture;
+        type     = rend_res_texture_is_cube(texture) ? DebugRendResType_TextureCube
+                                                     : DebugRendResType_Texture;
         dataSize = rend_res_texture_data_size(texture);
       }
       DebugRendResFlags flags = 0;
@@ -675,8 +678,8 @@ static void rend_resource_tab_draw(
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 270);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 115);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
