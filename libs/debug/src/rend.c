@@ -274,7 +274,7 @@ static bool rend_panel_filter(DebugRendPanelComp* panelComp, const String name) 
   return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
-static bool debug_fullscreen_blocker(UiCanvasComp* canvas) {
+static bool debug_overlay_blocker(UiCanvasComp* canvas) {
   const UiId id = ui_canvas_id_peek(canvas);
   ui_layout_push(canvas);
   ui_style_push(canvas);
@@ -291,6 +291,34 @@ static bool debug_fullscreen_blocker(UiCanvasComp* canvas) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
   return status == UiStatus_Activated;
+}
+
+static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, EcsView* resView) {
+  EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
+  if (!resourceItr) {
+    return;
+  }
+
+  const EcsEntityId entity    = ecs_view_entity(resourceItr);
+  const AssetComp*  assetComp = ecs_view_read_t(resourceItr, AssetComp);
+
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+  {
+    const UiVector size = {0.25f, 0.25f};
+    ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_style_variation(canvas, UiVariation_Monospace);
+
+    DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    fmt_write(&str, "Name:   {}\n", fmt_text(asset_id(assetComp)));
+    fmt_write(&str, "Entity: {}\n", fmt_int(entity, .base = 16));
+
+    ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
+    dynstring_destroy(&str);
+  }
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 static void rend_settings_tab_draw(
@@ -963,16 +991,19 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
 
+    rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
+
     // Check if any renderer debug overlay is active.
     const bool overlayActive = ecs_entity_valid(settings->debugViewerResource) ||
                                (settings->flags & RendFlags_DebugShadow) != 0;
-    if (overlayActive && debug_fullscreen_blocker(canvas)) {
-      // Close all renderer overlays.
-      settings->debugViewerResource = 0;
-      settings->flags &= ~RendFlags_DebugShadow;
+    if (overlayActive) {
+      if (debug_overlay_blocker(canvas)) {
+        settings->debugViewerResource = 0;
+        settings->flags &= ~RendFlags_DebugShadow;
+      } else {
+        debug_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
+      }
     }
-
-    rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
