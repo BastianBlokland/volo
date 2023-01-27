@@ -16,13 +16,13 @@
   ],
   "samplers": [
     {
-      "textureId": "external/maynard/maynard_color_rough.tga",
+      "textureId": "external/maynard/maynard_2_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/maynard/maynard_nrm.tga",
+      "textureId": "external/maynard/maynard_2_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"

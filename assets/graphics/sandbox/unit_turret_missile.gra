@@ -16,13 +16,13 @@
   ],
   "samplers": [
     {
-      "textureId": "external/turret/turret_color_rough.tga",
+      "textureId": "external/turret/turret_2_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/turret/turret_nrm.tga",
+      "textureId": "external/turret/turret_2_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"

@@ -79,8 +79,8 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_7.tga
       fire_2/fire_8.tga
       fire_2/fire_9.tga
-      maynard/maynard_color_rough.tga
-      maynard/maynard_nrm.tga
+      maynard/maynard_2_color_rough.tga
+      maynard/maynard_2_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
       skybox/teide_small_back.tga
@@ -89,27 +89,27 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_left.tga
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
+      swat/swat_2_color_rough.tga
+      swat/swat_2_nrm.tga
       swat/swat_3.bin
       swat/swat_3.gltf
-      swat/swat_color_rough.tga
-      swat/swat_nrm.tga
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
       tiling/clouds.tga
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
-      tiling/sand_1_color_rough.tga
-      tiling/sand_1_normal.tga
-      tree_acacia/tree_acacia_alpha.tga
+      tiling/sand_2_color_rough.tga
+      tiling/sand_2_normal.tga
       tree_acacia/tree_acacia_2_color_rough.tga
+      tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
+      turret/turret_2_color_rough.tga
+      turret/turret_2_nrm.tga
       turret/turret_big.gltf
-      turret/turret_color_rough.tga
       turret/turret_missile.bin
       turret/turret_missile.gltf
-      turret/turret_nrm.tga
       turret/turret.bin
       vfx/flash_2.tga
       vfx/flash_star_2.tga
