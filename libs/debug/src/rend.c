@@ -698,15 +698,17 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool canPreview       = resInfo->type == DebugRendResType_Texture;
-  const bool anyPreviewActive = ecs_entity_valid(settings->debugViewerResource);
-  if (canPreview &&
+  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview =
+      resInfo->type == DebugRendResType_Texture || resInfo->type == DebugRendResType_Mesh;
+
+  if (supportsPreview &&
       ui_button(
           canvas,
-          .flags      = anyPreviewActive ? UiWidget_Disabled : 0,
+          .flags      = previewActive ? UiWidget_Disabled : 0,
           .label      = ui_shape_scratch(UiShape_Visiblity),
           .fontSize   = 18,
-          .frameColor = anyPreviewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+          .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
   }
