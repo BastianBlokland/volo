@@ -783,6 +783,8 @@ u32 rend_res_ticks_until_unload(const RendResComp* comp) {
   return g_rendResUnloadUnusedAfterTicks - comp->unusedTicks;
 }
 
+u32 rend_res_dependents(const RendResComp* comp) { return (u32)comp->dependents.size; }
+
 usize rend_res_mesh_memory(const RendResMeshComp* comp) {
   return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
 }

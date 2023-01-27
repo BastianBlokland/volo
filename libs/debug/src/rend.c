@@ -299,8 +299,9 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
     return;
   }
 
-  const EcsEntityId entity    = ecs_view_entity(resourceItr);
-  const AssetComp*  assetComp = ecs_view_read_t(resourceItr, AssetComp);
+  const EcsEntityId  entity    = ecs_view_entity(resourceItr);
+  const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
+  const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
 
   ui_layout_push(canvas);
   ui_style_push(canvas);
@@ -311,18 +312,19 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
     ui_style_variation(canvas, UiVariation_Monospace);
 
     DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-    fmt_write(&str, "Name:      {}\n", fmt_text(asset_id(assetComp)));
-    fmt_write(&str, "Entity:    {}\n", fmt_int(entity, .base = 16));
+    fmt_write(&str, "Name:       {}\n", fmt_text(asset_id(assetComp)));
+    fmt_write(&str, "Entity:     {}\n", fmt_int(entity, .base = 16));
+    fmt_write(&str, "Dependents: {}\n", fmt_int(rend_res_dependents(resComp)));
 
     const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
     if (texture) {
-      fmt_write(&str, "Memory:    {}\n", fmt_size(rend_res_texture_memory(texture)));
-      fmt_write(&str, "Width:     {}\n", fmt_int(rend_res_texture_width(texture)));
-      fmt_write(&str, "Height:    {}\n", fmt_int(rend_res_texture_height(texture)));
-      fmt_write(&str, "Layers:    {}\n", fmt_int(rend_res_texture_layers(texture)));
-      fmt_write(&str, "MipLevels: {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
-      fmt_write(&str, "Cube:      {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
-      fmt_write(&str, "Format:    {}\n", fmt_text(rend_res_texture_format_str(texture)));
+      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_texture_memory(texture)));
+      fmt_write(&str, "Width:      {}\n", fmt_int(rend_res_texture_width(texture)));
+      fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
+      fmt_write(&str, "Layers:     {}\n", fmt_int(rend_res_texture_layers(texture)));
+      fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
+      fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
+      fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }
 
     ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);

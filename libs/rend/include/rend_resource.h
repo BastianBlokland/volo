@@ -18,6 +18,7 @@ bool   rend_res_is_failed(const RendResComp*);
 bool   rend_res_is_unused(const RendResComp*);
 bool   rend_res_is_persistent(const RendResComp*);
 u32    rend_res_ticks_until_unload(const RendResComp*);
+u32    rend_res_dependents(const RendResComp*);
 usize  rend_res_mesh_memory(const RendResMeshComp*);
 u16    rend_res_texture_width(const RendResTextureComp*);
 u16    rend_res_texture_height(const RendResTextureComp*);
