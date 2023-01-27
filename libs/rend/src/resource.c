@@ -136,9 +136,9 @@ typedef enum {
 } RendResUnloadState;
 
 ecs_comp_define(RendResComp) {
-  RendResLoadState state;
-  RendResFlags     flags;
-  u64              unusedTicks;
+  RendResLoadState state : 8;
+  RendResFlags     flags : 8;
+  u32              unusedTicks;
   DynArray         dependencies; // EcsEntityId[], resources this resource depends on.
   DynArray         dependents;   // EcsEntityId[], resources that depend on this resource.
 };
@@ -776,18 +776,42 @@ bool rend_res_is_persistent(const RendResComp* comp) {
   return (comp->flags & RendResFlags_Persistent) != 0;
 }
 
-u64 rend_res_ticks_until_unload(const RendResComp* comp) {
+u32 rend_res_ticks_until_unload(const RendResComp* comp) {
   if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
     return 0;
   }
   return g_rendResUnloadUnusedAfterTicks - comp->unusedTicks;
 }
 
-usize rend_res_mesh_data_size(const RendResMeshComp* comp) {
+u32 rend_res_dependents(const RendResComp* comp) { return (u32)comp->dependents.size; }
+
+usize rend_res_mesh_memory(const RendResMeshComp* comp) {
   return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
 }
 
-usize rend_res_texture_data_size(const RendResTextureComp* comp) {
+u16 rend_res_texture_width(const RendResTextureComp* comp) {
+  return comp->texture->image.size.width;
+}
+
+u16 rend_res_texture_height(const RendResTextureComp* comp) {
+  return comp->texture->image.size.height;
+}
+
+u16 rend_res_texture_layers(const RendResTextureComp* comp) { return comp->texture->image.layers; }
+
+u8 rend_res_texture_mip_levels(const RendResTextureComp* comp) {
+  return comp->texture->image.mipLevels;
+}
+
+bool rend_res_texture_is_cube(const RendResTextureComp* comp) {
+  return comp->texture->image.type == RvkImageType_ColorSourceCube;
+}
+
+String rend_res_texture_format_str(const RendResTextureComp* comp) {
+  return rvk_format_info(comp->texture->image.vkFormat).name;
+}
+
+usize rend_res_texture_memory(const RendResTextureComp* comp) {
   return comp->texture->image.mem.size;
 }
 

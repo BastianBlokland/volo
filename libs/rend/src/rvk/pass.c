@@ -12,6 +12,7 @@
 #include "image_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
+#include "repository_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
 #include "texture_internal.h"
@@ -425,6 +426,11 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
   if (img) {
+    if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
+      log_e("Cube images cannot be bound dynamically");
+      const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
+      img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
+    }
     if (img->phase != RvkImagePhase_ShaderRead) {
       rvk_image_transition(img, RvkImagePhase_ShaderRead, pass->vkCmdBuf);
     }
@@ -743,6 +749,12 @@ static void rvk_pass_stage_global_image_internal(
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
+
+  if (UNLIKELY(image->type == RvkImageType_ColorSourceCube)) {
+    log_e("Cube images cannot be bound globally");
+    const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
+    image = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
+  }
 
   const u32 bindIndex = 1 + imageIndex;
   diag_assert_msg(!(stage->globalBoundMask & (1 << bindIndex)), "Image already staged");

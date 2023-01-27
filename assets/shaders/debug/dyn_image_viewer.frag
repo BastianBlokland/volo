@@ -18,6 +18,12 @@ bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v3 out_color;
 
+f32v3 checker_pattern(const f32v2 texcoord) {
+  const f32v2 scaled = floor(texcoord * 100);
+  const f32   val    = max(sign(mod(scaled.x + scaled.y, 2.0)), 0.0);
+  return mix(f32v3(0.2), f32v3(0.3), val);
+}
+
 void main() {
   f32v2 coord = in_texcoord;
   if ((u_draw.flags & c_flagsFlipY) != 0) {
@@ -36,8 +42,7 @@ void main() {
     out_color = imageColor.rgb;
     break;
   case 4:
-    // TODO: Visualize alpha, perhaps using a checkerboard pattern.
-    out_color = imageColor.rgb;
+    out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
     break;
   }
 }

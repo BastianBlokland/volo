@@ -67,6 +67,7 @@ static const String g_tooltipBloom            = string_static("\a.b[Bloom]\ar En
 static const String g_tooltipBloomIntensity   = string_static("\a.b[Bloom]\ar Fraction of bloom to mix into the hdr output before tone-mapping.");
 static const String g_tooltipBloomSteps       = string_static("\a.b[Bloom]\ar Number of blur steps.\nHigher gives a larger bloom area at the expense of additional gpu time and memory.");
 static const String g_tooltipBloomRadius      = string_static("\a.b[Bloom]\ar Filter radius to use during the up-sample phase of the bloom blurring.\nToo high can result in ghosting or discontinuities in the bloom and too low requires many blur steps.");
+static const String g_tooltipResourcePreview  = string_static("Preview this resource.\n\a.bNote\ar: Click anywhere on the screen to disable.");
 
 // clang-format on
 
@@ -123,6 +124,7 @@ typedef enum {
   DebugRendResType_Shader,
   DebugRendResType_Mesh,
   DebugRendResType_Texture,
+  DebugRendResType_TextureCube,
 
   DebugRendResType_Count,
 } DebugRendResType;
@@ -133,6 +135,7 @@ static const String g_resTypeNames[] = {
     string_static("Shader"),
     string_static("Mesh"),
     string_static("Texture"),
+    string_static("TextureCube"),
 };
 ASSERT(array_elems(g_resTypeNames) == DebugRendResType_Count, "Incorrect number of names");
 
@@ -177,11 +180,12 @@ typedef enum {
 } DebugRendResFlags;
 
 typedef struct {
+  EcsEntityId       entity;
   String            name;
-  DebugRendResType  type;
-  DebugRendResFlags flags;
-  u64               ticksTillUnload;
-  usize             dataSize;
+  DebugRendResType  type : 8;
+  DebugRendResFlags flags : 8;
+  u32               ticksTillUnload;
+  usize             memory;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -244,7 +248,7 @@ static i8 rend_resource_compare_name(const void* a, const void* b) {
 static i8 rend_resource_compare_type(const void* a, const void* b) {
   const DebugResourceInfo* resA  = a;
   const DebugResourceInfo* resB  = b;
-  i8                       order = compare_i32(&resA->type, &resB->type);
+  i8                       order = resA->type < resB->type ? -1 : resA->type > resB->type ? 1 : 0;
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -254,7 +258,7 @@ static i8 rend_resource_compare_type(const void* a, const void* b) {
 static i8 rend_resource_compare_size(const void* a, const void* b) {
   const DebugResourceInfo* resA  = a;
   const DebugResourceInfo* resB  = b;
-  i8                       order = compare_usize_reverse(&resA->dataSize, &resB->dataSize);
+  i8                       order = compare_usize_reverse(&resA->memory, &resB->memory);
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -268,6 +272,66 @@ static bool rend_panel_filter(DebugRendPanelComp* panelComp, const String name) 
   const String rawFilter = dynstring_view(&panelComp->nameFilter);
   const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
   return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
+}
+
+static bool debug_overlay_blocker(UiCanvasComp* canvas) {
+  const UiId id = ui_canvas_id_peek(canvas);
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+  {
+    ui_layout_set(canvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas); // Fullscreen.
+    ui_style_color(canvas, ui_color(0, 0, 0, 225));
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  }
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+  const UiStatus status = ui_canvas_elem_status(canvas, id);
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  return status == UiStatus_Activated;
+}
+
+static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, EcsView* resView) {
+  EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
+  if (!resourceItr) {
+    return;
+  }
+
+  const EcsEntityId  entity    = ecs_view_entity(resourceItr);
+  const AssetComp*   assetComp = ecs_view_read_t(resourceItr, AssetComp);
+  const RendResComp* resComp   = ecs_view_read_t(resourceItr, RendResComp);
+
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+  {
+    const UiVector size = {0.5f, 0.25f};
+    ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, size, UiBase_Container);
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_style_variation(canvas, UiVariation_Monospace);
+
+    DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
+    fmt_write(&str, "Name:       {}\n", fmt_text(asset_id(assetComp)));
+    fmt_write(&str, "Entity:     {}\n", fmt_int(entity, .base = 16));
+    fmt_write(&str, "Dependents: {}\n", fmt_int(rend_res_dependents(resComp)));
+
+    const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
+    if (texture) {
+      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_texture_memory(texture)));
+      fmt_write(&str, "Width:      {}\n", fmt_int(rend_res_texture_width(texture)));
+      fmt_write(&str, "Height:     {}\n", fmt_int(rend_res_texture_height(texture)));
+      fmt_write(&str, "Layers:     {}\n", fmt_int(rend_res_texture_layers(texture)));
+      fmt_write(&str, "MipLevels:  {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
+      fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
+      fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
+    }
+
+    ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
+    dynstring_destroy(&str);
+  }
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 static void rend_settings_tab_draw(
@@ -348,10 +412,6 @@ static void rend_settings_tab_draw(
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
       canvas, (u32*)&settings->flags, RendFlags_DebugShadow, .tooltip = g_tooltipDebugShadow);
-
-  if (settings->flags & RendFlags_DebugShadow && ui_canvas_input_any(canvas)) {
-    settings->flags &= ~RendFlags_DebugShadow;
-  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug light"));
@@ -575,18 +635,19 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
-      DebugRendResType type     = DebugRendResType_Unknown;
-      usize            dataSize = 0;
+      DebugRendResType type   = DebugRendResType_Unknown;
+      usize            memory = 0;
       if (graphic) {
         type = DebugRendResType_Graphic;
       } else if (shader) {
         type = DebugRendResType_Shader;
       } else if (mesh) {
-        type     = DebugRendResType_Mesh;
-        dataSize = rend_res_mesh_data_size(mesh);
+        type   = DebugRendResType_Mesh;
+        memory = rend_res_mesh_memory(mesh);
       } else if (texture) {
-        type     = DebugRendResType_Texture;
-        dataSize = rend_res_texture_data_size(texture);
+        type   = rend_res_texture_is_cube(texture) ? DebugRendResType_TextureCube
+                                                   : DebugRendResType_Texture;
+        memory = rend_res_texture_memory(texture);
       }
       DebugRendResFlags flags = 0;
       flags |= rend_res_is_loading(resComp) ? DebugRendResFlags_IsLoading : 0;
@@ -595,11 +656,12 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       flags |= rend_res_is_persistent(resComp) ? DebugRendResFlags_IsPersistent : 0;
 
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
+          .entity          = ecs_view_entity(itr),
           .name            = name,
           .type            = type,
           .flags           = flags,
           .ticksTillUnload = rend_res_ticks_until_unload(resComp),
-          .dataSize        = dataSize,
+          .memory          = memory,
       };
     }
   }
@@ -632,16 +694,36 @@ static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
   return ui_color(48, 48, 48, 192);
 }
 
-static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+static void rend_resource_actions_draw(
+    UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+
+  const bool canPreview       = resInfo->type == DebugRendResType_Texture;
+  const bool anyPreviewActive = ecs_entity_valid(settings->debugViewerResource);
+  if (canPreview &&
+      ui_button(
+          canvas,
+          .flags      = anyPreviewActive ? UiWidget_Disabled : 0,
+          .label      = ui_shape_scratch(UiShape_Visiblity),
+          .fontSize   = 18,
+          .frameColor = anyPreviewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+          .tooltip    = g_tooltipResourcePreview)) {
+    settings->debugViewerResource = resInfo->entity;
+  }
+}
+
+static void rend_resource_tab_draw(
+    UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendSettingsComp* settings) {
   rend_resource_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 270);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 115);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -650,10 +732,10 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the resource.")},
           {string_lit("Type"), string_lit("Type of the resource.")},
-          {string_lit("Unload delay"),
-           string_lit("How many ticks until resource asset will be unloaded.")},
+          {string_lit("Unload"), string_lit("Tick count until this resource will be unloaded.")},
           {string_lit("Size"), string_lit("Data size of the resource.")},
           {string_lit("Persistent"), string_lit("Is the resource persistent.")},
+          {string_lit("Actions"), string_empty},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
@@ -674,12 +756,15 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
     }
     ui_table_next_column(canvas, &table);
-    if (resInfo->dataSize) {
-      ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->dataSize)));
+    if (resInfo->memory) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->memory)));
     }
     ui_table_next_column(canvas, &table);
     const bool isPersistent = (resInfo->flags & DebugRendResFlags_IsPersistent) != 0;
     ui_label(canvas, fmt_write_scratch("{}", fmt_bool(isPersistent)));
+
+    ui_table_next_column(canvas, &table);
+    rend_resource_actions_draw(canvas, settings, resInfo);
   }
   ui_canvas_id_block_next(canvas);
 
@@ -876,7 +961,7 @@ static void rend_panel_draw(
     break;
   case DebugRendTab_Resources:
     rend_resource_info_query(panelComp, world);
-    rend_resource_tab_draw(canvas, panelComp);
+    rend_resource_tab_draw(canvas, panelComp, settings);
     break;
   case DebugRendTab_Light:
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
@@ -918,7 +1003,20 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
+
     rend_panel_draw(world, canvas, panelComp, settings, settingsGlobal);
+
+    // Check if any renderer debug overlay is active.
+    const bool overlayActive = ecs_entity_valid(settings->debugViewerResource) ||
+                               (settings->flags & RendFlags_DebugShadow) != 0;
+    if (overlayActive) {
+      if (debug_overlay_blocker(canvas)) {
+        settings->debugViewerResource = 0;
+        settings->flags &= ~RendFlags_DebugShadow;
+      } else {
+        debug_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
+      }
+    }
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));

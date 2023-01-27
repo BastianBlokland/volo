@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 #include "geo_quat.h"
@@ -79,6 +80,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32             bloomIntensity;
   u32             bloomSteps;
   f32             bloomRadius;
+  EcsEntityId     debugViewerResource; // Resource entity to visualize for debug purposes.
 };
 
 typedef enum {
