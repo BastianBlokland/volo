@@ -85,6 +85,10 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/debug/image_viewer.gra"),
     },
     {
+        .repoId  = RvkRepositoryId_DebugMeshViewerGraphic,
+        .assetId = string_static("graphics/debug/mesh_viewer.gra"),
+    },
+    {
         .repoId  = RvkRepositoryId_DebugWireframeGraphic,
         .assetId = string_static("graphics/debug/wireframe.gra"),
     },

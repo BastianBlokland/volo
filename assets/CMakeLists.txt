@@ -13,6 +13,7 @@ configure_shaders(volo_shaders
     shaders/bloom_up.frag
     shaders/debug/dyn_image_viewer.frag
     shaders/debug/dyn_image_viewer.vert
+    shaders/debug/dyn_mesh_viewer.vert
     shaders/debug/grid.frag
     shaders/debug/grid.vert
     shaders/debug/shape_line.vert
