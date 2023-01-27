@@ -326,6 +326,14 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }
+    const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
+    if (mesh) {
+      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_mesh_memory(mesh)));
+      fmt_write(&str, "Vertices:   {}\n", fmt_int(rend_res_mesh_vertices(mesh)));
+      fmt_write(&str, "Indices:    {}\n", fmt_int(rend_res_mesh_indices(mesh)));
+      fmt_write(&str, "Triangles:  {}\n", fmt_int(rend_res_mesh_indices(mesh) / 3));
+      fmt_write(&str, "Skinned:    {}\n", fmt_bool(rend_res_mesh_is_skinned(mesh)));
+    }
 
     ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
     dynstring_destroy(&str);
@@ -698,15 +706,17 @@ static void rend_resource_actions_draw(
     UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
-  const bool canPreview       = resInfo->type == DebugRendResType_Texture;
-  const bool anyPreviewActive = ecs_entity_valid(settings->debugViewerResource);
-  if (canPreview &&
+  const bool previewActive = ecs_entity_valid(settings->debugViewerResource);
+  const bool supportsPreview =
+      resInfo->type == DebugRendResType_Texture || resInfo->type == DebugRendResType_Mesh;
+
+  if (supportsPreview &&
       ui_button(
           canvas,
-          .flags      = anyPreviewActive ? UiWidget_Disabled : 0,
+          .flags      = previewActive ? UiWidget_Disabled : 0,
           .label      = ui_shape_scratch(UiShape_Visiblity),
           .fontSize   = 18,
-          .frameColor = anyPreviewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
+          .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
     settings->debugViewerResource = resInfo->entity;
   }
