@@ -82,11 +82,12 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
-      .device         = dev,
-      .dbgName        = string_dup(g_alloc_heap, dbgName),
-      .vertexCount    = (u32)asset->vertexCount,
-      .indexCount     = (u32)asset->indexCount,
-      .positionBounds = asset->positionBounds,
+      .device            = dev,
+      .dbgName           = string_dup(g_alloc_heap, dbgName),
+      .vertexCount       = (u32)asset->vertexCount,
+      .indexCount        = (u32)asset->indexCount,
+      .positionBounds    = asset->positionBounds,
+      .positionRawBounds = asset->positionRawBounds,
   };
 
   if (rvk_mesh_skinned(asset)) {

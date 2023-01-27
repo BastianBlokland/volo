@@ -487,17 +487,18 @@ static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspe
       GeoMatrix viewProj;
     } MeshViewerData;
 
-    const GeoVector meshCenter = geo_box_center(&mesh->positionBounds);
-    const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->positionBounds).y);
+    const GeoVector meshCenter = geo_box_center(&mesh->positionRawBounds);
+    const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->positionRawBounds).y);
 
-    const f32       orthoSize = meshSize * 2.5f;
+    const GeoVector pos       = geo_vector(0, -meshCenter.y + meshSize * 0.1f);
+    const f32       orthoSize = meshSize * 1.75f;
     const f32       rotY      = scene_real_time_seconds(ctx->time) * math_deg_to_rad * 10.0f;
     const f32       rotX      = -10.0f * math_deg_to_rad;
     const GeoMatrix projMat = geo_matrix_proj_ortho(orthoSize * aspect, orthoSize, -100.0f, 100.0f);
     const GeoMatrix rotYMat = geo_matrix_rotate_y(rotY);
     const GeoMatrix rotXMat = geo_matrix_rotate_x(rotX);
     const GeoMatrix rotMat  = geo_matrix_mul(&rotXMat, &rotYMat);
-    const GeoMatrix posMat  = geo_matrix_translate(geo_vector_mul(meshCenter, -1.0f));
+    const GeoMatrix posMat  = geo_matrix_translate(pos);
     const GeoMatrix viewMat = geo_matrix_mul(&posMat, &rotMat);
 
     MeshViewerData* data = alloc_alloc_t(g_alloc_scratch, MeshViewerData);
