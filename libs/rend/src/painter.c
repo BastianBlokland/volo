@@ -97,17 +97,21 @@ ecs_view_define(GlobalView) {
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
 }
+
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
 ecs_view_define(GraphicView) {
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
   ecs_access_write(RendResGraphicComp);
 }
-ecs_view_define(TextureView) {
+
+ecs_view_define(ResourceView) {
+  ecs_access_maybe_write(RendResMeshComp);
+  ecs_access_maybe_write(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
   ecs_access_write(RendResComp);
-  ecs_access_write(RendResTextureComp);
 }
 
 ecs_view_define(PainterCreateView) {
@@ -150,6 +154,7 @@ typedef struct {
   RendPainterComp*              painter;
   const RendSettingsComp*       settings;
   const RendSettingsGlobalComp* settingsGlobal;
+  const SceneTimeComp*          time;
   RvkPass*                      pass;
   RendView                      view;
 } RendPaintContext;
@@ -158,6 +163,7 @@ static RendPaintContext painter_context(
     RendPainterComp*              painter,
     const RendSettingsComp*       settings,
     const RendSettingsGlobalComp* settingsGlobal,
+    const SceneTimeComp*          time,
     RvkPass*                      pass,
     RendView                      view) {
 
@@ -165,6 +171,7 @@ static RendPaintContext painter_context(
       .painter        = painter,
       .settings       = settings,
       .settingsGlobal = settingsGlobal,
+      .time           = time,
       .pass           = pass,
       .view           = view,
   };
@@ -468,16 +475,51 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
   }
 }
 
+static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, RvkMesh* mesh) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      GeoMatrix viewProj;
+    } MeshViewerData;
+
+    const f32       orthoSize = 10.0f;
+    const f32       rotSpeed  = 0.5f;
+    const GeoMatrix proj = geo_matrix_proj_ortho(orthoSize, orthoSize / aspect, -100.0f, 100.0f);
+    const GeoMatrix view = geo_matrix_rotate_y(scene_real_time_seconds(ctx->time) * rotSpeed);
+
+    MeshViewerData* data = alloc_alloc_t(g_alloc_scratch, MeshViewerData);
+    data->viewProj       = geo_matrix_mul(&proj, &view);
+
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynMesh   = mesh,
+        .instCount = 1,
+        .drawData  = mem_create(data, sizeof(MeshViewerData)),
+    };
+    painter_push(ctx, draw);
+  }
+}
+
 static void painter_push_debug_resource_viewer(
-    RendPaintContext* ctx, EcsView* textureView, const EcsEntityId resourceEntity) {
+    RendPaintContext* ctx,
+    const f32         aspect,
+    EcsView*          resourceView,
+    const EcsEntityId resourceEntity) {
 
-  EcsIterator* resourceTextureItr = ecs_view_maybe_at(textureView, resourceEntity);
-  if (resourceTextureItr) {
-    rend_res_mark_used(ecs_view_write_t(resourceTextureItr, RendResComp));
+  EcsIterator* itr = ecs_view_maybe_at(resourceView, resourceEntity);
+  if (itr) {
+    rend_res_mark_used(ecs_view_write_t(itr, RendResComp));
 
-    RvkTexture* texture = ecs_view_write_t(resourceTextureItr, RendResTextureComp)->texture;
-    if (rvk_pass_prepare_texture(ctx->pass, texture)) {
-      painter_push_debug_image_viewer(ctx, &texture->image);
+    RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
+    if (textureComp && rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
+      painter_push_debug_image_viewer(ctx, &textureComp->texture->image);
+    }
+    RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);
+    if (meshComp && rvk_pass_prepare_mesh(ctx->pass, meshComp->mesh)) {
+      painter_push_debug_mesh_viewer(ctx, aspect, meshComp->mesh);
     }
   }
 }
@@ -576,7 +618,7 @@ static bool rend_canvas_paint(
     const SceneTransformComp*     trans,
     EcsView*                      drawView,
     EcsView*                      graphicView,
-    EcsView*                      textureView) {
+    EcsView*                      resourceView) {
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
@@ -601,7 +643,7 @@ static bool rend_canvas_paint(
   RvkImage* geoDepth      = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
   SceneTags geoTagMask;
   {
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, geoPass, mainView);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, geoPass, mainView);
     rvk_pass_stage_attach_color(geoPass, geoColorRough, 0);
     rvk_pass_stage_attach_color(geoPass, geoNormTags, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
@@ -620,7 +662,7 @@ static bool rend_canvas_paint(
     const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
     const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
     const RendView   shadowView  = painter_view_create(shadowTrans, shadowProj, camEntity, filter);
-    RendPaintContext ctx         = painter_context(painter, set, setGlobal, shadowPass, shadowView);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadowView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadowTrans, shadowProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, drawView, graphicView);
@@ -636,7 +678,7 @@ static bool rend_canvas_paint(
   RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, aoPass, mainView);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, aoPass, mainView);
     rvk_pass_stage_global_image(aoPass, geoNormTags, 0);
     rvk_pass_stage_global_image(aoPass, geoDepth, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
@@ -655,7 +697,7 @@ static bool rend_canvas_paint(
   {
     rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, fwdPass, mainView);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fwdPass, mainView);
     rvk_pass_stage_global_image(fwdPass, geoColorRough, 0);
     rvk_pass_stage_global_image(fwdPass, geoNormTags, 1);
     rvk_pass_stage_global_image(fwdPass, geoDepth, 2);
@@ -689,7 +731,7 @@ static bool rend_canvas_paint(
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
-    RendPaintContext ctx  = painter_context(painter, set, setGlobal, bloomPass, mainView);
+    RendPaintContext ctx  = painter_context(painter, set, setGlobal, time, bloomPass, mainView);
     RvkSize          size = fwdSize;
     RvkImage*        images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
@@ -734,7 +776,7 @@ static bool rend_canvas_paint(
   const RvkSize postSize = swapchainSize;
   RvkPass*      postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   {
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, postPass, mainView);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
@@ -744,7 +786,7 @@ static bool rend_canvas_paint(
     if (set->flags & RendFlags_DebugShadow) {
       painter_push_debug_image_viewer(&ctx, shadowDepth);
     } else if (set->debugViewerResource) {
-      painter_push_debug_resource_viewer(&ctx, textureView, set->debugViewerResource);
+      painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
     }
     painter_flush(&ctx);
   }
@@ -798,10 +840,10 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
 
-  EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
-  EcsView* drawView    = ecs_world_view_t(world, DrawView);
-  EcsView* graphicView = ecs_world_view_t(world, GraphicView);
-  EcsView* textureView = ecs_world_view_t(world, TextureView);
+  EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
+  EcsView* drawView     = ecs_world_view_t(world, DrawView);
+  EcsView* graphicView  = ecs_world_view_t(world, GraphicView);
+  EcsView* resourceView = ecs_world_view_t(world, ResourceView);
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -824,7 +866,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
         transform,
         drawView,
         graphicView,
-        textureView);
+        resourceView);
   }
 
   if (!anyPainterDrawn) {
@@ -842,7 +884,7 @@ ecs_module_init(rend_painter_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(DrawView);
   ecs_register_view(GraphicView);
-  ecs_register_view(TextureView);
+  ecs_register_view(ResourceView);
   ecs_register_view(PainterCreateView);
   ecs_register_view(PainterUpdateView);
 
@@ -855,7 +897,7 @@ ecs_module_init(rend_painter_module) {
       ecs_view_id(PainterUpdateView),
       ecs_view_id(DrawView),
       ecs_view_id(GraphicView),
-      ecs_view_id(TextureView));
+      ecs_view_id(ResourceView));
 
   ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
 }
