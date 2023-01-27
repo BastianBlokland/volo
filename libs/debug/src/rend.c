@@ -185,7 +185,7 @@ typedef struct {
   DebugRendResType  type : 8;
   DebugRendResFlags flags : 8;
   u32               ticksTillUnload;
-  usize             dataSize;
+  usize             memory;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -258,7 +258,7 @@ static i8 rend_resource_compare_type(const void* a, const void* b) {
 static i8 rend_resource_compare_size(const void* a, const void* b) {
   const DebugResourceInfo* resA  = a;
   const DebugResourceInfo* resB  = b;
-  i8                       order = compare_usize_reverse(&resA->dataSize, &resB->dataSize);
+  i8                       order = compare_usize_reverse(&resA->memory, &resB->memory);
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -311,12 +311,18 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
     ui_style_variation(canvas, UiVariation_Monospace);
 
     DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-    fmt_write(&str, "Name:   {}\n", fmt_text(asset_id(assetComp)));
-    fmt_write(&str, "Entity: {}\n", fmt_int(entity, .base = 16));
+    fmt_write(&str, "Name:      {}\n", fmt_text(asset_id(assetComp)));
+    fmt_write(&str, "Entity:    {}\n", fmt_int(entity, .base = 16));
 
     const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
     if (texture) {
-      fmt_write(&str, "Memory: {}\n", fmt_size(rend_res_texture_data_size(texture)));
+      fmt_write(&str, "Memory:    {}\n", fmt_size(rend_res_texture_memory(texture)));
+      fmt_write(&str, "Width:     {}\n", fmt_int(rend_res_texture_width(texture)));
+      fmt_write(&str, "Height:    {}\n", fmt_int(rend_res_texture_height(texture)));
+      fmt_write(&str, "Layers:    {}\n", fmt_int(rend_res_texture_layers(texture)));
+      fmt_write(&str, "MipLevels: {}\n", fmt_int(rend_res_texture_mip_levels(texture)));
+      fmt_write(&str, "Cube:      {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
+      fmt_write(&str, "Format:    {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }
 
     ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
@@ -627,19 +633,19 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
-      DebugRendResType type     = DebugRendResType_Unknown;
-      usize            dataSize = 0;
+      DebugRendResType type   = DebugRendResType_Unknown;
+      usize            memory = 0;
       if (graphic) {
         type = DebugRendResType_Graphic;
       } else if (shader) {
         type = DebugRendResType_Shader;
       } else if (mesh) {
-        type     = DebugRendResType_Mesh;
-        dataSize = rend_res_mesh_data_size(mesh);
+        type   = DebugRendResType_Mesh;
+        memory = rend_res_mesh_memory(mesh);
       } else if (texture) {
-        type     = rend_res_texture_is_cube(texture) ? DebugRendResType_TextureCube
-                                                     : DebugRendResType_Texture;
-        dataSize = rend_res_texture_data_size(texture);
+        type   = rend_res_texture_is_cube(texture) ? DebugRendResType_TextureCube
+                                                   : DebugRendResType_Texture;
+        memory = rend_res_texture_memory(texture);
       }
       DebugRendResFlags flags = 0;
       flags |= rend_res_is_loading(resComp) ? DebugRendResFlags_IsLoading : 0;
@@ -653,7 +659,7 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
           .type            = type,
           .flags           = flags,
           .ticksTillUnload = rend_res_ticks_until_unload(resComp),
-          .dataSize        = dataSize,
+          .memory          = memory,
       };
     }
   }
@@ -748,8 +754,8 @@ static void rend_resource_tab_draw(
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
     }
     ui_table_next_column(canvas, &table);
-    if (resInfo->dataSize) {
-      ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->dataSize)));
+    if (resInfo->memory) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->memory)));
     }
     ui_table_next_column(canvas, &table);
     const bool isPersistent = (resInfo->flags & DebugRendResFlags_IsPersistent) != 0;
