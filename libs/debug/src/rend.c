@@ -326,6 +326,14 @@ static void debug_overlay_resource(UiCanvasComp* canvas, RendSettingsComp* set, 
       fmt_write(&str, "Cube:       {}\n", fmt_bool(rend_res_texture_is_cube(texture)));
       fmt_write(&str, "Format:     {}\n", fmt_text(rend_res_texture_format_str(texture)));
     }
+    const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
+    if (mesh) {
+      fmt_write(&str, "Memory:     {}\n", fmt_size(rend_res_mesh_memory(mesh)));
+      fmt_write(&str, "Vertices:   {}\n", fmt_int(rend_res_mesh_vertices(mesh)));
+      fmt_write(&str, "Indices:    {}\n", fmt_int(rend_res_mesh_indices(mesh)));
+      fmt_write(&str, "Triangles:  {}\n", fmt_int(rend_res_mesh_indices(mesh) / 3));
+      fmt_write(&str, "Skinned:    {}\n", fmt_bool(rend_res_mesh_is_skinned(mesh)));
+    }
 
     ui_label(canvas, dynstring_view(&str), .align = UiAlign_MiddleLeft);
     dynstring_destroy(&str);
