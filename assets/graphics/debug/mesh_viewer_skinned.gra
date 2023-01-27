@@ -13,5 +13,5 @@
   "lineWidth": 1,
   "blend": "None",
   "depth": "AlwaysNoWrite",
-  "cull": "Back"
+  "cull": "None"
 }
