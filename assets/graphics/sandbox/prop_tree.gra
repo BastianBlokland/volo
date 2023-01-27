@@ -21,7 +21,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/tree_acacia/tree_acacia_color_rough.tga",
+      "textureId": "external/tree_acacia/tree_acacia_2_color_rough.tga",
       "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x8"
