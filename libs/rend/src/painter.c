@@ -486,12 +486,15 @@ static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspe
     } MeshViewerData;
 
     const f32       orthoSize = 10.0f;
-    const f32       rotSpeed  = 0.5f;
-    const GeoMatrix proj = geo_matrix_proj_ortho(orthoSize, orthoSize / aspect, -100.0f, 100.0f);
-    const GeoMatrix view = geo_matrix_rotate_y(scene_real_time_seconds(ctx->time) * rotSpeed);
+    const f32       rotY      = scene_real_time_seconds(ctx->time) * math_deg_to_rad * 10.0f;
+    const f32       rotX      = -10.0f * math_deg_to_rad;
+    const GeoMatrix projMat = geo_matrix_proj_ortho(orthoSize, orthoSize / aspect, -100.0f, 100.0f);
+    const GeoMatrix rotYMat = geo_matrix_rotate_y(rotY);
+    const GeoMatrix rotXMat = geo_matrix_rotate_x(rotX);
+    const GeoMatrix viewMat = geo_matrix_mul(&rotXMat, &rotYMat);
 
     MeshViewerData* data = alloc_alloc_t(g_alloc_scratch, MeshViewerData);
-    data->viewProj       = geo_matrix_mul(&proj, &view);
+    data->viewProj       = geo_matrix_mul(&projMat, &viewMat);
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
