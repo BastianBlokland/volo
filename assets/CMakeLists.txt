@@ -100,6 +100,10 @@ if(${EXTERNAL_ASSETS})
       plant_fern/plant_fern_normal.tga
       plant_fern/plant_fern.bin
       plant_fern/plant_fern.gltf
+      rock/rock_color_rough.tga
+      rock/rock_normal.tga
+      rock/rock.bin
+      rock/rock.gltf
       skybox/teide_small_back.tga
       skybox/teide_small_down.tga
       skybox/teide_small_forward.tga

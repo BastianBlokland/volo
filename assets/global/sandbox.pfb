@@ -361,6 +361,32 @@
       ]
     },
     {
+      "name": "PropRock",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_rock.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.2,
+              "y": 0,
+              "z": -1.2
+            },
+            "max": {
+              "x": 0.75,
+              "y": 1,
+              "z": 0.75
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {
