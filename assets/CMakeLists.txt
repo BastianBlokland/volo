@@ -125,6 +125,9 @@ if(${EXTERNAL_ASSETS})
       vfx/rock.tga
       vfx/smoke.tga
       vfx/trail_2.tga
+      water_tower/water_tower_color_rough.tga
+      water_tower/water_tower_normal.tga
+      water_tower/water_tower.obj
     )
 endif()
 

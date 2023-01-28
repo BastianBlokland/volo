@@ -23,7 +23,7 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appPropCount  = 350;
+static const u32       g_appPropCount  = 400;
 static const u64       g_appRngSeed    = 42;
 
 static void app_window_create(EcsWorld* world) {
@@ -60,9 +60,10 @@ static void app_scene_create_props(EcsWorld* world, Rng* rng) {
     StringHash prefabId;
     f32        weight;
   } g_props[] = {
-      {string_hash_lit("PropFence"), .weight = 0.6f},
-      {string_hash_lit("PropPlant"), .weight = 0.3f},
-      {string_hash_lit("PropBarrel"), .weight = 0.05f},
+      {string_hash_lit("PropFence"), .weight = 0.5f},
+      {string_hash_lit("PropPlant"), .weight = 0.35f},
+      {string_hash_lit("PropBarrel"), .weight = 0.06f},
+      {string_hash_lit("PropTower"), .weight = 0.04f},
       {string_hash_lit("PropTree"), .weight = 0.035f},
       {string_hash_lit("PropWreck"), .weight = 0.015f},
   };

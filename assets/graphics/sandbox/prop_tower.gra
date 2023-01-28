@@ -1,0 +1,37 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/water_tower/water_tower_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x8"
+    },
+    {
+      "textureId": "external/water_tower/water_tower_normal.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x8"
+    }
+  ],
+  "meshId": "external/water_tower/water_tower.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
