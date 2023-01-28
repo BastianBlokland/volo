@@ -21,25 +21,25 @@
   ],
   "samplers": [
     {
-      "textureId": "external/tree_acacia/tree_acacia_2_color_rough.tga",
-      "wrap": "Repeat",
+      "textureId": "external/plant_fern/plant_fern_color_rough.tga",
+      "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x8"
     },
     {
-      "textureId": "external/tree_acacia/tree_acacia_normal.tga",
-      "wrap": "Repeat",
+      "textureId": "external/plant_fern/plant_fern_normal.tga",
+      "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x8"
     },
     {
-      "textureId": "external/tree_acacia/tree_acacia_alpha.tga",
+      "textureId": "external/plant_fern/plant_fern_alpha.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x8"
     }
   ],
-  "meshId": "external/tree_acacia/tree_acacia.gltf",
+  "meshId": "external/plant_fern/plant_fern.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

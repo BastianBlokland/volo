@@ -59,6 +59,18 @@ if(${EXTERNAL_ASSETS})
       barrel/barrel_normal.tga
       barrel/barrel.bin
       barrel/barrel.gltf
+      car_wreck/car_wreck_color_rough.tga
+      car_wreck/car_wreck_normal.tga
+      car_wreck/car_wreck.bin
+      car_wreck/car_wreck.gltf
+      container/container_color_rough.tga
+      container/container_normal.tga
+      container/container.bin
+      container/container.gltf
+      crate/crate_color_rough.tga
+      crate/crate_normal.tga
+      crate/crate.bin
+      crate/crate.gltf
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
@@ -79,43 +91,55 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_7.tga
       fire_2/fire_8.tga
       fire_2/fire_9.tga
-      maynard/maynard_color_rough.tga
-      maynard/maynard_nrm.tga
+      maynard/maynard_2_color_rough.tga
+      maynard/maynard_2_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
+      plant_fern/plant_fern_alpha.tga
+      plant_fern/plant_fern_color_rough.tga
+      plant_fern/plant_fern_normal.tga
+      plant_fern/plant_fern.bin
+      plant_fern/plant_fern.gltf
+      rock/rock_color_rough.tga
+      rock/rock_normal.tga
+      rock/rock.bin
+      rock/rock.gltf
       skybox/teide_small_back.tga
       skybox/teide_small_down.tga
       skybox/teide_small_forward.tga
       skybox/teide_small_left.tga
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
+      swat/swat_2_color_rough.tga
+      swat/swat_2_nrm.tga
       swat/swat_3.bin
       swat/swat_3.gltf
-      swat/swat_color_rough.tga
-      swat/swat_nrm.tga
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
       tiling/clouds.tga
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
-      tiling/sand_1_color_rough.tga
-      tiling/sand_1_normal.tga
+      tiling/sand_2_color_rough.tga
+      tiling/sand_2_normal.tga
+      tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
-      tree_acacia/tree_acacia_color_rough.tga
       tree_acacia/tree_acacia_normal.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
+      turret/turret_2_color_rough.tga
+      turret/turret_2_nrm.tga
       turret/turret_big.gltf
-      turret/turret_color_rough.tga
       turret/turret_missile.bin
       turret/turret_missile.gltf
-      turret/turret_nrm.tga
       turret/turret.bin
       vfx/flash_2.tga
       vfx/flash_star_2.tga
       vfx/rock.tga
       vfx/smoke.tga
       vfx/trail_2.tga
+      water_tower/water_tower_color_rough.tga
+      water_tower/water_tower_normal.tga
+      water_tower/water_tower.obj
     )
 endif()
 

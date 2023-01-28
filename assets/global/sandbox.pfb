@@ -248,6 +248,145 @@
       ]
     },
     {
+      "name": "PropPlant",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_plant.gra"
+        }
+      ]
+    },
+    {
+      "name": "PropWreck",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_wreck.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1,
+              "y": 0,
+              "z": -2.5
+            },
+            "max": {
+              "x": 1,
+              "y": 1.5,
+              "z": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropTower",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_tower.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1,
+              "y": 0,
+              "z": -1
+            },
+            "max": {
+              "x": 1,
+              "y": 6,
+              "z": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropContainer",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_container.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.25,
+              "y": 0,
+              "z": -3
+            },
+            "max": {
+              "x": 1.25,
+              "y": 2.5,
+              "z": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropCrate",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_crate.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -0.5,
+              "y": 0,
+              "z": -0.5
+            },
+            "max": {
+              "x": 0.5,
+              "y": 1.15,
+              "z": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropRock",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_rock.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.2,
+              "y": 0,
+              "z": -1.2
+            },
+            "max": {
+              "x": 0.75,
+              "y": 1,
+              "z": 0.75
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {

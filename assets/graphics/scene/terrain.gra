@@ -36,13 +36,13 @@
       "filter": "Linear"
     },
     {
-      "textureId": "external/tiling/sand_1_color_rough.tga",
+      "textureId": "external/tiling/sand_2_color_rough.tga",
       "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/tiling/sand_1_normal.tga",
+      "textureId": "external/tiling/sand_2_normal.tga",
       "wrap": "Repeat",
       "filter": "Linear",
       "anisotropy": "x4"

@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard_skinned.vert.spv"
+      "shaderId": "shaders/standard.vert.spv"
     },
     {
       "shaderId": "shaders/standard.frag.spv",
@@ -16,19 +16,19 @@
   ],
   "samplers": [
     {
-      "textureId": "external/turret/turret_2_color_rough.tga",
+      "textureId": "external/container/container_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x8"
     },
     {
-      "textureId": "external/turret/turret_2_nrm.tga",
+      "textureId": "external/container/container_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x8"
     }
   ],
-  "meshId": "external/turret/turret_missile.gltf",
+  "meshId": "external/container/container.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
