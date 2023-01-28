@@ -61,9 +61,10 @@ static void app_scene_create_props(EcsWorld* world, Rng* rng) {
     f32        weight;
   } g_props[] = {
       {string_hash_lit("PropFence"), .weight = 0.6f},
-      {string_hash_lit("PropBarrel"), .weight = 0.05f},
-      {string_hash_lit("PropTree"), .weight = 0.05f},
       {string_hash_lit("PropPlant"), .weight = 0.3f},
+      {string_hash_lit("PropBarrel"), .weight = 0.05f},
+      {string_hash_lit("PropTree"), .weight = 0.035f},
+      {string_hash_lit("PropWreck"), .weight = 0.015f},
   };
 
   for (u32 instIdx = 0; instIdx != g_appPropCount; ++instIdx) {

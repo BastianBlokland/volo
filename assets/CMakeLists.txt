@@ -59,6 +59,10 @@ if(${EXTERNAL_ASSETS})
       barrel/barrel_normal.tga
       barrel/barrel.bin
       barrel/barrel.gltf
+      car_wreck/car_wreck_color_rough.tga
+      car_wreck/car_wreck_normal.tga
+      car_wreck/car_wreck.bin
+      car_wreck/car_wreck.gltf
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin

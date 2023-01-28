@@ -257,6 +257,32 @@
       ]
     },
     {
+      "name": "PropWreck",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_wreck.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1,
+              "y": 0,
+              "z": -2.5
+            },
+            "max": {
+              "x": 1,
+              "y": 1.5,
+              "z": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {
