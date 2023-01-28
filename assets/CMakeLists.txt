@@ -83,6 +83,11 @@ if(${EXTERNAL_ASSETS})
       maynard/maynard_2_nrm.tga
       maynard/maynard.bin
       maynard/maynard.gltf
+      plant_fern/plant_fern_alpha.tga
+      plant_fern/plant_fern_color_rough.tga
+      plant_fern/plant_fern_normal.tga
+      plant_fern/plant_fern.bin
+      plant_fern/plant_fern.gltf
       skybox/teide_small_back.tga
       skybox/teide_small_down.tga
       skybox/teide_small_forward.tga

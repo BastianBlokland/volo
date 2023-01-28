@@ -248,6 +248,15 @@
       ]
     },
     {
+      "name": "PropPlant",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_plant.gra"
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {

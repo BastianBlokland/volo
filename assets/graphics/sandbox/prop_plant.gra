@@ -1,0 +1,48 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 1
+        },
+        {
+          "name": "alphaClip",
+          "binding": 1,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/plant_fern/plant_fern_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x8"
+    },
+    {
+      "textureId": "external/plant_fern/plant_fern_normal.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x8"
+    },
+    {
+      "textureId": "external/plant_fern/plant_fern_alpha.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x8"
+    }
+  ],
+  "meshId": "external/plant_fern/plant_fern.gltf",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
