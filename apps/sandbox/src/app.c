@@ -60,8 +60,9 @@ static void app_scene_create_props(EcsWorld* world, Rng* rng) {
     StringHash prefabId;
     f32        weight;
   } g_props[] = {
-      {string_hash_lit("PropFence"), .weight = 0.45f},
+      {string_hash_lit("PropFence"), .weight = 0.4f},
       {string_hash_lit("PropContainer"), .weight = 0.05f},
+      {string_hash_lit("PropCrate"), .weight = 0.05f},
       {string_hash_lit("PropPlant"), .weight = 0.35f},
       {string_hash_lit("PropBarrel"), .weight = 0.06f},
       {string_hash_lit("PropTower"), .weight = 0.04f},

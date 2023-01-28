@@ -67,6 +67,10 @@ if(${EXTERNAL_ASSETS})
       container/container_normal.tga
       container/container.bin
       container/container.gltf
+      crate/crate_color_rough.tga
+      crate/crate_normal.tga
+      crate/crate.bin
+      crate/crate.gltf
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
