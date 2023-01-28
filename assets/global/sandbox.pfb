@@ -309,6 +309,32 @@
       ]
     },
     {
+      "name": "PropContainer",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/sandbox/prop_container.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.25,
+              "y": 0,
+              "z": -3
+            },
+            "max": {
+              "x": 1.25,
+              "y": 2.5,
+              "z": 3
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitRifle",
       "traits": [
         {
