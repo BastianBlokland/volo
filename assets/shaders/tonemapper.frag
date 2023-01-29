@@ -69,6 +69,7 @@ f32v3 tonemap_aces_approx(const f32v3 hdr) {
   const f32 e = 0.14;
   return clamp((hdr * (a * hdr + b)) / (hdr * (c * hdr + d) + e), 0.0, 1.0);
 }
+
 void main() {
   const f32v3 colorHdrInput = texture(u_texGeoColorRough, in_texcoord).rgb;
   const f32v3 bloomInput    = texture(u_texBloom, in_texcoord).rgb;
