@@ -127,9 +127,10 @@ GeoMatrix geo_matrix_trs(GeoVector t, GeoQuat r, GeoVector s);
  * Create an orthographic projection matrix.
  * NOTE: Uses reversed-z depth so near objects are at depth 1 and far at 0.
  */
-GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar);
-GeoMatrix geo_matrix_proj_ortho_ver(f32 size, f32 aspect, f32 zNear, f32 zFar);
-GeoMatrix geo_matrix_proj_ortho_hor(f32 size, f32 aspect, f32 zNear, f32 zFar);
+GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 near, f32 far);
+GeoMatrix geo_matrix_proj_ortho_ver(f32 size, f32 aspect, f32 near, f32 far);
+GeoMatrix geo_matrix_proj_ortho_hor(f32 size, f32 aspect, f32 near, f32 far);
+GeoMatrix geo_matrix_proj_ortho_box(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
 
 /**
  * Create a perspective projection matrix.
@@ -137,9 +138,9 @@ GeoMatrix geo_matrix_proj_ortho_hor(f32 size, f32 aspect, f32 zNear, f32 zFar);
  * reaches 0 at infinite z.
  * NOTE: Angles are in radians.
  */
-GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear);
-GeoMatrix geo_matrix_proj_pers_ver(f32 verAngle, f32 aspect, f32 zNear);
-GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear);
+GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 near);
+GeoMatrix geo_matrix_proj_pers_ver(f32 verAngle, f32 aspect, f32 near);
+GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 near);
 
 /**
  * Extract frustum planes from a projection matrix.

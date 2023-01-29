@@ -546,8 +546,7 @@ GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) 
 #endif
 }
 
-GeoMatrix
-geo_matrix_proj_ortho(const f32 width, const f32 height, const f32 zNear, const f32 zFar) {
+GeoMatrix geo_matrix_proj_ortho(const f32 width, const f32 height, const f32 near, const f32 far) {
   /**
    * [ 2 / w,       0,           0,           0            ]
    * [ 0,           -(2 / h),    0,           0            ]
@@ -560,26 +559,55 @@ geo_matrix_proj_ortho(const f32 width, const f32 height, const f32 zNear, const 
       .columns = {
           {2 / width, 0, 0, 0},
           {0, -(2 / height), 0, 0},
-          {0, 0, 1 / (zNear - zFar), 0},
-          {0, 0, -zFar / (zNear - zFar), 1},
+          {0, 0, 1 / (near - far), 0},
+          {0, 0, -far / (near - far), 1},
       }};
 }
 
 GeoMatrix
-geo_matrix_proj_ortho_ver(const f32 size, const f32 aspect, const f32 zNear, const f32 zFar) {
-  return geo_matrix_proj_ortho(size, size / aspect, zNear, zFar);
+geo_matrix_proj_ortho_ver(const f32 size, const f32 aspect, const f32 near, const f32 far) {
+  return geo_matrix_proj_ortho(size, size / aspect, near, far);
 }
 
 GeoMatrix
-geo_matrix_proj_ortho_hor(const f32 size, const f32 aspect, const f32 zNear, const f32 zFar) {
-  return geo_matrix_proj_ortho(size * aspect, size, zNear, zFar);
+geo_matrix_proj_ortho_hor(const f32 size, const f32 aspect, const f32 near, const f32 far) {
+  return geo_matrix_proj_ortho(size * aspect, size, near, far);
 }
 
-GeoMatrix geo_matrix_proj_pers(const f32 horAngle, const f32 verAngle, const f32 zNear) {
+GeoMatrix geo_matrix_proj_ortho_box(
+    const f32 left,
+    const f32 right,
+    const f32 bottom,
+    const f32 top,
+    const f32 near,
+    const f32 far) {
+  /**
+   * [ 2 / w,       0,           0,            tX ]
+   * [ 0,           -(2 / h),    0,            tY ]
+   * [ 0,           0,           1 / (n - f),  tZ ]
+   * [ 0,           0,           0,            1 ]
+   *
+   * NOTE: Setup for reversed-z depth so near objects are at depth 1 and far at 0.
+   */
+  const f32 width  = right - left;
+  const f32 height = top - bottom;
+  const f32 tX     = -((right + left) / (right - left));
+  const f32 tY     = ((top + bottom) / (top - bottom));
+  const f32 tZ     = -far / (near - far);
+  return (GeoMatrix){
+      .columns = {
+          {2 / width, 0, 0, 0},
+          {0, -(2 / height), 0, 0},
+          {0, 0, 1 / (near - far), 0},
+          {tX, tY, tZ, 1},
+      }};
+}
+
+GeoMatrix geo_matrix_proj_pers(const f32 horAngle, const f32 verAngle, const f32 near) {
   /**
    * [ 1 / tan(hor / 2),  0,                    0,               0      ]
    * [ 0,                 -(1 / tan(ver / 2)),  0,               0      ]
-   * [ 0,                 0,                    0,               zNear  ]
+   * [ 0,                 0,                    0,               near   ]
    * [ 0,                 0,                    1,               0      ]
    *
    * NOTE: Setup for reversed-z with an infinite far plane, so near objects are at depth 1 and depth
@@ -590,18 +618,18 @@ GeoMatrix geo_matrix_proj_pers(const f32 horAngle, const f32 verAngle, const f32
           {1 / intrinsic_tan_f32(horAngle * .5f), 0, 0, 0},
           {0, -(1 / intrinsic_tan_f32(verAngle * .5f)), 0, 0},
           {0, 0, 0, 1},
-          {0, 0, zNear, 0},
+          {0, 0, near, 0},
       }};
 }
 
-GeoMatrix geo_matrix_proj_pers_ver(const f32 verAngle, const f32 aspect, const f32 zNear) {
+GeoMatrix geo_matrix_proj_pers_ver(const f32 verAngle, const f32 aspect, const f32 near) {
   const f32 horAngle = intrinsic_atan_f32(intrinsic_tan_f32(verAngle * .5f) * aspect) * 2.f;
-  return geo_matrix_proj_pers(horAngle, verAngle, zNear);
+  return geo_matrix_proj_pers(horAngle, verAngle, near);
 }
 
-GeoMatrix geo_matrix_proj_pers_hor(const f32 horAngle, const f32 aspect, const f32 zNear) {
+GeoMatrix geo_matrix_proj_pers_hor(const f32 horAngle, const f32 aspect, const f32 near) {
   const f32 verAngle = intrinsic_atan_f32(intrinsic_tan_f32(horAngle * .5f) / aspect) * 2.f;
-  return geo_matrix_proj_pers(horAngle, verAngle, zNear);
+  return geo_matrix_proj_pers(horAngle, verAngle, near);
 }
 
 void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]) {
