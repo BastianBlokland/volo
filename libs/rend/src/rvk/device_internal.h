@@ -21,6 +21,7 @@ typedef enum {
   RvkDeviceFlags_SupportWideLines         = 1 << 5,
   RvkDeviceFlags_SupportPresentId         = 1 << 6,
   RvkDeviceFlags_SupportPresentWait       = 1 << 7,
+  RvkDeviceFlags_SupportDepthClamp        = 1 << 8,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {
