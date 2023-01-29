@@ -490,16 +490,16 @@ static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspe
     const GeoVector meshCenter = geo_box_center(&mesh->positionRawBounds);
     const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->positionRawBounds).y);
 
-    const GeoVector pos       = geo_vector(0, -meshCenter.y + meshSize * 0.1f);
+    const GeoVector pos       = geo_vector(0, -meshCenter.y + meshSize * 0.15f);
     const f32       orthoSize = meshSize * 1.75f;
     const f32       rotY      = scene_real_time_seconds(ctx->time) * math_deg_to_rad * 10.0f;
     const f32       rotX      = -10.0f * math_deg_to_rad;
-    const GeoMatrix projMat = geo_matrix_proj_ortho(orthoSize * aspect, orthoSize, -100.0f, 100.0f);
-    const GeoMatrix rotYMat = geo_matrix_rotate_y(rotY);
-    const GeoMatrix rotXMat = geo_matrix_rotate_x(rotX);
-    const GeoMatrix rotMat  = geo_matrix_mul(&rotXMat, &rotYMat);
-    const GeoMatrix posMat  = geo_matrix_translate(pos);
-    const GeoMatrix viewMat = geo_matrix_mul(&posMat, &rotMat);
+    const GeoMatrix projMat   = geo_matrix_proj_ortho_hor(orthoSize, aspect, -100.0f, 100.0f);
+    const GeoMatrix rotYMat   = geo_matrix_rotate_y(rotY);
+    const GeoMatrix rotXMat   = geo_matrix_rotate_x(rotX);
+    const GeoMatrix rotMat    = geo_matrix_mul(&rotXMat, &rotYMat);
+    const GeoMatrix posMat    = geo_matrix_translate(pos);
+    const GeoMatrix viewMat   = geo_matrix_mul(&posMat, &rotMat);
 
     MeshViewerData* data = alloc_alloc_t(g_alloc_scratch, MeshViewerData);
     data->viewProj       = geo_matrix_mul(&projMat, &viewMat);
@@ -635,7 +635,7 @@ static bool rend_canvas_paint(
 
   const GeoMatrix      camMat   = trans ? scene_transform_matrix(trans) : geo_matrix_ident();
   const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)
-                                      : geo_matrix_proj_ortho(2, 2.0f / winAspect, -100, 100);
+                                      : geo_matrix_proj_ortho_hor(2.0, winAspect, -100, 100);
   const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
   const RendView       mainView = painter_view_create(&camMat, &projMat, camEntity, filter);
 
