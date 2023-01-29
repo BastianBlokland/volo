@@ -261,6 +261,23 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 0, +2, 1)), geo_vector(-1, 0, 0, 1));
   }
 
+  it("scales vectors to clip-space when transforming by an orthogonal box projection matrix") {
+    const GeoMatrix m = geo_matrix_proj_ortho_box(-15, -5, 20, 30, -2, 2);
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 20, 0, 1)), geo_vector(-1, 1, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 30, 0, 1)), geo_vector(-1, -1, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 25, 0, 1)), geo_vector(-1, 0, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 35, 0, 1)), geo_vector(-1, -2, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 15, 0, 1)), geo_vector(-1, 2, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 15, 0, 1)), geo_vector(1, 2, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-10, 15, 0, 1)), geo_vector(0, 2, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-20, 15, 0, 1)), geo_vector(-2, 2, .5, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(0, 15, 0, 1)), geo_vector(2, 2, .5, 1));
+
+    // // Reversed-z so near is at depth 1 and far is at depth 0.
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 25, -2, 1)), geo_vector(-1, 0, 1, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 25, +2, 1)), geo_vector(-1, 0, 0, 1));
+  }
+
   it("scales vectors to clip-space when transforming by an perspective projection matrix") {
     const f32       fov = 90 * math_deg_to_rad;
     const GeoMatrix m   = geo_matrix_proj_pers(fov, fov, 0.42f);

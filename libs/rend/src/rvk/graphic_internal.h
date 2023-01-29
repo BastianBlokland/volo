@@ -30,12 +30,13 @@ typedef struct {
 
 typedef enum {
   RvkGraphicFlags_MayDiscard          = 1 << 0, // Graphic might discard a fragment.
-  RvkGraphicFlags_Ready               = 1 << 1,
-  RvkGraphicFlags_RequireDynamicMesh  = 1 << 2,
-  RvkGraphicFlags_RequireDynamicImage = 1 << 3,
-  RvkGraphicFlags_RequireDrawData     = 1 << 4,
-  RvkGraphicFlags_RequireInstanceData = 1 << 5,
-  RvkGraphicFlags_Invalid             = 1 << 6,
+  RvkGraphicFlags_DepthClamp          = 1 << 1,
+  RvkGraphicFlags_Ready               = 1 << 2,
+  RvkGraphicFlags_RequireDynamicMesh  = 1 << 3,
+  RvkGraphicFlags_RequireDynamicImage = 1 << 4,
+  RvkGraphicFlags_RequireDrawData     = 1 << 5,
+  RvkGraphicFlags_RequireInstanceData = 1 << 6,
+  RvkGraphicFlags_Invalid             = 1 << 7,
 } RvkGraphicFlags;
 
 typedef struct {
@@ -49,7 +50,7 @@ typedef struct {
 typedef struct sRvkGraphic {
   RvkDevice*             device;
   String                 dbgName;
-  RvkGraphicFlags        flags : 8;
+  RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
   AssetGraphicRasterizer rasterizer : 8;
   AssetGraphicBlend      blend : 8;

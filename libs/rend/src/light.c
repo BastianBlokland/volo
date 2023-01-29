@@ -1,18 +1,29 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
 #include "rend_draw.h"
 #include "rend_light.h"
 #include "rend_register.h"
 #include "rend_settings.h"
+#include "scene_camera.h"
 
 #include "light_internal.h"
+
+static const f32 g_lightDirMaxShadowDist = 250.0f;
+
+// TODO: Dynamically compute the world bounds based on content.
+static const GeoBox g_lightWorldBounds = {
+    .min = {.x = -250.0f, .y = 0.0f, .z = -250.0f},
+    .max = {.x = 250.0f, .y = 25.0f, .z = 250.0f},
+};
 
 typedef enum {
   RendLightType_Directional,
@@ -82,6 +93,12 @@ ecs_view_define(GlobalView) {
 }
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+ecs_view_define(CameraView) {
+  ecs_access_read(GapWindowComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_maybe_read(SceneTransformComp);
+}
 
 static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
@@ -163,6 +180,68 @@ ecs_system_define(RendLightSunSys) {
   }
 }
 
+static void rend_clip_frustum_far_dist(GeoVector frustum[8], const f32 maxDist) {
+  for (u32 i = 0; i != 4; ++i) {
+    const u32       idxNear = i;
+    const u32       idxFar  = 4 + i;
+    const GeoVector toBack  = geo_vector_sub(frustum[idxFar], frustum[idxNear]);
+    const f32       sqrDist = geo_vector_mag_sqr(toBack);
+    if (sqrDist > (maxDist * maxDist)) {
+      const GeoVector toBackDir = geo_vector_div(toBack, math_sqrt_f32(sqrDist));
+      frustum[idxFar] = geo_vector_add(frustum[idxNear], geo_vector_mul(toBackDir, maxDist));
+    }
+  }
+}
+
+static void rend_clip_frustum_far_to_plane(GeoVector frustum[8], const GeoPlane* clipPlane) {
+  for (u32 i = 0; i != 4; ++i) {
+    const u32       idxNear    = i;
+    const u32       idxFar     = 4 + i;
+    const GeoVector dirToFront = geo_vector_norm(geo_vector_sub(frustum[idxNear], frustum[idxFar]));
+    const GeoRay    rayToFront = {.dir = dirToFront, .point = frustum[idxFar]};
+    const f32       farClipDist = geo_plane_intersect_ray(clipPlane, &rayToFront);
+    if (farClipDist > 0) {
+      frustum[idxFar] = geo_ray_position(&rayToFront, farClipDist);
+    }
+  }
+}
+
+static void rend_clip_frustum_far_to_bounds(GeoVector frustum[8], const GeoBox* clipBounds) {
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_left, -clipBounds->min.x});
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_forward, clipBounds->max.z});
+  rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
+}
+
+static GeoMatrix rend_light_dir_shadow_proj(
+    const GapWindowComp*      win,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* camTrans,
+    const GeoMatrix*          lightViewMatrix) {
+  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+  const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
+
+  // Compute the world-space camera frustum corners.
+  GeoVector frustum[8];
+  scene_camera_frustum_corners(cam, camTrans, aspect, geo_vector(0, 0), geo_vector(1, 1), frustum);
+
+  // Clip the camera frustum to the region that actually contains content.
+  rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
+  rend_clip_frustum_far_to_bounds(frustum, &g_lightWorldBounds);
+
+  // Compute the bounding box in light-space.
+  GeoBox bounds = geo_box_inverted3();
+  for (u32 i = 0; i != array_elems(frustum); ++i) {
+    const GeoVector localCorner = geo_matrix_transform3_point(lightViewMatrix, frustum[i]);
+    bounds                      = geo_box_encapsulate(&bounds, localCorner);
+  }
+
+  return geo_matrix_proj_ortho_box(
+      bounds.min.x, bounds.max.x, bounds.min.y, bounds.max.y, bounds.min.z, bounds.max.z);
+}
+
 ecs_system_define(RendLightRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -184,6 +263,17 @@ ecs_system_define(RendLightRenderSys) {
   const SceneTags          tags = SceneTags_Light;
 
   renderer->hasShadow = false;
+
+  EcsIterator* camItr = ecs_view_first(ecs_world_view_t(world, CameraView));
+  if (!camItr) {
+    return; // No Camera found.
+  }
+  /**
+   * TODO: Support multiple camera's (requires multiple draws for directional lights with shadows).
+   */
+  const GapWindowComp*      win      = ecs_view_read_t(camItr, GapWindowComp);
+  const SceneCameraComp*    cam      = ecs_view_read_t(camItr, SceneCameraComp);
+  const SceneTransformComp* camTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
   EcsIterator* drawItr  = ecs_view_itr(drawView);
@@ -229,12 +319,14 @@ ecs_system_define(RendLightRenderSys) {
         }
         GeoMatrix shadowViewProj;
         if (shadow) {
-          renderer->hasShadow         = true;
-          renderer->shadowTransMatrix = geo_matrix_from_quat(entry->data_directional.rotation);
-          renderer->shadowProjMatrix  = geo_matrix_proj_ortho(150, 150, -75, 75);
+          const GeoMatrix transMat = geo_matrix_from_quat(entry->data_directional.rotation);
+          const GeoMatrix viewMat  = geo_matrix_inverse(&transMat);
 
-          const GeoMatrix shadowViewMatrix = geo_matrix_inverse(&renderer->shadowTransMatrix);
-          shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &shadowViewMatrix);
+          renderer->hasShadow         = true;
+          renderer->shadowTransMatrix = transMat;
+          renderer->shadowProjMatrix  = rend_light_dir_shadow_proj(win, cam, camTrans, &viewMat);
+
+          shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
           shadowViewProj = (GeoMatrix){0};
         }
@@ -286,11 +378,16 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(LightView);
   ecs_register_view(DrawView);
+  ecs_register_view(CameraView);
 
   ecs_register_system(RendLightSunSys, ecs_view_id(GlobalView));
 
   ecs_register_system(
-      RendLightRenderSys, ecs_view_id(GlobalView), ecs_view_id(LightView), ecs_view_id(DrawView));
+      RendLightRenderSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(LightView),
+      ecs_view_id(DrawView),
+      ecs_view_id(CameraView));
 
   ecs_order(RendLightRenderSys, RendOrder_DrawCollect);
 }

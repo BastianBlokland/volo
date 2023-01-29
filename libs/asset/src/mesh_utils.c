@@ -166,13 +166,18 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   const u32 vertCount = (u32)builder->vertexData.size;
   const u32 idxCount  = (u32)builder->indexData.size;
 
+  GeoBox positionBounds = builder->positionBounds;
+  if (geo_box_is_inverted3(&positionBounds)) {
+    positionBounds = builder->positionRawBounds;
+  }
+
   return (AssetMeshComp){
       .vertexData        = dynarray_copy_as_new(&builder->vertexData, g_alloc_heap),
       .skinData          = dynarray_copy_as_new(&builder->skinData, g_alloc_heap),
       .vertexCount       = vertCount,
       .indexData         = dynarray_copy_as_new(&builder->indexData, g_alloc_heap),
       .indexCount        = idxCount,
-      .positionBounds    = builder->positionBounds,
+      .positionBounds    = positionBounds,
       .positionRawBounds = builder->positionRawBounds,
       .texcoordBounds    = builder->texcoordBounds,
   };

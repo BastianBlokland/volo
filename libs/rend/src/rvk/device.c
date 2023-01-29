@@ -291,6 +291,10 @@ rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* suppor
     result.wideLines = true;
     dev->flags |= RvkDeviceFlags_SupportWideLines;
   }
+  if (supported->features.depthClamp) {
+    result.depthClamp = true;
+    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
+  }
   return result;
 }
 
