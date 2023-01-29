@@ -368,6 +368,15 @@ static bool rvk_pipeline_depth_test(RvkGraphic* graphic) {
   }
 }
 
+static bool rvk_pipeline_depth_clamp(RvkGraphic* graphic) {
+  RvkDevice* dev = graphic->device;
+  if (!(dev->flags & RvkDeviceFlags_SupportDepthClamp)) {
+    log_w("Device does not support depth-clamping");
+    return false;
+  }
+  return (graphic->flags & RvkGraphicFlags_DepthClamp) != 0;
+}
+
 static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGraphic* graphic) {
   const VkColorComponentFlags colorMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -461,6 +470,7 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .lineWidth               = rvk_pipeline_linewidth(graphic),
       .cullMode                = rvk_pipeline_cullmode(graphic),
       .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .depthClampEnable        = rvk_pipeline_depth_clamp(graphic),
       .depthBiasEnable         = graphic->depthBias < -1e-6 || graphic->depthBias > 1e-6,
       .depthBiasConstantFactor = graphic->depthBias,
   };
@@ -641,9 +651,15 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
 
+  RvkGraphicFlags flags = 0;
+  if (asset->depthClamp) {
+    flags |= RvkGraphicFlags_DepthClamp;
+  }
+
   *graphic = (RvkGraphic){
       .device      = dev,
       .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .flags       = flags,
       .topology    = asset->topology,
       .rasterizer  = asset->rasterizer,
       .lineWidth   = asset->lineWidth,
@@ -661,6 +677,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
       log_param("line-width", fmt_int(asset->lineWidth)),
+      log_param("depth-clamp", fmt_bool(asset->depthClamp)),
       log_param("depth-bias", fmt_float(asset->depthBias)),
       log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
       log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),

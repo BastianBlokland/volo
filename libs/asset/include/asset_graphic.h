@@ -111,7 +111,8 @@ ecs_comp_extern_public(AssetGraphicComp) {
   i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
-  u16                    lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.
+  u16                    lineWidth;  // Line width (in pixels) when the rasterizer mode is 'lines'.
+  bool                   depthClamp; // Disables primitive clipping z clipping.
   f32                    depthBias;
   AssetGraphicBlend      blend;
   AssetGraphicDepth      depth;
