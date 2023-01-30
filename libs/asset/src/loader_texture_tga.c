@@ -315,7 +315,7 @@ static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaEr
 }
 
 static AssetTextureFlags tga_texture_flags(const bool isNormalmap) {
-  AssetTextureFlags flags = AssetTextureFlags_MipMaps;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
   if (isNormalmap) {
     flags |= AssetTextureFlags_NormalMap;
   } else {

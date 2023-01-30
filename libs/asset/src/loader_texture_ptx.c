@@ -218,7 +218,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   *outTexture = (AssetTextureComp){
       .type      = def->pixelType,
       .channels  = def->channels,
-      .flags     = def->mipmaps ? AssetTextureFlags_MipMaps : 0,
+      .flags     = def->mipmaps ? AssetTextureFlags_GenerateMipMaps : 0,
       .pixelsRaw = pixels,
       .width     = size,
       .height    = size,

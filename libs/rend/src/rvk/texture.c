@@ -10,7 +10,7 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-static u16 rvk_compute_miplevels(const RvkSize size) {
+static u16 rvk_compute_max_miplevels(const RvkSize size) {
   /**
    * Check how many times we can cut the image in half before both sides hit 1 pixel.
    */
@@ -82,8 +82,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
   const RvkSize size         = rvk_size(asset->width, asset->height);
-  const bool    generateMips = (asset->flags & AssetTextureFlags_MipMaps) != 0;
-  const u8      mipLevels    = generateMips ? rvk_compute_miplevels(size) : 1;
+  const bool    generateMips = (asset->flags & AssetTextureFlags_GenerateMipMaps) != 0;
+  const u8      mipLevels    = generateMips ? rvk_compute_max_miplevels(size) : 1;
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(asset->layers == 6, "CubeMap needs 6 layers");
     texture->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels);

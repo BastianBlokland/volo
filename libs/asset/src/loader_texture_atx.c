@@ -133,7 +133,7 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
     break;
   }
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_MipMaps;
+    flags |= AssetTextureFlags_GenerateMipMaps;
   }
   if (srgb) {
     flags |= AssetTextureFlags_Srgb;

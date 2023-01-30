@@ -173,7 +173,7 @@ static void ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const Pixma
 }
 
 static AssetTextureFlags ppm_texture_flags(const bool isNormalmap) {
-  AssetTextureFlags flags = AssetTextureFlags_MipMaps;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
   if (isNormalmap) {
     flags |= AssetTextureFlags_NormalMap;
   } else {
