@@ -311,8 +311,13 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   return id;
 }
 
+MAYBE_UNUSED static u32
+rvk_transfer_image_size(const VkFormat vkFormat, const RvkSize size, const u32 layers) {
+  return size.width * size.height * math_max(layers, 1) * rvk_format_info(vkFormat).size;
+}
+
 RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data) {
-  diag_assert(dest->mem.size >= data.size);
+  diag_assert(data.size == rvk_transfer_image_size(dest->vkFormat, dest->size, dest->layers));
 
   thread_mutex_lock(trans->mutex);
 
