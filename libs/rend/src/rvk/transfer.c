@@ -333,6 +333,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
       {
           .bufferOffset                = buffer->offset,
           .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+          .imageSubresource.mipLevel   = 0,
           .imageSubresource.layerCount = dest->layers,
           .imageExtent.width           = dest->size.width,
           .imageExtent.height          = dest->size.height,
