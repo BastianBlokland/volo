@@ -311,13 +311,24 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   return id;
 }
 
-MAYBE_UNUSED static u32
-rvk_transfer_image_size(const VkFormat vkFormat, const RvkSize size, const u32 layers) {
-  return size.width * size.height * math_max(layers, 1) * rvk_format_info(vkFormat).size;
+MAYBE_UNUSED static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLevel) {
+  diag_assert(mipLevel < img->mipLevels);
+  const u32 mipWidth  = math_max(img->size.width >> mipLevel, 1);
+  const u32 mipHeight = math_max(img->size.height >> mipLevel, 1);
+  return mipWidth * mipHeight * img->layers * rvk_format_info(img->vkFormat).size;
+}
+
+MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u32 mipLevels) {
+  diag_assert(mipLevels <= img->mipLevels);
+  u32 size = 0;
+  for (u32 mipLevel = 0; mipLevel != math_max(mipLevels, 1); ++mipLevel) {
+    size += rvk_transfer_image_src_size_mip(img, mipLevel);
+  }
+  return size;
 }
 
 RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data) {
-  diag_assert(data.size == rvk_transfer_image_size(dest->vkFormat, dest->size, dest->layers));
+  diag_assert(data.size == rvk_transfer_image_src_size(dest, 1));
 
   thread_mutex_lock(trans->mutex);
 
