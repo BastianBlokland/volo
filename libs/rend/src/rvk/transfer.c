@@ -311,7 +311,7 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   return id;
 }
 
-MAYBE_UNUSED static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLevel) {
+static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLevel) {
   diag_assert(mipLevel < img->mipLevels);
   const u32 mipWidth  = math_max(img->size.width >> mipLevel, 1);
   const u32 mipHeight = math_max(img->size.height >> mipLevel, 1);
@@ -327,8 +327,10 @@ MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u
   return size;
 }
 
-RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data) {
-  diag_assert(data.size == rvk_transfer_image_src_size(dest, 1));
+RvkTransferId
+rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u32 mipLevels) {
+  diag_assert(mipLevels >= 1);
+  diag_assert(data.size == rvk_transfer_image_src_size(dest, mipLevels));
 
   thread_mutex_lock(trans->mutex);
 
@@ -345,23 +347,27 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
 
   rvk_image_transition(dest, RvkImagePhase_TransferDest, buffer->vkCmdBufferTransfer);
 
-  const VkBufferImageCopy regions[] = {
-      {
-          .bufferOffset                = buffer->offset,
-          .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-          .imageSubresource.mipLevel   = 0,
-          .imageSubresource.layerCount = dest->layers,
-          .imageExtent.width           = dest->size.width,
-          .imageExtent.height          = dest->size.height,
-          .imageExtent.depth           = 1,
-      },
-  };
+  VkBufferImageCopy regions[16];
+  diag_assert(array_elems(regions) >= mipLevels);
+  u64 srcBufferOffset = buffer->offset;
+  for (u32 mipLevel = 0; mipLevel != mipLevels; ++mipLevel) {
+    regions[mipLevel] = (VkBufferImageCopy){
+        .bufferOffset                = srcBufferOffset,
+        .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .imageSubresource.mipLevel   = mipLevel,
+        .imageSubresource.layerCount = dest->layers,
+        .imageExtent.width           = math_max(dest->size.width >> mipLevel, 1),
+        .imageExtent.height          = math_max(dest->size.height >> mipLevel, 1),
+        .imageExtent.depth           = 1,
+    };
+    srcBufferOffset += rvk_transfer_image_src_size_mip(dest, mipLevel);
+  }
   vkCmdCopyBufferToImage(
       buffer->vkCmdBufferTransfer,
       buffer->hostBuffer.vkBuffer,
       dest->vkImage,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      array_elems(regions),
+      mipLevels,
       regions);
 
   if (rvk_has_separate_transfer_queue(trans)) {

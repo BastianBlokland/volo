@@ -92,8 +92,9 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
     texture->image  = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
   }
 
-  const Mem pixelData    = asset_texture_data(asset);
-  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, pixelData);
+  const Mem srcData      = asset_texture_data(asset);
+  const u32 srcMips      = 1;
+  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, srcData, srcMips);
 
   rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));
@@ -110,7 +111,6 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 }
 
 void rvk_texture_destroy(RvkTexture* texture) {
-
   RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 

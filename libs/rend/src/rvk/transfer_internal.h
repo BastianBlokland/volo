@@ -19,6 +19,6 @@ RvkTransferer* rvk_transferer_create(RvkDevice*);
 void           rvk_transferer_destroy(RvkTransferer*);
 
 RvkTransferId     rvk_transfer_buffer(RvkTransferer*, RvkBuffer* dest, Mem data);
-RvkTransferId     rvk_transfer_image(RvkTransferer*, RvkImage* dest, Mem data);
+RvkTransferId     rvk_transfer_image(RvkTransferer*, RvkImage* dest, Mem data, u32 mipLevels);
 RvkTransferStatus rvk_transfer_poll(RvkTransferer*, RvkTransferId);
 void              rvk_transfer_flush(RvkTransferer*);
