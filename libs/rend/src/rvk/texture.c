@@ -10,10 +10,10 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
+/**
+ * Compute how many times we can cut the image in half before both sides hit 1 pixel.
+ */
 static u16 rvk_compute_max_miplevels(const RvkSize size) {
-  /**
-   * Check how many times we can cut the image in half before both sides hit 1 pixel.
-   */
   const u16 biggestSide = math_max(size.width, size.height);
   return (u16)(32 - bits_clz_32(biggestSide));
 }
@@ -92,6 +92,10 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
     texture->image  = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
   }
 
+  if (generateMips) {
+    texture->flags |= RvkTextureFlags_GenerateMipMaps;
+  }
+
   const Mem srcData      = asset_texture_data(asset);
   const u32 srcMips      = 1;
   texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, srcData, srcMips);
@@ -138,13 +142,20 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
-  rvk_debug_label_begin(
-      texture->device->debug, vkCmdBuf, geo_color_silver, "prepare_{}", fmt_text(texture->dbgName));
+  if (texture->flags & RvkTextureFlags_GenerateMipMaps) {
+    rvk_debug_label_begin(
+        texture->device->debug,
+        vkCmdBuf,
+        geo_color_silver,
+        "generate_mipmaps_{}",
+        fmt_text(texture->dbgName));
 
-  rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
+    rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
+
+    rvk_debug_label_end(texture->device->debug, vkCmdBuf);
+  }
+
   rvk_image_transition(&texture->image, RvkImagePhase_ShaderRead, vkCmdBuf);
-
-  rvk_debug_label_end(texture->device->debug, vkCmdBuf);
 
   texture->flags |= RvkTextureFlags_Ready;
   return true;

@@ -11,7 +11,8 @@ typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 
 typedef enum {
-  RvkTextureFlags_Ready = 1 << 0,
+  RvkTextureFlags_Ready           = 1 << 0,
+  RvkTextureFlags_GenerateMipMaps = 1 << 1,
 } RvkTextureFlags;
 
 typedef struct sRvkTexture {
