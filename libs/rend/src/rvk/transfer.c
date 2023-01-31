@@ -362,6 +362,8 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
     };
     srcBufferOffset += rvk_transfer_image_src_size_mip(dest, mipLevel);
   }
+  diag_assert(srcBufferOffset == buffer->offset + data.size);
+
   vkCmdCopyBufferToImage(
       buffer->vkCmdBufferTransfer,
       buffer->hostBuffer.vkBuffer,
