@@ -65,14 +65,18 @@ ecs_comp_extern_public(AssetTextureComp) {
 String asset_texture_type_str(AssetTextureType);
 
 usize asset_texture_pixel_size(const AssetTextureComp*);
+usize asset_texture_mip_size(const AssetTextureComp*, const u32 mipLevel);
+usize asset_texture_data_size(const AssetTextureComp*);
 Mem   asset_texture_data(const AssetTextureComp*);
 
 /**
  * Lookup the color of a specific pixel specified by the given index.
+ * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
 
 /**
  * Sample the texture at the given normalized x and y coordinates.
+ * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);

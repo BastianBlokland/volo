@@ -396,12 +396,14 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       world,
       entity,
       AssetTextureComp,
-      .type     = AssetTextureType_U8,
-      .channels = AssetTextureChannels_Four,
-      .flags    = tga_texture_flags(isNormalmap),
-      .width    = width,
-      .height   = height,
-      .pixelsB4 = pixels);
+      .type         = AssetTextureType_U8,
+      .channels     = AssetTextureChannels_Four,
+      .flags        = tga_texture_flags(isNormalmap),
+      .width        = width,
+      .height       = height,
+      .pixelsB4     = pixels,
+      .layers       = 1,
+      .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 

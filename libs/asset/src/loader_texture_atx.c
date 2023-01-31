@@ -411,13 +411,14 @@ static void atx_generate(
   }
 
   *outTexture = (AssetTextureComp){
-      .type      = type,
-      .channels  = channels,
-      .flags     = atx_texture_flags(def, outSrgb),
-      .pixelsRaw = pixelsMem.ptr,
-      .width     = outWidth,
-      .height    = outHeight,
-      .layers    = layers,
+      .type         = type,
+      .channels     = channels,
+      .flags        = atx_texture_flags(def, outSrgb),
+      .pixelsRaw    = pixelsMem.ptr,
+      .width        = outWidth,
+      .height       = outHeight,
+      .layers       = layers,
+      .srcMipLevels = 1,
   };
   *err = AtxError_None;
 }

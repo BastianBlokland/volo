@@ -230,12 +230,14 @@ static void atlas_generate(
       .entryCount    = entryCount,
   };
   *outTexture = (AssetTextureComp){
-      .type     = AssetTextureType_U8,
-      .channels = AssetTextureChannels_Four,
-      .flags    = atlas_texture_flags(def),
-      .pixelsB4 = pixels,
-      .width    = def->size,
-      .height   = def->size,
+      .type         = AssetTextureType_U8,
+      .channels     = AssetTextureChannels_Four,
+      .flags        = atlas_texture_flags(def),
+      .pixelsB4     = pixels,
+      .width        = def->size,
+      .height       = def->size,
+      .layers       = 1,
+      .srcMipLevels = 1,
   };
   *err = AtlasError_None;
 }

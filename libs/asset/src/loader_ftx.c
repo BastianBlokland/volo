@@ -304,11 +304,13 @@ static void ftx_generate(
       .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
-      .type     = AssetTextureType_U8,
-      .channels = AssetTextureChannels_One,
-      .pixelsB1 = pixels,
-      .width    = def->size,
-      .height   = def->size,
+      .type         = AssetTextureType_U8,
+      .channels     = AssetTextureChannels_One,
+      .pixelsB1     = pixels,
+      .width        = def->size,
+      .height       = def->size,
+      .layers       = 1,
+      .srcMipLevels = 1,
   };
   dynarray_destroy(&chars);
   *err = FtxError_None;
