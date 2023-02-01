@@ -50,6 +50,56 @@ String asset_texture_type_str(const AssetTextureType type) {
   return g_names[type];
 }
 
+usize asset_texture_req_mip_size(
+    const AssetTextureType     type,
+    const AssetTextureChannels channels,
+    const u32                  width,
+    const u32                  height,
+    const u32                  layers,
+    const u32                  mipLevel) {
+  const u32 mipWidth  = math_max(width >> mipLevel, 1);
+  const u32 mipHeight = math_max(height >> mipLevel, 1);
+  switch (type) {
+  case AssetTextureType_U8:
+    return sizeof(u8) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_U16:
+    return sizeof(u16) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_F32:
+    return sizeof(f32) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_Count:
+    UNREACHABLE
+  }
+  diag_crash();
+}
+
+usize asset_texture_req_size(
+    const AssetTextureType     type,
+    const AssetTextureChannels channels,
+    const u32                  width,
+    const u32                  height,
+    const u32                  layers,
+    const u32                  mipLevels) {
+  usize size = 0;
+  for (u32 mipLevel = 0; mipLevel != math_max(mipLevels, 1); ++mipLevel) {
+    size += asset_texture_req_mip_size(type, channels, width, height, layers, mipLevel);
+  }
+  return size;
+}
+
+usize asset_texture_req_align(const AssetTextureType type, const AssetTextureChannels channels) {
+  switch (type) {
+  case AssetTextureType_U8:
+    return sizeof(u8) * channels;
+  case AssetTextureType_U16:
+    return sizeof(u16) * channels;
+  case AssetTextureType_F32:
+    return sizeof(f32) * channels;
+  case AssetTextureType_Count:
+    UNREACHABLE
+  }
+  diag_crash();
+}
+
 usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   switch (texture->type) {
   case AssetTextureType_U8:
@@ -66,18 +116,18 @@ usize asset_texture_pixel_size(const AssetTextureComp* texture) {
 
 usize asset_texture_mip_size(const AssetTextureComp* texture, const u32 mipLevel) {
   diag_assert(mipLevel < math_max(texture->srcMipLevels, 1));
-  const u32 mipWidth   = math_max(texture->width >> mipLevel, 1);
-  const u32 mipHeight  = math_max(texture->height >> mipLevel, 1);
-  const u32 layerCount = math_max(1, texture->layers);
-  return mipWidth * mipHeight * layerCount * asset_texture_pixel_size(texture);
+  return asset_texture_req_mip_size(
+      texture->type, texture->channels, texture->width, texture->height, texture->layers, mipLevel);
 }
 
 usize asset_texture_data_size(const AssetTextureComp* texture) {
-  usize size = 0;
-  for (u32 mipLevel = 0; mipLevel != math_max(texture->srcMipLevels, 1); ++mipLevel) {
-    size += asset_texture_mip_size(texture, mipLevel);
-  }
-  return size;
+  return asset_texture_req_size(
+      texture->type,
+      texture->channels,
+      texture->width,
+      texture->height,
+      texture->layers,
+      texture->srcMipLevels);
 }
 
 Mem asset_texture_data(const AssetTextureComp* texture) {

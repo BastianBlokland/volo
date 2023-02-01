@@ -390,9 +390,10 @@ static void atx_generate(
     return;
   }
 
-  const usize pixelDataSize   = asset_texture_pixel_size(textures[0]);
-  const usize textureDataSize = outWidth * outHeight * pixelDataSize * layers;
-  const Mem   pixelsMem       = alloc_alloc(g_alloc_heap, textureDataSize, pixelDataSize);
+  const u32   mips      = 1;
+  const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
+  const usize dataAlign = asset_texture_req_align(type, channels);
+  const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
 
   bool outSrgb = inSrgb;
   switch (def->type) {
@@ -418,7 +419,7 @@ static void atx_generate(
       .width        = outWidth,
       .height       = outHeight,
       .layers       = layers,
-      .srcMipLevels = 1,
+      .srcMipLevels = mips,
   };
   *err = AtxError_None;
 }

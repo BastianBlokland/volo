@@ -64,6 +64,12 @@ ecs_comp_extern_public(AssetTextureComp) {
 
 String asset_texture_type_str(AssetTextureType);
 
+usize asset_texture_req_mip_size(
+    AssetTextureType, AssetTextureChannels, u32 width, u32 height, u32 layers, u32 mipLevel);
+usize asset_texture_req_size(
+    AssetTextureType, AssetTextureChannels, u32 width, u32 height, u32 layers, u32 mipLevels);
+usize asset_texture_req_align(AssetTextureType, AssetTextureChannels);
+
 usize asset_texture_pixel_size(const AssetTextureComp*);
 usize asset_texture_mip_size(const AssetTextureComp*, const u32 mipLevel);
 usize asset_texture_data_size(const AssetTextureComp*);
