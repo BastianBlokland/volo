@@ -69,8 +69,12 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/ambient_occlusion.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_SkyGraphic,
-        .assetId = string_static("graphics/scene/sky.gra"),
+        .repoId  = RvkRepositoryId_SkyGradientGraphic,
+        .assetId = string_static("graphics/scene/sky_gradient.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_SkyCubeMapGraphic,
+        .assetId = string_static("graphics/scene/sky_cubemap.gra"),
     },
     {
         .repoId  = RvkRepositoryId_BloomDownGraphic,
@@ -817,6 +821,10 @@ u16 rend_res_texture_layers(const RendResTextureComp* comp) { return comp->textu
 
 u8 rend_res_texture_mip_levels(const RendResTextureComp* comp) {
   return comp->texture->image.mipLevels;
+}
+
+bool rend_res_texture_is_gen_mips(const RendResTextureComp* comp) {
+  return (comp->texture->flags & RvkTextureFlags_GenerateMipMaps) != 0;
 }
 
 bool rend_res_texture_is_cube(const RendResTextureComp* comp) {

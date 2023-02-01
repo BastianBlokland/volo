@@ -4,7 +4,7 @@
       "shaderId": "shaders/scene/sky.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/sky_procedural.frag.spv"
+      "shaderId": "shaders/scene/sky_gradient.frag.spv"
     }
   ],
   "samplers": [],

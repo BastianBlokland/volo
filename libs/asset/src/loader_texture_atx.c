@@ -133,7 +133,7 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
     break;
   }
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_MipMaps;
+    flags |= AssetTextureFlags_GenerateMipMaps;
   }
   if (srgb) {
     flags |= AssetTextureFlags_Srgb;
@@ -390,9 +390,10 @@ static void atx_generate(
     return;
   }
 
-  const usize pixelDataSize   = asset_texture_pixel_size(textures[0]);
-  const usize textureDataSize = outWidth * outHeight * pixelDataSize * layers;
-  const Mem   pixelsMem       = alloc_alloc(g_alloc_heap, textureDataSize, pixelDataSize);
+  const u32   mips      = 1;
+  const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
+  const usize dataAlign = asset_texture_req_align(type, channels);
+  const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
 
   bool outSrgb = inSrgb;
   switch (def->type) {
@@ -411,13 +412,14 @@ static void atx_generate(
   }
 
   *outTexture = (AssetTextureComp){
-      .type      = type,
-      .channels  = channels,
-      .flags     = atx_texture_flags(def, outSrgb),
-      .pixelsRaw = pixelsMem.ptr,
-      .width     = outWidth,
-      .height    = outHeight,
-      .layers    = layers,
+      .type         = type,
+      .channels     = channels,
+      .flags        = atx_texture_flags(def, outSrgb),
+      .pixelsRaw    = pixelsMem.ptr,
+      .width        = outWidth,
+      .height       = outHeight,
+      .layers       = layers,
+      .srcMipLevels = mips,
   };
   *err = AtxError_None;
 }

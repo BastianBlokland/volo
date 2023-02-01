@@ -50,6 +50,56 @@ String asset_texture_type_str(const AssetTextureType type) {
   return g_names[type];
 }
 
+usize asset_texture_req_mip_size(
+    const AssetTextureType     type,
+    const AssetTextureChannels channels,
+    const u32                  width,
+    const u32                  height,
+    const u32                  layers,
+    const u32                  mipLevel) {
+  const u32 mipWidth  = math_max(width >> mipLevel, 1);
+  const u32 mipHeight = math_max(height >> mipLevel, 1);
+  switch (type) {
+  case AssetTextureType_U8:
+    return sizeof(u8) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_U16:
+    return sizeof(u16) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_F32:
+    return sizeof(f32) * channels * mipWidth * mipHeight * math_max(1, layers);
+  case AssetTextureType_Count:
+    UNREACHABLE
+  }
+  diag_crash();
+}
+
+usize asset_texture_req_size(
+    const AssetTextureType     type,
+    const AssetTextureChannels channels,
+    const u32                  width,
+    const u32                  height,
+    const u32                  layers,
+    const u32                  mipLevels) {
+  usize size = 0;
+  for (u32 mipLevel = 0; mipLevel != math_max(mipLevels, 1); ++mipLevel) {
+    size += asset_texture_req_mip_size(type, channels, width, height, layers, mipLevel);
+  }
+  return size;
+}
+
+usize asset_texture_req_align(const AssetTextureType type, const AssetTextureChannels channels) {
+  switch (type) {
+  case AssetTextureType_U8:
+    return sizeof(u8) * channels;
+  case AssetTextureType_U16:
+    return sizeof(u16) * channels;
+  case AssetTextureType_F32:
+    return sizeof(f32) * channels;
+  case AssetTextureType_Count:
+    UNREACHABLE
+  }
+  diag_crash();
+}
+
 usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   switch (texture->type) {
   case AssetTextureType_U8:
@@ -64,17 +114,30 @@ usize asset_texture_pixel_size(const AssetTextureComp* texture) {
   diag_crash();
 }
 
+usize asset_texture_mip_size(const AssetTextureComp* texture, const u32 mipLevel) {
+  diag_assert(mipLevel < math_max(texture->srcMipLevels, 1));
+  return asset_texture_req_mip_size(
+      texture->type, texture->channels, texture->width, texture->height, texture->layers, mipLevel);
+}
+
+usize asset_texture_data_size(const AssetTextureComp* texture) {
+  return asset_texture_req_size(
+      texture->type,
+      texture->channels,
+      texture->width,
+      texture->height,
+      texture->layers,
+      texture->srcMipLevels);
+}
+
 Mem asset_texture_data(const AssetTextureComp* texture) {
-  const usize pixelCount = texture->width * texture->height;
-  const usize layerCount = math_max(1, texture->layers);
-  const usize dataSize   = asset_texture_pixel_size(texture) * pixelCount * layerCount;
-  return mem_create(texture->pixelsRaw, dataSize);
+  return mem_create(texture->pixelsRaw, asset_texture_data_size(texture));
 }
 
 GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const usize index) {
   const usize pixelCount    = tex->width * tex->height;
   const usize layerDataSize = pixelCount * asset_texture_pixel_size(tex);
-  const void* pixels        = tex->pixelsRaw + (layerDataSize * layer);
+  const void* pixelsMip0    = tex->pixelsRaw + (layerDataSize * layer);
 
   GeoColor res;
   switch (tex->type) {
@@ -86,13 +149,13 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
       res.r = 1.0f;
       res.g = 1.0f;
       res.b = 1.0f;
-      res.a = ((AssetTexturePixelB1*)pixels)[index].r * g_u8MaxInv;
+      res.a = ((AssetTexturePixelB1*)pixelsMip0)[index].r * g_u8MaxInv;
       goto ColorDecode;
     case AssetTextureChannels_Four:
-      res.r = ((AssetTexturePixelB4*)pixels)[index].r * g_u8MaxInv;
-      res.g = ((AssetTexturePixelB4*)pixels)[index].g * g_u8MaxInv;
-      res.b = ((AssetTexturePixelB4*)pixels)[index].b * g_u8MaxInv;
-      res.a = ((AssetTexturePixelB4*)pixels)[index].a * g_u8MaxInv;
+      res.r = ((AssetTexturePixelB4*)pixelsMip0)[index].r * g_u8MaxInv;
+      res.g = ((AssetTexturePixelB4*)pixelsMip0)[index].g * g_u8MaxInv;
+      res.b = ((AssetTexturePixelB4*)pixelsMip0)[index].b * g_u8MaxInv;
+      res.a = ((AssetTexturePixelB4*)pixelsMip0)[index].a * g_u8MaxInv;
       goto ColorDecode;
     }
   }
@@ -104,13 +167,13 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
       res.r = 1.0f;
       res.g = 1.0f;
       res.b = 1.0f;
-      res.a = ((AssetTexturePixelU1*)pixels)[index].r * g_u16MaxInv;
+      res.a = ((AssetTexturePixelU1*)pixelsMip0)[index].r * g_u16MaxInv;
       goto ColorDecode;
     case AssetTextureChannels_Four:
-      res.r = ((AssetTexturePixelU4*)pixels)[index].r * g_u16MaxInv;
-      res.g = ((AssetTexturePixelU4*)pixels)[index].g * g_u16MaxInv;
-      res.b = ((AssetTexturePixelU4*)pixels)[index].b * g_u16MaxInv;
-      res.a = ((AssetTexturePixelU4*)pixels)[index].a * g_u16MaxInv;
+      res.r = ((AssetTexturePixelU4*)pixelsMip0)[index].r * g_u16MaxInv;
+      res.g = ((AssetTexturePixelU4*)pixelsMip0)[index].g * g_u16MaxInv;
+      res.b = ((AssetTexturePixelU4*)pixelsMip0)[index].b * g_u16MaxInv;
+      res.a = ((AssetTexturePixelU4*)pixelsMip0)[index].a * g_u16MaxInv;
       goto ColorDecode;
     }
   }
@@ -121,13 +184,13 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
       res.r = 1.0f;
       res.g = 1.0f;
       res.b = 1.0f;
-      res.a = ((AssetTexturePixelF1*)pixels)[index].r;
+      res.a = ((AssetTexturePixelF1*)pixelsMip0)[index].r;
       goto ColorDecode;
     case AssetTextureChannels_Four:
-      res.r = ((AssetTexturePixelF4*)pixels)[index].r;
-      res.g = ((AssetTexturePixelF4*)pixels)[index].g;
-      res.b = ((AssetTexturePixelF4*)pixels)[index].b;
-      res.a = ((AssetTexturePixelF4*)pixels)[index].a;
+      res.r = ((AssetTexturePixelF4*)pixelsMip0)[index].r;
+      res.g = ((AssetTexturePixelF4*)pixelsMip0)[index].g;
+      res.b = ((AssetTexturePixelF4*)pixelsMip0)[index].b;
+      res.a = ((AssetTexturePixelF4*)pixelsMip0)[index].a;
       goto ColorDecode;
     }
   }

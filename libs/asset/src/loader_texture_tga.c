@@ -315,7 +315,7 @@ static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaEr
 }
 
 static AssetTextureFlags tga_texture_flags(const bool isNormalmap) {
-  AssetTextureFlags flags = AssetTextureFlags_MipMaps;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
   if (isNormalmap) {
     flags |= AssetTextureFlags_NormalMap;
   } else {
@@ -396,12 +396,14 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       world,
       entity,
       AssetTextureComp,
-      .type     = AssetTextureType_U8,
-      .channels = AssetTextureChannels_Four,
-      .flags    = tga_texture_flags(isNormalmap),
-      .width    = width,
-      .height   = height,
-      .pixelsB4 = pixels);
+      .type         = AssetTextureType_U8,
+      .channels     = AssetTextureChannels_Four,
+      .flags        = tga_texture_flags(isNormalmap),
+      .width        = width,
+      .height       = height,
+      .pixelsB4     = pixels,
+      .layers       = 1,
+      .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 

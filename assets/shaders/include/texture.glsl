@@ -19,6 +19,14 @@ f32v4 texture_cube(const samplerCube tex, const f32v3 direction) {
 }
 
 /**
+ * Sample a cubemap at a specific lod.
+ */
+f32v4 texture_cube_lod(const samplerCube tex, const f32v3 direction, const f32 lod) {
+  // NOTE: Flip the Y component as we are using the bottom as the texture origin.
+  return textureLod(tex, f32v3(direction.x, -direction.y, direction.z), lod);
+}
+
+/**
  * Sample a normal texture in tangent space and convert it to the axis system formed by the given
  * normal and tangent references, 'w' component of the tangent indicates the handedness.
  * NOTE: normalRef and tangentRef are not required to be unit vectors.

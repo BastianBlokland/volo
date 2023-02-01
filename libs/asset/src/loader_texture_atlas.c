@@ -125,7 +125,7 @@ static i8 atlas_compare_entry(const void* a, const void* b) {
 static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_MipMaps;
+    flags |= AssetTextureFlags_GenerateMipMaps;
   }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
@@ -230,12 +230,14 @@ static void atlas_generate(
       .entryCount    = entryCount,
   };
   *outTexture = (AssetTextureComp){
-      .type     = AssetTextureType_U8,
-      .channels = AssetTextureChannels_Four,
-      .flags    = atlas_texture_flags(def),
-      .pixelsB4 = pixels,
-      .width    = def->size,
-      .height   = def->size,
+      .type         = AssetTextureType_U8,
+      .channels     = AssetTextureChannels_Four,
+      .flags        = atlas_texture_flags(def),
+      .pixelsB4     = pixels,
+      .width        = def->size,
+      .height       = def->size,
+      .layers       = 1,
+      .srcMipLevels = 1,
   };
   *err = AtlasError_None;
 }

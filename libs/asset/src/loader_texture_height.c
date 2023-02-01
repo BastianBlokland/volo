@@ -113,11 +113,13 @@ static void htex_load(EcsWorld* world, const EcsEntityId entity, String data, co
       world,
       entity,
       AssetTextureComp,
-      .type      = htex_texture_type(type),
-      .channels  = AssetTextureChannels_One,
-      .width     = size,
-      .height    = size,
-      .pixelsRaw = outputMem.ptr);
+      .type         = htex_texture_type(type),
+      .channels     = AssetTextureChannels_One,
+      .width        = size,
+      .height       = size,
+      .pixelsRaw    = outputMem.ptr,
+      .layers       = 1,
+      .srcMipLevels = 1);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 

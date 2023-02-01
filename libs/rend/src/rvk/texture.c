@@ -10,10 +10,10 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-static u16 rvk_compute_miplevels(const RvkSize size) {
-  /**
-   * Check how many times we can cut the image in half before both sides hit 1 pixel.
-   */
+/**
+ * Compute how many times we can cut the image in half before both sides hit 1 pixel.
+ */
+static u16 rvk_compute_max_miplevels(const RvkSize size) {
   const u16 biggestSide = math_max(size.width, size.height);
   return (u16)(32 - bits_clz_32(biggestSide));
 }
@@ -76,14 +76,22 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       .device  = dev,
       .dbgName = string_dup(g_alloc_heap, dbgName),
   };
+  const RvkSize size = rvk_size(asset->width, asset->height);
+
+  u8 mipLevels;
+  if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
+    diag_assert(asset->srcMipLevels <= 1);
+    mipLevels = rvk_compute_max_miplevels(size);
+    texture->flags |= RvkTextureFlags_GenerateMipMaps;
+  } else {
+    diag_assert(asset->srcMipLevels <= rvk_compute_max_miplevels(size));
+    mipLevels = math_max(asset->srcMipLevels, 1);
+  }
 
   const VkFormat vkFormat = rvk_texture_format(asset->type, asset->flags, asset->channels);
   diag_assert(rvk_format_info(vkFormat).size == asset_texture_pixel_size(asset));
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
-  const RvkSize size         = rvk_size(asset->width, asset->height);
-  const bool    generateMips = (asset->flags & AssetTextureFlags_MipMaps) != 0;
-  const u8      mipLevels    = generateMips ? rvk_compute_miplevels(size) : 1;
   if (asset->flags & AssetTextureFlags_CubeMap) {
     diag_assert_msg(asset->layers == 6, "CubeMap needs 6 layers");
     texture->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels);
@@ -92,8 +100,9 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
     texture->image  = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
   }
 
-  const Mem pixelData    = asset_texture_data(asset);
-  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, pixelData);
+  const Mem srcData      = asset_texture_data(asset);
+  const u32 srcMips      = math_max(asset->srcMipLevels, 1);
+  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, srcData, srcMips);
 
   rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));
@@ -110,7 +119,6 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 }
 
 void rvk_texture_destroy(RvkTexture* texture) {
-
   RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 
@@ -138,13 +146,20 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
-  rvk_debug_label_begin(
-      texture->device->debug, vkCmdBuf, geo_color_silver, "prepare_{}", fmt_text(texture->dbgName));
+  if (texture->flags & RvkTextureFlags_GenerateMipMaps) {
+    rvk_debug_label_begin(
+        texture->device->debug,
+        vkCmdBuf,
+        geo_color_silver,
+        "generate_mipmaps_{}",
+        fmt_text(texture->dbgName));
 
-  rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
+    rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
+
+    rvk_debug_label_end(texture->device->debug, vkCmdBuf);
+  }
+
   rvk_image_transition(&texture->image, RvkImagePhase_ShaderRead, vkCmdBuf);
-
-  rvk_debug_label_end(texture->device->debug, vkCmdBuf);
 
   texture->flags |= RvkTextureFlags_Ready;
   return true;
