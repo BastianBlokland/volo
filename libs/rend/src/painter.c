@@ -718,7 +718,14 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_depth(fwdPass, fwdDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, fwdSize, time, RendViewType_Main);
     painter_push_ambient(&ctx);
-    painter_push_simple(&ctx, RvkRepositoryId_SkyGraphic, mem_empty);
+    switch ((u32)set->skyMode) {
+    case RendSkyMode_Gradient:
+      painter_push_simple(&ctx, RvkRepositoryId_SkyGradientGraphic, mem_empty);
+      break;
+    case RendSkyMode_CubeMap:
+      painter_push_simple(&ctx, RvkRepositoryId_SkyCubeMapGraphic, mem_empty);
+      break;
+    }
     if (geoTagMask & SceneTags_Outline) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }

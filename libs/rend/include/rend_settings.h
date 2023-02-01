@@ -60,6 +60,12 @@ typedef enum {
 } RendAmbientMode;
 
 typedef enum {
+  RendSkyMode_None,
+  RendSkyMode_Gradient,
+  RendSkyMode_CubeMap,
+} RendSkyMode;
+
+typedef enum {
   RendTonemapper_Linear,
   RendTonemapper_LinearSmooth,
   RendTonemapper_Reinhard,
@@ -71,6 +77,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendFlags       flags;
   RendPresentMode presentMode;
   RendAmbientMode ambientMode;
+  RendSkyMode     skyMode;
   f32             exposure;
   RendTonemapper  tonemapper;
   f32             resolutionScale;

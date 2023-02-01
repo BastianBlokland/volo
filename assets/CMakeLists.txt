@@ -34,7 +34,7 @@ configure_shaders(volo_shaders
     shaders/light/light_point.vert
     shaders/outline.frag
     shaders/scene/sky_cubemap.frag
-    shaders/scene/sky_procedural.frag
+    shaders/scene/sky_gradient.frag
     shaders/scene/sky.vert
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag

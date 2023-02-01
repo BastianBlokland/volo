@@ -69,8 +69,12 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/ambient_occlusion.gra"),
     },
     {
-        .repoId  = RvkRepositoryId_SkyGraphic,
-        .assetId = string_static("graphics/scene/sky.gra"),
+        .repoId  = RvkRepositoryId_SkyGradientGraphic,
+        .assetId = string_static("graphics/scene/sky_gradient.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_SkyCubeMapGraphic,
+        .assetId = string_static("graphics/scene/sky_cubemap.gra"),
     },
     {
         .repoId  = RvkRepositoryId_BloomDownGraphic,

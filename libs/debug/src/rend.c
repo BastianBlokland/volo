@@ -157,6 +157,12 @@ static const String g_ambientModeNames[] = {
     string_static("DebugAmbientOcclusion"),
 };
 
+static const String g_skyModeNames[] = {
+    string_static("None"),
+    string_static("Gradient"),
+    string_static("CubeMap"),
+};
+
 static const String g_tonemapperNames[] = {
     string_static("Linear"),
     string_static("LinearSmooth"),
@@ -397,6 +403,11 @@ static void rend_settings_tab_draw(
       g_ambientModeNames,
       array_elems(g_ambientModeNames),
       .tooltip = g_tooltipAmbientMode);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Sky mode"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&settings->skyMode, g_skyModeNames, array_elems(g_skyModeNames));
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Camera"));
@@ -1067,7 +1078,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(.size = ui_vector(800, 490)),
+      .panel          = ui_panel(.size = ui_vector(800, 520)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),
