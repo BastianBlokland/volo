@@ -23,7 +23,7 @@
 #define atx_max_textures 100
 #define atx_max_layers 256
 #define atx_max_size 2048
-#define atx_irradiance_sample_count 1024
+#define atx_irradiance_sample_count 512
 #define atx_irradiance_mips 4
 
 static DataReg* g_dataReg;
