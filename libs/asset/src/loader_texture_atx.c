@@ -312,11 +312,7 @@ static GeoColor atx_irradiance_convolve(
  * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_irradiance_b4(
-    const AtxDef*            def,
-    const AssetTextureComp** textures,
-    const u32                width,
-    const u32                height,
-    Mem                      dest) {
+    const AtxDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
   const GeoQuat faceRot[] = {
       geo_quat_forward_to_right,
       geo_quat_forward_to_left,
@@ -326,16 +322,14 @@ static void atx_write_irradiance_b4(
       geo_quat_forward_to_backward,
   };
   for (u32 mipLevel = 0; mipLevel != atx_irradiance_mips; ++mipLevel) {
-    const u32 mipWidth     = math_max(width >> mipLevel, 1);
-    const u32 mipHeight    = math_max(height >> mipLevel, 1);
-    const f32 invMipWidth  = 1.0f / mipWidth;
-    const f32 invMipHeight = 1.0f / mipHeight;
-    const f32 roughness    = mipLevel / (f32)(atx_irradiance_mips - 1);
+    const u32 mipSize    = math_max(size >> mipLevel, 1);
+    const f32 invMipSize = 1.0f / mipSize;
+    const f32 roughness  = mipLevel / (f32)(atx_irradiance_mips - 1);
     for (u32 faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
-      for (u32 y = 0; y != mipHeight; ++y) {
-        const f32 yFrac = (y + 0.5f) * invMipHeight;
-        for (u32 x = 0; x != mipWidth; ++x) {
-          const f32 xFrac = (x + 0.5f) * invMipWidth;
+      for (u32 y = 0; y != mipSize; ++y) {
+        const f32 yFrac = (y + 0.5f) * invMipSize;
+        for (u32 x = 0; x != mipSize; ++x) {
+          const f32 xFrac = (x + 0.5f) * invMipSize;
 
           const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
           const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
@@ -427,7 +421,7 @@ static void atx_generate(
     }
     break;
   case AtxType_CubeIrradiance:
-    atx_write_irradiance_b4(def, textures, outWidth, outHeight, pixelsMem);
+    atx_write_irradiance_b4(def, textures, outWidth, pixelsMem);
     outSrgb = false; // Always output irradiance maps in linear encoding.
     break;
   }
