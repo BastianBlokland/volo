@@ -312,7 +312,12 @@ static GeoColor atx_irradiance_convolve(
  * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_irradiance_b4(
-    const AtxDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
+    const AtxDef*              def,
+    const AssetTextureComp**   textures,
+    const AssetTextureType     type,
+    const AssetTextureChannels channels,
+    const u32                  size,
+    Mem                        dest) {
   const GeoQuat faceRot[] = {
       geo_quat_forward_to_right,
       geo_quat_forward_to_left,
@@ -321,7 +326,13 @@ static void atx_write_irradiance_b4(
       geo_quat_forward_to_forward,
       geo_quat_forward_to_backward,
   };
-  for (u32 mipLevel = 0; mipLevel != atx_irradiance_mips; ++mipLevel) {
+  // Mip 0 represents a perfect mirror so we can just copy the source.
+  const usize mip0Size = asset_texture_req_size(type, channels, size, size, 6, 1);
+  atx_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
+  dest = mem_consume(dest, mip0Size);
+
+  // Other mip-levels represent more diffuse irradiance so we convolve the incoming radiance.
+  for (u32 mipLevel = 1; mipLevel != atx_irradiance_mips; ++mipLevel) {
     const u32 mipSize    = math_max(size >> mipLevel, 1);
     const f32 invMipSize = 1.0f / mipSize;
     const f32 roughness  = mipLevel / (f32)(atx_irradiance_mips - 1);
@@ -421,7 +432,7 @@ static void atx_generate(
     }
     break;
   case AtxType_CubeIrradiance:
-    atx_write_irradiance_b4(def, textures, outWidth, pixelsMem);
+    atx_write_irradiance_b4(def, textures, type, channels, outWidth, pixelsMem);
     outSrgb = false; // Always output irradiance maps in linear encoding.
     break;
   }
