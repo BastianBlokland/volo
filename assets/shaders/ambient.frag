@@ -11,7 +11,8 @@ struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
-bind_spec(0) const bool s_debug = false;
+bind_spec(0) const bool s_debug         = false;
+bind_spec(1) const f32 s_irradianceMips = 5.0;
 
 const u32 c_modeSolid                 = 0;
 const u32 c_modeDiffuseIrradiance     = 1;
@@ -64,13 +65,14 @@ f32v3 clip_to_world(const f32v3 clipPos) {
 f32v3 ambient_solid(const PbrSurface surf, const f32 intensity) { return surf.color * intensity; }
 
 f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const f32v3 viewDir) {
-  const f32 viewDirFrac = max(dot(surf.normal, viewDir), 0.0);
+  const f32v3 nrm         = surf.normal;
+  const f32   viewDirFrac = max(dot(nrm, viewDir), 0.0);
 
   const f32v3 reflectance = pbr_surf_reflectance(surf);
   const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
-  const f32v3 irradiance  = texture_cube(u_texDiffuseIrradiance, surf.normal).rgb * intensity;
+  const f32v3 irradiance  = texture_cube_lod(u_texDiffuseIrradiance, nrm, s_irradianceMips - 1).rgb;
 
-  return (1.0 - fresnelFrac) * irradiance * surf.color;
+  return (1.0 - fresnelFrac) * irradiance * intensity * surf.color;
 }
 
 void main() {

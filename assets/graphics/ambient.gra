@@ -4,7 +4,14 @@
       "shaderId": "shaders/fullscreen.vert.spv"
     },
     {
-      "shaderId": "shaders/ambient.frag.spv"
+      "shaderId": "shaders/ambient.frag.spv",
+      "overrides": [
+        {
+          "name": "irradianceMips",
+          "binding": 1,
+          "value": 5
+        }
+      ]
     }
   ],
   "samplers": [
