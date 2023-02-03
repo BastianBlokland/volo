@@ -24,6 +24,7 @@
 #define atx_max_layers 256
 #define atx_max_size 2048
 #define atx_irradiance_sample_count 1024
+#define atx_irradiance_mips 4
 
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
@@ -307,6 +308,7 @@ static GeoColor atx_irradiance_convolve(
 
 /**
  * Generate a irradiance map (aka 'environment map').
+ * Lowest mip represents roughness == 0 and the highest represents roughness == 1.
  * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_irradiance_b4(
@@ -315,8 +317,6 @@ static void atx_write_irradiance_b4(
     const u32                width,
     const u32                height,
     Mem                      dest) {
-  const f32     invWidth  = 1.0f / width;
-  const f32     invHeight = 1.0f / height;
   const GeoQuat faceRot[] = {
       geo_quat_forward_to_right,
       geo_quat_forward_to_left,
@@ -325,19 +325,25 @@ static void atx_write_irradiance_b4(
       geo_quat_forward_to_forward,
       geo_quat_forward_to_backward,
   };
-  for (usize faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
-    for (u32 y = 0; y != height; ++y) {
-      const f32 yFrac = (y + 0.5f) * invHeight;
-      for (u32 x = 0; x != width; ++x) {
-        const f32 xFrac = (x + 0.5f) * invWidth;
+  for (u32 mipLevel = 0; mipLevel != atx_irradiance_mips; ++mipLevel) {
+    const u32 mipWidth     = math_max(width >> mipLevel, 1);
+    const u32 mipHeight    = math_max(height >> mipLevel, 1);
+    const f32 invMipWidth  = 1.0f / mipWidth;
+    const f32 invMipHeight = 1.0f / mipHeight;
+    const f32 roughness    = mipLevel / (f32)(atx_irradiance_mips - 1);
+    for (u32 faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
+      for (u32 y = 0; y != mipHeight; ++y) {
+        const f32 yFrac = (y + 0.5f) * invMipHeight;
+        for (u32 x = 0; x != mipWidth; ++x) {
+          const f32 xFrac = (x + 0.5f) * invMipWidth;
 
-        const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
-        const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
-        const f32       roughness  = 1.0f;
-        const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, roughness);
+          const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
+          const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
+          const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, roughness);
 
-        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
-        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
+          dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        }
       }
     }
   }
@@ -405,7 +411,7 @@ static void atx_generate(
     return;
   }
 
-  const u32   mips      = 1;
+  const u32   mips      = def->type == AtxType_CubeIrradiance ? atx_irradiance_mips : 1;
   const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
   const usize dataAlign = asset_texture_req_align(type, channels);
   const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
