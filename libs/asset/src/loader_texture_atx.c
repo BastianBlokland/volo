@@ -267,6 +267,7 @@ static GeoVector hemisphere_2d_hammersley(const u32 index, const u32 count) {
 
 /**
  * Generate a sample vector in tangent space that's biased towards the normal (importance sampling).
+ * Roughness controls the size of the specular lobe (smooth vs blurry reflections).
  */
 static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f32 roughness) {
   const GeoVector vXi      = hemisphere_2d_hammersley(index, count);
@@ -279,18 +280,18 @@ static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f
 
 /**
  * Compute a filtered irradiance for the specular lobe orientated in the given normal.
- * Roughness controls the size of the specular lobe (smooth vs blurry reflections).
  * https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
  */
 static GeoColor atx_irradiance_convolve(
-    const AssetTextureComp** textures, const GeoVector normal, const f32 roughness) {
+    const AssetTextureComp** textures,
+    const GeoVector          normal,
+    const GeoVector          samples[atx_irradiance_sample_count]) {
   const GeoQuat rot = geo_quat_look(normal, geo_up);
 
   GeoColor irradiance  = geo_color(0, 0, 0, 0);
   f32      totalWeight = 0.0f;
   for (u32 i = 0; i != atx_irradiance_sample_count; ++i) {
-    const GeoVector halfDirTan   = importance_sample_ggx(i, atx_irradiance_sample_count, roughness);
-    const GeoVector halfDirWorld = geo_quat_rotate(rot, geo_vector_norm(halfDirTan));
+    const GeoVector halfDirWorld = geo_quat_rotate(rot, samples[i]);
 
     const f32       nDotH    = geo_vector_dot(normal, halfDirWorld);
     const GeoVector lightDir = geo_vector_sub(geo_vector_mul(halfDirWorld, nDotH * 2.0f), normal);
@@ -332,10 +333,18 @@ static void atx_write_irradiance_b4(
   dest = mem_consume(dest, mip0Size);
 
   // Other mip-levels represent more diffuse irradiance so we convolve the incoming radiance.
+  GeoVector samples[atx_irradiance_sample_count];
   for (u32 mipLevel = 1; mipLevel != atx_irradiance_mips; ++mipLevel) {
     const u32 mipSize    = math_max(size >> mipLevel, 1);
     const f32 invMipSize = 1.0f / mipSize;
     const f32 roughness  = mipLevel / (f32)(atx_irradiance_mips - 1);
+
+    // Compute the sample points for this roughness.
+    for (u32 i = 0; i != atx_irradiance_sample_count; ++i) {
+      samples[i] = importance_sample_ggx(i, atx_irradiance_sample_count, roughness);
+    }
+
+    // Convolve all samples for all pixels.
     for (u32 faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
       for (u32 y = 0; y != mipSize; ++y) {
         const f32 yFrac = (y + 0.5f) * invMipSize;
@@ -344,7 +353,7 @@ static void atx_write_irradiance_b4(
 
           const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
           const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
-          const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, roughness);
+          const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, samples);
 
           *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
           dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
