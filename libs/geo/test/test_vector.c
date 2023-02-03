@@ -66,7 +66,7 @@ spec(vector) {
         geo_vector(.x = -2, .y = -4, .z = -6));
   }
 
-  it("multiplies each component when mutliplying component-wise") {
+  it("multiplies each component when multiplying component-wise") {
     const GeoVector v1 = {.x = 10, .y = 20, .z = 10, .w = 2};
     const GeoVector v2 = {.x = 2, .y = 3, .z = -4, .w = 0};
     check_eq_vector(geo_vector_mul_comps(v1, v2), geo_vector(.x = 20, .y = 60, .z = -40, .w = 0));
