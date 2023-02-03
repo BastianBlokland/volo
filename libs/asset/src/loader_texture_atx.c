@@ -23,6 +23,7 @@
 #define atx_max_textures 100
 #define atx_max_layers 256
 #define atx_max_size 2048
+#define atx_irradiance_sample_count 1024
 
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
@@ -228,7 +229,7 @@ static void atx_write_resample(
   for (usize texIndex = 0; texIndex != def->textures.count; ++texIndex) {
     const AssetTextureComp* tex = textures[texIndex];
     // TODO: Support input textures with multiple layers.
-    diag_assert(tex->layers == 0);
+    diag_assert(tex->layers <= 1);
 
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
@@ -249,50 +250,63 @@ static void atx_write_resample(
 }
 
 /**
- * Compute the irradiance at the given direction.
- * Takes samples from hemisphere pointing in the given direction and combines the radiance.
+ * Low-discrepancy sequence of pseudo random points on a 2d hemisphere (Hammersley sequence).
+ * More information: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
  */
-static GeoColor atx_irradiance_convolve(const AssetTextureComp** textures, const GeoVector fwd) {
-  const GeoVector right = geo_vector_norm(geo_vector_cross3(geo_up, fwd));
-  const GeoVector up    = geo_vector_norm(geo_vector_cross3(fwd, right));
-
-  static const f32 g_sampleDelta = 0.075f;
-  static const f32 g_piTwo       = math_pi_f32 * 2.0f;
-  static const f32 g_piHalf      = math_pi_f32 * 0.5f;
-
-  GeoColor irradiance = geo_color(0, 0, 0, 0);
-  f32      numSamples = 0;
-  for (f32 phi = 0.0; phi < g_piTwo; phi += g_sampleDelta) {
-    const f32 cosPhi = math_cos_f32(phi);
-    const f32 sinPhi = math_sin_f32(phi);
-
-    for (f32 theta = 0.0; theta < g_piHalf; theta += g_sampleDelta) {
-      const f32 cosTheta = math_cos_f32(theta);
-      const f32 sinTheta = math_sin_f32(theta);
-
-      // Convert the spherical coordinates to cartesian coordinates in tangent space.
-      const GeoVector tangentDir = geo_vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
-
-      // Convert tangent dir to world space.
-      GeoVector worldDir = geo_vector(0);
-      worldDir           = geo_vector_add(worldDir, geo_vector_mul(right, tangentDir.x));
-      worldDir           = geo_vector_add(worldDir, geo_vector_mul(up, tangentDir.y));
-      worldDir           = geo_vector_add(worldDir, geo_vector_mul(fwd, tangentDir.z));
-
-      // Sample the emitted radiance from this direction.
-      const GeoColor radiance = atx_sample_cube(textures, worldDir);
-
-      // Add the contribution of the sample.
-      irradiance = geo_color_add(irradiance, geo_color_mul(radiance, cosTheta * sinTheta));
-      ++numSamples;
-    }
-  }
-
-  return geo_color_mul(irradiance, (1.0f / numSamples) * math_pi_f32);
+static GeoVector hemisphere_2d_hammersley(const u32 index, const u32 count) {
+  u32 indexBits = index;
+  indexBits     = (indexBits << 16) | (indexBits >> 16);
+  indexBits = ((indexBits & u32_lit(0x55555555)) << 1) | ((indexBits & u32_lit(0xAAAAAAAA)) >> 1);
+  indexBits = ((indexBits & u32_lit(0x33333333)) << 2) | ((indexBits & u32_lit(0xCCCCCCCC)) >> 2);
+  indexBits = ((indexBits & u32_lit(0x0F0F0F0F)) << 4) | ((indexBits & u32_lit(0xF0F0F0F0)) >> 4);
+  indexBits = ((indexBits & u32_lit(0x00FF00FF)) << 8) | ((indexBits & u32_lit(0xFF00FF00)) >> 8);
+  const f32 radicalInverseVdc = (f32)indexBits * 2.3283064365386963e-10f; // / 0x100000000
+  return geo_vector(index / (f32)count, radicalInverseVdc);
 }
 
 /**
- * Generate a diffuse irradiance map.
+ * Generate a sample vector in tangent space that's biased towards the normal (importance sampling).
+ */
+static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f32 roughness) {
+  const GeoVector vXi      = hemisphere_2d_hammersley(index, count);
+  const f32       a        = roughness * roughness;
+  const f32       phi      = 2.0f * math_pi_f32 * vXi.x;
+  const f32       cosTheta = math_sqrt_f32((1.0f - vXi.y) / (1.0f + (a * a - 1.0f) * vXi.y));
+  const f32       sinTheta = math_sqrt_f32(1.0f - cosTheta * cosTheta);
+  return geo_vector(math_cos_f32(phi) * sinTheta, math_sin_f32(phi) * sinTheta, cosTheta);
+}
+
+/**
+ * Compute a filtered irradiance for the specular lobe orientated in the given normal.
+ * Roughness controls the size of the specular lobe (smooth vs blurry reflections).
+ * https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
+ */
+static GeoColor atx_irradiance_convolve(
+    const AssetTextureComp** textures, const GeoVector normal, const f32 roughness) {
+  const GeoQuat rot = geo_quat_look(normal, geo_up);
+
+  GeoColor irradiance  = geo_color(0, 0, 0, 0);
+  f32      totalWeight = 0.0f;
+  for (u32 i = 0; i != atx_irradiance_sample_count; ++i) {
+    const GeoVector halfDirTan   = importance_sample_ggx(i, atx_irradiance_sample_count, roughness);
+    const GeoVector halfDirWorld = geo_quat_rotate(rot, geo_vector_norm(halfDirTan));
+
+    const f32       nDotH    = geo_vector_dot(normal, halfDirWorld);
+    const GeoVector lightDir = geo_vector_sub(geo_vector_mul(halfDirWorld, nDotH * 2.0f), normal);
+    const f32       nDotL    = math_max(geo_vector_dot(normal, lightDir), 0.0);
+
+    if (nDotL > 0.0f) {
+      const GeoColor radiance = atx_sample_cube(textures, lightDir);
+      irradiance              = geo_color_add(irradiance, geo_color_mul(radiance, nDotL));
+      totalWeight += nDotL;
+    }
+  }
+
+  return geo_color_div(irradiance, totalWeight);
+}
+
+/**
+ * Generate a irradiance map (aka 'environment map').
  * NOTE: Supports differently sized input and output textures.
  */
 static void atx_write_irradiance_b4(
@@ -319,7 +333,8 @@ static void atx_write_irradiance_b4(
 
         const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
         const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
-        const GeoColor  irradiance = atx_irradiance_convolve(textures, dir);
+        const f32       roughness  = 1.0f;
+        const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, roughness);
 
         *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
