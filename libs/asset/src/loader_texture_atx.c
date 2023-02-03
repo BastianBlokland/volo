@@ -23,8 +23,7 @@
 #define atx_max_textures 100
 #define atx_max_layers 256
 #define atx_max_size 2048
-#define atx_irradiance_sample_count 512
-#define atx_irradiance_mips 4
+#define atx_irradiance_mips 5
 
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
@@ -285,12 +284,13 @@ static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f
 static GeoColor atx_irradiance_convolve(
     const AssetTextureComp** textures,
     const GeoVector          normal,
-    const GeoVector          samples[atx_irradiance_sample_count]) {
+    const GeoVector*         samples,
+    const u32                sampleCount) {
   const GeoQuat rot = geo_quat_look(normal, geo_up);
 
   GeoColor irradiance  = geo_color(0, 0, 0, 0);
   f32      totalWeight = 0.0f;
-  for (u32 i = 0; i != atx_irradiance_sample_count; ++i) {
+  for (u32 i = 0; i != sampleCount; ++i) {
     const GeoVector halfDirWorld = geo_quat_rotate(rot, samples[i]);
 
     const f32       nDotH    = geo_vector_dot(normal, halfDirWorld);
@@ -333,15 +333,17 @@ static void atx_write_irradiance_b4(
   dest = mem_consume(dest, mip0Size);
 
   // Other mip-levels represent more diffuse irradiance so we convolve the incoming radiance.
-  GeoVector samples[atx_irradiance_sample_count];
+  static const u32 g_sampleCounts[atx_irradiance_mips] = {0, 64, 128, 256, 512};
+  GeoVector        samples[512];
   for (u32 mipLevel = 1; mipLevel != atx_irradiance_mips; ++mipLevel) {
-    const u32 mipSize    = math_max(size >> mipLevel, 1);
-    const f32 invMipSize = 1.0f / mipSize;
-    const f32 roughness  = mipLevel / (f32)(atx_irradiance_mips - 1);
+    const u32 mipSize     = math_max(size >> mipLevel, 1);
+    const f32 invMipSize  = 1.0f / mipSize;
+    const f32 roughness   = mipLevel / (f32)(atx_irradiance_mips - 1);
+    const u32 sampleCount = g_sampleCounts[mipLevel];
 
     // Compute the sample points for this roughness.
-    for (u32 i = 0; i != atx_irradiance_sample_count; ++i) {
-      samples[i] = importance_sample_ggx(i, atx_irradiance_sample_count, roughness);
+    for (u32 i = 0; i != sampleCount; ++i) {
+      samples[i] = importance_sample_ggx(i, sampleCount, roughness);
     }
 
     // Convolve all samples for all pixels.
@@ -353,7 +355,7 @@ static void atx_write_irradiance_b4(
 
           const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
           const GeoVector dir        = geo_quat_rotate(faceRot[faceIdx], posLocal);
-          const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, samples);
+          const GeoColor  irradiance = atx_irradiance_convolve(textures, dir, samples, sampleCount);
 
           *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
           dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
