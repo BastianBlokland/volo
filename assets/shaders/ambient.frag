@@ -11,8 +11,8 @@ struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
-bind_spec(0) const bool s_debug         = false;
-bind_spec(1) const f32 s_irradianceMips = 5.0;
+bind_spec(0) const bool s_debug             = false;
+bind_spec(1) const f32 s_specIrradianceMips = 5.0;
 
 const u32 c_modeSolid                 = 0;
 const u32 c_modeDiffuseIrradiance     = 1;
@@ -28,11 +28,16 @@ const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
+
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
-bind_graphic(0) uniform samplerCube u_texEnvIrradiance;
+
+bind_graphic(0) uniform samplerCube u_texDiffIrradiance;
+bind_graphic(0) uniform samplerCube u_texSpecIrradiance;
+bind_graphic(0) uniform samplerCube u_texBrdfIntegration;
+
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -71,7 +76,7 @@ f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const 
 
   const f32v3 reflectance = pbr_surf_reflectance(surf);
   const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
-  const f32v3 irradiance  = texture_cube_lod(u_texEnvIrradiance, nrm, s_irradianceMips - 1).rgb;
+  const f32v3 irradiance  = texture_cube(u_texDiffIrradiance, nrm).rgb;
 
   return (1.0 - fresnelFrac) * irradiance * intensity * surf.color;
 }

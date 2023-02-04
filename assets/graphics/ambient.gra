@@ -7,7 +7,7 @@
       "shaderId": "shaders/ambient.frag.spv",
       "overrides": [
         {
-          "name": "irradianceMips",
+          "name": "specIrradianceMips",
           "binding": 1,
           "value": 5
         }
