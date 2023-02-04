@@ -16,7 +16,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/container/container_2_color_rough.tga",
+      "textureId": "external/container/container_3_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x8"

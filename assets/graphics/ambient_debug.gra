@@ -12,11 +12,28 @@
           "value": 1
         },
         {
-          "name": "irradianceMips",
+          "name": "specIrradianceMips",
           "binding": 1,
           "value": 5
         }
       ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/sandbox/env_diff_irradiance.atx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "textures/sandbox/env_spec_irradiance.atx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "textures/sandbox/env_brdf_integration.ptx",
+      "wrap": "Clamp",
+      "filter": "Linear"
     }
   ],
   "vertexCount": 3,

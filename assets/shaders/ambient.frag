@@ -14,15 +14,18 @@ struct AmbientData {
 bind_spec(0) const bool s_debug             = false;
 bind_spec(1) const f32 s_specIrradianceMips = 5.0;
 
-const u32 c_modeSolid                 = 0;
-const u32 c_modeDiffuseIrradiance     = 1;
-const u32 c_modeSpecularIrradiance    = 2;
-const u32 c_modeDebugColor            = 3;
-const u32 c_modeDebugRoughness        = 4;
-const u32 c_modeDebugNormal           = 5;
-const u32 c_modeDebugDepth            = 6;
-const u32 c_modeDebugTags             = 7;
-const u32 c_modeDebugAmbientOcclusion = 8;
+const u32 c_modeSolid                   = 0;
+const u32 c_modeDiffuseIrradiance       = 1;
+const u32 c_modeSpecularIrradiance      = 2;
+const u32 c_modeDebugColor              = 3;
+const u32 c_modeDebugRoughness          = 4;
+const u32 c_modeDebugNormal             = 5;
+const u32 c_modeDebugDepth              = 6;
+const u32 c_modeDebugTags               = 7;
+const u32 c_modeDebugAmbientOcclusion   = 8;
+const u32 c_modeDebugFresnel            = 9;
+const u32 c_modeDebugDiffuseIrradiance  = 10;
+const u32 c_modeDebugSpecularIrradiance = 11;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -126,17 +129,31 @@ void main() {
     case c_modeDebugNormal:
       out_color = surf.normal;
       break;
-    case c_modeDebugDepth:
+    case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
       const f32 linearDepth  = clip_to_view(clipPos).z;
       out_color              = linearDepth.rrr / debugMaxDist;
-      break;
+    } break;
     case c_modeDebugTags:
       out_color = color_from_hsv(tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;
+    case c_modeDebugFresnel: {
+      const f32v3 reflectance = pbr_surf_reflectance(surf);
+      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
+      out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+    } break;
+    case c_modeDebugDiffuseIrradiance:
+      out_color = ambient_diff_irradiance(surf, ambientLight);
+      break;
+    case c_modeDebugSpecularIrradiance: {
+      const f32v3 reflectance = pbr_surf_reflectance(surf);
+      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
+      const f32v3 fresnel     = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      out_color = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+    } break;
     }
   } else {
 

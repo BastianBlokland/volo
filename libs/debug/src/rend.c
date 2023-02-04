@@ -35,7 +35,10 @@ static const String g_tooltipAmbientMode      = string_static("Controls the ambi
                                                             "- \a.bDebugNormal\ar: Geometry world-space normals output.\n"
                                                             "- \a.bDebugDepth\ar: Geometry depth buffer.\n"
                                                             "- \a.bDebugTags\ar: Geometry tags output.\n"
-                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.");
+                                                            "- \a.bDebugAmbientOcclusion\ar: AmbientOcclusion pass output.\n"
+                                                            "- \a.bDebugFresnel\ar: Fresnel contribution.\n"
+                                                            "- \a.bDebugDiffuseIrradiance\ar: Ambient diffuse irradiance.\n"
+                                                            "- \a.bDebugSpecularIrradiance\ar: Ambient brdf specular irradiance.\n");
 static const String g_tooltipDebugCamera      = string_static("Enable a top-down orthographic debug camera projection.\n\n\a.bNote\ar: The view properties of the 'real' camera will be used, this is useful for debugging the frustum culling.");
 static const String g_tooltipDebugWireframe   = string_static("Enable a geometry wireframe debug overlay.");
 static const String g_tooltipDebugSkinning    = string_static("Enable a skinning-weight debug overlay.");
@@ -157,6 +160,9 @@ static const String g_ambientModeNames[] = {
     string_static("DebugDepth"),
     string_static("DebugTags"),
     string_static("DebugAmbientOcclusion"),
+    string_static("DebugFresnel"),
+    string_static("DebugDiffuseIrradiance"),
+    string_static("DebugSpecularIrradiance"),
 };
 
 static const String g_skyModeNames[] = {

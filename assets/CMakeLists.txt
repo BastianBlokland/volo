@@ -63,7 +63,7 @@ if(${EXTERNAL_ASSETS})
       car_wreck/car_wreck_normal.tga
       car_wreck/car_wreck.bin
       car_wreck/car_wreck.gltf
-      container/container_2_color_rough.tga
+      container/container_3_color_rough.tga
       container/container_normal.tga
       container/container.bin
       container/container.gltf
@@ -126,7 +126,7 @@ if(${EXTERNAL_ASSETS})
       tree_acacia/tree_acacia_normal.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
-      turret/turret_3_color_rough.tga
+      turret/turret_4_color_rough.tga
       turret/turret_2_nrm.tga
       turret/turret_big.gltf
       turret/turret_missile.bin
