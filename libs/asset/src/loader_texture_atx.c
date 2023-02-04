@@ -25,12 +25,22 @@
 #define atx_max_size 2048
 #define atx_spec_irradiance_mips 5
 
+static const GeoQuat g_cubeFaceRot[] = {
+    {0, 0.7071068f, 0, 0.7071068f},  // Forward to right.
+    {0, -0.7071068f, 0, 0.7071068f}, // Forward to left.
+    {0.7071068f, 0, 0, 0.7071068f},  // Forward to down.
+    {-0.7071068f, 0, 0, 0.7071068f}, // Forward to up.
+    {0, 0, 0, 1},                    // Forward to forward.
+    {0, 1, 0, 0},                    // Forward to backward.
+};
+
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
 
 typedef enum {
   AtxType_Array,
   AtxType_Cube,
+  AtxType_CubeDiffIrradiance,
   AtxType_CubeSpecIrradiance,
 } AtxType;
 
@@ -57,6 +67,7 @@ static void atx_datareg_init() {
     data_reg_enum_t(g_dataReg, AtxType);
     data_reg_const_t(g_dataReg, AtxType, Array);
     data_reg_const_t(g_dataReg, AtxType, Cube);
+    data_reg_const_t(g_dataReg, AtxType, CubeDiffIrradiance);
     data_reg_const_t(g_dataReg, AtxType, CubeSpecIrradiance);
 
     data_reg_struct_t(g_dataReg, AtxDef);
@@ -129,6 +140,7 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   case AtxType_Array:
     break;
   case AtxType_Cube:
+  case AtxType_CubeDiffIrradiance:
   case AtxType_CubeSpecIrradiance:
     flags |= AssetTextureFlags_CubeMap;
     break;
@@ -140,6 +152,42 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
     flags |= AssetTextureFlags_Srgb;
   }
   return flags;
+}
+
+static bool atx_output_cube(const AtxDef* def) {
+  switch (def->type) {
+  case AtxType_Array:
+    return false;
+  case AtxType_Cube:
+  case AtxType_CubeDiffIrradiance:
+  case AtxType_CubeSpecIrradiance:
+    return true;
+  }
+  diag_crash();
+}
+
+static u32 atx_output_mips(const AtxDef* def) {
+  switch (def->type) {
+  case AtxType_Array:
+  case AtxType_Cube:
+  case AtxType_CubeDiffIrradiance:
+    return 1;
+  case AtxType_CubeSpecIrradiance:
+    return atx_spec_irradiance_mips;
+  }
+  diag_crash();
+}
+
+static bool atx_output_irradiance(const AtxDef* def) {
+  switch (def->type) {
+  case AtxType_Array:
+  case AtxType_Cube:
+    return false;
+  case AtxType_CubeDiffIrradiance:
+  case AtxType_CubeSpecIrradiance:
+    return true;
+  }
+  diag_crash();
 }
 
 struct AtxCubePoint {
@@ -278,6 +326,66 @@ static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f
 }
 
 /**
+ * Compute the diffuse irradiance at the given direction.
+ * Takes samples from a hemisphere pointing in the given direction and combines the radiance.
+ */
+static GeoColor
+atx_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVector fwd) {
+  const GeoQuat rot = geo_quat_look(fwd, geo_up);
+
+  static const f32 g_sampleDelta = 0.075f;
+  static const f32 g_piTwo       = math_pi_f32 * 2.0f;
+  static const f32 g_piHalf      = math_pi_f32 * 0.5f;
+
+  GeoColor irradiance = geo_color(0, 0, 0, 0);
+  f32      numSamples = 0;
+  for (f32 phi = 0.0; phi < g_piTwo; phi += g_sampleDelta) {
+    const f32 cosPhi = math_cos_f32(phi);
+    const f32 sinPhi = math_sin_f32(phi);
+
+    for (f32 theta = 0.0; theta < g_piHalf; theta += g_sampleDelta) {
+      const f32 cosTheta = math_cos_f32(theta);
+      const f32 sinTheta = math_sin_f32(theta);
+
+      // Convert the spherical coordinates to cartesian coordinates in tangent space.
+      const GeoVector tangentDir = geo_vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+      const GeoColor  radiance   = atx_sample_cube(textures, geo_quat_rotate(rot, tangentDir));
+
+      // Add the contribution of the sample.
+      irradiance = geo_color_add(irradiance, geo_color_mul(radiance, cosTheta * sinTheta));
+      ++numSamples;
+    }
+  }
+
+  return geo_color_mul(irradiance, (1.0f / numSamples) * math_pi_f32);
+}
+
+/**
+ * Generate a diffuse irradiance map.
+ * NOTE: Supports differently sized input and output textures.
+ */
+static void atx_write_diff_irradiance_b4(
+    const AtxDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
+  const f32 invSize = 1.0f / size;
+  for (usize faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
+    for (u32 y = 0; y != size; ++y) {
+      const f32 yFrac = (y + 0.5f) * invSize;
+      for (u32 x = 0; x != size; ++x) {
+        const f32 xFrac = (x + 0.5f) * invSize;
+
+        const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
+        const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
+        const GeoColor  irradiance = atx_diff_irradiance_convolve(textures, dir);
+
+        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
+        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
+      }
+    }
+  }
+  diag_assert(!dest.size); // Verify we filled the entire output.
+}
+
+/**
  * Compute filtered specular irradiance for the specular lobe orientated in the given normal.
  * https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
  */
@@ -319,14 +427,6 @@ static void atx_write_spec_irradiance_b4(
     const AssetTextureChannels channels,
     const u32                  size,
     Mem                        dest) {
-  const GeoQuat faceRot[] = {
-      geo_quat_forward_to_right,
-      geo_quat_forward_to_left,
-      geo_quat_forward_to_down,
-      geo_quat_forward_to_up,
-      geo_quat_forward_to_forward,
-      geo_quat_forward_to_backward,
-  };
   // Mip 0 represents a perfect mirror so we can just copy the source.
   const usize mip0Size = asset_texture_req_size(type, channels, size, size, 6, 1);
   atx_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
@@ -354,7 +454,7 @@ static void atx_write_spec_irradiance_b4(
           const f32 xFrac = (x + 0.5f) * invMipSize;
 
           const GeoVector posLocal = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
-          const GeoVector dir      = geo_quat_rotate(faceRot[faceIdx], posLocal);
+          const GeoVector dir      = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
           const GeoColor  irr = atx_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
           *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irr);
@@ -379,7 +479,8 @@ static void atx_generate(
   const u32                  inHeight = textures[0]->height;
   u32                        layers   = math_max(1, textures[0]->layers);
 
-  if (UNLIKELY(def->type == AtxType_CubeSpecIrradiance && type != AssetTextureType_U8)) {
+  const bool irradianceMap = atx_output_irradiance(def);
+  if (UNLIKELY(irradianceMap && type != AssetTextureType_U8)) {
     // TODO: Support hdr input texture for cube-irradiance maps.
     *err = AtxError_InvalidCubeIrradianceInputType;
     return;
@@ -417,7 +518,7 @@ static void atx_generate(
     *err = AtxError_UnsupportedInputTypeForResampling;
     return;
   }
-  const bool isCubeMap = def->type == AtxType_Cube || def->type == AtxType_CubeSpecIrradiance;
+  const bool isCubeMap = atx_output_cube(def);
   if (UNLIKELY(isCubeMap && outWidth != outHeight)) {
     *err = AtxError_InvalidCubeAspect;
     return;
@@ -427,12 +528,12 @@ static void atx_generate(
     return;
   }
 
-  const u32   mips      = def->type == AtxType_CubeSpecIrradiance ? atx_spec_irradiance_mips : 1;
+  const u32   mips      = atx_output_mips(def);
   const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
   const usize dataAlign = asset_texture_req_align(type, channels);
   const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
 
-  bool outSrgb = inSrgb;
+  bool outSrgb = irradianceMap ? false : inSrgb;
   switch (def->type) {
   case AtxType_Array:
   case AtxType_Cube:
@@ -442,9 +543,11 @@ static void atx_generate(
       atx_write_simple(def, textures, pixelsMem);
     }
     break;
+  case AtxType_CubeDiffIrradiance:
+    atx_write_diff_irradiance_b4(def, textures, outWidth, pixelsMem);
+    break;
   case AtxType_CubeSpecIrradiance:
     atx_write_spec_irradiance_b4(def, textures, type, channels, outWidth, pixelsMem);
-    outSrgb = false; // Always output irradiance maps in linear encoding.
     break;
   }
 
