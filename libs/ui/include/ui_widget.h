@@ -168,7 +168,7 @@ typedef struct {
 #define ui_tooltip(_CANVAS_, _ID_, _TEXT_, ...) ui_tooltip_with_opts((_CANVAS_), (_ID_), (_TEXT_), \
   &((UiTooltipOpts){                                                                               \
     .fontSize = 15,                                                                                \
-    .maxSize  = {400, 400},                                                                        \
+    .maxSize  = {500, 400},                                                                        \
     __VA_ARGS__}))
 
 /**
