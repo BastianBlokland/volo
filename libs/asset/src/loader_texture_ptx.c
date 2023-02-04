@@ -9,6 +9,7 @@
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
+#include "geo_vector.h"
 #include "log_logger.h"
 
 #include "repo_internal.h"
@@ -154,14 +155,81 @@ static GeoColor ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
 }
 
 /**
+ * Low-discrepancy sequence of pseudo random points on a 2d hemisphere (Hammersley sequence).
+ * More information: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+ */
+static GeoVector hemisphere_2d_hammersley(const u32 index, const u32 count) {
+  u32 indexBits = index;
+  indexBits     = (indexBits << 16) | (indexBits >> 16);
+  indexBits = ((indexBits & u32_lit(0x55555555)) << 1) | ((indexBits & u32_lit(0xAAAAAAAA)) >> 1);
+  indexBits = ((indexBits & u32_lit(0x33333333)) << 2) | ((indexBits & u32_lit(0xCCCCCCCC)) >> 2);
+  indexBits = ((indexBits & u32_lit(0x0F0F0F0F)) << 4) | ((indexBits & u32_lit(0xF0F0F0F0)) >> 4);
+  indexBits = ((indexBits & u32_lit(0x00FF00FF)) << 8) | ((indexBits & u32_lit(0xFF00FF00)) >> 8);
+  const f32 radicalInverseVdc = (f32)indexBits * 2.3283064365386963e-10f; // / 0x100000000
+  return geo_vector(index / (f32)count, radicalInverseVdc);
+}
+
+/**
+ * Generate a sample vector in tangent space that's biased towards the normal (importance sampling).
+ * Roughness controls the size of the specular lobe (smooth vs blurry reflections).
+ */
+static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f32 roughness) {
+  const GeoVector vXi      = hemisphere_2d_hammersley(index, count);
+  const f32       a        = roughness * roughness;
+  const f32       phi      = 2.0f * math_pi_f32 * vXi.x;
+  const f32       cosTheta = math_sqrt_f32((1.0f - vXi.y) / (1.0f + (a * a - 1.0f) * vXi.y));
+  const f32       sinTheta = math_sqrt_f32(1.0f - cosTheta * cosTheta);
+  return geo_vector(math_cos_f32(phi) * sinTheta, math_sin_f32(phi) * sinTheta, cosTheta);
+}
+
+static f32 geometry_schlick_ggx(const f32 nDotV, const f32 roughness) {
+  const f32 k     = (roughness * roughness) / 2.0f;
+  const f32 nom   = nDotV;
+  const f32 denom = nDotV * (1.0f - k) + k;
+  return nom / denom;
+}
+
+/**
+ * Statistically approximates the relative surface area where its micro surface-details overshadow
+ * each other, causing light rays to be occluded.
+ */
+static f32 geometry_smith(const f32 nDotV, const f32 nDotL, const f32 roughness) {
+  return geometry_schlick_ggx(nDotL, roughness) * geometry_schlick_ggx(nDotV, roughness);
+}
+
+/**
  * Compute a BRDF (Bidirectional reflectance distribution function) integration lookup table.
  * Based on 'Environment BRDF' from 'Real Shading in Unreal Engine 4':
  * https://www.gamedevs.org/uploads/real-shading-in-unreal-engine-4.pdf
  */
 static GeoColor ptx_sample_brdf_integration(const f32 roughness, const f32 nDotV) {
-  (void)roughness;
-  (void)nDotV;
-  return geo_color_maroon;
+  const GeoVector view = geo_vector(math_sqrt_f32(1.0f - nDotV * nDotV), 0, nDotV);
+
+  f32 outScale = 0;
+  f32 outBias  = 0;
+
+  enum { SampleCount = 256 };
+  for (u32 i = 0; i != SampleCount; ++i) {
+    const GeoVector halfDir  = importance_sample_ggx(i, SampleCount, roughness);
+    const f32       vDotH    = math_max(geo_vector_dot(view, halfDir), 0);
+    const GeoVector lightDir = geo_vector_sub(geo_vector_mul(halfDir, vDotH * 2.0f), view);
+
+    const f32 nDotL = math_max(lightDir.z, 0);
+    const f32 nDotH = math_max(halfDir.z, 0);
+
+    if (nDotL > 0) {
+      const f32 geoFrac     = geometry_smith(nDotV, nDotL, roughness);
+      const f32 geoVisFrac  = (geoFrac * vDotH) / (nDotH * nDotV);
+      const f32 fresnelFrac = math_pow_f32(1.0f - vDotH, 5.0f);
+
+      outScale += (1.0f - fresnelFrac) * geoVisFrac;
+      outBias += fresnelFrac * geoVisFrac;
+    }
+  }
+
+  outScale /= SampleCount;
+  outBias /= SampleCount;
+  return geo_color(outScale, outBias, 0, 1);
 }
 
 /**
