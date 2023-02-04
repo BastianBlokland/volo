@@ -29,9 +29,9 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->exposure            = 1.0f;
   s->tonemapper          = RendTonemapper_LinearSmooth;
   s->resolutionScale     = 1.0f;
-  s->aoAngle             = 75 * math_deg_to_rad;
-  s->aoRadius            = 0.2f;
-  s->aoRadiusPower       = 3.5f;
+  s->aoAngle             = 80 * math_deg_to_rad;
+  s->aoRadius            = 0.3f;
+  s->aoRadiusPower       = 2.5f;
   s->aoPower             = 3.5f;
   s->aoResolutionScale   = 0.75f;
   s->shadowResolution    = 1536;
