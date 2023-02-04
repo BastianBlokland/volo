@@ -108,53 +108,52 @@ static String ptx_error_str(const PtxError err) {
   return g_msgs[err];
 }
 
-static f32 ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u32 y) {
+static GeoColor ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u32 y) {
   const f32 scaledX = x * def->frequency / def->size;
   const f32 scaledY = y * def->frequency / def->size;
   const f32 raw     = noise_perlin3(scaledX, scaledY, def->seed);
   const f32 norm    = raw * 0.5f + 0.5f; // Convert to a 0 - 1 range.
-  return math_pow_f32(norm, def->power);
+  return geo_color(math_pow_f32(norm, def->power), 0, 0, 1);
 }
 
-static f32 ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
+static GeoColor ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
   const u32 scaleDiv = math_max(def->size / 2, 1);
   const u32 scaledX  = (u32)(x * def->frequency / scaleDiv);
   const u32 scaledY  = (u32)(y * def->frequency / scaleDiv);
-  return ((scaledX & 1) != (scaledY & 1)) ? 1.0f : 0.0f;
+  return geo_color(((scaledX & 1) != (scaledY & 1)) ? 1 : 0, 0, 0, 1);
 }
 
-static f32 ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
+static GeoColor ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
   const f32 size         = def->size / def->frequency;
   const f32 radius       = size * 0.5f;
   const f32 toCenterX    = radius - math_mod_f32(x + 0.5f, size),
             toCenterY    = radius - math_mod_f32(y + 0.5f, size);
   const f32 toCenterDist = math_sqrt_f32(toCenterX * toCenterX + toCenterY * toCenterY);
   if (toCenterDist > radius) {
-    return 0.0f; // Outside the circle.
+    return geo_color(0, 0, 0, 1); // Outside the circle.
   }
-  return math_pow_f32(1.0f - toCenterDist / radius, def->power);
+  return geo_color(math_pow_f32(1.0f - toCenterDist / radius, def->power), 0, 0, 1);
 }
 
-static f32 ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
-  const f32 raw = rng_sample_f32(rng);
-  return math_pow_f32(raw, def->power);
+static GeoColor ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
+  return geo_color(math_pow_f32(rng_sample_f32(rng), def->power), 0, 0, 1);
 }
 
-static f32 ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
+static GeoColor ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
   const f32 raw = rng_sample_gauss_f32(rng).a;
-  return math_pow_f32(raw, def->power);
+  return geo_color(math_pow_f32(raw, def->power), 0, 0, 1);
 }
 
 /**
  * Sample the procedure at a specific coordinate.
  * Returns a value in the 0-1 range.
  */
-static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
+static GeoColor ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
   switch (def->type) {
   case PtxType_Zero:
-    return 0.0f;
+    return geo_color(0, 0, 0, 1);
   case PtxType_One:
-    return 1.0f;
+    return geo_color(1, 0, 0, 1);
   case PtxType_Checker:
     return ptx_sample_checker(def, x, y);
   case PtxType_Circle:
@@ -166,7 +165,7 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
   case PtxType_NoiseWhiteGauss:
     return ptx_sample_noise_white_gauss(def, rng);
   case PtxType_BrdfIntegration:
-    diag_crash_msg("Brfd integration map needs two output channels");
+    diag_crash_msg("TODO: Implement brfd integration");
   }
   diag_crash();
 }
@@ -194,29 +193,31 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   Rng* rng = rng_create_xorwow(g_alloc_heap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
-      const f32 sample = ptx_sample(def, x, y, rng);
+      const GeoColor sample = ptx_sample(def, x, y, rng);
 
-      union {
-        u8  u8;
-        u16 u16;
-        f32 f32;
-      } value;
-      switch (def->pixelType) {
-      case AssetTextureType_U8:
-        value.u8 = (u8)(sample * 255.999f);
-        break;
-      case AssetTextureType_U16:
-        value.u16 = (u16)(sample * 65535.999f);
-        break;
-      case AssetTextureType_F32:
-        value.f32 = sample;
-        break;
-      case AssetTextureType_Count:
-        UNREACHABLE
+      Mem channelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
+      for (u32 channel = 0; channel != def->channels; ++channel) {
+        union {
+          u8  u8;
+          u16 u16;
+          f32 f32;
+        } value;
+        switch (def->pixelType) {
+        case AssetTextureType_U8:
+          value.u8 = (u8)(sample.data[channel] * 255.999f);
+          break;
+        case AssetTextureType_U16:
+          value.u16 = (u16)(sample.data[channel] * 65535.999f);
+          break;
+        case AssetTextureType_F32:
+          value.f32 = sample.data[channel];
+          break;
+        case AssetTextureType_Count:
+          UNREACHABLE
+        }
+        mem_cpy(channelMem, mem_create(&value, pixelChannelSize));
+        channelMem = mem_consume(channelMem, pixelChannelSize);
       }
-
-      const Mem pixelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
-      mem_splat(pixelMem, mem_create(&value, pixelChannelSize));
     }
   }
   rng_destroy(rng);
