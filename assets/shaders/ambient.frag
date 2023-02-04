@@ -23,7 +23,8 @@ const u32 c_modeDebugNormal             = 5;
 const u32 c_modeDebugDepth              = 6;
 const u32 c_modeDebugTags               = 7;
 const u32 c_modeDebugAmbientOcclusion   = 8;
-const u32 c_modeDebugSpecularIrradiance = 9;
+const u32 c_modeDebugFresnel            = 9;
+const u32 c_modeDebugSpecularIrradiance = 10;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -127,23 +128,28 @@ void main() {
     case c_modeDebugNormal:
       out_color = surf.normal;
       break;
-    case c_modeDebugDepth:
+    case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
       const f32 linearDepth  = clip_to_view(clipPos).z;
       out_color              = linearDepth.rrr / debugMaxDist;
-      break;
+    } break;
     case c_modeDebugTags:
       out_color = color_from_hsv(tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;
-    case c_modeDebugSpecularIrradiance:
+    case c_modeDebugFresnel: {
+      const f32v3 reflectance = pbr_surf_reflectance(surf);
+      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
+      out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+    } break;
+    case c_modeDebugSpecularIrradiance: {
       const f32v3 reflectance = pbr_surf_reflectance(surf);
       const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
       const f32v3 fresnel     = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
       out_color = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
-      break;
+    } break;
     }
   } else {
 
