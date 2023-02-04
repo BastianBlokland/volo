@@ -30,6 +30,7 @@ typedef enum {
   PtxType_NoisePerlin,
   PtxType_NoiseWhite,
   PtxType_NoiseWhiteGauss,
+  PtxType_BrdfIntegration, // Bidirectional reflectance distribution function.
 } PtxType;
 
 typedef struct {
@@ -60,6 +61,7 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
+    data_reg_const_t(g_dataReg, PtxType, BrdfIntegration);
 
     data_reg_enum_t(g_dataReg, AssetTextureChannels);
     data_reg_const_t(g_dataReg, AssetTextureChannels, One);
@@ -90,6 +92,7 @@ typedef enum {
   PtxError_None = 0,
   PtxError_SizeNonPow2,
   PtxError_SizeTooBig,
+  PtxError_TooFewChannelsForBrdfIntegration,
 
   PtxError_Count,
 } PtxError;
@@ -99,6 +102,7 @@ static String ptx_error_str(const PtxError err) {
       string_static("None"),
       string_static("Ptx specifies a non power-of-two texture size"),
       string_static("Ptx specifies a texture size larger then is supported"),
+      string_static("Brdf integration requires at least two output channels"),
   };
   ASSERT(array_elems(g_msgs) == PtxError_Count, "Incorrect number of ptx-error messages");
   return g_msgs[err];
@@ -161,6 +165,8 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
     return ptx_sample_noise_white(def, rng);
   case PtxType_NoiseWhiteGauss:
     return ptx_sample_noise_white_gauss(def, rng);
+  case PtxType_BrdfIntegration:
+    diag_crash_msg("Brfd integration map needs two output channels");
   }
   diag_crash();
 }
@@ -246,6 +252,10 @@ void asset_load_ptx(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
   if (UNLIKELY(def.size > ptx_max_size)) {
     errMsg = ptx_error_str(PtxError_SizeTooBig);
+    goto Error;
+  }
+  if (UNLIKELY(def.type == PtxType_BrdfIntegration && def.channels < 2)) {
+    errMsg = ptx_error_str(PtxError_TooFewChannelsForBrdfIntegration);
     goto Error;
   }
 
