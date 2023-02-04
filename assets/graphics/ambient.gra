@@ -16,7 +16,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/sandbox/env_irradiance.atx",
+      "textureId": "textures/sandbox/env_spec_irradiance.atx",
       "wrap": "Clamp",
       "filter": "Linear"
     },
