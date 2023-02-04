@@ -287,7 +287,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
       const GeoColor sample = ptx_sample(def, x, y, rng);
 
       Mem channelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
-      for (u32 channel = 0; channel != def->channels; ++channel) {
+      for (AssetTextureChannels channel = 0; channel != def->channels; ++channel) {
         union {
           u8  u8;
           u16 u16;
