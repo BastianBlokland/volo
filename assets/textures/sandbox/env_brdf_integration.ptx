@@ -1,7 +1,8 @@
 {
   "type": "BrdfIntegration",
+  "pixelType": "F32",
   "channels": 4,
-  "size": 512,
+  "size": 128,
   "frequency": 1,
   "power": 1,
   "seed": 1
