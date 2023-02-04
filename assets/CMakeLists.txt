@@ -63,7 +63,7 @@ if(${EXTERNAL_ASSETS})
       car_wreck/car_wreck_normal.tga
       car_wreck/car_wreck.bin
       car_wreck/car_wreck.gltf
-      container/container_2_color_rough.tga
+      container/container_3_color_rough.tga
       container/container_normal.tga
       container/container.bin
       container/container.gltf
