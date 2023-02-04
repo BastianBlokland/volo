@@ -68,8 +68,6 @@ f32v3 clip_to_world(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 ambient_solid(const PbrSurface surf, const f32 intensity) { return surf.color * intensity; }
-
 f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const f32v3 viewDir) {
   const f32v3 nrm         = surf.normal;
   const f32   viewDirFrac = max(dot(nrm, viewDir), 0.0);
@@ -78,7 +76,7 @@ f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const 
   const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
   const f32v3 irradiance  = texture_cube(u_texDiffIrradiance, nrm).rgb;
 
-  return (1.0 - fresnelFrac) * irradiance * intensity * surf.color;
+  return (1.0 - fresnelFrac) * irradiance * intensity;
 }
 
 void main() {
@@ -139,12 +137,13 @@ void main() {
     // Ambient light.
     switch (mode) {
     case c_modeSolid:
-      out_color = ambient_solid(surf, ambientLight) * ambientOcclusion;
+      out_color = surf.color * ambientLight * ambientOcclusion;
       break;
     case c_modeDiffuseIrradiance:
-    case c_modeSpecularIrradiance:
-      out_color = ambient_diff_irradiance(surf, ambientLight, viewDir) * ambientOcclusion;
-      break;
+    case c_modeSpecularIrradiance: {
+      const f32v3 irradiance = ambient_diff_irradiance(surf, ambientLight, viewDir);
+      out_color              = irradiance * surf.color * ambientOcclusion;
+    } break;
     }
 
     // Additional effects.
