@@ -113,14 +113,15 @@ static GeoColor ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u3
   const f32 scaledY = y * def->frequency / def->size;
   const f32 raw     = noise_perlin3(scaledX, scaledY, def->seed);
   const f32 norm    = raw * 0.5f + 0.5f; // Convert to a 0 - 1 range.
-  return geo_color(math_pow_f32(norm, def->power), 0, 0, 1);
+  const f32 val     = math_pow_f32(norm, def->power);
+  return geo_color(val, val, val, val);
 }
 
 static GeoColor ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
   const u32 scaleDiv = math_max(def->size / 2, 1);
   const u32 scaledX  = (u32)(x * def->frequency / scaleDiv);
   const u32 scaledY  = (u32)(y * def->frequency / scaleDiv);
-  return geo_color(((scaledX & 1) != (scaledY & 1)) ? 1 : 0, 0, 0, 1);
+  return ((scaledX & 1) != (scaledY & 1)) ? geo_color_white : geo_color_black;
 }
 
 static GeoColor ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
@@ -130,18 +131,26 @@ static GeoColor ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
             toCenterY    = radius - math_mod_f32(y + 0.5f, size);
   const f32 toCenterDist = math_sqrt_f32(toCenterX * toCenterX + toCenterY * toCenterY);
   if (toCenterDist > radius) {
-    return geo_color(0, 0, 0, 1); // Outside the circle.
+    return geo_color_clear; // Outside the circle.
   }
-  return geo_color(math_pow_f32(1.0f - toCenterDist / radius, def->power), 0, 0, 1);
+  const f32 val = math_pow_f32(1.0f - toCenterDist / radius, def->power);
+  return geo_color(val, val, val, val);
 }
 
 static GeoColor ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
-  return geo_color(math_pow_f32(rng_sample_f32(rng), def->power), 0, 0, 1);
+  return geo_color(
+      math_pow_f32(rng_sample_f32(rng), def->power),
+      math_pow_f32(rng_sample_f32(rng), def->power),
+      math_pow_f32(rng_sample_f32(rng), def->power),
+      math_pow_f32(rng_sample_f32(rng), def->power));
 }
 
 static GeoColor ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
-  const f32 raw = rng_sample_gauss_f32(rng).a;
-  return geo_color(math_pow_f32(raw, def->power), 0, 0, 1);
+  return geo_color(
+      math_pow_f32(rng_sample_gauss_f32(rng).a, def->power),
+      math_pow_f32(rng_sample_gauss_f32(rng).a, def->power),
+      math_pow_f32(rng_sample_gauss_f32(rng).a, def->power),
+      math_pow_f32(rng_sample_gauss_f32(rng).a, def->power));
 }
 
 /**
@@ -151,9 +160,9 @@ static GeoColor ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
 static GeoColor ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
   switch (def->type) {
   case PtxType_Zero:
-    return geo_color(0, 0, 0, 1);
+    return geo_color_clear;
   case PtxType_One:
-    return geo_color(1, 0, 0, 1);
+    return geo_color_white;
   case PtxType_Checker:
     return ptx_sample_checker(def, x, y);
   case PtxType_Circle:
