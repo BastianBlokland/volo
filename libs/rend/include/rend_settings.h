@@ -59,6 +59,7 @@ typedef enum {
   RendAmbientMode_DebugTags,
   RendAmbientMode_DebugAmbientOcclusion,
   RendAmbientMode_DebugFresnel,
+  RendAmbientMode_DebugDiffuseIrradiance,
   RendAmbientMode_DebugSpecularIrradiance,
 } RendAmbientMode;
 

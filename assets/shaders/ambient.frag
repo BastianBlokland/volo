@@ -24,7 +24,8 @@ const u32 c_modeDebugDepth              = 6;
 const u32 c_modeDebugTags               = 7;
 const u32 c_modeDebugAmbientOcclusion   = 8;
 const u32 c_modeDebugFresnel            = 9;
-const u32 c_modeDebugSpecularIrradiance = 10;
+const u32 c_modeDebugDiffuseIrradiance  = 10;
+const u32 c_modeDebugSpecularIrradiance = 11;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -144,6 +145,9 @@ void main() {
       const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
       out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
     } break;
+    case c_modeDebugDiffuseIrradiance:
+      out_color = ambient_diff_irradiance(surf, ambientLight);
+      break;
     case c_modeDebugSpecularIrradiance: {
       const f32v3 reflectance = pbr_surf_reflectance(surf);
       const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
