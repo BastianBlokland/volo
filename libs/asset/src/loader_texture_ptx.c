@@ -183,7 +183,7 @@ static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f
 }
 
 static f32 geometry_schlick_ggx(const f32 nDotV, const f32 roughness) {
-  const f32 k     = (roughness * roughness) / 2.0f;
+  const f32 k     = (roughness * roughness) * 0.5f;
   const f32 nom   = nDotV;
   const f32 denom = nDotV * (1.0f - k) + k;
   return nom / denom;
@@ -199,6 +199,9 @@ static f32 geometry_smith(const f32 nDotV, const f32 nDotL, const f32 roughness)
 
 /**
  * Compute a BRDF (Bidirectional reflectance distribution function) integration lookup table.
+ * R: Scale factor over the specular radiance.
+ * G: Bias factor over the specular radiance.
+ *
  * Based on 'Environment BRDF' from 'Real Shading in Unreal Engine 4':
  * https://www.gamedevs.org/uploads/real-shading-in-unreal-engine-4.pdf
  */
