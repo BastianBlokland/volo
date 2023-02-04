@@ -35,8 +35,8 @@ bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
 
 bind_graphic(0) uniform samplerCube u_texDiffIrradiance;
-bind_graphic(0) uniform samplerCube u_texSpecIrradiance;
-bind_graphic(0) uniform samplerCube u_texBrdfIntegration;
+bind_graphic(1) uniform samplerCube u_texSpecIrradiance;
+bind_graphic(2) uniform sampler2D u_texBrdfIntegration;
 
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
@@ -68,15 +68,21 @@ f32v3 clip_to_world(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const f32v3 viewDir) {
-  const f32v3 nrm         = surf.normal;
-  const f32   viewDirFrac = max(dot(nrm, viewDir), 0.0);
+f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity) {
+  return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
+}
 
-  const f32v3 reflectance = pbr_surf_reflectance(surf);
-  const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
-  const f32v3 irradiance  = texture_cube(u_texDiffIrradiance, nrm).rgb;
-
-  return (1.0 - fresnelFrac) * irradiance * intensity;
+f32v3 ambient_spec_irradiance(
+    const PbrSurface surf,
+    const f32        intensity,
+    const f32        nDotV,
+    const f32v3      fresnel,
+    const f32v3      viewDir) {
+  const f32v3 reflectDir         = reflect(-viewDir, surf.normal);
+  const f32   mip                = surf.roughness * s_specIrradianceMips;
+  const f32v3 filteredIrradiance = texture_cube_lod(u_texSpecIrradiance, reflectDir, mip).rgb;
+  const f32v2 brdf               = texture(u_texBrdfIntegration, f32v2(nDotV, surf.roughness)).rg;
+  return filteredIrradiance * (fresnel * brdf.x + brdf.y) * intensity;
 }
 
 void main() {
@@ -141,8 +147,16 @@ void main() {
       break;
     case c_modeDiffuseIrradiance:
     case c_modeSpecularIrradiance: {
-      const f32v3 irradiance = ambient_diff_irradiance(surf, ambientLight, viewDir);
-      out_color              = irradiance * surf.color * ambientOcclusion;
+      const f32v3 reflectance    = pbr_surf_reflectance(surf);
+      const f32   nDotV          = max(dot(surf.normal, viewDir), 0);
+      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      const f32v3 diffIrradiance = ambient_diff_irradiance(surf, ambientLight);
+      out_color                  = (1.0 - fresnel) * diffIrradiance * surf.color * ambientOcclusion;
+
+      if (mode == c_modeSpecularIrradiance) {
+        const f32v3 spec = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+        out_color += spec * ambientOcclusion;
+      }
     } break;
     }
 
