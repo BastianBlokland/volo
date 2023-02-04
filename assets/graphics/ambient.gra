@@ -19,6 +19,11 @@
       "textureId": "textures/sandbox/env_irradiance.atx",
       "wrap": "Clamp",
       "filter": "Linear"
+    },
+    {
+      "textureId": "textures/sandbox/env_brdf_integration.ptx",
+      "wrap": "Clamp",
+      "filter": "Linear"
     }
   ],
   "vertexCount": 3,

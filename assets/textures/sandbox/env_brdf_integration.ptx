@@ -1,0 +1,8 @@
+{
+  "type": "BrdfIntegration",
+  "channels": 4,
+  "size": 512,
+  "frequency": 1,
+  "power": 1,
+  "seed": 1
+}
