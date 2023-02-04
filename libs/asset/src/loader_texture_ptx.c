@@ -227,7 +227,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
           value.u8 = (u8)(sample.data[channel] * 255.999f);
           break;
         case AssetTextureType_U16:
-          value.u16 = (u16)(sample.data[channel] * 65535.999f);
+          value.u16 = (u16)(sample.data[channel] * 65535.99f);
           break;
         case AssetTextureType_F32:
           value.f32 = sample.data[channel];
