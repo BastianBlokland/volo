@@ -154,6 +154,17 @@ static GeoColor ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
 }
 
 /**
+ * Compute a BRDF (Bidirectional reflectance distribution function) integration lookup table.
+ * Based on 'Environment BRDF' from 'Real Shading in Unreal Engine 4':
+ * https://www.gamedevs.org/uploads/real-shading-in-unreal-engine-4.pdf
+ */
+static GeoColor ptx_sample_brdf_integration(const f32 roughness, const f32 nDotV) {
+  (void)roughness;
+  (void)nDotV;
+  return geo_color_maroon;
+}
+
+/**
  * Sample the procedure at a specific coordinate.
  * Returns a value in the 0-1 range.
  */
@@ -174,7 +185,7 @@ static GeoColor ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng
   case PtxType_NoiseWhiteGauss:
     return ptx_sample_noise_white_gauss(def, rng);
   case PtxType_BrdfIntegration:
-    diag_crash_msg("TODO: Implement brfd integration");
+    return ptx_sample_brdf_integration((x + 0.5f) / def->size, (y + 0.5f) / def->size);
   }
   diag_crash();
 }
