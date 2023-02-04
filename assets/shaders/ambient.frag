@@ -16,12 +16,13 @@ bind_spec(1) const f32 s_irradianceMips = 5.0;
 
 const u32 c_modeSolid                 = 0;
 const u32 c_modeDiffuseIrradiance     = 1;
-const u32 c_modeDebugColor            = 2;
-const u32 c_modeDebugRoughness        = 3;
-const u32 c_modeDebugNormal           = 4;
-const u32 c_modeDebugDepth            = 5;
-const u32 c_modeDebugTags             = 6;
-const u32 c_modeDebugAmbientOcclusion = 7;
+const u32 c_modeSpecularIrradiance    = 2;
+const u32 c_modeDebugColor            = 3;
+const u32 c_modeDebugRoughness        = 4;
+const u32 c_modeDebugNormal           = 5;
+const u32 c_modeDebugDepth            = 6;
+const u32 c_modeDebugTags             = 7;
+const u32 c_modeDebugAmbientOcclusion = 8;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -136,6 +137,7 @@ void main() {
       out_color = ambient_solid(surf, ambientLight) * ambientOcclusion;
       break;
     case c_modeDiffuseIrradiance:
+    case c_modeSpecularIrradiance:
       out_color = ambient_diff_irradiance(surf, ambientLight, viewDir) * ambientOcclusion;
       break;
     }

@@ -27,7 +27,8 @@ static const String g_tooltipFrustumCulling   = string_static("Should draws be c
 static const String g_tooltipAmbientMode      = string_static("Controls the ambient draw in the forward pass.\n\n"
                                                             "Options:\n"
                                                             "- \a.bSolid\ar: Ambient radiance is white multiplied by the brightness.\n"
-                                                            "- \a.bDiffuseIrradiance\ar: Ambient radiance is sampled from an diffuse-irradiance map and multiplied by the brightness.\n\n"
+                                                            "- \a.bDiffuseIrradiance\ar: Ambient radiance is sampled from the diffuse part of an irradiance map.\n"
+                                                            "- \a.bSpecularIrradiance\ar: Ambient radiance is computed using an irradiance map and an brdf-integration map using split-sum approximation.\n\n"
                                                             "Debug options:\n"
                                                             "- \a.bDebugColor\ar: Geometry color output.\n"
                                                             "- \a.bDebugRoughness\ar: Geometry roughness output.\n"
@@ -149,6 +150,7 @@ static const String g_presentOptions[] = {
 static const String g_ambientModeNames[] = {
     string_static("Solid"),
     string_static("DiffuseIrradiance"),
+    string_static("SpecularIrradiance"),
     string_static("DebugColor"),
     string_static("DebugRoughness"),
     string_static("DebugNormal"),
