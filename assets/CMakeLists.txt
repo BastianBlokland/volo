@@ -126,7 +126,7 @@ if(${EXTERNAL_ASSETS})
       tree_acacia/tree_acacia_normal.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
-      turret/turret_3_color_rough.tga
+      turret/turret_4_color_rough.tga
       turret/turret_2_nrm.tga
       turret/turret_big.gltf
       turret/turret_missile.bin
