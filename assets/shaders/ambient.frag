@@ -11,26 +11,33 @@ struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
-bind_spec(0) const bool s_debug = false;
+bind_spec(0) const bool s_debug             = false;
+bind_spec(1) const f32 s_specIrradianceMips = 5.0;
 
 const u32 c_modeSolid                 = 0;
 const u32 c_modeDiffuseIrradiance     = 1;
-const u32 c_modeDebugColor            = 2;
-const u32 c_modeDebugRoughness        = 3;
-const u32 c_modeDebugNormal           = 4;
-const u32 c_modeDebugDepth            = 5;
-const u32 c_modeDebugTags             = 6;
-const u32 c_modeDebugAmbientOcclusion = 7;
+const u32 c_modeSpecularIrradiance    = 2;
+const u32 c_modeDebugColor            = 3;
+const u32 c_modeDebugRoughness        = 4;
+const u32 c_modeDebugNormal           = 5;
+const u32 c_modeDebugDepth            = 6;
+const u32 c_modeDebugTags             = 7;
+const u32 c_modeDebugAmbientOcclusion = 8;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
+
 bind_global(1) uniform sampler2D u_texGeoColorRough;
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 bind_global(4) uniform sampler2D u_texAmbientOcclusion;
-bind_graphic(0) uniform samplerCube u_texDiffuseIrradiance;
+
+bind_graphic(0) uniform samplerCube u_texDiffIrradiance;
+bind_graphic(1) uniform samplerCube u_texSpecIrradiance;
+bind_graphic(2) uniform sampler2D u_texBrdfIntegration;
+
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -61,16 +68,21 @@ f32v3 clip_to_world(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 ambient_solid(const PbrSurface surf, const f32 intensity) { return surf.color * intensity; }
+f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity) {
+  return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
+}
 
-f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity, const f32v3 viewDir) {
-  const f32 viewDirFrac = max(dot(surf.normal, viewDir), 0.0);
-
-  const f32v3 reflectance = pbr_surf_reflectance(surf);
-  const f32v3 fresnelFrac = pbr_fresnel_schlick_atten(viewDirFrac, reflectance, surf.roughness);
-  const f32v3 irradiance  = texture_cube(u_texDiffuseIrradiance, surf.normal).rgb * intensity;
-
-  return (1.0 - fresnelFrac) * irradiance * surf.color;
+f32v3 ambient_spec_irradiance(
+    const PbrSurface surf,
+    const f32        intensity,
+    const f32        nDotV,
+    const f32v3      fresnel,
+    const f32v3      viewDir) {
+  const f32v3 reflectDir         = reflect(-viewDir, surf.normal);
+  const f32   mip                = surf.roughness * s_specIrradianceMips;
+  const f32v3 filteredIrradiance = texture_cube_lod(u_texSpecIrradiance, reflectDir, mip).rgb;
+  const f32v2 brdf               = texture(u_texBrdfIntegration, f32v2(nDotV, surf.roughness)).rg;
+  return filteredIrradiance * (fresnel * brdf.x + brdf.y) * intensity;
 }
 
 void main() {
@@ -131,11 +143,21 @@ void main() {
     // Ambient light.
     switch (mode) {
     case c_modeSolid:
-      out_color = ambient_solid(surf, ambientLight) * ambientOcclusion;
+      out_color = surf.color * ambientLight * ambientOcclusion;
       break;
     case c_modeDiffuseIrradiance:
-      out_color = ambient_diff_irradiance(surf, ambientLight, viewDir) * ambientOcclusion;
-      break;
+    case c_modeSpecularIrradiance: {
+      const f32v3 reflectance    = pbr_surf_reflectance(surf);
+      const f32   nDotV          = max(dot(surf.normal, viewDir), 0);
+      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      const f32v3 diffIrradiance = ambient_diff_irradiance(surf, ambientLight);
+      out_color                  = (1.0 - fresnel) * diffIrradiance * surf.color * ambientOcclusion;
+
+      if (mode == c_modeSpecularIrradiance) {
+        const f32v3 spec = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+        out_color += spec * ambientOcclusion;
+      }
+    } break;
     }
 
     // Additional effects.

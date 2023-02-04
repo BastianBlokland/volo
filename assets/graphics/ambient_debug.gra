@@ -10,6 +10,11 @@
           "name": "debug",
           "binding": 0,
           "value": 1
+        },
+        {
+          "name": "irradianceMips",
+          "binding": 1,
+          "value": 5
         }
       ]
     }

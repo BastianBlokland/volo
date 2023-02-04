@@ -16,7 +16,7 @@
   ],
   "samplers": [
     {
-      "textureId": "external/car_wreck/car_wreck_color_rough.tga",
+      "textureId": "external/car_wreck/car_wreck_2_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x8"

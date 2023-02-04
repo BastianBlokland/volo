@@ -60,6 +60,11 @@ GeoColor geo_color_add(GeoColor a, GeoColor b);
 GeoColor geo_color_mul(GeoColor, f32 scalar);
 
 /**
+ * Compute a color where each component is the result of dividing with the scalar.
+ */
+GeoColor geo_color_div(GeoColor, f32 scalar);
+
+/**
  * Calculate the linearly interpolated color from x to y at time t.
  * NOTE: Does not clamp t (so can extrapolate too).
  */

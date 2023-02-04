@@ -17,6 +17,11 @@ spec(color) {
     check_eq_color(geo_color_mul(geo_color(1, 2, 3, 0), -2), geo_color(-2, -4, -6, 0));
   }
 
+  it("divides each component by the scalar when dividing") {
+    check_eq_color(geo_color_div(geo_color(5, -2.1f, 6, 8), 2), geo_color(2.5, -1.05f, 3, 4));
+    check_eq_color(geo_color_div(geo_color(1, 2, 3, 1), -2), geo_color(-.5, -1, -1.5, -0.5f));
+  }
+
   it("can linearly interpolate colors") {
     const GeoColor c1 = geo_color(10, 20, 10, 1);
     const GeoColor c2 = geo_color(20, 40, 20, 1);

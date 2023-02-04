@@ -4,12 +4,29 @@
       "shaderId": "shaders/fullscreen.vert.spv"
     },
     {
-      "shaderId": "shaders/ambient.frag.spv"
+      "shaderId": "shaders/ambient.frag.spv",
+      "overrides": [
+        {
+          "name": "specIrradianceMips",
+          "binding": 1,
+          "value": 5
+        }
+      ]
     }
   ],
   "samplers": [
     {
-      "textureId": "textures/sandbox/diffuse_irradiance.atx",
+      "textureId": "textures/sandbox/env_diff_irradiance.atx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "textures/sandbox/env_spec_irradiance.atx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "textures/sandbox/env_brdf_integration.ptx",
       "wrap": "Clamp",
       "filter": "Linear"
     }

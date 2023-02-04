@@ -1,5 +1,5 @@
 {
-  "type": "CubeIrradiance",
+  "type": "CubeDiffIrradiance",
   "mipmaps": false,
   "sizeX": 16,
   "sizeY": 16,

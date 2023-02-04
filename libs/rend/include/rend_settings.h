@@ -48,6 +48,7 @@ typedef enum {
 typedef enum {
   RendAmbientMode_Solid,
   RendAmbientMode_DiffuseIrradiance,
+  RendAmbientMode_SpecularIrradiance,
 
   // Debug modes.
   RendAmbientMode_DebugStart,

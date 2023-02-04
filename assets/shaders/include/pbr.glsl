@@ -103,15 +103,15 @@ f32v3 pbr_light_dir(
   // Cook-Torrance BRDF.
   const f32   normDistFrac = pbr_distribution_ggx(surf.normal, halfDir, surf.roughness);
   const f32   geoFrac      = pbr_geometry_smith(surf.normal, viewDir, -dir, surf.roughness);
-  const f32v3 fresnelFrac  = pbr_fresnel_schlick(max(dot(halfDir, viewDir), 0.0), reflectance);
+  const f32v3 fresnel      = pbr_fresnel_schlick(max(dot(halfDir, viewDir), 0.0), reflectance);
 
-  const f32v3 numerator = normDistFrac * geoFrac * fresnelFrac;
+  const f32v3 numerator = normDistFrac * geoFrac * fresnel;
   f32 denominator = 4.0 * max(dot(surf.normal, viewDir), 0.0) * max(dot(surf.normal, -dir), 0.0);
   denominator += 0.0001; // + 0.0001 to prevent divide by zero.
   const f32v3 specular = numerator / denominator;
 
   // kS is equal to Fresnel.
-  const f32v3 kS = fresnelFrac;
+  const f32v3 kS = fresnel;
 
   // For energy conservation, the diffuse and specular light can't be above 1.0 (unless the surface
   // emits light). To preserve this relationship the diffuse component (kD) should equal 1.0 - kS.
