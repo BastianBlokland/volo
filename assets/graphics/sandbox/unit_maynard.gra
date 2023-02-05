@@ -28,7 +28,7 @@
       "anisotropy": "x4"
     }
   ],
-  "meshId": "external/maynard/maynard.gltf",
+  "meshId": "external/maynard/maynard_2.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

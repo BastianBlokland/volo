@@ -93,8 +93,8 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_9.tga
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
-      maynard/maynard.bin
-      maynard/maynard.gltf
+      maynard/maynard_2.bin
+      maynard/maynard_2.gltf
       plant_fern/plant_fern_alpha.tga
       plant_fern/plant_fern_color_rough.tga
       plant_fern/plant_fern_normal.tga
@@ -112,8 +112,8 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_up.tga
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
-      swat/swat_3.bin
-      swat/swat_3.gltf
+      swat/swat_4.bin
+      swat/swat_4.gltf
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
       tiling/clouds.tga
@@ -126,8 +126,8 @@ if(${EXTERNAL_ASSETS})
       tree_acacia/tree_acacia_normal.tga
       tree_acacia/tree_acacia.bin
       tree_acacia/tree_acacia.gltf
-      turret/turret_4_color_rough.tga
       turret/turret_2_nrm.tga
+      turret/turret_4_color_rough.tga
       turret/turret_big.gltf
       turret/turret_missile.bin
       turret/turret_missile.gltf
