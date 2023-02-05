@@ -23,6 +23,7 @@
 #define atx_max_textures 100
 #define atx_max_layers 256
 #define atx_max_size 2048
+#define atx_max_generates_per_tick 1
 #define atx_spec_irradiance_mips 5
 
 static const GeoQuat g_cubeFaceRot[] = {
@@ -605,6 +606,8 @@ ecs_system_define(AtxLoadUpdateSys) {
   EcsView*     loadView   = ecs_world_view_t(world, LoadView);
   EcsIterator* textureItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
 
+  u32 numGenerates = 0;
+
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
@@ -653,6 +656,9 @@ ecs_system_define(AtxLoadUpdateSys) {
     dynarray_for_t(&load->textures, EcsEntityId, texAsset) { asset_release(world, *texAsset); }
 
   Next:
+    if (++numGenerates == atx_max_generates_per_tick) {
+      break;
+    }
     continue;
   }
 }
