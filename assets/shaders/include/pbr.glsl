@@ -90,8 +90,8 @@ f32v3 pbr_surf_reflectance(const PbrSurface surf) {
 f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
   /**
    * Compute the light attenuation using the inverse square falloff with an artificial radius to
-   * force the attenuation to reach 0. Based on the falloff under 'Lighting Model' from 'Real
-   * Shading in Unreal Engine 4':
+   * force the attenuation to reach 0.
+   * Based on the falloff under 'Lighting Model' from 'Real Shading in Unreal Engine 4':
    * https://www.gamedevs.org/uploads/real-shading-in-unreal-engine-4.pdf
    */
   const f32 edgeFrac       = dist * radiusInv;
