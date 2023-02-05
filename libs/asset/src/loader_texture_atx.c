@@ -569,13 +569,39 @@ ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
- * Update all active loads.
+ * Acquire all textures.
  */
-ecs_system_define(AtxLoadAssetSys) {
+ecs_system_define(AtxLoadAcquireSys) {
   AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     return;
   }
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
+
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
+
+    if (load->textures.size) {
+      continue; // Already acquired textures.
+    }
+
+    /**
+     * Acquire all textures.
+     */
+    array_ptr_for_t(load->def.textures, String, texName) {
+      const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
+      *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
+      asset_acquire(world, texAsset);
+      asset_register_dep(world, entity, texAsset);
+    }
+  }
+}
+
+/**
+ * Update all active loads.
+ */
+ecs_system_define(AtxLoadUpdateSys) {
   EcsView*     loadView   = ecs_world_view_t(world, LoadView);
   EcsIterator* textureItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
 
@@ -584,16 +610,8 @@ ecs_system_define(AtxLoadAssetSys) {
     AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
     AtxError          err;
 
-    /**
-     * Start loading all textures.
-     */
     if (!load->textures.size) {
-      array_ptr_for_t(load->def.textures, String, texName) {
-        const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
-        *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
-        asset_acquire(world, texAsset);
-        asset_register_dep(world, entity, texAsset);
-      }
+      goto Next; // Textures not yet acquired.
     }
 
     /**
@@ -648,8 +666,8 @@ ecs_module_init(asset_atx_module) {
   ecs_register_view(LoadView);
   ecs_register_view(TextureView);
 
-  ecs_register_system(
-      AtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
+  ecs_register_system(AtxLoadAcquireSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(AtxLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
 void asset_load_atx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
