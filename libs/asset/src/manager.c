@@ -10,10 +10,8 @@
 #include "loader_internal.h"
 #include "repo_internal.h"
 
-/**
- * Maximum number of new assets to load per tick.
- */
-#define asset_max_loads_per_tick 5
+#define asset_max_loads_per_task 3
+#define asset_num_load_tasks 3
 
 /**
  * Amount of frames to delay unloading of assets.
@@ -228,7 +226,7 @@ ecs_system_define(AssetUpdateDirtySys) {
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
 
-  for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(assetsView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity         = ecs_view_entity(itr);
     AssetComp*                 assetComp      = ecs_view_write_t(itr, AssetComp);
     AssetDirtyComp*            dirtyComp      = ecs_view_write_t(itr, AssetDirtyComp);
@@ -265,7 +263,7 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      const bool canLoad = startedLoads < asset_max_loads_per_tick;
+      const bool canLoad = startedLoads < asset_max_loads_per_task;
       if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
         if (asset_manager_load(world, manager, assetComp, entity)) {
@@ -383,6 +381,8 @@ ecs_module_init(asset_manager_module) {
   ecs_register_view(GlobalView);
 
   ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
+  ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
+
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
 }
