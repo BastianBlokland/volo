@@ -62,24 +62,25 @@ static void atx_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_enum_t(g_dataReg, AtxType);
-    data_reg_const_t(g_dataReg, AtxType, Array);
-    data_reg_const_t(g_dataReg, AtxType, Cube);
-    data_reg_const_t(g_dataReg, AtxType, CubeDiffIrradiance);
-    data_reg_const_t(g_dataReg, AtxType, CubeSpecIrradiance);
+    data_reg_enum_t(reg, AtxType);
+    data_reg_const_t(reg, AtxType, Array);
+    data_reg_const_t(reg, AtxType, Cube);
+    data_reg_const_t(reg, AtxType, CubeDiffIrradiance);
+    data_reg_const_t(reg, AtxType, CubeSpecIrradiance);
 
-    data_reg_struct_t(g_dataReg, AtxDef);
-    data_reg_field_t(g_dataReg, AtxDef, type, t_AtxType);
-    data_reg_field_t(g_dataReg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_struct_t(reg, AtxDef);
+    data_reg_field_t(reg, AtxDef, type, t_AtxType);
+    data_reg_field_t(reg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
     g_dataAtxDefMeta = data_meta_t(t_AtxDef);
+    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
