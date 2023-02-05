@@ -118,10 +118,9 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 100
+          "a": 7.5
         },
-        "attenuationLinear": 0.7,
-        "attenuationQuad": 20,
+        "radius": 7.5,
         "turbulenceFrequency": 5
       }
     }
