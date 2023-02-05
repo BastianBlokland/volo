@@ -212,7 +212,7 @@ static GeoColor ptx_sample_brdf_integration(const f32 roughness, const f32 nDotV
   f32 outScale = 0;
   f32 outBias  = 0;
 
-  enum { SampleCount = 256 };
+  enum { SampleCount = 128 };
   for (u32 i = 0; i != SampleCount; ++i) {
     const GeoVector halfDir  = importance_sample_ggx(i, SampleCount, roughness);
     const f32       vDotH    = math_max(geo_vector_dot(view, halfDir), 0);
