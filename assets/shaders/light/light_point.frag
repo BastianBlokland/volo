@@ -12,8 +12,7 @@ bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;
-bind_internal(1) in flat f32v3 in_radiance;
-bind_internal(2) in flat f32v3 in_attenuation;
+bind_internal(1) in flat f32v4 in_radianceAndRadiusInv;
 
 bind_internal(0) out f32v3 out_color;
 
@@ -28,9 +27,11 @@ void main() {
   const f32v4 normalTags = texture(u_texGeoNormalTags, texcoord);
   const f32   depth      = texture(u_texGeoDepth, texcoord).r;
 
-  const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos = clip_to_world(clipPos);
-  const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
+  const f32v3 clipPos   = f32v3(texcoord * 2.0 - 1.0, depth);
+  const f32v3 worldPos  = clip_to_world(clipPos);
+  const f32v3 viewDir   = normalize(u_global.camPosition.xyz - worldPos);
+  const f32v3 radiance  = in_radianceAndRadiusInv.rgb;
+  const f32   radiusInv = in_radianceAndRadiusInv.a;
 
   PbrSurface surf;
   surf.position     = worldPos;
@@ -39,5 +40,5 @@ void main() {
   surf.roughness    = colorRough.a;
   surf.metallicness = 0.0; // TODO: Support metals.
 
-  out_color = pbr_light_point(in_radiance, in_position, in_attenuation, viewDir, surf);
+  out_color = pbr_light_point(radiance, radiusInv, in_position, viewDir, surf);
 }

@@ -50,7 +50,7 @@ typedef struct {
 typedef struct {
   GeoVector      pos;
   GeoColor       radiance;
-  f32            attenuationLinear, attenuationQuadratic;
+  f32            radius;
   RendLightFlags flags;
 } RendLightPoint;
 
@@ -148,16 +148,6 @@ static GeoColor rend_radiance_resolve(const GeoColor radiance) {
 
 static f32 rend_light_brightness(const GeoColor radiance) {
   return math_max(math_max(radiance.r, radiance.g), radiance.b);
-}
-
-static f32 rend_light_point_radius(const RendLightPoint* point) {
-  const GeoColor radiance   = rend_radiance_resolve(point->radiance);
-  const f32      brightness = rend_light_brightness(radiance);
-  const f32      c          = 1.0f;                        // Constant term.
-  const f32      l          = point->attenuationLinear;    // Linear term.
-  const f32      q          = point->attenuationQuadratic; // Quadratic term.
-  const f32      threshold  = 256.0f / 10.0f;
-  return (-l + math_sqrt_f32(l * l - 4.0f * q * (c - threshold * brightness))) / (2.0f * q);
 }
 
 ecs_system_define(RendLightSunSys) {
@@ -299,11 +289,10 @@ ecs_system_define(RendLightRenderSys) {
 
       typedef struct {
         ALIGNAS(16)
-        GeoVector posScale;    // x, y, z: position, w: scale.
-        GeoColor  radiance;    // r, g, b: radiance, a: unused.
-        GeoVector attenuation; // x: constant term, y: linear term, z: quadratic term, w: unused.
+        GeoVector posScale;             // x, y, z: position, w: scale.
+        GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
       } LightPointData;
-      ASSERT(sizeof(LightPointData) == 48, "Size needs to match the size defined in glsl");
+      ASSERT(sizeof(LightPointData) == 32, "Size needs to match the size defined in glsl");
       ASSERT(alignof(LightPointData) == 16, "Alignment needs to match the glsl alignment");
 
       switch (entry->type) {
@@ -346,20 +335,22 @@ ecs_system_define(RendLightRenderSys) {
         if (entry->data_point.flags & RendLightFlags_Shadow) {
           log_e("Point-light shadows are unsupported");
         }
-        const f32 radius = rend_light_point_radius(&entry->data_point);
-        if (UNLIKELY(radius < f32_epsilon)) {
+        const GeoVector pos      = entry->data_point.pos;
+        const GeoColor  radiance = rend_radiance_resolve(entry->data_directional.radiance);
+        const f32       radius   = entry->data_point.radius;
+        if (UNLIKELY(rend_light_brightness(radiance) < 0.01f || radius < f32_epsilon)) {
           continue;
         }
-        const GeoBox bounds = geo_box_from_sphere(entry->data_point.pos, radius);
+        const GeoBox bounds = geo_box_from_sphere(pos, radius);
         *rend_draw_add_instance_t(draw, LightPointData, tags, bounds) = (LightPointData){
-            .posScale.x    = entry->data_point.pos.x,
-            .posScale.y    = entry->data_point.pos.y,
-            .posScale.z    = entry->data_point.pos.z,
-            .posScale.w    = radius,
-            .radiance      = rend_radiance_resolve(entry->data_point.radiance),
-            .attenuation.x = 1.0f, // Constant term.
-            .attenuation.y = entry->data_point.attenuationLinear,
-            .attenuation.z = entry->data_point.attenuationQuadratic,
+            .posScale.x             = pos.x,
+            .posScale.y             = pos.y,
+            .posScale.z             = pos.z,
+            .posScale.w             = radius,
+            .radianceAndRadiusInv.r = radiance.r,
+            .radianceAndRadiusInv.g = radiance.g,
+            .radianceAndRadiusInv.b = radiance.b,
+            .radianceAndRadiusInv.a = 1.0f / radius,
         };
         break;
       }
@@ -419,8 +410,7 @@ void rend_light_point(
     RendLightComp*       comp,
     const GeoVector      pos,
     const GeoColor       radiance,
-    const f32            attenuationLinear,
-    const f32            attenuationQuadratic,
+    const f32            radius,
     const RendLightFlags flags) {
   rend_light_add(
       comp,
@@ -428,11 +418,10 @@ void rend_light_point(
           .type = RendLightType_Point,
           .data_point =
               {
-                  .pos                  = pos,
-                  .radiance             = radiance,
-                  .attenuationLinear    = attenuationLinear,
-                  .attenuationQuadratic = attenuationQuadratic,
-                  .flags                = flags,
+                  .pos      = pos,
+                  .radiance = radiance,
+                  .radius   = radius,
+                  .flags    = flags,
               },
       });
 }

@@ -83,10 +83,9 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 200
+          "a": 50
         },
-        "attenuationLinear": 0.5,
-        "attenuationQuad": 4,
+        "radius": 10,
         "fadeInTime": 0.1,
         "fadeOutTime": 0.45
       },

@@ -67,8 +67,8 @@ typedef struct {
 
 typedef struct {
   VfxColorDef radiance;
-  f32         attenuationLinear, attenuationQuad;
   f32         fadeInTime, fadeOutTime;
+  f32         radius;
   f32         turbulenceFrequency;
 } VfxLightDef;
 
@@ -173,10 +173,9 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(reg, VfxLightDef);
     data_reg_field_t(reg, VfxLightDef, radiance, t_VfxColorDef, .flags = DataFlags_Opt);
-    data_reg_field_t(reg, VfxLightDef, attenuationLinear, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, VfxLightDef, attenuationQuad, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxLightDef, turbulenceFrequency, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, VfxEmitterDef);
@@ -313,10 +312,9 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
     return; // Lights are optional.
   }
   out->radiance            = vfx_build_color(&def->radiance);
-  out->attenuationLinear   = def->attenuationLinear > f32_epsilon ? def->attenuationLinear : 0.7f;
-  out->attenuationQuad     = def->attenuationQuad > f32_epsilon ? def->attenuationQuad : 1.8f;
   out->fadeInTime          = (TimeDuration)time_seconds(def->fadeInTime);
   out->fadeOutTime         = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->radius              = def->radius > f32_epsilon ? def->radius : 10.0f;
   out->turbulenceFrequency = def->turbulenceFrequency;
 }
 

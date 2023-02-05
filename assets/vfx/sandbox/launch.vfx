@@ -113,10 +113,9 @@
           "r": 1,
           "g": 0.5,
           "b": 0.2,
-          "a": 100
+          "a": 10
         },
-        "attenuationLinear": 0.5,
-        "attenuationQuad": 10,
+        "radius": 7.5,
         "fadeInTime": 0.1,
         "fadeOutTime": 0.3
       },
