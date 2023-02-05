@@ -289,8 +289,8 @@ ecs_system_define(RendLightRenderSys) {
 
       typedef struct {
         ALIGNAS(16)
-        GeoVector posScale;          // x, y, z: position, w: scale.
-        GeoColor  radianceAndRadius; // r, g, b: radiance, a: radius.
+        GeoVector posScale;             // x, y, z: position, w: scale.
+        GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
       } LightPointData;
       ASSERT(sizeof(LightPointData) == 32, "Size needs to match the size defined in glsl");
       ASSERT(alignof(LightPointData) == 16, "Alignment needs to match the glsl alignment");
@@ -343,14 +343,14 @@ ecs_system_define(RendLightRenderSys) {
         }
         const GeoBox bounds = geo_box_from_sphere(pos, radius);
         *rend_draw_add_instance_t(draw, LightPointData, tags, bounds) = (LightPointData){
-            .posScale.x          = pos.x,
-            .posScale.y          = pos.y,
-            .posScale.z          = pos.z,
-            .posScale.w          = radius,
-            .radianceAndRadius.r = radiance.r,
-            .radianceAndRadius.g = radiance.g,
-            .radianceAndRadius.b = radiance.b,
-            .radianceAndRadius.a = radius,
+            .posScale.x             = pos.x,
+            .posScale.y             = pos.y,
+            .posScale.z             = pos.z,
+            .posScale.w             = radius,
+            .radianceAndRadiusInv.r = radiance.r,
+            .radianceAndRadiusInv.g = radiance.g,
+            .radianceAndRadiusInv.b = radiance.b,
+            .radianceAndRadiusInv.a = 1.0f / radius,
         };
         break;
       }
