@@ -7,6 +7,7 @@ typedef struct sAllocator Allocator;
 /**
  * File Monitor.
  * Can watch for file modifications.
+ * NOTE: Api is thread-safe.
  */
 typedef struct sFileMonitor FileMonitor;
 
