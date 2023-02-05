@@ -252,7 +252,7 @@ f32 asset_font_glyph_dist(
        * Analytical solutions for quadratic beziers exist but have not been explored yet.
        */
 
-      const u32      steps = 5;
+      const u32      steps = 4;
       AssetFontPoint prev  = start;
       for (usize j = 1; j != steps; ++j) {
         const f32            t           = j / (f32)steps;
