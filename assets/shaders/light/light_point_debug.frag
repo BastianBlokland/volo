@@ -10,8 +10,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global(3) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_position;
-bind_internal(1) in flat f32v3 in_radiance;
-bind_internal(2) in flat f32v3 in_attenuation;
+bind_internal(1) in flat f32v4 in_radianceAndRadius;
 
 bind_internal(0) out f32v4 out_color;
 
@@ -27,7 +26,9 @@ void main() {
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
   const f32   dist     = length(worldPos - in_position);
+  const f32v3 radiance = in_radianceAndRadius.rgb;
+  const f32   radius   = in_radianceAndRadius.a;
 
-  const f32 frac = pbr_attenuation_resolve(in_attenuation, dist);
-  out_color      = mix(f32v4(0, 0, 0, 1), f32v4(normalize(in_radiance), 1), frac);
+  const f32 frac = pbr_attenuation_resolve(dist, radius);
+  out_color      = mix(f32v4(0, 0, 0, 1), f32v4(normalize(radiance), 1), frac);
 }

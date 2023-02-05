@@ -87,11 +87,17 @@ f32v3 pbr_surf_reflectance(const PbrSurface surf) {
   return mix(f32v3(0.04), surf.color, surf.metallicness);
 }
 
-f32 pbr_attenuation_resolve(const f32v3 attenuation, const f32 dist) {
-  const f32 c = attenuation.x; // Constant term.
-  const f32 l = attenuation.y; // Linear term.
-  const f32 q = attenuation.z; // Quadratic term.
-  return 1.0 / (c + l * dist + q * dist * dist);
+f32 pbr_attenuation_resolve(const f32 dist, const f32 radius) {
+  /**
+   * Compute the light attenuation using the inverse square falloff with an artificial radius to
+   * force the attenuation to reach 0. Based on the falloff under 'Lighting Model' from 'Real
+   * Shading in Unreal Engine 4':
+   * https://www.gamedevs.org/uploads/real-shading-in-unreal-engine-4.pdf
+   */
+  const f32 edgeFrac       = dist / radius;
+  const f32 edgeFracQuad   = edgeFrac * edgeFrac * edgeFrac * edgeFrac;
+  const f32 centerFracQuad = clamp(1.0 - edgeFracQuad, 0.0, 1.0);
+  return centerFracQuad * centerFracQuad / (dist * dist + 1.0);
 }
 
 f32v3 pbr_light_dir(
@@ -130,14 +136,14 @@ f32v3 pbr_light_dir(
 
 f32v3 pbr_light_point(
     const f32v3      radiance,
+    const f32        radius,
     const f32v3      pos,
-    const f32v3      attenuation, // x: constant, y: linear, z: quadratic
     const f32v3      viewDir,
     const PbrSurface surf) {
 
   const f32v3 lightDir          = normalize(surf.position - pos);
   const f32   dist              = length(surf.position - pos);
-  const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(attenuation, dist);
+  const f32v3 effectiveRadiance = radiance * pbr_attenuation_resolve(dist, radius);
   return pbr_light_dir(effectiveRadiance, lightDir, viewDir, surf);
 }
 

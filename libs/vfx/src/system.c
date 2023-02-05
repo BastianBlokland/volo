@@ -415,14 +415,7 @@ static void vfx_instance_output_light(
     // TODO: Implement a 1d perlin noise as an optimization.
     radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, 0, 0);
   }
-
-  rend_light_point(
-      lightOutput,
-      pos,
-      radiance,
-      light->attenuationLinear,
-      light->attenuationQuad,
-      RendLightFlags_None);
+  rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
 }
 
 ecs_system_define(VfxSystemUpdateSys) {
