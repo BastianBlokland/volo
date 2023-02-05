@@ -146,7 +146,10 @@ static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
 }
 
 static bool asset_manager_load(
-    EcsWorld* world, AssetManagerComp* manager, AssetComp* asset, const EcsEntityId assetEntity) {
+    EcsWorld*               world,
+    const AssetManagerComp* manager,
+    AssetComp*              asset,
+    const EcsEntityId       assetEntity) {
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
   if (!source) {
@@ -178,12 +181,12 @@ ecs_view_define(DirtyAssetView) {
 
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
 
-ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); }
 
-static AssetManagerComp* asset_manager(EcsWorld* world) {
+static const AssetManagerComp* asset_manager_readonly(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
+  return globalItr ? ecs_view_read_t(globalItr, AssetManagerComp) : null;
 }
 
 static void
@@ -212,7 +215,7 @@ static u32 asset_unload_delay(
 }
 
 ecs_system_define(AssetUpdateDirtySys) {
-  AssetManagerComp* manager = asset_manager(world);
+  const AssetManagerComp* manager = asset_manager_readonly(world);
   if (!manager) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
@@ -337,7 +340,7 @@ ecs_system_define(AssetUpdateDirtySys) {
 }
 
 ecs_system_define(AssetPollChangedSys) {
-  AssetManagerComp* manager = asset_manager(world);
+  const AssetManagerComp* manager = asset_manager_readonly(world);
   if (!manager) {
     return;
   }
