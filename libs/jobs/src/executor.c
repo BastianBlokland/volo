@@ -259,7 +259,7 @@ void executor_init() {
   // Start threads for the other workers.
   for (u16 i = 1; i != g_jobsWorkerCount; ++i) {
     g_workerThreads[i] = thread_start(
-        executor_worker_thread, (void*)(usize)i, fmt_write_scratch("jobs_exec_{}", fmt_int(i)));
+        executor_worker_thread, (void*)(usize)i, fmt_write_scratch("volo_exec_{}", fmt_int(i)));
   }
 }
 
