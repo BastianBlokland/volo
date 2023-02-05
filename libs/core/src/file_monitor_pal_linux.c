@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_file_monitor.h"
+#include "core_thread.h"
 
 #include <errno.h>
 #include <limits.h>
@@ -17,9 +18,10 @@ typedef struct {
 } FileWatch;
 
 struct sFileMonitor {
-  Allocator* alloc;
-  int        fd;
-  DynArray   watches; // FileWatch[], kept sorted on the wd.
+  Allocator*  alloc;
+  ThreadMutex mutex;
+  int         fd;
+  DynArray    watches; // FileWatch[], kept sorted on the wd.
 
   Mem bufferRemaining;
 
@@ -59,40 +61,12 @@ static FileWatch* file_watch_by_wd(FileMonitor* monitor, const int wd) {
       &monitor->watches, watch_compare_wd, mem_struct(FileWatch, .wd = wd).ptr);
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc) {
-  const int fd = inotify_init1(IN_NONBLOCK);
-  if (fd == -1) {
-    diag_crash_msg("inotify_init() failed: {}", fmt_int(errno));
-  }
-
-  FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
-  *monitor             = (FileMonitor){
-      .alloc   = alloc,
-      .fd      = fd,
-      .watches = dynarray_create_t(alloc, FileWatch, 64),
-  };
-  return monitor;
-}
-
-void file_monitor_destroy(FileMonitor* monitor) {
-  close(monitor->fd);
-
-  dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
-  dynarray_destroy(&monitor->watches);
-
-  alloc_free_t(monitor->alloc, monitor);
-}
-
-FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
-  const char* pathNullTerm = to_null_term_scratch(path);
-  u32         mask         = monitor_inotifyMask;
-#if defined(IN_MASK_CREATE)
-  mask |= IN_MASK_CREATE;
-#endif
-  const int wd = inotify_add_watch(monitor->fd, pathNullTerm, mask);
-  if (wd < 0) {
-    return result_from_errno();
-  }
+/**
+ * Register a new watch-descriptor.
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static FileMonitorResult file_watch_register_locked(
+    FileMonitor* monitor, const int wd, const String path, const u64 userData) {
 #if !defined(IN_MASK_CREATE)
   /**
    * Without 'IN_MASK_CREATE' we need to manually check if we already had a watch for this path.
@@ -110,7 +84,10 @@ FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, co
   return FileMonitorResult_Success;
 }
 
-bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
+/**
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out) {
   /**
    * If our buffer is empty then read new events from the kernel.
    */
@@ -142,4 +119,55 @@ bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
   }
 
   return false; // No event was valid.
+}
+
+FileMonitor* file_monitor_create(Allocator* alloc) {
+  const int fd = inotify_init1(IN_NONBLOCK);
+  if (fd == -1) {
+    diag_crash_msg("inotify_init() failed: {}", fmt_int(errno));
+  }
+
+  FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
+
+  *monitor = (FileMonitor){
+      .alloc   = alloc,
+      .mutex   = thread_mutex_create(alloc),
+      .fd      = fd,
+      .watches = dynarray_create_t(alloc, FileWatch, 64),
+  };
+
+  return monitor;
+}
+
+void file_monitor_destroy(FileMonitor* monitor) {
+  close(monitor->fd);
+
+  dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
+  dynarray_destroy(&monitor->watches);
+
+  thread_mutex_destroy(monitor->mutex);
+  alloc_free_t(monitor->alloc, monitor);
+}
+
+FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
+  const char* pathNullTerm = to_null_term_scratch(path);
+  u32         mask         = monitor_inotifyMask;
+#if defined(IN_MASK_CREATE)
+  mask |= IN_MASK_CREATE;
+#endif
+  const int wd = inotify_add_watch(monitor->fd, pathNullTerm, mask);
+  if (wd < 0) {
+    return result_from_errno();
+  }
+  thread_mutex_lock(monitor->mutex);
+  const FileMonitorResult res = file_watch_register_locked(monitor, wd, path, userData);
+  thread_mutex_unlock(monitor->mutex);
+  return res;
+}
+
+bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
+  thread_mutex_lock(monitor->mutex);
+  const bool res = file_monitor_poll_locked(monitor, out);
+  thread_mutex_unlock(monitor->mutex);
+  return res;
 }
