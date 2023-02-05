@@ -75,59 +75,60 @@ static void behavior_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    const DataType nodeType = data_declare_t(g_dataReg, AssetAiNodeDef);
+    const DataType nodeType = data_declare_t(reg, AssetAiNodeDef);
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefInvert);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefInvert, child, nodeType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
+    data_reg_struct_t(reg, AssetAiNodeDefInvert);
+    data_reg_field_t(reg, AssetAiNodeDefInvert, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(reg, AssetAiNodeDefInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefTry);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefTry, child, nodeType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefTry, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.");
+    data_reg_struct_t(reg, AssetAiNodeDefTry);
+    data_reg_field_t(reg, AssetAiNodeDefTry, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(reg, AssetAiNodeDefTry, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefRepeat);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefRepeat, child, nodeType, .container = DataContainer_Pointer);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefRepeat, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Success' or 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(reg, AssetAiNodeDefRepeat);
+    data_reg_field_t(reg, AssetAiNodeDefRepeat, child, nodeType, .container = DataContainer_Pointer);
+    data_reg_comment_t(reg, AssetAiNodeDefRepeat, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Success' or 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefParallel);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefParallel, children, nodeType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(reg, AssetAiNodeDefParallel);
+    data_reg_field_t(reg, AssetAiNodeDefParallel, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(reg, AssetAiNodeDefParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefSelector);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefSelector, children, nodeType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefSelector, "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(reg, AssetAiNodeDefSelector);
+    data_reg_field_t(reg, AssetAiNodeDefSelector, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(reg, AssetAiNodeDefSelector, "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefSequence);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefSequence, children, nodeType, .container = DataContainer_Array);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
+    data_reg_struct_t(reg, AssetAiNodeDefSequence);
+    data_reg_field_t(reg, AssetAiNodeDefSequence, children, nodeType, .container = DataContainer_Array);
+    data_reg_comment_t(reg, AssetAiNodeDefSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefCondition);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefCondition, script, data_prim_t(String), .flags = DataFlags_HideName);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
+    data_reg_struct_t(reg, AssetAiNodeDefCondition);
+    data_reg_field_t(reg, AssetAiNodeDefCondition, script, data_prim_t(String), .flags = DataFlags_HideName);
+    data_reg_comment_t(reg, AssetAiNodeDefCondition, "Evaluate the script condition.\nEvaluates to 'Success' when the script condition is truthy or 'Failure' if its not.");
 
-    data_reg_struct_t(g_dataReg, AssetAiNodeDefExecute);
-    data_reg_field_t(g_dataReg, AssetAiNodeDefExecute, script, data_prim_t(String), .flags = DataFlags_HideName);
-    data_reg_comment_t(g_dataReg, AssetAiNodeDefExecute, "Execute the script expression.\nEvaluates to 'Success'.");
+    data_reg_struct_t(reg, AssetAiNodeDefExecute);
+    data_reg_field_t(reg, AssetAiNodeDefExecute, script, data_prim_t(String), .flags = DataFlags_HideName);
+    data_reg_comment_t(reg, AssetAiNodeDefExecute, "Execute the script expression.\nEvaluates to 'Success'.");
 
-    data_reg_union_t(g_dataReg, AssetAiNodeDef, type);
-    data_reg_union_name_t(g_dataReg, AssetAiNodeDef, name);
-    data_reg_choice_empty(g_dataReg, AssetAiNodeDef, AssetAiNode_Running);
-    data_reg_choice_empty(g_dataReg, AssetAiNodeDef, AssetAiNode_Success);
-    data_reg_choice_empty(g_dataReg, AssetAiNodeDef, AssetAiNode_Failure);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Invert, data_invert, t_AssetAiNodeDefInvert);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Try, data_try, t_AssetAiNodeDefTry);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Repeat, data_repeat, t_AssetAiNodeDefRepeat);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Parallel, data_parallel, t_AssetAiNodeDefParallel);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Selector, data_selector, t_AssetAiNodeDefSelector);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeDefSequence);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Condition, data_condition, t_AssetAiNodeDefCondition);
-    data_reg_choice_t(g_dataReg, AssetAiNodeDef, AssetAiNode_Execute, data_execute, t_AssetAiNodeDefExecute);
+    data_reg_union_t(reg, AssetAiNodeDef, type);
+    data_reg_union_name_t(reg, AssetAiNodeDef, name);
+    data_reg_choice_empty(reg, AssetAiNodeDef, AssetAiNode_Running);
+    data_reg_choice_empty(reg, AssetAiNodeDef, AssetAiNode_Success);
+    data_reg_choice_empty(reg, AssetAiNodeDef, AssetAiNode_Failure);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Invert, data_invert, t_AssetAiNodeDefInvert);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Try, data_try, t_AssetAiNodeDefTry);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Repeat, data_repeat, t_AssetAiNodeDefRepeat);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Parallel, data_parallel, t_AssetAiNodeDefParallel);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Selector, data_selector, t_AssetAiNodeDefSelector);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Sequence, data_sequence, t_AssetAiNodeDefSequence);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Condition, data_condition, t_AssetAiNodeDefCondition);
+    data_reg_choice_t(reg, AssetAiNodeDef, AssetAiNode_Execute, data_execute, t_AssetAiNodeDefExecute);
     // clang-format on
 
     g_dataNodeMeta = data_meta_t(nodeType);
+    g_dataReg      = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

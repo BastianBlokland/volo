@@ -51,40 +51,41 @@ static void ptx_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_enum_t(g_dataReg, PtxType);
-    data_reg_const_t(g_dataReg, PtxType, One);
-    data_reg_const_t(g_dataReg, PtxType, Zero);
-    data_reg_const_t(g_dataReg, PtxType, Checker);
-    data_reg_const_t(g_dataReg, PtxType, Circle);
-    data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
-    data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
-    data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
-    data_reg_const_t(g_dataReg, PtxType, BrdfIntegration);
+    data_reg_enum_t(reg, PtxType);
+    data_reg_const_t(reg, PtxType, One);
+    data_reg_const_t(reg, PtxType, Zero);
+    data_reg_const_t(reg, PtxType, Checker);
+    data_reg_const_t(reg, PtxType, Circle);
+    data_reg_const_t(reg, PtxType, NoisePerlin);
+    data_reg_const_t(reg, PtxType, NoiseWhite);
+    data_reg_const_t(reg, PtxType, NoiseWhiteGauss);
+    data_reg_const_t(reg, PtxType, BrdfIntegration);
 
-    data_reg_enum_t(g_dataReg, AssetTextureChannels);
-    data_reg_const_t(g_dataReg, AssetTextureChannels, One);
-    data_reg_const_t(g_dataReg, AssetTextureChannels, Four);
+    data_reg_enum_t(reg, AssetTextureChannels);
+    data_reg_const_t(reg, AssetTextureChannels, One);
+    data_reg_const_t(reg, AssetTextureChannels, Four);
 
-    data_reg_enum_t(g_dataReg, AssetTextureType);
-    data_reg_const_t(g_dataReg, AssetTextureType, U8);
-    data_reg_const_t(g_dataReg, AssetTextureType, U16);
-    data_reg_const_t(g_dataReg, AssetTextureType, F32);
+    data_reg_enum_t(reg, AssetTextureType);
+    data_reg_const_t(reg, AssetTextureType, U8);
+    data_reg_const_t(reg, AssetTextureType, U16);
+    data_reg_const_t(reg, AssetTextureType, F32);
 
-    data_reg_struct_t(g_dataReg, PtxDef);
-    data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
-    data_reg_field_t(g_dataReg, PtxDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PtxDef, channels, t_AssetTextureChannels);
-    data_reg_field_t(g_dataReg, PtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PtxDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PtxDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(reg, PtxDef);
+    data_reg_field_t(reg, PtxDef, type, t_PtxType);
+    data_reg_field_t(reg, PtxDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PtxDef, channels, t_AssetTextureChannels);
+    data_reg_field_t(reg, PtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, PtxDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, PtxDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     // clang-format on
 
     g_dataPtxDefMeta = data_meta_t(t_PtxDef);
+    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
@@ -211,7 +212,7 @@ static GeoColor ptx_sample_brdf_integration(const f32 roughness, const f32 nDotV
   f32 outScale = 0;
   f32 outBias  = 0;
 
-  enum { SampleCount = 256 };
+  enum { SampleCount = 128 };
   for (u32 i = 0; i != SampleCount; ++i) {
     const GeoVector halfDir  = importance_sample_ggx(i, SampleCount, roughness);
     const f32       vDotH    = math_max(geo_vector_dot(view, halfDir), 0);

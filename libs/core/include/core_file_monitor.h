@@ -7,11 +7,12 @@ typedef struct sAllocator Allocator;
 /**
  * File Monitor.
  * Can watch for file modifications.
+ * NOTE: Api is thread-safe.
  */
 typedef struct sFileMonitor FileMonitor;
 
 /**
- * Event that significes that the given file was modified.
+ * Event that signifies that the given file was modified.
  */
 typedef struct {
   String path;

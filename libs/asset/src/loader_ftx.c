@@ -60,26 +60,27 @@ static void ftx_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(g_dataReg, FtxDefFont);
-    data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FtxDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(reg, FtxDefFont);
+    data_reg_field_t(reg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FtxDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FtxDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(g_dataReg, FtxDef);
-    data_reg_field_t(g_dataReg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, FtxDef, border, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDef, baseline, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, FtxDef, fonts, t_FtxDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(reg, FtxDef);
+    data_reg_field_t(reg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FtxDef, border, data_prim_t(u32));
+    data_reg_field_t(reg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FtxDef, baseline, data_prim_t(f32));
+    data_reg_field_t(reg, FtxDef, fonts, t_FtxDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     // clang-format on
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDef);
+    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }

@@ -10,10 +10,8 @@
 #include "loader_internal.h"
 #include "repo_internal.h"
 
-/**
- * Maximum number of new assets to load per tick.
- */
-#define asset_max_loads_per_tick 5
+#define asset_max_loads_per_task 3
+#define asset_num_load_tasks 3
 
 /**
  * Amount of frames to delay unloading of assets.
@@ -146,7 +144,10 @@ static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
 }
 
 static bool asset_manager_load(
-    EcsWorld* world, AssetManagerComp* manager, AssetComp* asset, const EcsEntityId assetEntity) {
+    EcsWorld*               world,
+    const AssetManagerComp* manager,
+    AssetComp*              asset,
+    const EcsEntityId       assetEntity) {
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
   if (!source) {
@@ -178,12 +179,12 @@ ecs_view_define(DirtyAssetView) {
 
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
 
-ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); }
 
-static AssetManagerComp* asset_manager(EcsWorld* world) {
+static const AssetManagerComp* asset_manager_readonly(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
+  return globalItr ? ecs_view_read_t(globalItr, AssetManagerComp) : null;
 }
 
 static void
@@ -212,7 +213,7 @@ static u32 asset_unload_delay(
 }
 
 ecs_system_define(AssetUpdateDirtySys) {
-  AssetManagerComp* manager = asset_manager(world);
+  const AssetManagerComp* manager = asset_manager_readonly(world);
   if (!manager) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
@@ -225,7 +226,7 @@ ecs_system_define(AssetUpdateDirtySys) {
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
 
-  for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr_step(assetsView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId          entity         = ecs_view_entity(itr);
     AssetComp*                 assetComp      = ecs_view_write_t(itr, AssetComp);
     AssetDirtyComp*            dirtyComp      = ecs_view_write_t(itr, AssetDirtyComp);
@@ -262,7 +263,7 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      const bool canLoad = startedLoads < asset_max_loads_per_tick;
+      const bool canLoad = startedLoads < asset_max_loads_per_task;
       if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
         if (asset_manager_load(world, manager, assetComp, entity)) {
@@ -337,7 +338,7 @@ ecs_system_define(AssetUpdateDirtySys) {
 }
 
 ecs_system_define(AssetPollChangedSys) {
-  AssetManagerComp* manager = asset_manager(world);
+  const AssetManagerComp* manager = asset_manager_readonly(world);
   if (!manager) {
     return;
   }
@@ -380,6 +381,8 @@ ecs_module_init(asset_manager_module) {
   ecs_register_view(GlobalView);
 
   ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
+  ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
+
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
 }

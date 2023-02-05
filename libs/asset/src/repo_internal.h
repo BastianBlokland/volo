@@ -6,6 +6,10 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
+/**
+ * Asset repository.
+ * NOTE: Api is thread-safe.
+ */
 struct sAssetRepo {
   AssetSource* (*open)(AssetRepo*, String id);
   void (*destroy)(AssetRepo*);

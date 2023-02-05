@@ -23,6 +23,7 @@
 #define atx_max_textures 100
 #define atx_max_layers 256
 #define atx_max_size 2048
+#define atx_max_generates_per_tick 1
 #define atx_spec_irradiance_mips 5
 
 static const GeoQuat g_cubeFaceRot[] = {
@@ -61,24 +62,25 @@ static void atx_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_enum_t(g_dataReg, AtxType);
-    data_reg_const_t(g_dataReg, AtxType, Array);
-    data_reg_const_t(g_dataReg, AtxType, Cube);
-    data_reg_const_t(g_dataReg, AtxType, CubeDiffIrradiance);
-    data_reg_const_t(g_dataReg, AtxType, CubeSpecIrradiance);
+    data_reg_enum_t(reg, AtxType);
+    data_reg_const_t(reg, AtxType, Array);
+    data_reg_const_t(reg, AtxType, Cube);
+    data_reg_const_t(reg, AtxType, CubeDiffIrradiance);
+    data_reg_const_t(reg, AtxType, CubeSpecIrradiance);
 
-    data_reg_struct_t(g_dataReg, AtxDef);
-    data_reg_field_t(g_dataReg, AtxDef, type, t_AtxType);
-    data_reg_field_t(g_dataReg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_struct_t(reg, AtxDef);
+    data_reg_field_t(reg, AtxDef, type, t_AtxType);
+    data_reg_field_t(reg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
     g_dataAtxDefMeta = data_meta_t(t_AtxDef);
+    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
@@ -569,31 +571,51 @@ ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
- * Update all active loads.
+ * Acquire all textures.
  */
-ecs_system_define(AtxLoadAssetSys) {
+ecs_system_define(AtxLoadAcquireSys) {
   AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     return;
   }
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
+
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
+
+    if (load->textures.size) {
+      continue; // Already acquired textures.
+    }
+
+    /**
+     * Acquire all textures.
+     */
+    array_ptr_for_t(load->def.textures, String, texName) {
+      const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
+      *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
+      asset_acquire(world, texAsset);
+      asset_register_dep(world, entity, texAsset);
+    }
+  }
+}
+
+/**
+ * Update all active loads.
+ */
+ecs_system_define(AtxLoadUpdateSys) {
   EcsView*     loadView   = ecs_world_view_t(world, LoadView);
   EcsIterator* textureItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
+
+  u32 numGenerates = 0;
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
     AtxError          err;
 
-    /**
-     * Start loading all textures.
-     */
     if (!load->textures.size) {
-      array_ptr_for_t(load->def.textures, String, texName) {
-        const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
-        *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
-        asset_acquire(world, texAsset);
-        asset_register_dep(world, entity, texAsset);
-      }
+      goto Next; // Textures not yet acquired.
     }
 
     /**
@@ -635,6 +657,9 @@ ecs_system_define(AtxLoadAssetSys) {
     dynarray_for_t(&load->textures, EcsEntityId, texAsset) { asset_release(world, *texAsset); }
 
   Next:
+    if (++numGenerates == atx_max_generates_per_tick) {
+      break;
+    }
     continue;
   }
 }
@@ -648,8 +673,8 @@ ecs_module_init(asset_atx_module) {
   ecs_register_view(LoadView);
   ecs_register_view(TextureView);
 
-  ecs_register_system(
-      AtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
+  ecs_register_system(AtxLoadAcquireSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(AtxLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
 void asset_load_atx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {

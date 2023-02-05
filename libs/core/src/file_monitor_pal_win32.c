@@ -2,6 +2,7 @@
 #include "core_annotation.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
+#include "core_thread.h"
 
 /**
  * File Monitor.
@@ -27,9 +28,10 @@ typedef struct {
 } FileWatch;
 
 struct sFileMonitor {
-  Allocator* alloc;
-  DynArray   watches;  // FileWatch[], kept sorted on the pathHash.
-  DynArray   modFiles; // StringHash[] (file hashes)
+  Allocator*  alloc;
+  ThreadMutex mutex;
+  DynArray    watches;  // FileWatch[], kept sorted on the pathHash.
+  DynArray    modFiles; // StringHash[] (file hashes)
 };
 
 static i8 watch_compare_path(const void* a, const void* b) {
@@ -81,28 +83,11 @@ static void monitor_scan_modified_files(FileMonitor* monitor) {
   }
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc) {
-  FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
-  *monitor             = (FileMonitor){
-                  .alloc    = alloc,
-                  .watches  = dynarray_create_t(alloc, FileWatch, 64),
-                  .modFiles = dynarray_create_t(alloc, StringHash, 16),
-  };
-  return monitor;
-}
-
-void file_monitor_destroy(FileMonitor* monitor) {
-  dynarray_for_t(&monitor->watches, FileWatch, watch) {
-    file_destroy(watch->handle);
-    string_free(monitor->alloc, watch->path);
-  }
-  dynarray_destroy(&monitor->watches);
-  dynarray_destroy(&monitor->modFiles);
-
-  alloc_free_t(monitor->alloc, monitor);
-}
-
-FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
+/**
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static FileMonitorResult
+file_monitor_watch_locked(FileMonitor* monitor, const String path, const u64 userData) {
   const StringHash pathHash = string_hash(path);
   if (file_watch_by_path(monitor, pathHash)) {
     return FileMonitorResult_AlreadyWatching;
@@ -123,7 +108,10 @@ FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, co
   return FileMonitorResult_Success;
 }
 
-bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
+/**
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out) {
   if (!monitor->modFiles.size) {
     monitor_scan_modified_files(monitor);
   }
@@ -133,12 +121,53 @@ bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
     dynarray_pop(&monitor->modFiles, 1);
 
     const FileWatch* watch = file_watch_by_path(monitor, p);
-    *out                   = (FileMonitorEvent){
-                          .path     = watch->path,
-                          .userData = watch->userData,
+
+    *out = (FileMonitorEvent){
+        .path     = watch->path,
+        .userData = watch->userData,
     };
+
     return true;
   }
 
   return false; // No files modified.
+}
+
+FileMonitor* file_monitor_create(Allocator* alloc) {
+  FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
+
+  *monitor = (FileMonitor){
+      .alloc    = alloc,
+      .mutex    = thread_mutex_create(alloc),
+      .watches  = dynarray_create_t(alloc, FileWatch, 64),
+      .modFiles = dynarray_create_t(alloc, StringHash, 16),
+  };
+
+  return monitor;
+}
+
+void file_monitor_destroy(FileMonitor* monitor) {
+  dynarray_for_t(&monitor->watches, FileWatch, watch) {
+    file_destroy(watch->handle);
+    string_free(monitor->alloc, watch->path);
+  }
+  dynarray_destroy(&monitor->watches);
+  dynarray_destroy(&monitor->modFiles);
+  thread_mutex_destroy(monitor->mutex);
+
+  alloc_free_t(monitor->alloc, monitor);
+}
+
+FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
+  thread_mutex_lock(monitor->mutex);
+  const FileMonitorResult res = file_monitor_watch_locked(monitor, path, userData);
+  thread_mutex_unlock(monitor->mutex);
+  return res;
+}
+
+bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
+  thread_mutex_lock(monitor->mutex);
+  const FileMonitorResult res = file_monitor_poll_locked(monitor, out);
+  thread_mutex_unlock(monitor->mutex);
+  return res;
 }

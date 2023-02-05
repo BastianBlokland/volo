@@ -63,50 +63,51 @@ static void pme_datareg_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_dataReg) {
-    g_dataReg = data_reg_create(g_alloc_persist);
+    DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_enum_t(g_dataReg, PmeType);
-    data_reg_const_t(g_dataReg, PmeType, Triangle);
-    data_reg_const_t(g_dataReg, PmeType, Quad);
-    data_reg_const_t(g_dataReg, PmeType, Cube);
-    data_reg_const_t(g_dataReg, PmeType, Capsule);
-    data_reg_const_t(g_dataReg, PmeType, Cone);
-    data_reg_const_t(g_dataReg, PmeType, Cylinder);
-    data_reg_const_t(g_dataReg, PmeType, Hemisphere);
+    data_reg_enum_t(reg, PmeType);
+    data_reg_const_t(reg, PmeType, Triangle);
+    data_reg_const_t(reg, PmeType, Quad);
+    data_reg_const_t(reg, PmeType, Cube);
+    data_reg_const_t(reg, PmeType, Capsule);
+    data_reg_const_t(reg, PmeType, Cone);
+    data_reg_const_t(reg, PmeType, Cylinder);
+    data_reg_const_t(reg, PmeType, Hemisphere);
 
-    data_reg_enum_t(g_dataReg, PmeAxis);
-    data_reg_const_t(g_dataReg, PmeAxis, Up);
-    data_reg_const_t(g_dataReg, PmeAxis, Down);
-    data_reg_const_t(g_dataReg, PmeAxis, Right);
-    data_reg_const_t(g_dataReg, PmeAxis, Left);
-    data_reg_const_t(g_dataReg, PmeAxis, Forward);
-    data_reg_const_t(g_dataReg, PmeAxis, Backward);
+    data_reg_enum_t(reg, PmeAxis);
+    data_reg_const_t(reg, PmeAxis, Up);
+    data_reg_const_t(reg, PmeAxis, Down);
+    data_reg_const_t(reg, PmeAxis, Right);
+    data_reg_const_t(reg, PmeAxis, Left);
+    data_reg_const_t(reg, PmeAxis, Forward);
+    data_reg_const_t(reg, PmeAxis, Backward);
 
-    data_reg_struct_t(g_dataReg, PmeBounds);
-    data_reg_field_t(g_dataReg, PmeBounds, minX, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, PmeBounds, minY, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, PmeBounds, minZ, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, PmeBounds, maxX, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, PmeBounds, maxY, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, PmeBounds, maxZ, data_prim_t(f32));
+    data_reg_struct_t(reg, PmeBounds);
+    data_reg_field_t(reg, PmeBounds, minX, data_prim_t(f32));
+    data_reg_field_t(reg, PmeBounds, minY, data_prim_t(f32));
+    data_reg_field_t(reg, PmeBounds, minZ, data_prim_t(f32));
+    data_reg_field_t(reg, PmeBounds, maxX, data_prim_t(f32));
+    data_reg_field_t(reg, PmeBounds, maxY, data_prim_t(f32));
+    data_reg_field_t(reg, PmeBounds, maxZ, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, PmeDef);
-    data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
-    data_reg_field_t(g_dataReg, PmeDef, axis, t_PmeAxis);
-    data_reg_field_t(g_dataReg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, PmeDef, bounds, t_PmeBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+    data_reg_struct_t(reg, PmeDef);
+    data_reg_field_t(reg, PmeDef, type, t_PmeType);
+    data_reg_field_t(reg, PmeDef, axis, t_PmeAxis);
+    data_reg_field_t(reg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, PmeDef, bounds, t_PmeBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataPmeDefMeta = data_meta_t(t_PmeDef);
+    g_dataReg        = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
