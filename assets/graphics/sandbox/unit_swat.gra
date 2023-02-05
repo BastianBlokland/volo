@@ -19,13 +19,13 @@
       "textureId": "external/swat/swat_2_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/swat/swat_2_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/swat/swat_4.gltf",

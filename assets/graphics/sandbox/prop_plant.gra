@@ -24,19 +24,19 @@
       "textureId": "external/plant_fern/plant_fern_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/plant_fern/plant_fern_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/plant_fern/plant_fern_alpha.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/plant_fern/plant_fern.gltf",

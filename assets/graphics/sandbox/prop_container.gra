@@ -19,13 +19,13 @@
       "textureId": "external/container/container_3_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/container/container_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/container/container.gltf",

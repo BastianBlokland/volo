@@ -19,13 +19,13 @@
       "textureId": "external/turret/turret_4_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/turret/turret_2_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/turret/turret_missile.gltf",

@@ -19,13 +19,13 @@
       "textureId": "external/water_tower/water_tower_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/water_tower/water_tower_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/water_tower/water_tower.obj",
