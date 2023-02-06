@@ -23,7 +23,8 @@
     {
       "textureId": "textures/sandbox/env_spec_irradiance.atx",
       "wrap": "Clamp",
-      "filter": "Linear"
+      "filter": "Linear",
+      "mipBlending": true
     },
     {
       "textureId": "textures/sandbox/env_brdf_integration.ptx",
