@@ -19,13 +19,13 @@
       "textureId": "external/crate/crate_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/crate/crate_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/crate/crate.gltf",

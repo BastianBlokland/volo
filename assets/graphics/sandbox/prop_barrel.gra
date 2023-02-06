@@ -19,13 +19,13 @@
       "textureId": "external/barrel/barrel_color_rough.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/barrel/barrel_normal.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/barrel/barrel.gltf",

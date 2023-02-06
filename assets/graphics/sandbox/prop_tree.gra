@@ -24,19 +24,19 @@
       "textureId": "external/tree_acacia/tree_acacia_2_color_rough.tga",
       "wrap": "Repeat",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/tree_acacia/tree_acacia_normal.tga",
       "wrap": "Repeat",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     },
     {
       "textureId": "external/tree_acacia/tree_acacia_alpha.tga",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x8"
+      "anisotropy": "x2"
     }
   ],
   "meshId": "external/tree_acacia/tree_acacia.gltf",

@@ -38,26 +38,22 @@
     {
       "textureId": "external/tiling/sand_2_color_rough.tga",
       "wrap": "Repeat",
-      "filter": "Linear",
-      "anisotropy": "x4"
+      "filter": "Linear"
     },
     {
       "textureId": "external/tiling/sand_2_normal.tga",
       "wrap": "Repeat",
-      "filter": "Linear",
-      "anisotropy": "x4"
+      "filter": "Linear"
     },
     {
       "textureId": "external/tiling/dirt_2_color_rough.tga",
       "wrap": "Repeat",
-      "filter": "Linear",
-      "anisotropy": "x4"
+      "filter": "Linear"
     },
     {
       "textureId": "external/tiling/dirt_2_normal.tga",
       "wrap": "Repeat",
-      "filter": "Linear",
-      "anisotropy": "x4"
+      "filter": "Linear"
     }
   ],
   "meshId": "meshes/scene/terrain_patch.pme",

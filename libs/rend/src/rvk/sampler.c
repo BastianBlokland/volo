@@ -110,10 +110,11 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
       .unnormalizedCoordinates = false,
       .compareEnable           = (spec.flags & RvkSamplerFlags_SupportCompare) != 0,
       .compareOp               = VK_COMPARE_OP_LESS,
-      .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-      .mipLodBias              = 0,
-      .minLod                  = 0,
-      .maxLod                  = spec.mipLevels,
+      .mipmapMode = (spec.flags & RvkSamplerFlags_MipBlending) ? VK_SAMPLER_MIPMAP_MODE_LINEAR
+                                                               : VK_SAMPLER_MIPMAP_MODE_NEAREST,
+      .mipLodBias = 0,
+      .minLod     = 0,
+      .maxLod     = spec.mipLevels,
   };
 
   if (dev->flags & RvkDeviceFlags_SupportAnisotropy) {
