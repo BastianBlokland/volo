@@ -94,6 +94,7 @@ typedef struct {
   AssetGraphicWrap   wrap;
   AssetGraphicFilter filter;
   AssetGraphicAniso  anisotropy;
+  bool               mipBlending; // Aka 'Trilinear' filtering.
 } AssetGraphicSampler;
 
 ecs_comp_extern_public(AssetGraphicComp) {

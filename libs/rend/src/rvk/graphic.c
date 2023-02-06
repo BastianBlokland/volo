@@ -756,9 +756,14 @@ void rvk_graphic_sampler_add(
 
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (!itr->texture) {
+      RvkSamplerFlags samplerFlags = RvkSamplerFlags_None;
+      if (sampler->mipBlending) {
+        samplerFlags |= RvkSamplerFlags_MipBlending;
+      }
+
       itr->texture = tex;
       itr->spec    = (RvkSamplerSpec){
-          .flags  = RvkSamplerFlags_None,
+          .flags  = samplerFlags,
           .wrap   = rvk_graphic_wrap(sampler->wrap),
           .filter = rvk_graphic_filter(sampler->filter),
           .aniso  = rvk_graphic_aniso(sampler->anisotropy),

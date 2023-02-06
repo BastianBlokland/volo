@@ -6,7 +6,8 @@ typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
   RvkSamplerFlags_None           = 0,
-  RvkSamplerFlags_SupportCompare = 1 << 0, // Enable support for comparisons using sampler2DShadow.
+  RvkSamplerFlags_MipBlending    = 1 << 0, // Aka 'Trilinear' filtering.
+  RvkSamplerFlags_SupportCompare = 1 << 1, // Enable support for comparisons using sampler2DShadow.
 } RvkSamplerFlags;
 
 typedef enum {

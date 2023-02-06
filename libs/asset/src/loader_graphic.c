@@ -91,6 +91,7 @@ static void graphic_datareg_init() {
     data_reg_field_t(reg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetGraphicComp);
     data_reg_field_t(reg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
