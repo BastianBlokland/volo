@@ -49,6 +49,8 @@ f32             input_cursor_y(const InputManagerComp*);       // Normalized.
 f32             input_cursor_delta_x(const InputManagerComp*); // Normalized.
 f32             input_cursor_delta_y(const InputManagerComp*); // Normalized.
 f32             input_cursor_aspect(const InputManagerComp*);  // Aspect ratio of cursor window.
+f32             input_scroll_x(const InputManagerComp*);
+f32             input_scroll_y(const InputManagerComp*);
 
 /**
  * Check if an input action was triggered this tick.

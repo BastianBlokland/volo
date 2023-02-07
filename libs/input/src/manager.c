@@ -19,6 +19,7 @@ ecs_comp_define(InputManagerComp) {
   f32             cursorPosNorm[2];
   f32             cursorDeltaNorm[2];
   f32             cursorAspect; // Aspect ratio of the window that currently contains the cursor.
+  f32             scrollDelta[2];
   DynArray        triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
 };
 
@@ -123,6 +124,7 @@ static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win
 static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
   const GapVector pos     = gap_window_param(win, GapParam_CursorPos);
   const GapVector delta   = gap_window_param(win, GapParam_CursorDelta);
+  const GapVector scroll  = gap_window_param(win, GapParam_ScrollDelta);
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
 
   if (winSize.x > 0 && winSize.y > 0) {
@@ -131,10 +133,13 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
     manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
     manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
     manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
+    manager->scrollDelta[0]     = scroll.x;
+    manager->scrollDelta[1]     = scroll.y;
   } else {
     mem_set(array_mem(manager->cursorPosNorm), 0);
     mem_set(array_mem(manager->cursorDeltaNorm), 0);
     manager->cursorAspect = 1.0f;
+    mem_set(array_mem(manager->scrollDelta), 0);
   }
 
   switch (manager->cursorMode) {
@@ -240,6 +245,8 @@ f32 input_cursor_y(const InputManagerComp* manager) { return manager->cursorPosN
 f32 input_cursor_delta_x(const InputManagerComp* manager) { return manager->cursorDeltaNorm[0]; }
 f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->cursorDeltaNorm[1]; }
 f32 input_cursor_aspect(const InputManagerComp* manager) { return manager->cursorAspect; }
+f32 input_scroll_x(const InputManagerComp* manager) { return manager->scrollDelta[0]; }
+f32 input_scroll_y(const InputManagerComp* manager) { return manager->scrollDelta[1]; }
 
 bool input_triggered_hash(const InputManagerComp* manager, const u32 actionHash) {
   dynarray_for_t(&manager->triggeredActions, u32, triggeredActionHash) {
