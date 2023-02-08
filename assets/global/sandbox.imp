@@ -134,18 +134,38 @@
       ]
     },
     {
-      "name": "CameraLookEnable",
+      "name": "CameraPan",
       "blockers": [
         "TextInput"
       ],
       "bindings": [
         {
           "type": "Down",
-          "key": "MouseRight"
+          "key": "Control"
         },
         {
           "type": "Down",
+          "key": "MouseMiddle"
+        },
+        {
+          "type": "Down",
+          "key": "MouseExtra2"
+        }
+      ]
+    },
+    {
+      "name": "CameraRotate",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Down",
           "key": "Alt"
+        },
+        {
+          "type": "Down",
+          "key": "MouseExtra1"
         }
       ]
     },

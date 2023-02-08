@@ -38,13 +38,7 @@ static void app_window_create(EcsWorld* world) {
       .persNear  = 0.75f,
       .orthoSize = 5);
 
-  ecs_world_add_t(
-      world,
-      window,
-      SceneTransformComp,
-      .position = {50, 75, 0},
-      .rotation = geo_quat_mul(
-          geo_quat_forward_to_left, geo_quat_angle_axis(geo_right, 70 * math_deg_to_rad)));
+  ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
