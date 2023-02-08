@@ -89,8 +89,10 @@ static void update_camera_movement(
   state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
 
   // Update zoom.
-  const f32 zoomDelta        = input_scroll_y(input) * g_inputCamZoomMult;
-  state->camZoomTgt          = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
+  if ((input_blockers(input) & InputBlocker_HoveringUi) == 0) {
+    const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
+    state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
+  }
   const f32 camZoomEaseDelta = deltaSeconds * g_inputCamZoomEaseSpeed;
   state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
 
