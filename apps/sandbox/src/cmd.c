@@ -4,20 +4,17 @@
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_brain.h"
-#include "scene_prefab.h"
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
 
 static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
-static const u8   g_cmdPlayerFaction = 0;
 
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
   Cmd_Move,
   Cmd_Attack,
-  Cmd_SpawnUnit,
   Cmd_Destroy,
 } CmdType;
 
@@ -36,22 +33,16 @@ typedef struct {
 } CmdAttack;
 
 typedef struct {
-  GeoVector position;
-  u32       count;
-} CmdSpawnUnit;
-
-typedef struct {
   EcsEntityId object;
 } CmdDestroy;
 
 typedef struct {
   CmdType type;
   union {
-    CmdSelect    select;
-    CmdMove      move;
-    CmdAttack    attack;
-    CmdSpawnUnit spawnUnit;
-    CmdDestroy   destroy;
+    CmdSelect  select;
+    CmdMove    move;
+    CmdAttack  attack;
+    CmdDestroy destroy;
   };
 } Cmd;
 
@@ -110,19 +101,6 @@ static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cm
     break;
   case Cmd_Attack:
     cmd_execute_attack(world, &cmd->attack);
-    break;
-  case Cmd_SpawnUnit:
-    for (u32 i = 0; i != cmd->spawnUnit.count; ++i) {
-      scene_prefab_spawn(
-          world,
-          &(ScenePrefabSpec){
-              .prefabId = string_hash_lit("UnitRifle"),
-              .faction  = g_cmdPlayerFaction,
-              .position = cmd->spawnUnit.position,
-              .rotation = geo_quat_look(geo_backward, geo_up),
-              .flags    = ScenePrefabFlags_SnapToTerrain,
-          });
-    }
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_entity_valid(cmd->destroy.object), "Destroying invalid entity");
@@ -199,13 +177,6 @@ void cmd_push_attack(
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
-  };
-}
-
-void cmd_push_spawn_unit(CmdControllerComp* controller, const GeoVector position, const u32 count) {
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
-      .type      = Cmd_SpawnUnit,
-      .spawnUnit = {.position = position, .count = count},
   };
 }
 

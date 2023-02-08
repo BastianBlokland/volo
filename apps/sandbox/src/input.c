@@ -245,14 +245,6 @@ static void update_camera_interact(
     input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
 
-  if (!selectActive && terrain && input_triggered_lit(input, "SpawnUnit")) {
-    const u32 count = input_modifiers(input) & InputModifier_Shift ? 25 : 1;
-    const f32 rayT  = scene_terrain_intersect_ray(terrain, &inputRay);
-    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT), count);
-    }
-  }
-
   if (!selectActive && input_triggered_lit(input, "CursorLock")) {
     input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
   }

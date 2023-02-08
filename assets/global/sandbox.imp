@@ -35,25 +35,6 @@
       ]
     },
     {
-      "name": "SpawnUnit",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "PrefabCreateMode",
-        "CursorLocked"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseLeft",
-          "requiredModifiers": [
-            "Control"
-          ]
-        }
-      ]
-    },
-    {
       "name": "Destroy",
       "blockers": [
         "TextInput"
