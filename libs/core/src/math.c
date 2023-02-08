@@ -110,6 +110,12 @@ i64 math_clamp_i64(const i64 val, const i64 min, const i64 max) {
   return val;
 }
 
+f32 math_lerp_angle_f32(const f32 angleX, const f32 angleY, const f32 t) {
+  const f32 diff         = math_mod_f32(angleY - angleX, math_pi_f32 * 2);
+  const f32 shortestDiff = math_mod_f32(diff * 2, math_pi_f32 * 2) - diff;
+  return angleX + shortestDiff * t;
+}
+
 bool math_towards_f32(f32* val, const f32 target, const f32 maxDelta) {
   if (math_abs(target - *val) <= maxDelta) {
     *val = target;
