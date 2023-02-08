@@ -12,20 +12,21 @@
 
 #include "cmd_internal.h"
 
-static const f32 g_inputMinInteractDist     = 1.0f;
-static const f32 g_inputMaxInteractDist     = 250.0f;
-static const f32 g_inputCamDistMin          = 20.0f;
-static const f32 g_inputCamDistMax          = 85.0f;
-static const f32 g_inputCamPanCursorMult    = 100.0f;
-static const f32 g_inputCamPanTriggeredMult = 50.0f;
-static const f32 g_inputCamPanMaxZoomMult   = 0.4f;
-static const f32 g_inputCamPosEaseSpeed     = 20.0f;
-static const f32 g_inputCamRotX             = 65.0f * math_deg_to_rad;
-static const f32 g_inputCamRotYMult         = 5.0f;
-static const f32 g_inputCamRotYEaseSpeed    = 20.0f;
-static const f32 g_inputCamZoomMult         = 0.1f;
-static const f32 g_inputCamZoomEaseSpeed    = 15.0f;
-static const f32 g_inputDragThreshold       = 0.005f; // In normalized screen-space coordinates.
+static const f32    g_inputMinInteractDist     = 1.0f;
+static const f32    g_inputMaxInteractDist     = 250.0f;
+static const f32    g_inputCamDistMin          = 20.0f;
+static const f32    g_inputCamDistMax          = 85.0f;
+static const f32    g_inputCamPanCursorMult    = 100.0f;
+static const f32    g_inputCamPanTriggeredMult = 50.0f;
+static const f32    g_inputCamPanMaxZoomMult   = 0.4f;
+static const f32    g_inputCamPosEaseSpeed     = 20.0f;
+static const f32    g_inputCamRotX             = 65.0f * math_deg_to_rad;
+static const f32    g_inputCamRotYMult         = 5.0f;
+static const f32    g_inputCamRotYEaseSpeed    = 20.0f;
+static const f32    g_inputCamZoomMult         = 0.1f;
+static const f32    g_inputCamZoomEaseSpeed    = 15.0f;
+static const GeoBox g_inputCamArea             = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
+static const f32    g_inputDragThreshold       = 0.005f; // In normalized screen-space coordinates.
 
 typedef enum {
   InputSelectState_None,
@@ -75,6 +76,7 @@ static void update_camera_movement(
   panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
   const f32 camPosEaseDelta = deltaSeconds * g_inputCamPosEaseSpeed;
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
+  state->camPosTgt = geo_box_closest_point(&g_inputCamArea, state->camPosTgt);
   state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
 
   // Update Y rotation.
