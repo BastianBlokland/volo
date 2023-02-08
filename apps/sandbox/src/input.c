@@ -244,10 +244,6 @@ static void update_camera_interact(
   if (!selectActive && input_triggered_lit(input, "Order")) {
     input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
-
-  if (!selectActive && input_triggered_lit(input, "CursorLock")) {
-    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
-  }
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {

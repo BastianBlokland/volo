@@ -220,18 +220,6 @@
       ]
     },
     {
-      "name": "CursorLock",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Tab"
-        }
-      ]
-    },
-    {
       "name": "DisableUiToggle",
       "bindings": [
         {
