@@ -96,6 +96,7 @@ typedef enum {
   GapParam_WindowSize = 0,
   GapParam_WindowSizePreFullscreen, // Last window-size before entering fullscreen.
   GapParam_CursorPos,
+  GapParam_CursorPosPreLock, // Last cursor position before locking the cursor.
   GapParam_CursorDelta,
   GapParam_ScrollDelta,
 

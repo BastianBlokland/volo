@@ -1,10 +1,10 @@
+#include "core_format.h"
 #include "core_path.h"
 #include "core_sentinel.h"
 #include "core_signal.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "core_format.h"
 #include "gap_register.h"
 #include "gap_window.h"
 
@@ -105,6 +105,13 @@ static void window_update(
   }
   if (window->requests & GapWindowRequests_UpdateCursorLock) {
     const bool locked = (window->flags & GapWindowFlags_CursorLock) != 0;
+    if (locked) {
+      window->params[GapParam_CursorPosPreLock] = window->params[GapParam_CursorPos];
+    } else {
+      const GapVector preLockPos = window->params[GapParam_CursorPosPreLock];
+      gap_pal_window_cursor_pos_set(pal, window->id, preLockPos);
+      window->params[GapParam_CursorPos] = preLockPos;
+    }
     /**
      * Capturing the cursor allows receiving mouse inputs even if the cursor is no longer over the
      * window. This is useful as you can then do bigger sweeps without losing the lock.
