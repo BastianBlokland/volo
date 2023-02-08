@@ -18,6 +18,7 @@ static const f32 g_inputCamDistMin          = 20.0f;
 static const f32 g_inputCamDistMax          = 85.0f;
 static const f32 g_inputCamPanCursorMult    = 100.0f;
 static const f32 g_inputCamPanTriggeredMult = 50.0f;
+static const f32 g_inputCamPanMaxZoomMult   = 0.4f;
 static const f32 g_inputCamPosEaseSpeed     = 20.0f;
 static const f32 g_inputCamRotX             = 65.0f * math_deg_to_rad;
 static const f32 g_inputCamRotYMult         = 5.0f;
@@ -71,6 +72,7 @@ static void update_camera_movement(
       panDeltaRel             = geo_vector_mul(moveDir, deltaSeconds * g_inputCamPanTriggeredMult);
     }
   }
+  panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
   const f32 camPosEaseDelta = deltaSeconds * g_inputCamPosEaseSpeed;
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
   state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
@@ -282,7 +284,7 @@ ecs_system_define(InputUpdateSys) {
     return;
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneCollisionEnvComp* colEnv        = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
@@ -296,18 +298,17 @@ ecs_system_define(InputUpdateSys) {
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    EcsIterator*           camItr      = ecs_view_at(cameraView, ecs_view_entity(itr));
-    const SceneCameraComp* camera      = ecs_view_read_t(camItr, SceneCameraComp);
-    SceneTransformComp*    cameraTrans = ecs_view_write_t(camItr, SceneTransformComp);
-    InputStateComp*        state       = ecs_view_write_t(camItr, InputStateComp);
+    EcsIterator*           camItr   = ecs_view_at(cameraView, ecs_view_entity(itr));
+    const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
+    SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
+    InputStateComp*        state    = ecs_view_write_t(camItr, InputStateComp);
     if (!state) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
     if (input_active_window(input) == ecs_view_entity(itr)) {
-      update_camera_movement(state, input, time, cameraTrans);
-      update_camera_interact(
-          state, cmdController, input, collisionEnv, sel, terrain, camera, cameraTrans);
+      update_camera_movement(state, input, time, camTrans);
+      update_camera_interact(state, cmdController, input, colEnv, sel, terrain, cam, camTrans);
     } else {
       state->selectState = InputSelectState_None;
     }
