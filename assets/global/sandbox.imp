@@ -51,7 +51,7 @@
       ]
     },
     {
-      "name": "CameraMoveForward",
+      "name": "CameraPanForward",
       "blockers": [
         "TextInput"
       ],
@@ -67,7 +67,7 @@
       ]
     },
     {
-      "name": "CameraMoveBackward",
+      "name": "CameraPanBackward",
       "blockers": [
         "TextInput"
       ],
@@ -83,7 +83,7 @@
       ]
     },
     {
-      "name": "CameraMoveRight",
+      "name": "CameraPanRight",
       "blockers": [
         "TextInput"
       ],
@@ -99,7 +99,7 @@
       ]
     },
     {
-      "name": "CameraMoveLeft",
+      "name": "CameraPanLeft",
       "blockers": [
         "TextInput"
       ],
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "name": "CameraPan",
+      "name": "CameraPanCursor",
       "blockers": [
         "TextInput"
       ],

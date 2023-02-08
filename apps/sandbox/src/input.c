@@ -54,17 +54,17 @@ static void update_camera_movement(
 
   // Update pan.
   GeoVector panDeltaRel = {0};
-  if (!lockCursor && input_triggered_lit(input, "CameraPan")) {
+  if (!lockCursor && input_triggered_lit(input, "CameraPanCursor")) {
     const f32 panX = -input_cursor_delta_x(input);
     const f32 panY = -input_cursor_delta_y(input);
     panDeltaRel    = geo_vector_mul(geo_vector(panX, 0, panY), g_inputCamPanCursorMult);
     lockCursor     = true;
   } else {
     // clang-format off
-    if (input_triggered_lit(input, "CameraMoveForward"))  { panDeltaRel.z += 1; }
-    if (input_triggered_lit(input, "CameraMoveBackward")) { panDeltaRel.z -= 1; }
-    if (input_triggered_lit(input, "CameraMoveRight"))    { panDeltaRel.x += 1; }
-    if (input_triggered_lit(input, "CameraMoveLeft"))     { panDeltaRel.x -= 1; }
+    if (input_triggered_lit(input, "CameraPanForward"))  { panDeltaRel.z += 1; }
+    if (input_triggered_lit(input, "CameraPanBackward")) { panDeltaRel.z -= 1; }
+    if (input_triggered_lit(input, "CameraPanRight"))    { panDeltaRel.x += 1; }
+    if (input_triggered_lit(input, "CameraPanLeft"))     { panDeltaRel.x -= 1; }
     // clang-format on
     if (geo_vector_mag_sqr(panDeltaRel) > 0) {
       const GeoVector moveDir = geo_vector_norm(panDeltaRel);
