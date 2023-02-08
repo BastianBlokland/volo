@@ -151,18 +151,6 @@
       ]
     },
     {
-      "name": "CameraMoveBoost",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Down",
-          "key": "Shift"
-        }
-      ]
-    },
-    {
       "name": "Reset",
       "blockers": [
         "TextInput"
