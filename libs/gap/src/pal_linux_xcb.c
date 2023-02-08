@@ -1104,6 +1104,18 @@ void gap_pal_update(GapPal* pal) {
       case 7: // XCB_BUTTON_INDEX_7 // Mouse-wheel scroll left.
         pal_event_scroll(pal, pressMsg->event, gap_vector(-1, 0));
         break;
+      case 8: // XCB_BUTTON_INDEX_8 // Extra mouse button (commonly the 'back' button).
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra1);
+        break;
+      case 9: // XCB_BUTTON_INDEX_9 // Extra mouse button (commonly the 'forward' button).
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra2);
+        break;
+      case 10: // XCB_BUTTON_INDEX_10 // Extra mouse button.
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra3);
+        break;
+      default:
+        // log_d("Unrecognised xcb button", log_param("index", fmt_int(pressMsg->detail)));
+        break;
       }
     } break;
 
@@ -1118,6 +1130,18 @@ void gap_pal_update(GapPal* pal) {
         break;
       case XCB_BUTTON_INDEX_3:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
+        break;
+      case 8: // XCB_BUTTON_INDEX_8 // Extra mouse button (commonly the 'back' button).
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra1);
+        break;
+      case 9: // XCB_BUTTON_INDEX_9 // Extra mouse button (commonly the 'forward' button).
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra2);
+        break;
+      case 10: // XCB_BUTTON_INDEX_10 // Extra mouse button.
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra3);
+        break;
+      default:
+        // log_d("Unrecognised xcb button", log_param("index", fmt_int(releaseMsg->detail)));
         break;
       }
     } break;

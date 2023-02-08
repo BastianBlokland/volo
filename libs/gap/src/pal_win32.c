@@ -558,6 +558,12 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_press(window, GapKey_MouseMiddle);
     pal_cursor_interaction_start(window);
     return true;
+  case WM_XBUTTONDOWN: {
+    const u16 xButton = GET_XBUTTON_WPARAM(wParam);
+    pal_event_press(window, xButton == XBUTTON1 ? GapKey_MouseExtra1 : GapKey_MouseExtra2);
+    pal_cursor_interaction_start(window);
+    return true;
+  }
   case WM_LBUTTONUP:
     pal_event_release(window, GapKey_MouseLeft);
     pal_cursor_interaction_end(window);
@@ -570,6 +576,12 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_release(window, GapKey_MouseMiddle);
     pal_cursor_interaction_end(window);
     return true;
+  case WM_XBUTTONUP: {
+    const u16 xButton = GET_XBUTTON_WPARAM(wParam);
+    pal_event_release(window, xButton == XBUTTON1 ? GapKey_MouseExtra1 : GapKey_MouseExtra2);
+    pal_cursor_interaction_end(window);
+    return true;
+  }
   case WM_KEYDOWN:
   case WM_SYSKEYDOWN: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
@@ -649,10 +661,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
   pal_cursors_init(pal);
 

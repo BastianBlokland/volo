@@ -10,6 +10,9 @@ typedef enum {
   GapKey_MouseLeft = 0,
   GapKey_MouseRight,
   GapKey_MouseMiddle,
+  GapKey_MouseExtra1,
+  GapKey_MouseExtra2,
+  GapKey_MouseExtra3,
 
   GapKey_Shift,
   GapKey_Control,
