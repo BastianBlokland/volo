@@ -260,25 +260,23 @@ void gap_window_close(GapWindowComp* window) { window->requests |= GapWindowRequ
 GapWindowFlags gap_window_flags(const GapWindowComp* window) { return window->flags; }
 
 void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
-  comp->flags |= flags;
-
-  if (flags & GapWindowFlags_CursorHide) {
+  if (flags & GapWindowFlags_CursorHide && !(comp->flags & GapWindowFlags_CursorHide)) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
   }
-  if (flags & GapWindowFlags_CursorLock) {
+  if (flags & GapWindowFlags_CursorLock && !(comp->flags & GapWindowFlags_CursorLock)) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
   }
+  comp->flags |= flags;
 }
 
 void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
-  comp->flags &= ~flags;
-
-  if (flags & GapWindowFlags_CursorHide) {
+  if (flags & GapWindowFlags_CursorHide && comp->flags & GapWindowFlags_CursorHide) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
   }
-  if (flags & GapWindowFlags_CursorLock) {
+  if (flags & GapWindowFlags_CursorLock && comp->flags & GapWindowFlags_CursorLock) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
   }
+  comp->flags &= ~flags;
 }
 
 GapWindowEvents gap_window_events(const GapWindowComp* window) { return window->events; }
