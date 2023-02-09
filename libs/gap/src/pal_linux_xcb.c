@@ -42,7 +42,8 @@ typedef enum {
 } GapPalXcbExtFlags;
 
 typedef enum {
-  GapPalFlags_CursorHidden = 1 << 0,
+  GapPalFlags_CursorHidden      = 1 << 0,
+  GapPalFlags_CursorConstrained = 1 << 1,
 } GapPalFlags;
 
 typedef struct {
@@ -460,6 +461,33 @@ static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, c
       (const char*)&value);
 }
 
+static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
+  xcb_generic_error_t* err = null;
+  pal_xcb_call(
+      pal->xcbCon,
+      xcb_grab_pointer,
+      &err,
+      true,
+      (xcb_window_t)windowId,
+      0,
+      XCB_GRAB_MODE_ASYNC,
+      XCB_GRAB_MODE_ASYNC,
+      (xcb_window_t)windowId,
+      XCB_NONE,
+      XCB_CURRENT_TIME);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_grab_pointer(), err: {}", fmt_int(err->error_code));
+  }
+}
+
+static void pal_xcb_cursor_release(GapPal* pal) {
+  const xcb_void_cookie_t    cookie = xcb_ungrab_pointer_checked(pal->xcbCon, XCB_CURRENT_TIME);
+  const xcb_generic_error_t* err    = xcb_request_check(pal->xcbCon, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_ungrab_pointer(), err: {}", fmt_int(err->error_code));
+  }
+}
+
 static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
   xcb_xkb_per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
 }
@@ -743,6 +771,10 @@ static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusGained;
 
+  if (pal->flags & GapPalFlags_CursorConstrained) {
+    pal_xcb_cursor_grab(pal, windowId);
+  }
+
   log_d("Window focus gained", log_param("id", fmt_int(windowId)));
 }
 
@@ -754,6 +786,10 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
 
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
+
+  if (pal->flags & GapPalFlags_CursorConstrained) {
+    pal_xcb_cursor_release(pal);
+  }
 
   gap_keyset_clear(&window->keysDown);
 
@@ -1069,6 +1105,10 @@ void gap_pal_update(GapPal* pal) {
       const GapPalDisplay* display = pal_maybe_display(pal, newCenter);
       if (display) {
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
+      }
+
+      if (pal->flags & GapPalFlags_CursorConstrained) {
+        pal_xcb_cursor_grab(pal, configureMsg->window);
       }
 
     } break;
@@ -1401,6 +1441,26 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)pal;
   (void)windowId;
   (void)captured;
+}
+
+void gap_pal_window_cursor_constrain(
+    GapPal* pal, const GapWindowId windowId, const bool constrained) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+  if (constrained && !(pal->flags & GapPalFlags_CursorConstrained)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_xcb_cursor_grab(pal, windowId);
+    }
+    pal->flags |= GapPalFlags_CursorConstrained;
+    return;
+  }
+  if (!constrained && (pal->flags & GapPalFlags_CursorConstrained)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_xcb_cursor_release(pal);
+    }
+    pal->flags &= ~GapPalFlags_CursorConstrained;
+    return;
+  }
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
