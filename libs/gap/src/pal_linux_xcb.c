@@ -1,7 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_time.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"

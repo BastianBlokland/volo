@@ -3,7 +3,6 @@
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_thread.h"
-#include "core_time.h"
 #include "core_utf8.h"
 #include "core_winutils.h"
 #include "log_logger.h"
