@@ -42,8 +42,8 @@ typedef enum {
 } GapPalXcbExtFlags;
 
 typedef enum {
-  GapPalFlags_CursorHidden      = 1 << 0,
-  GapPalFlags_CursorConstrained = 1 << 1,
+  GapPalFlags_CursorHidden   = 1 << 0,
+  GapPalFlags_CursorConfined = 1 << 1,
 } GapPalFlags;
 
 typedef struct {
@@ -771,7 +771,7 @@ static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusGained;
 
-  if (pal->flags & GapPalFlags_CursorConstrained) {
+  if (pal->flags & GapPalFlags_CursorConfined) {
     pal_xcb_cursor_grab(pal, windowId);
   }
 
@@ -787,7 +787,7 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
 
-  if (pal->flags & GapPalFlags_CursorConstrained) {
+  if (pal->flags & GapPalFlags_CursorConfined) {
     pal_xcb_cursor_release(pal);
   }
 
@@ -1000,9 +1000,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1107,7 +1107,7 @@ void gap_pal_update(GapPal* pal) {
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
       }
 
-      if (pal->flags & GapPalFlags_CursorConstrained) {
+      if (pal->flags & GapPalFlags_CursorConfined) {
         pal_xcb_cursor_grab(pal, configureMsg->window);
       }
 
@@ -1443,22 +1443,21 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)captured;
 }
 
-void gap_pal_window_cursor_constrain(
-    GapPal* pal, const GapWindowId windowId, const bool constrained) {
+void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, const bool confined) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
-  if (constrained && !(pal->flags & GapPalFlags_CursorConstrained)) {
+  if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
     if (window->flags & GapPalWindowFlags_Focussed) {
       pal_xcb_cursor_grab(pal, windowId);
     }
-    pal->flags |= GapPalFlags_CursorConstrained;
+    pal->flags |= GapPalFlags_CursorConfined;
     return;
   }
-  if (!constrained && (pal->flags & GapPalFlags_CursorConstrained)) {
+  if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
     if (window->flags & GapPalWindowFlags_Focussed) {
       pal_xcb_cursor_release(pal);
     }
-    pal->flags &= ~GapPalFlags_CursorConstrained;
+    pal->flags &= ~GapPalFlags_CursorConfined;
     return;
   }
 }

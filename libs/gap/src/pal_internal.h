@@ -52,7 +52,7 @@ void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
 void              gap_pal_window_cursor_capture(GapPal*, GapWindowId, bool captured);
-void              gap_pal_window_cursor_constrain(GapPal*, GapWindowId, bool constrained);
+void              gap_pal_window_cursor_confine(GapPal*, GapWindowId, bool confined);
 void              gap_pal_window_cursor_set(GapPal*, GapWindowId, GapCursor);
 void              gap_pal_window_cursor_pos_set(GapPal*, GapWindowId, GapVector position);
 void              gap_pal_window_clip_copy(GapPal*, GapWindowId, String value);
