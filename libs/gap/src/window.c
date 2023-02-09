@@ -11,14 +11,15 @@
 #include "platform_internal.h"
 
 typedef enum {
-  GapWindowRequests_Create           = 1 << 0,
-  GapWindowRequests_Close            = 1 << 1,
-  GapWindowRequests_Resize           = 1 << 2,
-  GapWindowRequests_UpdateTitle      = 1 << 3,
-  GapWindowRequests_UpdateCursorHide = 1 << 4,
-  GapWindowRequests_UpdateCursorLock = 1 << 5,
-  GapWindowRequests_UpdateCursorType = 1 << 6,
-  GapWindowRequests_ClipPaste        = 1 << 7,
+  GapWindowRequests_Create              = 1 << 0,
+  GapWindowRequests_Close               = 1 << 1,
+  GapWindowRequests_Resize              = 1 << 2,
+  GapWindowRequests_UpdateTitle         = 1 << 3,
+  GapWindowRequests_UpdateCursorHide    = 1 << 4,
+  GapWindowRequests_UpdateCursorLock    = 1 << 5,
+  GapWindowRequests_UpdateCursorConfine = 1 << 6,
+  GapWindowRequests_UpdateCursorType    = 1 << 7,
+  GapWindowRequests_ClipPaste           = 1 << 8,
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
@@ -29,8 +30,8 @@ ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
   GapWindowEvents   events : 16;
   GapWindowFlags    flags : 8;
-  GapWindowRequests requests : 8;
   GapWindowMode     mode : 8;
+  GapWindowRequests requests : 16;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   GapVector         params[GapParam_Count];
   DynString         inputText;
@@ -117,6 +118,10 @@ static void window_update(
      * window. This is useful as you can then do bigger sweeps without losing the lock.
      */
     gap_pal_window_cursor_capture(pal, window->id, locked);
+  }
+  if (window->requests & GapWindowRequests_UpdateCursorConfine) {
+    const bool confine = (window->flags & GapWindowFlags_CursorConfine) != 0;
+    gap_pal_window_cursor_confine(pal, window->id, confine);
   }
   if (window->requests & GapWindowRequests_UpdateCursorType) {
     gap_pal_window_cursor_set(pal, window->id, window->cursor);
@@ -274,6 +279,9 @@ void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   if (flags & GapWindowFlags_CursorLock && !(comp->flags & GapWindowFlags_CursorLock)) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
   }
+  if (flags & GapWindowFlags_CursorConfine && !(comp->flags & GapWindowFlags_CursorConfine)) {
+    comp->requests |= GapWindowRequests_UpdateCursorConfine;
+  }
   comp->flags |= flags;
 }
 
@@ -283,6 +291,9 @@ void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
   }
   if (flags & GapWindowFlags_CursorLock && comp->flags & GapWindowFlags_CursorLock) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
+  }
+  if (flags & GapWindowFlags_CursorConfine && comp->flags & GapWindowFlags_CursorConfine) {
+    comp->requests |= GapWindowRequests_UpdateCursorConfine;
   }
   comp->flags &= ~flags;
 }
