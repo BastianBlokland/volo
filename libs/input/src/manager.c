@@ -108,6 +108,14 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
   }
 }
 
+static void input_update_blockers(InputManagerComp* manager, GapWindowComp* win) {
+  if (gap_window_flags(win) & GapWindowFlags_CursorConfine) {
+    manager->blockers |= InputBlocker_CursorConfined;
+  } else {
+    manager->blockers &= ~InputBlocker_CursorConfined;
+  }
+}
+
 static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win) {
   manager->modifiers = 0;
   if (gap_window_key_down(win, GapKey_Shift)) {
@@ -193,6 +201,7 @@ ecs_system_define(InputUpdateSys) {
   }
   GapWindowComp* win = ecs_utils_write_t(world, WindowView, manager->activeWindow, GapWindowComp);
 
+  input_update_blockers(manager, win);
   input_update_modifiers(manager, win);
   input_update_cursor(manager, win);
   input_update_triggered(manager, map, win);
