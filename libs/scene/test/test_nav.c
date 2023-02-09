@@ -31,11 +31,20 @@ static void test_check_path(
     const SceneNavPathComp* comp,
     const GeoNavCell        expected[],
     const u32               expectedCount) {
-  check_eq_int(comp->cellCount, expectedCount);
-  check_require(comp->cellCount == expectedCount);
+  check_require_msg(
+      comp->cellCount == expectedCount,
+      "path[{}] == path[{}]",
+      fmt_int(comp->cellCount),
+      fmt_int(expectedCount));
   for (u32 i = 0; i != expectedCount; ++i) {
-    check_eq_int(comp->cells[i].x, expected[i].x);
-    check_eq_int(comp->cells[i].y, expected[i].y);
+    check_msg(
+        comp->cells[i].x == expected[i].x && comp->cells[i].y == expected[i].y,
+        "[{}] {}x{} == {}x{}",
+        fmt_int(i),
+        fmt_int(comp->cells[i].x),
+        fmt_int(comp->cells[i].y),
+        fmt_int(expected[i].x),
+        fmt_int(expected[i].y));
   }
 }
 
@@ -51,7 +60,7 @@ ecs_module_init(nav_test_module) {
 
 spec(nav) {
 
-  const f32  halfGridSize = 125;
+  const f32  halfGridSize = 150;
   const f32  gridDensity  = 1.25f;
   const f32  gridCellSize = 1.0f / gridDensity;
   EcsDef*    def          = null;
@@ -105,24 +114,24 @@ spec(nav) {
      * Verify the path.
      * Expected: (1 is an output cell, x is blocked and 0 is an enqueued neighbor).
      *
-     *  00 0
-     * 011x01
-     *  01111
-     *   000
+     *  0000
+     * 011110
+     * 010x11
+     *  0  0
      */
 
     const SceneNavPathComp* path       = ecs_utils_read_t(world, PathView, agent, SceneNavPathComp);
-    const u16               centerCell = (u16)(halfGridSize * gridDensity);
+    const u16               centerCell = (u16)math_round_nearest_f32(halfGridSize * gridDensity);
     test_check_path(
         _testCtx,
         path,
         (GeoNavCell[]){
             {.x = centerCell - 2, .y = centerCell},
-            {.x = centerCell - 1, .y = centerCell},
-            {.x = centerCell - 1, .y = centerCell - 1},
-            {.x = centerCell + 0, .y = centerCell - 1},
-            {.x = centerCell + 1, .y = centerCell - 1},
-            {.x = centerCell + 2, .y = centerCell - 1},
+            {.x = centerCell - 2, .y = centerCell + 1},
+            {.x = centerCell - 1, .y = centerCell + 1},
+            {.x = centerCell + 0, .y = centerCell + 1},
+            {.x = centerCell + 1, .y = centerCell + 1},
+            {.x = centerCell + 1, .y = centerCell},
             {.x = centerCell + 2, .y = centerCell},
         },
         7);
