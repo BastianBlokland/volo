@@ -12,21 +12,22 @@
 
 #include "cmd_internal.h"
 
-static const f32    g_inputMinInteractDist     = 1.0f;
-static const f32    g_inputMaxInteractDist     = 250.0f;
-static const f32    g_inputCamDistMin          = 20.0f;
-static const f32    g_inputCamDistMax          = 85.0f;
-static const f32    g_inputCamPanCursorMult    = 100.0f;
-static const f32    g_inputCamPanTriggeredMult = 50.0f;
-static const f32    g_inputCamPanMaxZoomMult   = 0.4f;
-static const f32    g_inputCamPosEaseSpeed     = 20.0f;
-static const f32    g_inputCamRotX             = 65.0f * math_deg_to_rad;
-static const f32    g_inputCamRotYMult         = 5.0f;
-static const f32    g_inputCamRotYEaseSpeed    = 20.0f;
-static const f32    g_inputCamZoomMult         = 0.1f;
-static const f32    g_inputCamZoomEaseSpeed    = 15.0f;
-static const GeoBox g_inputCamArea             = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
-static const f32    g_inputDragThreshold       = 0.005f; // In normalized screen-space coordinates.
+static const f32    g_inputMinInteractDist       = 1.0f;
+static const f32    g_inputMaxInteractDist       = 250.0f;
+static const f32    g_inputCamDistMin            = 20.0f;
+static const f32    g_inputCamDistMax            = 85.0f;
+static const f32    g_inputCamPanCursorMult      = 100.0f;
+static const f32    g_inputCamPanTriggeredMult   = 50.0f;
+static const f32    g_inputCamPanMaxZoomMult     = 0.4f;
+static const f32    g_inputCamPosEaseSpeed       = 20.0f;
+static const f32    g_inputCamRotX               = 65.0f * math_deg_to_rad;
+static const f32    g_inputCamRotYMult           = 5.0f;
+static const f32    g_inputCamRotYEaseSpeed      = 20.0f;
+static const f32    g_inputCamZoomMult           = 0.1f;
+static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
+static const f32    g_inputCamCursorPanThreshold = 0.0025f;
+static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
+static const f32    g_inputDragThreshold = 0.005f; // In normalized screen-space coordinates.
 
 typedef enum {
   InputSelectState_None,
@@ -67,6 +68,13 @@ static void update_camera_movement(
     if (input_triggered_lit(input, "CameraPanBackward")) { panDeltaRel.z -= 1; }
     if (input_triggered_lit(input, "CameraPanRight"))    { panDeltaRel.x += 1; }
     if (input_triggered_lit(input, "CameraPanLeft"))     { panDeltaRel.x -= 1; }
+    if (input_blockers(input) & InputBlocker_CursorConfined) {
+      const f32 cursorX = input_cursor_x(input), cursorY = input_cursor_y(input);
+      if(cursorY >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.z += 1; }
+      if(cursorY <= g_inputCamCursorPanThreshold)          { panDeltaRel.z -= 1; }
+      if(cursorX >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.x += 1; }
+      if(cursorX <= g_inputCamCursorPanThreshold)          { panDeltaRel.x -= 1; }
+    }
     // clang-format on
     if (geo_vector_mag_sqr(panDeltaRel) > 0) {
       const GeoVector moveDir = geo_vector_norm(panDeltaRel);
