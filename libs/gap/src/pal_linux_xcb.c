@@ -480,7 +480,7 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
   }
 }
 
-static void pal_xcb_cursor_release(GapPal* pal) {
+static void pal_xcb_cursor_grab_release(GapPal* pal) {
   const xcb_void_cookie_t    cookie = xcb_ungrab_pointer_checked(pal->xcbCon, XCB_CURRENT_TIME);
   const xcb_generic_error_t* err    = xcb_request_check(pal->xcbCon, cookie);
   if (UNLIKELY(err)) {
@@ -788,7 +788,7 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_FocusLost;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
-    pal_xcb_cursor_release(pal);
+    pal_xcb_cursor_grab_release(pal);
   }
 
   gap_keyset_clear(&window->keysDown);
@@ -1455,7 +1455,7 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
   }
   if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
     if (window->flags & GapPalWindowFlags_Focussed) {
-      pal_xcb_cursor_release(pal);
+      pal_xcb_cursor_grab_release(pal);
     }
     pal->flags &= ~GapPalFlags_CursorConfined;
     return;
