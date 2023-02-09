@@ -391,7 +391,7 @@ static void pal_event_focus_lost(GapPal* pal, GapPalWindow* window) {
   window->flags |= GapPalWindowFlags_FocusLost;
 
   if (pal->flags & GapPalFlags_CursorConfined) {
-    pal_cursor_clip_release(window->id);
+    pal_cursor_clip_release();
   }
 
   gap_keyset_clear(&window->keysDown);
