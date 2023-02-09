@@ -469,7 +469,7 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
       &err,
       true,
       (xcb_window_t)windowId,
-      0,
+      XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
       XCB_GRAB_MODE_ASYNC,
       XCB_GRAB_MODE_ASYNC,
       (xcb_window_t)windowId,
