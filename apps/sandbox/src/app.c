@@ -42,11 +42,18 @@ static void app_window_create(EcsWorld* world) {
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
-  const bool isFullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
-  gap_window_resize(
-      win,
-      isFullscreen ? gap_window_param(win, GapParam_WindowSizePreFullscreen) : gap_vector(0, 0),
-      isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
+  if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
+    // Enter windowed mode.
+    gap_window_resize(
+        win, gap_window_param(win, GapParam_WindowSizePreFullscreen), GapWindowMode_Windowed);
+    // Release cursor confinement.
+    gap_window_flags_unset(win, GapWindowFlags_CursorConfine);
+  } else {
+    // Enter fullscreen mode.
+    gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
+    // Confine the cursor to the window (for multi-monitor setups).
+    gap_window_flags_set(win, GapWindowFlags_CursorConfine);
+  }
 }
 
 static void app_scene_create_props(EcsWorld* world, Rng* rng) {
