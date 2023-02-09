@@ -170,10 +170,6 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F10"
-        },
-        {
-          "type": "Pressed",
           "key": "N",
           "requiredModifiers": [
             "Alt"
