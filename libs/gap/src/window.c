@@ -182,6 +182,7 @@ static void window_update(
     window->events |= GapWindowEvents_FocusGained;
   }
   if (palFlags & GapPalWindowFlags_FocusLost) {
+    gap_keyset_clear(&window->keysDown);
     window->events |= GapWindowEvents_FocusLost;
   }
   if (palFlags & GapPalWindowFlags_Focussed) {
