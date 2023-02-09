@@ -1,7 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_time.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"
@@ -43,7 +42,8 @@ typedef enum {
 } GapPalXcbExtFlags;
 
 typedef enum {
-  GapPalFlags_CursorHidden = 1 << 0,
+  GapPalFlags_CursorHidden   = 1 << 0,
+  GapPalFlags_CursorConfined = 1 << 1,
 } GapPalFlags;
 
 typedef struct {
@@ -461,6 +461,33 @@ static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, c
       (const char*)&value);
 }
 
+static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
+  xcb_generic_error_t* err = null;
+  pal_xcb_call(
+      pal->xcbCon,
+      xcb_grab_pointer,
+      &err,
+      true,
+      (xcb_window_t)windowId,
+      XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
+      XCB_GRAB_MODE_ASYNC,
+      XCB_GRAB_MODE_ASYNC,
+      (xcb_window_t)windowId,
+      XCB_NONE,
+      XCB_CURRENT_TIME);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_grab_pointer(), err: {}", fmt_int(err->error_code));
+  }
+}
+
+static void pal_xcb_cursor_grab_release(GapPal* pal) {
+  const xcb_void_cookie_t    cookie = xcb_ungrab_pointer_checked(pal->xcbCon, XCB_CURRENT_TIME);
+  const xcb_generic_error_t* err    = xcb_request_check(pal->xcbCon, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_ungrab_pointer(), err: {}", fmt_int(err->error_code));
+  }
+}
+
 static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
   xcb_xkb_per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
 }
@@ -744,6 +771,10 @@ static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusGained;
 
+  if (pal->flags & GapPalFlags_CursorConfined) {
+    pal_xcb_cursor_grab(pal, windowId);
+  }
+
   log_d("Window focus gained", log_param("id", fmt_int(windowId)));
 }
 
@@ -755,6 +786,10 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
 
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
+
+  if (pal->flags & GapPalFlags_CursorConfined) {
+    pal_xcb_cursor_grab_release(pal);
+  }
 
   gap_keyset_clear(&window->keysDown);
 
@@ -908,7 +943,7 @@ static void pal_event_clip_copy_request(
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (window && reqEvt->selection == pal->atomClipboard && !string_is_empty(window->clipCopy)) {
     /**
-     * Either return a collection of targers (think format types) of the clipboard data, or the data
+     * Either return a collection of targets (think format types) of the clipboard data, or the data
      * itself as utf8.
      */
     if (reqEvt->target == pal->atomTargets) {
@@ -1072,6 +1107,10 @@ void gap_pal_update(GapPal* pal) {
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
       }
 
+      if (pal->flags & GapPalFlags_CursorConfined) {
+        pal_xcb_cursor_grab(pal, configureMsg->window);
+      }
+
     } break;
 
     case XCB_MOTION_NOTIFY: {
@@ -1104,6 +1143,18 @@ void gap_pal_update(GapPal* pal) {
       case 7: // XCB_BUTTON_INDEX_7 // Mouse-wheel scroll left.
         pal_event_scroll(pal, pressMsg->event, gap_vector(-1, 0));
         break;
+      case 8: // XCB_BUTTON_INDEX_8 // Extra mouse button (commonly the 'back' button).
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra1);
+        break;
+      case 9: // XCB_BUTTON_INDEX_9 // Extra mouse button (commonly the 'forward' button).
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra2);
+        break;
+      case 10: // XCB_BUTTON_INDEX_10 // Extra mouse button.
+        pal_event_press(pal, pressMsg->event, GapKey_MouseExtra3);
+        break;
+      default:
+        // log_d("Unrecognised xcb button", log_param("index", fmt_int(pressMsg->detail)));
+        break;
       }
     } break;
 
@@ -1118,6 +1169,18 @@ void gap_pal_update(GapPal* pal) {
         break;
       case XCB_BUTTON_INDEX_3:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
+        break;
+      case 8: // XCB_BUTTON_INDEX_8 // Extra mouse button (commonly the 'back' button).
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra1);
+        break;
+      case 9: // XCB_BUTTON_INDEX_9 // Extra mouse button (commonly the 'forward' button).
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra2);
+        break;
+      case 10: // XCB_BUTTON_INDEX_10 // Extra mouse button.
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseExtra3);
+        break;
+      default:
+        // log_d("Unrecognised xcb button", log_param("index", fmt_int(releaseMsg->detail)));
         break;
       }
     } break;
@@ -1176,8 +1239,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1378,6 +1441,25 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)pal;
   (void)windowId;
   (void)captured;
+}
+
+void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, const bool confined) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+  if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_xcb_cursor_grab(pal, windowId);
+    }
+    pal->flags |= GapPalFlags_CursorConfined;
+    return;
+  }
+  if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_xcb_cursor_grab_release(pal);
+    }
+    pal->flags &= ~GapPalFlags_CursorConfined;
+    return;
+  }
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {

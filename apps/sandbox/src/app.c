@@ -23,8 +23,8 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appPropCount  = 500;
-static const u64       g_appRngSeed    = 42;
+static const u32       g_appPropCount  = 800;
+static const u64       g_appRngSeed    = 13;
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -38,21 +38,22 @@ static void app_window_create(EcsWorld* world) {
       .persNear  = 0.75f,
       .orthoSize = 5);
 
-  ecs_world_add_t(
-      world,
-      window,
-      SceneTransformComp,
-      .position = {50, 75, 0},
-      .rotation = geo_quat_mul(
-          geo_quat_forward_to_left, geo_quat_angle_axis(geo_right, 70 * math_deg_to_rad)));
+  ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
-  const bool isFullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
-  gap_window_resize(
-      win,
-      isFullscreen ? gap_window_param(win, GapParam_WindowSizePreFullscreen) : gap_vector(0, 0),
-      isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
+  if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
+    // Enter windowed mode.
+    gap_window_resize(
+        win, gap_window_param(win, GapParam_WindowSizePreFullscreen), GapWindowMode_Windowed);
+    // Release cursor confinement.
+    gap_window_flags_unset(win, GapWindowFlags_CursorConfine);
+  } else {
+    // Enter fullscreen mode.
+    gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
+    // Confine the cursor to the window (for multi-monitor setups).
+    gap_window_flags_set(win, GapWindowFlags_CursorConfine);
+  }
 }
 
 static void app_scene_create_props(EcsWorld* world, Rng* rng) {
@@ -86,9 +87,9 @@ static void app_scene_create_props(EcsWorld* world, Rng* rng) {
       sample -= g_props[propIdx].weight;
     }
 
-    const f32 posX  = rng_sample_range(rng, -100.0f, 100.0f);
+    const f32 posX  = rng_sample_range(rng, -135.0f, 135.0f);
     const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32 posZ  = rng_sample_range(rng, -100.0f, 100.0f);
+    const f32 posZ  = rng_sample_range(rng, -135.0f, 135.0f);
     const f32 angle = rng_sample_f32(rng) * math_pi_f32 * 2;
     scene_prefab_spawn(
         world,
@@ -114,9 +115,13 @@ static void app_scene_create_units(EcsWorld* world) {
       });
 
   static const GeoVector g_turretGunLocations[] = {
+      {30, 0, -45},
+      {30, 0, -30},
       {30, 0, -15},
       {30, 0, 0},
       {30, 0, 15},
+      {30, 0, 30},
+      {30, 0, 45},
   };
   array_for_t(g_turretGunLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
@@ -131,8 +136,10 @@ static void app_scene_create_units(EcsWorld* world) {
   }
 
   static const GeoVector g_turretMissileLocations[] = {
+      {40, 0, -30},
       {40, 0, -10},
       {40, 0, 10},
+      {40, 0, 30},
   };
   array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(

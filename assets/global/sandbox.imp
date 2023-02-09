@@ -35,25 +35,6 @@
       ]
     },
     {
-      "name": "SpawnUnit",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "PrefabCreateMode",
-        "CursorLocked"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseLeft",
-          "requiredModifiers": [
-            "Control"
-          ]
-        }
-      ]
-    },
-    {
       "name": "Destroy",
       "blockers": [
         "TextInput"
@@ -70,7 +51,7 @@
       ]
     },
     {
-      "name": "CameraMoveForward",
+      "name": "CameraPanForward",
       "blockers": [
         "TextInput"
       ],
@@ -86,7 +67,7 @@
       ]
     },
     {
-      "name": "CameraMoveBackward",
+      "name": "CameraPanBackward",
       "blockers": [
         "TextInput"
       ],
@@ -102,7 +83,7 @@
       ]
     },
     {
-      "name": "CameraMoveRight",
+      "name": "CameraPanRight",
       "blockers": [
         "TextInput"
       ],
@@ -118,7 +99,7 @@
       ]
     },
     {
-      "name": "CameraMoveLeft",
+      "name": "CameraPanLeft",
       "blockers": [
         "TextInput"
       ],
@@ -134,30 +115,50 @@
       ]
     },
     {
-      "name": "CameraLookEnable",
+      "name": "CameraPanCursor",
       "blockers": [
         "TextInput"
       ],
       "bindings": [
         {
           "type": "Down",
-          "key": "MouseRight"
+          "key": "Control"
         },
         {
           "type": "Down",
-          "key": "Alt"
+          "key": "MouseMiddle"
+        },
+        {
+          "type": "Down",
+          "key": "MouseExtra2"
         }
       ]
     },
     {
-      "name": "CameraMoveBoost",
+      "name": "CameraRotate",
       "blockers": [
         "TextInput"
       ],
       "bindings": [
         {
           "type": "Down",
-          "key": "Shift"
+          "key": "Alt"
+        },
+        {
+          "type": "Down",
+          "key": "MouseExtra1"
+        }
+      ]
+    },
+    {
+      "name": "CameraToggleMode",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F1"
         }
       ]
     },
@@ -179,10 +180,6 @@
         "TextInput"
       ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F10"
-        },
         {
           "type": "Pressed",
           "key": "N",
@@ -227,18 +224,6 @@
         {
           "type": "Pressed",
           "key": "F11"
-        }
-      ]
-    },
-    {
-      "name": "CursorLock",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Tab"
         }
       ]
     },
@@ -385,7 +370,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F1"
+          "key": "F2"
         }
       ]
     },
@@ -397,7 +382,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F2"
+          "key": "F3"
         }
       ]
     },
@@ -409,7 +394,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F3"
+          "key": "F4"
         }
       ]
     },
@@ -421,7 +406,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F4"
+          "key": "F5"
         }
       ]
     },
@@ -433,7 +418,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F5"
+          "key": "F6"
         }
       ]
     },
@@ -445,7 +430,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F6"
+          "key": "F7"
         }
       ]
     },
@@ -457,7 +442,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F7"
+          "key": "F8"
         }
       ]
     },
@@ -469,7 +454,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F8"
+          "key": "F9"
         }
       ]
     },
@@ -481,7 +466,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F9"
+          "key": "F10"
         }
       ]
     },

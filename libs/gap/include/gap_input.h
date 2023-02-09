@@ -10,6 +10,9 @@ typedef enum {
   GapKey_MouseLeft = 0,
   GapKey_MouseRight,
   GapKey_MouseMiddle,
+  GapKey_MouseExtra1,
+  GapKey_MouseExtra2,
+  GapKey_MouseExtra3,
 
   GapKey_Shift,
   GapKey_Control,
@@ -93,6 +96,7 @@ typedef enum {
   GapParam_WindowSize = 0,
   GapParam_WindowSizePreFullscreen, // Last window-size before entering fullscreen.
   GapParam_CursorPos,
+  GapParam_CursorPosPreLock, // Last cursor position before locking the cursor.
   GapParam_CursorDelta,
   GapParam_ScrollDelta,
 

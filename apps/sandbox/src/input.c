@@ -12,12 +12,22 @@
 
 #include "cmd_internal.h"
 
-static const f32 g_inputMinInteractDist       = 1.0f;
-static const f32 g_inputMaxInteractDist       = 250.0f;
-static const f32 g_inputCamMoveSpeed          = 10.0f;
-static const f32 g_inputCamMoveSpeedBoostMult = 4.0f;
-static const f32 g_inputCamRotateSensitivity  = 2.0f;
-static const f32 g_inputDragThreshold         = 0.005f; // In normalized screen-space coordinates.
+static const f32    g_inputMinInteractDist       = 1.0f;
+static const f32    g_inputMaxInteractDist       = 250.0f;
+static const f32    g_inputCamDistMin            = 20.0f;
+static const f32    g_inputCamDistMax            = 85.0f;
+static const f32    g_inputCamPanCursorMult      = 100.0f;
+static const f32    g_inputCamPanTriggeredMult   = 50.0f;
+static const f32    g_inputCamPanMaxZoomMult     = 0.4f;
+static const f32    g_inputCamPosEaseSpeed       = 20.0f;
+static const f32    g_inputCamRotX               = 65.0f * math_deg_to_rad;
+static const f32    g_inputCamRotYMult           = 5.0f;
+static const f32    g_inputCamRotYEaseSpeed      = 20.0f;
+static const f32    g_inputCamZoomMult           = 0.1f;
+static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
+static const f32    g_inputCamCursorPanThreshold = 0.0025f;
+static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
+static const f32    g_inputDragThreshold = 0.005f; // In normalized screen-space coordinates.
 
 typedef enum {
   InputSelectState_None,
@@ -30,48 +40,121 @@ ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
+  bool             freeCamera;
+
+  GeoVector camPos, camPosTgt;
+  f32       camRotY, camRotYTgt;
+  f32       camZoom, camZoomTgt;
 };
 
 static void update_camera_movement(
-    const SceneTimeComp*      time,
-    const InputManagerComp*   input,
-    const SceneSelectionComp* selection,
-    const SceneCameraComp*    camera,
-    SceneTransformComp*       camTrans) {
+    InputStateComp*      state,
+    InputManagerComp*    input,
+    const SceneTimeComp* time,
+    SceneTransformComp*  camTrans) {
+  const f32     deltaSeconds = scene_real_delta_seconds(time);
+  const GeoQuat camRotYOld   = geo_quat_from_euler(geo_vector(0, state->camRotY, 0));
+  bool          lockCursor   = false;
 
-  f32 moveDelta = scene_real_delta_seconds(time) * g_inputCamMoveSpeed;
-  if (input_triggered_lit(input, "CameraMoveBoost")) {
-    moveDelta *= g_inputCamMoveSpeedBoostMult;
+  // Update pan.
+  GeoVector panDeltaRel = {0};
+  if (!lockCursor && input_triggered_lit(input, "CameraPanCursor")) {
+    const f32 panX = -input_cursor_delta_x(input);
+    const f32 panY = -input_cursor_delta_y(input);
+    panDeltaRel    = geo_vector_mul(geo_vector(panX, 0, panY), g_inputCamPanCursorMult);
+    lockCursor     = true;
+  } else {
+    // clang-format off
+    if (input_triggered_lit(input, "CameraPanForward"))  { panDeltaRel.z += 1; }
+    if (input_triggered_lit(input, "CameraPanBackward")) { panDeltaRel.z -= 1; }
+    if (input_triggered_lit(input, "CameraPanRight"))    { panDeltaRel.x += 1; }
+    if (input_triggered_lit(input, "CameraPanLeft"))     { panDeltaRel.x -= 1; }
+    if (input_blockers(input) & InputBlocker_CursorConfined) {
+      const f32 cursorX = input_cursor_x(input), cursorY = input_cursor_y(input);
+      if(cursorY >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.z += 1; }
+      if(cursorY <= g_inputCamCursorPanThreshold)          { panDeltaRel.z -= 1; }
+      if(cursorX >= (1.0f - g_inputCamCursorPanThreshold)) { panDeltaRel.x += 1; }
+      if(cursorX <= g_inputCamCursorPanThreshold)          { panDeltaRel.x -= 1; }
+    }
+    // clang-format on
+    if (geo_vector_mag_sqr(panDeltaRel) > 0) {
+      const GeoVector moveDirRel = geo_vector_norm(panDeltaRel);
+      panDeltaRel = geo_vector_mul(moveDirRel, deltaSeconds * g_inputCamPanTriggeredMult);
+    }
   }
-  const GeoVector right   = geo_quat_rotate(camTrans->rotation, geo_right);
-  const GeoVector up      = geo_quat_rotate(camTrans->rotation, geo_up);
-  const GeoVector forward = geo_quat_rotate(camTrans->rotation, geo_forward);
+  panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
+  const f32 camPosEaseDelta = deltaSeconds * g_inputCamPosEaseSpeed;
+  state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
+  state->camPosTgt = geo_box_closest_point(&g_inputCamArea, state->camPosTgt);
+  state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
 
-  if (input_triggered_lit(input, "CameraMoveForward")) {
-    const GeoVector dir = camera->flags & SceneCameraFlags_Orthographic ? up : forward;
-    camTrans->position  = geo_vector_add(camTrans->position, geo_vector_mul(dir, moveDelta));
+  // Update Y rotation.
+  if (!lockCursor && input_triggered_lit(input, "CameraRotate")) {
+    const f32 rotDelta = input_cursor_delta_x(input) * g_inputCamRotYMult;
+    state->camRotYTgt  = math_mod_f32(state->camRotYTgt + rotDelta, math_pi_f32 * 2.0f);
+    lockCursor         = true;
   }
-  if (input_triggered_lit(input, "CameraMoveBackward")) {
-    const GeoVector dir = camera->flags & SceneCameraFlags_Orthographic ? up : forward;
-    camTrans->position  = geo_vector_sub(camTrans->position, geo_vector_mul(dir, moveDelta));
+  const f32 camRotEaseDelta = deltaSeconds * g_inputCamRotYEaseSpeed;
+  state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
+
+  // Update zoom.
+  if ((input_blockers(input) & InputBlocker_HoveringUi) == 0) {
+    const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
+    state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
   }
-  if (input_triggered_lit(input, "CameraMoveRight")) {
-    camTrans->position = geo_vector_add(camTrans->position, geo_vector_mul(right, moveDelta));
-  }
-  if (input_triggered_lit(input, "CameraMoveLeft")) {
-    camTrans->position = geo_vector_sub(camTrans->position, geo_vector_mul(right, moveDelta));
+  const f32 camZoomEaseDelta = deltaSeconds * g_inputCamZoomEaseSpeed;
+  state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
+
+  // Set camera transform.
+  const GeoQuat   camRot    = geo_quat_from_euler(geo_vector(g_inputCamRotX, state->camRotY, 0));
+  const f32       camDist   = math_lerp(g_inputCamDistMax, g_inputCamDistMin, state->camZoom);
+  const GeoVector camOffset = geo_quat_rotate(camRot, geo_vector(0, 0, -camDist));
+  camTrans->position        = geo_vector_add(state->camPos, camOffset);
+  camTrans->rotation        = camRot;
+
+  input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
+}
+
+static void update_camera_movement_free(
+    InputManagerComp*      input,
+    const SceneTimeComp*   time,
+    const SceneCameraComp* camera,
+    SceneTransformComp*    camTrans) {
+  const f32       deltaSeconds = scene_real_delta_seconds(time);
+  const GeoVector camRight     = geo_quat_rotate(camTrans->rotation, geo_right);
+  bool            lockCursor   = false;
+
+  static const f32 g_panSpeed          = 20.0f;
+  static const f32 g_rotateSensitivity = 4.0f;
+
+  GeoVector panDelta = {0};
+  // clang-format off
+  if (input_triggered_lit(input, "CameraPanForward"))  { panDelta.z += 1; }
+  if (input_triggered_lit(input, "CameraPanBackward")) { panDelta.z -= 1; }
+  if (input_triggered_lit(input, "CameraPanRight"))    { panDelta.x += 1; }
+  if (input_triggered_lit(input, "CameraPanLeft"))     { panDelta.x -= 1; }
+  // clang-format on
+  if (geo_vector_mag_sqr(panDelta) > 0) {
+    panDelta = geo_vector_mul(geo_vector_norm(panDelta), deltaSeconds * g_panSpeed);
+    if (camera->flags & SceneCameraFlags_Orthographic) {
+      panDelta.y = panDelta.z;
+      panDelta.z = 0;
+    }
+    panDelta           = geo_quat_rotate(camTrans->rotation, panDelta);
+    camTrans->position = geo_vector_add(camTrans->position, panDelta);
   }
 
-  const bool hasSelection = !scene_selection_empty(selection);
-  const bool cursorLocked = input_cursor_mode(input) == InputCursorMode_Locked;
-  if ((input_triggered_lit(input, "CameraLookEnable") && !hasSelection) || cursorLocked) {
-    const f32 deltaX = input_cursor_delta_x(input) * g_inputCamRotateSensitivity;
-    const f32 deltaY = input_cursor_delta_y(input) * -g_inputCamRotateSensitivity;
+  if (input_triggered_lit(input, "CameraRotate")) {
+    const f32 deltaX = input_cursor_delta_x(input) * g_rotateSensitivity;
+    const f32 deltaY = input_cursor_delta_y(input) * -g_rotateSensitivity;
 
-    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(right, deltaY), camTrans->rotation);
+    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(camRight, deltaY), camTrans->rotation);
     camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, deltaX), camTrans->rotation);
     camTrans->rotation = geo_quat_norm(camTrans->rotation);
+    lockCursor         = true;
   }
+
+  input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
 
 static void select_start(InputStateComp* state, InputManagerComp* input) {
@@ -218,26 +301,20 @@ static void update_camera_interact(
   if (!selectActive && input_triggered_lit(input, "Order")) {
     input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
-
-  if (!selectActive && terrain && input_triggered_lit(input, "SpawnUnit")) {
-    const u32 count = input_modifiers(input) & InputModifier_Shift ? 25 : 1;
-    const f32 rayT  = scene_terrain_intersect_ray(terrain, &inputRay);
-    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT), count);
-    }
-  }
-
-  if (!selectActive && input_triggered_lit(input, "CursorLock")) {
-    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
-  }
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
+  const GeoVector camStartPos  = geo_vector(30.0f, 0, 0);
+  const f32       camStartRotY = -90.0f * math_deg_to_rad;
   ecs_world_add_t(
       world,
       windowEntity,
       InputStateComp,
-      .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
+      .uiCanvas   = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack),
+      .camPos     = camStartPos,
+      .camPosTgt  = camStartPos,
+      .camRotY    = camStartRotY,
+      .camRotYTgt = camStartRotY);
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -262,7 +339,7 @@ ecs_system_define(InputUpdateSys) {
     return;
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneCollisionEnvComp* colEnv        = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
@@ -276,18 +353,24 @@ ecs_system_define(InputUpdateSys) {
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    EcsIterator*           camItr      = ecs_view_at(cameraView, ecs_view_entity(itr));
-    const SceneCameraComp* camera      = ecs_view_read_t(camItr, SceneCameraComp);
-    SceneTransformComp*    cameraTrans = ecs_view_write_t(camItr, SceneTransformComp);
-    InputStateComp*        state       = ecs_view_write_t(camItr, InputStateComp);
+    EcsIterator*           camItr   = ecs_view_at(cameraView, ecs_view_entity(itr));
+    const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
+    SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
+    InputStateComp*        state    = ecs_view_write_t(camItr, InputStateComp);
     if (!state) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
     if (input_active_window(input) == ecs_view_entity(itr)) {
-      update_camera_movement(time, input, sel, camera, cameraTrans);
-      update_camera_interact(
-          state, cmdController, input, collisionEnv, sel, terrain, camera, cameraTrans);
+      if (input_triggered_lit(input, "CameraToggleMode")) {
+        state->freeCamera ^= true;
+      }
+      if (state->freeCamera) {
+        update_camera_movement_free(input, time, cam, camTrans);
+      } else {
+        update_camera_movement(state, input, time, camTrans);
+      }
+      update_camera_interact(state, cmdController, input, colEnv, sel, terrain, cam, camTrans);
     } else {
       state->selectState = InputSelectState_None;
     }

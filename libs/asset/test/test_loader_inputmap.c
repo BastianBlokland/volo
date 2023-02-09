@@ -39,7 +39,7 @@ static const struct {
             {
                 {
                     .name         = string_static("Jump"),
-                    .bindings     = {{.type = AssetInputType_Pressed, .key = 12}},
+                    .bindings     = {{.type = AssetInputType_Pressed, .key = 15}},
                     .bindingCount = 1,
                 },
             },
@@ -63,8 +63,8 @@ static const struct {
                 {
                     .name = string_static("Jump"),
                     .bindings =
-                        {{.type = AssetInputType_Pressed, .key = 12},
-                         {.type = AssetInputType_Released, .key = 19}},
+                        {{.type = AssetInputType_Pressed, .key = 15},
+                         {.type = AssetInputType_Released, .key = 22}},
                     .bindingCount = 2,
                 },
             },
@@ -90,12 +90,12 @@ static const struct {
             {
                 {
                     .name         = string_static("Forward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 47}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 50}},
                     .bindingCount = 1,
                 },
                 {
                     .name         = string_static("Backward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 43}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 46}},
                     .bindingCount = 1,
                 },
             },
@@ -117,7 +117,7 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .blockerBits  = 0b11,
-                    .bindings     = {{.type = AssetInputType_Pressed, .key = 12}},
+                    .bindings     = {{.type = AssetInputType_Pressed, .key = 15}},
                     .bindingCount = 1,
                 },
             },
@@ -140,7 +140,7 @@ static const struct {
                     .name         = string_static("Jump"),
                     .bindings     = {{
                             .type                 = AssetInputType_Pressed,
-                            .key                  = 12,
+                            .key                  = 15,
                             .requiredModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
@@ -165,7 +165,7 @@ static const struct {
                     .name         = string_static("Jump"),
                     .bindings     = {{
                             .type                = AssetInputType_Pressed,
-                            .key                 = 12,
+                            .key                 = 15,
                             .illegalModifierBits = 0b11,
                     }},
                     .bindingCount = 1,

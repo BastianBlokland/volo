@@ -145,6 +145,12 @@ i32 math_clamp_i32(i32 val, i32 min, i32 max);
 i64 math_clamp_i64(i64 val, i64 min, i64 max);
 
 /**
+ * Compute the linearly interpolated angle (in radians) from x to y at time t.
+ * NOTE: Does not clamp t (so can extrapolate too).
+ */
+f32 math_lerp_angle_f32(f32 angleX, f32 angleY, f32 t);
+
+/**
  * Moves the given value towards the target with a maximum step-size of maxDelta.
  * Returns true if we've reached the target.
  */

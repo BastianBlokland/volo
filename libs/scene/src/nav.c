@@ -15,7 +15,7 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const f32 g_sceneNavSize            = 250.0f;
+static const f32 g_sceneNavSize            = 300.0f;
 static const f32 g_sceneNavDensity         = 1.25f;
 static const f32 g_sceneNavCellHeight      = 5.0f;
 static const f32 g_sceneNavCellBlockHeight = 3.0f;

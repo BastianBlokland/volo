@@ -8,6 +8,9 @@ static const String g_keyStrs[] = {
     string_static("mouse-left"),
     string_static("mouse-right"),
     string_static("mouse-middle"),
+    string_static("mouse-extra1"),
+    string_static("mouse-extra2"),
+    string_static("mouse-extra3"),
     string_static("shift"),
     string_static("control"),
     string_static("alt"),
@@ -91,6 +94,7 @@ static const String g_paramStrs[] = {
     string_static("window-size"),
     string_static("window-size-pre-fullscreen"),
     string_static("cursor-pos"),
+    string_static("cursor-pos-pre-lock"),
     string_static("cursor-delta"),
     string_static("scroll-delta"),
 };
