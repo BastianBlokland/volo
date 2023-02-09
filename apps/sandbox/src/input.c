@@ -40,6 +40,7 @@ ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
+  bool             freeCamera;
 
   GeoVector camPos, camPosTgt;
   f32       camRotY, camRotYTgt;
@@ -51,7 +52,7 @@ static void update_camera_movement(
     InputManagerComp*    input,
     const SceneTimeComp* time,
     SceneTransformComp*  camTrans) {
-  const f32     deltaSeconds = scene_delta_seconds(time);
+  const f32     deltaSeconds = scene_real_delta_seconds(time);
   const GeoQuat camRotYOld   = geo_quat_from_euler(geo_vector(0, state->camRotY, 0));
   bool          lockCursor   = false;
 
@@ -77,8 +78,8 @@ static void update_camera_movement(
     }
     // clang-format on
     if (geo_vector_mag_sqr(panDeltaRel) > 0) {
-      const GeoVector moveDir = geo_vector_norm(panDeltaRel);
-      panDeltaRel             = geo_vector_mul(moveDir, deltaSeconds * g_inputCamPanTriggeredMult);
+      const GeoVector moveDirRel = geo_vector_norm(panDeltaRel);
+      panDeltaRel = geo_vector_mul(moveDirRel, deltaSeconds * g_inputCamPanTriggeredMult);
     }
   }
   panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
@@ -110,6 +111,48 @@ static void update_camera_movement(
   const GeoVector camOffset = geo_quat_rotate(camRot, geo_vector(0, 0, -camDist));
   camTrans->position        = geo_vector_add(state->camPos, camOffset);
   camTrans->rotation        = camRot;
+
+  input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
+}
+
+static void update_camera_movement_free(
+    InputManagerComp*      input,
+    const SceneTimeComp*   time,
+    const SceneCameraComp* camera,
+    SceneTransformComp*    camTrans) {
+  const f32       deltaSeconds = scene_real_delta_seconds(time);
+  const GeoVector camRight     = geo_quat_rotate(camTrans->rotation, geo_right);
+  bool            lockCursor   = false;
+
+  static const f32 g_panSpeed          = 20.0f;
+  static const f32 g_rotateSensitivity = 4.0f;
+
+  GeoVector panDelta = {0};
+  // clang-format off
+  if (input_triggered_lit(input, "CameraPanForward"))  { panDelta.z += 1; }
+  if (input_triggered_lit(input, "CameraPanBackward")) { panDelta.z -= 1; }
+  if (input_triggered_lit(input, "CameraPanRight"))    { panDelta.x += 1; }
+  if (input_triggered_lit(input, "CameraPanLeft"))     { panDelta.x -= 1; }
+  // clang-format on
+  if (geo_vector_mag_sqr(panDelta) > 0) {
+    panDelta = geo_vector_mul(geo_vector_norm(panDelta), deltaSeconds * g_panSpeed);
+    if (camera->flags & SceneCameraFlags_Orthographic) {
+      panDelta.y = panDelta.z;
+      panDelta.z = 0;
+    }
+    panDelta           = geo_quat_rotate(camTrans->rotation, panDelta);
+    camTrans->position = geo_vector_add(camTrans->position, panDelta);
+  }
+
+  if (input_triggered_lit(input, "CameraRotate")) {
+    const f32 deltaX = input_cursor_delta_x(input) * g_rotateSensitivity;
+    const f32 deltaY = input_cursor_delta_y(input) * -g_rotateSensitivity;
+
+    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(camRight, deltaY), camTrans->rotation);
+    camTrans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, deltaX), camTrans->rotation);
+    camTrans->rotation = geo_quat_norm(camTrans->rotation);
+    lockCursor         = true;
+  }
 
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
@@ -319,7 +362,14 @@ ecs_system_define(InputUpdateSys) {
       continue;
     }
     if (input_active_window(input) == ecs_view_entity(itr)) {
-      update_camera_movement(state, input, time, camTrans);
+      if (input_triggered_lit(input, "CameraToggleMode")) {
+        state->freeCamera ^= true;
+      }
+      if (state->freeCamera) {
+        update_camera_movement_free(input, time, cam, camTrans);
+      } else {
+        update_camera_movement(state, input, time, camTrans);
+      }
       update_camera_interact(state, cmdController, input, colEnv, sel, terrain, cam, camTrans);
     } else {
       state->selectState = InputSelectState_None;

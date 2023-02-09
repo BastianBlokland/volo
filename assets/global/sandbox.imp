@@ -151,6 +151,18 @@
       ]
     },
     {
+      "name": "CameraToggleMode",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F1"
+        }
+      ]
+    },
+    {
       "name": "Reset",
       "blockers": [
         "TextInput"
@@ -358,7 +370,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F1"
+          "key": "F2"
         }
       ]
     },
@@ -370,7 +382,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F2"
+          "key": "F3"
         }
       ]
     },
@@ -382,7 +394,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F3"
+          "key": "F4"
         }
       ]
     },
@@ -394,7 +406,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F4"
+          "key": "F5"
         }
       ]
     },
@@ -406,7 +418,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F5"
+          "key": "F6"
         }
       ]
     },
@@ -418,7 +430,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F6"
+          "key": "F7"
         }
       ]
     },
@@ -430,7 +442,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F7"
+          "key": "F8"
         }
       ]
     },
@@ -442,7 +454,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F8"
+          "key": "F9"
         }
       ]
     },
@@ -454,7 +466,7 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F9"
+          "key": "F10"
         }
       ]
     },
