@@ -42,6 +42,7 @@ typedef struct {
 typedef enum {
   GapPalFlags_CursorHidden   = 1 << 0,
   GapPalFlags_CursorCaptured = 1 << 1,
+  GapPalFlags_CursorConfined = 1 << 2,
 } GapPalFlags;
 
 struct sGapPal {
@@ -186,6 +187,28 @@ static u16 pal_query_dpi(const GapWindowId windowId) {
   (void)windowId;
   return pal_window_default_dpi;
 #endif
+}
+
+static void pal_cursor_clip(const GapWindowId windowId) {
+  RECT clipRect;
+  if (UNLIKELY(!GetClientRect((HWND)windowId, &clipRect))) {
+    pal_crash_with_win32_err(string_lit("GetClientRect"));
+  }
+  if (UNLIKELY(!ClientToScreen((HWND)windowId, (POINT*)&clipRect.left))) {
+    pal_crash_with_win32_err(string_lit("ClientToScreen"));
+  }
+  if (UNLIKELY(!ClientToScreen((HWND)windowId, (POINT*)&clipRect.right))) {
+    pal_crash_with_win32_err(string_lit("ClientToScreen"));
+  }
+  if (UNLIKELY(!ClipCursor(&clipRect))) {
+    pal_crash_with_win32_err(string_lit("ClipCursor"));
+  }
+}
+
+static void pal_cursor_clip_release() {
+  if (UNLIKELY(!ClipCursor(null))) {
+    pal_crash_with_win32_err(string_lit("ClipCursor"));
+  }
 }
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
@@ -345,23 +368,31 @@ static void pal_event_close(GapPalWindow* window) {
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
-static void pal_event_focus_gained(GapPalWindow* window) {
+static void pal_event_focus_gained(GapPal* pal, GapPalWindow* window) {
   if (window->flags & GapPalWindowFlags_Focussed) {
     return;
   }
   window->flags |= GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusGained;
 
+  if (pal->flags & GapPalFlags_CursorConfined) {
+    pal_cursor_clip(window->id);
+  }
+
   log_d("Window focus gained", log_param("id", fmt_int(window->id)));
 }
 
-static void pal_event_focus_lost(GapPalWindow* window) {
+static void pal_event_focus_lost(GapPal* pal, GapPalWindow* window) {
   if (!(window->flags & GapPalWindowFlags_Focussed)) {
     return;
   }
 
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
+
+  if (pal->flags & GapPalFlags_CursorConfined) {
+    pal_cursor_clip_release(window->id);
+  }
 
   gap_keyset_clear(&window->keysDown);
 
@@ -494,14 +525,14 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     return true;
   }
   case WM_SETFOCUS: {
-    pal_event_focus_gained(window);
+    pal_event_focus_gained(pal, window);
 
     // Update the cursor as it was probably moved since we where focussed last.
     pal_event_cursor(window, pal_query_cursor_pos(window->id));
     return true;
   }
   case WM_KILLFOCUS: {
-    pal_event_focus_lost(window);
+    pal_event_focus_lost(pal, window);
     return true;
   }
   case WM_ENTERSIZEMOVE: {
@@ -518,6 +549,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_SIZE: {
     const GapVector newSize = gap_vector(LOWORD(lParam), HIWORD(lParam));
     pal_event_resize(window, newSize);
+
+    if (pal->flags & GapPalFlags_CursorConfined) {
+      pal_cursor_clip(window->id);
+    }
+
     return true;
   }
   case WM_GETMINMAXINFO: {
@@ -941,6 +977,27 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   } else if (!captured && pal->flags & GapPalFlags_CursorCaptured) {
     ReleaseCapture();
     pal->flags &= ~GapPalFlags_CursorCaptured;
+  }
+}
+
+void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, const bool confined) {
+  pal_check_thread_ownership(pal);
+
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+  if (confined && !(pal->flags & GapPalFlags_CursorConfined)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_cursor_clip(windowId);
+    }
+    pal->flags |= GapPalFlags_CursorConfined;
+    return;
+  }
+  if (!confined && (pal->flags & GapPalFlags_CursorConfined)) {
+    if (window->flags & GapPalWindowFlags_Focussed) {
+      pal_cursor_clip_release();
+    }
+    pal->flags &= ~GapPalFlags_CursorConfined;
+    return;
   }
 }
 
