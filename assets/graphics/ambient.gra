@@ -16,18 +16,18 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/sandbox/env_diff_irradiance.atx",
+      "textureId": "textures/game/env_diff_irradiance.atx",
       "wrap": "Clamp",
       "filter": "Linear"
     },
     {
-      "textureId": "textures/sandbox/env_spec_irradiance.atx",
+      "textureId": "textures/game/env_spec_irradiance.atx",
       "wrap": "Clamp",
       "filter": "Linear",
       "mipBlending": true
     },
     {
-      "textureId": "textures/sandbox/env_brdf_integration.ptx",
+      "textureId": "textures/game/env_brdf_integration.ptx",
       "wrap": "Clamp",
       "filter": "Linear"
     }

@@ -96,7 +96,7 @@ build() {
 
 # Defaults.
 buildDir="build"
-buildTarget="run.sandbox"
+buildTarget="run.game"
 buildSystem="ninja"
 fastMode="Off"
 ltoMode="Off"

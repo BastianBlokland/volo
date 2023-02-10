@@ -1,16 +1,16 @@
 # --------------------------------------------------------------------------------------------------
-# Sandbox application cmake file.
+# Game application cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> application: sandbox")
+message(STATUS "> application: game")
 
-add_executable(app_sandbox
+add_executable(app_game
   src/app.c
   src/cmd.c
   src/input.c
   )
 
-target_link_libraries(app_sandbox PRIVATE
+target_link_libraries(app_game PRIVATE
   lib_app_ecs
   lib_asset
   lib_debug
@@ -22,8 +22,8 @@ target_link_libraries(app_sandbox PRIVATE
   lib_ui
   lib_vfx
   )
-add_dependencies(app_sandbox volo_assets)
-configure_debuggable(app_sandbox)
+add_dependencies(app_game volo_assets)
+configure_debuggable(app_game)
 
-add_custom_target(run.sandbox COMMAND app_sandbox
+add_custom_target(run.game COMMAND app_game
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)

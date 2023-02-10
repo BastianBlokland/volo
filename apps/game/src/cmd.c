@@ -132,7 +132,7 @@ ecs_system_define(CmdControllerUpdateSys) {
   dynarray_clear(&controller->commands);
 }
 
-ecs_module_init(sandbox_cmd_module) {
+ecs_module_init(game_cmd_module) {
   g_brainKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
   g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
 

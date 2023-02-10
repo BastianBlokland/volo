@@ -5,7 +5,7 @@
   Default: build
   Directory to build into (will be created if it doesn't exist).
 .PARAMETER BuildTarget
-  Default: run.sandbox
+  Default: run.game
   CMake build-target to invoke.
 .PARAMETER BuildSystem
   Default: nmake
@@ -23,7 +23,7 @@
 [cmdletbinding()]
 param(
   [string]$BuildDirectory = "build",
-  [string]$BuildTarget = "run.sandbox",
+  [string]$BuildTarget = "run.game",
   [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
   [switch]$Fast,
   [switch]$Lto,
