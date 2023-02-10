@@ -274,9 +274,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  input_resource_init(world, string_lit("global/sandbox.imp"));
-  scene_prefab_init(world, string_lit("global/sandbox.pfb"));
-  scene_weapon_init(world, string_lit("global/sandbox.wea"));
+  input_resource_init(world, string_lit("global/game-input.imp"));
+  scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
+  scene_weapon_init(world, string_lit("global/game-weapons.wea"));
   scene_terrain_init(
       world,
       string_lit("graphics/scene/terrain.gra"),
