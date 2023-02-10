@@ -2,5 +2,5 @@
 # Applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-add_subdirectory(sandbox)
+add_subdirectory(game)
 add_subdirectory(utilities)

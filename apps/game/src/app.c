@@ -225,7 +225,7 @@ ecs_system_define(AppUpdateSys) {
   }
 }
 
-ecs_module_init(sandbox_app_module) {
+ecs_module_init(game_app_module) {
   ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
 
   ecs_register_view(AppUpdateGlobalView);
@@ -242,7 +242,7 @@ ecs_module_init(sandbox_app_module) {
 static CliId g_assetFlag;
 
 void app_ecs_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Volo Sandbox Application"));
+  cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
   g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
@@ -258,9 +258,9 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ui_register(def);
   vfx_register(def);
 
-  ecs_register_module(def, sandbox_app_module);
-  ecs_register_module(def, sandbox_cmd_module);
-  ecs_register_module(def, sandbox_input_module);
+  ecs_register_module(def, game_app_module);
+  ecs_register_module(def, game_cmd_module);
+  ecs_register_module(def, game_input_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {

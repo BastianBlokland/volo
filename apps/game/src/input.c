@@ -403,7 +403,7 @@ ecs_system_define(InputDrawUiSys) {
   }
 }
 
-ecs_module_init(sandbox_input_module) {
+ecs_module_init(game_input_module) {
   ecs_register_comp(InputStateComp);
 
   ecs_register_view(GlobalUpdateView);
