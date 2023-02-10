@@ -6,7 +6,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/unit_swat.gra"
+          "graphicId": "graphics/game/unit_swat.gra"
         },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -52,7 +52,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/unit_maynard.gra"
+          "graphicId": "graphics/game/unit_maynard.gra"
         },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -98,13 +98,13 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/unit_turret_gun.gra"
+          "graphicId": "graphics/game/unit_turret_gun.gra"
         },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
           "deathDestroyDelay": 0.35,
-          "deathVfxId": "vfx/sandbox/explosion.vfx"
+          "deathVfxId": "vfx/game/explosion.vfx"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -138,13 +138,13 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/unit_turret_missile.gra"
+          "graphicId": "graphics/game/unit_turret_missile.gra"
         },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
           "deathDestroyDelay": 0.35,
-          "deathVfxId": "vfx/sandbox/explosion.vfx"
+          "deathVfxId": "vfx/game/explosion.vfx"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -176,7 +176,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_fence.gra"
+          "graphicId": "graphics/game/prop_fence.gra"
         },
         {
           "$type": "AssetPrefabTrait_Scale",
@@ -206,7 +206,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_barrel.gra"
+          "graphicId": "graphics/game/prop_barrel.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -222,7 +222,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Vfx",
-          "assetId": "vfx/sandbox/fire_barrel.vfx"
+          "assetId": "vfx/game/fire_barrel.vfx"
         }
       ]
     },
@@ -231,7 +231,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_tree.gra"
+          "graphicId": "graphics/game/prop_tree.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -252,7 +252,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_plant.gra"
+          "graphicId": "graphics/game/prop_plant.gra"
         }
       ]
     },
@@ -261,7 +261,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_wreck.gra"
+          "graphicId": "graphics/game/prop_wreck.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -287,7 +287,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_tower.gra"
+          "graphicId": "graphics/game/prop_tower.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -313,7 +313,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_container.gra"
+          "graphicId": "graphics/game/prop_container.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -339,7 +339,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_crate.gra"
+          "graphicId": "graphics/game/prop_crate.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -365,7 +365,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/sandbox/prop_rock.gra"
+          "graphicId": "graphics/game/prop_rock.gra"
         },
         {
           "$type": "AssetPrefabTrait_Collision",

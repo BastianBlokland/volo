@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/sandbox/skybox.atx",
+      "textureId": "textures/game/skybox.atx",
       "wrap": "Clamp",
       "filter": "Linear"
     }
