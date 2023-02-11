@@ -270,6 +270,7 @@ void app_ecs_configure(CliApp* app) {
 
   g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
+  cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
 
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
