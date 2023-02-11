@@ -259,6 +259,9 @@ f32 scene_terrain_intersect_ray(
    * Approximate the terrain intersection by ray-marching the heightmap.
    * Performs a binary-search through the ray until we've found a height that is close enough or
    * we've hit the begin/end.
+   *
+   * TODO: This does not support cases where the ray crosses the terrain multiple times, for example
+   * a ray that enters and exits a hill in the terrain might 'hit' either side at the moment.
    */
   const GeoPlane planeZero  = {.normal = geo_up};
   const f32      planeZeroT = geo_plane_intersect_ray(&planeZero, ray);
