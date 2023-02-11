@@ -197,10 +197,6 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "Escape"
-        },
-        {
-          "type": "Pressed",
           "key": "F4",
           "requiredModifiers": [
             "Alt"
@@ -467,6 +463,18 @@
         {
           "type": "Pressed",
           "key": "F10"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelClose",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Escape"
         }
       ]
     },

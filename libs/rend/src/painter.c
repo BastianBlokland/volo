@@ -848,7 +848,7 @@ ecs_system_define(RendPainterCreateSys) {
   }
 }
 
-ecs_system_define(RendPainterDrawBatchesSys) {
+ecs_system_define(RendPainterDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -910,14 +910,14 @@ ecs_module_init(rend_painter_module) {
       RendPainterCreateSys, ecs_view_id(GlobalView), ecs_view_id(PainterCreateView));
 
   ecs_register_system(
-      RendPainterDrawBatchesSys,
+      RendPainterDrawSys,
       ecs_view_id(GlobalView),
       ecs_view_id(PainterUpdateView),
       ecs_view_id(DrawView),
       ecs_view_id(GraphicView),
       ecs_view_id(ResourceView));
 
-  ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
+  ecs_order(RendPainterDrawSys, RendOrder_DrawExecute);
 }
 
 void rend_painter_teardown(EcsWorld* world, const EcsEntityId entity) {

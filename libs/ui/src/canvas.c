@@ -565,6 +565,7 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->minInteractLayer = 0;
 }
 
+i32  ui_canvas_order(const UiCanvasComp* comp) { return comp->order; }
 void ui_canvas_to_front(UiCanvasComp* comp) { comp->order = i32_max; }
 void ui_canvas_to_back(UiCanvasComp* comp) { comp->order = i32_min; }
 

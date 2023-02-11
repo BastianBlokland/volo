@@ -1,6 +1,7 @@
 #include "app_ecs.h"
 #include "asset.h"
 #include "core_alloc.h"
+#include "core_file.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "debug.h"
@@ -8,6 +9,7 @@
 #include "gap.h"
 #include "input.h"
 #include "input_resource.h"
+#include "log_logger.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_prefab.h"
@@ -23,12 +25,25 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appPropCount  = 800;
+static const u32       g_appPropCount  = 1000;
 static const u64       g_appRngSeed    = 13;
 
+ecs_comp_define(AppComp) {
+  bool sceneCreated;
+  Rng* rng;
+};
+
+static void ecs_destruct_app_comp(void* data) {
+  AppComp* comp = data;
+  rng_destroy(comp->rng);
+}
+
+ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
+
 static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
-  debug_menu_create(world, window);
+  const EcsEntityId window    = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+  const EcsEntityId debugMenu = debug_menu_create(world, window);
+  ecs_world_add_t(world, window, AppWindowComp, .debugMenu = debugMenu);
 
   ecs_world_add_t(
       world,
@@ -115,6 +130,7 @@ static void app_scene_create_units(EcsWorld* world) {
       });
 
   static const GeoVector g_turretGunLocations[] = {
+      {30, 0, -60},
       {30, 0, -45},
       {30, 0, -30},
       {30, 0, -15},
@@ -122,6 +138,7 @@ static void app_scene_create_units(EcsWorld* world) {
       {30, 0, 15},
       {30, 0, 30},
       {30, 0, 45},
+      {30, 0, 60},
   };
   array_for_t(g_turretGunLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
@@ -136,10 +153,12 @@ static void app_scene_create_units(EcsWorld* world) {
   }
 
   static const GeoVector g_turretMissileLocations[] = {
+      {40, 0, -50},
       {40, 0, -30},
       {40, 0, -10},
       {40, 0, 10},
       {40, 0, 30},
+      {40, 0, 50},
   };
   array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
@@ -164,22 +183,16 @@ static void app_scene_create_units(EcsWorld* world) {
       });
 }
 
-ecs_comp_define(AppComp) {
-  bool sceneCreated;
-  Rng* rng;
-};
-
-static void ecs_destruct_app_comp(void* data) {
-  AppComp* comp = data;
-  rng_destroy(comp->rng);
-}
-
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(AppComp);
 }
 
-ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
+ecs_view_define(WindowView) {
+  ecs_access_read(AppWindowComp);
+  ecs_access_write(GapWindowComp);
+}
+ecs_view_define(DebugMenuView) { ecs_access_read(DebugMenuComp); }
 ecs_view_define(InstanceView) { ecs_access_with(ScenePrefabInstanceComp); }
 
 ecs_system_define(AppUpdateSys) {
@@ -215,11 +228,20 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    GapWindowComp* win = ecs_view_write_t(activeWindowItr, GapWindowComp);
-    if (input_triggered_lit(input, "WindowClose")) {
+    const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
+    GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
+
+    const EcsEntityId debugMenu = appWindow->debugMenu;
+    DebugMenuEvents   dbgEvents = 0;
+    if (debugMenu) {
+      const DebugMenuComp* menu = ecs_utils_read_t(world, DebugMenuView, debugMenu, DebugMenuComp);
+      dbgEvents                 = debug_menu_events(menu);
+    }
+
+    if (input_triggered_lit(input, "WindowClose") || dbgEvents & DebugMenuEvents_CloseWindow) {
       gap_window_close(win);
     }
-    if (input_triggered_lit(input, "WindowFullscreen")) {
+    if (input_triggered_lit(input, "WindowFullscreen") || dbgEvents & DebugMenuEvents_Fullscreen) {
       app_window_fullscreen_toggle(win);
     }
   }
@@ -227,25 +249,41 @@ ecs_system_define(AppUpdateSys) {
 
 ecs_module_init(game_app_module) {
   ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
+  ecs_register_comp(AppWindowComp);
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(DebugMenuView);
   ecs_register_view(InstanceView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(WindowView),
+      ecs_view_id(DebugMenuView),
       ecs_view_id(InstanceView));
 }
 
-static CliId g_assetFlag;
+static CliId g_assetFlag, g_helpFlag;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
-  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
+  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
+  cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
+
+  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_helpFlag, g_assetFlag);
+}
+
+bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
+  if (cli_parse_provided(invoc, g_helpFlag)) {
+    cli_help_write_file(app, g_file_stderr);
+    return false;
+  }
+  return true;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
@@ -270,7 +308,11 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       AppComp,
       .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
 
-  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
+  const String assetPath = cli_read_string(invoc, g_assetFlag, string_lit("assets"));
+  if (file_stat_path_sync(assetPath).type != FileType_Directory) {
+    log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
+    return;
+  }
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 

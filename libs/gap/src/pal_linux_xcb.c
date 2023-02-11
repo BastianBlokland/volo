@@ -700,6 +700,11 @@ static void pal_randr_query_displays(GapPal* pal) {
 }
 
 static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window) {
+    return gap_vector(0, 0);
+  }
+
   GapVector                  result = gap_vector(0, 0);
   xcb_generic_error_t*       err    = null;
   xcb_query_pointer_reply_t* reply =
@@ -712,7 +717,12 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
         log_param("error", fmt_int(err->error_code)));
     goto Return;
   }
-  result = gap_vector(reply->win_x, reply->win_y);
+
+  // Xcb uses top-left as opposed to bottom-left, so we have to remap the y coordinate.
+  result = (GapVector){
+      .x = reply->win_x,
+      .y = window->params[GapParam_WindowSize].height - reply->win_y,
+  };
 
 Return:
   free(reply);
@@ -828,15 +838,7 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
     return;
   };
 
-  /**
-   * NOTE: Xcb uses top-left as the origin while the Volo project uses bottom-left, so we have to
-   * remap the y coordinate.
-   */
-
-  window->params[GapParam_CursorPos] = (GapVector){
-      .x = newPos.x,
-      .y = window->params[GapParam_WindowSize].height - newPos.y,
-  };
+  window->params[GapParam_CursorPos] = newPos;
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
@@ -1000,9 +1002,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc    = alloc,
-             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1111,12 +1113,22 @@ void gap_pal_update(GapPal* pal) {
         pal_xcb_cursor_grab(pal, configureMsg->window);
       }
 
+      // Update the cursor position.
+      pal_event_cursor(pal, configureMsg->window, pal_query_cursor_pos(pal, configureMsg->window));
+
     } break;
 
     case XCB_MOTION_NOTIFY: {
       const xcb_motion_notify_event_t* motionMsg = (const void*)evt;
-      const GapVector                  newPos = gap_vector(motionMsg->event_x, motionMsg->event_y);
-      pal_event_cursor(pal, motionMsg->event, newPos);
+      GapPalWindow*                    window    = pal_maybe_window(pal, motionMsg->event);
+      if (window) {
+        // Xcb uses top-left as opposed to bottom-left, so we have to remap the y coordinate.
+        const GapVector newPos = {
+            motionMsg->event_x,
+            window->params[GapParam_WindowSize].height - motionMsg->event_y,
+        };
+        pal_event_cursor(pal, motionMsg->event, newPos);
+      }
     } break;
 
     case XCB_BUTTON_PRESS: {

@@ -1,4 +1,5 @@
 #include "core_math.h"
+#include "debug_stats.h"
 #include "ecs_world.h"
 #include "geo_plane.h"
 #include "input_manager.h"
@@ -318,18 +319,29 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
+  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_maybe_write(DebugStatsGlobalComp);
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
-  ecs_access_maybe_read(SceneTerrainComp);
 }
 
 ecs_view_define(CameraView) {
   ecs_access_maybe_write(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
+}
+
+static void input_toggle_camera_mode(InputStateComp* state, DebugStatsGlobalComp* debugStats) {
+  state->freeCamera ^= true;
+  if (debugStats) {
+    debug_stats_notify(
+        debugStats,
+        string_lit("Camera Mode"),
+        state->freeCamera ? string_lit("Free") : string_lit("Normal"));
+  }
 }
 
 ecs_system_define(InputUpdateSys) {
@@ -344,6 +356,7 @@ ecs_system_define(InputUpdateSys) {
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (input_triggered_lit(input, "Destroy")) {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
@@ -363,7 +376,7 @@ ecs_system_define(InputUpdateSys) {
     }
     if (input_active_window(input) == ecs_view_entity(itr)) {
       if (input_triggered_lit(input, "CameraToggleMode")) {
-        state->freeCamera ^= true;
+        input_toggle_camera_mode(state, debugStats);
       }
       if (state->freeCamera) {
         update_camera_movement_free(input, time, cam, camTrans);

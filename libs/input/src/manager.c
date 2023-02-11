@@ -144,7 +144,8 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
     manager->scrollDelta[0]     = scroll.x;
     manager->scrollDelta[1]     = scroll.y;
   } else {
-    mem_set(array_mem(manager->cursorPosNorm), 0);
+    manager->cursorPosNorm[0] = 0.5f;
+    manager->cursorPosNorm[1] = 0.5f;
     mem_set(array_mem(manager->cursorDeltaNorm), 0);
     manager->cursorAspect = 1.0f;
     mem_set(array_mem(manager->scrollDelta), 0);

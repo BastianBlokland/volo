@@ -1,4 +1,5 @@
 #include "cli_validate.h"
+#include "core_file.h"
 #include "core_format.h"
 
 bool cli_validate_i64(const String input) {
@@ -16,4 +17,16 @@ bool cli_validate_u64(const String input) {
 bool cli_validate_f64(const String input) {
   const String rem = format_read_f64(input, null);
   return string_is_empty(rem);
+}
+
+bool cli_validate_file(const String input) {
+  return file_stat_path_sync(input).type != FileType_None;
+}
+
+bool cli_validate_file_regular(const String input) {
+  return file_stat_path_sync(input).type == FileType_Regular;
+}
+
+bool cli_validate_file_directory(const String input) {
+  return file_stat_path_sync(input).type == FileType_Directory;
 }
