@@ -229,17 +229,17 @@ ecs_system_define(AppUpdateSys) {
     const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
     GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
 
-    const EcsEntityId debugMenu   = appWindow->debugMenu;
-    DebugMenuEvents   debugEvents = 0;
+    const EcsEntityId debugMenu = appWindow->debugMenu;
+    DebugMenuEvents   dbgEvents = 0;
     if (debugMenu) {
       const DebugMenuComp* menu = ecs_utils_read_t(world, DebugMenuView, debugMenu, DebugMenuComp);
-      debugEvents               = debug_menu_events(menu);
+      dbgEvents                 = debug_menu_events(menu);
     }
 
-    if (input_triggered_lit(input, "WindowClose") || debugEvents & DebugMenuEvents_CloseWindow) {
+    if (input_triggered_lit(input, "WindowClose") || dbgEvents & DebugMenuEvents_CloseWindow) {
       gap_window_close(win);
     }
-    if (input_triggered_lit(input, "WindowFullscreen")) {
+    if (input_triggered_lit(input, "WindowFullscreen") || dbgEvents & DebugMenuEvents_Fullscreen) {
       app_window_fullscreen_toggle(win);
     }
   }

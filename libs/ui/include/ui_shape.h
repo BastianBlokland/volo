@@ -25,7 +25,6 @@
   X(0xE5CE, ExpandLess)                                                                            \
   X(0xE5CF, ExpandMore)                                                                            \
   X(0xE5D0, Fullscreen)                                                                            \
-  X(0xE5D1, FullscreenExit)                                                                        \
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
   X(0xE71C, Animation)                                                                             \

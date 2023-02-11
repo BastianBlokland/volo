@@ -111,6 +111,11 @@ static const struct {
   String          tooltip;
 } g_debugEventButtons[] = {
     {
+        .event     = DebugMenuEvents_Fullscreen,
+        .iconShape = UiShape_Fullscreen,
+        .tooltip   = string_static("Enter / exit fullscreen."),
+    },
+    {
         .event     = DebugMenuEvents_CloseWindow,
         .iconShape = UiShape_Logout,
         .tooltip   = string_static("Close the window."),

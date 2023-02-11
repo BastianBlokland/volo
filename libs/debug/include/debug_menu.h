@@ -4,6 +4,7 @@
 
 typedef enum {
   DebugMenuEvents_CloseWindow = 1 << 0,
+  DebugMenuEvents_Fullscreen  = 1 << 1,
 } DebugMenuEvents;
 
 ecs_comp_extern(DebugMenuComp);
