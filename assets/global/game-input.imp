@@ -197,10 +197,6 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "Escape"
-        },
-        {
-          "type": "Pressed",
           "key": "F4",
           "requiredModifiers": [
             "Alt"
