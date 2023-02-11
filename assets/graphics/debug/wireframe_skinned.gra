@@ -4,7 +4,7 @@
       "shaderId": "shaders/dyn_depth_standard_skinned.vert.spv"
     },
     {
-      "shaderId": "shaders/white.frag.spv"
+      "shaderId": "shaders/solid_white.frag.spv"
     }
   ],
   "renderOrder": 10,

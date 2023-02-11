@@ -39,6 +39,8 @@ configure_shaders(volo_shaders
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
+    shaders/solid_black.frag
+    shaders/solid_white.frag
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
@@ -47,7 +49,6 @@ configure_shaders(volo_shaders
     shaders/ui/canvas.vert
     shaders/vfx/particle.frag
     shaders/vfx/particle.vert
-    shaders/white.frag
   )
 
 if(${EXTERNAL_ASSETS})
