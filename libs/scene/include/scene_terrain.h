@@ -31,6 +31,12 @@ f32         scene_terrain_height_scale(const SceneTerrainComp*);
 f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*, f32 maxDist);
 
 /**
+ * Compute the terrain's normal vector at the given position.
+ * NOTE: Does not interpolate so the normal is not continuous over the terrain surface.
+ */
+GeoVector scene_terrain_normal(const SceneTerrainComp*, GeoVector position);
+
+/**
  * Sample the terrain height at the given coordinate.
  */
 f32 scene_terrain_height(const SceneTerrainComp*, GeoVector position);
