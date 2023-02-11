@@ -7,14 +7,9 @@
       "shaderId": "shaders/scene/terrain.frag.spv",
       "overrides": [
         {
-          "name": "heightNormalIntensity",
-          "binding": 0,
-          "value": 2
-        },
-        {
           "name": "splat1UvScale",
           "binding": 1,
-          "value": 150
+          "value": 250
         },
         {
           "name": "splat2UvScale",
@@ -41,7 +36,7 @@
       "filter": "Linear"
     },
     {
-      "textureId": "external/tiling/sand_2_normal.tga",
+      "textureId": "external/tiling/sand_4_normal.tga",
       "wrap": "Repeat",
       "filter": "Linear"
     },

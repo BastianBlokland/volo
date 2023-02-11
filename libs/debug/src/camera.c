@@ -13,6 +13,7 @@
 #include "scene_collision.h"
 #include "scene_name.h"
 #include "scene_tag.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -219,6 +220,7 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugTextComp);
@@ -257,6 +259,7 @@ static void debug_camera_draw_frustum(
 static void debug_camera_draw_input_ray(
     DebugShapeComp*              shape,
     DebugTextComp*               text,
+    const SceneTerrainComp*      terrain,
     const SceneCollisionEnvComp* collisionEnv,
     EcsView*                     nameView,
     const SceneCameraComp*       cam,
@@ -282,6 +285,19 @@ static void debug_camera_draw_input_ray(
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name), geo_color_white);
     }
+  } else {
+    const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
+    if (terrainHitT >= 0) {
+      const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
+      const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
+
+      debug_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
+      const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 0.5f));
+      debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
+
+      const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
+      debug_text(text, textPos, string_lit("terrain"), geo_color_white);
+    }
   }
 }
 
@@ -292,6 +308,7 @@ ecs_system_define(DebugCameraDrawSys) {
     return;
   }
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
   DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
   DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
@@ -322,7 +339,7 @@ ecs_system_define(DebugCameraDrawSys) {
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
       debug_camera_draw_input_ray(
-          shape, text, collisionEnv, nameView, cam, trans, aspect, inputPos);
+          shape, text, terrain, collisionEnv, nameView, cam, trans, aspect, inputPos);
     }
   }
 }

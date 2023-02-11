@@ -4,7 +4,7 @@
       "shaderId": "shaders/scene/terrain_position.vert.spv"
     },
     {
-      "shaderId": "shaders/white.frag.spv"
+      "shaderId": "shaders/solid_white.frag.spv"
     }
   ],
   "samplers": [

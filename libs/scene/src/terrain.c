@@ -119,7 +119,7 @@ static f32 terrain_heightmap_sample(const SceneTerrainComp* t, const f32 xNorm, 
     return 0.0f;
   }
   if (UNLIKELY(!t->heightmapData.size)) {
-    return 0.0f;
+    return 0.0f; // No heightmap loaded at the moment.
   }
   diag_assert(t->heightmapType == AssetTextureType_U16);
 
@@ -253,21 +253,80 @@ f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) {
   return g_terrainHeightScale;
 }
 
-f32 scene_terrain_intersect_ray(const SceneTerrainComp* terrain, const GeoRay* ray) {
+f32 scene_terrain_intersect_ray(
+    const SceneTerrainComp* terrain, const GeoRay* ray, const f32 maxDist) {
   /**
-   * Approximate terrain ray-casting with two plane intersections.
-   * More precise intersections could be implemented by ray-marching the heightmap or generating a
-   * triangle mesh from the heightmap.
+   * Approximate the terrain intersection by ray-marching the heightmap.
+   * Performs a binary-search through the ray until we've found a height that is close enough or
+   * we've hit the begin/end.
+   *
+   * TODO: This does not support cases where the ray crosses the terrain multiple times, for example
+   * a ray that enters and exits a hill in the terrain might 'hit' either side at the moment.
    */
   const GeoPlane planeZero  = {.normal = geo_up};
   const f32      planeZeroT = geo_plane_intersect_ray(&planeZero, ray);
   if (planeZeroT < 0) {
     return -1.0f;
   }
-  const GeoVector geoPlanePos   = geo_ray_position(ray, planeZeroT);
-  const f32       terrainHeight = scene_terrain_height(terrain, geoPlanePos);
-  const GeoPlane  planeTerrain  = {.normal = geo_up, .distance = terrainHeight};
-  return geo_plane_intersect_ray(&planeTerrain, ray);
+  static const f32 g_heightThreshold = 0.05f;
+  f32              tMin = 0.0f, tMax = math_min(planeZeroT, maxDist);
+  while (tMin < tMax) {
+    const f32       tPos          = tMin + (tMax - tMin) * 0.5f; // Middle point of the search-area.
+    const GeoVector rayPos        = geo_ray_position(ray, tPos);
+    const f32       terrainHeight = scene_terrain_height(terrain, rayPos);
+    const f32       heightDiff    = terrainHeight - rayPos.y;
+    if (math_abs(heightDiff) <= g_heightThreshold) {
+      return tPos;
+    }
+    if (heightDiff > 0) {
+      tMax = tPos;
+    } else {
+      tMin = tPos + g_heightThreshold;
+    }
+  }
+  return -1.0f;
+}
+
+GeoVector scene_terrain_normal(const SceneTerrainComp* terrain, const GeoVector position) {
+  if (UNLIKELY(!terrain->heightmapData.size)) {
+    return geo_up; // No heightmap loaded at the moment.
+  }
+  static const f32 g_normMul = 1.0f / u16_max;
+  const u16*       pixels    = terrain->heightmapData.ptr;
+
+  /**
+   * Compute the normal by sampling 2 height's around the given position on both x and z axis.
+   * NOTE: Does not interpolate so the normal is not continuous over the terrain surface.
+   */
+
+  const f32 normX = (position.x + g_terrainSizeHalf) * g_terrainSizeInv;
+  const f32 normY = (position.z + g_terrainSizeHalf) * g_terrainSizeInv;
+
+  const i32 size = terrain->heightmapSize;
+  const i32 x    = (i32)math_round_nearest_f32(normX * (size - 1));
+  const i32 y    = (i32)math_round_nearest_f32(normY * (size - 1));
+
+  if (UNLIKELY(x < 0 || x >= size || y < 0 || y >= size)) {
+    return geo_up; // Position is outside of the heightmap.
+  }
+
+  const i32 x0 = LIKELY(x > 0) ? x - 1 : x;
+  const i32 x1 = LIKELY(x < size - 1) ? x + 1 : x;
+  f32       dX = pixels[y * size + x0] * g_normMul - pixels[y * size + x1] * g_normMul;
+  if (UNLIKELY(x == 0 || x == size - 1)) {
+    dX *= 2.0f;
+  }
+
+  const i32 y0 = LIKELY(y > 0) ? y - 1 : y;
+  const i32 y1 = LIKELY(y < size - 1) ? y + 1 : y;
+  f32       dY = pixels[y0 * size + x] * g_normMul - pixels[y1 * size + x] * g_normMul;
+  if (UNLIKELY(y == 0 || y == size - 1)) {
+    dY *= 2.0f;
+  }
+
+  const f32       xzScale = g_terrainSize / size;
+  const GeoVector dir     = {dX * g_terrainHeightScale, xzScale * 2, dY * g_terrainHeightScale};
+  return geo_vector_norm(dir);
 }
 
 f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {

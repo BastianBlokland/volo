@@ -28,7 +28,13 @@ f32         scene_terrain_height_scale(const SceneTerrainComp*);
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.
  */
-f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*);
+f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*, f32 maxDist);
+
+/**
+ * Compute the terrain's normal vector at the given position.
+ * NOTE: Does not interpolate so the normal is not continuous over the terrain surface.
+ */
+GeoVector scene_terrain_normal(const SceneTerrainComp*, GeoVector position);
 
 /**
  * Sample the terrain height at the given coordinate.

@@ -39,6 +39,8 @@ configure_shaders(volo_shaders
     shaders/scene/terrain_position.vert
     shaders/scene/terrain.frag
     shaders/scene/terrain.vert
+    shaders/solid_black.frag
+    shaders/solid_white.frag
     shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
@@ -47,7 +49,6 @@ configure_shaders(volo_shaders
     shaders/ui/canvas.vert
     shaders/vfx/particle.frag
     shaders/vfx/particle.vert
-    shaders/white.frag
   )
 
 if(${EXTERNAL_ASSETS})
@@ -120,7 +121,7 @@ if(${EXTERNAL_ASSETS})
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
       tiling/sand_2_color_rough.tga
-      tiling/sand_2_normal.tga
+      tiling/sand_4_normal.tga
       tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga

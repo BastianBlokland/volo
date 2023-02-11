@@ -13,7 +13,7 @@ struct ShapeInstanceData {
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance { ShapeInstanceData[c_maxInstances] u_instances; };
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out flat f32v4 out_color;
 
 void main() {
   const f32v3 instancePos   = u_instances[in_instanceIndex].positions[in_vertexIndex].xyz;

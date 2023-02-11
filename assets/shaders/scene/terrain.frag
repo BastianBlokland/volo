@@ -34,16 +34,8 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 size, const f32 heightScale) {
   const f32 hDown  = textureOffset(u_texHeight, uv, i32v2(0, -1)).r * heightScale;
   const f32 hUp    = textureOffset(u_texHeight, uv, i32v2(0, 1)).r * heightScale;
 
-  // NOTE: Assumes that the height map is a square texture.
-  const f32 unitSize = 1.0 / textureSize(u_texHeight, 0).x * size;
-
-  /**
-   * Exaggerate the offset on the xz plane for more dramatic lighting.
-   * TODO: Verify the math here to make sure we're not compensating for broken logic.
-   */
-  const f32 unitRefHeight = unitSize / s_heightNormalIntensity;
-
-  return normalize(f32v3(hLeft - hRight, unitRefHeight * 2.0, hDown - hUp));
+  const f32 xzScale = size / textureSize(u_texHeight, 0).x;
+  return normalize(f32v3(hLeft - hRight, xzScale * 2.0, hDown - hUp));
 }
 
 /**

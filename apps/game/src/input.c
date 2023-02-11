@@ -242,8 +242,8 @@ static void input_order(
    * Otherwise order an move.
    */
   if (terrain) {
-    const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay);
-    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
+    const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+    if (rayT > g_inputMinInteractDist) {
       const GeoVector targetPos = geo_ray_position(inputRay, rayT);
       for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
         cmd_push_move(cmdController, *e, targetPos);

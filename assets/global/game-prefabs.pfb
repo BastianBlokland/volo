@@ -404,7 +404,7 @@
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitMelee",
           "radius": 50,
-          "count": 2,
+          "count": 3,
           "maxInstances": 1000,
           "intervalMin": 0.1,
           "intervalMax": 0.2

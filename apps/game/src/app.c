@@ -159,6 +159,9 @@ static void app_scene_create_units(EcsWorld* world) {
       {40, 0, 10},
       {40, 0, 30},
       {40, 0, 50},
+      {50, 0, -20},
+      {50, 0, 0},
+      {50, 0, 20},
   };
   array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
