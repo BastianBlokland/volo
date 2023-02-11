@@ -467,6 +467,18 @@
       ]
     },
     {
+      "name": "DebugPanelClose",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Escape"
+        }
+      ]
+    },
+    {
       "name": "DebugInspectorToolTranslation",
       "blockers": [
         "TextInput"

@@ -15,6 +15,7 @@
 #include "debug_rend.h"
 #include "debug_stats.h"
 #include "debug_time.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "input.h"
 #include "ui.h"
@@ -137,15 +138,14 @@ ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
-
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
   ecs_access_write(UiCanvasComp);
 }
-
+ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
 ecs_view_define(WindowUpdateView) { ecs_access_write(DebugStatsComp); }
 
-static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
+static bool debug_panel_is_open(EcsWorld* world, const EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
 }
 
@@ -155,6 +155,21 @@ static void debug_notify_panel_state(
       statsGlobal,
       fmt_write_scratch("Panel {}", fmt_text(g_debugPanelConfig[panelIndex].name)),
       state);
+}
+
+static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* menu) {
+  EcsEntityId topmost      = 0;
+  i32         topmostOrder = i32_min;
+  array_for_t(menu->panelEntities, EcsEntityId, panelEntity) {
+    if (debug_panel_is_open(world, *panelEntity)) {
+      const UiCanvasComp* canvas = ecs_utils_read_t(world, CanvasView, *panelEntity, UiCanvasComp);
+      if (ui_canvas_order(canvas) >= topmostOrder) {
+        topmost      = *panelEntity;
+        topmostOrder = ui_canvas_order(canvas);
+      }
+    }
+  }
+  return topmost;
 }
 
 static void debug_action_bar_draw(
@@ -256,6 +271,13 @@ ecs_system_define(DebugMenuUpdateSys) {
 
     ui_canvas_reset(canvas);
     debug_action_bar_draw(world, canvas, input, menu, stats, statsGlobal, menu->window);
+
+    if (input_triggered_lit(input, "DebugPanelClose")) {
+      const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
+      if (topmostPanel) {
+        ecs_world_entity_destroy(world, topmostPanel);
+      }
+    }
   }
 }
 
@@ -264,12 +286,14 @@ ecs_module_init(debug_menu_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
+  ecs_register_view(CanvasView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
       DebugMenuUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(MenuUpdateView),
+      ecs_view_id(CanvasView),
       ecs_view_id(WindowUpdateView));
 }
 
