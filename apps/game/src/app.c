@@ -23,7 +23,7 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
-static const u32       g_appPropCount  = 800;
+static const u32       g_appPropCount  = 1000;
 static const u64       g_appRngSeed    = 13;
 
 static void app_window_create(EcsWorld* world) {
@@ -115,6 +115,7 @@ static void app_scene_create_units(EcsWorld* world) {
       });
 
   static const GeoVector g_turretGunLocations[] = {
+      {30, 0, -60},
       {30, 0, -45},
       {30, 0, -30},
       {30, 0, -15},
@@ -122,6 +123,7 @@ static void app_scene_create_units(EcsWorld* world) {
       {30, 0, 15},
       {30, 0, 30},
       {30, 0, 45},
+      {30, 0, 60},
   };
   array_for_t(g_turretGunLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
@@ -136,10 +138,12 @@ static void app_scene_create_units(EcsWorld* world) {
   }
 
   static const GeoVector g_turretMissileLocations[] = {
+      {40, 0, -50},
       {40, 0, -30},
       {40, 0, -10},
       {40, 0, 10},
       {40, 0, 30},
+      {40, 0, 50},
   };
   array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
     scene_prefab_spawn(
