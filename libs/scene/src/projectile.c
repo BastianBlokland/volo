@@ -204,8 +204,8 @@ ecs_system_define(SceneProjectileSys) {
 
     // Test collision with the terrain.
     if (terrain) {
-      const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray);
-      if (terrainHitT >= 0 && terrainHitT <= deltaDist) {
+      const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, deltaDist);
+      if (terrainHitT >= 0) {
         const EcsEntityId hitEntity      = 0;
         const GeoVector   hitPos         = geo_ray_position(&ray, terrainHitT);
         trans->position                  = hitPos;

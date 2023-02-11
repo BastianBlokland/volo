@@ -207,11 +207,11 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
 
   f32 rayT;
   if (ctx->terrain) {
-    rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay);
+    rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
   } else {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
   }
-  if (rayT < g_createMinInteractDist || rayT > g_createMaxInteractDist || blocked) {
+  if (rayT < g_createMinInteractDist || blocked) {
     return;
   }
   const GeoVector pos = geo_ray_position(&inputRay, rayT);

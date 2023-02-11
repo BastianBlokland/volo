@@ -253,21 +253,35 @@ f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) {
   return g_terrainHeightScale;
 }
 
-f32 scene_terrain_intersect_ray(const SceneTerrainComp* terrain, const GeoRay* ray) {
+f32 scene_terrain_intersect_ray(
+    const SceneTerrainComp* terrain, const GeoRay* ray, const f32 maxDist) {
   /**
-   * Approximate terrain ray-casting with two plane intersections.
-   * More precise intersections could be implemented by ray-marching the heightmap or generating a
-   * triangle mesh from the heightmap.
+   * Approximate the terrain intersection by ray-marching the heightmap.
+   * Performs a binary-search through the ray until we've found a height that is close enough or
+   * we've hit the begin/end.
    */
   const GeoPlane planeZero  = {.normal = geo_up};
   const f32      planeZeroT = geo_plane_intersect_ray(&planeZero, ray);
   if (planeZeroT < 0) {
     return -1.0f;
   }
-  const GeoVector geoPlanePos   = geo_ray_position(ray, planeZeroT);
-  const f32       terrainHeight = scene_terrain_height(terrain, geoPlanePos);
-  const GeoPlane  planeTerrain  = {.normal = geo_up, .distance = terrainHeight};
-  return geo_plane_intersect_ray(&planeTerrain, ray);
+  static const f32 g_heightThreshold = 0.05f;
+  f32              tMin = 0.0f, tMax = math_min(planeZeroT, maxDist);
+  while (tMin < tMax) {
+    const f32       tPos          = tMin + (tMax - tMin) * 0.5f; // Middle point of the search-area.
+    const GeoVector rayPos        = geo_ray_position(ray, tPos);
+    const f32       terrainHeight = scene_terrain_height(terrain, rayPos);
+    const f32       heightDiff    = terrainHeight - rayPos.y;
+    if (math_abs(heightDiff) <= g_heightThreshold) {
+      return tPos;
+    }
+    if (heightDiff > 0) {
+      tMax = tPos;
+    } else {
+      tMin = tPos + g_heightThreshold;
+    }
+  }
+  return -1.0f;
 }
 
 f32 scene_terrain_height(const SceneTerrainComp* terrain, const GeoVector position) {

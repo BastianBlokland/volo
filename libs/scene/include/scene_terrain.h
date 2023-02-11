@@ -28,7 +28,7 @@ f32         scene_terrain_height_scale(const SceneTerrainComp*);
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.
  */
-f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*);
+f32 scene_terrain_intersect_ray(const SceneTerrainComp*, const GeoRay*, f32 maxDist);
 
 /**
  * Sample the terrain height at the given coordinate.
