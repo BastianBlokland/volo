@@ -7,11 +7,6 @@
       "shaderId": "shaders/scene/terrain.frag.spv",
       "overrides": [
         {
-          "name": "heightNormalIntensity",
-          "binding": 0,
-          "value": 2
-        },
-        {
           "name": "splat1UvScale",
           "binding": 1,
           "value": 150
