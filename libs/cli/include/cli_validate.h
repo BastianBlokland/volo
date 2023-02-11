@@ -21,3 +21,10 @@ bool cli_validate_u64(const String input);
  * Validate if the given input is a valid f64 floating point number.
  */
 bool cli_validate_f64(const String input);
+
+/**
+ * Validate file paths.
+ */
+bool cli_validate_file(const String input);
+bool cli_validate_file_regular(const String input);
+bool cli_validate_file_directory(const String input);
