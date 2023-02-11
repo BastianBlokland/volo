@@ -9,6 +9,7 @@
 #include "gap.h"
 #include "input.h"
 #include "input_resource.h"
+#include "log_logger.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_prefab.h"
@@ -268,7 +269,7 @@ static CliId g_assetFlag, g_helpFlag;
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
-  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
+  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Value);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
   cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
 
@@ -307,7 +308,11 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       AppComp,
       .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
 
-  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
+  const String assetPath = cli_read_string(invoc, g_assetFlag, string_lit("assets"));
+  if (file_stat_path_sync(assetPath).type != FileType_Directory) {
+    log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
+    return;
+  }
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
