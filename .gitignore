@@ -5,6 +5,9 @@
 # Common build path.
 /build/
 
+# Common package path.
+/package/
+
 # User settings (Except portable common settings).
 /.vscode/*
 !/.vscode/settings.json
