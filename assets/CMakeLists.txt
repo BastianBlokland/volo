@@ -121,7 +121,7 @@ if(${EXTERNAL_ASSETS})
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
       tiling/sand_2_color_rough.tga
-      tiling/sand_2_normal.tga
+      tiling/sand_4_normal.tga
       tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga

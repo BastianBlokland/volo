@@ -41,7 +41,7 @@
       "filter": "Linear"
     },
     {
-      "textureId": "external/tiling/sand_2_normal.tga",
+      "textureId": "external/tiling/sand_4_normal.tga",
       "wrap": "Repeat",
       "filter": "Linear"
     },
