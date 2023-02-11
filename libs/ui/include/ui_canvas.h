@@ -66,6 +66,7 @@ void        ui_canvas_reset(UiCanvasComp*);
 /**
  * Manipulate the render order with respect to other canvasses.
  */
+i32  ui_canvas_order(const UiCanvasComp*);
 void ui_canvas_to_front(UiCanvasComp*);
 void ui_canvas_to_back(UiCanvasComp*);
 
