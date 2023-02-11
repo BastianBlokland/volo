@@ -289,7 +289,11 @@ static void debug_camera_draw_input_ray(
     const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
     if (terrainHitT >= 0) {
       const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
+      const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
+
       debug_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
+      const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 5.5f));
+      debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
 
       const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, textPos, string_lit("terrain"), geo_color_white);
