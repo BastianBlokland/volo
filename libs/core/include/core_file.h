@@ -65,6 +65,7 @@ typedef enum {
  * File Type code.
  */
 typedef enum {
+  FileType_None,
   FileType_Regular,
   FileType_Directory,
   FileType_Unknown,
@@ -109,12 +110,6 @@ FileResult file_temp(Allocator*, File** file);
 void file_destroy(File*);
 
 /**
- * Test if a file exists at the given path.
- * NOTE: Instead of this api consider opening a handle and testing if that succeeds.
- */
-bool file_exists(String path);
-
-/**
  * Synchronously write a string to a file.
  */
 FileResult file_write_sync(File*, String);
@@ -144,6 +139,7 @@ FileResult file_seek_sync(File*, usize position);
  * Synchronously retrieve information about a file.
  */
 FileInfo file_stat_sync(File*);
+FileInfo file_stat_path_sync(String path);
 
 /**
  * Synchronously delete a file from the file-system.

@@ -104,9 +104,9 @@ spec(file) {
     const String nonExistingPath = string_lit("path_to_non_existent_file_42");
     File*        file            = null;
 
-    // Check through the 'file_exists' api.
-    check(file_exists(existingPath));
-    check(!file_exists(nonExistingPath));
+    // Check through the 'file_stat_path_sync' api.
+    check(file_stat_path_sync(existingPath).type == FileType_Regular);
+    check(file_stat_path_sync(nonExistingPath).type == FileType_None);
 
     // Check through making a file handle.
     check_eq_int(
