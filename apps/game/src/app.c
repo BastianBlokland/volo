@@ -1,6 +1,7 @@
 #include "app_ecs.h"
 #include "asset.h"
 #include "core_alloc.h"
+#include "core_file.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "debug.h"
@@ -262,13 +263,25 @@ ecs_module_init(game_app_module) {
       ecs_view_id(InstanceView));
 }
 
-static CliId g_assetFlag;
+static CliId g_assetFlag, g_helpFlag;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
 
   g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
+
+  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_helpFlag, g_assetFlag);
+}
+
+bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
+  if (cli_parse_provided(invoc, g_helpFlag)) {
+    cli_help_write_file(app, g_file_stderr);
+    return false;
+  }
+  return true;
 }
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
