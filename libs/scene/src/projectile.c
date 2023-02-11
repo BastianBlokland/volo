@@ -209,7 +209,7 @@ ecs_system_define(SceneProjectileSys) {
         const EcsEntityId hitEntity      = 0;
         const GeoVector   hitPos         = geo_ray_position(&ray, terrainHitT);
         trans->position                  = hitPos;
-        const GeoVector terrainHitNormal = geo_up; // TODO: Compute proper terrain normal.
+        const GeoVector terrainHitNormal = scene_terrain_normal(terrain, hitPos);
         projectile_hit(world, colEnv, &filter, entity, proj, hitPos, terrainHitNormal, hitEntity);
         continue;
       }
