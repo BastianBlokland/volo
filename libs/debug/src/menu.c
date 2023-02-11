@@ -105,14 +105,27 @@ static const struct {
     },
 };
 
+static const struct {
+  DebugMenuEvents event;
+  u32             iconShape;
+  String          tooltip;
+} g_debugEventButtons[] = {
+    {
+        .event     = DebugMenuEvents_CloseWindow,
+        .iconShape = UiShape_Logout,
+        .tooltip   = string_static("Close the window."),
+    },
+};
+
 static String debug_panel_tooltip_scratch(const String panelName, const bool open) {
   return format_write_formatted_scratch(
       open ? g_tooltipPanelClose : g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
 }
 
 ecs_comp_define(DebugMenuComp) {
-  EcsEntityId window;
-  EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
+  EcsEntityId     window;
+  DebugMenuEvents events;
+  EcsEntityId     panelEntities[array_elems(g_debugPanelConfig)];
 };
 
 ecs_view_define(GlobalView) {
@@ -197,6 +210,21 @@ static void debug_action_bar_draw(
       }
     }
   }
+
+  // Event buttons.
+  menu->events = 0;
+  for (u32 i = 0; i != array_elems(g_debugEventButtons); ++i) {
+    ui_table_next_row(canvas, &table);
+    const bool buttonPressed = ui_button(
+        canvas,
+        .label      = ui_shape_scratch(g_debugEventButtons[i].iconShape),
+        .fontSize   = 30,
+        .tooltip    = g_debugEventButtons[i].tooltip,
+        .frameColor = g_panelFrameColorNormal);
+    if (buttonPressed) {
+      menu->events |= g_debugEventButtons[i].event;
+    }
+  }
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
@@ -239,6 +267,8 @@ ecs_module_init(debug_menu_module) {
       ecs_view_id(MenuUpdateView),
       ecs_view_id(WindowUpdateView));
 }
+
+DebugMenuEvents debug_menu_events(const DebugMenuComp* menu) { return menu->events; }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);

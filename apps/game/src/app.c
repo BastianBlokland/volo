@@ -26,9 +26,22 @@ static const GapVector g_appWindowSize = {1920, 1080};
 static const u32       g_appPropCount  = 1000;
 static const u64       g_appRngSeed    = 13;
 
+ecs_comp_define(AppComp) {
+  bool sceneCreated;
+  Rng* rng;
+};
+
+static void ecs_destruct_app_comp(void* data) {
+  AppComp* comp = data;
+  rng_destroy(comp->rng);
+}
+
+ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
+
 static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
-  debug_menu_create(world, window);
+  const EcsEntityId window    = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+  const EcsEntityId debugMenu = debug_menu_create(world, window);
+  ecs_world_add_t(world, window, AppWindowComp, .debugMenu = debugMenu);
 
   ecs_world_add_t(
       world,
@@ -168,22 +181,16 @@ static void app_scene_create_units(EcsWorld* world) {
       });
 }
 
-ecs_comp_define(AppComp) {
-  bool sceneCreated;
-  Rng* rng;
-};
-
-static void ecs_destruct_app_comp(void* data) {
-  AppComp* comp = data;
-  rng_destroy(comp->rng);
-}
-
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_write(AppComp);
 }
 
-ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
+ecs_view_define(WindowView) {
+  ecs_access_read(AppWindowComp);
+  ecs_access_write(GapWindowComp);
+}
+ecs_view_define(DebugMenuView) { ecs_access_read(DebugMenuComp); }
 ecs_view_define(InstanceView) { ecs_access_with(ScenePrefabInstanceComp); }
 
 ecs_system_define(AppUpdateSys) {
@@ -219,8 +226,17 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    GapWindowComp* win = ecs_view_write_t(activeWindowItr, GapWindowComp);
-    if (input_triggered_lit(input, "WindowClose")) {
+    const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
+    GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
+
+    const EcsEntityId debugMenu   = appWindow->debugMenu;
+    DebugMenuEvents   debugEvents = 0;
+    if (debugMenu) {
+      const DebugMenuComp* menu = ecs_utils_read_t(world, DebugMenuView, debugMenu, DebugMenuComp);
+      debugEvents               = debug_menu_events(menu);
+    }
+
+    if (input_triggered_lit(input, "WindowClose") || debugEvents & DebugMenuEvents_CloseWindow) {
       gap_window_close(win);
     }
     if (input_triggered_lit(input, "WindowFullscreen")) {
@@ -231,15 +247,18 @@ ecs_system_define(AppUpdateSys) {
 
 ecs_module_init(game_app_module) {
   ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
+  ecs_register_comp(AppWindowComp);
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(DebugMenuView);
   ecs_register_view(InstanceView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(WindowView),
+      ecs_view_id(DebugMenuView),
       ecs_view_id(InstanceView));
 }
 
