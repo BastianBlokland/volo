@@ -59,7 +59,7 @@ typedef struct sRvkGraphic {
   u16                    globalBindings;
   u16                    outputMask;
   u16                    lineWidth;
-  f32                    depthBias;
+  f32                    depthBiasConstant, depthBiasSlope;
   i32                    renderOrder;
   u32                    vertexCount;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
