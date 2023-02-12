@@ -35,10 +35,14 @@ void main() {
   const f32 depthThreshold = 1e-4;
 
   u32 neighborTags = 0;
-  neighborTags |= (depth - depth_at_offset(2, 2)) < depthThreshold ? tags_at_offset(2, 2) : 0;
-  neighborTags |= (depth - depth_at_offset(-2, 2)) < depthThreshold ? tags_at_offset(-2, 2) : 0;
-  neighborTags |= (depth - depth_at_offset(2, -2)) < depthThreshold ? tags_at_offset(2, -2) : 0;
-  neighborTags |= (depth - depth_at_offset(-2, -2)) < depthThreshold ? tags_at_offset(-2, -2) : 0;
+  neighborTags |= (depth - depth_at_offset(0, 3)) < depthThreshold ? tags_at_offset(0, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(0, -3)) < depthThreshold ? tags_at_offset(0, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(3, 0)) < depthThreshold ? tags_at_offset(3, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, 0)) < depthThreshold ? tags_at_offset(-3, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(3, 3)) < depthThreshold ? tags_at_offset(3, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, 3)) < depthThreshold ? tags_at_offset(-3, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(3, -3)) < depthThreshold ? tags_at_offset(3, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, -3)) < depthThreshold ? tags_at_offset(-3, -3) : 0;
 
   /**
    * Output white when any closer neighbor has the 'outline' tag set.
