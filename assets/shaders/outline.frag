@@ -35,6 +35,19 @@ void main() {
     return;
   }
 
+  /**
+   * Take 8 samples around this pixel, this introduces some minor artifacts around details that are
+   * only a few pixels in size but for most objects this isn't very noticeable.
+   *
+   * 1001001
+   * 0000000
+   * 0000000
+   * 100x001
+   * 0000000
+   * 0000000
+   * 1001001
+   */
+
   u32 neighborTags = 0;
   neighborTags |= (depth - depth_at_offset(0, 3)) < c_depthThreshold ? tags_at_offset(0, 3) : 0;
   neighborTags |= (depth - depth_at_offset(0, -3)) < c_depthThreshold ? tags_at_offset(0, -3) : 0;
