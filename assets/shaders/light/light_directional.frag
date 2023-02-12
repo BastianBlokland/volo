@@ -17,6 +17,7 @@ bind_spec(2) const f32 s_coveragePanSpeedY = 0.25;
  * https://en.wikipedia.org/wiki/Supersampling#Poisson_disk
  */
 const u32   c_poissonDiskSampleCount                = 16;
+const f32   c_pointDiskSampleCountInv               = 1.0 / c_poissonDiskSampleCount;
 const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
     f32v2(-0.94201624, -0.39906216),
     f32v2(0.94558609, -0.76890725),
@@ -47,7 +48,8 @@ bind_graphic(1) uniform sampler2D u_texCoverageMask;
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v3 in_direction;
 bind_internal(2) in flat f32v4 in_radianceFlags; // x, y, z: radiance, w: flags.
-bind_internal(3) in flat f32m4 in_shadowViewProj;
+bind_internal(3) in flat f32v4 in_shadowParams;  // x: filterSize, y, z, w: unused.
+bind_internal(4) in flat f32m4 in_shadowViewProj;
 
 bind_internal(0) out f32v3 out_color;
 
@@ -62,23 +64,32 @@ f32 coverage_frac(const f32v3 worldPos) {
   return texture(u_texCoverageMask, texCoord).r;
 }
 
+f32v3 shadow_map_coord(const f32v3 worldPos) {
+  const f32v4 clipPos = in_shadowViewProj * f32v4(worldPos, 1.0);
+  return f32v3(clipPos.xy * 0.5 + 0.5, clipPos.z);
+}
+
 f32 shadow_frac(const f32v3 worldPos) {
-  const f32v4 shadClipPos = in_shadowViewProj * f32v4(worldPos, 1.0);
-  if (shadClipPos.z <= 0.0) {
+  const f32v3 shadCoord = shadow_map_coord(worldPos);
+  if (shadCoord.z <= 0.0) {
     return 0.0;
   }
-  const f32v2 shadTexelSize    = 1.0 / textureSize(u_texShadow, 0);
-  const f32v2 shadBaseCoord    = shadClipPos.xy * 0.5 + 0.5;
-  const f32   filterKernelSize = 3;
+
+  /**
+   * Compute the filter size (in shadow space) from the filterSize param (in world space), by taking
+   * the distance between two world-space points.
+   */
+  const f32v3 shadRefCoord = shadow_map_coord(worldPos + f32v3(0, 0, in_shadowParams.x));
+  const f32   filterSize   = length(shadRefCoord.xz - shadCoord.xz);
 
   f32 shadowSum = 0;
   for (u32 i = 0; i != c_poissonDiskSampleCount; ++i) {
     const f32   randVal      = rand_f32(f32v4(worldPos, i));
     const f32v2 poissonCoord = c_poissonDisk[u32(c_poissonDiskSampleCount * randVal)];
-    const f32v2 shadowCoord  = shadBaseCoord + poissonCoord * shadTexelSize * filterKernelSize;
-    shadowSum += texture(u_texShadow, f32v3(shadowCoord, shadClipPos.z));
+    const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z);
+    shadowSum += texture(u_texShadow, sampleCoord);
   }
-  return shadowSum / c_poissonDiskSampleCount;
+  return shadowSum * c_pointDiskSampleCountInv;
 }
 
 void main() {

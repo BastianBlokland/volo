@@ -282,10 +282,10 @@ ecs_system_define(RendLightRenderSys) {
         ALIGNAS(16)
         GeoVector direction;     // x, y, z: direction, w: unused.
         GeoVector radianceFlags; // x, y, z: radiance, a: flags.
+        GeoVector shadowParams;  // x: filterSize, y, z, w: unused.
         GeoMatrix shadowViewProj;
       } LightDirData;
-      ASSERT(sizeof(LightDirData) == 96, "Size needs to match the size defined in glsl");
-      ASSERT(alignof(LightDirData) == 16, "Alignment needs to match the glsl alignment");
+      ASSERT(sizeof(LightDirData) == 112, "Size needs to match the size defined in glsl");
 
       typedef struct {
         ALIGNAS(16)
@@ -293,7 +293,6 @@ ecs_system_define(RendLightRenderSys) {
         GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
       } LightPointData;
       ASSERT(sizeof(LightPointData) == 32, "Size needs to match the size defined in glsl");
-      ASSERT(alignof(LightPointData) == 16, "Alignment needs to match the glsl alignment");
 
       switch (entry->type) {
       case RendLightType_Directional: {
@@ -327,6 +326,7 @@ ecs_system_define(RendLightRenderSys) {
             .radianceFlags.y = radiance.g,
             .radianceFlags.z = radiance.b,
             .radianceFlags.w = bits_u32_as_f32(entry->data_directional.flags),
+            .shadowParams.x  = settings->shadowFilterSize,
             .shadowViewProj  = shadowViewProj,
         };
         break;

@@ -53,6 +53,7 @@ static const String g_tooltipFreeze           = string_static("Freeze the data s
 static const String g_tooltipResourceFilter   = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 static const String g_tooltipSunShadows       = string_static("Use a directional shadow map to allow geometry to occlude the sun radiance.");
 static const String g_tooltipSunCoverage      = string_static("Use a panning coverage mask to simulate clouds absorbing some of the sun radiance.");
+static const String g_tooltipShadowFilterSize = string_static("Shadow filter size (in meters).\nControls the size of the soft shadow edge.");
 static const String g_tooltipAmbient          = string_static("Global ambient lighting brightness.");
 static const String g_tooltipAmbientOcclusion = string_static("\a.b[SSAO]\ar Sample the geometry depth-buffer to compute a occlusion factor (how exposed it is to ambient lighting) for each fragment.");
 static const String g_tooltipAoBlur           = string_static("\a.b[SSAO]\ar Take multiple samples from the occlusion buffer and average the results, reduces the noise that is present in the raw occlusion buffer.");
@@ -855,6 +856,12 @@ static void rend_light_tab_draw(
       settings->shadowResolution = 16384;
     }
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Shadow Filter Size"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(
+      canvas, &settingsGlobal->shadowFilterSize, .max = 0.5f, .tooltip = g_tooltipShadowFilterSize);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient"));

@@ -110,6 +110,7 @@ ecs_comp_extern_public(RendSettingsGlobalComp) {
   f32      lightAmbient;
   GeoColor lightSunRadiance;
   GeoQuat  lightSunRotation;
+  f32      shadowFilterSize; // In world space.
 };
 
 void rend_settings_to_default(RendSettingsComp*);
