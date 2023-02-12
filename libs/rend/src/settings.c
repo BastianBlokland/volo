@@ -34,7 +34,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->aoRadiusPower       = 2.5f;
   s->aoPower             = 3.5f;
   s->aoResolutionScale   = 0.75f;
-  s->shadowResolution    = 1536;
+  s->shadowResolution    = 2048;
   s->bloomIntensity      = 0.04f;
   s->bloomSteps          = 5;
   s->bloomRadius         = 0.003f;
