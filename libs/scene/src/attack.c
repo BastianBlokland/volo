@@ -486,12 +486,15 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const TimeDuration timeSinceLastFire = time->time - attack->lastFireTime;
-    const bool         hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
-    const bool         isMoving  = loco && (loco->flags & SceneLocomotion_Moving) != 0;
+    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
+    if (hasTarget) {
+      attack->lastHasTargetTime = time->time;
+    }
+    const TimeDuration timeSinceHadTarget = time->time - attack->lastHasTargetTime;
+    const bool         isMoving           = loco && (loco->flags & SceneLocomotion_Moving) != 0;
 
     bool weaponReady = false;
-    if (!isMoving && (hasTarget || timeSinceLastFire < weapon->readyMinTime)) {
+    if (!isMoving && (hasTarget || timeSinceHadTarget < weapon->readyMinTime)) {
       weaponReady = math_towards_f32(&attack->readyNorm, 1, weapon->readySpeed * deltaSeconds);
     } else {
       math_towards_f32(&attack->readyNorm, 0, weapon->readySpeed * deltaSeconds);
