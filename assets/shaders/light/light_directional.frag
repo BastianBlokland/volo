@@ -5,6 +5,7 @@
 #include "global.glsl"
 #include "light.glsl"
 #include "pbr.glsl"
+#include "rand.glsl"
 #include "texture.glsl"
 
 bind_spec(0) const f32 s_coverageScale     = 100;
@@ -66,13 +67,15 @@ f32 shadow_frac(const f32v3 worldPos) {
   if (shadClipPos.z <= 0.0) {
     return 0.0;
   }
-  const f32v2 shadTexelSize  = 1.0 / textureSize(u_texShadow, 0);
-  const f32v2 shadBaseCoord  = shadClipPos.xy * 0.5 + 0.5;
-  const f32   shadBasePixels = 3;
+  const f32v2 shadTexelSize    = 1.0 / textureSize(u_texShadow, 0);
+  const f32v2 shadBaseCoord    = shadClipPos.xy * 0.5 + 0.5;
+  const f32   filterKernelSize = 3;
 
   f32 shadowSum = 0;
   for (u32 i = 0; i != c_poissonDiskSampleCount; ++i) {
-    const f32v2 shadowCoord = shadBaseCoord + c_poissonDisk[i] * shadTexelSize * shadBasePixels;
+    const f32   randVal      = rand_f32(f32v4(worldPos, i));
+    const f32v2 poissonCoord = c_poissonDisk[u32(c_poissonDiskSampleCount * randVal)];
+    const f32v2 shadowCoord  = shadBaseCoord + poissonCoord * shadTexelSize * filterKernelSize;
     shadowSum += texture(u_texShadow, f32v3(shadowCoord, shadClipPos.z));
   }
   return shadowSum / c_poissonDiskSampleCount;
