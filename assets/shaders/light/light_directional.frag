@@ -4,6 +4,7 @@
 #include "binding.glsl"
 #include "global.glsl"
 #include "light.glsl"
+#include "math.glsl"
 #include "pbr.glsl"
 #include "rand.glsl"
 #include "texture.glsl"
@@ -84,8 +85,9 @@ f32 shadow_frac(const f32v3 worldPos) {
 
   f32 shadowSum = 0;
   for (u32 i = 0; i != c_poissonDiskSampleCount; ++i) {
-    const f32   randVal      = rand_f32(f32v4(worldPos, i));
-    const f32v2 poissonCoord = c_poissonDisk[u32(c_poissonDiskSampleCount * randVal)];
+    // TODO: Pre-compute the random values and the (cos and sin) of them in a 3d texture.
+    const f32   randVal      = rand_f32(f32v4(worldPos, 0));
+    const f32v2 poissonCoord = rotate_f32v2(c_poissonDisk[i], randVal * c_pi * 2);
     const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z);
     shadowSum += texture(u_texShadow, sampleCoord);
   }
