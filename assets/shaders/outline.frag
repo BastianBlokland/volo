@@ -5,6 +5,9 @@
 #include "tags.glsl"
 #include "texture.glsl"
 
+const f32   c_depthThreshold = 1e-4;
+const f32v3 c_outlineColor   = f32v3(0.75, 0.75, 0.75);
+
 bind_global(2) uniform sampler2D u_texGeoNormalTags;
 bind_global(3) uniform sampler2D u_texGeoDepth;
 
@@ -32,20 +35,18 @@ void main() {
     return;
   }
 
-  const f32 depthThreshold = 1e-4;
-
   u32 neighborTags = 0;
-  neighborTags |= (depth - depth_at_offset(0, 3)) < depthThreshold ? tags_at_offset(0, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(0, -3)) < depthThreshold ? tags_at_offset(0, -3) : 0;
-  neighborTags |= (depth - depth_at_offset(3, 0)) < depthThreshold ? tags_at_offset(3, 0) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, 0)) < depthThreshold ? tags_at_offset(-3, 0) : 0;
-  neighborTags |= (depth - depth_at_offset(3, 3)) < depthThreshold ? tags_at_offset(3, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, 3)) < depthThreshold ? tags_at_offset(-3, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(3, -3)) < depthThreshold ? tags_at_offset(3, -3) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, -3)) < depthThreshold ? tags_at_offset(-3, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(0, 3)) < c_depthThreshold ? tags_at_offset(0, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(0, -3)) < c_depthThreshold ? tags_at_offset(0, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(3, 0)) < c_depthThreshold ? tags_at_offset(3, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, 0)) < c_depthThreshold ? tags_at_offset(-3, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(3, 3)) < c_depthThreshold ? tags_at_offset(3, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, 3)) < c_depthThreshold ? tags_at_offset(-3, 3) : 0;
+  neighborTags |= (depth - depth_at_offset(3, -3)) < c_depthThreshold ? tags_at_offset(3, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(-3, -3)) < c_depthThreshold ? tags_at_offset(-3, -3) : 0;
 
   /**
    * Output white when any closer neighbor has the 'outline' tag set.
    */
-  out_color = f32v3(tag_is_set(neighborTags, tag_outline_bit));
+  out_color = tag_is_set(neighborTags, tag_outline_bit) ? c_outlineColor : f32v3(0);
 }
