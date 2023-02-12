@@ -103,7 +103,8 @@ static void graphic_datareg_init() {
     data_reg_field_t(reg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetGraphicComp, depthClamp, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetGraphicComp, depthBias, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetGraphicComp, depthBiasConstant, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetGraphicComp, depthBiasSlope, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);

@@ -12,6 +12,7 @@
   "blend": "None",
   "depth": "Less",
   "depthClamp": true,
-  "depthBias": -500,
+  "depthBiasConstant": 2.5,
+  "depthBiasSlope": 0.6,
   "cull": "Front"
 }

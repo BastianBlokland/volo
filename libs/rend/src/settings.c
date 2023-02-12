@@ -34,7 +34,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->aoRadiusPower       = 2.5f;
   s->aoPower             = 3.5f;
   s->aoResolutionScale   = 0.75f;
-  s->shadowResolution    = 1536;
+  s->shadowResolution    = 2048;
   s->bloomIntensity      = 0.04f;
   s->bloomSteps          = 5;
   s->bloomRadius         = 0.003f;
@@ -53,7 +53,8 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
 
   s->lightSunRadiance = geo_color(1.0f, 0.8f, 0.4f, 5.0f);
   s->lightSunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(55, 15, 0), math_deg_to_rad));
-  s->lightAmbient     = 1.0f;
+  s->lightAmbient     = 0.9f;
+  s->shadowFilterSize = 0.125f;
 }
 
 void rend_settings_generate_ao_kernel(RendSettingsComp* s) {

@@ -17,7 +17,8 @@
 
 #include "light_internal.h"
 
-static const f32 g_lightDirMaxShadowDist = 250.0f;
+static const f32 g_lightDirMaxShadowDist  = 250.0f;
+static const f32 g_lightDirShadowStepSize = 15.0f;
 
 // TODO: Dynamically compute the world bounds based on content.
 static const GeoBox g_lightWorldBounds = {
@@ -205,6 +206,12 @@ static void rend_clip_frustum_far_to_bounds(GeoVector frustum[8], const GeoBox* 
   rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_backward, -clipBounds->min.z});
 }
 
+static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
+  box.min = geo_vector_mul(geo_vector_round_nearest(geo_vector_div(box.min, step)), step);
+  box.max = geo_vector_mul(geo_vector_round_nearest(geo_vector_div(box.max, step)), step);
+  return geo_box_dilate(&box, geo_vector(step * 0.5f, step * 0.5f, step * 0.5f));
+}
+
 static GeoMatrix rend_light_dir_shadow_proj(
     const GapWindowComp*      win,
     const SceneCameraComp*    cam,
@@ -227,6 +234,12 @@ static GeoMatrix rend_light_dir_shadow_proj(
     const GeoVector localCorner = geo_matrix_transform3_point(lightViewMatrix, frustum[i]);
     bounds                      = geo_box_encapsulate(&bounds, localCorner);
   }
+
+  /**
+   * Discretize the bounds so the shadow projection stays the same for small movements, this reduces
+   * the visible shadow 'shimmering'.
+   */
+  bounds = rend_light_shadow_discretize(bounds, g_lightDirShadowStepSize);
 
   return geo_matrix_proj_ortho_box(
       bounds.min.x, bounds.max.x, bounds.min.y, bounds.max.y, bounds.min.z, bounds.max.z);
@@ -282,10 +295,10 @@ ecs_system_define(RendLightRenderSys) {
         ALIGNAS(16)
         GeoVector direction;     // x, y, z: direction, w: unused.
         GeoVector radianceFlags; // x, y, z: radiance, a: flags.
+        GeoVector shadowParams;  // x: filterSize, y, z, w: unused.
         GeoMatrix shadowViewProj;
       } LightDirData;
-      ASSERT(sizeof(LightDirData) == 96, "Size needs to match the size defined in glsl");
-      ASSERT(alignof(LightDirData) == 16, "Alignment needs to match the glsl alignment");
+      ASSERT(sizeof(LightDirData) == 112, "Size needs to match the size defined in glsl");
 
       typedef struct {
         ALIGNAS(16)
@@ -293,7 +306,6 @@ ecs_system_define(RendLightRenderSys) {
         GeoColor  radianceAndRadiusInv; // r, g, b: radiance, a: inverse radius (1.0 / radius).
       } LightPointData;
       ASSERT(sizeof(LightPointData) == 32, "Size needs to match the size defined in glsl");
-      ASSERT(alignof(LightPointData) == 16, "Alignment needs to match the glsl alignment");
 
       switch (entry->type) {
       case RendLightType_Directional: {
@@ -327,6 +339,7 @@ ecs_system_define(RendLightRenderSys) {
             .radianceFlags.y = radiance.g,
             .radianceFlags.z = radiance.b,
             .radianceFlags.w = bits_u32_as_f32(entry->data_directional.flags),
+            .shadowParams.x  = settings->shadowFilterSize,
             .shadowViewProj  = shadowViewProj,
         };
         break;
