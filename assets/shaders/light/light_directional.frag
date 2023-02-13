@@ -83,11 +83,16 @@ f32 shadow_frac(const f32v3 worldPos) {
   const f32v3 shadRefCoord = shadow_map_coord(worldPos + f32v3(0, 0, in_shadowParams.x));
   const f32   filterSize   = length(shadRefCoord.xz - shadCoord.xz);
 
+  /**
+   * Randomize the rotation of the sample points based on the position, this greatly reduces the
+   * visible patterns at the tradeoff of some noise.
+   */
+  const f32   randVal = rand_f32(f32v4(worldPos, 0));
+  const f32m2 rotMat  = rotate_mat_f32m2(randVal * c_pi * 2);
+
   f32 shadowSum = 0;
   for (u32 i = 0; i != c_poissonDiskSampleCount; ++i) {
-    // TODO: Pre-compute the random values and the (cos and sin) of them in a 3d texture.
-    const f32   randVal      = rand_f32(f32v4(worldPos, 0));
-    const f32v2 poissonCoord = rotate_f32v2(c_poissonDisk[i], randVal * c_pi * 2);
+    const f32v2 poissonCoord = rotMat * c_poissonDisk[i];
     const f32v3 sampleCoord  = f32v3(shadCoord.xy + poissonCoord * filterSize, shadCoord.z);
     shadowSum += texture(u_texShadow, sampleCoord);
   }
