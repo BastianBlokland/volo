@@ -6,13 +6,12 @@
 const f32 c_pi = 3.14159265359;
 
 /**
- * Rotate the vector by the given angle in radians.
+ * Create a 2x2 matrix that rotates by the given angle in radians.
  */
-f32v2 rotate_f32v2(const f32v2 v, const f32 angle) {
-  const f32   s   = sin(angle);
-  const f32   c   = cos(angle);
-  const f32m2 rot = f32m2(c, -s, s, c);
-  return rot * v;
+f32m2 rotate_mat_f32m2(const f32 angle) {
+  const f32 s = sin(angle);
+  const f32 c = cos(angle);
+  return f32m2(c, -s, s, c);
 }
 
 #endif // INCLUDE_MATH
