@@ -109,7 +109,7 @@ void main() {
   }
 
   const f32 smoothingNorm = min(c_smoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
-  const f32 outlineNorm   = min(in_outlineWidth * in_invBorder, c_outlineNormMax - smoothingNorm);
+  const f32 outlineNorm   = in_outlineWidth * in_invBorder;
 
   const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord()) - in_edgeShiftFrac;
   const f32   outlineFrac = get_outline_frac(distNorm, outlineNorm, smoothingNorm);
