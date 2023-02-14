@@ -234,7 +234,7 @@ static void stats_draw_chart(
     ui_layout_move(canvas, ui_vector(t, 0), UiBase_Current, Ui_X);
     ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(frac, 0), UiBase_Current, Ui_X);
     ui_style_color(canvas, entries[i].color);
-    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 5, UiFlags_None);
     ui_layout_pop(canvas);
     t += frac;
   }
