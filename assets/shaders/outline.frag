@@ -39,24 +39,22 @@ void main() {
    * Take 8 samples around this pixel, this introduces some minor artifacts around details that are
    * only a few pixels in size but for most objects this isn't very noticeable.
    *
-   * 1001001
-   * 0000000
-   * 0000000
-   * 100x001
-   * 0000000
-   * 0000000
-   * 1001001
+   * 10101
+   * 00000
+   * 10x01
+   * 00000
+   * 10101
    */
 
   u32 neighborTags = 0;
-  neighborTags |= (depth - depth_at_offset(0, 3)) < c_depthThreshold ? tags_at_offset(0, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(0, -3)) < c_depthThreshold ? tags_at_offset(0, -3) : 0;
-  neighborTags |= (depth - depth_at_offset(3, 0)) < c_depthThreshold ? tags_at_offset(3, 0) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, 0)) < c_depthThreshold ? tags_at_offset(-3, 0) : 0;
-  neighborTags |= (depth - depth_at_offset(3, 3)) < c_depthThreshold ? tags_at_offset(3, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, 3)) < c_depthThreshold ? tags_at_offset(-3, 3) : 0;
-  neighborTags |= (depth - depth_at_offset(3, -3)) < c_depthThreshold ? tags_at_offset(3, -3) : 0;
-  neighborTags |= (depth - depth_at_offset(-3, -3)) < c_depthThreshold ? tags_at_offset(-3, -3) : 0;
+  neighborTags |= (depth - depth_at_offset(0, 2)) < c_depthThreshold ? tags_at_offset(0, 2) : 0;
+  neighborTags |= (depth - depth_at_offset(0, -2)) < c_depthThreshold ? tags_at_offset(0, -2) : 0;
+  neighborTags |= (depth - depth_at_offset(2, 0)) < c_depthThreshold ? tags_at_offset(2, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(-2, 0)) < c_depthThreshold ? tags_at_offset(-2, 0) : 0;
+  neighborTags |= (depth - depth_at_offset(2, 2)) < c_depthThreshold ? tags_at_offset(2, 2) : 0;
+  neighborTags |= (depth - depth_at_offset(-2, 2)) < c_depthThreshold ? tags_at_offset(-2, 2) : 0;
+  neighborTags |= (depth - depth_at_offset(2, -2)) < c_depthThreshold ? tags_at_offset(2, -2) : 0;
+  neighborTags |= (depth - depth_at_offset(-2, -2)) < c_depthThreshold ? tags_at_offset(-2, -2) : 0;
 
   /**
    * Output white when any closer neighbor has the 'outline' tag set.
