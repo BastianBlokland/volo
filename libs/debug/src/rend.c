@@ -297,7 +297,7 @@ static bool debug_overlay_blocker(UiCanvasComp* canvas) {
     ui_layout_set(canvas, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Canvas); // Fullscreen.
     ui_style_color(canvas, ui_color(0, 0, 0, 225));
     ui_style_layer(canvas, UiLayer_Overlay);
-    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
   }
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
