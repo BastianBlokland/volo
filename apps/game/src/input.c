@@ -411,7 +411,7 @@ ecs_system_define(InputDrawUiSys) {
       ui_layout_resize_to(canvas, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
       ui_style_color(canvas, ui_color(255, 255, 255, 16));
       ui_style_outline(canvas, 3);
-      ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+      ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
     }
   }
 }

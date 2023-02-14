@@ -109,9 +109,18 @@ void main() {
   }
 
   const f32 smoothingNorm = min(c_smoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
-  const f32 outlineNorm   = min(in_outlineWidth * in_invBorder, c_outlineNormMax - smoothingNorm);
+  const f32 outlineNorm   = in_outlineWidth * in_invBorder;
 
-  const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord()) - in_edgeShiftFrac;
+  /**
+   * When the outlineNorm is bigger then 0.5 it means there is not enough space in the border for
+   * the whole glyph + the outline. In that case we shift the mid-point of the glyph (making it
+   * thinner) to give the outline more space. Reasoning behind this is that inconsistencies in
+   * outline width are more noticeable then inconsistencies in glyph widths.
+   */
+  const f32 outlineShift = max(outlineNorm - 0.5, 0);
+
+  const f32v2 fontCoord   = get_fontcoord();
+  const f32   distNorm    = get_signed_dist_to_glyph(fontCoord) - in_edgeShiftFrac + outlineShift;
   const f32   outlineFrac = get_outline_frac(distNorm, outlineNorm, smoothingNorm);
   const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
   const f32   alpha       = get_glyph_alpha(distNorm, outlineNorm, smoothingNorm);
