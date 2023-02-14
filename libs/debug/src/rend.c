@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
@@ -1060,6 +1061,18 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
       ui_canvas_to_front(canvas);
+    }
+  }
+
+  /**
+   * Disable the debug overlay if no render panel is open.
+   * Can happen when a panel is closed external to this module while having an overlay active.
+   */
+  if (!ecs_utils_any(world, PanelUpdateView)) {
+    for (ecs_view_itr_reset(windowItr); ecs_view_walk(windowItr);) {
+      RendSettingsComp* settings    = ecs_view_write_t(windowItr, RendSettingsComp);
+      settings->debugViewerResource = 0;
+      settings->flags &= ~RendFlags_DebugShadow;
     }
   }
 }
