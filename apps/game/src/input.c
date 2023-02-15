@@ -48,6 +48,12 @@ ecs_comp_define(InputStateComp) {
   f32       camZoom, camZoomTgt;
 };
 
+static void input_report_command(DebugStatsGlobalComp* debugStats, const String command) {
+  if (debugStats) {
+    debug_stats_notify(debugStats, string_lit("Command"), command);
+  }
+}
+
 static void update_camera_movement(
     InputStateComp*      state,
     InputManagerComp*    input,
@@ -240,7 +246,8 @@ static void input_order(
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
     const SceneTerrainComp*      terrain,
-    const GeoRay*                inputRay) {
+    const GeoRay*                inputRay,
+    DebugStatsGlobalComp*        debugStats) {
   /**
    * Order an attack when clicking an opponent unit.
    */
@@ -252,6 +259,7 @@ static void input_order(
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_attack(cmdController, *e, hit.entity);
     }
+    input_report_command(debugStats, string_lit("Attack"));
     return;
   }
   /**
@@ -264,6 +272,7 @@ static void input_order(
       for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
         cmd_push_move(cmdController, *e, targetPos);
       }
+      input_report_command(debugStats, string_lit("Move"));
     }
   }
 }
@@ -276,7 +285,8 @@ static void update_camera_interact(
     const SceneSelectionComp*    sel,
     const SceneTerrainComp*      terrain,
     const SceneCameraComp*       camera,
-    const SceneTransformComp*    cameraTrans) {
+    const SceneTransformComp*    cameraTrans,
+    DebugStatsGlobalComp*        debugStats) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
@@ -316,11 +326,12 @@ static void update_camera_interact(
   }
 
   if (!selectActive && input_triggered_lit(input, "Order")) {
-    input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
+    input_order(cmdController, collisionEnv, sel, terrain, &inputRay, debugStats);
   }
   if (input_triggered_lit(input, "CameraReset")) {
     state->camPosTgt  = geo_vector(30.0f, 0, 0);
     state->camRotYTgt = -90.0f * math_deg_to_rad;
+    input_report_command(debugStats, string_lit("Reset camera"));
   }
 }
 
@@ -382,11 +393,13 @@ ecs_system_define(InputUpdateSys) {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_destroy(cmdController, *e);
     }
+    input_report_command(debugStats, string_lit("Destroy"));
   }
   if (input_triggered_lit(input, "OrderStop")) {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_stop(cmdController, *e);
     }
+    input_report_command(debugStats, string_lit("Stop"));
   }
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -408,7 +421,8 @@ ecs_system_define(InputUpdateSys) {
       } else {
         update_camera_movement(state, input, time, camTrans);
       }
-      update_camera_interact(state, cmdController, input, colEnv, sel, terrain, cam, camTrans);
+      update_camera_interact(
+          state, cmdController, input, colEnv, sel, terrain, cam, camTrans, debugStats);
     } else {
       state->selectState = InputSelectState_None;
     }
