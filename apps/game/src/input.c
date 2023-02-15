@@ -172,7 +172,6 @@ static void select_end_click(
     CmdControllerComp*           cmdController,
     InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
-    const SceneSelectionComp*    sel,
     const GeoRay*                inputRay) {
   state->selectState = InputSelectState_None;
 
@@ -181,13 +180,18 @@ static void select_end_click(
   const f32              maxDist = 1e4f;
   const bool             hasHit  = scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit);
 
-  const bool addToSelection = (input_modifiers(input) & InputModifier_Control) != 0;
-  if (hasHit && !scene_selection_contains(sel, hit.entity)) {
-    if (!addToSelection) {
+  const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
+  const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
+  if (hasHit) {
+    if (!addToSelection && !removeFromSelection) {
       cmd_push_deselect_all(cmdController);
     }
+    if (removeFromSelection) {
+      cmd_push_deselect(cmdController, hit.entity);
+    } else {
     cmd_push_select(cmdController, hit.entity);
-  } else if (!addToSelection) {
+    }
+  } else if (!addToSelection && !removeFromSelection) {
     cmd_push_deselect_all(cmdController);
   }
 }
@@ -200,8 +204,9 @@ static void select_update_drag(
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
-  const bool addToSelection = (input_modifiers(input) & InputModifier_Control) != 0;
-  if (!addToSelection) {
+  const bool addToSelection      = (input_modifiers(input) & InputModifier_Control) != 0;
+  const bool removeFromSelection = (input_modifiers(input) & InputModifier_Shift) != 0;
+  if (!addToSelection && !removeFromSelection) {
     cmd_push_deselect_all(cmdController);
   }
 
@@ -220,7 +225,11 @@ static void select_update_drag(
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
   for (u32 i = 0; i != resultCount; ++i) {
+    if (removeFromSelection) {
+      cmd_push_deselect(cmdController, results[i]);
+    } else {
     cmd_push_select(cmdController, results[i]);
+    }
   }
 }
 
@@ -293,7 +302,7 @@ static void update_camera_interact(
         select_start_drag(state);
       }
     } else {
-      select_end_click(state, cmdController, input, collisionEnv, sel, &inputRay);
+      select_end_click(state, cmdController, input, collisionEnv, &inputRay);
     }
     break;
   case InputSelectState_Dragging:
