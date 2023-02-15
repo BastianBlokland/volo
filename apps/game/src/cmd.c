@@ -13,6 +13,7 @@ static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
+  Cmd_DeselectAll,
   Cmd_Move,
   Cmd_Attack,
   Cmd_Destroy,
@@ -21,6 +22,10 @@ typedef enum {
 typedef struct {
   EcsEntityId object;
 } CmdSelect;
+
+typedef struct {
+  EcsEntityId object;
+} CmdDeselect;
 
 typedef struct {
   EcsEntityId object;
@@ -39,10 +44,11 @@ typedef struct {
 typedef struct {
   CmdType type;
   union {
-    CmdSelect  select;
-    CmdMove    move;
-    CmdAttack  attack;
-    CmdDestroy destroy;
+    CmdSelect   select;
+    CmdDeselect deselect;
+    CmdMove     move;
+    CmdAttack   attack;
+    CmdDestroy  destroy;
   };
 } Cmd;
 
@@ -94,6 +100,10 @@ static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cm
     }
     break;
   case Cmd_Deselect:
+    diag_assert_msg(ecs_entity_valid(cmd->deselect.object), "Deselecting invalid entity");
+    scene_selection_remove(selection, cmd->deselect.object);
+    break;
+  case Cmd_DeselectAll:
     scene_selection_clear(selection);
     break;
   case Cmd_Move:
@@ -158,9 +168,16 @@ void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object) {
   };
 }
 
-void cmd_push_deselect(CmdControllerComp* controller) {
+void cmd_push_deselect(CmdControllerComp* controller, const EcsEntityId object) {
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
-      .type = Cmd_Deselect,
+      .type     = Cmd_Deselect,
+      .deselect = {.object = object},
+  };
+}
+
+void cmd_push_deselect_all(CmdControllerComp* controller) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type = Cmd_DeselectAll,
   };
 }
 
