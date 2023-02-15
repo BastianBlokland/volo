@@ -170,6 +170,7 @@ static void select_start_drag(InputStateComp* state) {
 static void select_end_click(
     InputStateComp*              state,
     CmdControllerComp*           cmdController,
+    InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
     const GeoRay*                inputRay) {
@@ -180,11 +181,14 @@ static void select_end_click(
   const f32              maxDist = 1e4f;
   const bool             hasHit  = scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit);
 
+  const bool addToSelection = (input_modifiers(input) & InputModifier_Control) != 0;
   if (hasHit && !scene_selection_contains(sel, hit.entity)) {
-    cmd_push_deselect(cmdController);
+    if (!addToSelection) {
+      cmd_push_deselect_all(cmdController);
+    }
     cmd_push_select(cmdController, hit.entity);
-  } else {
-    cmd_push_deselect(cmdController);
+  } else if (!addToSelection) {
+    cmd_push_deselect_all(cmdController);
   }
 }
 
@@ -196,7 +200,10 @@ static void select_update_drag(
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
-  cmd_push_deselect(cmdController);
+  const bool addToSelection = (input_modifiers(input) & InputModifier_Control) != 0;
+  if (!addToSelection) {
+    cmd_push_deselect_all(cmdController);
+  }
 
   const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
   const GeoVector min = geo_vector_min(state->selectStart, cur);
@@ -286,7 +293,7 @@ static void update_camera_interact(
         select_start_drag(state);
       }
     } else {
-      select_end_click(state, cmdController, collisionEnv, sel, &inputRay);
+      select_end_click(state, cmdController, input, collisionEnv, sel, &inputRay);
     }
     break;
   case InputSelectState_Dragging:

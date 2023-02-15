@@ -12,7 +12,6 @@
           "type": "Down",
           "key": "MouseLeft",
           "illegalModifiers": [
-            "Control",
             "Shift"
           ]
         }
@@ -122,7 +121,7 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "Control"
+          "key": "Z"
         },
         {
           "type": "Down",
