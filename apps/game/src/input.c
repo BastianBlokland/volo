@@ -189,7 +189,7 @@ static void select_end_click(
     if (removeFromSelection) {
       cmd_push_deselect(cmdController, hit.entity);
     } else {
-    cmd_push_select(cmdController, hit.entity);
+      cmd_push_select(cmdController, hit.entity);
     }
   } else if (!addToSelection && !removeFromSelection) {
     cmd_push_deselect_all(cmdController);
@@ -228,7 +228,7 @@ static void select_update_drag(
     if (removeFromSelection) {
       cmd_push_deselect(cmdController, results[i]);
     } else {
-    cmd_push_select(cmdController, results[i]);
+      cmd_push_select(cmdController, results[i]);
     }
   }
 }
@@ -381,6 +381,11 @@ ecs_system_define(InputUpdateSys) {
   if (input_triggered_lit(input, "Destroy")) {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_destroy(cmdController, *e);
+    }
+  }
+  if (input_triggered_lit(input, "OrderStop")) {
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      cmd_push_stop(cmdController, *e);
     }
   }
 

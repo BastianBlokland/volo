@@ -31,6 +31,18 @@
       ]
     },
     {
+      "name": "OrderStop",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "S"
+        }
+      ]
+    },
+    {
       "name": "Destroy",
       "blockers": [
         "TextInput"
@@ -62,10 +74,6 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "W"
-        },
-        {
-          "type": "Down",
           "key": "ArrowUp"
         }
       ]
@@ -76,10 +84,6 @@
         "TextInput"
       ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "S"
-        },
         {
           "type": "Down",
           "key": "ArrowDown"
@@ -94,10 +98,6 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "D"
-        },
-        {
-          "type": "Down",
           "key": "ArrowRight"
         }
       ]
@@ -108,10 +108,6 @@
         "TextInput"
       ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "A"
-        },
         {
           "type": "Down",
           "key": "ArrowLeft"

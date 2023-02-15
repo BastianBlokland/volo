@@ -8,13 +8,14 @@
 
 #include "cmd_internal.h"
 
-static StringHash g_brainKeyMoveTarget, g_brainKeyAttackTarget;
+static StringHash g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttackTarget;
 
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
   Cmd_DeselectAll,
   Cmd_Move,
+  Cmd_Stop,
   Cmd_Attack,
   Cmd_Destroy,
 } CmdType;
@@ -34,6 +35,10 @@ typedef struct {
 
 typedef struct {
   EcsEntityId object;
+} CmdStop;
+
+typedef struct {
+  EcsEntityId object;
   EcsEntityId target;
 } CmdAttack;
 
@@ -47,6 +52,7 @@ typedef struct {
     CmdSelect   select;
     CmdDeselect deselect;
     CmdMove     move;
+    CmdStop     stop;
     CmdAttack   attack;
     CmdDestroy  destroy;
   };
@@ -81,6 +87,16 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   }
 }
 
+static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
+  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdStop->object);
+  if (brainItr) {
+    SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
+
+    scene_brain_set(brain, g_brainKeyStop, script_bool(true));
+    scene_brain_set_null(brain, g_brainKeyMoveTarget);
+  }
+}
+
 static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdAttack->object);
   if (brainItr) {
@@ -108,6 +124,9 @@ static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cm
     break;
   case Cmd_Move:
     cmd_execute_move(world, &cmd->move);
+    break;
+  case Cmd_Stop:
+    cmd_execute_stop(world, &cmd->stop);
     break;
   case Cmd_Attack:
     cmd_execute_attack(world, &cmd->attack);
@@ -144,6 +163,7 @@ ecs_system_define(CmdControllerUpdateSys) {
 
 ecs_module_init(game_cmd_module) {
   g_brainKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
+  g_brainKeyStop         = stringtable_add(g_stringtable, string_lit("user_stop"));
   g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
@@ -186,6 +206,13 @@ void cmd_push_move(
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Move,
       .move = {.object = object, .position = position},
+  };
+}
+
+void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type = Cmd_Stop,
+      .stop = {.object = object},
   };
 }
 

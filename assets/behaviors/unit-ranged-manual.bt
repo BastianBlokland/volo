@@ -93,6 +93,20 @@
       ]
     },
     {
+      "$type": "AssetAiNode_Sequence",
+      "$name": "Stop if requested",
+      "children": [
+        {
+          "$type": "AssetAiNode_Condition",
+          "script": "$user_stop != null;"
+        },
+        {
+          "$type": "AssetAiNode_Execute",
+          "script": "$cmd_nav_stop = true; $user_stop = null;"
+        }
+      ]
+    },
+    {
       "$type": "AssetAiNode_Execute",
       "$name": "Idle",
       "script": "$cmd_target_override = null;"

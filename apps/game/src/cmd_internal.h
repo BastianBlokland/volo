@@ -13,5 +13,6 @@ void cmd_push_select(CmdControllerComp*, EcsEntityId object);
 void cmd_push_deselect(CmdControllerComp*, EcsEntityId object);
 void cmd_push_deselect_all(CmdControllerComp*);
 void cmd_push_move(CmdControllerComp*, EcsEntityId object, GeoVector position);
+void cmd_push_stop(CmdControllerComp*, EcsEntityId object);
 void cmd_push_attack(CmdControllerComp*, EcsEntityId object, EcsEntityId target);
 void cmd_push_destroy(CmdControllerComp*, EcsEntityId object);
