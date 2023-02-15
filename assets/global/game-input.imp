@@ -38,11 +38,19 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "Backspace"
-        },
+          "key": "Delete"
+        }
+      ]
+    },
+    {
+      "name": "CameraReset",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
         {
           "type": "Pressed",
-          "key": "Delete"
+          "key": "Backspace"
         }
       ]
     },

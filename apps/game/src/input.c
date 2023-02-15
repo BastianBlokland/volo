@@ -318,6 +318,10 @@ static void update_camera_interact(
   if (!selectActive && input_triggered_lit(input, "Order")) {
     input_order(cmdController, collisionEnv, sel, terrain, &inputRay);
   }
+  if (input_triggered_lit(input, "CameraReset")) {
+    state->camPosTgt  = geo_vector(30.0f, 0, 0);
+    state->camRotYTgt = -90.0f * math_deg_to_rad;
+  }
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
