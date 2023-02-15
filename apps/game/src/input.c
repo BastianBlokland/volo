@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "geo_plane.h"
 #include "input_manager.h"
+#include "scene_attachment.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_lifetime.h"
@@ -33,6 +34,7 @@ static const f32    g_inputCamCursorPanThreshold = 0.0025f;
 static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
 static const f32    g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
 static const String g_inputMoveVfxAsset          = string_static("vfx/game/indicator_move.vfx");
+static const String g_inputAttackVfxAsset        = string_static("vfx/game/indicator_attack.vfx");
 
 typedef enum {
   InputSelectState_None,
@@ -63,6 +65,15 @@ static void input_indicator_move(EcsWorld* world, AssetManagerComp* assets, cons
   const EcsEntityId vfxEntity = ecs_world_entity_create(world);
   const GeoQuat     rot       = geo_quat_ident;
   ecs_world_add_t(world, vfxEntity, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset);
+}
+
+static void input_indicator_attack(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId t) {
+  const EcsEntityId vfxAsset  = asset_lookup(world, assets, g_inputAttackVfxAsset);
+  const EcsEntityId vfxEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(world, vfxEntity, SceneTransformComp, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, vfxEntity, SceneAttachmentComp, .target = t);
   ecs_world_add_t(world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
   ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset);
 }
@@ -274,6 +285,7 @@ static void input_order(
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
       cmd_push_attack(cmdController, *e, hit.entity);
     }
+    input_indicator_attack(world, assets, hit.entity);
     input_report_command(debugStats, string_lit("Attack"));
     return;
   }
