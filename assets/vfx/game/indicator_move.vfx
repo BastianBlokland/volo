@@ -1,0 +1,164 @@
+{
+  "ignoreTransformRotation": true,
+  "emitters": [
+    {
+      "cone": {
+        "position": {
+          "x": -1.5,
+          "y": 1.5
+        },
+        "rotation": {
+          "x": 45,
+          "y": 90
+        }
+      },
+      "sprite": {
+        "atlasEntry": "arrow",
+        "blend": "Alpha",
+        "size": {
+          "x": 1.15,
+          "y": 1.15
+        },
+        "color": {
+          "r": 0,
+          "g": 1,
+          "b": 0,
+          "a": 1
+        },
+        "fadeOutTime": 0.15
+      },
+      "speed": {
+        "min": 5.5
+      },
+      "rotation": {
+        "base": {
+          "x": 90,
+          "y": 180,
+          "z": -45
+        }
+      },
+      "lifetime": {
+        "min": 0.4
+      }
+    },
+    {
+      "cone": {
+        "position": {
+          "x": 1.5,
+          "y": 1.5
+        },
+        "rotation": {
+          "x": 45,
+          "y": -90
+        }
+      },
+      "sprite": {
+        "atlasEntry": "arrow",
+        "blend": "Alpha",
+        "size": {
+          "x": 1.15,
+          "y": 1.15
+        },
+        "color": {
+          "r": 0,
+          "g": 1,
+          "b": 0,
+          "a": 1
+        },
+        "fadeOutTime": 0.15
+      },
+      "speed": {
+        "min": 5.5
+      },
+      "rotation": {
+        "base": {
+          "x": 90,
+          "y": 0,
+          "z": 45
+        }
+      },
+      "lifetime": {
+        "min": 0.4
+      }
+    },
+    {
+      "cone": {
+        "position": {
+          "z": -1.5,
+          "y": 1.5
+        },
+        "rotation": {
+          "x": 45,
+          "y": 0
+        }
+      },
+      "sprite": {
+        "atlasEntry": "arrow",
+        "blend": "Alpha",
+        "size": {
+          "x": 1.15,
+          "y": 1.15
+        },
+        "color": {
+          "r": 0,
+          "g": 1,
+          "b": 0,
+          "a": 1
+        },
+        "fadeOutTime": 0.15
+      },
+      "speed": {
+        "min": 5.5
+      },
+      "rotation": {
+        "base": {
+          "x": 0,
+          "y": 45,
+          "z": 90
+        }
+      },
+      "lifetime": {
+        "min": 0.4
+      }
+    },
+    {
+      "cone": {
+        "position": {
+          "z": 1.5,
+          "y": 1.5
+        },
+        "rotation": {
+          "x": 45,
+          "y": 180
+        }
+      },
+      "sprite": {
+        "atlasEntry": "arrow",
+        "blend": "Alpha",
+        "size": {
+          "x": 1.15,
+          "y": 1.15
+        },
+        "color": {
+          "r": 0,
+          "g": 1,
+          "b": 0,
+          "a": 1
+        },
+        "fadeOutTime": 0.15
+      },
+      "speed": {
+        "min": 5.5
+      },
+      "rotation": {
+        "base": {
+          "y": -45,
+          "z": 90
+        }
+      },
+      "lifetime": {
+        "min": 0.4
+      }
+    }
+  ]
+}

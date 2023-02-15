@@ -10,11 +10,7 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "MouseLeft",
-          "illegalModifiers": [
-            "Control",
-            "Shift"
-          ]
+          "key": "MouseLeft"
         }
       ]
     },
@@ -35,6 +31,18 @@
       ]
     },
     {
+      "name": "OrderStop",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "S"
+        }
+      ]
+    },
+    {
       "name": "Destroy",
       "blockers": [
         "TextInput"
@@ -42,11 +50,19 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "Backspace"
-        },
+          "key": "Delete"
+        }
+      ]
+    },
+    {
+      "name": "CameraReset",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
         {
           "type": "Pressed",
-          "key": "Delete"
+          "key": "Backspace"
         }
       ]
     },
@@ -56,10 +72,6 @@
         "TextInput"
       ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "W"
-        },
         {
           "type": "Down",
           "key": "ArrowUp"
@@ -74,10 +86,6 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "S"
-        },
-        {
-          "type": "Down",
           "key": "ArrowDown"
         }
       ]
@@ -88,10 +96,6 @@
         "TextInput"
       ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "D"
-        },
         {
           "type": "Down",
           "key": "ArrowRight"
@@ -106,10 +110,6 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "A"
-        },
-        {
-          "type": "Down",
           "key": "ArrowLeft"
         }
       ]
@@ -122,7 +122,7 @@
       "bindings": [
         {
           "type": "Down",
-          "key": "Control"
+          "key": "Z"
         },
         {
           "type": "Down",
