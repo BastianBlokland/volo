@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
@@ -5,10 +6,12 @@
 #include "input_manager.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_lifetime.h"
 #include "scene_selection.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 #include "ui.h"
 
 #include "cmd_internal.h"
@@ -28,7 +31,8 @@ static const f32    g_inputCamZoomMult           = 0.1f;
 static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
 static const f32    g_inputCamCursorPanThreshold = 0.0025f;
 static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
-static const f32    g_inputDragThreshold = 0.005f; // In normalized screen-space coordinates.
+static const f32    g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
+static const String g_inputMoveVfxAsset          = string_static("vfx/game/indicator_move.vfx");
 
 typedef enum {
   InputSelectState_None,
@@ -52,6 +56,15 @@ static void input_report_command(DebugStatsGlobalComp* debugStats, const String 
   if (debugStats) {
     debug_stats_notify(debugStats, string_lit("Command"), command);
   }
+}
+
+static void input_indicator_move(EcsWorld* world, AssetManagerComp* assets, const GeoVector pos) {
+  const EcsEntityId vfxAsset  = asset_lookup(world, assets, g_inputMoveVfxAsset);
+  const EcsEntityId vfxEntity = ecs_world_entity_create(world);
+  const GeoQuat     rot       = geo_quat_ident;
+  ecs_world_add_t(world, vfxEntity, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset);
 }
 
 static void update_camera_movement(
@@ -242,12 +255,14 @@ static void select_update_drag(
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
 
 static void input_order(
+    EcsWorld*                    world,
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
     const SceneTerrainComp*      terrain,
-    const GeoRay*                inputRay,
-    DebugStatsGlobalComp*        debugStats) {
+    AssetManagerComp*            assets,
+    DebugStatsGlobalComp*        debugStats,
+    const GeoRay*                inputRay) {
   /**
    * Order an attack when clicking an opponent unit.
    */
@@ -272,12 +287,14 @@ static void input_order(
       for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
         cmd_push_move(cmdController, *e, targetPos);
       }
+      input_indicator_move(world, assets, targetPos);
       input_report_command(debugStats, string_lit("Move"));
     }
   }
 }
 
 static void update_camera_interact(
+    EcsWorld*                    world,
     InputStateComp*              state,
     CmdControllerComp*           cmdController,
     InputManagerComp*            input,
@@ -286,6 +303,7 @@ static void update_camera_interact(
     const SceneTerrainComp*      terrain,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
+    AssetManagerComp*            assets,
     DebugStatsGlobalComp*        debugStats) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
@@ -325,8 +343,9 @@ static void update_camera_interact(
     break;
   }
 
-  if (!selectActive && input_triggered_lit(input, "Order")) {
-    input_order(cmdController, collisionEnv, sel, terrain, &inputRay, debugStats);
+  const bool hasSelection = !scene_selection_empty(sel);
+  if (!selectActive && hasSelection && input_triggered_lit(input, "Order")) {
+    input_order(world, cmdController, collisionEnv, sel, terrain, assets, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
     state->camPosTgt  = geo_vector(30.0f, 0, 0);
@@ -355,6 +374,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_write(AssetManagerComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
 }
@@ -387,6 +407,7 @@ ecs_system_define(InputUpdateSys) {
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
+  AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
   DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (input_triggered_lit(input, "Destroy")) {
@@ -422,7 +443,17 @@ ecs_system_define(InputUpdateSys) {
         update_camera_movement(state, input, time, camTrans);
       }
       update_camera_interact(
-          state, cmdController, input, colEnv, sel, terrain, cam, camTrans, debugStats);
+          world,
+          state,
+          cmdController,
+          input,
+          colEnv,
+          sel,
+          terrain,
+          cam,
+          camTrans,
+          assets,
+          debugStats);
     } else {
       state->selectState = InputSelectState_None;
     }

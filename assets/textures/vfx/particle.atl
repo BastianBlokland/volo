@@ -30,6 +30,10 @@
       "texture": "external/vfx/rock.tga"
     },
     {
+      "name": "arrow",
+      "texture": "external/vfx/arrow.tga"
+    },
+    {
       "name": "fire_0",
       "texture": "external/fire_2/fire_0.tga"
     },
