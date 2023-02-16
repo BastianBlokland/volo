@@ -394,15 +394,15 @@ static u32 nav_path_output_count(
 }
 
 /**
- * Write the computed path to the output storage.
+ * Write the computed path to the output container.
  * NOTE: Only valid if a valid path has been found between the cells using 'nav_path'.
  */
 static u32 nav_path_output(
-    const GeoNavGrid*       grid,
-    GeoNavWorkerState*      s,
-    const GeoNavCell        from,
-    const GeoNavCell        to,
-    const GeoNavPathStorage out) {
+    const GeoNavGrid*         grid,
+    GeoNavWorkerState*        s,
+    const GeoNavCell          from,
+    const GeoNavCell          to,
+    const GeoNavCellContainer out) {
   /**
    * Reverse the path by first counting the total amount of cells and then inserting starting form
    * the end.
@@ -1078,10 +1078,10 @@ GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
 }
 
 u32 geo_nav_path(
-    const GeoNavGrid*       grid,
-    const GeoNavCell        from,
-    const GeoNavCell        to,
-    const GeoNavPathStorage out) {
+    const GeoNavGrid*         grid,
+    const GeoNavCell          from,
+    const GeoNavCell          to,
+    const GeoNavCellContainer out) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 

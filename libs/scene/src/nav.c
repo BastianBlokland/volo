@@ -334,10 +334,10 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Compute a new path.
     if (pathQueriesRemaining && path_needs_refresh(path, toPos, time)) {
-      const GeoNavPathStorage storage = {.cells = path->cells, .capacity = path_max_cells};
-      path->cellCount                 = geo_nav_path(env->navGrid, fromCell, toCell, storage);
-      path->nextRefreshTime           = path_next_refresh_time(time);
-      path->destination               = toPos;
+      const GeoNavCellContainer container = {.cells = path->cells, .capacity = path_max_cells};
+      path->cellCount                     = geo_nav_path(env->navGrid, fromCell, toCell, container);
+      path->nextRefreshTime               = path_next_refresh_time(time);
+      path->destination                   = toPos;
       --pathQueriesRemaining;
 
       // Stop if no path is possible at this time.
