@@ -1059,6 +1059,14 @@ GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
   return cell; // No free cell found.
 }
 
+u32 geo_nav_closest_free_n(
+    const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCellContainer out) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  return nav_find(grid, s, null, cell, nav_pred_free, out);
+}
+
 GeoNavCell
 geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
