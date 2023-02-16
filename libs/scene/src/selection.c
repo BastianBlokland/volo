@@ -49,7 +49,9 @@ static void outline_tag_set(EcsWorld* world, const EcsEntityId entity) {
 }
 
 static void selection_add(EcsWorld* world, SceneSelectionComp* comp, const EcsEntityId tgt) {
-  *dynarray_insert_sorted_t(&comp->selectedEntities, EcsEntityId, ecs_compare_entity, &tgt) = tgt;
+  DynArray* selEntities = &comp->selectedEntities;
+  *(EcsEntityId*)dynarray_find_or_insert_sorted(selEntities, ecs_compare_entity, &tgt) = tgt;
+
   if (!comp->mainSelectedEntity) {
     comp->mainSelectedEntity = tgt;
   }
@@ -62,6 +64,7 @@ static void selection_remove(EcsWorld* world, SceneSelectionComp* comp, const Ec
     const usize index = entry - dynarray_begin_t(&comp->selectedEntities, EcsEntityId);
     dynarray_remove(&comp->selectedEntities, index, 1);
   }
+
   if (comp->mainSelectedEntity == tgt) {
     if (comp->selectedEntities.size) {
       comp->mainSelectedEntity = *dynarray_begin_t(&comp->selectedEntities, EcsEntityId);
