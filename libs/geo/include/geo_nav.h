@@ -29,12 +29,12 @@ typedef struct {
 } GeoNavRegion;
 
 /**
- * Path storage container.
+ * Cell container.
  */
 typedef struct {
   GeoNavCell* cells;
   u32         capacity;
-} GeoNavPathStorage;
+} GeoNavCellContainer;
 
 /**
  * A NavIsland is a reachable area in the grid.
@@ -76,17 +76,19 @@ bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
+u32          geo_nav_closest_unblocked_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
+u32          geo_nav_closest_free_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 GeoNavIsland geo_nav_island(const GeoNavGrid*, GeoNavCell);
 
 /**
  * Compute a path between the given two cells.
- * Returns the amount of cells in the path and writes the output cells to the given storage.
+ * Returns the amount of cells in the path and writes the output cells to the given cell container.
  * NOTE: Returns 0 when no path is possible.
  */
-u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathStorage);
+u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavCellContainer);
 
 /**
  * Register grid blockers.

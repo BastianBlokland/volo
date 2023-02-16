@@ -394,15 +394,15 @@ static u32 nav_path_output_count(
 }
 
 /**
- * Write the computed path to the output storage.
+ * Write the computed path to the output container.
  * NOTE: Only valid if a valid path has been found between the cells using 'nav_path'.
  */
 static u32 nav_path_output(
-    const GeoNavGrid*       grid,
-    GeoNavWorkerState*      s,
-    const GeoNavCell        from,
-    const GeoNavCell        to,
-    const GeoNavPathStorage out) {
+    const GeoNavGrid*         grid,
+    GeoNavWorkerState*        s,
+    const GeoNavCell          from,
+    const GeoNavCell          to,
+    const GeoNavCellContainer out) {
   /**
    * Reverse the path by first counting the total amount of cells and then inserting starting form
    * the end.
@@ -426,22 +426,17 @@ static u32 nav_path_output(
   return math_min(count, out.capacity);
 }
 
-typedef enum {
-  NavFindResult_NotFound,
-  NavFindResult_Found,
-  NavFindResult_SearchIncomplete, // If there is a result its too far from the starting point.
-} NavFindResult;
-
 /**
- * Breadth-first search for a cell matching the given predicate.
+ * Breadth-first search for N cells matching the given predicate.
  */
-static bool nav_find(
-    const GeoNavGrid*  grid,
-    GeoNavWorkerState* s,
-    const void*        ctx,
-    const GeoNavCell   from,
-    NavCellPredicate   predicate,
-    GeoNavCell*        outResult) {
+static u32 nav_find(
+    const GeoNavGrid*   grid,
+    GeoNavWorkerState*  s,
+    const void*         ctx,
+    const GeoNavCell    from,
+    NavCellPredicate    predicate,
+    GeoNavCellContainer out) {
+  diag_assert(out.capacity);
 
   ++s->stats[GeoNavStat_FindCount];       // Track amount of find queries.
   ++s->stats[GeoNavStat_FindItrEnqueues]; // Include the initial enqueue in the tracking.
@@ -457,13 +452,16 @@ static bool nav_find(
   mem_set(s->markedCells, 0);
   nav_bit_set(s->markedCells, nav_cell_index(grid, from));
 
+  u32 outCount = 0;
   while (queueStart != queueEnd) {
     ++s->stats[GeoNavStat_FindItrCells]; // Track total amount of find iterations.
 
     const GeoNavCell cell = queue[queueStart++];
     if (predicate(grid, ctx, cell)) {
-      *outResult = cell;
-      return NavFindResult_Found;
+      out.cells[outCount++] = cell;
+      if (outCount == out.capacity) {
+        return outCount; // Filed the entire output.
+      }
     }
 
     GeoNavCell neighbors[4];
@@ -475,14 +473,19 @@ static bool nav_find(
         continue;
       }
       if (queueEnd == array_elems(queue)) {
-        return NavFindResult_SearchIncomplete;
+        /**
+         * Queue exhausted.
+         * TODO: Either reclaim the unused space at the beginning of the queue and keep searching or
+         * report to the caller that we stopped searching.
+         */
+        return outCount;
       }
       ++s->stats[GeoNavStat_FindItrEnqueues]; // Track total amount of find cell enqueues.
       queue[queueEnd++] = neighbor;
       nav_bit_set(s->markedCells, neighborIndex);
     }
   }
-  return NavFindResult_NotFound;
+  return outCount;
 }
 
 /**
@@ -1035,23 +1038,41 @@ bool geo_nav_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
-  GeoNavWorkerState* s = nav_worker_state(grid);
-  GeoNavCell         res;
-  if (nav_find(grid, s, null, cell, nav_pred_unblocked, &res) == NavFindResult_Found) {
-    return res;
+  GeoNavWorkerState*  s = nav_worker_state(grid);
+  GeoNavCell          res[1];
+  GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
+  if (nav_find(grid, s, null, cell, nav_pred_unblocked, container)) {
+    return res[0];
   }
   return cell; // No unblocked cell found.
+}
+
+u32 geo_nav_closest_unblocked_n(
+    const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCellContainer out) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  return nav_find(grid, s, null, cell, nav_pred_unblocked, out);
 }
 
 GeoNavCell geo_nav_closest_free(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
-  GeoNavWorkerState* s = nav_worker_state(grid);
-  GeoNavCell         res;
-  if (nav_find(grid, s, null, cell, nav_pred_free, &res) == NavFindResult_Found) {
-    return res;
+  GeoNavWorkerState*  s = nav_worker_state(grid);
+  GeoNavCell          res[1];
+  GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
+  if (nav_find(grid, s, null, cell, nav_pred_free, container)) {
+    return res[0];
   }
   return cell; // No free cell found.
+}
+
+u32 geo_nav_closest_free_n(
+    const GeoNavGrid* grid, const GeoNavCell cell, const GeoNavCellContainer out) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  return nav_find(grid, s, null, cell, nav_pred_free, out);
 }
 
 GeoNavCell
@@ -1059,11 +1080,12 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  GeoNavWorkerState* s          = nav_worker_state(grid);
-  const GeoNavIsland fromIsland = geo_nav_island(grid, from);
-  GeoNavCell         res;
-  if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, &res) == NavFindResult_Found) {
-    return res;
+  GeoNavWorkerState*  s          = nav_worker_state(grid);
+  const GeoNavIsland  fromIsland = geo_nav_island(grid, from);
+  GeoNavCell          res[1];
+  GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
+  if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, container)) {
+    return res[0];
   }
   return from; // No reachable cell found.
 }
@@ -1078,10 +1100,10 @@ GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
 }
 
 u32 geo_nav_path(
-    const GeoNavGrid*       grid,
-    const GeoNavCell        from,
-    const GeoNavCell        to,
-    const GeoNavPathStorage out) {
+    const GeoNavGrid*         grid,
+    const GeoNavCell          from,
+    const GeoNavCell          to,
+    const GeoNavCellContainer out) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 

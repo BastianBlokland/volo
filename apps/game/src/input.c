@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_array.h"
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
@@ -8,6 +9,7 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_lifetime.h"
+#include "scene_nav.h"
 #include "scene_selection.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
@@ -265,12 +267,97 @@ static void select_update_drag(
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
 
+static void input_order_attack(
+    EcsWorld*                 world,
+    CmdControllerComp*        cmdController,
+    const SceneSelectionComp* sel,
+    AssetManagerComp*         assets,
+    DebugStatsGlobalComp*     debugStats,
+    const EcsEntityId         target) {
+
+  // Report the attack.
+  input_indicator_attack(world, assets, target);
+  input_report_command(debugStats, string_lit("Attack"));
+
+  // Push attack commands.
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    cmd_push_attack(cmdController, *e, target);
+  }
+}
+
+static void input_order_move(
+    EcsWorld*                 world,
+    CmdControllerComp*        cmdController,
+    const SceneSelectionComp* sel,
+    const SceneNavEnvComp*    nav,
+    AssetManagerComp*         assets,
+    DebugStatsGlobalComp*     debugStats,
+    const GeoVector           targetPos) {
+
+  // Report the move.
+  input_indicator_move(world, assets, targetPos);
+  input_report_command(debugStats, string_lit("Move"));
+
+  // Find unblocked cells on the nav-grid to move to.
+  const u32                 selectionCount = scene_selection_count(sel);
+  GeoNavCell                navCells[1024];
+  const GeoNavCellContainer navCellContainer = {
+      .cells    = navCells,
+      .capacity = math_min(selectionCount, array_elems(navCells)),
+  };
+  const GeoNavCell targetNavCell = scene_nav_at_position(nav, targetPos);
+  const u32 unblockedCount = scene_nav_closest_unblocked_n(nav, targetNavCell, navCellContainer);
+
+  // Push the move commands.
+  for (u32 i = 0; i != selectionCount; ++i) {
+    const EcsEntityId entity = scene_selection_begin(sel)[i];
+    GeoVector         pos;
+    if (LIKELY(i < unblockedCount)) {
+      const bool sameCellAsTargetPos = navCells[i].data == targetNavCell.data;
+      pos = sameCellAsTargetPos ? targetPos : scene_nav_position(nav, navCells[i]);
+    } else {
+      // We didn't find a free cell for this entity; just move to the raw targetPos.
+      pos = targetPos;
+    }
+    cmd_push_move(cmdController, entity, pos);
+  }
+}
+
+static void input_order_stop(
+    CmdControllerComp*        cmdController,
+    const SceneSelectionComp* sel,
+    DebugStatsGlobalComp*     debugStats) {
+
+  // Report the stop.
+  input_report_command(debugStats, string_lit("Stop"));
+
+  // Push the stop commands.
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    cmd_push_stop(cmdController, *e);
+  }
+}
+
+static void input_order_destroy(
+    CmdControllerComp*        cmdController,
+    const SceneSelectionComp* sel,
+    DebugStatsGlobalComp*     debugStats) {
+
+  // Report the destroy.
+  input_report_command(debugStats, string_lit("Destroy"));
+
+  // Push the destroy commands.
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    cmd_push_destroy(cmdController, *e);
+  }
+}
+
 static void input_order(
     EcsWorld*                    world,
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
     const SceneTerrainComp*      terrain,
+    const SceneNavEnvComp*       nav,
     AssetManagerComp*            assets,
     DebugStatsGlobalComp*        debugStats,
     const GeoRay*                inputRay) {
@@ -282,25 +369,18 @@ static void input_order(
   const f32              radius  = 0.5f;
   const f32              maxDist = g_inputMaxInteractDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-      cmd_push_attack(cmdController, *e, hit.entity);
-    }
-    input_indicator_attack(world, assets, hit.entity);
-    input_report_command(debugStats, string_lit("Attack"));
+    input_order_attack(world, cmdController, sel, assets, debugStats, hit.entity);
     return;
   }
   /**
-   * Otherwise order an move.
+   * Order a move when clicking the terrain.
    */
   if (terrain) {
     const f32 rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
     if (rayT > g_inputMinInteractDist) {
       const GeoVector targetPos = geo_ray_position(inputRay, rayT);
-      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-        cmd_push_move(cmdController, *e, targetPos);
-      }
-      input_indicator_move(world, assets, targetPos);
-      input_report_command(debugStats, string_lit("Move"));
+      input_order_move(world, cmdController, sel, nav, assets, debugStats, targetPos);
+      return;
     }
   }
 }
@@ -313,6 +393,7 @@ static void update_camera_interact(
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
     const SceneTerrainComp*      terrain,
+    const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     AssetManagerComp*            assets,
@@ -357,7 +438,8 @@ static void update_camera_interact(
 
   const bool hasSelection = !scene_selection_empty(sel);
   if (!selectActive && hasSelection && input_triggered_lit(input, "Order")) {
-    input_order(world, cmdController, collisionEnv, sel, terrain, assets, debugStats, &inputRay);
+    input_order(
+        world, cmdController, collisionEnv, sel, terrain, nav, assets, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
     state->camPosTgt  = geo_vector(30.0f, 0, 0);
@@ -385,6 +467,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(DebugStatsGlobalComp);
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
@@ -418,22 +501,17 @@ ecs_system_define(InputUpdateSys) {
   const SceneCollisionEnvComp* colEnv        = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneNavEnvComp*       nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
   AssetManagerComp*            assets        = ecs_view_write_t(globalItr, AssetManagerComp);
   DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  if (input_triggered_lit(input, "Destroy")) {
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-      cmd_push_destroy(cmdController, *e);
-    }
-    input_report_command(debugStats, string_lit("Destroy"));
-  }
   if (input_triggered_lit(input, "OrderStop")) {
-    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-      cmd_push_stop(cmdController, *e);
-    }
-    input_report_command(debugStats, string_lit("Stop"));
+    input_order_stop(cmdController, sel, debugStats);
+  }
+  if (input_triggered_lit(input, "Destroy")) {
+    input_order_destroy(cmdController, sel, debugStats);
   }
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -463,6 +541,7 @@ ecs_system_define(InputUpdateSys) {
           colEnv,
           sel,
           terrain,
+          nav,
           cam,
           camTrans,
           assets,

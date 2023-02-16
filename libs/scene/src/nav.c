@@ -334,10 +334,10 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     // Compute a new path.
     if (pathQueriesRemaining && path_needs_refresh(path, toPos, time)) {
-      const GeoNavPathStorage storage = {.cells = path->cells, .capacity = path_max_cells};
-      path->cellCount                 = geo_nav_path(env->navGrid, fromCell, toCell, storage);
-      path->nextRefreshTime           = path_next_refresh_time(time);
-      path->destination               = toPos;
+      const GeoNavCellContainer container = {.cells = path->cells, .capacity = path_max_cells};
+      path->cellCount                     = geo_nav_path(env->navGrid, fromCell, toCell, container);
+      path->nextRefreshTime               = path_next_refresh_time(time);
+      path->destination                   = toPos;
       --pathQueriesRemaining;
 
       // Stop if no path is possible at this time.
@@ -471,6 +471,16 @@ GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos
 
 GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_island(env->navGrid, cell);
+}
+
+u32 scene_nav_closest_unblocked_n(
+    const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
+  return geo_nav_closest_unblocked_n(env->navGrid, cell, out);
+}
+
+u32 scene_nav_closest_free_n(
+    const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
+  return geo_nav_closest_free_n(env->navGrid, cell, out);
 }
 
 bool scene_nav_reachable(const SceneNavEnvComp* env, const GeoNavCell from, const GeoNavCell to) {
