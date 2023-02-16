@@ -473,6 +473,11 @@ GeoNavIsland scene_nav_island(const SceneNavEnvComp* env, const GeoNavCell cell)
   return geo_nav_island(env->navGrid, cell);
 }
 
+u32 scene_nav_closest_unblocked_n(
+    const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
+  return geo_nav_closest_unblocked_n(env->navGrid, cell, out);
+}
+
 u32 scene_nav_closest_free_n(
     const SceneNavEnvComp* env, const GeoNavCell cell, const GeoNavCellContainer out) {
   return geo_nav_closest_free_n(env->navGrid, cell, out);

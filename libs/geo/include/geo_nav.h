@@ -76,6 +76,7 @@ bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
+u32          geo_nav_closest_unblocked_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_free(const GeoNavGrid*, GeoNavCell);
 u32          geo_nav_closest_free_n(const GeoNavGrid*, GeoNavCell, GeoNavCellContainer);
 GeoNavCell   geo_nav_closest_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
