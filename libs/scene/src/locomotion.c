@@ -27,28 +27,11 @@ ecs_view_define(MoveView) {
   ecs_access_write(SceneTransformComp);
 }
 
-static f32 scene_loco_y_angle_diff(const GeoVector fromDir, const GeoVector toDir) {
-  const GeoVector tangent      = geo_vector_cross3(geo_up, fromDir);
-  const f32       dotTangentTo = geo_vector_dot(tangent, toDir);
-  const f32       dotFromTo    = geo_vector_dot(fromDir, toDir);
-  return math_acos_f32(math_clamp_f32(dotFromTo, -1.0f, 1.0f)) * math_sign(dotTangentTo);
-}
-
 static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
-  const GeoVector forward     = geo_quat_rotate(trans->rotation, geo_forward);
-  f32             yAngleDelta = scene_loco_y_angle_diff(forward, dir);
-
-  bool clamped = false;
-  if (yAngleDelta < -delta) {
-    yAngleDelta = -delta;
-    clamped     = true;
-  } else if (yAngleDelta > delta) {
-    yAngleDelta = delta;
-    clamped     = true;
-  }
-
-  trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, yAngleDelta), trans->rotation);
-  trans->rotation = geo_quat_norm(trans->rotation);
+  const GeoQuat rotTarget = geo_quat_look(dir, geo_up);
+  GeoQuat       rotDiff   = geo_quat_from_to(trans->rotation, rotTarget);
+  const bool    clamped   = geo_quat_clamp(&rotDiff, delta);
+  trans->rotation         = geo_quat_mul(trans->rotation, rotDiff);
   return !clamped;
 }
 
