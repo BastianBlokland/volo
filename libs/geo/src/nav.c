@@ -663,12 +663,6 @@ static GeoVector nav_separate_from_blockers(
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
   (void)flags;
-  /**
-   * TODO: Instead of pushing away in the direction of the cell center we should push in the
-   * tangent of the axis we're too close in. This improves the scenarios where an object is
-   * 'gliding' along multiple blocked cells.
-   * NOTE: Could be implemented in 2d on the grid plane.
-   */
   GeoVector result = {0};
   for (u32 y = reg.min.y; y != reg.max.y; ++y) {
     for (u32 x = reg.min.x; x != reg.max.x; ++x) {
@@ -677,14 +671,15 @@ static GeoVector nav_separate_from_blockers(
       if (!nav_pred_blocked(grid, null, cell)) {
         continue; // Cell not blocked.
       }
-      const f32 distSqr = nav_cell_dist_sqr(grid, cell, pos);
-      if (distSqr >= (radius * radius)) {
+      const f32 distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
+      if (distToEdgeSqr >= (radius * radius)) {
         continue; // Far enough away.
       }
-      const f32       dist    = intrinsic_sqrt_f32(distSqr);
-      const GeoVector cellPos = nav_cell_pos(grid, cell);
-      const GeoVector sepDir  = geo_vector_norm(geo_vector_sub(pos, cellPos));
-      result                  = geo_vector_add(result, geo_vector_mul(sepDir, radius - dist));
+      const f32       distToEdge = intrinsic_sqrt_f32(distToEdgeSqr);
+      const f32       overlap    = radius - distToEdge;
+      const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
+      const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
+      result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
     }
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
