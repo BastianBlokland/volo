@@ -709,7 +709,7 @@ static GeoVector nav_separate_from_occupied(
     if (occupants[i]->userId == userId) {
       continue; // Ignore occupants with the same userId.
     }
-    const GeoVector toOccupant = geo_vector_sub(occupants[i]->pos, pos);
+    const GeoVector toOccupant = geo_vector_xz(geo_vector_sub(occupants[i]->pos, pos));
     const f32       distSqr    = geo_vector_mag_sqr(toOccupant);
     const f32       sepDist    = occupants[i]->radius + radius;
     if (distSqr >= (sepDist * sepDist)) {
