@@ -74,7 +74,6 @@ static const struct {
                               "      \"traits\": [ {"
                               "        \"$type\": \"AssetPrefabTrait_Movement\","
                               "        \"speed\": 1,"
-                              "        \"accelerationNorm\": 2,"
                               "        \"rotationSpeed\": 360,"
                               "        \"radius\": 2,"
                               "        \"moveAnimation\": \"Test\""

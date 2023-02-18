@@ -11,9 +11,8 @@
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
-          "accelerationNorm": 3,
           "rotationSpeed": 360,
-          "radius": 0.35,
+          "radius": 0.3,
           "moveAnimation": "run"
         },
         {
@@ -57,9 +56,8 @@
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4.5,
-          "accelerationNorm": 5,
           "rotationSpeed": 360,
-          "radius": 0.35,
+          "radius": 0.3,
           "moveAnimation": "run"
         },
         {
