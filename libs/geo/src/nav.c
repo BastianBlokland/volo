@@ -190,6 +190,11 @@ static bool nav_cell_add_occupant(GeoNavGrid* grid, const GeoNavCell cell, const
   return false; // Maximum occupants per cell reached.
 }
 
+static GeoVector nav_cell_pos_no_y(const GeoNavGrid* grid, const GeoNavCell cell) {
+  const GeoVector pos = geo_vector_mul(geo_vector(cell.x, 0, cell.y), grid->cellSize);
+  return geo_vector_add(pos, grid->cellOffset);
+}
+
 static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
   GeoVector pos = geo_vector_mul(geo_vector(cell.x, 0, cell.y), grid->cellSize);
   pos.y         = grid->cellY[nav_cell_index(grid, cell)];
@@ -253,13 +258,13 @@ static GeoNavRegion nav_cell_grow(const GeoNavGrid* grid, const GeoNavCell cell,
 }
 
 static f32 nav_cell_dist_sqr(const GeoNavGrid* grid, const GeoNavCell cell, const GeoVector tgt) {
-  // NOTE: Could be implemented in 2d on the grid plane.
   const f32       cellRadiusAxis = grid->cellSize * 0.5f + f32_epsilon;
   const GeoVector cellRadius     = geo_vector(cellRadiusAxis, 0, cellRadiusAxis);
-  const GeoVector cellPos        = nav_cell_pos(grid, cell);
+  const GeoVector cellPos        = nav_cell_pos_no_y(grid, cell);
   const GeoVector deltaMin       = geo_vector_sub(geo_vector_sub(cellPos, cellRadius), tgt);
   const GeoVector deltaMax       = geo_vector_sub(tgt, geo_vector_add(cellPos, cellRadius));
-  return geo_vector_mag_sqr(geo_vector_max(geo_vector_max(deltaMin, deltaMax), geo_vector(0)));
+  const GeoVector delta = geo_vector_max(geo_vector_max(deltaMin, deltaMax), geo_vector(0));
+  return geo_vector_mag_sqr(geo_vector_xz(delta));
 }
 
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
@@ -658,12 +663,6 @@ static GeoVector nav_separate_from_blockers(
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
   (void)flags;
-  /**
-   * TODO: Instead of pushing away in the direction of the cell center we should push in the
-   * tangent of the axis we're too close in. This improves the scenarios where an object is
-   * 'gliding' along multiple blocked cells.
-   * NOTE: Could be implemented in 2d on the grid plane.
-   */
   GeoVector result = {0};
   for (u32 y = reg.min.y; y != reg.max.y; ++y) {
     for (u32 x = reg.min.x; x != reg.max.x; ++x) {
@@ -672,14 +671,15 @@ static GeoVector nav_separate_from_blockers(
       if (!nav_pred_blocked(grid, null, cell)) {
         continue; // Cell not blocked.
       }
-      const f32 distSqr = nav_cell_dist_sqr(grid, cell, pos);
-      if (distSqr >= (radius * radius)) {
+      const f32 distToEdgeSqr = nav_cell_dist_sqr(grid, cell, pos);
+      if (distToEdgeSqr >= (radius * radius)) {
         continue; // Far enough away.
       }
-      const f32       dist    = intrinsic_sqrt_f32(distSqr);
-      const GeoVector cellPos = nav_cell_pos(grid, cell);
-      const GeoVector sepDir  = geo_vector_norm(geo_vector_sub(pos, cellPos));
-      result                  = geo_vector_add(result, geo_vector_mul(sepDir, radius - dist));
+      const f32       distToEdge = intrinsic_sqrt_f32(distToEdgeSqr);
+      const f32       overlap    = radius - distToEdge;
+      const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
+      const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
+      result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
     }
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
@@ -709,7 +709,7 @@ static GeoVector nav_separate_from_occupied(
     if (occupants[i]->userId == userId) {
       continue; // Ignore occupants with the same userId.
     }
-    const GeoVector toOccupant = geo_vector_sub(occupants[i]->pos, pos);
+    const GeoVector toOccupant = geo_vector_xz(geo_vector_sub(occupants[i]->pos, pos));
     const f32       distSqr    = geo_vector_mag_sqr(toOccupant);
     const f32       sepDist    = occupants[i]->radius + radius;
     if (distSqr >= (sepDist * sepDist)) {

@@ -146,7 +146,6 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       e,
       SceneLocomotionComp,
       .maxSpeed         = t->speed,
-      .accelerationNorm = t->accelerationNorm,
       .rotationSpeedRad = t->rotationSpeedRad,
       .radius           = t->radius,
       .moveAnimation    = t->moveAnimation);

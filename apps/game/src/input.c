@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_array.h"
+#include "core_format.h"
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
@@ -51,6 +52,8 @@ ecs_comp_define(InputStateComp) {
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
   bool             freeCamera;
 
+  u32 lastSelectionCount;
+
   GeoVector camPos, camPosTgt;
   f32       camRotY, camRotYTgt;
   f32       camZoom, camZoomTgt;
@@ -58,7 +61,15 @@ ecs_comp_define(InputStateComp) {
 
 static void input_report_command(DebugStatsGlobalComp* debugStats, const String command) {
   if (debugStats) {
-    debug_stats_notify(debugStats, string_lit("Command"), command);
+    const String label = string_lit("Command");
+    debug_stats_notify(debugStats, label, command);
+  }
+}
+
+static void input_report_selection_count(DebugStatsGlobalComp* debugStats, const u32 selCount) {
+  if (debugStats) {
+    const String label = string_lit("Selected");
+    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(selCount)));
   }
 }
 
@@ -524,6 +535,12 @@ ecs_system_define(InputUpdateSys) {
       input_state_init(world, ecs_view_entity(camItr));
       continue;
     }
+
+    if (scene_selection_count(sel) != state->lastSelectionCount) {
+      state->lastSelectionCount = scene_selection_count(sel);
+      input_report_selection_count(debugStats, state->lastSelectionCount);
+    }
+
     if (input_active_window(input) == ecs_view_entity(itr)) {
       if (input_triggered_lit(input, "CameraToggleMode")) {
         input_toggle_camera_mode(state, debugStats);
