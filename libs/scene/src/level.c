@@ -13,25 +13,13 @@
 ASSERT(AssetLevelFaction_Count == SceneFaction_Count, "Mismatching faction counts");
 ASSERT(AssetLevelFaction_None == SceneFaction_None, "Mismatching faction sentinel");
 
-typedef enum {
-  SceneLevelRequestType_Unload,
-  SceneLevelRequestType_Save,
-} SceneLevelRequestType;
+ecs_comp_define(SceneLevelRequestSaveComp) { String levelId; };
 
-ecs_comp_define(SceneLevelRequestComp) {
-  SceneLevelRequestType type;
-  String                levelId;
-};
-
-static void ecs_destruct_level_request(void* data) {
-  SceneLevelRequestComp* comp = data;
-  if (!string_is_empty(comp->levelId)) {
-    string_free(g_alloc_heap, comp->levelId);
-  }
+static void ecs_destruct_level_request_save(void* data) {
+  SceneLevelRequestSaveComp* comp = data;
+  string_free(g_alloc_heap, comp->levelId);
 }
 
-ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(RequestView) { ecs_access_read(SceneLevelRequestComp); }
 ecs_view_define(InstanceView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -63,16 +51,6 @@ static void scene_level_object_push(
   };
 }
 
-static void scene_level_process_unload(EcsWorld* world, EcsView* instView) {
-  u32 objectCount = 0;
-  for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_entity_destroy(world, entity);
-    ++objectCount;
-  }
-  log_i("Level unloaded", log_param("objects", fmt_int(objectCount)));
-}
-
 static void scene_level_process_save(AssetManagerComp* assets, const String id, EcsView* instView) {
   DynArray levelObjects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
@@ -93,51 +71,37 @@ static void scene_level_process_save(AssetManagerComp* assets, const String id, 
   dynarray_destroy(&levelObjects);
 }
 
-ecs_system_define(SceneLevelRequestsSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+ecs_view_define(SaveGlobalView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(SaveRequestView) { ecs_access_read(SceneLevelRequestSaveComp); }
+
+ecs_system_define(SceneLevelSaveSys) {
+  EcsView*     globalView = ecs_world_view_t(world, SaveGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  EcsView* requestView  = ecs_world_view_t(world, RequestView);
-  EcsView* instanceView = ecs_world_view_t(world, InstanceView);
+  AssetManagerComp* assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  EcsView*          requestView  = ecs_world_view_t(world, SaveRequestView);
+  EcsView*          instanceView = ecs_world_view_t(world, InstanceView);
 
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
-    const EcsEntityId            requestEntity = ecs_view_entity(itr);
-    const SceneLevelRequestComp* request       = ecs_view_read_t(itr, SceneLevelRequestComp);
-
-    switch (request->type) {
-    case SceneLevelRequestType_Unload:
-      scene_level_process_unload(world, instanceView);
-      break;
-    case SceneLevelRequestType_Save:
-      scene_level_process_save(assets, request->levelId, instanceView);
-      break;
-    }
-
-    ecs_world_entity_destroy(world, requestEntity);
+    const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
+    scene_level_process_save(assets, req->levelId, instanceView);
+    ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
 }
 
 ecs_module_init(scene_level_module) {
-  ecs_register_comp(SceneLevelRequestComp, .destructor = ecs_destruct_level_request);
+  ecs_register_comp(SceneLevelRequestSaveComp, .destructor = ecs_destruct_level_request_save);
 
-  ecs_register_view(GlobalView);
-  ecs_register_view(RequestView);
   ecs_register_view(InstanceView);
 
   ecs_register_system(
-      SceneLevelRequestsSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(RequestView),
-      ecs_view_id(InstanceView));
-}
-
-void scene_level_unload(EcsWorld* world) {
-  const EcsEntityId reqEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, reqEntity, SceneLevelRequestComp, .type = SceneLevelRequestType_Unload);
+      SceneLevelSaveSys,
+      ecs_view_id(InstanceView),
+      ecs_register_view(SaveGlobalView),
+      ecs_register_view(SaveRequestView));
 }
 
 void scene_level_save(EcsWorld* world, const String levelId) {
@@ -145,9 +109,5 @@ void scene_level_save(EcsWorld* world, const String levelId) {
 
   const EcsEntityId reqEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
-      world,
-      reqEntity,
-      SceneLevelRequestComp,
-      .type    = SceneLevelRequestType_Save,
-      .levelId = string_dup(g_alloc_heap, levelId));
+      world, reqEntity, SceneLevelRequestSaveComp, .levelId = string_dup(g_alloc_heap, levelId));
 }
