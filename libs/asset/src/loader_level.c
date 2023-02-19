@@ -1,5 +1,6 @@
 #include "asset_level.h"
 #include "core_alloc.h"
+#include "core_path.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -107,10 +108,22 @@ Cleanup:
 }
 
 bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel level) {
+  String       idWithExtScratch = id;
+  const String ext              = path_extension(id);
+  if (string_is_empty(ext)) {
+    idWithExtScratch = fmt_write_scratch("{}.lvl", fmt_text(id));
+  } else if (!string_eq(ext, string_lit("lvl"))) {
+    log_w(
+        "Level cannot be saved",
+        log_param("id", fmt_text(id)),
+        log_param("reason", fmt_text_lit("Invalid extension")));
+    return false;
+  }
+
   DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
 
   data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level));
-  const bool res = asset_save(manager, id, dynstring_view(&dataBuffer));
+  const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
   dynstring_destroy(&dataBuffer);
   return res;
