@@ -9,7 +9,7 @@
 
 static const String g_tooltipSave    = string_static("Save the current scene as a level asset.");
 static const String g_tooltipLevelId = string_static("Identifier of the level to save / load.");
-static const String g_defaultLevelId = string_static("levels/default.lvl");
+static const String g_defaultLevelId = string_static("default.lvl");
 
 // clang-format on
 
@@ -47,7 +47,7 @@ level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* pan
   if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
     const String levelIdInput = dynstring_view(&panelComp->levelIdInput);
     const String levelId      = string_is_empty(levelIdInput) ? g_defaultLevelId : levelIdInput;
-    scene_level_save(world, levelId);
+    scene_level_save(world, fmt_write_scratch("levels/{}", fmt_text(levelId)));
   }
 
   ui_panel_end(canvas, &panelComp->panel);
