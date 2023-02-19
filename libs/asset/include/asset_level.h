@@ -3,6 +3,9 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
+// Forward declare from 'asset_manager.h'.
+ecs_comp_extern(AssetManagerComp);
+
 typedef enum {
   AssetLevelFaction_A,
   AssetLevelFaction_B,
@@ -29,3 +32,5 @@ typedef struct {
 } AssetLevel;
 
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
+
+bool asset_level_save(AssetManagerComp*, String id, AssetLevel);

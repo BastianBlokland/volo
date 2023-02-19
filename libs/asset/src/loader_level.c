@@ -105,3 +105,13 @@ Error:
 Cleanup:
   asset_repo_source_close(src);
 }
+
+bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel level) {
+  DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+
+  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level));
+  const bool res = asset_save(manager, id, dynstring_view(&dataBuffer));
+
+  dynstring_destroy(&dataBuffer);
+  return res;
+}
