@@ -1,7 +1,7 @@
 #pragma once
 #include "core_sentinel.h"
 #include "ecs_module.h"
-#include "geo_quat.h"
+#include "geo_vector.h"
 
 typedef enum {
   AssetLevelFaction_A,
@@ -13,13 +13,15 @@ typedef enum {
 } AssetLevelFaction;
 
 typedef struct {
-  StringHash        prefabId;
+  String            prefab;
   AssetLevelFaction faction;
   GeoVector         position;
-  GeoQuat           rotation;
-} AssetLevelEntry;
+  GeoVector         rotation; // xyz: Euler angles in degrees.
+} AssetLevelObject;
 
 ecs_comp_extern_public(AssetLevelComp) {
-  AssetLevelEntry* entries;
-  u32              entryCount;
+  struct {
+    AssetLevelObject* values;
+    usize             count;
+  } objects;
 };
