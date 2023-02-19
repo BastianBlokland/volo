@@ -13,6 +13,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("gltf"),
       string_static("gra"),
       string_static("imp"),
+      string_static("lvl"),
       string_static("obj"),
       string_static("pfb"),
       string_static("pme"),

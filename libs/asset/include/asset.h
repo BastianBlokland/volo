@@ -5,6 +5,7 @@
 #include "asset_ftx.h"
 #include "asset_graphic.h"
 #include "asset_inputmap.h"
+#include "asset_level.h"
 #include "asset_manager.h"
 #include "asset_mesh.h"
 #include "asset_prefab.h"

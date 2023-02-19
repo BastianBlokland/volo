@@ -34,6 +34,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Imp: {
     RET_LOADER(imp);
   }
+  case AssetFormat_Lvl: {
+    RET_LOADER(lvl);
+  }
   case AssetFormat_Obj: {
     RET_LOADER(obj);
   }
