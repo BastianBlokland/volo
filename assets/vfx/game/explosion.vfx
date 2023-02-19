@@ -128,14 +128,14 @@
         "min": 3.25,
         "max": 4.25
       },
-      "count": 40,
+      "count": 35,
       "scale": {
         "min": 0.75,
         "max": 1.75
       },
       "lifetime": {
         "min": 0.5,
-        "max": 2.5
+        "max": 2.25
       },
       "rotation": {
         "random": {
