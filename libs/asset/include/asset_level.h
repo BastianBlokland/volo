@@ -12,6 +12,7 @@ typedef enum {
   AssetLevelFaction_C,
   AssetLevelFaction_D,
 
+  AssetLevelFaction_Count,
   AssetLevelFaction_None = sentinel_u32,
 } AssetLevelFaction;
 
