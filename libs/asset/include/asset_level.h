@@ -19,9 +19,9 @@ typedef struct {
   GeoVector         rotation; // xyz: Euler angles in degrees.
 } AssetLevelObject;
 
-ecs_comp_extern_public(AssetLevelComp) {
-  struct {
-    AssetLevelObject* values;
-    usize             count;
-  } objects;
-};
+typedef struct {
+  const AssetLevelObject* values;
+  usize                   count;
+} AssetLevelObjectArray;
+
+ecs_comp_extern_public(AssetLevelComp) { AssetLevelObjectArray objects; };
