@@ -5,9 +5,23 @@
 #include "scene_level.h"
 #include "ui.h"
 
-static const String g_tooltipSave = string_static("Save the current scene as a level asset.");
+// clang-format off
 
-ecs_comp_define(DebugLevelPanelComp) { UiPanel panel; };
+static const String g_tooltipSave    = string_static("Save the current scene as a level asset.");
+static const String g_tooltipLevelId = string_static("Identifier of the level to save / load.");
+static const String g_defaultLevelId = string_static("levels/default.lvl");
+
+// clang-format on
+
+ecs_comp_define(DebugLevelPanelComp) {
+  DynString levelIdInput;
+  UiPanel   panel;
+};
+
+static void ecs_destruct_level_panel(void* data) {
+  DebugLevelPanelComp* comp = data;
+  dynstring_destroy(&comp->levelIdInput);
+}
 
 static void
 level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* panelComp) {
@@ -19,10 +33,21 @@ level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* pan
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Level id"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas,
+      &panelComp->levelIdInput,
+      .placeholder = g_defaultLevelId,
+      .tooltip     = g_tooltipLevelId);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Save scene"));
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-    scene_level_save(world, string_lit("test.lvl"));
+    const String levelIdInput = dynstring_view(&panelComp->levelIdInput);
+    const String levelId      = string_is_empty(levelIdInput) ? g_defaultLevelId : levelIdInput;
+    scene_level_save(world, levelId);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
@@ -52,7 +77,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 }
 
 ecs_module_init(debug_level_module) {
-  ecs_register_comp(DebugLevelPanelComp);
+  ecs_register_comp(DebugLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
   ecs_register_view(PanelUpdateView);
 
@@ -65,6 +90,7 @@ EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugLevelPanelComp,
-      .panel = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
+      .levelIdInput = dynstring_create(g_alloc_heap, 32),
+      .panel        = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
   return panelEntity;
 }
