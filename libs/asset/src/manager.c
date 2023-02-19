@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_path.h"
 #include "core_search.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -443,6 +444,7 @@ u32 asset_ticks_until_unload(const AssetComp* asset) {
 }
 
 bool asset_save(AssetManagerComp* manager, const String id, const String data) {
+  diag_assert_msg(path_extension(id).size, "Asset id's must have an extension");
   return asset_repo_save(manager->repo, id, data);
 }
 
