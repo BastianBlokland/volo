@@ -57,6 +57,20 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   return (AssetSource*)src;
 }
 
+static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String data) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  const String     path   = path_build_scratch(repoFs->rootPath, id);
+  const FileResult result = file_write_to_path_sync(path, data);
+  if (result) {
+    log_w(
+        "AssetRepository: Failed to save file",
+        log_param("path", fmt_path(path)),
+        log_param("result", fmt_text(file_result_str(result))));
+  }
+  return result == FileResult_Success;
+}
+
 static void asset_repo_fs_changes_watch(AssetRepo* repo, const String id, const u64 userData) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
@@ -96,6 +110,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
       .api =
           {
               .open         = asset_source_fs_open,
+              .save         = asset_repo_fs_save,
               .destroy      = asset_repo_fs_destroy,
               .changesWatch = asset_repo_fs_changes_watch,
               .changesPoll  = asset_repo_fs_changes_poll,

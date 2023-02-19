@@ -442,6 +442,10 @@ u32 asset_ticks_until_unload(const AssetComp* asset) {
   return asset_max_unload_delay - asset->unloadTicks;
 }
 
+bool asset_save(AssetManagerComp* manager, const String id, const String data) {
+  return asset_repo_save(manager->repo, id, data);
+}
+
 void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId dependency) {
   diag_assert(asset);
   diag_assert(dependency);

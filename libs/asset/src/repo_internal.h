@@ -12,6 +12,7 @@ typedef struct sAssetSource AssetSource;
  */
 struct sAssetRepo {
   AssetSource* (*open)(AssetRepo*, String id);
+  bool (*save)(AssetRepo*, String id, String data);
   void (*destroy)(AssetRepo*);
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
@@ -28,6 +29,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCoun
 void       asset_repo_destroy(AssetRepo*);
 
 AssetSource* asset_repo_source_open(AssetRepo*, String id);
+bool         asset_repo_save(AssetRepo*, String id, String data);
 void         asset_repo_source_close(AssetSource*);
 
 void asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
