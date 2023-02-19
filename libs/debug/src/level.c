@@ -7,6 +7,7 @@
 
 // clang-format off
 
+static const String g_tooltipUnload  = string_static("Delete all level objects from the scene.");
 static const String g_tooltipSave    = string_static("Save the current scene as a level asset.");
 static const String g_tooltipLevelId = string_static("Identifier of the level to save / load.");
 static const String g_defaultLevelId = string_static("default.lvl");
@@ -40,6 +41,13 @@ level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* pan
       &panelComp->levelIdInput,
       .placeholder = g_defaultLevelId,
       .tooltip     = g_tooltipLevelId);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Unload"));
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Unload"), .tooltip = g_tooltipUnload)) {
+    scene_level_unload(world);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Save scene"));

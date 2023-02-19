@@ -14,6 +14,7 @@ ASSERT(AssetLevelFaction_Count == SceneFaction_Count, "Mismatching faction count
 ASSERT(AssetLevelFaction_None == SceneFaction_None, "Mismatching faction sentinel");
 
 typedef enum {
+  SceneLevelRequestType_Unload,
   SceneLevelRequestType_Save,
 } SceneLevelRequestType;
 
@@ -24,7 +25,9 @@ ecs_comp_define(SceneLevelRequestComp) {
 
 static void ecs_destruct_level_request(void* data) {
   SceneLevelRequestComp* comp = data;
-  string_free(g_alloc_heap, comp->levelId);
+  if (!string_is_empty(comp->levelId)) {
+    string_free(g_alloc_heap, comp->levelId);
+  }
 }
 
 ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
@@ -58,6 +61,16 @@ static void scene_level_object_push(
       .rotation = rotEulerDeg,
       .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
   };
+}
+
+static void scene_level_process_unload(EcsWorld* world, EcsView* instView) {
+  u32 objectCount = 0;
+  for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_entity_destroy(world, entity);
+    ++objectCount;
+  }
+  log_i("Level unloaded", log_param("objects", fmt_int(objectCount)));
 }
 
 static void scene_level_process_save(AssetManagerComp* assets, const String id, EcsView* instView) {
@@ -96,6 +109,9 @@ ecs_system_define(SceneLevelRequestsSys) {
     const SceneLevelRequestComp* request       = ecs_view_read_t(itr, SceneLevelRequestComp);
 
     switch (request->type) {
+    case SceneLevelRequestType_Unload:
+      scene_level_process_unload(world, instanceView);
+      break;
     case SceneLevelRequestType_Save:
       scene_level_process_save(assets, request->levelId, instanceView);
       break;
@@ -119,13 +135,18 @@ ecs_module_init(scene_level_module) {
       ecs_view_id(InstanceView));
 }
 
+void scene_level_unload(EcsWorld* world) {
+  const EcsEntityId reqEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(world, reqEntity, SceneLevelRequestComp, .type = SceneLevelRequestType_Unload);
+}
+
 void scene_level_save(EcsWorld* world, const String levelId) {
   diag_assert(!string_is_empty(levelId));
 
-  const EcsEntityId requestEntity = ecs_world_entity_create(world);
+  const EcsEntityId reqEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
-      requestEntity,
+      reqEntity,
       SceneLevelRequestComp,
       .type    = SceneLevelRequestType_Save,
       .levelId = string_dup(g_alloc_heap, levelId));
