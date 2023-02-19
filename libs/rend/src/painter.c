@@ -280,7 +280,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_StandardGeometry)) {
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
       continue; // Shouldn't be included in the shadow pass.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
@@ -304,7 +304,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       dynAlphaImage = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
-    if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
+    if (rend_draw_flags(draw) & RendDrawFlags_Terrain) {
+      graphicId = RvkRepositoryId_ShadowTerrainGraphic;
+    } else if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
       graphicId = dynAlphaImage ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;

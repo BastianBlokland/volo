@@ -49,6 +49,10 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("graphics/shadow_clip.gra"),
     },
     {
+        .repoId  = RvkRepositoryId_ShadowTerrainGraphic,
+        .assetId = string_static("graphics/shadow_terrain.gra"),
+    },
+    {
         .repoId  = RvkRepositoryId_TonemapperGraphic,
         .assetId = string_static("graphics/tonemapper.gra"),
     },

@@ -1,0 +1,27 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/scene/terrain_position.vert.spv"
+    },
+    {
+      "shaderId": "shaders/dyn_depth.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/terrain/terrain_3_height.r16",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "meshId": "meshes/scene/terrain_patch.pme",
+  "renderOrder": 10,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "depthClamp": true,
+  "depthBiasConstant": 1,
+  "depthBiasSlope": 1.5,
+  "cull": "Back"
+}
