@@ -38,11 +38,11 @@ static void level_datareg_init() {
     data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);
     data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoVector);
 
-    data_reg_struct_t(reg, AssetLevelComp);
-    data_reg_field_t(reg, AssetLevelComp, objects, t_AssetLevelObject, .container = DataContainer_Array);
+    data_reg_struct_t(reg, AssetLevel);
+    data_reg_field_t(reg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);
     // clang-format on
 
-    g_dataLevelMeta = data_meta_t(t_AssetLevelComp);
+    g_dataLevelMeta = data_meta_t(t_AssetLevel);
     g_dataReg       = reg;
   }
   thread_spinlock_unlock(&g_initLock);
@@ -51,8 +51,9 @@ static void level_datareg_init() {
 ecs_comp_define_public(AssetLevelComp);
 
 static void ecs_destruct_level_comp(void* data) {
-  AssetLevelComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataLevelMeta, mem_create(comp, sizeof(AssetLevelComp)));
+  AssetLevelComp* comp  = data;
+  AssetLevel*     level = &comp->level;
+  data_destroy(g_dataReg, g_alloc_heap, g_dataLevelMeta, mem_create(level, sizeof(AssetLevel)));
 }
 
 ecs_view_define(LevelUnloadView) {
@@ -84,7 +85,7 @@ ecs_module_init(asset_level_module) {
 void asset_load_lvl(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  AssetLevelComp lvl;
+  AssetLevel     lvl;
   String         errMsg;
   DataReadResult readRes;
   data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataLevelMeta, mem_var(lvl), &readRes);
@@ -93,7 +94,7 @@ void asset_load_lvl(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Error;
   }
 
-  *ecs_world_add_t(world, entity, AssetLevelComp) = lvl;
+  ecs_world_add_t(world, entity, AssetLevelComp, .level = lvl);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 

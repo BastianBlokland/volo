@@ -93,7 +93,7 @@ spec(loader_level) {
           "Failed to load: {}",
           fmt_text(g_testData[i].id));
 
-      const AssetLevelComp* lvl = ecs_utils_read_t(world, AssetView, asset, AssetLevelComp);
+      const AssetLevel* lvl = &ecs_utils_read_t(world, AssetView, asset, AssetLevelComp)->level;
       check_require(lvl->objects.count == g_testData[i].objectCount);
       for (usize a = 0; a != g_testData[i].objectCount; ++a) {
         const AssetLevelObject* actualObject   = &lvl->objects.values[a];

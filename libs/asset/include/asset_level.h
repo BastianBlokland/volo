@@ -24,4 +24,8 @@ typedef struct {
   usize                   count;
 } AssetLevelObjectArray;
 
-ecs_comp_extern_public(AssetLevelComp) { AssetLevelObjectArray objects; };
+typedef struct {
+  AssetLevelObjectArray objects;
+} AssetLevel;
+
+ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
