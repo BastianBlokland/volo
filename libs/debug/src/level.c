@@ -1,16 +1,14 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "debug_register.h"
 #include "ecs_world.h"
 #include "scene_level.h"
 #include "ui.h"
 
 // clang-format off
 
-static const String g_tooltipLoad    = string_static("Load a level asset into the scene.");
-static const String g_tooltipSave    = string_static("Save the current scene as a level asset.");
-static const String g_tooltipLevelId = string_static("Identifier of the level to save / load.");
-static const String g_defaultLevelId = string_static("default.lvl");
+static const String g_tooltipLoad  = string_static("Load a level asset into the scene.");
+static const String g_tooltipSave  = string_static("Save the current scene as a level asset.");
+static const String g_defaultLevel = string_static("levels/default.lvl");
 
 // clang-format on
 
@@ -24,12 +22,6 @@ static void ecs_destruct_level_panel(void* data) {
   dynstring_destroy(&comp->levelIdInput);
 }
 
-static String level_input_scratch(DebugLevelPanelComp* panelComp) {
-  const String levelIdInput = dynstring_view(&panelComp->levelIdInput);
-  const String levelId      = string_is_empty(levelIdInput) ? g_defaultLevelId : levelIdInput;
-  return fmt_write_scratch("levels/{}", fmt_text(levelId));
-}
-
 static void level_panel_draw(
     EcsWorld*                    world,
     UiCanvasComp*                canvas,
@@ -38,25 +30,28 @@ static void level_panel_draw(
   const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  const bool isLoading = scene_level_is_loading(levelManager);
+  const bool   isLoading    = scene_level_is_loading(levelManager);
+  const String levelCurrent = scene_level_current_id(levelManager);
+  const String levelInput   = dynstring_view(&panelComp->levelIdInput);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Level id"));
-  ui_table_next_column(canvas, &table);
-  ui_textbox(
-      canvas,
-      &panelComp->levelIdInput,
-      .placeholder = g_defaultLevelId,
-      .tooltip     = g_tooltipLevelId);
-
-  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("State"));
   ui_table_next_column(canvas, &table);
   ui_label(canvas, isLoading ? string_lit("Loading") : string_lit("Idle"));
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Current"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, levelCurrent.size ? levelCurrent : string_lit("<none>"), .selectable = true);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Level"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(canvas, &panelComp->levelIdInput, .placeholder = g_defaultLevel);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Actions"));
@@ -65,11 +60,11 @@ static void level_panel_draw(
   {
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(75, 0), UiBase_Absolute, Ui_X);
     if (ui_button(canvas, .label = string_lit("Load"), .tooltip = g_tooltipLoad)) {
-      scene_level_load(world, level_input_scratch(panelComp));
+      scene_level_load(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-      scene_level_save(world, level_input_scratch(panelComp));
+      scene_level_save(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
     }
   }
   ui_layout_pop(canvas);

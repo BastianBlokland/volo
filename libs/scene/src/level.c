@@ -22,7 +22,10 @@ typedef enum {
   LevelLoadState_Create,
 } LevelLoadState;
 
-ecs_comp_define(SceneLevelManagerComp) { bool isLoading; };
+ecs_comp_define(SceneLevelManagerComp) {
+  bool   isLoading;
+  String loadedLevelId;
+};
 ecs_comp_define(SceneLevelRequestLoadComp) {
   String         levelId;
   EcsEntityId    levelAsset;
@@ -30,14 +33,19 @@ ecs_comp_define(SceneLevelRequestLoadComp) {
 };
 ecs_comp_define(SceneLevelRequestSaveComp) { String levelId; };
 
+static void ecs_destruct_level_manager(void* data) {
+  SceneLevelManagerComp* comp = data;
+  string_maybe_free(g_alloc_heap, comp->loadedLevelId);
+}
+
 static void ecs_destruct_level_request_load(void* data) {
   SceneLevelRequestLoadComp* comp = data;
-  string_free(g_alloc_heap, comp->levelId);
+  string_maybe_free(g_alloc_heap, comp->levelId);
 }
 
 static void ecs_destruct_level_request_save(void* data) {
   SceneLevelRequestSaveComp* comp = data;
-  string_free(g_alloc_heap, comp->levelId);
+  string_maybe_free(g_alloc_heap, comp->levelId);
 }
 
 ecs_view_define(InstanceView) {
@@ -138,6 +146,7 @@ ecs_system_define(SceneLevelLoadSys) {
       }
       const AssetLevelComp* levelComp = ecs_view_read_t(assetItr, AssetLevelComp);
       scene_level_process_load(world, &levelComp->level);
+      mem_swap(mem_var(manager->loadedLevelId), mem_var(req->levelId));
       manager->isLoading = false;
       goto Done;
     }
@@ -219,7 +228,7 @@ ecs_system_define(SceneLevelSaveSys) {
 }
 
 ecs_module_init(scene_level_module) {
-  ecs_register_comp(SceneLevelManagerComp);
+  ecs_register_comp(SceneLevelManagerComp, .destructor = ecs_destruct_level_manager);
   ecs_register_comp(SceneLevelRequestLoadComp, .destructor = ecs_destruct_level_request_load);
   ecs_register_comp(SceneLevelRequestSaveComp, .destructor = ecs_destruct_level_request_save);
 
@@ -240,6 +249,10 @@ ecs_module_init(scene_level_module) {
 }
 
 bool scene_level_is_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
+
+String scene_level_current_id(const SceneLevelManagerComp* manager) {
+  return manager->loadedLevelId;
+}
 
 void scene_level_load(EcsWorld* world, const String levelId) {
   diag_assert(!string_is_empty(levelId));
