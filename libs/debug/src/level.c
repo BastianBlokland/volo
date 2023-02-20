@@ -7,6 +7,7 @@
 
 // clang-format off
 
+static const String g_tooltipLoad    = string_static("Load a level asset into the scene.");
 static const String g_tooltipSave    = string_static("Save the current scene as a level asset.");
 static const String g_tooltipLevelId = string_static("Identifier of the level to save / load.");
 static const String g_defaultLevelId = string_static("default.lvl");
@@ -21,6 +22,12 @@ ecs_comp_define(DebugLevelPanelComp) {
 static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->levelIdInput);
+}
+
+static String level_input_scratch(DebugLevelPanelComp* panelComp) {
+  const String levelIdInput = dynstring_view(&panelComp->levelIdInput);
+  const String levelId      = string_is_empty(levelIdInput) ? g_defaultLevelId : levelIdInput;
+  return fmt_write_scratch("levels/{}", fmt_text(levelId));
 }
 
 static void
@@ -42,12 +49,17 @@ level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* pan
       .tooltip     = g_tooltipLevelId);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Load scene"));
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("Load"), .tooltip = g_tooltipLoad)) {
+    scene_level_load(world, level_input_scratch(panelComp));
+  }
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Save scene"));
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-    const String levelIdInput = dynstring_view(&panelComp->levelIdInput);
-    const String levelId      = string_is_empty(levelIdInput) ? g_defaultLevelId : levelIdInput;
-    scene_level_save(world, fmt_write_scratch("levels/{}", fmt_text(levelId)));
+    scene_level_save(world, level_input_scratch(panelComp));
   }
 
   ui_panel_end(canvas, &panelComp->panel);
