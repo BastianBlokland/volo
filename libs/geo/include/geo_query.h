@@ -88,7 +88,10 @@ bool geo_query_ray_fat(
  * NOTE: Returns the number of hit objects.
  */
 u32 geo_query_sphere_all(
-    const GeoQueryEnv*, const GeoSphere*, const GeoQueryFilter*, u64 out[geo_query_max_hits]);
+    const GeoQueryEnv*,
+    const GeoSphere*,
+    const GeoQueryFilter*,
+    u64 out[PARAM_ARRAY_SIZE(geo_query_max_hits)]);
 
 /**
  * Query for all objects that are contained in the frustum formed by the given 8 corner points.
@@ -98,7 +101,7 @@ u32 geo_query_frustum_all(
     const GeoQueryEnv*,
     const GeoVector frustum[8],
     const GeoQueryFilter*,
-    u64 out[geo_query_max_hits]);
+    u64 out[PARAM_ARRAY_SIZE(geo_query_max_hits)]);
 
 /**
  * Query statistics.

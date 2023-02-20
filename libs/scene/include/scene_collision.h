@@ -151,7 +151,7 @@ u32 scene_query_sphere_all(
     const SceneCollisionEnvComp*,
     const GeoSphere*,
     const SceneQueryFilter*,
-    EcsEntityId out[scene_query_max_hits]);
+    EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 
 /**
  * Query for all entities that are contained in the frustum formed by the given 8 corner points.
@@ -161,7 +161,7 @@ u32 scene_query_frustum_all(
     const SceneCollisionEnvComp*,
     const GeoVector frustum[8],
     const SceneQueryFilter*,
-    EcsEntityId out[scene_query_max_hits]);
+    EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 
 /**
  * Compute geometric shapes for the given collision shapes.

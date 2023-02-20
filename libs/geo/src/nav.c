@@ -144,7 +144,8 @@ static Mem nav_occupancy_mem(GeoNavGrid* grid) {
   return mem_create(grid->cellOccupancy, size);
 }
 
-static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, GeoNavCell out[4]) {
+static u32 nav_cell_neighbors(
+    const GeoNavGrid* grid, const GeoNavCell cell, GeoNavCell out[PARAM_ARRAY_SIZE(4)]) {
   u32 count = 0;
   if (LIKELY((u16)(cell.x + 1) < grid->cellCountAxis)) {
     out[count++] = (GeoNavCell){.x = cell.x + 1, .y = cell.y};
@@ -168,7 +169,7 @@ static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, Geo
 static u32 nav_cell_occupants(
     const GeoNavGrid*     grid,
     const GeoNavCell      cell,
-    const GeoNavOccupant* out[geo_nav_occupants_per_cell]) {
+    const GeoNavOccupant* out[PARAM_ARRAY_SIZE(geo_nav_occupants_per_cell)]) {
   u32       count = 0;
   const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
   for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {

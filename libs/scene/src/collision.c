@@ -294,7 +294,7 @@ u32 scene_query_sphere_all(
     const SceneCollisionEnvComp* env,
     const GeoSphere*             sphere,
     const SceneQueryFilter*      filter,
-    EcsEntityId                  out[geo_query_max_hits]) {
+    EcsEntityId                  out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
   diag_assert(filter);
 
   const GeoQueryFilter geoFilter = {
@@ -309,7 +309,7 @@ u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
     const GeoVector              frustum[8],
     const SceneQueryFilter*      filter,
-    EcsEntityId                  out[geo_query_max_hits]) {
+    EcsEntityId                  out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
   diag_assert(filter);
 
   const GeoQueryFilter geoFilter = {

@@ -102,6 +102,18 @@ ASSERT(false, "Unsupported compiler");
 #endif
 
 /**
+ * Annotate an array parameter with a minimum required size.
+ * Serves as documentation and the compiler can potentially optimize / warn based on this info.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define PARAM_ARRAY_SIZE(_SIZE_) static _SIZE_
+#elif defined(VOLO_MSVC)
+#define PARAM_ARRAY_SIZE(_SIZE_) _SIZE_
+#else
+ASSERT(false, "Unsupported compiler");
+#endif
+
+/**
  * Mark a structure or enum to be packed, meaning it will use as little memory as possible.
  * NOTE: Behaviour differs per compiler, MSVC does not support this on enums at all for example.
  *
