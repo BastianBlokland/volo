@@ -436,7 +436,7 @@ u32 geo_query_sphere_all(
     const GeoQueryEnv*    env,
     const GeoSphere*      sphere,
     const GeoQueryFilter* filter,
-    u64                   out[geo_query_max_hits]) {
+    u64                   out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
 
   geo_query_stat_add(env, GeoQueryStat_QuerySphereAllCount, 1);
 
@@ -475,7 +475,7 @@ u32 geo_query_frustum_all(
     const GeoQueryEnv*    env,
     const GeoVector       frustum[8],
     const GeoQueryFilter* filter,
-    u64                   out[geo_query_max_hits]) {
+    u64                   out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
 
   geo_query_stat_add(env, GeoQueryStat_QueryFrustumAllCount, 1);
 
