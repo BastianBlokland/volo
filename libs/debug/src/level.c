@@ -30,10 +30,15 @@ static String level_input_scratch(DebugLevelPanelComp* panelComp) {
   return fmt_write_scratch("levels/{}", fmt_text(levelId));
 }
 
-static void
-level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* panelComp) {
+static void level_panel_draw(
+    EcsWorld*                    world,
+    UiCanvasComp*                canvas,
+    const SceneLevelManagerComp* levelManager,
+    DebugLevelPanelComp*         panelComp) {
   const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
+
+  const bool isLoading = scene_level_is_loading(levelManager);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -49,21 +54,29 @@ level_panel_draw(EcsWorld* world, UiCanvasComp* canvas, DebugLevelPanelComp* pan
       .tooltip     = g_tooltipLevelId);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Load scene"));
+  ui_label(canvas, string_lit("State"));
   ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .label = string_lit("Load"), .tooltip = g_tooltipLoad)) {
-    scene_level_load(world, level_input_scratch(panelComp));
-  }
+  ui_label(canvas, isLoading ? string_lit("Loading") : string_lit("Idle"));
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Save scene"));
+  ui_label(canvas, string_lit("Actions"));
   ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-    scene_level_save(world, level_input_scratch(panelComp));
+  ui_layout_push(canvas);
+  {
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(75, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(canvas, .label = string_lit("Load"), .tooltip = g_tooltipLoad)) {
+      scene_level_load(world, level_input_scratch(panelComp));
+    }
+    ui_layout_next(canvas, Ui_Right, 10);
+    if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
+      scene_level_save(world, level_input_scratch(panelComp));
+    }
   }
-
+  ui_layout_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
+
+ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneLevelManagerComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugLevelPanelComp);
@@ -71,13 +84,20 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_system_define(DebugLevelUpdatePanelSys) {
+  EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    level_panel_draw(world, canvas, panelComp);
+    level_panel_draw(world, canvas, levelManager, panelComp);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -91,9 +111,11 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 ecs_module_init(debug_level_module) {
   ecs_register_comp(DebugLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
+  ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
 
-  ecs_register_system(DebugLevelUpdatePanelSys, ecs_view_id(PanelUpdateView));
+  ecs_register_system(
+      DebugLevelUpdatePanelSys, ecs_view_id(PanelUpdateGlobalView), ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {

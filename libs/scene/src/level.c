@@ -15,12 +15,14 @@ ASSERT(AssetLevelFaction_Count == SceneFaction_Count, "Mismatching faction count
 ASSERT(AssetLevelFaction_None == SceneFaction_None, "Mismatching faction sentinel");
 
 typedef enum {
+  LevelLoadState_Start,
   LevelLoadState_Unload,
   LevelLoadState_AssetAcquire,
   LevelLoadState_AssetWait,
   LevelLoadState_Create,
 } LevelLoadState;
 
+ecs_comp_define(SceneLevelManagerComp) { bool isLoading; };
 ecs_comp_define(SceneLevelRequestLoadComp) {
   String         levelId;
   EcsEntityId    levelAsset;
@@ -71,7 +73,10 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
   log_i("Level loaded", log_param("objects", fmt_int(level->objects.count)));
 }
 
-ecs_view_define(LoadGlobalView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(LoadGlobalView) {
+  ecs_access_write(AssetManagerComp);
+  ecs_access_maybe_write(SceneLevelManagerComp);
+}
 ecs_view_define(LoadAssetView) { ecs_access_read(AssetLevelComp); }
 ecs_view_define(LoadRequestView) { ecs_access_write(SceneLevelRequestLoadComp); }
 
@@ -82,16 +87,29 @@ ecs_system_define(SceneLevelLoadSys) {
     return;
   }
 
-  AssetManagerComp* assets       = ecs_view_write_t(globalItr, AssetManagerComp);
-  EcsView*          requestView  = ecs_world_view_t(world, LoadRequestView);
-  EcsView*          assetView    = ecs_world_view_t(world, LoadAssetView);
-  EcsView*          instanceView = ecs_world_view_t(world, InstanceView);
+  AssetManagerComp*      assets  = ecs_view_write_t(globalItr, AssetManagerComp);
+  SceneLevelManagerComp* manager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  if (!manager) {
+    manager = ecs_world_add_t(world, ecs_world_global(world), SceneLevelManagerComp);
+  }
+
+  EcsView* requestView  = ecs_world_view_t(world, LoadRequestView);
+  EcsView* assetView    = ecs_world_view_t(world, LoadAssetView);
+  EcsView* instanceView = ecs_world_view_t(world, InstanceView);
 
   EcsIterator* assetItr = ecs_view_itr(assetView);
 
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
     SceneLevelRequestLoadComp* req = ecs_view_write_t(itr, SceneLevelRequestLoadComp);
     switch (req->state) {
+    case LevelLoadState_Start:
+      if (manager->isLoading) {
+        log_w("Level load already in progress");
+        goto Done;
+      }
+      manager->isLoading = true;
+      ++req->state;
+      // Fallthrough.
     case LevelLoadState_Unload:
       scene_level_process_unload(world, instanceView);
       ++req->state;
@@ -104,6 +122,7 @@ ecs_system_define(SceneLevelLoadSys) {
     case LevelLoadState_AssetWait:
       if (ecs_world_has_t(world, req->levelAsset, AssetFailedComp)) {
         log_e("Failed to load level asset", log_param("id", fmt_text(req->levelId)));
+        manager->isLoading = false;
         goto Done;
       }
       if (!ecs_world_has_t(world, req->levelAsset, AssetLoadedComp)) {
@@ -114,10 +133,12 @@ ecs_system_define(SceneLevelLoadSys) {
     case LevelLoadState_Create:
       if (ecs_view_maybe_jump(assetItr, req->levelAsset) == null) {
         log_e("Invalid level asset", log_param("id", fmt_text(req->levelId)));
+        manager->isLoading = false;
         goto Done;
       }
       const AssetLevelComp* levelComp = ecs_view_read_t(assetItr, AssetLevelComp);
       scene_level_process_load(world, &levelComp->level);
+      manager->isLoading = false;
       goto Done;
     }
     diag_crash_msg("Unexpected load state");
@@ -198,6 +219,7 @@ ecs_system_define(SceneLevelSaveSys) {
 }
 
 ecs_module_init(scene_level_module) {
+  ecs_register_comp(SceneLevelManagerComp);
   ecs_register_comp(SceneLevelRequestLoadComp, .destructor = ecs_destruct_level_request_load);
   ecs_register_comp(SceneLevelRequestSaveComp, .destructor = ecs_destruct_level_request_save);
 
@@ -216,6 +238,8 @@ ecs_module_init(scene_level_module) {
       ecs_register_view(SaveGlobalView),
       ecs_register_view(SaveRequestView));
 }
+
+bool scene_level_is_loading(const SceneLevelManagerComp* manager) { return manager->isLoading; }
 
 void scene_level_load(EcsWorld* world, const String levelId) {
   diag_assert(!string_is_empty(levelId));
