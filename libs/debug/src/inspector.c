@@ -266,7 +266,7 @@ static void inspector_panel_draw_prefab_instance(
       subject ? ecs_view_read_t(subject, ScenePrefabInstanceComp) : null;
   if (instance) {
     inspector_panel_next(canvas, panelComp, table);
-    if (inspector_panel_section(canvas, string_lit("Prefab Instance"))) {
+    if (inspector_panel_section(canvas, string_lit("Prefab"))) {
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Id"));
       ui_table_next_column(canvas, table);
