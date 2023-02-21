@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_array.h"
 #include "core_math.h"
 #include "geo_quat.h"
 
@@ -204,10 +205,18 @@ spec(quat) {
   }
 
   it("round-trips the euler conversion") {
-    const GeoQuat   q1 = geo_quat_from_euler(geo_vector(0.1337f, 1.2345f, 0.42f));
-    const GeoVector e  = geo_quat_to_euler(q1);
-    const GeoQuat   q2 = geo_quat_from_euler(e);
-    check_eq_quat(q1, q2);
+    static const GeoVector g_testRotEulerDeg[] = {
+        {.x = 133.7f, .y = 12.345f, .z = 42.0f},
+        {.x = 180.0f, .y = 3.4981172085f, .z = 180.0f},
+        {.x = -180.0f, .y = 3.4981172085f, .z = -180.0f},
+    };
+    array_for_t(g_testRotEulerDeg, GeoVector, rotEulerDeg) {
+      const GeoVector rotEulerRad = geo_vector_mul(*rotEulerDeg, math_deg_to_rad);
+      const GeoQuat   q1          = geo_quat_from_euler(rotEulerRad);
+      const GeoVector e           = geo_quat_to_euler(q1);
+      const GeoQuat   q2          = geo_quat_from_euler(e);
+      check_eq_quat(q1, q2);
+    }
   }
 
   it("can be converted to an angle-axis representation") {
