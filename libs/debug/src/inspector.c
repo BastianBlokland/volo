@@ -19,6 +19,7 @@
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
+#include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_selection.h"
 #include "scene_tag.h"
@@ -139,6 +140,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_write(SceneBoundsComp);
@@ -252,6 +254,30 @@ static void inspector_panel_draw_entity_info(
     }
   } else {
     inspector_panel_draw_value_none(canvas);
+  }
+}
+
+static void inspector_panel_draw_prefab_instance(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  const ScenePrefabInstanceComp* instance =
+      subject ? ecs_view_read_t(subject, ScenePrefabInstanceComp) : null;
+  if (instance) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Prefab Instance"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Id"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(instance->id)));
+
+      const String prefabName = stringtable_lookup(g_stringtable, instance->prefabId);
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Prefab"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, prefabName);
+    }
   }
 }
 
@@ -617,6 +643,9 @@ static void inspector_panel_draw(
    */
 
   inspector_panel_draw_entity_info(world, canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_prefab_instance(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
