@@ -17,6 +17,7 @@ typedef enum {
 } AssetLevelFaction;
 
 typedef struct {
+  u32               id; // Optional unique persistent object id.
   String            prefab;
   AssetLevelFaction faction;
   GeoVector         position;

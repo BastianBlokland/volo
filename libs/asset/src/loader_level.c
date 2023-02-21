@@ -34,6 +34,7 @@ static void level_datareg_init() {
     data_reg_const_t(reg, AssetLevelFaction, None);
 
     data_reg_struct_t(reg, AssetLevelObject);
+    data_reg_field_t(reg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction);
     data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);

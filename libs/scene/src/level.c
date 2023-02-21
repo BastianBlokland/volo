@@ -4,6 +4,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -48,6 +49,10 @@ static void ecs_destruct_level_request_save(void* data) {
   string_maybe_free(g_alloc_heap, comp->levelId);
 }
 
+static i8 level_compare_object_id(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
+}
+
 ecs_view_define(InstanceView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -72,6 +77,7 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
+            .id       = obj->id,
             .prefabId = prefabId,
             .position = obj->position,
             .rotation = rot,
@@ -162,7 +168,7 @@ ecs_system_define(SceneLevelLoadSys) {
 }
 
 static void scene_level_object_push(
-    DynArray*    levelObjects, // AssetLevelObject[]
+    DynArray*    objects, // AssetLevelObject[], sorted on id.
     EcsIterator* instanceItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
@@ -178,32 +184,38 @@ static void scene_level_object_push(
   const GeoQuat   rot         = maybeTrans ? maybeTrans->rotation : geo_quat_ident;
   const GeoVector rotEulerDeg = geo_vector_mul(geo_quat_to_euler(rot), math_rad_to_deg);
 
-  *dynarray_push_t(levelObjects, AssetLevelObject) = (AssetLevelObject){
+  AssetLevelObject obj = {
+      .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
       .prefab   = prefabName,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = rotEulerDeg,
       .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
   };
+
+  // Guarantee unique object id.
+  while (dynarray_search_binary(objects, level_compare_object_id, &obj)) {
+    obj.id = rng_sample_u32(g_rng);
+  }
+
+  // Insert sorted on object id.
+  *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
 static void scene_level_process_save(AssetManagerComp* assets, const String id, EcsView* instView) {
-  DynArray levelObjects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
+  DynArray objects = dynarray_create_t(g_alloc_heap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
-    scene_level_object_push(&levelObjects, itr);
+    scene_level_object_push(&objects, itr);
   }
 
   const AssetLevel level = {
-      .objects.values = dynarray_begin_t(&levelObjects, AssetLevelObject),
-      .objects.count  = levelObjects.size,
+      .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
+      .objects.count  = objects.size,
   };
   asset_level_save(assets, id, level);
 
-  log_i(
-      "Level saved",
-      log_param("id", fmt_text(id)),
-      log_param("objects", fmt_int(levelObjects.size)));
+  log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
 
-  dynarray_destroy(&levelObjects);
+  dynarray_destroy(&objects);
 }
 
 ecs_view_define(SaveGlobalView) { ecs_access_write(AssetManagerComp); }

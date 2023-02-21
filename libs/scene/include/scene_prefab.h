@@ -12,7 +12,10 @@ ecs_comp_extern(ScenePrefabResourceComp);
 /**
  * Component on a prefab instance.
  */
-ecs_comp_extern_public(ScenePrefabInstanceComp) { StringHash prefabId; };
+ecs_comp_extern_public(ScenePrefabInstanceComp) {
+  u32        id; // Optional persistent id.
+  StringHash prefabId;
+};
 
 /**
  * Create a new prefab resource from the given PrefabMap.
@@ -34,11 +37,12 @@ typedef enum {
 } ScenePrefabFlags;
 
 typedef struct {
+  u32              id; // Optional persistent id.
   StringHash       prefabId;
-  GeoVector        position;
-  GeoQuat          rotation;
   SceneFaction     faction;
   ScenePrefabFlags flags;
+  GeoVector        position;
+  GeoQuat          rotation;
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);

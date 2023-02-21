@@ -2,6 +2,7 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -304,7 +305,7 @@ static void setup_prefab(
     const ScenePrefabSpec*    spec,
     const AssetPrefabMapComp* map) {
 
-  ecs_world_add_t(w, e, ScenePrefabInstanceComp, .prefabId = spec->prefabId);
+  ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
