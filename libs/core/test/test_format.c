@@ -174,7 +174,7 @@ spec(format) {
         {f64_max, format_opts_float(), string_lit("1.7976931e308")},
         {1e255, format_opts_float(), string_lit("1e255")},
         {1e-255, format_opts_float(), string_lit("1e-255")},
-        {f64_epsilon, format_opts_float(), string_lit("4.9406565e-324")},
+        {f64_epsilon, format_opts_float(), string_lit("1e-16")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
