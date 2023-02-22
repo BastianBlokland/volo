@@ -9,6 +9,14 @@
 #include <cpuid.h>
 #endif
 
+// Workaround for missing defines under MinGW.
+#if defined(VOLO_WIN32) && !defined(_EM_ZERODIVIDE)
+#define _EM_ZERODIVIDE 0x00000008
+#endif
+#if defined(VOLO_WIN32) && !defined(_MCW_EM)
+#define _MCW_EM 0x0008001F
+#endif
+
 /**
  * Enable floating point exceptions for debugging div-by-zero's.
  * NOTE: This is slow and should only be used when debugging.
