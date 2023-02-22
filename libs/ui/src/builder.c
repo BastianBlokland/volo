@@ -169,6 +169,9 @@ static void ui_build_glyph(
       .pos  = {rect.x - border, rect.y - border},
       .size = {rect.width + border * 2, rect.height + border * 2},
   };
+  if (UNLIKELY(outputRect.size.width < f32_epsilon || outputRect.size.height < f32_epsilon)) {
+    return; // Glyph too small.
+  }
   state->ctx->outputGlyph(
       state->ctx->userCtx,
       (UiGlyphData){

@@ -22,8 +22,8 @@
 #define f32_min -f32_max
 #define f64_min -f64_max
 
-#define f32_epsilon 1.401298E-45f
-#define f64_epsilon 4.94065645841247E-324
+#define f32_epsilon 1e-7f
+#define f64_epsilon 1e-16
 
 /**
  * Returns true if the given floating point number is 'Not A Number'.

@@ -321,7 +321,10 @@ ecs_system_define(DebugCameraDrawSys) {
     const GapWindowComp*   win   = ecs_view_read_t(itr, GapWindowComp);
     SceneTransformComp*    trans = ecs_view_write_t(itr, SceneTransformComp);
 
-    const GapVector winSize   = gap_window_param(win, GapParam_WindowSize);
+    const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+    if (!winSize.width || !winSize.height) {
+      continue; // Zero sized window (eg minimized).
+    }
     const GapVector cursorPos = gap_window_param(win, GapParam_CursorPos);
     const f32       aspect    = (f32)winSize.width / (f32)winSize.height;
     const GeoVector inputPos  = {cursorPos.x / (f32)winSize.x, cursorPos.y / (f32)winSize.y};

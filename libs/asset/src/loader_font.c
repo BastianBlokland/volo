@@ -134,11 +134,17 @@ INLINE_HINT static f32 font_math_line_dist_sqr(
   const f32 vY      = end.y - start.y;
   const f32 vMagSqr = vX * vX + vY * vY;
 
-  f32 t = ((point.x - start.x) * vX + (point.y - start.y) * vY) / vMagSqr;
-  if (t < 0) {
-    t = 0;
-  } else if (t > 1) {
-    t = 1;
+  f32 t;
+  if (UNLIKELY(vMagSqr <= f32_epsilon)) {
+    // TODO: Filter out zero length lines in the ttf loader.
+    t = 0.0f;
+  } else {
+    t = ((point.x - start.x) * vX + (point.y - start.y) * vY) / vMagSqr;
+    if (t < 0) {
+      t = 0;
+    } else if (t > 1) {
+      t = 1;
+    }
   }
 
   const f32 lx = start.x + t * vX;

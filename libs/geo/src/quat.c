@@ -249,7 +249,7 @@ GeoVector geo_quat_to_euler(const GeoQuat q) {
 GeoVector geo_quat_to_angle_axis(const GeoQuat q) {
   const GeoVector axis       = geo_vector(q.x, q.y, q.z);
   const f32       axisMagSqr = geo_vector_mag_sqr(axis);
-  if (axisMagSqr >= f32_epsilon) {
+  if (axisMagSqr > f32_epsilon) {
     const f32 axisMag = intrinsic_sqrt_f32(axisMagSqr);
     return geo_vector_mul(axis, 2.0f * intrinsic_atan2_f32(axisMag, q.w) / axisMag);
   }
