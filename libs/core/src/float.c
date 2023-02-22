@@ -1,14 +1,27 @@
+#include "core_annotation.h"
 #include "core_bits.h"
 #include "core_float.h"
 
+#include <fenv.h>
 #include <immintrin.h>
 
 #if !defined(VOLO_MSVC)
 #include <cpuid.h>
 #endif
 
+/**
+ * Enable floating point exceptions for debugging underflows and div-by-zero's.
+ * NOTE: This is slow and should only be used when debugging.
+ */
+#define VOLO_FLOAT_DEBUG 0
+
 static f16 (*g_floatF32ToF16Impl)(f32);
 static f32 (*g_floatF16ToF32Impl)(f16);
+
+MAYBE_UNUSED static void float_enable_exceptions() {
+  static const i32 g_floatExceptions = FE_DIVBYZERO | FE_OVERFLOW;
+  feenableexcept(g_floatExceptions);
+}
 
 static void float_cpu_id(const i32 functionId, i32 output[4]) {
 #if defined(VOLO_MSVC)
@@ -108,6 +121,10 @@ static f32 float_f16_to_f32_soft(const f16 val) {
 }
 
 void float_init() {
+#if VOLO_FLOAT_DEBUG
+  float_enable_exceptions();
+#endif
+
   g_floatF32ToF16Impl =
       float_cpu_f16c_support() ? float_f32_to_f16_intrinsic : float_f32_to_f16_soft;
   g_floatF16ToF32Impl =
