@@ -340,8 +340,8 @@ static void vfx_instance_output_sprite(
   if (space == AssetVfxSpace_Local) {
     scale *= sysTrans->scale;
   }
-  scale *= math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f);
-  scale *= math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f);
+  scale *= sprite->scaleInTime ? math_min(instanceAge / (f32)sprite->scaleInTime, 1.0f) : 1.0f;
+  scale *= sprite->scaleOutTime ? math_min(timeRem / (f32)sprite->scaleOutTime, 1.0f) : 1.0f;
 
   GeoQuat rot = instance->rot;
   if (sprite->facing == AssetVfxFacing_Local) {
@@ -354,8 +354,8 @@ static void vfx_instance_output_sprite(
   }
 
   GeoColor color = sprite->color;
-  color.a *= math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f);
-  color.a *= math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f);
+  color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
+  color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
 
   const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
@@ -408,8 +408,8 @@ static void vfx_instance_output_light(
     scale *= sysTrans->scale;
   }
   radiance.a *= scale;
-  radiance.a *= math_min(instanceAge / (f32)light->fadeInTime, 1.0f);
-  radiance.a *= math_min(timeRem / (f32)light->fadeOutTime, 1.0f);
+  radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
+  radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
   if (light->turbulenceFrequency > 0.0f) {
     // TODO: Make the turbulence scale configurable.
     // TODO: Implement a 1d perlin noise as an optimization.
