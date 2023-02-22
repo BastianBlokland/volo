@@ -87,6 +87,34 @@ spec(write) {
     check_eq_string(dynstring_view(&buffer), string_lit("42.1337"));
   }
 
+  it("can write numbers with a configurable amount of digits after the decimal point") {
+    const JsonVal val = json_add_number(doc, 42.12345678987654321);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 0));
+    check_eq_string(dynstring_view(&buffer), string_lit("42"));
+    dynstring_clear(&buffer);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 1));
+    check_eq_string(dynstring_view(&buffer), string_lit("42.1"));
+    dynstring_clear(&buffer);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 2));
+    check_eq_string(dynstring_view(&buffer), string_lit("42.12"));
+    dynstring_clear(&buffer);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 3));
+    check_eq_string(dynstring_view(&buffer), string_lit("42.123"));
+    dynstring_clear(&buffer);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 10));
+    check_eq_string(dynstring_view(&buffer), string_lit("42.1234567899"));
+    dynstring_clear(&buffer);
+
+    json_write(&buffer, doc, val, &json_write_opts(.numberMaxDecDigits = 15));
+    check_eq_string(dynstring_view(&buffer), string_lit("42.123456789876542"));
+    dynstring_clear(&buffer);
+  }
+
   it("can write true") {
     const JsonVal trueVal = json_add_bool(doc, true);
 

@@ -12,6 +12,7 @@ typedef enum {
  */
 typedef struct {
   JsonWriteFlags flags;
+  u8             numberMaxDecDigits;
   String         indent;
   String         newline;
 } JsonWriteOpts;
@@ -21,9 +22,10 @@ typedef struct {
  */
 #define json_write_opts(...)                                                                       \
   ((JsonWriteOpts){                                                                                \
-      .flags   = JsonWriteFlags_Pretty,                                                            \
-      .indent  = string_lit("  "),                                                                 \
-      .newline = string_lit("\n"),                                                                 \
+      .flags              = JsonWriteFlags_Pretty,                                                 \
+      .numberMaxDecDigits = 10,                                                                    \
+      .indent             = string_lit("  "),                                                      \
+      .newline            = string_lit("\n"),                                                      \
       __VA_ARGS__})
 
 /**
