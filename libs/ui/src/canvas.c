@@ -303,10 +303,14 @@ ecs_system_define(UiCanvasInputSys) {
     }
     const GapWindowComp*  window      = ecs_view_read_t(windowItr, GapWindowComp);
     const UiSettingsComp* settings    = ecs_view_read_t(windowItr, UiSettingsComp);
-    const GapVector       windowSize  = gap_window_param(window, GapParam_WindowSize);
+    const GapVector       winSize     = gap_window_param(window, GapParam_WindowSize);
     const GapVector       cursorDelta = gap_window_param(window, GapParam_CursorDelta);
     const GapVector       cursorPos   = gap_window_param(window, GapParam_CursorPos);
     const GapVector       scrollDelta = gap_window_param(window, GapParam_ScrollDelta);
+
+    if (!winSize.x || !winSize.y) {
+      continue; // Window is zero sized; No need to render the Ui.
+    }
 
     if (gap_window_events(window) & GapWindowEvents_FocusLost) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
@@ -319,7 +323,7 @@ ecs_system_define(UiCanvasInputSys) {
     }
 
     canvas->scale       = ui_window_scale(window, settings);
-    canvas->resolution  = ui_vector(windowSize.x / canvas->scale, windowSize.y / canvas->scale);
+    canvas->resolution  = ui_vector(winSize.x / canvas->scale, winSize.y / canvas->scale);
     canvas->inputDelta  = ui_vector(cursorDelta.x / canvas->scale, cursorDelta.y / canvas->scale);
     canvas->inputPos    = ui_vector(cursorPos.x / canvas->scale, cursorPos.y / canvas->scale);
     canvas->inputScroll = ui_vector(scrollDelta.x, scrollDelta.y);
@@ -408,6 +412,10 @@ ecs_system_define(UiRenderSys) {
       ui_renderer_create(world, entity);
       continue;
     }
+    const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
+    if (!winSize.x || !winSize.y) {
+      continue; // Window is zero sized; No need to render the Ui.
+    }
     const bool activeWindow = !input || input_active_window(input) == entity;
     if (input && activeWindow && input_triggered_lit(input, "DisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
@@ -428,10 +436,9 @@ ecs_system_define(UiRenderSys) {
       rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
     }
 
-    const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
-    const f32       scale       = ui_window_scale(window, settings);
-    const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
-    UiRenderState   renderState = {
+    const f32      scale       = ui_window_scale(window, settings);
+    const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
+    UiRenderState  renderState = {
         .settings      = settings,
         .font          = font,
         .renderer      = renderer,
