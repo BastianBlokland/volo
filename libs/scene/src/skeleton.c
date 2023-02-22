@@ -127,7 +127,7 @@ static void scene_skeleton_init_from_templ(
     return;
   }
 
-  ecs_world_add_t(
+  SceneSkeletonComp* skel = ecs_world_add_t(
       world,
       entity,
       SceneSkeletonComp,
@@ -135,6 +135,11 @@ static void scene_skeleton_init_from_templ(
       .jointTransforms   = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount),
       .postTransJointIdx = sentinel_u32,
       .postTransMat      = geo_matrix_ident());
+
+  // Initialize all joint transforms.
+  for (u32 i = 0; i != tl->jointCount; ++i) {
+    skel->jointTransforms[i] = geo_matrix_ident();
+  }
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
