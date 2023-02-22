@@ -10,7 +10,7 @@
 #endif
 
 /**
- * Enable floating point exceptions for debugging underflows and div-by-zero's.
+ * Enable floating point exceptions for debugging div-by-zero's.
  * NOTE: This is slow and should only be used when debugging.
  */
 #define VOLO_FLOAT_DEBUG 0
@@ -19,8 +19,13 @@ static f16 (*g_floatF32ToF16Impl)(f32);
 static f32 (*g_floatF16ToF32Impl)(f16);
 
 MAYBE_UNUSED static void float_enable_exceptions() {
-  static const i32 g_floatExceptions = FE_DIVBYZERO | FE_OVERFLOW;
+#if defined(VOLO_WIN32)
+  static const i32 g_floatExceptions = _EM_ZERODIVIDE;
+  _controlfp_s(null, ~g_floatExceptions, _MCW_EM);
+#else
+  static const i32 g_floatExceptions = FE_DIVBYZERO;
   feenableexcept(g_floatExceptions);
+#endif
 }
 
 static void float_cpu_id(const i32 functionId, i32 output[4]) {
