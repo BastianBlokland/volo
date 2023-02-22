@@ -377,12 +377,16 @@ f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNo
    * More information: https://izzofinal.wordpress.com/2012/11/09/ray-vs-box-round-1/
    */
 
-  const f32 t1 = (box->min.x - ray->point.x) / ray->dir.x;
-  const f32 t2 = (box->max.x - ray->point.x) / ray->dir.x;
-  const f32 t3 = (box->min.y - ray->point.y) / ray->dir.y;
-  const f32 t4 = (box->max.y - ray->point.y) / ray->dir.y;
-  const f32 t5 = (box->min.z - ray->point.z) / ray->dir.z;
-  const f32 t6 = (box->max.z - ray->point.z) / ray->dir.z;
+  const f32 dirXInv = 1.0f / (ray->dir.x + f32_epsilon);
+  const f32 dirYInv = 1.0f / (ray->dir.y + f32_epsilon);
+  const f32 dirZInv = 1.0f / (ray->dir.z + f32_epsilon);
+
+  const f32 t1 = (box->min.x - ray->point.x) * dirXInv;
+  const f32 t2 = (box->max.x - ray->point.x) * dirXInv;
+  const f32 t3 = (box->min.y - ray->point.y) * dirYInv;
+  const f32 t4 = (box->max.y - ray->point.y) * dirYInv;
+  const f32 t5 = (box->min.z - ray->point.z) * dirZInv;
+  const f32 t6 = (box->max.z - ray->point.z) * dirZInv;
 
   const f32 minA = math_min(t1, t2);
   const f32 minB = math_min(t3, t4);
