@@ -29,6 +29,11 @@ MAYBE_UNUSED static void float_enable_exceptions() {
 #endif
 }
 
+static void float_enable_denorm_to_zero() {
+  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+  _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+}
+
 static void float_cpu_id(const i32 functionId, i32 output[4]) {
 #if defined(VOLO_MSVC)
   __cpuid(output, functionId);
@@ -127,14 +132,17 @@ static f32 float_f16_to_f32_soft(const f16 val) {
 }
 
 void float_init() {
-#if VOLO_FLOAT_DEBUG
-  float_enable_exceptions();
-#endif
-
   g_floatF32ToF16Impl =
       float_cpu_f16c_support() ? float_f32_to_f16_intrinsic : float_f32_to_f16_soft;
   g_floatF16ToF32Impl =
       float_cpu_f16c_support() ? float_f16_to_f32_intrinsic : float_f16_to_f32_soft;
+}
+
+void float_init_thread() {
+#if VOLO_FLOAT_DEBUG
+  float_enable_exceptions();
+#endif
+  float_enable_denorm_to_zero();
 }
 
 f16 float_f32_to_f16(const f32 val) { return g_floatF32ToF16Impl(val); }
