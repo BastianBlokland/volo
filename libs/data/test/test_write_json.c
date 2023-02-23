@@ -12,7 +12,7 @@ static void test_write(
 
   Mem       buffer    = mem_stack(1024);
   DynString dynString = dynstring_create_over(buffer);
-  data_write_json(reg, &dynString, meta, data);
+  data_write_json(reg, &dynString, meta, data, &data_write_json_opts());
 
   check_eq_string(dynstring_view(&dynString), expected);
 }
@@ -50,6 +50,32 @@ spec(write_json) {
     X(f32)
     X(f64)
 #undef X
+  }
+
+  it("can write numbers with a configurable amount of digits after the decimal point") {
+    const DataMeta meta = data_meta_t(data_prim_t(f64));
+    const f64      val  = 42.12345678987654321;
+
+    static const struct {
+      u8     numberMaxDecDigits;
+      String expectedOutput;
+    } g_testData[] = {
+        {.numberMaxDecDigits = 0, .expectedOutput = string_static("42")},
+        {.numberMaxDecDigits = 1, .expectedOutput = string_static("42.1")},
+        {.numberMaxDecDigits = 2, .expectedOutput = string_static("42.12")},
+        {.numberMaxDecDigits = 3, .expectedOutput = string_static("42.123")},
+        {.numberMaxDecDigits = 10, .expectedOutput = string_static("42.1234567899")},
+        {.numberMaxDecDigits = 15, .expectedOutput = string_static("42.123456789876542")},
+    };
+
+    Mem       buffer    = mem_stack(1024);
+    DynString dynString = dynstring_create_over(buffer);
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      dynstring_clear(&dynString);
+      const DataWriteJsonOpts opts = {.numberMaxDecDigits = g_testData[i].numberMaxDecDigits};
+      data_write_json(reg, &dynString, meta, mem_var(val), &opts);
+      check_eq_string(dynstring_view(&dynString), g_testData[i].expectedOutput);
+    }
   }
 
   it("can write a string") {

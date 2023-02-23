@@ -123,7 +123,9 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
 
   DynString dataBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
 
-  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level));
+  const DataWriteJsonOpts writeOpts = data_write_json_opts(.numberMaxDecDigits = 4);
+  data_write_json(g_dataReg, &dataBuffer, g_dataLevelMeta, mem_var(level), &writeOpts);
+
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
   dynstring_destroy(&dataBuffer);
