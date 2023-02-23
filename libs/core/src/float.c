@@ -127,14 +127,16 @@ static f32 float_f16_to_f32_soft(const f16 val) {
 }
 
 void float_init() {
-#if VOLO_FLOAT_DEBUG
-  float_enable_exceptions();
-#endif
-
   g_floatF32ToF16Impl =
       float_cpu_f16c_support() ? float_f32_to_f16_intrinsic : float_f32_to_f16_soft;
   g_floatF16ToF32Impl =
       float_cpu_f16c_support() ? float_f16_to_f32_intrinsic : float_f16_to_f32_soft;
+}
+
+void float_init_thread() {
+#if VOLO_FLOAT_DEBUG
+  float_enable_exceptions();
+#endif
 }
 
 f16 float_f32_to_f16(const f32 val) { return g_floatF32ToF16Impl(val); }

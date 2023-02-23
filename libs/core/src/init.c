@@ -20,6 +20,7 @@ void core_init() {
   if (!g_initializedThread) {
     alloc_init_thread();
     thread_init_thread();
+    float_init_thread();
     rng_init_thread();
   }
 

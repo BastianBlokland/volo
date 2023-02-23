@@ -20,8 +20,9 @@ void stringtable_init();
  * Fired once for every thread the core library is initialized on.
  */
 void alloc_init_thread();
-void rng_init_thread();
 void thread_init_thread();
+void float_init_thread();
+void rng_init_thread();
 
 /**
  * Global teardown routines.
