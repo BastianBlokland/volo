@@ -24,7 +24,7 @@
 
 #include "cmd_internal.h"
 
-static const GapVector g_appWindowSize = {1920, 1080};
+static const GapVector g_appWindowSize = {1920, 1050};
 static const u32       g_appPropCount  = 1000;
 static const u64       g_appRngSeed    = 13;
 

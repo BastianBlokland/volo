@@ -88,6 +88,11 @@ static void window_update(
   if (window->requests & GapWindowRequests_Create) {
     window->id  = gap_pal_window_create(pal, window->params[GapParam_WindowSize]);
     window->dpi = gap_pal_window_dpi(pal, window->id);
+
+    // Set the window-size to match the created window as additional constraints are applied.
+    const GapVector createdWinSize = gap_pal_window_param(pal, window->id, GapParam_WindowSize);
+    window->params[GapParam_WindowSize] = createdWinSize;
+
     if (window->flags & GapWindowFlags_DefaultTitle) {
       gap_window_title_set(window, window_default_title_scratch(window));
     }
