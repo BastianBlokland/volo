@@ -92,6 +92,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
+  add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
@@ -132,6 +133,7 @@ macro(set_clang_compile_options)
   add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
+  add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
