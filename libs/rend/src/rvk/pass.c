@@ -65,6 +65,12 @@ static RvkPassStage* rvk_pass_stage() {
   return &g_stage;
 }
 
+static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
+  VkClearColorValue result;
+  mem_cpy(mem_var(result), mem_var(color));
+  return result;
+}
+
 struct sRvkPass {
   RvkDevice*       dev;
   VkFormat         swapchainFormat;
@@ -381,7 +387,7 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
 
   if (pass->flags & RvkPassFlags_NeedsClear) {
     for (u32 i = 0; i != rvk_pass_attach_color_count(&pass->config); ++i) {
-      clearValues[clearValueCount++].color = *(VkClearColorValue*)&stage->clearColor;
+      clearValues[clearValueCount++].color = rvk_rend_clear_color(stage->clearColor);
     }
     if (pass->config.attachDepth) {
       // Init depth to zero for a reversed-z depth-buffer.
