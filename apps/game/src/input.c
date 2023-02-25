@@ -453,6 +453,7 @@ static void update_camera_interact(
         world, cmdController, collisionEnv, sel, terrain, nav, assets, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
+    state->camPosTgt  = geo_vector(0);
     state->camRotYTgt = -90.0f * math_deg_to_rad;
     state->camZoomTgt = 0.0f;
     input_report_command(debugStats, string_lit("Reset camera"));
