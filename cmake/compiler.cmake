@@ -86,7 +86,9 @@ macro(set_gcc_compile_options)
 
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
-  add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
+    add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  endif()
   add_compile_options(-funroll-loops) # Enable loop unrolling.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
   # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
