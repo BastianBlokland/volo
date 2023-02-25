@@ -87,7 +87,7 @@
           "lifetime": 1.5,
           "spreadAngle": 0.5,
           "speed": 55,
-          "damage": 50,
+          "damage": 75,
           "destroyDelay": 0.05,
           "impactLifetime": 1,
           "vfxIdProjectile": "vfx/game/projectile.vfx",
