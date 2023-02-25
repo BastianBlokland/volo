@@ -30,10 +30,7 @@ ecs_view_define(MoveView) {
 
 static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
   const GeoQuat rotTarget = geo_quat_look(dir, geo_up);
-  GeoQuat       rotDiff   = geo_quat_from_to(trans->rotation, rotTarget);
-  const bool    clamped   = geo_quat_clamp(&rotDiff, delta);
-  trans->rotation         = geo_quat_mul(trans->rotation, rotDiff);
-  return !clamped;
+  return geo_quat_towards(&trans->rotation, rotTarget, delta);
 }
 
 static GeoVector scene_loco_move(
