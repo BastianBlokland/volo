@@ -18,7 +18,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2
+          "deathDestroyDelay": 5
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -63,7 +63,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 150,
-          "deathDestroyDelay": 2
+          "deathDestroyDelay": 5
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -100,7 +100,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 500,
+          "amount": 1000,
           "deathDestroyDelay": 0.35,
           "deathVfxId": "vfx/game/explosion.vfx"
         },
@@ -385,27 +385,16 @@
       ]
     },
     {
-      "name": "SpawnerUnitRifle",
-      "traits": [
-        {
-          "$type": "AssetPrefabTrait_Spawner",
-          "prefabId": "UnitRifle",
-          "radius": 35,
-          "count": 150
-        }
-      ]
-    },
-    {
       "name": "SpawnerUnitMelee",
       "traits": [
         {
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitMelee",
-          "radius": 50,
-          "count": 3,
-          "maxInstances": 1000,
-          "intervalMin": 0.1,
-          "intervalMax": 0.2
+          "radius": 20,
+          "count": 150,
+          "maxInstances": 350,
+          "intervalMin": 20,
+          "intervalMax": 60
         }
       ]
     }

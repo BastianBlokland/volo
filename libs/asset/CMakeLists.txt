@@ -12,6 +12,7 @@ add_library(lib_asset STATIC
   src/loader_ftx.c
   src/loader_graphic.c
   src/loader_inputmap.c
+  src/loader_level.c
   src/loader_mesh_gltf.c
   src/loader_mesh_obj.c
   src/loader_mesh_pme.c
@@ -52,6 +53,7 @@ add_executable(test_lib_asset
   test/test_loader_mesh_obj.c
   test/test_loader_prefab.c
   test/test_loader_raw.c
+  test/test_loader_level.c
   test/test_loader_shader_spv.c
   test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c

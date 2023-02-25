@@ -74,6 +74,14 @@ void asset_release(EcsWorld*, EcsEntityId assetEntity);
 void asset_reload_request(EcsWorld*, EcsEntityId assetEntity);
 
 /**
+ * Save an asset to the active asset repository.
+ * NOTE: Returns true if the save succeeded, otherwise false.
+ * Pre-condition: !string_is_empty(id).
+ * Pre-condition: path_extension(id).size != 0.
+ */
+bool asset_save(AssetManagerComp*, String id, String data);
+
+/**
  * Debug apis.
  */
 u32  asset_ref_count(const AssetComp*);

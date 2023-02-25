@@ -1,9 +1,7 @@
 #include "app_ecs.h"
 #include "asset.h"
-#include "core_alloc.h"
 #include "core_file.h"
 #include "core_math.h"
-#include "core_rng.h"
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
@@ -12,10 +10,9 @@
 #include "log_logger.h"
 #include "rend_register.h"
 #include "scene_camera.h"
+#include "scene_level.h"
 #include "scene_prefab.h"
 #include "scene_register.h"
-#include "scene_renderable.h"
-#include "scene_spawner.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
@@ -24,19 +21,7 @@
 
 #include "cmd_internal.h"
 
-static const GapVector g_appWindowSize = {1920, 1050};
-static const u32       g_appPropCount  = 1000;
-static const u64       g_appRngSeed    = 13;
-
-ecs_comp_define(AppComp) {
-  bool sceneCreated;
-  Rng* rng;
-};
-
-static void ecs_destruct_app_comp(void* data) {
-  AppComp* comp = data;
-  rng_destroy(comp->rng);
-}
+static const GapVector g_appWindowSize = {1920, 1080};
 
 ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
 
@@ -71,132 +56,13 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
-static void app_scene_create_props(EcsWorld* world, Rng* rng) {
-  struct {
-    StringHash prefabId;
-    f32        weight;
-  } g_props[] = {
-      {string_hash_lit("PropFence"), .weight = 0.35f},
-      {string_hash_lit("PropContainer"), .weight = 0.05f},
-      {string_hash_lit("PropCrate"), .weight = 0.1f},
-      {string_hash_lit("PropPlant"), .weight = 0.25f},
-      {string_hash_lit("PropRock"), .weight = 0.1f},
-      {string_hash_lit("PropBarrel"), .weight = 0.06f},
-      {string_hash_lit("PropTower"), .weight = 0.04f},
-      {string_hash_lit("PropTree"), .weight = 0.035f},
-      {string_hash_lit("PropWreck"), .weight = 0.015f},
-  };
-
-  for (u32 instIdx = 0; instIdx != g_appPropCount; ++instIdx) {
-    /**
-     * Pick a random prop.
-     * NOTE: Weights need to be normalized.
-     */
-    f32        sample   = rng_sample_f32(rng);
-    StringHash prefabId = g_props[array_elems(g_props) - 1].prefabId;
-    for (u32 propIdx = 0; propIdx < (array_elems(g_props) - 1); ++propIdx) {
-      if (sample < g_props[propIdx].weight) {
-        prefabId = g_props[propIdx].prefabId;
-        break;
-      }
-      sample -= g_props[propIdx].weight;
-    }
-
-    const f32 posX  = rng_sample_range(rng, -135.0f, 135.0f);
-    const f32 posY  = rng_sample_range(rng, -0.1f, 0.1f);
-    const f32 posZ  = rng_sample_range(rng, -135.0f, 135.0f);
-    const f32 angle = rng_sample_f32(rng) * math_pi_f32 * 2;
-    scene_prefab_spawn(
-        world,
-        &(ScenePrefabSpec){
-            .prefabId = prefabId,
-            .faction  = SceneFaction_None,
-            .position = geo_vector(posX, posY, posZ),
-            .rotation = geo_quat_angle_axis(geo_up, angle),
-            .flags    = ScenePrefabFlags_SnapToTerrain,
-        });
-  }
-}
-
-static void app_scene_create_units(EcsWorld* world) {
-  scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .prefabId = string_hash_lit("SpawnerUnitRifle"),
-          .faction  = SceneFaction_A,
-          .position = geo_vector(50),
-          .rotation = geo_quat_ident,
-          .flags    = ScenePrefabFlags_SnapToTerrain,
-      });
-
-  static const GeoVector g_turretGunLocations[] = {
-      {30, 0, -60},
-      {30, 0, -45},
-      {30, 0, -30},
-      {30, 0, -15},
-      {30, 0, 0},
-      {30, 0, 15},
-      {30, 0, 30},
-      {30, 0, 45},
-      {30, 0, 60},
-  };
-  array_for_t(g_turretGunLocations, GeoVector, turretLoc) {
-    scene_prefab_spawn(
-        world,
-        &(ScenePrefabSpec){
-            .prefabId = string_hash_lit("TurretGun"),
-            .faction  = SceneFaction_A,
-            .position = *turretLoc,
-            .rotation = geo_quat_forward_to_left,
-            .flags    = ScenePrefabFlags_SnapToTerrain,
-        });
-  }
-
-  static const GeoVector g_turretMissileLocations[] = {
-      {40, 0, -50},
-      {40, 0, -30},
-      {40, 0, -10},
-      {40, 0, 10},
-      {40, 0, 30},
-      {40, 0, 50},
-      {50, 0, -20},
-      {50, 0, 0},
-      {50, 0, 20},
-  };
-  array_for_t(g_turretMissileLocations, GeoVector, turretLoc) {
-    scene_prefab_spawn(
-        world,
-        &(ScenePrefabSpec){
-            .prefabId = string_hash_lit("TurretMissile"),
-            .faction  = SceneFaction_A,
-            .position = *turretLoc,
-            .rotation = geo_quat_forward_to_left,
-            .flags    = ScenePrefabFlags_SnapToTerrain,
-        });
-  }
-
-  scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .prefabId = string_hash_lit("SpawnerUnitMelee"),
-          .faction  = SceneFaction_B,
-          .position = geo_vector(-50),
-          .rotation = geo_quat_ident,
-          .flags    = ScenePrefabFlags_SnapToTerrain,
-      });
-}
-
-ecs_view_define(AppUpdateGlobalView) {
-  ecs_access_read(InputManagerComp);
-  ecs_access_write(AppComp);
-}
+ecs_view_define(AppUpdateGlobalView) { ecs_access_read(InputManagerComp); }
 
 ecs_view_define(WindowView) {
   ecs_access_read(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
 ecs_view_define(DebugMenuView) { ecs_access_read(DebugMenuComp); }
-ecs_view_define(InstanceView) { ecs_access_with(ScenePrefabInstanceComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -204,26 +70,10 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                app   = ecs_view_write_t(globalItr, AppComp);
   const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
-
-  // Create the scene.
-  if (!app->sceneCreated) {
-    app_scene_create_props(world, app->rng);
-    app_scene_create_units(world);
-    app->sceneCreated = true;
-  }
-
   if (input_triggered_lit(input, "Reset")) {
-    // Destroy all instances.
-    EcsView* instanceView = ecs_world_view_t(world, InstanceView);
-    for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-      ecs_world_entity_destroy(world, ecs_view_entity(itr));
-    }
-    // Recreate the scene next frame.
-    app->sceneCreated = false;
+    scene_level_load(world, string_lit("levels/default.lvl"));
   }
-
   if (input_triggered_lit(input, "WindowNew")) {
     app_window_create(world);
   }
@@ -251,20 +101,17 @@ ecs_system_define(AppUpdateSys) {
 }
 
 ecs_module_init(game_app_module) {
-  ecs_register_comp(AppComp, .destructor = ecs_destruct_app_comp);
   ecs_register_comp(AppWindowComp);
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
   ecs_register_view(DebugMenuView);
-  ecs_register_view(InstanceView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(WindowView),
-      ecs_view_id(DebugMenuView),
-      ecs_view_id(InstanceView));
+      ecs_view_id(DebugMenuView));
 }
 
 static CliId g_assetFlag, g_helpFlag;
@@ -305,12 +152,6 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      AppComp,
-      .rng = rng_create_xorwow(g_alloc_heap, g_appRngSeed));
-
   const String assetPath = cli_read_string(invoc, g_assetFlag, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
@@ -319,6 +160,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
+  scene_level_load(world, string_lit("levels/default.lvl"));
   input_resource_init(world, string_lit("global/game-input.imp"));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));

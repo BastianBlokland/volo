@@ -21,6 +21,7 @@
     "*.ftx": "json",
     "*.gra": "json",
     "*.imp": "json",
+    "*.lvl": "json",
     "*.pfb": "json",
     "*.pme": "json",
     "*.ptx": "json",

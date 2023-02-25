@@ -9,6 +9,7 @@
 #include "debug_grid.h"
 #include "debug_inspector.h"
 #include "debug_interface.h"
+#include "debug_level.h"
 #include "debug_log_viewer.h"
 #include "debug_menu.h"
 #include "debug_prefab.h"
@@ -50,6 +51,11 @@ static const struct {
         .iconShape  = UiShape_Construction,
         .openFunc   = debug_prefab_panel_open,
         .hotkeyName = string_static("DebugPanelPrefab"),
+    },
+    {
+        .name      = string_static("Level"),
+        .iconShape = UiShape_Globe,
+        .openFunc  = debug_level_panel_open,
     },
     {
         .name       = string_static("Time"),

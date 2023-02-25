@@ -7,10 +7,11 @@
 #include "registry_internal.h"
 
 typedef struct {
-  const DataReg* reg;
-  JsonDoc*       doc;
-  const DataMeta meta;
-  Mem            data;
+  const DataWriteJsonOpts* opts;
+  const DataReg*           reg;
+  JsonDoc*                 doc;
+  const DataMeta           meta;
+  Mem                      data;
 } WriteCtx;
 
 static JsonVal data_write_json_val(const WriteCtx*);
@@ -155,10 +156,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-       .reg  = ctx->reg,
-       .doc  = ctx->doc,
-       .meta = data_meta_base(ctx->meta),
-       .data = mem_create(ptr, decl->size),
+      .reg  = ctx->reg,
+      .doc  = ctx->doc,
+      .meta = data_meta_base(ctx->meta),
+      .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
@@ -193,9 +194,15 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
   diag_crash();
 }
 
-void data_write_json(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
-  JsonDoc*       doc = json_create(g_alloc_scratch, 512);
+void data_write_json(
+    const DataReg*           reg,
+    DynString*               str,
+    const DataMeta           meta,
+    const Mem                data,
+    const DataWriteJsonOpts* opts) {
+  JsonDoc*       doc = json_create(g_alloc_heap, 512);
   const WriteCtx ctx = {
+      .opts = opts,
       .reg  = reg,
       .doc  = doc,
       .meta = meta,
@@ -203,6 +210,7 @@ void data_write_json(const DataReg* reg, DynString* str, const DataMeta meta, co
   };
   const JsonVal val = data_write_json_val(&ctx);
 
-  json_write(str, doc, val, &json_write_opts());
+  const JsonWriteOpts jsonOpts = json_write_opts(.numberMaxDecDigits = opts->numberMaxDecDigits);
+  json_write(str, doc, val, &jsonOpts);
   json_destroy(doc);
 }

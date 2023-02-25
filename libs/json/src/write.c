@@ -126,7 +126,7 @@ static void json_state_write_number(JsonWriteState* state, DynString* str, const
       val,
       &format_opts_float(
               .minDecDigits    = 0,
-              .maxDecDigits    = 10,
+              .maxDecDigits    = state->opts->numberMaxDecDigits,
               .expThresholdPos = 1e10,
               .expThresholdNeg = 1e-10));
 }
