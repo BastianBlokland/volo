@@ -583,8 +583,22 @@ spec(format) {
     for (usize i = 0; i != array_elems(data); ++i) {
       f64          out;
       const String rem = format_read_f64(data[i].val, &out);
-      check_eq_float(out, data[i].expected, 1e-16);
-      check_eq_string(rem, data[i].expectedRemaining);
+      check_msg(
+          math_abs(out - data[i].expected) < 1e-16,
+          "[{}] {} == {}",
+          fmt_int(i),
+          fmt_float(out, .maxDecDigits = 16, .expThresholdPos = 1e16, .expThresholdNeg = 1e-16),
+          fmt_float(
+              data[i].expected,
+              .maxDecDigits    = 16,
+              .expThresholdPos = 1e16,
+              .expThresholdNeg = 1e-16));
+      check_msg(
+          string_eq(rem, data[i].expectedRemaining),
+          "[{}] {} == {}",
+          fmt_int(i),
+          fmt_text(rem),
+          fmt_text(data[i].expectedRemaining));
     }
   }
 }
