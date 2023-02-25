@@ -212,17 +212,24 @@ static GeoBox rend_light_shadow_discretize(GeoBox box, const f32 step) {
   return geo_box_dilate(&box, geo_vector(step * 0.5f, step * 0.5f, step * 0.5f));
 }
 
+static f32 rend_win_aspect(const GapWindowComp* win) {
+  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+  if (!winSize.width || !winSize.height) {
+    return 1.0f;
+  }
+  return (f32)winSize.width / (f32)winSize.height;
+}
+
 static GeoMatrix rend_light_dir_shadow_proj(
     const GapWindowComp*      win,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     const GeoMatrix*          lightViewMatrix) {
-  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
-  const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
-
   // Compute the world-space camera frustum corners.
-  GeoVector frustum[8];
-  scene_camera_frustum_corners(cam, camTrans, aspect, geo_vector(0, 0), geo_vector(1, 1), frustum);
+  GeoVector       frustum[8];
+  f32             winAspect = rend_win_aspect(win);
+  const GeoVector winCamMin = geo_vector(0, 0), winCamMax = geo_vector(1, 1);
+  scene_camera_frustum_corners(cam, camTrans, winAspect, winCamMin, winCamMax, frustum);
 
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
