@@ -12,8 +12,8 @@
 #include "scene_prefab.h"
 #include "scene_transform.h"
 
-ASSERT(AssetLevelFaction_Count == SceneFaction_Count, "Mismatching faction counts");
-ASSERT(AssetLevelFaction_None == SceneFaction_None, "Mismatching faction sentinel");
+ASSERT((i32)AssetLevelFaction_Count == (i32)SceneFaction_Count, "Mismatching faction counts");
+ASSERT((i32)AssetLevelFaction_None == (i32)SceneFaction_None, "Mismatching faction sentinel");
 
 typedef enum {
   LevelLoadState_Start,
