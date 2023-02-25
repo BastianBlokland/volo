@@ -453,7 +453,6 @@ static void update_camera_interact(
         world, cmdController, collisionEnv, sel, terrain, nav, assets, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
-    state->camPosTgt  = geo_vector(30.0f, 0, 0);
     state->camRotYTgt = -90.0f * math_deg_to_rad;
     state->camZoomTgt = 0.0f;
     input_report_command(debugStats, string_lit("Reset camera"));
@@ -461,15 +460,12 @@ static void update_camera_interact(
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  const GeoVector camStartPos  = geo_vector(30.0f, 0, 0);
-  const f32       camStartRotY = -90.0f * math_deg_to_rad;
+  const f32 camStartRotY = -90.0f * math_deg_to_rad;
   ecs_world_add_t(
       world,
       windowEntity,
       InputStateComp,
       .uiCanvas   = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack),
-      .camPos     = camStartPos,
-      .camPosTgt  = camStartPos,
       .camRotY    = camStartRotY,
       .camRotYTgt = camStartRotY);
 }
