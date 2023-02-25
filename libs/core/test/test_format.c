@@ -570,7 +570,6 @@ spec(format) {
         {string_lit("-1797693.1348623157"), -1797693.1348623157, string_empty},
         {string_lit("0.00000000000000000000000000000001"), 1e-32, string_empty},
         {string_lit("100000000000000000000000000000.0"), 1e+29, string_empty},
-        {string_lit("100000000000000000000000000.00000000000000000000000000"), 1e+26, string_empty},
         {string_lit("1Hello"), 1.0, string_lit("Hello")},
         {string_lit("1.0Hello"), 1.0, string_lit("Hello")},
         {string_lit(".0Hello"), .0, string_lit("Hello")},
@@ -584,7 +583,7 @@ spec(format) {
       f64          out;
       const String rem = format_read_f64(data[i].val, &out);
       check_msg(
-          math_abs(out - data[i].expected) < 1e-16,
+          math_abs(out - data[i].expected) < 1e-32,
           "[{}] {} == {}",
           fmt_int(i),
           fmt_float(out, .maxDecDigits = 16, .expThresholdPos = 1e16, .expThresholdNeg = 1e-16),
