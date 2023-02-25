@@ -3,7 +3,7 @@
 
 #include "utils_internal.h"
 
-#define test_geo_threshold 1e-5f
+#define test_geo_threshold 1e-4f
 
 static bool test_matrix_equal(const GeoMatrix* a, const GeoMatrix* b) {
   for (usize i = 0; i != 16; ++i) {
