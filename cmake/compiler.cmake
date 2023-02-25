@@ -82,10 +82,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
   add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
                       -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
-                      -Wno-override-init-side-effects)
-
-  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
-  add_compile_options(-fno-strict-aliasing)
+                      -Wno-override-init-side-effects -Wno-enum-conversion)
 
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
@@ -124,9 +121,6 @@ macro(set_clang_compile_options)
   add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
                       -Wno-sign-conversion -Wno-implicit-int-float-conversion
                       -Wno-implicit-int-conversion -Wno-missing-field-initializers)
-
-  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
-  add_compile_options(-fno-strict-aliasing)
 
   # Optimization settings.
   add_compile_options(-O3) # Optimization level 3.
