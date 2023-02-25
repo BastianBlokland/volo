@@ -29,7 +29,11 @@
  * Returns true if the given floating point number is 'Not A Number'.
  * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define float_isnan(_VAL_) (__builtin_isnan(_VAL_))
+#else
 #define float_isnan(_VAL_) ((_VAL_) != (_VAL_))
+#endif
 
 /**
  * Returns true if the given floating point number is equal to infinity.
