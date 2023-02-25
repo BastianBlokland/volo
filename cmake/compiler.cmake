@@ -189,12 +189,15 @@ macro(set_msvc_compile_options)
   add_compile_options(/FS)
 
   # Optimization settings.
-  add_compile_options(/O2)
+  add_compile_options(/arch:SSE2) # Target the x64 with sse2 instructions architecture.
+  add_compile_options(/O2) # Optimization level 2.
+  add_compile_options(/Oi) # Enable intrinsic functions.
+  add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
   # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
 
   # Debug options.
-  add_compile_options(/Zi)
+  add_compile_options(/Zi) # Debug symbols in seperate pdb files.
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
