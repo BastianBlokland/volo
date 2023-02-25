@@ -18,7 +18,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2
+          "deathDestroyDelay": 5
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -63,7 +63,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 150,
-          "deathDestroyDelay": 2
+          "deathDestroyDelay": 5
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -391,7 +391,7 @@
           "$type": "AssetPrefabTrait_Spawner",
           "prefabId": "UnitMelee",
           "radius": 20,
-          "count": 100,
+          "count": 150,
           "maxInstances": 350,
           "intervalMin": 20,
           "intervalMax": 60
