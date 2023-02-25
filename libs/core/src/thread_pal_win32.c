@@ -154,7 +154,7 @@ i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
   return current;
 }
 
-ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
+ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
   if (UNLIKELY(!handle)) {
     diag_crash_msg("CreateThread() failed");

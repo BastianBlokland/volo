@@ -90,7 +90,7 @@ i64 thread_pal_atomic_sub_i64(i64* ptr, const i64 value) {
   return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
+ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void* data) {
   pthread_attr_t attr;
   pthread_t      handle;
 

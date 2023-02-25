@@ -7,7 +7,7 @@
 
 static i32 g_signal_states[Signal_Count];
 
-static BOOL signal_pal_interupt_handler(DWORD dwCtrlType) {
+static BOOL SYS_DECL signal_pal_interupt_handler(DWORD dwCtrlType) {
   switch (dwCtrlType) {
   case CTRL_C_EVENT:
   case CTRL_BREAK_EVENT:

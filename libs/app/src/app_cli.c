@@ -5,7 +5,7 @@
 #include "jobs_init.h"
 #include "log_init.h"
 
-int main(const int argc, const char** argv) {
+int SYS_DECL main(const int argc, const char** argv) {
   core_init();
   jobs_init();
   log_init();

@@ -12,7 +12,7 @@ typedef struct {
   void*         userData;
 } ThreadRunData;
 
-static thread_pal_rettype thread_runner(void* data) {
+static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
 
   // Initialize the core library for this thread.

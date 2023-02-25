@@ -6,26 +6,26 @@
 
 #if defined(VOLO_MSVC)
 
-float  acosf(float);
-float  asinf(float);
-float  atan2f(float, float);
-float  atanf(float);
-double ceil(double);
-float  ceilf(float);
-float  cosf(float);
-float  expf(float);
-double floor(double);
-float  floorf(float);
-float  fmodf(float, float);
-float  logf(float);
-float  powf(float, float);
-float  sinf(float);
-double sqrt(double);
-float  sqrtf(float);
-float  cbrtf(float);
-float  tanf(float);
-double round(double);
-float  roundf(float);
+float SYS_DECL  acosf(float);
+float SYS_DECL  asinf(float);
+float SYS_DECL  atan2f(float, float);
+float SYS_DECL  atanf(float);
+double SYS_DECL ceil(double);
+float SYS_DECL  ceilf(float);
+float SYS_DECL  cosf(float);
+float SYS_DECL  expf(float);
+double SYS_DECL floor(double);
+float SYS_DECL  floorf(float);
+float SYS_DECL  fmodf(float, float);
+float SYS_DECL  logf(float);
+float SYS_DECL  powf(float, float);
+float SYS_DECL  sinf(float);
+double SYS_DECL sqrt(double);
+float SYS_DECL  sqrtf(float);
+float SYS_DECL  cbrtf(float);
+float SYS_DECL  tanf(float);
+double SYS_DECL round(double);
+float SYS_DECL  roundf(float);
 
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanForward64)
