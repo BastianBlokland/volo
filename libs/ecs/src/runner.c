@@ -134,7 +134,7 @@ static EcsTaskSet graph_insert_flush(EcsRunner* runner) {
 
 static EcsTaskSet
 graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSystemDef* systemDef) {
-  JobTaskId firstTaskId;
+  JobTaskId firstTaskId = 0;
   for (u16 parIndex = 0; parIndex != systemDef->parallelCount; ++parIndex) {
     const JobTaskId taskId = jobs_graph_add_task(
         runner->graph,
