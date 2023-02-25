@@ -22,12 +22,12 @@
  * NOTE: Assumes little-endian byte order.
  */
 
-INLINE_HINT static f64 val_as_number(const ScriptVal value) { return *((f64*)&value.data); }
+INLINE_HINT static f64 val_as_number(const ScriptVal value) { return value.unsafeNumber; }
 
-INLINE_HINT static bool val_as_bool(const ScriptVal value) { return *((bool*)&value.data); }
+INLINE_HINT static bool val_as_bool(const ScriptVal value) { return value.unsafeBool; }
 
 INLINE_HINT static GeoVector val_as_vector3_dirty_w(const ScriptVal value) {
-  return *((GeoVector*)&value.data);
+  return value.unsafeVector;
 }
 
 INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
@@ -36,9 +36,7 @@ INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
   return result;
 }
 
-INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
-  return *((EcsEntityId*)&value.data);
-}
+INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) { return value.unsafeEntity; }
 
 ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
 
@@ -49,38 +47,36 @@ ScriptVal script_null() {
 
 ScriptVal script_number(const f64 value) {
   ScriptVal result;
-  *((f64*)&result.data) = value;
-  result.data[3]        = ScriptType_Number;
+  result.unsafeNumber = value;
+  result.data[3]      = ScriptType_Number;
   return result;
 }
 
 ScriptVal script_bool(const bool value) {
   ScriptVal result;
-  *((bool*)&result.data) = value;
-  result.data[3]         = ScriptType_Bool;
+  result.unsafeBool = value;
+  result.data[3]    = ScriptType_Bool;
   return result;
 }
 
 ScriptVal script_vector3(const GeoVector value) {
   ScriptVal result;
-  *((GeoVector*)&result.data) = value;
-  result.data[3]              = ScriptType_Vector3;
+  result.unsafeVector = value;
+  result.data[3]      = ScriptType_Vector3;
   return result;
 }
 
 ScriptVal script_vector3_lit(const f32 x, const f32 y, const f32 z) {
   ScriptVal result;
-  ((f32*)&result.data)[0] = x;
-  ((f32*)&result.data)[1] = y;
-  ((f32*)&result.data)[2] = z;
-  result.data[3]          = ScriptType_Vector3;
+  result.unsafeVector = geo_vector(x, y, z);
+  result.data[3]      = ScriptType_Vector3;
   return result;
 }
 
 ScriptVal script_entity(const EcsEntityId value) {
   ScriptVal result;
-  *((EcsEntityId*)&result.data) = value;
-  result.data[3]                = ScriptType_Entity;
+  result.unsafeEntity = value;
+  result.data[3]      = ScriptType_Entity;
   return result;
 }
 

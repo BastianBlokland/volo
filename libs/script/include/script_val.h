@@ -19,8 +19,12 @@ typedef enum {
 /**
  * Type-erased script value.
  */
-typedef struct {
+typedef union {
   ALIGNAS(16) u32 data[4];
+  f64         unsafeNumber;
+  bool        unsafeBool;
+  GeoVector   unsafeVector;
+  EcsEntityId unsafeEntity;
 } ScriptVal;
 
 ASSERT(sizeof(ScriptVal) == 16, "Expected ScriptVal's size to be 128 bits");
