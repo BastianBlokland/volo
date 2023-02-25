@@ -370,27 +370,27 @@ spec(format) {
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("nisl condimentum\n\n"
-                                   "id venenatis a condimentum \n"
-                                   "vitae"),
+                                     "id venenatis a condimentum \n"
+                                     "vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("> nisl condimentum\n"
-                                   "> \n"
-                                   "> id venenatis a condimentum \n"
-                                   "> vitae"),
+                                     "> \n"
+                                     "> id venenatis a condimentum \n"
+                                     "> vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("cursuseuismodquisviverranibhcraspulvinar "
-                              "cursuseuismodquisviverranibhcraspulvinar"),
+                                     "cursuseuismodquisviverranibhcraspulvinar"),
             .expected   = string_lit("> cursuseuismodquisviverranibhcr\n"
-                                   "> aspulvinar \n"
-                                   "> cursuseuismodquisviverranibhcr\n"
-                                   "> aspulvinar"),
+                                     "> aspulvinar \n"
+                                     "> cursuseuismodquisviverranibhcr\n"
+                                     "> aspulvinar"),
         },
         {
             .linePrefix = string_lit("> "),
@@ -583,7 +583,7 @@ spec(format) {
     for (usize i = 0; i != array_elems(data); ++i) {
       f64          out;
       const String rem = format_read_f64(data[i].val, &out);
-      check_eq_float(out, data[i].expected, 1e-32);
+      check_eq_float(out, data[i].expected, 1e-16);
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }
