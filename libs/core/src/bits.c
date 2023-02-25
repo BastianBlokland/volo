@@ -111,7 +111,38 @@ u64 bits_padding_64(const u64 val, const u64 align) {
 u32 bits_align_32(const u32 val, const u32 align) { return val + bits_padding_32(val, align); }
 u64 bits_align_64(const u64 val, const u64 align) { return val + bits_padding_64(val, align); }
 
-f32 bits_u32_as_f32(u32 val) { return *(f32*)(&val); }
-u32 bits_f32_as_u32(f32 val) { return *(u32*)(&val); }
-f64 bits_u64_as_f64(u64 val) { return *(f64*)(&val); }
-u64 bits_f64_as_u64(f64 val) { return *(u64*)(&val); }
+f32 bits_u32_as_f32(const u32 valInput) {
+  union {
+    u32 valU32;
+    f32 valF32;
+  } conv;
+  conv.valU32 = valInput;
+  return conv.valF32;
+}
+
+u32 bits_f32_as_u32(const f32 valInput) {
+  union {
+    u32 valU32;
+    f32 valF32;
+  } conv;
+  conv.valF32 = valInput;
+  return conv.valU32;
+}
+
+f64 bits_u64_as_f64(const u64 valInput) {
+  union {
+    u64 valU64;
+    f64 valF64;
+  } conv;
+  conv.valU64 = valInput;
+  return conv.valF64;
+}
+
+u64 bits_f64_as_u64(const f64 valInput) {
+  union {
+    u64 valU64;
+    f64 valF64;
+  } conv;
+  conv.valF64 = valInput;
+  return conv.valU64;
+}
