@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "ecs_utils.h"

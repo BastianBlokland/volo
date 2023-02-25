@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_float.h"
 
 #include "utils_internal.h"
 

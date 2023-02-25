@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "geo_box_rotated.h"

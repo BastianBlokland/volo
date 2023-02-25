@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "debug_grid.h"
 #include "debug_stats.h"

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
