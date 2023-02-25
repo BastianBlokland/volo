@@ -83,7 +83,7 @@ static LogLevel rvk_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT m
   return LogLevel_Debug;
 }
 
-static VkBool32 rvk_message_func(
+static VkBool32 SYS_DECL rvk_message_func(
     VkDebugUtilsMessageSeverityFlagBitsEXT      msgSeverity,
     VkDebugUtilsMessageTypeFlagsEXT             msgType,
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
@@ -128,14 +128,14 @@ RvkDebug* rvk_debug_create(
 
   RvkDebug* debug = alloc_alloc_t(g_alloc_heap, RvkDebug);
   *debug          = (RvkDebug){
-      .flags            = flags,
-      .logger           = g_logger,
-      .vkInst           = vkInst,
-      .vkDev            = vkDev,
-      .vkAlloc          = vkAlloc,
-      .vkObjectNameFunc = rvk_func_load_instance(vkInst, vkSetDebugUtilsObjectNameEXT),
-      .vkLabelBeginFunc = rvk_func_load_instance(vkInst, vkCmdBeginDebugUtilsLabelEXT),
-      .vkLabelEndFunc   = rvk_func_load_instance(vkInst, vkCmdEndDebugUtilsLabelEXT),
+               .flags            = flags,
+               .logger           = g_logger,
+               .vkInst           = vkInst,
+               .vkDev            = vkDev,
+               .vkAlloc          = vkAlloc,
+               .vkObjectNameFunc = rvk_func_load_instance(vkInst, vkSetDebugUtilsObjectNameEXT),
+               .vkLabelBeginFunc = rvk_func_load_instance(vkInst, vkCmdBeginDebugUtilsLabelEXT),
+               .vkLabelEndFunc   = rvk_func_load_instance(vkInst, vkCmdEndDebugUtilsLabelEXT),
   };
   rvk_messenger_create(debug);
 

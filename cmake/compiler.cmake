@@ -82,20 +82,22 @@ macro(set_gcc_compile_options)
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
   add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
                       -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized
-                      -Wno-override-init-side-effects)
-
-  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
-  add_compile_options(-fno-strict-aliasing)
+                      -Wno-override-init-side-effects -Wno-enum-conversion)
 
   # Optimization settings.
-  add_compile_options(-O3)
+  add_compile_options(-O3) # Optimization level 3.
+  if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
+    add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  endif()
+  add_compile_options(-funroll-loops) # Enable loop unrolling.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
+  # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
   # Debug options.
-  add_compile_options(-g)
-  if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
+  add_compile_options(-g) # Enable debug symbols.
+  if(NOT ${FAST} AND NOT ${VOLO_PLATFORM} STREQUAL "win32")
     # NOTE: The MinGW GCC port fails code-gen with the 'no-omit-frame-pointer' option.
     # Open issue: https://github.com/msys2/MINGW-packages/issues/4409
     add_compile_options(-fno-omit-frame-pointer)
@@ -122,17 +124,20 @@ macro(set_clang_compile_options)
                       -Wno-sign-conversion -Wno-implicit-int-float-conversion
                       -Wno-implicit-int-conversion -Wno-missing-field-initializers)
 
-  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
-  add_compile_options(-fno-strict-aliasing)
-
   # Optimization settings.
-  add_compile_options(-O3)
+  add_compile_options(-O3) # Optimization level 3.
+  add_compile_options(-march=native) # Optimize for the native cpu architecture (non portable).
+  add_compile_options(-funroll-loops) # Enable loop unrolling.
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
+  # add_compile_options(-fno-finite-math-only) # Enable NaN support with fast-math.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 conversions)
   # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
   # Debug options.
-  add_compile_options(-g -fno-omit-frame-pointer)
+  add_compile_options(-g) # Enable debug symbols.
+  if(NOT ${FAST})
+    add_compile_options(-fno-omit-frame-pointer)
+  endif()
 
   if(${VOLO_PLATFORM} STREQUAL "win32")
     # Forward declaration of enums is defined in c as all enums use int as underlying the type.
@@ -189,12 +194,14 @@ macro(set_msvc_compile_options)
   add_compile_options(/FS)
 
   # Optimization settings.
-  add_compile_options(/O2)
+  add_compile_options(/O2) # Optimization level 2.
+  add_compile_options(/Oi) # Enable intrinsic functions.
+  add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
   # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
 
   # Debug options.
-  add_compile_options(/Zi)
+  add_compile_options(/Zi) # Debug symbols in seperate pdb files.
 
   # Statically link the runtime library.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")

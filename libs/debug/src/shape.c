@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "debug_register.h"
 #include "debug_shape.h"

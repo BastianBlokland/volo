@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_stringtable.h"
 #include "debug_brain.h"
 #include "debug_register.h"

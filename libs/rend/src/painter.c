@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
@@ -630,8 +631,11 @@ static bool rend_canvas_paint(
     EcsView*                      drawView,
     EcsView*                      graphicView,
     EcsView*                      resourceView) {
-  const RvkSize winSize   = painter_win_size(win);
-  const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
+  const RvkSize winSize = painter_win_size(win);
+  if (!winSize.width || !winSize.height) {
+    return false; // Window is zero sized; no need to render.
+  }
+  const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
 
   const GeoMatrix      camMat   = trans ? scene_transform_matrix(trans) : geo_matrix_ident();
   const GeoMatrix      projMat  = cam ? scene_camera_proj(cam, winAspect)

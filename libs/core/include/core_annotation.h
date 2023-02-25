@@ -151,3 +151,13 @@ ASSERT(false, "Unsupported compiler");
  * ```
  */
 #define ALIGNAS(_ALIGNMENT_) _Alignas(_ALIGNMENT_)
+
+/**
+ * Specify that this function should use the system's default calling conventions.
+ * Use this for functions that interop with external libraries.
+ */
+#if defined(VOLO_MSVC)
+#define SYS_DECL __cdecl
+#else
+#define SYS_DECL
+#endif

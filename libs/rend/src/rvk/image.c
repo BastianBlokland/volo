@@ -15,6 +15,12 @@ MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
     RvkImageCapability_Sampled;
 // clang-format on
 
+static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
+  VkClearColorValue result;
+  mem_cpy(mem_var(result), mem_var(color));
+  return result;
+}
+
 MAYBE_UNUSED static bool
 rvk_image_phase_supported(const RvkImageCapability caps, const RvkImagePhase phase) {
   switch (phase) {
@@ -614,7 +620,7 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
   diag_assert(img->type != RvkImageType_DepthAttachment);
 
-  const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
+  const VkClearColorValue       clearColor = rvk_rend_clear_color(color);
   const VkImageSubresourceRange ranges[]   = {
       {
           .aspectMask     = rvk_image_vkaspect(img->type),

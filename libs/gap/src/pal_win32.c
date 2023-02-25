@@ -663,7 +663,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   }
 }
 
-static LRESULT
+static LRESULT SYS_DECL
 pal_window_proc(const HWND wnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 
   /**

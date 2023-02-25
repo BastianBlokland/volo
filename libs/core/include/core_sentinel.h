@@ -1,6 +1,5 @@
 #pragma once
 #include "core_annotation.h"
-#include "core_float.h"
 #include "core_types.h"
 
 /**
@@ -17,14 +16,12 @@
 #define sentinel_u32 u32_max
 #define sentinel_u64 u64_max
 #define sentinel_usize usize_max
-#define sentinel_f32 f32_nan
-#define sentinel_f64 f64_nan
 
 // clang-format off
 
 /**
  * Check if the given value is equal to its sentinel value.
- * Pre-condition: '_VAL_' is a primitive integer / floating-point type.
+ * Pre-condition: '_VAL_' is a primitive integer type.
  */
 #define sentinel_check(_VAL_) _Generic((_VAL_),                                                    \
     i8:   (i8)(_VAL_)   == sentinel_i8,                                                            \
@@ -34,9 +31,7 @@
     u8:   (u8)(_VAL_)   == sentinel_u8,                                                            \
     u16:  (u16)(_VAL_)  == sentinel_u16,                                                           \
     u32:  (u32)(_VAL_)  == sentinel_u32,                                                           \
-    u64:  (u64)(_VAL_)  == sentinel_u64,                                                           \
-    f32:  float_isnan(_VAL_),                                                                      \
-    f64:  float_isnan(_VAL_)                                                                       \
+    u64:  (u64)(_VAL_)  == sentinel_u64                                                            \
   )
 
 // clang-format on

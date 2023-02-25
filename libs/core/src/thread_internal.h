@@ -37,7 +37,7 @@ i64 thread_pal_atomic_add_i64(i64*, i64 value);
 i32 thread_pal_atomic_sub_i32(i32*, i32 value);
 i64 thread_pal_atomic_sub_i64(i64*, i64 value);
 
-ThreadHandle thread_pal_start(thread_pal_rettype (*)(void*), void*);
+ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL*)(void*), void*);
 void         thread_pal_join(ThreadHandle);
 void         thread_pal_yield();
 void         thread_pal_sleep(TimeDuration);

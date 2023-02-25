@@ -7,7 +7,7 @@
 
 static i32 g_signalStates[Signal_Count];
 
-static void signal_pal_interupt_handler(int signal) {
+static void SYS_DECL signal_pal_interupt_handler(int signal) {
   thread_atomic_store_i32(&g_signalStates[Signal_Interupt], 1);
   (void)signal;
 }

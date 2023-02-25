@@ -2,6 +2,7 @@
 #include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "data_read.h"
 #include "json_read.h"
 

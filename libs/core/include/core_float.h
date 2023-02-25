@@ -10,8 +10,17 @@
 #define f32_exponent_max 38
 #define f64_exponent_max 308
 
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define f32_nan (__builtin_nanf(""))
+#else
 #define f32_nan (0.0f / 0.0f)
+#endif
+
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define f64_nan (__builtin_nan(""))
+#else
 #define f64_nan (0.0 / 0.0)
+#endif
 
 #define f32_inf (1.0f / 0.0f)
 #define f64_inf (1.0 / 0.0)
@@ -29,7 +38,11 @@
  * Returns true if the given floating point number is 'Not A Number'.
  * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define float_isnan(_VAL_) (__builtin_isnan(_VAL_))
+#else
 #define float_isnan(_VAL_) ((_VAL_) != (_VAL_))
+#endif
 
 /**
  * Returns true if the given floating point number is equal to infinity.

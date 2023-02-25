@@ -67,14 +67,14 @@ static RvkAllocInfo rvk_alloc_internal(
   };
 }
 
-static void* rvk_alloc_func(
+static void* SYS_DECL rvk_alloc_func(
     void* userData, const usize size, const usize align, const VkSystemAllocationScope scope) {
 
   Allocator* alloc = userData;
   return rvk_alloc_internal(alloc, size, align, scope).payloadPtr;
 }
 
-static void* rvk_realloc_func(
+static void* SYS_DECL rvk_realloc_func(
     void*                         userData,
     void*                         original,
     const usize                   size,
@@ -106,7 +106,7 @@ static void* rvk_realloc_func(
   return newAlloc.payloadPtr;
 }
 
-static void rvk_free_func(void* userData, void* memory) {
+static void SYS_DECL rvk_free_func(void* userData, void* memory) {
   if (UNLIKELY(memory == null)) {
     return;
   }

@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "ecs_world.h"
 #include "geo_query.h"
 #include "scene_collision.h"
