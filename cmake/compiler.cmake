@@ -192,11 +192,11 @@ macro(set_msvc_compile_options)
   add_compile_options(/FS)
 
   # Optimization settings.
-  add_compile_options(/arch:SSE2) # Target the x64 with sse2 instructions architecture.
   add_compile_options(/O2) # Optimization level 2.
   add_compile_options(/Oi) # Enable intrinsic functions.
   add_compile_options(/Gv) # Use the 'vectorcall' calling convention.
-  add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
+  # NOTE: Not using fp:fast at this time because MSVC doesn't have an option to enable NaN's.
+  # add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
 
   # Debug options.
