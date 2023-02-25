@@ -9,7 +9,6 @@ static void diag_sigtrap_handler(int signum) {
   (void)signum;
 
   g_debuggerPresent = false;
-  signal(SIGTRAP, SIG_DFL);
 }
 
 void diag_pal_break() {
