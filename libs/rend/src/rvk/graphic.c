@@ -757,7 +757,8 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 void rvk_graphic_sampler_add(
     RvkGraphic* graphic, RvkTexture* tex, const AssetGraphicSampler* sampler) {
 
-  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
+  for (u8 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
+    RvkGraphicSampler* itr = &graphic->samplers[samplerIndex];
     if (!itr->texture) {
       RvkSamplerFlags samplerFlags = RvkSamplerFlags_None;
       if (sampler->mipBlending) {
@@ -772,6 +773,7 @@ void rvk_graphic_sampler_add(
           .aniso  = rvk_graphic_aniso(sampler->anisotropy),
           tex->image.mipLevels,
       };
+      graphic->samplerMask |= 1 << samplerIndex;
       return;
     }
   }
