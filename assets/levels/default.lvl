@@ -2747,7 +2747,7 @@
     },
     {
       "id": 663224995,
-      "prefab": "SpawnerUnitMelee",
+      "prefab": "SpawnerUnitEnemy",
       "faction": "B",
       "position": {
         "x": -96.4603,
@@ -7907,7 +7907,7 @@
     },
     {
       "id": 2019017151,
-      "prefab": "SpawnerUnitMelee",
+      "prefab": "SpawnerUnitEnemy",
       "faction": "B",
       "position": {
         "x": 105.6586,
@@ -8027,7 +8027,7 @@
     },
     {
       "id": 2052977756,
-      "prefab": "SpawnerUnitMelee",
+      "prefab": "SpawnerUnitEnemy",
       "faction": "B",
       "position": {
         "x": 1.8242,
@@ -8867,7 +8867,7 @@
     },
     {
       "id": 2224061310,
-      "prefab": "SpawnerUnitMelee",
+      "prefab": "SpawnerUnitEnemy",
       "faction": "B",
       "position": {
         "x": 3.7069,

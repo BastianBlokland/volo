@@ -46,7 +46,7 @@
       ]
     },
     {
-      "name": "UnitMelee",
+      "name": "UnitEnemy",
       "isUnit": true,
       "traits": [
         {
@@ -463,11 +463,11 @@
       ]
     },
     {
-      "name": "SpawnerUnitMelee",
+      "name": "SpawnerUnitEnemy",
       "traits": [
         {
           "$type": "AssetPrefabTrait_Spawner",
-          "prefabId": "UnitMelee",
+          "prefabId": "UnitEnemy",
           "radius": 20,
           "count": 150,
           "maxInstances": 350,
