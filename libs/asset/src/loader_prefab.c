@@ -533,7 +533,7 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    u16* userIndexLookup = alloc_array_t(g_alloc_heap, u16, prefabs.size);
+    u16* userIndexLookup = prefabs.size ? alloc_array_t(g_alloc_heap, u16, prefabs.size) : null;
     prefabmap_build_user_index_lookup(
         &def, dynarray_begin_t(&prefabs, AssetPrefab), userIndexLookup);
 
