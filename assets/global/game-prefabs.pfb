@@ -411,6 +411,32 @@
       ]
     },
     {
+      "name": "PropTires",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_tires.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -0.4,
+              "y": 0,
+              "z": -0.8
+            },
+            "max": {
+              "x": 0.4,
+              "y": 1,
+              "z": 0.4
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "PropRock",
       "traits": [
         {
