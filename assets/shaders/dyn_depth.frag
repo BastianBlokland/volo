@@ -4,12 +4,14 @@
 #include "binding.glsl"
 #include "rand.glsl"
 
+const f32 c_alphaDitherMax = 0.99;
+
 bind_internal(1) in flat f32v4 in_data;
 
 void main() {
   const f32 alpha = in_data.y;
   // Dithered transparency.
-  if (rand_gradient_noise(in_fragCoord.xy) > alpha) {
+  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
     discard;
   }
 }

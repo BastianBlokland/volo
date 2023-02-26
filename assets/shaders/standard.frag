@@ -7,6 +7,7 @@
 #include "texture.glsl"
 
 const f32 c_alphaTextureThreshold = 0.2;
+const f32 c_alphaDitherMax        = 0.99;
 
 bind_spec(0) const bool s_normalMap    = false;
 bind_spec(1) const bool s_alphaTexture = false;
@@ -31,7 +32,7 @@ void main() {
     }
   }
   // Dithered transparency.
-  if (rand_gradient_noise(in_fragCoord.xy) > alpha) {
+  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
     discard;
   }
 

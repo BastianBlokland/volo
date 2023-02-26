@@ -6,6 +6,7 @@
 #include "texture.glsl"
 
 const f32 c_alphaTextureThreshold = 0.2;
+const f32 c_alphaDitherMax        = 0.99;
 
 bind_dynamic(1) uniform sampler2D u_texAlpha;
 
@@ -18,7 +19,7 @@ void main() {
     alpha = 0.0;
   }
   // Dithered transparency.
-  if (rand_gradient_noise(in_fragCoord.xy) > alpha) {
+  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
     discard;
   }
 }
