@@ -92,6 +92,10 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_7.tga
       fire_2/fire_8.tga
       fire_2/fire_9.tga
+      gas_tank/gas_tank_color_rough.tga
+      gas_tank/gas_tank_normal.tga
+      gas_tank/gas_tank.bin
+      gas_tank/gas_tank.gltf
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
