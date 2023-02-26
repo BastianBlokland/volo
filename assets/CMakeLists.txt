@@ -92,6 +92,10 @@ if(${EXTERNAL_ASSETS})
       fire_2/fire_7.tga
       fire_2/fire_8.tga
       fire_2/fire_9.tga
+      gas_tank/gas_tank_color_rough.tga
+      gas_tank/gas_tank_normal.tga
+      gas_tank/gas_tank.bin
+      gas_tank/gas_tank.gltf
       maynard/maynard_2_color_rough.tga
       maynard/maynard_2_nrm.tga
       maynard/maynard_2.bin
@@ -115,6 +119,10 @@ if(${EXTERNAL_ASSETS})
       swat/swat_2_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
+      tent/tent_color_rough.tga
+      tent/tent_normal.tga
+      tent/tent.bin
+      tent/tent.gltf
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
       tiling/clouds.tga
@@ -122,6 +130,10 @@ if(${EXTERNAL_ASSETS})
       tiling/dirt_2_normal.tga
       tiling/sand_2_color_rough.tga
       tiling/sand_4_normal.tga
+      tires/tires_color_rough.tga
+      tires/tires_normal.tga
+      tires/tires.bin
+      tires/tires.gltf
       tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga

@@ -359,6 +359,84 @@
       ]
     },
     {
+      "name": "PropTent",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_tent.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.75,
+              "y": 0,
+              "z": -2.5
+            },
+            "max": {
+              "x": 1.75,
+              "y": 1.15,
+              "z": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropGasTank",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_gas_tank.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -0.9,
+              "y": 0,
+              "z": -2.2
+            },
+            "max": {
+              "x": 0.9,
+              "y": 1.5,
+              "z": 2.2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropTires",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_tires.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -0.4,
+              "y": 0,
+              "z": -0.8
+            },
+            "max": {
+              "x": 0.4,
+              "y": 1,
+              "z": 0.4
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "PropRock",
       "traits": [
         {
