@@ -14,7 +14,7 @@ bind_instance_data(0) readonly uniform Instance { InstanceData[c_maxInstances] u
 bind_internal(0) out f32v3 out_worldNormal;
 bind_internal(1) out f32v4 out_worldTangent;
 bind_internal(2) out f32v2 out_texcoord;
-bind_internal(3) out flat u32 out_tags;
+bind_internal(3) out flat f32v4 out_data;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -22,6 +22,7 @@ void main() {
   const f32v3 instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
   const f32   instanceScale = u_instances[in_instanceIndex].posAndScale.w;
   const f32v4 instanceQuat  = u_instances[in_instanceIndex].rot;
+  const f32v4 instanceData  = u_instances[in_instanceIndex].data;
 
   const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceScale) + instancePos;
 
@@ -29,5 +30,5 @@ void main() {
   out_worldNormal    = quat_rotate(instanceQuat, vert.normal);
   out_worldTangent   = f32v4(quat_rotate(instanceQuat, vert.tangent.xyz), vert.tangent.w);
   out_texcoord       = vert.texcoord;
-  out_tags           = u_instances[in_instanceIndex].tagsAndPadding.x;
+  out_data           = instanceData;
 }

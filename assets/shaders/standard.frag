@@ -17,7 +17,7 @@ bind_graphic(3) uniform sampler2D u_texAlpha;
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(2) in f32v2 in_texcoord;
-bind_internal(3) in flat u32 in_tags;
+bind_internal(3) in flat f32v4 in_data;
 
 bind_internal(0) out f32v4 out_colorRough;
 bind_internal(1) out f32v4 out_normalTags;
@@ -43,5 +43,6 @@ void main() {
   }
 
   // Output tags.
-  out_normalTags.w = tags_tex_encode(in_tags);
+  const u32 tags   = floatBitsToUint(in_data.x);
+  out_normalTags.w = tags_tex_encode(tags);
 }
