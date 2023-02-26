@@ -359,6 +359,32 @@
       ]
     },
     {
+      "name": "PropTent",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_tent.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -1.75,
+              "y": 0,
+              "z": -2.5
+            },
+            "max": {
+              "x": 1.75,
+              "y": 1.15,
+              "z": 2.5
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "PropRock",
       "traits": [
         {

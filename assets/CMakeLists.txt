@@ -115,6 +115,10 @@ if(${EXTERNAL_ASSETS})
       swat/swat_2_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
+      tent/tent_color_rough.tga
+      tent/tent_normal.tga
+      tent/tent.bin
+      tent/tent.gltf
       terrain/terrain_3_height.r16
       terrain/terrain_3_splat.tga
       tiling/clouds.tga
