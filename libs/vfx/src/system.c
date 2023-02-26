@@ -386,12 +386,14 @@ static void vfx_instance_output_sprite(
 }
 
 static void vfx_instance_output_light(
+    const EcsEntityId   entity,
     const VfxInstance*  instance,
     RendLightComp*      lightOutput,
     const AssetVfxComp* asset,
     const VfxTrans*     sysTrans,
     const TimeDuration  sysTimeRem) {
 
+  const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
   GeoColor             radiance = light->radiance;
   if (radiance.a <= f32_epsilon) {
@@ -413,8 +415,8 @@ static void vfx_instance_output_light(
   radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
   if (light->turbulenceFrequency > 0.0f) {
     // TODO: Make the turbulence scale configurable.
-    // TODO: Implement a 1d perlin noise as an optimization.
-    radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, 0, 0);
+    // TODO: Implement a 2d perlin noise as an optimization.
+    radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, seed, 0);
   }
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
 }
@@ -442,6 +444,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const EcsEntityId                entity    = ecs_view_entity(itr);
     const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
@@ -472,7 +475,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
       vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem);
-      vfx_instance_output_light(instance, light, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem);
     }
   }
 }
