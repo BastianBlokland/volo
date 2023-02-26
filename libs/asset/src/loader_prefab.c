@@ -576,10 +576,10 @@ const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringH
       mem_struct(AssetPrefab, .nameHash = nameHash).ptr);
 }
 
-u32 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash nameHash) {
+u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash nameHash) {
   const AssetPrefab* prefab = asset_prefab_get(map, nameHash);
   if (UNLIKELY(!prefab)) {
-    return sentinel_u32;
+    return sentinel_u16;
   }
-  return (u32)(prefab - map->prefabs);
+  return (u16)(prefab - map->prefabs);
 }

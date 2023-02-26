@@ -115,7 +115,7 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
-    const u32 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
+    const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
     diag_assert(!sentinel_check(prefabIndex));
 
     ++res[prefabIndex];
