@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_float.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
@@ -15,7 +16,8 @@ typedef struct {
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
   u32       tags;
-  u32       padding[3];
+  f32       alpha;
+  u32       padding[2];
 } RendInstanceData;
 
 ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in glsl");
@@ -34,7 +36,8 @@ typedef struct {
   GeoVector  posAndScale; // xyz: position, w: scale.
   GeoQuat    rot;
   u32        tags;
-  u32        padding[3];
+  f32        alpha;
+  u32        padding[2];
   RendMat3x4 jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
@@ -80,7 +83,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    if (renderable->flags & SceneRenderable_Hide) {
+    if (renderable->alpha <= f32_epsilon) {
       continue;
     }
 
@@ -122,6 +125,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
         data->rot         = rotation;
         data->tags        = (u32)tags;
+        data->alpha       = renderable->alpha;
         for (u32 i = 0; i != skeletonComp->jointCount; ++i) {
           data->jointDelta[i] = rend_transpose_to_3x4(&jointDeltas[i]);
         }
@@ -131,6 +135,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
       data->rot              = rotation;
       data->tags             = (u32)tags;
+      data->alpha            = renderable->alpha;
     }
   }
 }

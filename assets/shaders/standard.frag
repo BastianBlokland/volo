@@ -2,13 +2,15 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "rand.glsl"
 #include "tags.glsl"
 #include "texture.glsl"
 
-const f32 c_alphaClipThreshold = 0.2;
+const f32 c_alphaTextureThreshold = 0.2;
+const f32 c_alphaDitherMax        = 0.99;
 
-bind_spec(0) const bool s_normalMap = false;
-bind_spec(1) const bool s_alphaClip = false;
+bind_spec(0) const bool s_normalMap    = false;
+bind_spec(1) const bool s_alphaTexture = false;
 
 bind_graphic(1) uniform sampler2D u_texColorRough;
 bind_graphic(2) uniform sampler2D u_texNormal;
@@ -17,18 +19,21 @@ bind_graphic(3) uniform sampler2D u_texAlpha;
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(2) in f32v2 in_texcoord;
-bind_internal(3) in flat u32 in_tags;
+bind_internal(3) in flat f32v4 in_data;
 
 bind_internal(0) out f32v4 out_colorRough;
 bind_internal(1) out f32v4 out_normalTags;
 
 void main() {
-  // Discard fragment if the alpha is below the threshold.
-  if (s_alphaClip) {
-    const f32 alpha = texture(u_texAlpha, in_texcoord).r;
-    if (alpha < c_alphaClipThreshold) {
-      discard;
+  f32 alpha = in_data.y;
+  if (s_alphaTexture) {
+    if (texture(u_texAlpha, in_texcoord).r < c_alphaTextureThreshold) {
+      alpha = 0.0;
     }
+  }
+  // Dithered transparency.
+  if (alpha < c_alphaDitherMax && rand_gradient_noise(in_fragCoord.xy) > alpha) {
+    discard;
   }
 
   // Output color and roughness.
@@ -43,5 +48,6 @@ void main() {
   }
 
   // Output tags.
-  out_normalTags.w = tags_tex_encode(in_tags);
+  const u32 tags   = floatBitsToUint(in_data.x);
+  out_normalTags.w = tags_tex_encode(tags);
 }

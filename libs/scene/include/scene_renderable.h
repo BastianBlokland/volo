@@ -2,10 +2,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-typedef enum {
-  SceneRenderable_Hide = 1 << 0,
-} SceneRenderableFlags;
-
 /**
  * Indicates that the entity should be rendered with the given graphic.
  *
@@ -17,6 +13,6 @@ typedef enum {
  * Draws will automatically be batched with other renderables using the same graphic.
  */
 ecs_comp_extern_public(SceneRenderableComp) {
-  SceneRenderableFlags flags;
-  EcsEntityId          graphic;
+  EcsEntityId graphic;
+  f32         alpha;
 };

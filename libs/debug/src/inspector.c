@@ -427,6 +427,11 @@ static void inspector_panel_draw_renderable(
       ui_label(canvas, string_lit("Graphic"));
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_entity(canvas, renderable->graphic);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Alpha"));
+      ui_table_next_column(canvas, table);
+      ui_slider(canvas, &renderable->alpha);
     }
   }
 }

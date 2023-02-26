@@ -16,15 +16,15 @@ bind_instance_data(0) readonly uniform InstanceSkinned {
 bind_internal(0) out f32v3 out_worldNormal;
 bind_internal(1) out f32v4 out_worldTangent;
 bind_internal(2) out f32v2 out_texcoord;
-bind_internal(3) out flat u32 out_tags;
+bind_internal(3) out flat f32v4 out_data;
 
 void main() {
   const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
 
-  const u32     instanceTags  = u_instances[in_instanceIndex].tagsAndPadding.x;
   const f32v3   instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
   const f32     instanceScale = u_instances[in_instanceIndex].posAndScale.w;
   const f32v4   instanceQuat  = u_instances[in_instanceIndex].rot;
+  const f32v4   instanceData  = u_instances[in_instanceIndex].data;
   const f32m4x3 instanceSkinMat =
       instance_skin_mat(u_instances[in_instanceIndex], vert.jointIndices, vert.jointWeights);
 
@@ -38,5 +38,5 @@ void main() {
   out_worldNormal    = quat_rotate(instanceQuat, skinnedNormal);
   out_worldTangent   = f32v4(quat_rotate(instanceQuat, skinnedTangent.xyz), skinnedTangent.w);
   out_texcoord       = vert.texcoord;
-  out_tags           = instanceTags;
+  out_data           = instanceData;
 }

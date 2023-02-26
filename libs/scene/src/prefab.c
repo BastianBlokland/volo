@@ -126,7 +126,7 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
-  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic);
+  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .alpha = 1.0f);
 }
 
 static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
