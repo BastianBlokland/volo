@@ -376,7 +376,7 @@ static void input_order(
    * Order an attack when clicking an opponent unit.
    */
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionB};
+  const SceneQueryFilter filter  = {.layerMask = ~SceneLayer_UnitFactionA & SceneLayer_Unit};
   const f32              radius  = 0.5f;
   const f32              maxDist = g_inputMaxInteractDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
