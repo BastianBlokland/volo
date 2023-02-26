@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_float.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
 #include "rend_register.h"
@@ -80,7 +81,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    if (renderable->flags & SceneRenderable_Hide) {
+    if (renderable->alpha <= f32_epsilon) {
       continue;
     }
 
