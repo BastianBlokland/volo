@@ -246,9 +246,10 @@ static i8 prefab_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  PrefabError_None            = 0,
-  PrefabError_DuplicatePrefab = 1,
-  PrefabError_DuplicateTrait  = 2,
+  PrefabError_None                  = 0,
+  PrefabError_DuplicatePrefab       = 1,
+  PrefabError_DuplicateTrait        = 2,
+  PrefabError_PrefabCountExceedsMax = 3,
 
   PrefabError_Count,
 } PrefabError;
@@ -258,6 +259,7 @@ static String prefab_error_str(const PrefabError err) {
       string_static("None"),
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
+      string_static("Prefab count exceeds the maximum count"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -492,6 +494,10 @@ ecs_system_define(LoadPrefabAssetSys) {
     data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataMapDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
+      goto Error;
+    }
+    if (UNLIKELY(def.prefabs.count > u16_max)) {
+      errMsg = prefab_error_str(PrefabError_PrefabCountExceedsMax);
       goto Error;
     }
 
