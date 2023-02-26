@@ -332,9 +332,10 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
   ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
   ctx->panelComp->totalRows = 0;
 
-  for (u32 prefabIdx = 0; prefabIdx != ctx->prefabMap->prefabCount; ++prefabIdx) {
-    AssetPrefab* prefab = &ctx->prefabMap->prefabs[prefabIdx];
-    const String name   = stringtable_lookup(g_stringtable, prefab->nameHash);
+  for (u16 userIndex = 0; userIndex != ctx->prefabMap->prefabCount; ++userIndex) {
+    const u16    prefabIdx = asset_prefab_get_index_from_user(ctx->prefabMap, userIndex);
+    AssetPrefab* prefab    = &ctx->prefabMap->prefabs[prefabIdx];
+    const String name      = stringtable_lookup(g_stringtable, prefab->nameHash);
 
     if (!prefab_filter(ctx, name)) {
       continue;
