@@ -4,11 +4,13 @@
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_brain.h"
+#include "scene_faction.h"
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
 
-static StringHash g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttackTarget;
+static const SceneFaction g_playerFaction = SceneFaction_A;
+static StringHash         g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttackTarget;
 
 typedef enum {
   Cmd_Select,
@@ -69,7 +71,10 @@ static void ecs_destruct_controller(void* data) {
 
 ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
 ecs_view_define(GlobalUpdateView) { ecs_access_write(SceneSelectionComp); }
-ecs_view_define(BrainView) { ecs_access_write(SceneBrainComp); }
+ecs_view_define(BrainView) {
+  ecs_access_read(SceneFactionComp);
+  ecs_access_write(SceneBrainComp);
+}
 
 static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, ControllerWriteView);
@@ -77,9 +82,13 @@ static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
   return itr ? ecs_view_write_t(itr, CmdControllerComp) : null;
 }
 
+static bool cmd_is_player_owned(EcsIterator* itr) {
+  return ecs_view_read_t(itr, SceneFactionComp)->id == g_playerFaction;
+}
+
 static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdMove->object);
-  if (brainItr) {
+  if (brainItr && cmd_is_player_owned(brainItr)) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
@@ -89,7 +98,7 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
 
 static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdStop->object);
-  if (brainItr) {
+  if (brainItr && cmd_is_player_owned(brainItr)) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyStop, script_bool(true));
@@ -99,7 +108,7 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
 
 static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdAttack->object);
-  if (brainItr) {
+  if (brainItr && cmd_is_player_owned(brainItr)) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
     scene_brain_set(brain, g_brainKeyAttackTarget, script_entity(cmdAttack->target));

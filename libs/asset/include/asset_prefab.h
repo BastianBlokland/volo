@@ -135,9 +135,10 @@ typedef struct {
 } AssetPrefab;
 
 ecs_comp_extern_public(AssetPrefabMapComp) {
-  AssetPrefab*      prefabs; // Sorted on the nameHash.
+  AssetPrefab*      prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
+  u16*              userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
   usize             prefabCount;
-  AssetPrefabTrait* traits;
+  AssetPrefabTrait* traits; // AssetPrefabTrait[traitCount];
   usize             traitCount;
 };
 
@@ -145,4 +146,5 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
  * Lookup a prefab by the hash of its name.
  */
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
-u32                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
+u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
+u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);

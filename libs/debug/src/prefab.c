@@ -115,7 +115,7 @@ static u32* prefab_instance_counts_scratch(const PrefabPanelContext* ctx) {
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
-    const u32 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
+    const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
     diag_assert(!sentinel_check(prefabIndex));
 
     ++res[prefabIndex];
@@ -332,9 +332,10 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
   ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
   ctx->panelComp->totalRows = 0;
 
-  for (u32 prefabIdx = 0; prefabIdx != ctx->prefabMap->prefabCount; ++prefabIdx) {
-    AssetPrefab* prefab = &ctx->prefabMap->prefabs[prefabIdx];
-    const String name   = stringtable_lookup(g_stringtable, prefab->nameHash);
+  for (u16 userIndex = 0; userIndex != ctx->prefabMap->prefabCount; ++userIndex) {
+    const u16    prefabIdx = asset_prefab_get_index_from_user(ctx->prefabMap, userIndex);
+    AssetPrefab* prefab    = &ctx->prefabMap->prefabs[prefabIdx];
+    const String name      = stringtable_lookup(g_stringtable, prefab->nameHash);
 
     if (!prefab_filter(ctx, name)) {
       continue;
