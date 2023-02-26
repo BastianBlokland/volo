@@ -296,8 +296,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       continue; // Graphic does not have a mesh to draw a shadow for.
     }
     RvkImage* dynAlphaImage = null;
-    if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard) {
-      enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
+    enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
+    const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
+    if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
       RvkTexture* alphaTexture = graphicOriginal->samplers[AlphaTextureIndex].texture;
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
