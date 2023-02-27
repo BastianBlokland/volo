@@ -200,6 +200,8 @@ ecs_system_define(SceneHealthUpdateSys) {
       }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);
+      ecs_world_add_t(
+          world, entity, SceneRenderableFadeoutComp, .duration = time_milliseconds(500));
     }
   }
 }
