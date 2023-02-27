@@ -28,7 +28,7 @@
       "anisotropy": "x2"
     }
   ],
-  "meshId": "external/turret/turret_missile.gltf",
+  "meshId": "external/turret/turret_missile_2.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

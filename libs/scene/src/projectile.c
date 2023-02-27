@@ -13,7 +13,7 @@
 #include "scene_vfx.h"
 
 #define proj_seek_angle_max (210.0f * math_deg_to_rad)
-#define proj_seek_buildup_time time_milliseconds(750)
+#define proj_seek_buildup_time (time_second)
 
 ecs_comp_define_public(SceneProjectileComp);
 

@@ -142,8 +142,8 @@ if(${EXTERNAL_ASSETS})
       turret/turret_2_nrm.tga
       turret/turret_4_color_rough.tga
       turret/turret_big.gltf
-      turret/turret_missile.bin
-      turret/turret_missile.gltf
+      turret/turret_missile_2.bin
+      turret/turret_missile_2.gltf
       turret/turret.bin
       vfx/arrow.tga
       vfx/flash_2.tga
