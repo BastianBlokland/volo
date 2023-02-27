@@ -675,12 +675,16 @@ static bool rend_canvas_paint(
   RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (rend_light_has_shadow(light)) {
-    const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
-    const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
-    const RendView   shadowView  = painter_view_create(shadowTrans, shadowProj, camEntity, filter);
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadowView);
+    const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
+    const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
+    const SceneTagFilter shadFilter = {
+        .required = filter.required | SceneTags_ShadowCaster,
+        .illegal  = filter.illegal,
+    };
+    const RendView   shadView = painter_view_create(shadTrans, shadProj, camEntity, shadFilter);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
-    painter_stage_global_data(&ctx, shadowTrans, shadowProj, shadowSize, time, RendViewType_Shadow);
+    painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   } else {
