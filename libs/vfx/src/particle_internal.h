@@ -19,6 +19,7 @@ typedef enum {
   VfxParticle_BillboardSphere   = 1 << 1,
   VfxParticle_BillboardCylinder = 1 << 2,
   VfxParticle_Billboard         = VfxParticle_BillboardSphere | VfxParticle_BillboardCylinder,
+  VfxParticle_ShadowCaster      = 1 << 3,
 } VfxParticleFlags;
 
 typedef struct {

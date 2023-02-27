@@ -148,7 +148,11 @@ void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
     bounds = geo_box_from_quad(p->position, p->sizeX, p->sizeY, p->rotation);
   }
 
-  VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, SceneTags_Vfx, bounds);
+  SceneTags tags = SceneTags_Vfx;
+  if (p->flags & VfxParticle_ShadowCaster) {
+    tags |= SceneTags_ShadowCaster;
+  }
+  VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, tags, bounds);
   data->data1           = p->position;
   data->data1.w         = (f32)p->atlasIndex;
 

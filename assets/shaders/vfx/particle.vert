@@ -28,6 +28,7 @@ const u32 c_flagGeometryFade      = 1 << 0;
 const u32 c_flagBillboardSphere   = 1 << 1;
 const u32 c_flagBillboardCylinder = 1 << 2;
 const u32 c_flagBillboard         = c_flagBillboardSphere | c_flagBillboardCylinder;
+const u32 c_flagShadowCaster      = 1 << 3;
 
 struct MetaData {
   f32 atlasEntriesPerDim;
