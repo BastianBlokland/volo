@@ -122,7 +122,8 @@
         "fadeInTime": 0.05,
         "fadeOutTime": 2.25,
         "scaleInTime": 1.5,
-        "geometryFade": true
+        "geometryFade": true,
+        "shadowCaster": true
       },
       "speed": {
         "min": 3.25,
@@ -163,7 +164,8 @@
           "y": 0.25
         },
         "fadeInTime": 0.05,
-        "fadeOutTime": 0.15
+        "fadeOutTime": 0.15,
+        "shadowCaster": true
       },
       "speed": {
         "min": 7,
