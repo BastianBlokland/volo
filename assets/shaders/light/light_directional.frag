@@ -44,7 +44,7 @@ bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(4) uniform sampler2DShadow u_texShadow;
 
-bind_graphic(1) uniform sampler2D u_texCoverageMask;
+bind_graphic_img(0) uniform sampler2D u_texCoverageMask;
 
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v3 in_direction;

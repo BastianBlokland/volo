@@ -37,9 +37,9 @@ bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(3) uniform sampler2D u_texAmbientOcclusion;
 
-bind_graphic(0) uniform samplerCube u_texDiffIrradiance;
-bind_graphic(1) uniform samplerCube u_texSpecIrradiance;
-bind_graphic(2) uniform sampler2D u_texBrdfIntegration;
+bind_graphic_img(0) uniform samplerCube u_texDiffIrradiance;
+bind_graphic_img(1) uniform samplerCube u_texSpecIrradiance;
+bind_graphic_img(2) uniform sampler2D u_texBrdfIntegration;
 
 bind_draw_data(0) readonly uniform Draw { AmbientData u_draw; };
 

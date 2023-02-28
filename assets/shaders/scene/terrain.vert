@@ -13,7 +13,7 @@ bind_instance_data(0) readonly uniform Instance {
   TerrainPatchData[c_terrainMaxPatches] u_patches;
 };
 
-bind_graphic(1) uniform sampler2D u_texHeight;
+bind_graphic_img(0) uniform sampler2D u_texHeight;
 
 bind_internal(0) out flat f32 out_size;
 bind_internal(1) out flat f32 out_heightScale;

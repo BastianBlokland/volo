@@ -15,8 +15,10 @@ const u32 c_setInstance = 4;
 /**
  * Maximum count of bindings per type for each set.
  */
-const u32 c_setGlobalMaxData  = 1;
-const u32 c_setGlobalMaxImage = 5;
+const u32 c_setGlobalMaxData   = 1;
+const u32 c_setGlobalMaxImage  = 5;
+const u32 c_setGraphicMaxData  = 1;
+const u32 c_setGraphicMaxImage = 6;
 
 /**
  * Declare a global (per pass) binding.
@@ -26,15 +28,9 @@ const u32 c_setGlobalMaxImage = 5;
 
 /**
  * Declare a per-graphic binding.
- * Supported indices:
- *  0: Mesh (Storage buffer) / Texture (Image sampler).
- *  1: Texture (Image sampler).
- *  2: Texture (Image sampler).
- *  3: Texture (Image sampler).
- *  4: Texture (Image sampler).
  */
-#define bind_graphic(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_)
-#define bind_graphic_data(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_, std140)
+#define bind_graphic_data(_IDX) layout(set = c_setGraphic, binding = _IDX, std140)
+#define bind_graphic_img(_IDX) layout(set = c_setGraphic, binding = c_setGraphicMaxData + _IDX)
 
 /**
  * Declare a dynamic binding.

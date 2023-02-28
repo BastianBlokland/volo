@@ -12,7 +12,7 @@ const u32 c_flagGeometryFade = 1 << 0;
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
-bind_graphic(0) uniform sampler2D u_atlas;
+bind_graphic_img(0) uniform sampler2D u_atlas;
 
 bind_internal(0) in flat f32v4 in_color;
 bind_internal(1) in flat f32 in_opacity;

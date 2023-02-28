@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "texture.glsl"
 
-bind_graphic(0) uniform samplerCube u_texCubeMap;
+bind_graphic_img(0) uniform samplerCube u_texCubeMap;
 
 bind_internal(0) in f32v3 in_worldViewDir; // NOTE: non-normalized
 
