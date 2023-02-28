@@ -309,6 +309,11 @@ ecs_system_define(UiCanvasInputSys) {
     const GapVector       scrollDelta = gap_window_param(window, GapParam_ScrollDelta);
 
     if (!winSize.x || !winSize.y) {
+      // Clear any input when the window is zero sized.
+      ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
+      canvas->flags &= ~UiCanvasFlags_InputAny;
+      canvas->inputDelta  = ui_vector(0, 0);
+      canvas->inputScroll = ui_vector(0, 0);
       continue; // Window is zero sized; No need to render the Ui.
     }
 

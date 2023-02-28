@@ -92,9 +92,11 @@ ecs_system_define(AppUpdateSys) {
     }
 
     if (input_triggered_lit(input, "WindowClose") || dbgEvents & DebugMenuEvents_CloseWindow) {
+      log_i("Close window");
       gap_window_close(win);
     }
     if (input_triggered_lit(input, "WindowFullscreen") || dbgEvents & DebugMenuEvents_Fullscreen) {
+      log_i("Toggle fullscreen");
       app_window_fullscreen_toggle(win);
     }
   }
