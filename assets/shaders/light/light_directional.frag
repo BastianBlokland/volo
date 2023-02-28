@@ -39,10 +39,10 @@ const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global(1) uniform sampler2D u_texGeoColorRough;
-bind_global(2) uniform sampler2D u_texGeoNormalTags;
-bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_global(5) uniform sampler2DShadow u_texShadow;
+bind_global_img(0) uniform sampler2D u_texGeoColorRough;
+bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(2) uniform sampler2D u_texGeoDepth;
+bind_global_img(4) uniform sampler2DShadow u_texShadow;
 
 bind_graphic(1) uniform sampler2D u_texCoverageMask;
 

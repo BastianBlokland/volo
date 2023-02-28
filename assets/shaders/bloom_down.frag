@@ -5,7 +5,7 @@
 #include "tags.glsl"
 #include "texture.glsl"
 
-bind_global(1) uniform sampler2D u_texInput;
+bind_global_img(0) uniform sampler2D u_texInput;
 
 bind_internal(0) in f32v2 in_texcoord;
 

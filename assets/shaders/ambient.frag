@@ -32,10 +32,10 @@ const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_global(1) uniform sampler2D u_texGeoColorRough;
-bind_global(2) uniform sampler2D u_texGeoNormalTags;
-bind_global(3) uniform sampler2D u_texGeoDepth;
-bind_global(4) uniform sampler2D u_texAmbientOcclusion;
+bind_global_img(0) uniform sampler2D u_texGeoColorRough;
+bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(2) uniform sampler2D u_texGeoDepth;
+bind_global_img(3) uniform sampler2D u_texAmbientOcclusion;
 
 bind_graphic(0) uniform samplerCube u_texDiffIrradiance;
 bind_graphic(1) uniform samplerCube u_texSpecIrradiance;

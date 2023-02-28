@@ -3,6 +3,9 @@
 
 #include "types.glsl"
 
+/**
+ * Set indices.
+ */
 const u32 c_setGlobal   = 0;
 const u32 c_setGraphic  = 1;
 const u32 c_setDynamic  = 2;
@@ -10,14 +13,16 @@ const u32 c_setDraw     = 3;
 const u32 c_setInstance = 4;
 
 /**
- * Declare a global (per pass) binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
- *  1: Texture (Image sampler).
- *  2: Texture (Image sampler).
+ * Maximum count of bindings per type for each set.
  */
-#define bind_global(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_)
-#define bind_global_data(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_, std140)
+const u32 c_setGlobalMaxData  = 1;
+const u32 c_setGlobalMaxImage = 5;
+
+/**
+ * Declare a global (per pass) binding.
+ */
+#define bind_global_data(_IDX_) layout(set = c_setGlobal, binding = _IDX_, std140)
+#define bind_global_img(_IDX_) layout(set = c_setGlobal, binding = c_setGlobalMaxData + _IDX_)
 
 /**
  * Declare a per-graphic binding.

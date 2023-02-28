@@ -14,8 +14,8 @@ struct AoData {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global(1) uniform sampler2D u_texGeoNormalTags;
-bind_global(2) uniform sampler2D u_texGeoDepth;
+bind_global_img(0) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(1) uniform sampler2D u_texGeoDepth;
 bind_draw_data(0) readonly uniform Draw { AoData u_draw; };
 
 bind_graphic(1) uniform sampler2D u_texRotNoise;
