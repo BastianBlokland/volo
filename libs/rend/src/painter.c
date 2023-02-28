@@ -235,7 +235,7 @@ static void painter_stage_global_data(
     data.camPosition = geo_matrix_to_translation(cameraMatrix);
     data.camRotation = geo_matrix_to_quat(cameraMatrix);
   }
-  rvk_pass_stage_global_data(ctx->pass, mem_var(data));
+  rvk_pass_stage_global_data(ctx->pass, mem_var(data), 0);
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {

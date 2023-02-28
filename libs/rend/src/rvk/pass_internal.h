@@ -99,7 +99,7 @@ bool rvk_pass_prepare_texture(RvkPass*, RvkTexture*);
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
 void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
 void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
-void rvk_pass_stage_global_data(RvkPass*, Mem);
+void rvk_pass_stage_global_data(RvkPass*, Mem, u16 dataIndex);
 void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 

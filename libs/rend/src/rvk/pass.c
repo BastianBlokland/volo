@@ -21,6 +21,7 @@
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
 #define pass_dependencies_max 8
+#define pass_global_data_max 1
 #define pass_global_image_max 5
 
 typedef RvkGraphic* RvkGraphicPtr;
@@ -52,8 +53,8 @@ typedef struct {
 
   // Global resources.
   RvkDescSet globalDescSet;
-  u32        globalDataOffset;
   u16        globalBoundMask; // Bitset of the bound global resources.
+  u32        globalDataOffsets[pass_global_data_max];
   RvkImage*  globalImages[pass_global_image_max];
 } RvkPassStage;
 
@@ -287,11 +288,13 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
 }
 
 static RvkDescMeta rvk_global_desc_meta() {
-  RvkDescMeta meta = {
-      .bindings[0] = RvkDescKind_UniformBufferDynamic,
-  };
+  RvkDescMeta meta;
+  u16         globalBindingCount = 0;
+  for (u16 globalDataIdx = 0; globalDataIdx != pass_global_data_max; ++globalDataIdx) {
+    meta.bindings[globalBindingCount++] = RvkDescKind_UniformBufferDynamic;
+  }
   for (u16 globalImgIdx = 0; globalImgIdx != pass_global_image_max; ++globalImgIdx) {
-    meta.bindings[1 + globalImgIdx] = RvkDescKind_CombinedImageSampler2D;
+    meta.bindings[globalBindingCount++] = RvkDescKind_CombinedImageSampler2D;
   }
   return meta;
 }
@@ -368,8 +371,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
 static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
   diag_assert(stage->globalBoundMask != 0);
 
-  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(stage->globalDescSet)};
-  const u32             dynamicOffsets[] = {stage->globalDataOffset};
+  const VkDescriptorSet descSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
   vkCmdBindDescriptorSets(
       pass->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -377,8 +379,8 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
       RvkGraphicSet_Global,
       array_elems(descSets),
       descSets,
-      array_elems(dynamicOffsets),
-      dynamicOffsets);
+      array_elems(stage->globalDataOffsets),
+      stage->globalDataOffsets);
 }
 
 static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
@@ -729,12 +731,13 @@ void rvk_pass_stage_attach_depth(MAYBE_UNUSED RvkPass* pass, RvkImage* img) {
   stage->attachDepth = img;
 }
 
-void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
+void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
 
-  const u32 globalDataBinding = 0;
+  const u32 globalDataBinding = dataIndex;
+  diag_assert_msg(dataIndex < pass_global_image_max, "Global data index out of bounds");
   diag_assert_msg(!(stage->globalBoundMask & (1 << globalDataBinding)), "Data already staged");
 
   const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
@@ -746,8 +749,8 @@ void rvk_pass_stage_global_data(MAYBE_UNUSED RvkPass* pass, const Mem data) {
   rvk_desc_set_attach_buffer(
       stage->globalDescSet, globalDataBinding, dataBuffer, rvk_uniform_size_max(pass->uniformPool));
 
-  stage->globalDataOffset = dataHandle.offset;
   stage->globalBoundMask |= 1 << globalDataBinding;
+  stage->globalDataOffsets[dataIndex] = dataHandle.offset;
 }
 
 static void rvk_pass_stage_global_image_internal(
@@ -762,7 +765,7 @@ static void rvk_pass_stage_global_image_internal(
     image = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
   }
 
-  const u32 bindIndex = 1 + imageIndex;
+  const u32 bindIndex = pass_global_data_max + imageIndex;
   diag_assert_msg(!(stage->globalBoundMask & (1 << bindIndex)), "Image already staged");
   diag_assert_msg(imageIndex < pass_global_image_max, "Global image index out of bounds");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
@@ -813,7 +816,7 @@ void rvk_pass_begin(RvkPass* pass) {
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, stage);
 
 #ifndef VOLO_FAST
-  // Validate that all images we load have contents loaded in them.
+  // Validate that all images we load have content loaded in them.
   rvk_pass_assert_image_contents(pass, stage);
 #endif
 
