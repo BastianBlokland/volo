@@ -21,6 +21,8 @@ const u32 c_setGraphicMaxData  = 1;
 const u32 c_setGraphicMaxImage = 6;
 const u32 c_setDynamicMaxData  = 1;
 const u32 c_setDynamicMaxImage = 1;
+const u32 c_setDrawMaxData     = 1;
+const u32 c_setInstanceMaxData = 1;
 
 /**
  * Declare a global (per pass) binding.
@@ -43,29 +45,23 @@ const u32 c_setDynamicMaxImage = 1;
 
 /**
  * Declare a per-draw binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
  */
-#define bind_draw(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_)
-#define bind_draw_data(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_, std140)
+#define bind_draw_data(_IDX) layout(set = c_setDraw, binding = _IDX, std140)
 
 /**
  * Declare a per-instance binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
  */
-#define bind_instance(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_)
-#define bind_instance_data(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_, std140)
+#define bind_instance_data(_IDX_) layout(set = c_setInstance, binding = _IDX_, std140)
 
 /**
  * Declare an internal (for example vertex to fragment) binding.
  */
-#define bind_internal(_BIND_IDX_) layout(location = _BIND_IDX_)
+#define bind_internal(_IDX_) layout(location = _IDX_)
 
 /**
  * Declare a specialization constant binding.
  */
-#define bind_spec(_BIND_IDX_) layout(constant_id = _BIND_IDX_)
+#define bind_spec(_IDX_) layout(constant_id = _IDX_)
 
 /**
  * Build-in bindings.
