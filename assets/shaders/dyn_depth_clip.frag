@@ -8,7 +8,7 @@
 const f32 c_alphaTextureThreshold = 0.2;
 const f32 c_alphaDitherMax        = 0.99;
 
-bind_dynamic(1) uniform sampler2D u_texAlpha;
+bind_dynamic_img(0) uniform sampler2D u_texAlpha;
 
 bind_internal(0) in f32v2 in_texcoord;
 bind_internal(1) in flat f32v4 in_data;

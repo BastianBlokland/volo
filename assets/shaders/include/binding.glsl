@@ -19,6 +19,8 @@ const u32 c_setGlobalMaxData   = 1;
 const u32 c_setGlobalMaxImage  = 5;
 const u32 c_setGraphicMaxData  = 1;
 const u32 c_setGraphicMaxImage = 6;
+const u32 c_setDynamicMaxData  = 1;
+const u32 c_setDynamicMaxImage = 1;
 
 /**
  * Declare a global (per pass) binding.
@@ -35,12 +37,9 @@ const u32 c_setGraphicMaxImage = 6;
 /**
  * Declare a dynamic binding.
  * Allows for binding resources (like meshes) dynamically instead of fixed per graphic.
- *
- * Supported indices:
- *  0: Mesh (Storage buffer).
  */
-#define bind_dynamic(_BIND_IDX_) layout(set = c_setDynamic, binding = _BIND_IDX_)
-#define bind_dynamic_data(_BIND_IDX_) layout(set = c_setDynamic, binding = _BIND_IDX_, std140)
+#define bind_dynamic_data(_IDX_) layout(set = c_setDynamic, binding = _IDX_, std140)
+#define bind_dynamic_img(_IDX_) layout(set = c_setDynamic, binding = c_setDynamicMaxData + _IDX_)
 
 /**
  * Declare a per-draw binding.
