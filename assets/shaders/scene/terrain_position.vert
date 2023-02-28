@@ -13,7 +13,7 @@ bind_instance_data(0) readonly uniform Instance {
   TerrainPatchData[c_terrainMaxPatches] u_patches;
 };
 
-bind_graphic(1) uniform sampler2D u_texHeight;
+bind_graphic_img(0) uniform sampler2D u_texHeight;
 
 f32 heightmap_sample(const f32v2 uv, const f32 scale) { return texture(u_texHeight, uv).r * scale; }
 

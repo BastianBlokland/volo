@@ -8,8 +8,8 @@
 const f32   c_depthThreshold = 1e-4;
 const f32v3 c_outlineColor   = f32v3(0.75, 0.75, 0.75);
 
-bind_global(2) uniform sampler2D u_texGeoNormalTags;
-bind_global(3) uniform sampler2D u_texGeoDepth;
+bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in f32v2 in_texcoord;
 

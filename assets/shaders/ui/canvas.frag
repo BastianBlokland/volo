@@ -12,7 +12,7 @@ const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
 const f32   c_outlineNormMax  = 0.9; // Avoid the extremities of the sdf border to avoid artifacts.
 const f32   c_outlineMin      = 0.001; // Outlines smaller then this will not be drawn.
 
-bind_graphic(1) uniform sampler2D u_fontTexture;
+bind_graphic_img(0) uniform sampler2D u_fontTexture;
 
 bind_internal(0) in f32v2 in_uiPos;             // Coordinates in ui-pixels.
 bind_internal(1) in f32v2 in_texCoord;          // Texture coordinates of this glyph.

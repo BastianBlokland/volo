@@ -3,6 +3,9 @@
 
 #include "types.glsl"
 
+/**
+ * Set indices.
+ */
 const u32 c_setGlobal   = 0;
 const u32 c_setGraphic  = 1;
 const u32 c_setDynamic  = 2;
@@ -10,62 +13,55 @@ const u32 c_setDraw     = 3;
 const u32 c_setInstance = 4;
 
 /**
- * Declare a global (per pass) binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
- *  1: Texture (Image sampler).
- *  2: Texture (Image sampler).
+ * Maximum count of bindings per type for each set.
  */
-#define bind_global(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_)
-#define bind_global_data(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_, std140)
+const u32 c_setGlobalMaxData   = 2;
+const u32 c_setGlobalMaxImage  = 5;
+const u32 c_setGraphicMaxData  = 1;
+const u32 c_setGraphicMaxImage = 6;
+const u32 c_setDynamicMaxData  = 1;
+const u32 c_setDynamicMaxImage = 1;
+const u32 c_setDrawMaxData     = 1;
+const u32 c_setInstanceMaxData = 1;
+
+/**
+ * Declare a global (per pass) binding.
+ */
+#define bind_global_data(_IDX_) layout(set = c_setGlobal, binding = _IDX_, std140)
+#define bind_global_img(_IDX_) layout(set = c_setGlobal, binding = c_setGlobalMaxData + _IDX_)
 
 /**
  * Declare a per-graphic binding.
- * Supported indices:
- *  0: Mesh (Storage buffer) / Texture (Image sampler).
- *  1: Texture (Image sampler).
- *  2: Texture (Image sampler).
- *  3: Texture (Image sampler).
- *  4: Texture (Image sampler).
  */
-#define bind_graphic(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_)
-#define bind_graphic_data(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_, std140)
+#define bind_graphic_data(_IDX) layout(set = c_setGraphic, binding = _IDX, std140)
+#define bind_graphic_img(_IDX) layout(set = c_setGraphic, binding = c_setGraphicMaxData + _IDX)
 
 /**
  * Declare a dynamic binding.
  * Allows for binding resources (like meshes) dynamically instead of fixed per graphic.
- *
- * Supported indices:
- *  0: Mesh (Storage buffer).
  */
-#define bind_dynamic(_BIND_IDX_) layout(set = c_setDynamic, binding = _BIND_IDX_)
-#define bind_dynamic_data(_BIND_IDX_) layout(set = c_setDynamic, binding = _BIND_IDX_, std140)
+#define bind_dynamic_data(_IDX_) layout(set = c_setDynamic, binding = _IDX_, std140)
+#define bind_dynamic_img(_IDX_) layout(set = c_setDynamic, binding = c_setDynamicMaxData + _IDX_)
 
 /**
  * Declare a per-draw binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
  */
-#define bind_draw(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_)
-#define bind_draw_data(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_, std140)
+#define bind_draw_data(_IDX) layout(set = c_setDraw, binding = _IDX, std140)
 
 /**
  * Declare a per-instance binding.
- * Supported indices:
- *  0: User data (Uniform buffer).
  */
-#define bind_instance(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_)
-#define bind_instance_data(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_, std140)
+#define bind_instance_data(_IDX_) layout(set = c_setInstance, binding = _IDX_, std140)
 
 /**
  * Declare an internal (for example vertex to fragment) binding.
  */
-#define bind_internal(_BIND_IDX_) layout(location = _BIND_IDX_)
+#define bind_internal(_IDX_) layout(location = _IDX_)
 
 /**
  * Declare a specialization constant binding.
  */
-#define bind_spec(_BIND_IDX_) layout(constant_id = _BIND_IDX_)
+#define bind_spec(_IDX_) layout(constant_id = _IDX_)
 
 /**
  * Build-in bindings.

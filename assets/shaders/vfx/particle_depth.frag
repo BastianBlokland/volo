@@ -11,7 +11,7 @@ const f32 c_alphaMult      = 0.75;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_graphic(0) uniform sampler2D u_atlas;
+bind_graphic_img(0) uniform sampler2D u_atlas;
 
 bind_internal(0) in flat f32v4 in_color;
 bind_internal(1) in flat f32 in_opacity;

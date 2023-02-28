@@ -18,7 +18,7 @@ const f32v2 c_unitTexCoords[] = {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_dynamic(1) uniform sampler2D u_tex;
+bind_dynamic_img(0) uniform sampler2D u_tex;
 
 bind_internal(0) out f32v2 out_texcoord;
 

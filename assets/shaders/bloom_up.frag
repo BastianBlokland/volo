@@ -9,7 +9,7 @@ struct BloomData {
   f32 filterRadius;
 };
 
-bind_global(1) uniform sampler2D u_texInput;
+bind_global_img(0) uniform sampler2D u_texInput;
 bind_draw_data(0) readonly uniform Draw { BloomData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;

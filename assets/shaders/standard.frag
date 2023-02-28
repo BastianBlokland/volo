@@ -12,9 +12,9 @@ const f32 c_alphaDitherMax        = 0.99;
 bind_spec(0) const bool s_normalMap    = false;
 bind_spec(1) const bool s_alphaTexture = false;
 
-bind_graphic(1) uniform sampler2D u_texColorRough;
-bind_graphic(2) uniform sampler2D u_texNormal;
-bind_graphic(3) uniform sampler2D u_texAlpha;
+bind_graphic_img(0) uniform sampler2D u_texColorRough;
+bind_graphic_img(1) uniform sampler2D u_texNormal;
+bind_graphic_img(2) uniform sampler2D u_texAlpha;
 
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
