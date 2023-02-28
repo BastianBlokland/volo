@@ -22,7 +22,6 @@ String scene_tag_name(const SceneTags tags) {
   static const String g_names[] = {
       string_static("Terrain"),
       string_static("Geometry"),
-      string_static("ShadowCaster"),
       string_static("Vfx"),
       string_static("Ui"),
       string_static("Debug"),
@@ -30,6 +29,7 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Selected"),
       string_static("Damaged"),
       string_static("Light"),
+      string_static("ShadowCaster"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
   return g_names[index];
