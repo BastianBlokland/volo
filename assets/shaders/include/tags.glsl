@@ -12,6 +12,7 @@
 #define tag_outline_bit 6
 #define tag_damaged_bit 7
 #define tag_light_bit 8
+#define tag_shadow_caster_bit 9
 
 /**
  * Query if the given tag bit is set.

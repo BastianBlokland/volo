@@ -276,12 +276,18 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
 }
 
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  RendDrawFlags requiredAny = 0;
+  requiredAny |= RendDrawFlags_StandardGeometry; // Include geometry.
+  if (ctx->settings->flags & RendFlags_ParticleShadows) {
+    requiredAny |= RendDrawFlags_Particle; // Include particles.
+  }
+
   RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
   EcsIterator*   graphicItr = ecs_view_itr(graView);
 
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_StandardGeometry)) {
+    if (!(rend_draw_flags(draw) & requiredAny)) {
       continue; // Shouldn't be included in the shadow pass.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
@@ -290,10 +296,11 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
       continue; // Graphic not loaded.
     }
+    const bool  isParticle      = (rend_draw_flags(draw) & RendDrawFlags_Particle) != 0;
     RvkGraphic* graphicOriginal = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
     RvkMesh*    dynMesh         = graphicOriginal->mesh;
-    if (!dynMesh || !rvk_pass_prepare_mesh(ctx->pass, dynMesh)) {
-      continue; // Graphic does not have a mesh to draw a shadow for.
+    if (!isParticle && (!dynMesh || !rvk_pass_prepare_mesh(ctx->pass, dynMesh))) {
+      continue; // Graphic is not a particle and does not have a mesh to draw a shadow for.
     }
     RvkImage* dynAlphaImage = null;
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
@@ -306,7 +313,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       dynAlphaImage = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
-    if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
+    if (isParticle) {
+      graphicId = RvkRepositoryId_ShadowParticleGraphic;
+    } else if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
       graphicId = dynAlphaImage ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
@@ -675,12 +684,16 @@ static bool rend_canvas_paint(
   RvkPass*      shadowPass = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (rend_light_has_shadow(light)) {
-    const GeoMatrix* shadowTrans = rend_light_shadow_trans(light);
-    const GeoMatrix* shadowProj  = rend_light_shadow_proj(light);
-    const RendView   shadowView  = painter_view_create(shadowTrans, shadowProj, camEntity, filter);
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadowView);
+    const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
+    const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
+    const SceneTagFilter shadFilter = {
+        .required = filter.required | SceneTags_ShadowCaster,
+        .illegal  = filter.illegal,
+    };
+    const RendView   shadView = painter_view_create(shadTrans, shadProj, camEntity, shadFilter);
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
-    painter_stage_global_data(&ctx, shadowTrans, shadowProj, shadowSize, time, RendViewType_Shadow);
+    painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   } else {

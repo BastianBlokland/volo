@@ -158,12 +158,13 @@
         "facing": "BillboardSphere",
         "fadeInTime": 0.025,
         "fadeOutTime": 0.4,
-        "scaleInTime": 0.5,
+        "scaleInTime": 0.3,
         "size": {
-          "x": 0.75,
-          "y": 0.75
+          "x": 0.5,
+          "y": 0.5
         },
-        "geometryFade": true
+        "geometryFade": true,
+        "shadowCaster": true
       },
       "speed": {
         "min": 2,

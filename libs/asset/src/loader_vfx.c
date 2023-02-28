@@ -63,7 +63,7 @@ typedef struct {
   VfxVec2Def     size;
   f32            fadeInTime, fadeOutTime;
   f32            scaleInTime, scaleOutTime;
-  bool           geometryFade;
+  bool           geometryFade, shadowCaster;
 } VfxSpriteDef;
 
 typedef struct {
@@ -171,6 +171,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(reg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxSpriteDef, geometryFade, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, VfxSpriteDef, shadowCaster, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, VfxLightDef);
     data_reg_field_t(reg, VfxLightDef, radiance, t_VfxColorDef, .flags = DataFlags_Opt);
@@ -305,6 +306,7 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->scaleInTime   = (TimeDuration)time_seconds(def->scaleInTime);
   out->scaleOutTime  = (TimeDuration)time_seconds(def->scaleOutTime);
   out->geometryFade  = def->geometryFade;
+  out->shadowCaster  = def->shadowCaster;
 }
 
 static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {

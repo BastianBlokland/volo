@@ -35,6 +35,7 @@ typedef struct {
   TimeDuration   fadeInTime, fadeOutTime;
   TimeDuration   scaleInTime, scaleOutTime;
   bool           geometryFade; // Aka 'soft particles'.
+  bool           shadowCaster;
 } AssetVfxSprite;
 
 typedef struct {

@@ -85,7 +85,8 @@
         },
         "fadeInTime": 0.5,
         "fadeOutTime": 1.1,
-        "geometryFade": true
+        "geometryFade": true,
+        "shadowCaster": true
       },
       "expandForce": 2,
       "speed": {

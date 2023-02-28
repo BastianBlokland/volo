@@ -368,7 +368,9 @@ static void vfx_instance_output_sprite(
   if (sprite->geometryFade) {
     flags |= VfxParticle_GeometryFade;
   }
-
+  if (sprite->shadowCaster) {
+    flags |= VfxParticle_ShadowCaster;
+  }
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(

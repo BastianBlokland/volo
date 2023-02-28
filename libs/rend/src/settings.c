@@ -22,7 +22,7 @@ ecs_module_init(rend_settings_module) {
 
 void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion |
-             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom;
+             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom | RendFlags_ParticleShadows;
   s->presentMode         = RendPresentMode_VSyncRelaxed;
   s->ambientMode         = RendAmbientMode_SpecularIrradiance;
   s->skyMode             = RendSkyMode_None;
@@ -48,7 +48,7 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG
-  s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu | RendGlobalFlags_Verbose;
+  s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu;
 #endif
 
   s->lightSunRadiance = geo_color(1.0f, 0.8f, 0.4f, 5.0f);
