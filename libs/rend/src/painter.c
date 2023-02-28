@@ -278,7 +278,9 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
   RendDrawFlags requiredAny = 0;
   requiredAny |= RendDrawFlags_StandardGeometry; // Include geometry.
-  requiredAny |= RendDrawFlags_Particle;         // Include particles.
+  if (ctx->settings->flags & RendFlags_ParticleShadows) {
+    requiredAny |= RendDrawFlags_Particle; // Include particles.
+  }
 
   RvkRepository* repo       = rvk_canvas_repository(ctx->painter->canvas);
   EcsIterator*   graphicItr = ecs_view_itr(graView);

@@ -22,7 +22,7 @@ ecs_module_init(rend_settings_module) {
 
 void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion |
-             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom;
+             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom | RendFlags_ParticleShadows;
   s->presentMode         = RendPresentMode_VSyncRelaxed;
   s->ambientMode         = RendAmbientMode_SpecularIrradiance;
   s->skyMode             = RendSkyMode_None;
