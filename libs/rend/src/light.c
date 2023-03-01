@@ -19,7 +19,7 @@
 #include "light_internal.h"
 
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
-static const f32 g_lightDirShadowStepSize = 15.0f;
+static const f32 g_lightDirShadowStepSize = 10.0f;
 
 // TODO: Dynamically compute the world bounds based on content.
 static const GeoBox g_lightWorldBounds = {
