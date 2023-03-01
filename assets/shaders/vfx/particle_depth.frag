@@ -7,7 +7,7 @@
 #include "texture.glsl"
 
 const f32 c_alphaDitherMax = 0.99;
-const f32 c_alphaMult      = 0.75;
+const f32 c_alphaMult      = 0.5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
