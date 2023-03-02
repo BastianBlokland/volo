@@ -2,9 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "geometry.glsl"
 #include "global.glsl"
 #include "tags.glsl"
-#include "texture.glsl"
 
 bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
 bind_spec(1) const f32 s_splat1UvScale         = 50;
@@ -22,8 +22,8 @@ bind_internal(1) in flat f32 in_heightScale;
 bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in f32v3 in_worldPos;
 
-bind_internal(0) out f32v4 out_colorRough;
-bind_internal(1) out f32v4 out_normalTags;
+bind_internal(0) out f32v4 out_data0;
+bind_internal(1) out f32v4 out_data1;
 
 /**
  * Calculate the normal by taking samples around this location and normalizing the deltas.
@@ -71,13 +71,16 @@ f32v4 textureMulti(const sampler2D s, const f32v2 texcoord) {
 void main() {
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
+  Geometry geo;
+
   // Sample the color (and roughness) based on the splat-map.
   f32v4 splatColRough = f32v4(0);
   splatColRough += splat.r * textureMulti(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
   splatColRough += splat.g * textureMulti(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
 
   // Output color and roughness.
-  out_colorRough = splatColRough;
+  geo.color     = splatColRough.rgb;
+  geo.roughness = splatColRough.a;
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
@@ -89,10 +92,12 @@ void main() {
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
 
   // Output world normal.
-  const f32v3 normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
-  out_normalTags.xyz = normal_tex_encode(normal);
+  geo.normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 
   // Output tags.
-  const u32 tags   = 1 << tag_terrain_bit;
-  out_normalTags.w = tags_tex_encode(tags);
+  geo.tags = 1 << tag_terrain_bit;
+
+  const GeometryEncoded encoded = geometry_encode(geo);
+  out_data0                     = encoded.data0;
+  out_data1                     = encoded.data1;
 }

@@ -2,8 +2,8 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "geometry.glsl"
 #include "global.glsl"
-#include "texture.glsl"
 
 const u32 c_kernelSize = 16; // Needs to match the ao kernel size in rend_settings.h
 
@@ -14,7 +14,7 @@ struct AoData {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(0) uniform sampler2D u_texGeoData1;
 bind_global_img(1) uniform sampler2D u_texGeoDepth;
 bind_draw_data(0) readonly uniform Draw { AoData u_draw; };
 
@@ -56,7 +56,8 @@ f32m3 kernel_rotation_matrix(const f32v3 surfaceNormal, const f32v3 randomNormal
 }
 
 void main() {
-  const f32v3 worldNormal = normal_tex_decode(texture(u_texGeoNormalTags, in_texcoord).xyz);
+  const f32v4 geoData1    = texture(u_texGeoData1, in_texcoord);
+  const f32v3 worldNormal = geometry_decode_normal(geoData1);
   const f32v3 viewNormal  = world_to_view_dir(worldNormal);
 
   const f32   depth   = texture(u_texGeoDepth, in_texcoord).r;

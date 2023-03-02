@@ -4,8 +4,6 @@
 #include "binding.glsl"
 #include "global.glsl"
 #include "pbr.glsl"
-#include "tags.glsl"
-#include "texture.glsl"
 
 struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
@@ -32,8 +30,8 @@ const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_global_img(0) uniform sampler2D u_texGeoColorRough;
-bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(3) uniform sampler2D u_texAmbientOcclusion;
 
@@ -89,20 +87,21 @@ f32v3 ambient_spec_irradiance(
 }
 
 void main() {
-  const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
-  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
-  const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
+  GeometryEncoded geoEncoded;
+  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
+  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
 
-  const u32   tags     = tags_tex_decode(normalTags.w);
+  const Geometry geo = geometry_decode(geoEncoded);
+
+  const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
 
   PbrSurface surf;
-  surf.position     = worldPos;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.metallicness = 0.0; // TODO: Support metals.
+  surf.position  = worldPos;
+  surf.color     = geo.color;
+  surf.normal    = geo.normal;
+  surf.roughness = geo.roughness;
 
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
@@ -135,24 +134,22 @@ void main() {
       out_color              = linearDepth.rrr / debugMaxDist;
     } break;
     case c_modeDebugTags:
-      out_color = color_from_hsv(tags / 255.0, 1, 1);
+      out_color = color_from_hsv(geo.tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
       break;
     case c_modeDebugFresnel: {
-      const f32v3 reflectance = pbr_surf_reflectance(surf);
-      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
-      out_color               = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      const f32 nDotV = max(dot(surf.normal, viewDir), 0);
+      out_color       = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
     } break;
     case c_modeDebugDiffuseIrradiance:
       out_color = ambient_diff_irradiance(surf, ambientLight);
       break;
     case c_modeDebugSpecularIrradiance: {
-      const f32v3 reflectance = pbr_surf_reflectance(surf);
-      const f32   nDotV       = max(dot(surf.normal, viewDir), 0);
-      const f32v3 fresnel     = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
-      out_color = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
+      const f32   nDotV   = max(dot(surf.normal, viewDir), 0);
+      const f32v3 fresnel = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
+      out_color           = ambient_spec_irradiance(surf, ambientLight, nDotV, fresnel, viewDir);
     } break;
     }
   } else {
@@ -164,9 +161,8 @@ void main() {
       break;
     case c_modeDiffuseIrradiance:
     case c_modeSpecularIrradiance: {
-      const f32v3 reflectance    = pbr_surf_reflectance(surf);
       const f32   nDotV          = max(dot(surf.normal, viewDir), 0);
-      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, reflectance, surf.roughness);
+      const f32v3 fresnel        = pbr_fresnel_schlick_atten(nDotV, surf.roughness);
       const f32v3 diffIrradiance = ambient_diff_irradiance(surf, ambientLight);
       out_color                  = (1.0 - fresnel) * diffIrradiance * surf.color * ambientOcclusion;
 
@@ -178,7 +174,7 @@ void main() {
     }
 
     // Additional effects.
-    if (tag_is_set(tags, tag_damaged_bit)) {
+    if (tag_is_set(geo.tags, tag_damaged_bit)) {
       out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(surf.normal, viewDir)));
     }
   }

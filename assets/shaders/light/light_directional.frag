@@ -39,8 +39,8 @@ const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoColorRough;
-bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(4) uniform sampler2DShadow u_texShadow;
 
@@ -100,22 +100,18 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
-  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
-  const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
+  GeometryEncoded geoEncoded;
+  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
+  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
 
+  const Geometry geo = geometry_decode(geoEncoded);
+
+  const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
   const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
 
   const u32 lightFlags = floatBitsToUint(in_radianceFlags.w);
-
-  PbrSurface surf;
-  surf.position     = worldPos;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.metallicness = 0.0; // TODO: Support metals.
 
   f32v3 effectiveRadiance = in_radianceFlags.xyz;
 
@@ -126,6 +122,12 @@ void main() {
   if ((lightFlags & c_lightFlagsShadows) != 0) {
     effectiveRadiance *= 1.0 - shadow_frac(worldPos);
   }
+
+  PbrSurface surf;
+  surf.position  = worldPos;
+  surf.color     = geo.color;
+  surf.normal    = geo.normal;
+  surf.roughness = geo.roughness;
 
   out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);
 }

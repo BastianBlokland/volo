@@ -16,7 +16,7 @@ const u32 c_modeReinhard      = 2;
 const u32 c_modeReinhardJodie = 3;
 const u32 c_modeAces          = 4;
 
-bind_global_img(0) uniform sampler2D u_texGeoColorRough;
+bind_global_img(0) uniform sampler2D u_texHdr;
 bind_global_img(1) uniform sampler2D u_texBloom;
 bind_draw_data(0) readonly uniform Draw { TonemapperData u_draw; };
 
@@ -71,7 +71,7 @@ f32v3 tonemap_aces_approx(const f32v3 hdr) {
 }
 
 void main() {
-  const f32v3 colorHdrInput = texture(u_texGeoColorRough, in_texcoord).rgb;
+  const f32v3 colorHdrInput = texture(u_texHdr, in_texcoord).rgb;
   const f32v3 bloomInput    = texture(u_texBloom, in_texcoord).rgb;
   const f32v3 colorHdr = mix(colorHdrInput, bloomInput, u_draw.bloomIntensity) * u_draw.exposure;
 
