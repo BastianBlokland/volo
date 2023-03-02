@@ -111,11 +111,10 @@ void main() {
   const u32 lightFlags = floatBitsToUint(in_radianceFlags.w);
 
   PbrSurface surf;
-  surf.position     = worldPos;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.metallicness = 0.0; // TODO: Support metals.
+  surf.position  = worldPos;
+  surf.color     = colorRough.rgb;
+  surf.normal    = normal_tex_decode(normalTags.xyz);
+  surf.roughness = colorRough.a;
 
   f32v3 effectiveRadiance = in_radianceFlags.xyz;
 

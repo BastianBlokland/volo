@@ -34,11 +34,10 @@ void main() {
   const f32   radiusInv = in_radianceAndRadiusInv.a;
 
   PbrSurface surf;
-  surf.position     = worldPos;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.metallicness = 0.0; // TODO: Support metals.
+  surf.position  = worldPos;
+  surf.color     = colorRough.rgb;
+  surf.normal    = normal_tex_decode(normalTags.xyz);
+  surf.roughness = colorRough.a;
 
   out_color = pbr_light_point(radiance, radiusInv, in_position, viewDir, surf);
 }
