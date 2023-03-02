@@ -89,8 +89,15 @@ f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
   return centerFracQuad * centerFracQuad / (dist * dist + 1.0);
 }
 
+struct PbrSurface {
+  f32v3 position;
+  f32v3 color;
+  f32v3 normal;
+  f32   roughness;
+};
+
 f32v3 pbr_light_dir(
-    const f32v3 radiance, const f32v3 dir, const f32v3 viewDir, const GeoSurface surf) {
+    const f32v3 radiance, const f32v3 dir, const f32v3 viewDir, const PbrSurface surf) {
 
   const f32v3 halfDir = normalize(viewDir - dir);
 
@@ -123,7 +130,7 @@ f32v3 pbr_light_point(
     const f32        radiusInv,
     const f32v3      pos,
     const f32v3      viewDir,
-    const GeoSurface surf) {
+    const PbrSurface surf) {
 
   const f32v3 lightDir          = normalize(surf.position - pos);
   const f32   dist              = length(surf.position - pos);

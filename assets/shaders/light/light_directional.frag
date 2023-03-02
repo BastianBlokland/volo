@@ -95,21 +95,27 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  const GeoSurface surf = geo_surface_load(
+  const GeoSurface geo = geo_surface_load(
       u_texGeoData0, u_texGeoData1, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
 
-  const f32v3 viewDir    = normalize(u_global.camPosition.xyz - surf.position);
+  const f32v3 viewDir    = normalize(u_global.camPosition.xyz - geo.position);
   const u32   lightFlags = floatBitsToUint(in_radianceFlags.w);
 
   f32v3 effectiveRadiance = in_radianceFlags.xyz;
 
   if ((lightFlags & c_lightFlagsCoverageMask) != 0) {
-    effectiveRadiance *= coverage_frac(surf.position);
+    effectiveRadiance *= coverage_frac(geo.position);
   }
 
   if ((lightFlags & c_lightFlagsShadows) != 0) {
-    effectiveRadiance *= 1.0 - shadow_frac(surf.position);
+    effectiveRadiance *= 1.0 - shadow_frac(geo.position);
   }
+
+  PbrSurface surf;
+  surf.position  = geo.position;
+  surf.color     = geo.color;
+  surf.normal    = geo.normal;
+  surf.roughness = geo.roughness;
 
   out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);
 }
