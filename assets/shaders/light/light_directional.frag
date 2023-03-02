@@ -54,11 +54,6 @@ bind_internal(4) in flat f32m4 in_shadowViewProj;
 
 bind_internal(0) out f32v3 out_color;
 
-f32v3 clip_to_world(const f32v3 clipPos) {
-  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
-  return v.xyz / v.w;
-}
-
 f32 coverage_frac(const f32v3 worldPos) {
   const f32v2 texOffset = f32v2(s_coveragePanSpeedX, s_coveragePanSpeedY) * u_global.time.x;
   const f32v2 texCoord  = (worldPos.xz + texOffset) / s_coverageScale;
@@ -100,30 +95,20 @@ f32 shadow_frac(const f32v3 worldPos) {
 }
 
 void main() {
-  const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
-  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
-  const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
+  const GeoSurface surf = geo_surface_load(
+      u_texGeoColorRough, u_texGeoNormalTags, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
 
-  const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos = clip_to_world(clipPos);
-  const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
-
-  const u32 lightFlags = floatBitsToUint(in_radianceFlags.w);
-
-  GeoSurface surf;
-  surf.position  = worldPos;
-  surf.color     = colorRough.rgb;
-  surf.normal    = normal_tex_decode(normalTags.xyz);
-  surf.roughness = colorRough.a;
+  const f32v3 viewDir    = normalize(u_global.camPosition.xyz - surf.position);
+  const u32   lightFlags = floatBitsToUint(in_radianceFlags.w);
 
   f32v3 effectiveRadiance = in_radianceFlags.xyz;
 
   if ((lightFlags & c_lightFlagsCoverageMask) != 0) {
-    effectiveRadiance *= coverage_frac(worldPos);
+    effectiveRadiance *= coverage_frac(surf.position);
   }
 
   if ((lightFlags & c_lightFlagsShadows) != 0) {
-    effectiveRadiance *= 1.0 - shadow_frac(worldPos);
+    effectiveRadiance *= 1.0 - shadow_frac(surf.position);
   }
 
   out_color = pbr_light_dir(effectiveRadiance, in_direction, viewDir, surf);

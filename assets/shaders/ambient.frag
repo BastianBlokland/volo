@@ -4,8 +4,6 @@
 #include "binding.glsl"
 #include "global.glsl"
 #include "pbr.glsl"
-#include "tags.glsl"
-#include "texture.glsl"
 
 struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
@@ -66,11 +64,6 @@ f32v3 clip_to_view(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 clip_to_world(const f32v3 clipPos) {
-  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
-  return v.xyz / v.w;
-}
-
 f32v3 ambient_diff_irradiance(const GeoSurface surf, const f32 intensity) {
   return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
 }
@@ -89,21 +82,10 @@ f32v3 ambient_spec_irradiance(
 }
 
 void main() {
-  const f32v4 colorRough = texture(u_texGeoColorRough, in_texcoord);
-  const f32v4 normalTags = texture(u_texGeoNormalTags, in_texcoord);
-  const f32   depth      = texture(u_texGeoDepth, in_texcoord).r;
+  const GeoSurface surf = geo_surface_load(
+      u_texGeoColorRough, u_texGeoNormalTags, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
 
-  const u32   tags     = tags_tex_decode(normalTags.w);
-  const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
-  const f32v3 worldPos = clip_to_world(clipPos);
-
-  GeoSurface surf;
-  surf.position  = worldPos;
-  surf.color     = colorRough.rgb;
-  surf.normal    = normal_tex_decode(normalTags.xyz);
-  surf.roughness = colorRough.a;
-
-  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
+  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - surf.position);
   const f32   ambientLight = u_draw.packed.x;
   const u32   mode         = floatBitsToUint(u_draw.packed.y);
   const u32   flags        = floatBitsToUint(u_draw.packed.z);
@@ -130,11 +112,11 @@ void main() {
       break;
     case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
-      const f32 linearDepth  = clip_to_view(clipPos).z;
+      const f32 linearDepth  = clip_to_view(surf.positionClip).z;
       out_color              = linearDepth.rrr / debugMaxDist;
     } break;
     case c_modeDebugTags:
-      out_color = color_from_hsv(tags / 255.0, 1, 1);
+      out_color = color_from_hsv(surf.tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
@@ -174,7 +156,7 @@ void main() {
     }
 
     // Additional effects.
-    if (tag_is_set(tags, tag_damaged_bit)) {
+    if (tag_is_set(surf.tags, tag_damaged_bit)) {
       out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(surf.normal, viewDir)));
     }
   }
