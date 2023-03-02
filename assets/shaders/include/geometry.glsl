@@ -40,4 +40,9 @@ GeoSurface geo_surface_load(
   return surf;
 }
 
+f32v3 geo_surface_load_normal(const sampler2D geoNormalTags, const f32v2 coord) {
+  const f32v4 normalTags = texture(geoNormalTags, coord);
+  return normal_tex_decode(normalTags.xyz);
+}
+
 #endif // INCLUDE_GEOMETRY
