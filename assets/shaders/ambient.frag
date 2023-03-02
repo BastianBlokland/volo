@@ -30,8 +30,8 @@ const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
-bind_global_img(0) uniform sampler2D u_texGeoColorRough;
-bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(3) uniform sampler2D u_texAmbientOcclusion;
 
@@ -83,7 +83,7 @@ f32v3 ambient_spec_irradiance(
 
 void main() {
   const GeoSurface surf = geo_surface_load(
-      u_texGeoColorRough, u_texGeoNormalTags, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
+      u_texGeoData0, u_texGeoData1, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
 
   const f32v3 viewDir      = normalize(u_global.camPosition.xyz - surf.position);
   const f32   ambientLight = u_draw.packed.x;

@@ -39,8 +39,8 @@ const f32v2 c_poissonDisk[c_poissonDiskSampleCount] = {
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_global_img(0) uniform sampler2D u_texGeoColorRough;
-bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(0) uniform sampler2D u_texGeoData0;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 bind_global_img(4) uniform sampler2DShadow u_texShadow;
 
@@ -96,7 +96,7 @@ f32 shadow_frac(const f32v3 worldPos) {
 
 void main() {
   const GeoSurface surf = geo_surface_load(
-      u_texGeoColorRough, u_texGeoNormalTags, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
+      u_texGeoData0, u_texGeoData1, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
 
   const f32v3 viewDir    = normalize(u_global.camPosition.xyz - surf.position);
   const u32   lightFlags = floatBitsToUint(in_radianceFlags.w);

@@ -8,7 +8,7 @@
 const f32   c_depthThreshold = 1e-4;
 const f32v3 c_outlineColor   = f32v3(0.75, 0.75, 0.75);
 
-bind_global_img(1) uniform sampler2D u_texGeoNormalTags;
+bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -19,7 +19,7 @@ bind_internal(0) out f32v3 out_color;
   textureOffset(u_texGeoDepth, in_texcoord, i32v2(_OFFSET_X_, _OFFSET_Y_)).x
 
 #define tags_at_offset(_OFFSET_X_, _OFFSET_Y_)                                                     \
-  tags_tex_decode(textureOffset(u_texGeoNormalTags, in_texcoord, i32v2(_OFFSET_X_, _OFFSET_Y_)).w)
+  tags_tex_decode(textureOffset(u_texGeoData1, in_texcoord, i32v2(_OFFSET_X_, _OFFSET_Y_)).w)
 
 void main() {
   /**
