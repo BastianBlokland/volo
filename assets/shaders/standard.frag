@@ -2,9 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "geometry.glsl"
 #include "rand.glsl"
 #include "tags.glsl"
-#include "texture.glsl"
 
 const f32 c_alphaTextureThreshold = 0.2;
 const f32 c_alphaDitherMax        = 0.99;
@@ -21,8 +21,8 @@ bind_internal(1) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(2) in f32v2 in_texcoord;
 bind_internal(3) in flat f32v4 in_data;
 
-bind_internal(0) out f32v4 out_colorRough;
-bind_internal(1) out f32v4 out_normalTags;
+bind_internal(0) out f32v4 out_data0;
+bind_internal(1) out f32v4 out_data1;
 
 void main() {
   f32 alpha = in_data.y;
@@ -36,18 +36,19 @@ void main() {
     discard;
   }
 
-  // Output color and roughness.
-  out_colorRough = texture(u_texColorRough, in_texcoord);
+  const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
+  const f32v3 color      = colorRough.rgb;
+  const f32   roughness  = colorRough.a;
+  const u32   tags       = floatBitsToUint(in_data.x);
 
-  // Output world normal.
+  f32v3 normal;
   if (s_normalMap) {
-    const f32v3 normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
-    out_normalTags.xyz = normal_tex_encode(normal);
+    normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
   } else {
-    out_normalTags.xyz = normal_tex_encode(in_worldNormal);
+    normal = in_worldNormal;
   }
 
-  // Output tags.
-  const u32 tags   = floatBitsToUint(in_data.x);
-  out_normalTags.w = tags_tex_encode(tags);
+  const GeoSurfaceEncoded encoded = geo_surface_encode(color, roughness, normal, tags);
+  out_data0                       = encoded.data0;
+  out_data1                       = encoded.data1;
 }

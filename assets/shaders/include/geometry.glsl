@@ -24,6 +24,20 @@ struct GeoSurface {
   u32   tags;
 };
 
+struct GeoSurfaceEncoded {
+  f32v4 data0, data1;
+};
+
+GeoSurfaceEncoded
+geo_surface_encode(const f32v3 color, const f32 roughness, const f32v3 normal, const u32 tags) {
+  GeoSurfaceEncoded encoded;
+  encoded.data0.rgb = color;
+  encoded.data0.a   = roughness;
+  encoded.data1.rgb = normal_tex_encode(normal);
+  encoded.data1.a   = tags_tex_encode(tags); // NOTE: Only the first 8 tags are preserved.
+  return encoded;
+}
+
 GeoSurface geo_surface_load(
     const sampler2D geoData0,
     const sampler2D geoData1,
