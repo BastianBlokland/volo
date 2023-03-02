@@ -71,12 +71,12 @@ f32v3 clip_to_world(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity) {
+f32v3 ambient_diff_irradiance(const GeoSurface surf, const f32 intensity) {
   return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
 }
 
 f32v3 ambient_spec_irradiance(
-    const PbrSurface surf,
+    const GeoSurface surf,
     const f32        intensity,
     const f32        nDotV,
     const f32v3      fresnel,
@@ -97,7 +97,7 @@ void main() {
   const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
 
-  PbrSurface surf;
+  GeoSurface surf;
   surf.position  = worldPos;
   surf.color     = colorRough.rgb;
   surf.normal    = normal_tex_decode(normalTags.xyz);

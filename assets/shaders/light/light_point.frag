@@ -33,7 +33,7 @@ void main() {
   const f32v3 radiance  = in_radianceAndRadiusInv.rgb;
   const f32   radiusInv = in_radianceAndRadiusInv.a;
 
-  PbrSurface surf;
+  GeoSurface surf;
   surf.position  = worldPos;
   surf.color     = colorRough.rgb;
   surf.normal    = normal_tex_decode(normalTags.xyz);

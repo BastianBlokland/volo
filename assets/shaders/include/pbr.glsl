@@ -1,8 +1,7 @@
 #ifndef INCLUDE_PBR
 #define INCLUDE_PBR
 
-#include "math.glsl"
-#include "types.glsl"
+#include "geometry.glsl"
 
 /**
  * Physically based lighting utilities.
@@ -77,13 +76,6 @@ f32v3 pbr_fresnel_schlick_atten(const f32 cosTheta, const f32 roughness) {
   return c_pbrReflectance + r * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-struct PbrSurface {
-  f32v3 position;
-  f32v3 color;
-  f32v3 normal;
-  f32   roughness;
-};
-
 f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
   /**
    * Compute the light attenuation using the inverse square falloff with an artificial radius to
@@ -98,7 +90,7 @@ f32 pbr_attenuation_resolve(const f32 dist, const f32 radiusInv) {
 }
 
 f32v3 pbr_light_dir(
-    const f32v3 radiance, const f32v3 dir, const f32v3 viewDir, const PbrSurface surf) {
+    const f32v3 radiance, const f32v3 dir, const f32v3 viewDir, const GeoSurface surf) {
 
   const f32v3 halfDir = normalize(viewDir - dir);
 
@@ -131,7 +123,7 @@ f32v3 pbr_light_point(
     const f32        radiusInv,
     const f32v3      pos,
     const f32v3      viewDir,
-    const PbrSurface surf) {
+    const GeoSurface surf) {
 
   const f32v3 lightDir          = normalize(surf.position - pos);
   const f32   dist              = length(surf.position - pos);

@@ -110,7 +110,7 @@ void main() {
 
   const u32 lightFlags = floatBitsToUint(in_radianceFlags.w);
 
-  PbrSurface surf;
+  GeoSurface surf;
   surf.position  = worldPos;
   surf.color     = colorRough.rgb;
   surf.normal    = normal_tex_decode(normalTags.xyz);
