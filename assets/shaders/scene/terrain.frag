@@ -71,10 +71,16 @@ f32v4 textureMulti(const sampler2D s, const f32v2 texcoord) {
 void main() {
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
+  Geometry geo;
+
   // Sample the color (and roughness) based on the splat-map.
   f32v4 splatColRough = f32v4(0);
   splatColRough += splat.r * textureMulti(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
   splatColRough += splat.g * textureMulti(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
+
+  // Output color and roughness.
+  geo.color     = splatColRough.rgb;
+  geo.roughness = splatColRough.a;
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
@@ -84,13 +90,14 @@ void main() {
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
-  const f32v3 normal     = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 
-  const f32v3 color     = splatColRough.rgb;
-  const f32   roughness = splatColRough.a;
-  const u32   tags      = 1 << tag_terrain_bit;
+  // Output world normal.
+  geo.normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 
-  const GeoSurfaceEncoded encoded = geo_surface_encode(color, roughness, normal, tags);
-  out_data0                       = encoded.data0;
-  out_data1                       = encoded.data1;
+  // Output tags.
+  geo.tags = 1 << tag_terrain_bit;
+
+  const GeometryEncoded encoded = geometry_encode(geo);
+  out_data0                     = encoded.data0;
+  out_data1                     = encoded.data1;
 }

@@ -36,19 +36,24 @@ void main() {
     discard;
   }
 
-  const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
-  const f32v3 color      = colorRough.rgb;
-  const f32   roughness  = colorRough.a;
-  const u32   tags       = floatBitsToUint(in_data.x);
+  Geometry geo;
 
-  f32v3 normal;
+  // Output color and roughness.
+  const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
+  geo.color              = colorRough.rgb;
+  geo.roughness          = colorRough.a;
+
+  // Output world normal.
   if (s_normalMap) {
-    normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
+    geo.normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
   } else {
-    normal = in_worldNormal;
+    geo.normal = in_worldNormal;
   }
 
-  const GeoSurfaceEncoded encoded = geo_surface_encode(color, roughness, normal, tags);
-  out_data0                       = encoded.data0;
-  out_data1                       = encoded.data1;
+  // Output tags.
+  geo.tags = floatBitsToUint(in_data.x);
+
+  const GeometryEncoded encoded = geometry_encode(geo);
+  out_data0                     = encoded.data0;
+  out_data1                     = encoded.data1;
 }

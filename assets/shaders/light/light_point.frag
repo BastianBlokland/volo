@@ -16,17 +16,30 @@ bind_internal(1) in flat f32v4 in_radianceAndRadiusInv;
 
 bind_internal(0) out f32v3 out_color;
 
-void main() {
-  const f32v2      texcoord = in_fragCoord.xy / u_global.resolution.xy;
-  const GeoSurface geo =
-      geo_surface_load(u_texGeoData0, u_texGeoData1, u_texGeoDepth, texcoord, u_global.viewProjInv);
+f32v3 clip_to_world(const f32v3 clipPos) {
+  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
+  return v.xyz / v.w;
+}
 
-  const f32v3 viewDir   = normalize(u_global.camPosition.xyz - geo.position);
+void main() {
+  const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
+
+  GeometryEncoded geoEncoded;
+  geoEncoded.data0 = texture(u_texGeoData0, texcoord);
+  geoEncoded.data1 = texture(u_texGeoData1, texcoord);
+
+  const Geometry geo = geometry_decode(geoEncoded);
+
+  const f32   depth    = texture(u_texGeoDepth, texcoord).r;
+  const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
+  const f32v3 worldPos = clip_to_world(clipPos);
+  const f32v3 viewDir  = normalize(u_global.camPosition.xyz - worldPos);
+
   const f32v3 radiance  = in_radianceAndRadiusInv.rgb;
   const f32   radiusInv = in_radianceAndRadiusInv.a;
 
   PbrSurface surf;
-  surf.position  = geo.position;
+  surf.position  = worldPos;
   surf.color     = geo.color;
   surf.normal    = geo.normal;
   surf.roughness = geo.roughness;

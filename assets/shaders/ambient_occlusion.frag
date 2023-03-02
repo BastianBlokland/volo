@@ -56,7 +56,8 @@ f32m3 kernel_rotation_matrix(const f32v3 surfaceNormal, const f32v3 randomNormal
 }
 
 void main() {
-  const f32v3 worldNormal = geo_surface_load_normal(u_texGeoData1, in_texcoord);
+  const f32v4 geoData1    = texture(u_texGeoData1, in_texcoord);
+  const f32v3 worldNormal = geometry_decode_normal(geoData1);
   const f32v3 viewNormal  = world_to_view_dir(worldNormal);
 
   const f32   depth   = texture(u_texGeoDepth, in_texcoord).r;

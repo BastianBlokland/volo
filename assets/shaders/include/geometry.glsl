@@ -4,7 +4,6 @@
 #include "math.glsl"
 #include "tags.glsl"
 #include "texture.glsl"
-#include "types.glsl"
 
 /**
  * Geometry Buffer.
@@ -12,60 +11,37 @@
  * Textures:
  * - Data0: (srgb rgba32):   rgb: color, a: roughness.
  * - Data1: (linear rgba32): rgb: normal, a: tags.
- * - Depth: (f32)
  */
 
-struct GeoSurface {
-  f32v3 positionClip; // Clip-space.
-  f32v3 position;     // World-space.
+struct Geometry {
   f32v3 color;
   f32v3 normal;
-  f32   roughness;
   u32   tags;
+  f32   roughness;
 };
 
-struct GeoSurfaceEncoded {
+struct GeometryEncoded {
   f32v4 data0, data1;
 };
 
-GeoSurfaceEncoded
-geo_surface_encode(const f32v3 color, const f32 roughness, const f32v3 normal, const u32 tags) {
-  GeoSurfaceEncoded encoded;
-  encoded.data0.rgb = color;
-  encoded.data0.a   = roughness;
-  encoded.data1.rgb = normal_tex_encode(normal);
-  encoded.data1.a   = tags_tex_encode(tags); // NOTE: Only the first 8 tags are preserved.
+GeometryEncoded geometry_encode(const Geometry geo) {
+  GeometryEncoded encoded;
+  encoded.data0.rgb = geo.color;
+  encoded.data0.a   = geo.roughness;
+  encoded.data1.rgb = normal_tex_encode(geo.normal);
+  encoded.data1.a   = tags_tex_encode(geo.tags); // NOTE: Only the first 8 tags are preserved.
   return encoded;
 }
 
-GeoSurface geo_surface_load(
-    const sampler2D geoData0,
-    const sampler2D geoData1,
-    const sampler2D geoDepth,
-    const f32v2     coord,
-    const f32m4     viewProjInv) {
-  const f32v4 colorRough = texture(geoData0, coord);
-  const f32v4 normalTags = texture(geoData1, coord);
-  const f32   depth      = texture(geoDepth, coord).r;
-
-  const u32   tags        = tags_tex_decode(normalTags.w);
-  const f32v3 clipPos     = f32v3(coord * 2.0 - 1.0, depth);
-  const f32v4 worldPosRaw = viewProjInv * f32v4(clipPos, 1);
-  const f32v3 worldPos    = worldPosRaw.xyz / worldPosRaw.w; // Perspective divide.
-
-  GeoSurface surf;
-  surf.positionClip = clipPos;
-  surf.position     = worldPos;
-  surf.color        = colorRough.rgb;
-  surf.normal       = normal_tex_decode(normalTags.xyz);
-  surf.roughness    = colorRough.a;
-  surf.tags         = tags;
-  return surf;
+Geometry geometry_decode(const GeometryEncoded encoded) {
+  Geometry geo;
+  geo.color     = encoded.data0.rgb;
+  geo.roughness = encoded.data0.a;
+  geo.normal    = normal_tex_decode(encoded.data1.rgb);
+  geo.tags      = tags_tex_decode(encoded.data1.a);
+  return geo;
 }
 
-f32v3 geo_surface_load_normal(const sampler2D geoData1, const f32v2 coord) {
-  const f32v4 normalTags = texture(geoData1, coord);
-  return normal_tex_decode(normalTags.xyz);
-}
+f32v3 geometry_decode_normal(const f32v4 geoData1) { return normal_tex_decode(geoData1.rgb); }
 
 #endif // INCLUDE_GEOMETRY

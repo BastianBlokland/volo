@@ -64,12 +64,17 @@ f32v3 clip_to_view(const f32v3 clipPos) {
   return v.xyz / v.w;
 }
 
-f32v3 ambient_diff_irradiance(const GeoSurface surf, const f32 intensity) {
+f32v3 clip_to_world(const f32v3 clipPos) {
+  const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
+  return v.xyz / v.w;
+}
+
+f32v3 ambient_diff_irradiance(const PbrSurface surf, const f32 intensity) {
   return texture_cube(u_texDiffIrradiance, surf.normal).rgb * intensity;
 }
 
 f32v3 ambient_spec_irradiance(
-    const GeoSurface surf,
+    const PbrSurface surf,
     const f32        intensity,
     const f32        nDotV,
     const f32v3      fresnel,
@@ -82,10 +87,23 @@ f32v3 ambient_spec_irradiance(
 }
 
 void main() {
-  const GeoSurface surf = geo_surface_load(
-      u_texGeoData0, u_texGeoData1, u_texGeoDepth, in_texcoord, u_global.viewProjInv);
+  GeometryEncoded geoEncoded;
+  geoEncoded.data0 = texture(u_texGeoData0, in_texcoord);
+  geoEncoded.data1 = texture(u_texGeoData1, in_texcoord);
 
-  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - surf.position);
+  const Geometry geo = geometry_decode(geoEncoded);
+
+  const f32   depth    = texture(u_texGeoDepth, in_texcoord).r;
+  const f32v3 clipPos  = f32v3(in_texcoord * 2.0 - 1.0, depth);
+  const f32v3 worldPos = clip_to_world(clipPos);
+
+  PbrSurface surf;
+  surf.position  = worldPos;
+  surf.color     = geo.color;
+  surf.normal    = geo.normal;
+  surf.roughness = geo.roughness;
+
+  const f32v3 viewDir      = normalize(u_global.camPosition.xyz - worldPos);
   const f32   ambientLight = u_draw.packed.x;
   const u32   mode         = floatBitsToUint(u_draw.packed.y);
   const u32   flags        = floatBitsToUint(u_draw.packed.z);
@@ -112,11 +130,11 @@ void main() {
       break;
     case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
-      const f32 linearDepth  = clip_to_view(surf.positionClip).z;
+      const f32 linearDepth  = clip_to_view(clipPos).z;
       out_color              = linearDepth.rrr / debugMaxDist;
     } break;
     case c_modeDebugTags:
-      out_color = color_from_hsv(surf.tags / 255.0, 1, 1);
+      out_color = color_from_hsv(geo.tags / 255.0, 1, 1);
       break;
     case c_modeDebugAmbientOcclusion:
       out_color = ambientOcclusion.rrr;
@@ -156,7 +174,7 @@ void main() {
     }
 
     // Additional effects.
-    if (tag_is_set(surf.tags, tag_damaged_bit)) {
+    if (tag_is_set(geo.tags, tag_damaged_bit)) {
       out_color = mix(out_color, f32v3(0.8, 0.1, 0.1), abs(dot(surf.normal, viewDir)));
     }
   }
