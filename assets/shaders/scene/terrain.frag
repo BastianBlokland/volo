@@ -72,6 +72,7 @@ void main() {
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
   Geometry geo;
+  geo.tags     = 1 << tag_terrain_bit;
   geo.emissive = 0;
 
   // Sample the color (and roughness) based on the splat-map.
@@ -94,9 +95,6 @@ void main() {
 
   // Output world normal.
   geo.normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
-
-  // Output tags.
-  geo.tags = 1 << tag_terrain_bit;
 
   const GeometryEncoded encoded = geometry_encode(geo);
   out_data0                     = encoded.data0;

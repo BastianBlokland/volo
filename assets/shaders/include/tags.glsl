@@ -13,6 +13,7 @@
 #define tag_damaged_bit 7
 #define tag_light_bit 8
 #define tag_shadow_caster_bit 9
+#define tag_emit_bit 10
 
 /**
  * Query if the given tag bit is set.

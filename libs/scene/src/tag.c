@@ -30,6 +30,7 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Damaged"),
       string_static("Light"),
       string_static("ShadowCaster"),
+      string_static("Emit"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
   return g_names[index];
