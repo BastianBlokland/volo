@@ -57,6 +57,10 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
+      alarm/alarm_color_rough.tga
+      alarm/alarm_normal_emissive.tga
+      alarm/alarm.bin
+      alarm/alarm.gltf
       barrel/barrel_color_rough.tga
       barrel/barrel_normal.tga
       barrel/barrel.bin

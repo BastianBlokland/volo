@@ -463,6 +463,36 @@
       ]
     },
     {
+      "name": "PropAlarm",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_alarm.gra"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {
+              "x": -0.1,
+              "y": 0,
+              "z": -0.1
+            },
+            "max": {
+              "x": 0.1,
+              "y": 3.7,
+              "z": 0.1
+            }
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Vfx",
+          "assetId": "vfx/game/alarm_light.vfx"
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {
