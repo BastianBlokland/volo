@@ -27,20 +27,16 @@ f32v4 texture_cube_lod(const samplerCube tex, const f32v3 direction, const f32 l
 }
 
 /**
- * Sample a normal texture in tangent space and convert it to the axis system formed by the given
+ * Convert a normal-map texture sample in tangent space to the axis system formed by the given
  * normal and tangent references, 'w' component of the tangent indicates the handedness.
  * NOTE: normalRef and tangentRef are not required to be unit vectors.
  */
-f32v3 texture_normal(
-    const sampler2D normalSampler,
-    const f32v2     texcoord,
-    const f32v3     normalRef,
-    const f32v4     tangentRef) {
+f32v3 texture_normal(const f32v3 textureSample, const f32v3 normalRef, const f32v4 tangentRef) {
   const f32v3 tangent   = normalize(tangentRef.xyz);
   const f32v3 normal    = normalize(normalRef);
   const f32v3 bitangent = normalize(cross(tangent, normal) * tangentRef.w);
   const f32m3 rotMatrix = f32m3(tangent, bitangent, normal);
-  return rotMatrix * normal_tex_decode(texture(normalSampler, texcoord).xyz);
+  return rotMatrix * normal_tex_decode(textureSample.xyz);
 }
 
 #endif // INCLUDE_TEXTURE
