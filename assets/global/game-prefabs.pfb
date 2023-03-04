@@ -476,7 +476,8 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_alarm.gra"
+          "graphicId": "graphics/game/prop_alarm.gra",
+          "blinkFrequency": 1
         },
         {
           "$type": "AssetPrefabTrait_Collision",

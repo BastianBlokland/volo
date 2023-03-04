@@ -5,4 +5,7 @@
 /**
  * Vfx system.
  */
-ecs_comp_extern_public(SceneVfxComp) { EcsEntityId asset; };
+ecs_comp_extern_public(SceneVfxComp) {
+  EcsEntityId asset;
+  f32         alpha;
+};

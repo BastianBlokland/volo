@@ -239,7 +239,7 @@ static EffectResult effect_update_proj(
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
   if (def->vfxProjectile) {
-    ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->vfxProjectile);
+    ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->vfxProjectile, .alpha = 1.0f);
   }
   if (ctx->factionId != SceneFaction_None) {
     ecs_world_add_t(ctx->world, e, SceneFactionComp, .id = ctx->factionId);
@@ -321,7 +321,7 @@ static EffectResult effect_update_dmg(
           .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
           .rotation = geo_quat_ident);
       ecs_world_add_t(ctx->world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
-      ecs_world_add_t(ctx->world, vfxEntity, SceneVfxComp, .asset = def->vfxImpact);
+      ecs_world_add_t(ctx->world, vfxEntity, SceneVfxComp, .asset = def->vfxImpact, .alpha = 1.0f);
     }
   }
   return EffectResult_Done;
@@ -390,7 +390,7 @@ static EffectResult effect_update_vfx(
     ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = def->scale);
   }
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
-  ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset);
+  ecs_world_add_t(ctx->world, e, SceneVfxComp, .asset = def->asset, .alpha = 1.0f);
   ecs_world_add_t(ctx->world, e, SceneAttachmentComp, .target = inst, .jointIndex = jointOriginIdx);
 
   return EffectResult_Done;

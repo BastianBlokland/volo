@@ -79,7 +79,7 @@ static void input_indicator_move(EcsWorld* world, AssetManagerComp* assets, cons
   const GeoQuat     rot       = geo_quat_ident;
   ecs_world_add_t(world, vfxEntity, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
-  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset);
+  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset, .alpha = 1.0f);
 }
 
 static void input_indicator_attack(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId t) {
@@ -88,7 +88,7 @@ static void input_indicator_attack(EcsWorld* world, AssetManagerComp* assets, co
   ecs_world_add_t(world, vfxEntity, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, vfxEntity, SceneAttachmentComp, .target = t);
   ecs_world_add_t(world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
-  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset);
+  ecs_world_add_t(world, vfxEntity, SceneVfxComp, .asset = vfxAsset, .alpha = 1.0f);
 }
 
 static void update_camera_movement(

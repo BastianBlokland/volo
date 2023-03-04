@@ -38,6 +38,7 @@ void main() {
   }
 
   Geometry geo;
+  geo.tags = floatBitsToUint(in_data.x);
 
   // Output color and roughness.
   const f32v4 colorRough = texture(u_texColorRough, in_texcoord);
@@ -47,7 +48,7 @@ void main() {
   // Output world normal.
   if (s_normalMap) {
     const f32v4 normalEmissiveSample = texture(u_texNormalEmissive, in_texcoord);
-    if (s_emissive) {
+    if (s_emissive && tag_is_set(geo.tags, tag_emit_bit)) {
       geo.emissive = normalEmissiveSample.a;
     } else {
       geo.emissive = 0;
@@ -57,9 +58,6 @@ void main() {
     geo.emissive = 0;
     geo.normal   = in_worldNormal;
   }
-
-  // Output tags.
-  geo.tags = floatBitsToUint(in_data.x);
 
   const GeometryEncoded encoded = geometry_encode(geo);
   out_data0                     = encoded.data0;

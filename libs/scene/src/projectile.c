@@ -102,7 +102,7 @@ static void projectile_impact_spawn(
   const GeoQuat     rot = geo_quat_look(norm, geo_up);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = projectile->impactLifetime);
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx, .alpha = 1.0f);
 }
 
 static void projectile_hit(
@@ -190,9 +190,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

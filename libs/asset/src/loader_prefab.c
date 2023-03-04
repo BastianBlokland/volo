@@ -46,6 +46,7 @@ typedef struct {
 
 typedef struct {
   String graphicId;
+  f32    blinkFrequency;
 } AssetPrefabTraitRenderableDef;
 
 typedef struct {
@@ -167,6 +168,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(reg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitRenderableDef, blinkFrequency, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitVfxDef);
     data_reg_field_t(reg, AssetPrefabTraitVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -342,7 +344,8 @@ static void prefab_build(
     switch (traitDef->type) {
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = (AssetPrefabTraitRenderable){
-          .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
+          .graphic        = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
+          .blinkFrequency = traitDef->data_renderable.blinkFrequency,
       };
       break;
     case AssetPrefabTrait_Vfx:
