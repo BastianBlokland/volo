@@ -72,6 +72,7 @@ void main() {
   const f32v4 splat = texture(u_texSplat, in_texcoord);
 
   Geometry geo;
+  geo.emissive = 0;
 
   // Sample the color (and roughness) based on the splat-map.
   f32v4 splatColRough = f32v4(0);

@@ -37,6 +37,7 @@ void main() {
   }
 
   Geometry geo;
+  geo.emissive = 0;
 
   // Output color and roughness.
   const f32v4 colorRough = texture(u_texColorRough, in_texcoord);

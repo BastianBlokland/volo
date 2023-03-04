@@ -38,7 +38,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
             .attachColorLoad[0]   = RvkPassLoad_Clear,
 
-            // Attachment color 1: normal (rg) and tags (a).
+            // Attachment color 1: normal (rg), emissive (b) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
             .attachColorLoad[1]   = RvkPassLoad_Clear,
         },
