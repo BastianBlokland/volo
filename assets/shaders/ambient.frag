@@ -9,8 +9,9 @@ struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
-bind_spec(0) const bool s_debug             = false;
-bind_spec(1) const f32 s_specIrradianceMips = 5.0;
+bind_spec(0) const bool s_debug                = false;
+bind_spec(1) const f32 s_specIrradianceMips    = 5.0;
+bind_spec(2) const f32 s_emissiveMaxBrightness = 100.0;
 
 const u32 c_modeSolid                   = 0;
 const u32 c_modeDiffuseIrradiance       = 1;
@@ -176,6 +177,9 @@ void main() {
       }
     } break;
     }
+
+    // Emissive.
+    out_color += surf.color * geo.emissive * s_emissiveMaxBrightness;
 
     // Additional effects.
     if (tag_is_set(geo.tags, tag_damaged_bit)) {
