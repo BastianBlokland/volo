@@ -9,11 +9,12 @@
 const f32 c_alphaTextureThreshold = 0.2;
 const f32 c_alphaDitherMax        = 0.99;
 
-bind_spec(0) const bool s_normalMap    = false;
-bind_spec(1) const bool s_alphaTexture = false;
+bind_spec(0) const bool s_normalMap = false;
+bind_spec(1) const bool s_alphaMap  = false;
+bind_spec(2) const bool s_emissive  = false;
 
 bind_graphic_img(0) uniform sampler2D u_texColorRough;
-bind_graphic_img(1) uniform sampler2D u_texNormal;
+bind_graphic_img(1) uniform sampler2D u_texNormalEmissive;
 bind_graphic_img(2) uniform sampler2D u_texAlpha;
 
 bind_internal(0) in f32v3 in_worldNormal;  // NOTE: non-normalized
@@ -26,7 +27,7 @@ bind_internal(1) out f32v4 out_data1;
 
 void main() {
   f32 alpha = in_data.y;
-  if (s_alphaTexture) {
+  if (s_alphaMap) {
     if (texture(u_texAlpha, in_texcoord).r < c_alphaTextureThreshold) {
       alpha = 0.0;
     }
@@ -45,9 +46,16 @@ void main() {
 
   // Output world normal.
   if (s_normalMap) {
-    geo.normal = texture_normal(u_texNormal, in_texcoord, in_worldNormal, in_worldTangent);
+    const f32v4 normalEmissiveSample = texture(u_texNormalEmissive, in_texcoord);
+    if (s_emissive) {
+      geo.emissive = normalEmissiveSample.a;
+    } else {
+      geo.emissive = 0;
+    }
+    geo.normal = texture_normal(normalEmissiveSample.xyz, in_worldNormal, in_worldTangent);
   } else {
-    geo.normal = in_worldNormal;
+    geo.emissive = 0;
+    geo.normal   = in_worldNormal;
   }
 
   // Output tags.

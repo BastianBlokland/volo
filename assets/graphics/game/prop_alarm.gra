@@ -1,0 +1,42 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 1
+        },
+        {
+          "name": "emissive",
+          "binding": 2,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/alarm/alarm_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    },
+    {
+      "textureId": "external/alarm/alarm_normal_emissive.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    }
+  ],
+  "meshId": "external/alarm/alarm.gltf",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}

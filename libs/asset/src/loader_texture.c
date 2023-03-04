@@ -282,6 +282,8 @@ bool asset_texture_is_normalmap(const String id) {
   static const String g_patterns[] = {
       string_static("*_nrm.*"),
       string_static("*_normal.*"),
+      string_static("*_nrm_*.*"),
+      string_static("*_normal_*.*"),
   };
   array_for_t(g_patterns, String, pattern) {
     if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {

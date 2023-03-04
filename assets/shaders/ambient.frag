@@ -9,21 +9,23 @@ struct AmbientData {
   f32v4 packed; // x: ambientLight, y: mode, z, flags, w: unused
 };
 
-bind_spec(0) const bool s_debug             = false;
-bind_spec(1) const f32 s_specIrradianceMips = 5.0;
+bind_spec(0) const bool s_debug                = false;
+bind_spec(1) const f32 s_specIrradianceMips    = 5.0;
+bind_spec(2) const f32 s_emissiveMaxBrightness = 100.0;
 
 const u32 c_modeSolid                   = 0;
 const u32 c_modeDiffuseIrradiance       = 1;
 const u32 c_modeSpecularIrradiance      = 2;
 const u32 c_modeDebugColor              = 3;
 const u32 c_modeDebugRoughness          = 4;
-const u32 c_modeDebugNormal             = 5;
-const u32 c_modeDebugDepth              = 6;
-const u32 c_modeDebugTags               = 7;
-const u32 c_modeDebugAmbientOcclusion   = 8;
-const u32 c_modeDebugFresnel            = 9;
-const u32 c_modeDebugDiffuseIrradiance  = 10;
-const u32 c_modeDebugSpecularIrradiance = 11;
+const u32 c_modeDebugEmissive           = 5;
+const u32 c_modeDebugNormal             = 6;
+const u32 c_modeDebugDepth              = 7;
+const u32 c_modeDebugTags               = 8;
+const u32 c_modeDebugAmbientOcclusion   = 9;
+const u32 c_modeDebugFresnel            = 10;
+const u32 c_modeDebugDiffuseIrradiance  = 11;
+const u32 c_modeDebugSpecularIrradiance = 12;
 
 const u32 c_flagsAmbientOcclusion     = 1 << 0;
 const u32 c_flagsAmbientOcclusionBlur = 1 << 1;
@@ -120,13 +122,16 @@ void main() {
   if (s_debug) {
     switch (mode) {
     case c_modeDebugColor:
-      out_color = surf.color;
+      out_color = geo.color;
       break;
     case c_modeDebugRoughness:
-      out_color = surf.roughness.rrr;
+      out_color = geo.roughness.rrr;
+      break;
+    case c_modeDebugEmissive:
+      out_color = geo.emissive.rrr;
       break;
     case c_modeDebugNormal:
-      out_color = surf.normal;
+      out_color = geo.normal;
       break;
     case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
@@ -172,6 +177,9 @@ void main() {
       }
     } break;
     }
+
+    // Emissive.
+    out_color += surf.color * geo.emissive * s_emissiveMaxBrightness;
 
     // Additional effects.
     if (tag_is_set(geo.tags, tag_damaged_bit)) {
