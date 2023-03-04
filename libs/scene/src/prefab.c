@@ -2,6 +2,7 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -127,6 +128,9 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
   ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .alpha = 1.0f);
+  if (t->blinkFrequency > f32_epsilon) {
+    ecs_world_add_t(w, e, SceneRenderableBlinkComp, .blinkFrequency = t->blinkFrequency);
+  }
 }
 
 static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {

@@ -54,6 +54,7 @@ typedef enum {
 
 typedef struct {
   EcsEntityId graphic;
+  f32         blinkFrequency; // Optional: negative or 0 to disable.
 } AssetPrefabTraitRenderable;
 
 typedef struct {
