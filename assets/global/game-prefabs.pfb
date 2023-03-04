@@ -170,6 +170,15 @@
       ]
     },
     {
+      "name": "PropFloor",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphicId": "graphics/game/prop_floor_panel.gra"
+        }
+      ]
+    },
+    {
       "name": "PropFence",
       "traits": [
         {

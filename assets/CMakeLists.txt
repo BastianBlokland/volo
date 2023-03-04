@@ -133,6 +133,8 @@ if(${EXTERNAL_ASSETS})
       tiling/clouds.tga
       tiling/dirt_2_color_rough.tga
       tiling/dirt_2_normal.tga
+      tiling/metal_panel_color_rough.tga
+      tiling/metal_panel_normal.tga
       tiling/sand_2_color_rough.tga
       tiling/sand_4_normal.tga
       tires/tires_color_rough.tga

@@ -1,0 +1,37 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/tiling/metal_panel_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    },
+    {
+      "textureId": "external/tiling/metal_panel_normal.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    }
+  ],
+  "meshId": "meshes/game/floor_panel.pme",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
