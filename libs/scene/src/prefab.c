@@ -130,7 +130,7 @@ static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitR
 }
 
 static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
-  ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset);
+  ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset, .alpha = 1.0f);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {

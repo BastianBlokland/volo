@@ -326,7 +326,8 @@ static void vfx_instance_output_sprite(
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
     const VfxTrans*     sysTrans,
-    const TimeDuration  sysTimeRem) {
+    const TimeDuration  sysTimeRem,
+    const f32           alpha) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
@@ -355,6 +356,7 @@ static void vfx_instance_output_sprite(
   }
 
   GeoColor color = sprite->color;
+  color.a *= alpha;
   color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
 
@@ -393,7 +395,8 @@ static void vfx_instance_output_light(
     RendLightComp*      lightOutput,
     const AssetVfxComp* asset,
     const VfxTrans*     sysTrans,
-    const TimeDuration  sysTimeRem) {
+    const TimeDuration  sysTimeRem,
+    const f32           alpha) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -412,6 +415,7 @@ static void vfx_instance_output_light(
     pos = vfx_world_pos(sysTrans, pos);
     scale *= sysTrans->scale;
   }
+  radiance.a *= alpha;
   radiance.a *= scale;
   radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
   radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
@@ -453,6 +457,10 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*              vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*                    state     = ecs_view_write_t(itr, VfxStateComp);
 
+    if (vfx->alpha <= f32_epsilon) {
+      continue;
+    }
+
     diag_assert_msg(ecs_entity_valid(vfx->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
       if (vfx->asset && ++numAssetRequests < vfx_max_asset_requests) {
@@ -476,8 +484,8 @@ ecs_system_define(VfxSystemUpdateSys) {
     vfx_system_simulate(state, asset, atlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem);
-      vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem);
+      vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem, vfx->alpha);
+      vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem, vfx->alpha);
     }
   }
 }
