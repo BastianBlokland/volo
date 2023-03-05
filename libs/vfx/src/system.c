@@ -377,8 +377,10 @@ static void vfx_instance_output_sprite(
   if (sprite->shadowCaster) {
     flags |= VfxParticle_ShadowCaster;
   }
-  f32 opacity;
-  vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
+  f32 opacity = 1.0f;
+  if (!sprite->distortion) {
+    vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
+  }
   vfx_particle_output(
       particleDraws[vfx_particle_type(sprite)],
       &(VfxParticle){
