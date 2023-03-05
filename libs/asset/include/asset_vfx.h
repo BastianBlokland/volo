@@ -36,6 +36,7 @@ typedef struct {
   TimeDuration   scaleInTime, scaleOutTime;
   bool           geometryFade; // Aka 'soft particles'.
   bool           shadowCaster;
+  bool           distortion; // Draw in the distortion pass instead of the forward pass.
 } AssetVfxSprite;
 
 typedef struct {

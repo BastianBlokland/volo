@@ -197,6 +197,10 @@ static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   UNREACHABLE
 }
 
+static VfxParticleType vfx_particle_type(const AssetVfxSprite* sprite) {
+  return sprite->distortion ? VfxParticleType_Distortion : VfxParticleType_Forward;
+}
+
 typedef struct {
   GeoVector pos;
   GeoQuat   rot;
@@ -376,7 +380,7 @@ static void vfx_instance_output_sprite(
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(
-      particleDraws[VfxParticleType_Forward],
+      particleDraws[vfx_particle_type(sprite)],
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
