@@ -770,9 +770,31 @@ static bool rend_canvas_paint(
 
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
-  rvk_canvas_attach_release(painter->canvas, geoDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
+
+  // Distortion.
+  const RvkSize distSize = set->flags & RendFlags_Distortion
+                               ? rvk_size_scale(geoSize, set->distortionResolutionScale)
+                               : (RvkSize){1, 1};
+  RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
+  RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
+  RvkImage* distDepth    = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
+  if (set->flags & RendFlags_Distortion) {
+    rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth); // Initialize to the geometry depth.
+
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, distPass, mainView);
+    rvk_pass_stage_attach_color(distPass, distBuffer, 0);
+    rvk_pass_stage_attach_depth(fwdPass, distDepth);
+
+    painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
+    painter_flush(&ctx);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
+  }
+
+  rvk_canvas_attach_release(painter->canvas, geoDepth);
+  rvk_canvas_attach_release(painter->canvas, distDepth);
 
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
@@ -841,6 +863,7 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, bloomOutput);
+  rvk_canvas_attach_release(painter->canvas, distBuffer);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);
