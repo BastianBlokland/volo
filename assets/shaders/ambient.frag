@@ -11,7 +11,7 @@ struct AmbientData {
 
 bind_spec(0) const bool s_debug                = false;
 bind_spec(1) const f32 s_specIrradianceMips    = 5.0;
-bind_spec(2) const f32 s_emissiveMaxBrightness = 100.0;
+bind_spec(2) const f32 s_emissiveMaxBrightness = 150.0;
 
 const u32 c_modeSolid                   = 0;
 const u32 c_modeDiffuseIrradiance       = 1;
