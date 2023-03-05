@@ -157,6 +157,7 @@ if(${EXTERNAL_ASSETS})
       vfx/flash_2.tga
       vfx/flash_star_2.tga
       vfx/heat_distortion_2_nrm.tga
+      vfx/ring_distortion_nrm.tga
       vfx/rock.tga
       vfx/smoke.tga
       vfx/trail_2.tga
