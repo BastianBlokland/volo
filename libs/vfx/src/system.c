@@ -323,7 +323,7 @@ static void vfx_system_simulate(
 
 static void vfx_instance_output_sprite(
     const VfxInstance*  instance,
-    RendDrawComp*       draw,
+    RendDrawComp*       particleDraws[VfxParticleType_Count],
     const AssetVfxComp* asset,
     const VfxTrans*     sysTrans,
     const TimeDuration  sysTimeRem,
@@ -376,7 +376,7 @@ static void vfx_instance_output_sprite(
   f32 opacity;
   vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   vfx_particle_output(
-      draw,
+      particleDraws[VfxParticleType_Forward],
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
@@ -437,16 +437,20 @@ ecs_system_define(VfxSystemUpdateSys) {
   const VfxParticleRendererComp* rend  = ecs_view_read_t(globalItr, VfxParticleRendererComp);
   RendLightComp*                 light = ecs_view_write_t(globalItr, RendLightComp);
 
-  RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
-  const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
-  if (!atlas) {
+  const AssetAtlasComp* particleAtlas = vfx_atlas(world, vfx_particle_atlas(rend));
+  if (!particleAtlas) {
     return; // Atlas hasn't loaded yet.
+  }
+  // Initialize the particle draws.
+  RendDrawComp* particleDraws[VfxParticleType_Count];
+  for (VfxParticleType particleType = 0; particleType != VfxParticleType_Count; ++particleType) {
+    const EcsEntityId drawEntity = vfx_particle_draw(rend, particleType);
+    particleDraws[particleType]  = ecs_utils_write_t(world, DrawView, drawEntity, RendDrawComp);
+    vfx_particle_init(particleDraws[particleType], particleAtlas);
   }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
   u32          numAssetRequests = 0;
-
-  vfx_particle_init(draw, atlas);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
@@ -481,10 +485,10 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, atlas, time, &sysTrans);
+    vfx_system_simulate(state, asset, particleAtlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxInstance, instance) {
-      vfx_instance_output_sprite(instance, draw, asset, &sysTrans, sysTimeRem, vfx->alpha);
+      vfx_instance_output_sprite(instance, particleDraws, asset, &sysTrans, sysTimeRem, vfx->alpha);
       vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem, vfx->alpha);
     }
   }

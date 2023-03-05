@@ -10,8 +10,14 @@
 
 #include "particle_internal.h"
 
-static const String g_vfxParticleGraphic = string_static("graphics/vfx/particle.gra");
-static const String g_vfxParticleAtlas   = string_static("textures/vfx/particle.atl");
+static const String g_vfxParticleGraphics[VfxParticleType_Count] = {
+    [VfxParticleType_Forward] = string_static("graphics/vfx/particle.gra"),
+};
+static const RendDrawFlags g_vfxParticleDrawFlags[VfxParticleType_Count] = {
+    [VfxParticleType_Forward] =
+        RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
+};
+static const String g_vfxParticleAtlas = string_static("textures/vfx/particle.atl");
 
 typedef struct {
   ALIGNAS(16)
@@ -42,14 +48,13 @@ typedef enum {
 ecs_comp_define(VfxParticleRendererComp) {
   VfxRendererFlags flags;
   EcsEntityId      atlas;
-  EcsEntityId      drawEntity;
+  EcsEntityId      drawEntities[VfxParticleType_Count];
 };
 
-static EcsEntityId vfx_particle_draw_create(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId   entity = asset_lookup(world, assets, g_vfxParticleGraphic);
-  const RendDrawFlags flags =
-      RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront;
-  RendDrawComp* draw = rend_draw_create(world, entity, flags);
+static EcsEntityId
+vfx_particle_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxParticleType type) {
+  const EcsEntityId entity = asset_lookup(world, assets, g_vfxParticleGraphics[type]);
+  RendDrawComp*     draw   = rend_draw_create(world, entity, g_vfxParticleDrawFlags[type]);
   rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
   return entity;
 }
@@ -69,14 +74,11 @@ ecs_system_define(VfxParticleRendererInitSys) {
   VfxParticleRendererComp* renderer = ecs_view_write_t(globalItr, VfxParticleRendererComp);
 
   if (!renderer) {
-    const EcsEntityId drawEntity = vfx_particle_draw_create(world, assets);
-    ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        VfxParticleRendererComp,
-        .atlas      = asset_lookup(world, assets, g_vfxParticleAtlas),
-        .drawEntity = drawEntity);
-    return;
+    renderer        = ecs_world_add_t(world, ecs_world_global(world), VfxParticleRendererComp);
+    renderer->atlas = asset_lookup(world, assets, g_vfxParticleAtlas);
+    for (VfxParticleType type = 0; type != VfxParticleType_Count; ++type) {
+      renderer->drawEntities[type] = vfx_particle_draw_create(world, assets, type);
+    }
   }
 
   if (!(renderer->flags & (VfxRenderer_AtlasAcquired | VfxRenderer_AtlasUnloading))) {
@@ -125,8 +127,9 @@ ecs_module_init(vfx_particle_module) {
 
 EcsEntityId vfx_particle_atlas(const VfxParticleRendererComp* renderer) { return renderer->atlas; }
 
-EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer) {
-  return renderer->drawEntity;
+EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer, const VfxParticleType type) {
+  diag_assert(type < VfxParticleType_Count);
+  return renderer->drawEntities[type];
 }
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
