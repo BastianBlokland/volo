@@ -18,6 +18,7 @@ const u32 c_modeAces          = 4;
 
 bind_global_img(0) uniform sampler2D u_texHdr;
 bind_global_img(1) uniform sampler2D u_texBloom;
+bind_global_img(2) uniform sampler2D u_texDistortion;
 bind_draw_data(0) readonly uniform Draw { TonemapperData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
@@ -70,9 +71,15 @@ f32v3 tonemap_aces_approx(const f32v3 hdr) {
   return clamp((hdr * (a * hdr + b)) / (hdr * (c * hdr + d) + e), 0.0, 1.0);
 }
 
+/**
+ * Apply screen-space distortion.
+ */
+f32v2 distortion_apply(const f32v2 coord) { return coord + texture(u_texDistortion, coord).xy; }
+
 void main() {
-  const f32v3 colorHdrInput = texture(u_texHdr, in_texcoord).rgb;
-  const f32v3 bloomInput    = texture(u_texBloom, in_texcoord).rgb;
+  const f32v2 distortedCoord = distortion_apply(in_texcoord);
+  const f32v3 colorHdrInput  = texture(u_texHdr, distortedCoord).rgb;
+  const f32v3 bloomInput     = texture(u_texBloom, distortedCoord).rgb;
   const f32v3 colorHdr = mix(colorHdrInput, bloomInput, u_draw.bloomIntensity) * u_draw.exposure;
 
   f32v3 colorSdr;
