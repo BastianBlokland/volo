@@ -424,6 +424,26 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   }
 }
 
+static void painter_push_distortion(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Distortion)) {
+      continue; // Shouldn't be included in the distortion pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic));
+    }
+  }
+}
+
 static void painter_push_tonemapping(RendPaintContext* ctx) {
   typedef struct {
     ALIGNAS(16)
@@ -786,9 +806,10 @@ static bool rend_canvas_paint(
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, distPass, mainView);
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
-    rvk_pass_stage_attach_depth(fwdPass, distDepth);
+    rvk_pass_stage_attach_depth(distPass, distDepth);
 
     painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
+    painter_push_distortion(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   } else {
     rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
