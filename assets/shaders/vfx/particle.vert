@@ -52,6 +52,7 @@ bind_internal(0) out flat f32v4 out_color;
 bind_internal(1) out flat f32 out_opacity;
 bind_internal(2) out flat u32 out_flags;
 bind_internal(3) out f32v2 out_texcoord;
+bind_internal(4) out f32v3 out_worldPosition;
 
 f32v3 ref_right(const u32 flags) {
   if ((flags & c_flagBillboard) != 0) {
@@ -103,6 +104,7 @@ void main() {
   const f32v2 texOrigin = atlas_entry_origin(instanceAtlasIndex);
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
+  out_worldPosition  = worldPos;
   out_color          = instanceColor;
   out_opacity        = instanceOpacity;
   out_flags          = instanceFlags;
