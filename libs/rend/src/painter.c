@@ -848,12 +848,15 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
+    rvk_pass_stage_global_image(postPass, distBuffer, 2);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, postSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
       painter_push_debug_image_viewer(&ctx, shadowDepth);
+    } else if (set->flags & RendFlags_DebugDistortion) {
+      painter_push_debug_image_viewer(&ctx, distBuffer);
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
     }
