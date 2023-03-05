@@ -13,10 +13,11 @@ typedef enum {
   RendDrawFlags_Terrain             = 1 << 4,
   RendDrawFlags_Particle            = 1 << 5,
   RendDrawFlags_Light               = 1 << 6,
-  RendDrawFlags_NoAutoClear         = 1 << 7,
-  RendDrawFlags_NoInstanceFiltering = 1 << 8, // NOTE: Does not support sorting.
-  RendDrawFlags_SortBackToFront     = 1 << 9,
-  RendDrawFlags_SortFrontToBack     = 1 << 10,
+  RendDrawFlags_Distortion          = 1 << 7,
+  RendDrawFlags_NoAutoClear         = 1 << 8,
+  RendDrawFlags_NoInstanceFiltering = 1 << 9, // NOTE: Does not support sorting.
+  RendDrawFlags_SortBackToFront     = 1 << 10,
+  RendDrawFlags_SortFrontToBack     = 1 << 11,
 
   RendDrawFlags_Geometry = RendDrawFlags_StandardGeometry | RendDrawFlags_Terrain,
   RendDrawFlags_Sorted   = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,

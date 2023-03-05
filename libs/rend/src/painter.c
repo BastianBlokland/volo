@@ -396,8 +396,9 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
-  ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
-  ignoreFlags |= RendDrawFlags_Post;     // Ignore post (should be drawn in the post pass).
+  ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
+  ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
   if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
     // Disable lighting when using any of the debug ambient modes.
