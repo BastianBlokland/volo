@@ -35,7 +35,7 @@
     },
     {
       "name": "heat_distortion",
-      "texture": "external/vfx/heat_distortion.tga"
+      "texture": "external/vfx/heat_distortion_nrm.tga"
     },
     {
       "name": "fire_0",
