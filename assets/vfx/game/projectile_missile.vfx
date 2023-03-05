@@ -20,6 +20,17 @@
       }
     },
     {
+      "sprite": {
+        "atlasEntry": "ring_distortion",
+        "color": { "r": 1, "g": 1, "b": 1, "a": 0.2 },
+        "facing": "BillboardSphere",
+        "size": { "x": 0.6, "y": 0.6 },
+        "fadeInTime": 0.025,
+        "fadeOutTime": 0.75,
+        "distortion": true
+      }
+    },
+    {
       "space": "World",
       "cone": {
         "radius": 0.1,
