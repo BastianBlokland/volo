@@ -5,7 +5,7 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define asset_vfx_max_emitters 4
+#define asset_vfx_max_emitters 5
 
 typedef enum {
   AssetVfxSpace_Local,
