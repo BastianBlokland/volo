@@ -22,23 +22,25 @@ ecs_module_init(rend_settings_module) {
 
 void rend_settings_to_default(RendSettingsComp* s) {
   s->flags = RendFlags_FrustumCulling | RendFlags_AmbientOcclusion |
-             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom | RendFlags_ParticleShadows;
-  s->presentMode         = RendPresentMode_VSyncRelaxed;
-  s->ambientMode         = RendAmbientMode_SpecularIrradiance;
-  s->skyMode             = RendSkyMode_None;
-  s->exposure            = 1.0f;
-  s->tonemapper          = RendTonemapper_LinearSmooth;
-  s->resolutionScale     = 1.0f;
-  s->aoAngle             = 80 * math_deg_to_rad;
-  s->aoRadius            = 0.5f;
-  s->aoRadiusPower       = 2.5f;
-  s->aoPower             = 3.5f;
-  s->aoResolutionScale   = 0.75f;
-  s->shadowResolution    = 2048;
-  s->bloomIntensity      = 0.04f;
-  s->bloomSteps          = 5;
-  s->bloomRadius         = 0.003f;
-  s->debugViewerResource = 0;
+             RendFlags_AmbientOcclusionBlur | RendFlags_Bloom | RendFlags_Distortion |
+             RendFlags_ParticleShadows;
+  s->presentMode               = RendPresentMode_VSyncRelaxed;
+  s->ambientMode               = RendAmbientMode_SpecularIrradiance;
+  s->skyMode                   = RendSkyMode_None;
+  s->exposure                  = 1.0f;
+  s->tonemapper                = RendTonemapper_LinearSmooth;
+  s->resolutionScale           = 1.0f;
+  s->aoAngle                   = 80 * math_deg_to_rad;
+  s->aoRadius                  = 0.5f;
+  s->aoRadiusPower             = 2.5f;
+  s->aoPower                   = 3.5f;
+  s->aoResolutionScale         = 0.75f;
+  s->shadowResolution          = 2048;
+  s->bloomIntensity            = 0.04f;
+  s->bloomSteps                = 5;
+  s->bloomRadius               = 0.003f;
+  s->distortionResolutionScale = 0.25f;
+  s->debugViewerResource       = 0;
 
   rend_settings_generate_ao_kernel(s);
 }

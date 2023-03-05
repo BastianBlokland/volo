@@ -979,6 +979,16 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   if (ui_slider(canvas, &blRadius, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipBloomRadius)) {
     settings->bloomRadius = blRadius * 1e-3f;
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Distortion"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Distortion);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Distortion resolution scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->distortionResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
 }
 
 static void rend_panel_draw(
