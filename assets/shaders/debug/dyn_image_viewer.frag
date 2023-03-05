@@ -36,7 +36,7 @@ void main() {
     out_color = imageColor.rrr;
     break;
   case 2:
-    out_color = f32v3(imageColor.rg, 1);
+    out_color = f32v3(imageColor.rg, 0);
     break;
   case 3:
     out_color = imageColor.rgb;
