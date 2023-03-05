@@ -481,7 +481,8 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
   }
 }
 
-static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image) {
+static void
+painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
@@ -490,6 +491,7 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
       ALIGNAS(16)
       u32 imageChannels;
       u32 flags;
+      f32 exposure;
     } ImageViewerData;
 
     enum { ImageViewerFlags_FlipY = 1 << 0 };
@@ -507,6 +509,7 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
     data->flags           = flags;
+    data->exposure        = exposure;
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
@@ -569,7 +572,8 @@ static void painter_push_debug_resource_viewer(
 
     RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
     if (textureComp && rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
-      painter_push_debug_image_viewer(ctx, &textureComp->texture->image);
+      const f32 exposure = 1.0f;
+      painter_push_debug_image_viewer(ctx, &textureComp->texture->image, exposure);
     }
     RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);
     if (meshComp && rvk_pass_prepare_mesh(ctx->pass, meshComp->mesh)) {
@@ -876,9 +880,11 @@ static bool rend_canvas_paint(
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
-      painter_push_debug_image_viewer(&ctx, shadowDepth);
+      const f32 exposure = 0.5f;
+      painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
-      painter_push_debug_image_viewer(&ctx, distBuffer);
+      const f32 exposure = 10.0f;
+      painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
     }
