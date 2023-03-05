@@ -5,170 +5,88 @@
       "cone": {
         "angle": 20,
         "radius": 0.1,
-        "rotation": {
-          "x": -90
-        }
+        "rotation": { "x": -90 }
       },
-      "force": {
-        "y": 1
-      },
+      "force": { "y": 1 },
       "sprite": {
         "atlasEntry": "fire_0",
-        "color": {
-          "r": 1,
-          "g": 0.2,
-          "b": 0.05,
-          "a": 75
-        },
+        "color": { "r": 1, "g": 0.2, "b": 0.05, "a": 75 },
         "blend": "Additive",
         "facing": "BillboardSphere",
         "flipbookCount": 16,
         "flipbookTime": 1.5,
-        "size": {
-          "x": 1.3,
-          "y": 1.3
-        },
+        "size": { "x": 1.3, "y": 1.3 },
         "fadeInTime": 0.025,
         "fadeOutTime": 0.2,
         "scaleInTime": 0.025
       },
-      "speed": {
-        "min": 10,
-        "max": 15
-      },
-      "scale": {
-        "min": 0.5,
-        "max": 1.5
-      },
+      "speed": { "min": 10, "max": 15 },
+      "scale": { "min": 0.5, "max": 1.5 },
       "count": 50,
       "interval": 0.005,
-      "lifetime": {
-        "min": 0.2,
-        "max": 0.3
-      },
-      "rotation": {
-        "random": {
-          "z": 360
-        }
-      }
+      "lifetime": { "min": 0.2, "max": 0.3 },
+      "rotation": { "random": { "z": 360 } }
     },
     {
       "space": "World",
       "cone": {
         "angle": 40,
         "radius": 0.1,
-        "position": {
-          "y": 1
-        },
-        "rotation": {
-          "x": 90
-        }
+        "position": { "y": 1 },
+        "rotation": { "x": 90 }
       },
-      "force": {
-        "y": -0.8
-      },
+      "force": { "y": -0.8 },
       "sprite": {
         "atlasEntry": "smoke",
-        "color": {
-          "r": 0.1,
-          "g": 0.1,
-          "b": 0.1,
-          "a": 1.5
-        },
+        "color": { "r": 0.1, "g": 0.1, "b": 0.1, "a": 1.5 },
         "blend": "Alpha",
         "facing": "BillboardSphere",
-        "size": {
-          "x": 1,
-          "y": 1
-        },
+        "size": { "x": 1, "y": 1 },
         "fadeInTime": 0.05,
         "fadeOutTime": 0.5,
         "scaleInTime": 0.05,
         "geometryFade": true
       },
-      "speed": {
-        "min": 3,
-        "max": 5
-      },
+      "speed": { "min": 3, "max": 5 },
       "expandForce": 3,
       "count": 5,
       "interval": 0.025,
-      "scale": {
-        "min": 0.75,
-        "max": 1.75
-      },
-      "lifetime": {
-        "min": 0.75,
-        "max": 1
-      },
-      "rotation": {
-        "random": {
-          "z": 360
-        }
-      }
+      "scale": { "min": 0.75, "max": 1.75 },
+      "lifetime": { "min": 0.75, "max": 1 },
+      "rotation": { "random": { "z": 360 } }
     },
     {
       "space": "World",
       "cone": {
         "angle": 20,
         "radius": 0.1,
-        "rotation": {
-          "x": -90
-        }
+        "rotation": { "x": -90 }
       },
       "sprite": {
         "atlasEntry": "heat_distortion",
-        "color": {
-          "r": 1,
-          "g": 1,
-          "b": 1,
-          "a": 0.75
-        },
+        "color": { "r": 1, "g": 1, "b": 1, "a": 0.75 },
         "facing": "BillboardSphere",
         "fadeInTime": 0.1,
         "fadeOutTime": 0.3,
-        "size": {
-          "x": 1,
-          "y": 1
-        },
+        "size": { "x": 1, "y": 1 },
         "distortion": true
       },
       "expandForce": 3,
-      "speed": {
-        "min": 2,
-        "max": 2.25
-      },
+      "speed": { "min": 2, "max": 2.25 },
       "count": 2,
       "interval": 0.01,
-      "scale": {
-        "min": 0.5,
-        "max": 1.5
-      },
-      "lifetime": {
-        "min": 0.5,
-        "max": 1
-      },
-      "rotation": {
-        "random": {
-          "z": 360
-        }
-      }
+      "scale": { "min": 0.5, "max": 1.5 },
+      "lifetime": { "min": 0.5, "max": 1 },
+      "rotation": { "random": { "z": 360 } }
     },
     {
       "light": {
-        "radiance": {
-          "r": 1,
-          "g": 0.5,
-          "b": 0.2,
-          "a": 10
-        },
+        "radiance": { "r": 1, "g": 0.5, "b": 0.2, "a": 10 },
         "radius": 7.5,
         "fadeInTime": 0.1,
         "fadeOutTime": 0.3
       },
-      "lifetime": {
-        "min": 0.4
-      }
+      "lifetime": { "min": 0.4 }
     }
   ]
 }

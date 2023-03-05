@@ -2,62 +2,33 @@
   "emitters": [
     {
       "cone": {
-        "position": {
-          "z": -1.7
-        }
+        "position": { "z": -1.7 }
       },
       "sprite": {
         "atlasEntry": "trail",
-        "color": {
-          "r": 1,
-          "g": 0.3,
-          "b": 0.1,
-          "a": 35
-        },
+        "color": { "r": 1, "g": 0.3, "b": 0.1, "a": 35 },
         "blend": "Additive",
-        "size": {
-          "x": 3.5,
-          "y": 0.1
-        },
+        "size": { "x": 3.5, "y": 0.1 },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
         "scaleInTime": 0.05
       },
-      "rotation": {
-        "base": {
-          "y": -90
-        }
-      }
+      "rotation": { "base": { "y": -90 } }
     },
     {
       "cone": {
-        "position": {
-          "z": -1.7
-        }
+        "position": { "z": -1.7 }
       },
       "sprite": {
         "atlasEntry": "trail",
-        "color": {
-          "r": 1,
-          "g": 0.3,
-          "b": 0.1,
-          "a": 35
-        },
+        "color": { "r": 1, "g": 0.3, "b": 0.1, "a": 35 },
         "blend": "Additive",
-        "size": {
-          "x": 3.5,
-          "y": 0.1
-        },
+        "size": { "x": 3.5, "y": 0.1 },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
         "scaleInTime": 0.05
       },
-      "rotation": {
-        "base": {
-          "x": 90,
-          "y": -90
-        }
-      }
+      "rotation": { "base": { "x": 90, "y": -90 } }
     }
   ]
 }
