@@ -54,6 +54,22 @@
       "lifetime": { "min": 0.55 }
     },
     {
+      "cone": {
+        "position": { "y": 0.75 }
+      },
+      "sprite": {
+        "atlasEntry": "ring_distortion",
+        "color": { "r": 1, "g": 1, "b": 1, "a": 0.5 },
+        "facing": "BillboardSphere",
+        "size": { "x": 10, "y": 10 },
+        "fadeOutTime": 0.5,
+        "fadeInTime": 0.05,
+        "scaleInTime": 0.5,
+        "distortion": true
+      },
+      "lifetime": { "min": 0.5 }
+    },
+    {
       "space": "World",
       "cone": {
         "angle": 70,
