@@ -75,7 +75,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachDepthLoad = RvkPassLoad_Preserve,
 
             // Attachment color 0: distortion-offset(rg).
-            .attachColorFormat[0] = RvkPassFormat_Color2Linear,
+            .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
             .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 
