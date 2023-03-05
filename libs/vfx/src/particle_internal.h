@@ -24,6 +24,7 @@ typedef enum {
 
 typedef enum {
   VfxParticleType_Forward,
+  VfxParticleType_Distortion,
 
   VfxParticleType_Count,
 } VfxParticleType;

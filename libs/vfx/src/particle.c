@@ -10,14 +10,17 @@
 
 #include "particle_internal.h"
 
+// clang-format off
 static const String g_vfxParticleGraphics[VfxParticleType_Count] = {
-    [VfxParticleType_Forward] = string_static("graphics/vfx/particle.gra"),
+    [VfxParticleType_Forward]    = string_static("graphics/vfx/particle_forward.gra"),
+    [VfxParticleType_Distortion] = string_static("graphics/vfx/particle_distortion.gra"),
 };
 static const RendDrawFlags g_vfxParticleDrawFlags[VfxParticleType_Count] = {
-    [VfxParticleType_Forward] =
-        RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
+    [VfxParticleType_Forward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
+    [VfxParticleType_Distortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
 static const String g_vfxParticleAtlas = string_static("textures/vfx/particle.atl");
+// clang-format on
 
 typedef struct {
   ALIGNAS(16)
