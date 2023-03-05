@@ -808,7 +808,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
-    painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
+    painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_distortion(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   } else {
