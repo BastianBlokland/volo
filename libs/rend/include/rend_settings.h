@@ -11,11 +11,15 @@ typedef enum {
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
   RendFlags_Bloom                = 1 << 3,
-  RendFlags_ParticleShadows      = 1 << 4,
-  RendFlags_DebugWireframe       = 1 << 5,
-  RendFlags_DebugCamera          = 1 << 6,
-  RendFlags_DebugSkinning        = 1 << 7,
-  RendFlags_DebugShadow          = 1 << 8,
+  RendFlags_Distortion           = 1 << 4,
+  RendFlags_ParticleShadows      = 1 << 5,
+  RendFlags_DebugWireframe       = 1 << 6,
+  RendFlags_DebugCamera          = 1 << 7,
+  RendFlags_DebugSkinning        = 1 << 8,
+  RendFlags_DebugShadow          = 1 << 9,
+  RendFlags_DebugDistortion      = 1 << 10,
+
+  RendFlags_DebugOverlay = RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
 
 typedef enum {
@@ -93,6 +97,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32             bloomIntensity;
   u32             bloomSteps;
   f32             bloomRadius;
+  f32             distortionResolutionScale;
   EcsEntityId     debugViewerResource; // Resource entity to visualize for debug purposes.
 };
 

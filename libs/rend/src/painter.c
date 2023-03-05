@@ -68,6 +68,17 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachColorLoad[0]   = RvkPassLoad_Clear,
         },
 
+    [RendPass_Distortion] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Transient,
+            .attachDepthLoad = RvkPassLoad_Preserve,
+
+            // Attachment color 0: distortion-offset(rg).
+            .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
+        },
+
     [RendPass_Bloom] =
         {
             // Attachment color 0: bloom (rgb).
@@ -385,8 +396,9 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
-  ignoreFlags |= RendDrawFlags_Geometry; // Ignore geometry (should be drawn in the geometry pass).
-  ignoreFlags |= RendDrawFlags_Post;     // Ignore post (should be drawn in the post pass).
+  ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
+  ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
   if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
     // Disable lighting when using any of the debug ambient modes.
@@ -398,6 +410,26 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
     if (rend_draw_flags(draw) & ignoreFlags) {
       continue;
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic));
+    }
+  }
+}
+
+static void painter_push_distortion(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Distortion)) {
+      continue; // Shouldn't be included in the distortion pass.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
@@ -449,7 +481,8 @@ static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView*
   }
 }
 
-static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image) {
+static void
+painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugImageViewerGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
@@ -458,6 +491,7 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
       ALIGNAS(16)
       u32 imageChannels;
       u32 flags;
+      f32 exposure;
     } ImageViewerData;
 
     enum { ImageViewerFlags_FlipY = 1 << 0 };
@@ -475,6 +509,7 @@ static void painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* ima
     ImageViewerData* data = alloc_alloc_t(g_alloc_scratch, ImageViewerData);
     data->imageChannels   = rvk_format_info(image->vkFormat).channels;
     data->flags           = flags;
+    data->exposure        = exposure;
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
@@ -537,7 +572,8 @@ static void painter_push_debug_resource_viewer(
 
     RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
     if (textureComp && rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
-      painter_push_debug_image_viewer(ctx, &textureComp->texture->image);
+      const f32 exposure = 1.0f;
+      painter_push_debug_image_viewer(ctx, &textureComp->texture->image, exposure);
     }
     RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);
     if (meshComp && rvk_pass_prepare_mesh(ctx->pass, meshComp->mesh)) {
@@ -759,9 +795,32 @@ static bool rend_canvas_paint(
 
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
-  rvk_canvas_attach_release(painter->canvas, geoDepth);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdDepth);
+
+  // Distortion.
+  const RvkSize distSize = set->flags & RendFlags_Distortion
+                               ? rvk_size_scale(geoSize, set->distortionResolutionScale)
+                               : (RvkSize){1, 1};
+  RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
+  RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
+  RvkImage* distDepth    = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
+  if (set->flags & RendFlags_Distortion) {
+    rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth); // Initialize to the geometry depth.
+
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, distPass, mainView);
+    rvk_pass_stage_attach_color(distPass, distBuffer, 0);
+    rvk_pass_stage_attach_depth(distPass, distDepth);
+
+    painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
+    painter_push_distortion(&ctx, drawView, graphicView);
+    painter_flush(&ctx);
+  } else {
+    rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
+  }
+
+  rvk_canvas_attach_release(painter->canvas, geoDepth);
+  rvk_canvas_attach_release(painter->canvas, distDepth);
 
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
@@ -815,12 +874,17 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
+    rvk_pass_stage_global_image(postPass, distBuffer, 2);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, postSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
-      painter_push_debug_image_viewer(&ctx, shadowDepth);
+      const f32 exposure = 0.5f;
+      painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
+    } else if (set->flags & RendFlags_DebugDistortion) {
+      const f32 exposure = 10.0f;
+      painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
     }
@@ -830,6 +894,7 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, bloomOutput);
+  rvk_canvas_attach_release(painter->canvas, distBuffer);
 
   // Finish the frame.
   rvk_canvas_end(painter->canvas);

@@ -7,6 +7,7 @@
 struct ImageData {
   u32 imageChannels;
   u32 flags;
+  f32 exposure;
 };
 
 const u32 c_flagsFlipY = 1 << 0;
@@ -30,13 +31,13 @@ void main() {
     coord.y = 1.0 - coord.y;
   }
 
-  const f32v4 imageColor = texture(u_tex, coord);
+  const f32v4 imageColor = abs(texture(u_tex, coord)) * u_draw.exposure;
   switch (u_draw.imageChannels) {
   case 1:
     out_color = imageColor.rrr;
     break;
   case 2:
-    out_color = f32v3(imageColor.rg, 1);
+    out_color = f32v3(imageColor.rg, 0);
     break;
   case 3:
     out_color = imageColor.rgb;

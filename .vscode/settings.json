@@ -32,6 +32,7 @@
     ".cache": true,
     "assets/**/*.spv": true
   },
+  "json.format.keepLines": true,
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
   "glsllint.linkShader": false,
   "emeraldwalk.runonsave": {

@@ -69,7 +69,13 @@ static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
 static VkAccessFlags rvk_image_vkaccess_write(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
-    return 0;
+    /**
+     * For images in an undefined phase we have to assume they can be written to by any part of the
+     * pipeline. This is needed to synchronize write-after-write scenarios when reusing memory.
+     * TODO: Investigate the performance impact of this and consider adding additional bookkeeping
+     * to narrow this down.
+     */
+    return VK_ACCESS_MEMORY_WRITE_BIT;
   case RvkImagePhase_TransferSource:
     return 0;
   case RvkImagePhase_TransferDest:
@@ -91,7 +97,12 @@ static VkAccessFlags rvk_image_vkaccess_write(const RvkImagePhase phase) {
 static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
-    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    /**
+     * For images in an undefined phase we have to assume they are used in any part of the pipeline.
+     * TODO: Investigate the performance impact of this and consider adding additional bookkeeping
+     * to narrow this down.
+     */
+    return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
   case RvkImagePhase_TransferSource:
   case RvkImagePhase_TransferDest:
     return VK_PIPELINE_STAGE_TRANSFER_BIT;

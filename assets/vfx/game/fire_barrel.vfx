@@ -5,122 +5,85 @@
       "cone": {
         "angle": 15,
         "radius": 0.1,
-        "position": {
-          "y": 0.75
-        },
-        "rotation": {
-          "x": -90
-        }
+        "position": { "y": 0.75 },
+        "rotation": { "x": -90 }
       },
-      "force": {
-        "y": 1
-      },
+      "force": { "y": 1 },
       "sprite": {
         "atlasEntry": "fire_0",
-        "color": {
-          "r": 1,
-          "g": 0.3,
-          "b": 0.1,
-          "a": 125
-        },
+        "color": { "r": 1, "g": 0.3, "b": 0.1, "a": 125 },
         "blend": "Additive",
         "facing": "BillboardSphere",
         "flipbookCount": 16,
         "flipbookTime": 1.5,
-        "size": {
-          "x": 0.75,
-          "y": 0.75
-        },
+        "size": { "x": 0.75, "y": 0.75 },
         "fadeInTime": 0.4,
         "fadeOutTime": 0.6,
         "scaleInTime": 0.25,
         "scaleOutTime": 1
       },
-      "speed": {
-        "min": 0.5,
-        "max": 1
-      },
+      "speed": { "min": 0.5, "max": 1 },
       "interval": 0.1,
-      "scale": {
-        "min": 0.8,
-        "max": 1.1
-      },
-      "lifetime": {
-        "min": 1,
-        "max": 1.25
-      },
-      "rotation": {
-        "random": {
-          "z": 360
-        }
-      }
+      "scale": { "min": 0.8, "max": 1.1 },
+      "lifetime": { "min": 1, "max": 1.25 },
+      "rotation": { "random": { "z": 360 } }
     },
     {
       "space": "World",
       "cone": {
         "angle": 10,
-        "position": {
-          "y": 0.75
-        },
-        "rotation": {
-          "x": -90
-        }
+        "position": { "y": 0.75 },
+        "rotation": { "x": -90 }
       },
-      "force": {
-        "y": 1
-      },
+      "force": { "y": 1 },
       "sprite": {
         "atlasEntry": "smoke",
-        "color": {
-          "r": 0.1,
-          "g": 0.1,
-          "b": 0.1,
-          "a": 1
-        },
+        "color": { "r": 0.1, "g": 0.1, "b": 0.1, "a": 1 },
         "blend": "Alpha",
         "facing": "BillboardSphere",
-        "size": {
-          "x": 0.5,
-          "y": 0.5
-        },
+        "size": { "x": 0.5, "y": 0.5 },
         "fadeInTime": 0.5,
         "fadeOutTime": 1.1,
         "geometryFade": true,
         "shadowCaster": true
       },
       "expandForce": 2,
-      "speed": {
-        "min": 0.25,
-        "max": 0.75
-      },
+      "speed": { "min": 0.25, "max": 0.75 },
       "interval": 0.45,
-      "scale": {
-        "min": 0.9,
-        "max": 1.1
+      "scale": { "min": 0.9, "max": 1.1 },
+      "lifetime": { "min": 1.75, "max": 2.2 },
+      "rotation": { "random": { "z": 360 } }
+    },
+    {
+      "space": "World",
+      "cone": {
+        "angle": 10,
+        "position": { "y": 0.75 },
+        "rotation": { "x": -90 }
       },
-      "lifetime": {
-        "min": 1.75,
-        "max": 2.2
+      "force": { "y": 1 },
+      "sprite": {
+        "atlasEntry": "heat_distortion",
+        "color": { "r": 1, "g": 1, "b": 1, "a": 0.125 },
+        "facing": "BillboardSphere",
+        "size": { "x": 0.3, "y": 0.3 },
+        "fadeInTime": 0.5,
+        "fadeOutTime": 0.5,
+        "distortion": true
       },
-      "rotation": {
-        "random": {
-          "z": 360
-        }
-      }
+      "expandForce": 4,
+      "speed": { "min": 0.4, "max": 0.6 },
+      "interval": 0.75,
+      "scale": { "min": 0.5, "max": 1.5 },
+      "lifetime": { "min": 1.5, "max": 2 },
+      "rotation": { "random": { "z": 360 } }
     },
     {
       "cone": {
-        "position": {
-          "y": 1.25
-        }
+        "position": { "y": 1.25 }
       },
       "light": {
-        "radiance": {
-          "r": 1,
-          "g": 0.5,
-          "b": 0.2,
-          "a": 7.5
-        },
+        "radiance": { "r": 1, "g": 0.5, "b": 0.2, "a": 7.5 },
         "radius": 7.5,
         "turbulenceFrequency": 5
       }

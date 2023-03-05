@@ -38,11 +38,13 @@ typedef enum {
 
 typedef enum {
   RvkPassFormat_None = 0,
-  RvkPassFormat_Color1Linear, // R    (unorm)  sdr linear.
-  RvkPassFormat_Color4Linear, // RGBA (unorm)  sdr linear.
-  RvkPassFormat_Color4Srgb,   // RGBA (unorm)  sdr srgb.
-  RvkPassFormat_Color3Float,  // RGB  (ufloat) hdr.
-  RvkPassFormat_Swapchain,    // Format matching the window's swapchain.
+  RvkPassFormat_Color1Linear,      // R    (unorm)  sdr linear.
+  RvkPassFormat_Color2Linear,      // RG   (unorm)  sdr linear.
+  RvkPassFormat_Color4Linear,      // RGBA (unorm)  sdr linear.
+  RvkPassFormat_Color4Srgb,        // RGBA (unorm)  sdr srgb.
+  RvkPassFormat_Color2SignedFloat, // RG   (sfloat) hdr.
+  RvkPassFormat_Color3Float,       // RGB  (ufloat) hdr.
+  RvkPassFormat_Swapchain,         // Format matching the window's swapchain.
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {

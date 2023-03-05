@@ -979,6 +979,21 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   if (ui_slider(canvas, &blRadius, .min = 0.01f, .max = 5.0f, .tooltip = g_tooltipBloomRadius)) {
     settings->bloomRadius = blRadius * 1e-3f;
   }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Distortion"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Distortion);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Distortion resolution scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->distortionResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Distortion Debug"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugDistortion);
 }
 
 static void rend_panel_draw(
@@ -1053,11 +1068,11 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 
     // Check if any renderer debug overlay is active.
     const bool overlayActive = ecs_entity_valid(settings->debugViewerResource) ||
-                               (settings->flags & RendFlags_DebugShadow) != 0;
+                               (settings->flags & RendFlags_DebugOverlay) != 0;
     if (overlayActive) {
       if (debug_overlay_blocker(canvas)) {
         settings->debugViewerResource = 0;
-        settings->flags &= ~RendFlags_DebugShadow;
+        settings->flags &= ~RendFlags_DebugOverlay;
       } else {
         debug_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
       }
@@ -1079,7 +1094,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     for (ecs_view_itr_reset(windowItr); ecs_view_walk(windowItr);) {
       RendSettingsComp* settings    = ecs_view_write_t(windowItr, RendSettingsComp);
       settings->debugViewerResource = 0;
-      settings->flags &= ~RendFlags_DebugShadow;
+      settings->flags &= ~RendFlags_DebugOverlay;
     }
   }
 }

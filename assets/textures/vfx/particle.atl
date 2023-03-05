@@ -34,6 +34,14 @@
       "texture": "external/vfx/arrow.tga"
     },
     {
+      "name": "heat_distortion",
+      "texture": "external/vfx/heat_distortion_2_nrm.tga"
+    },
+    {
+      "name": "ring_distortion",
+      "texture": "external/vfx/ring_distortion_nrm.tga"
+    },
+    {
       "name": "fire_0",
       "texture": "external/fire_2/fire_0.tga"
     },

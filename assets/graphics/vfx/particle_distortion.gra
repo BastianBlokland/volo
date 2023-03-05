@@ -1,0 +1,23 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/vfx/particle.vert.spv"
+    },
+    {
+      "shaderId": "shaders/vfx/particle_distortion.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/vfx/particle.atl",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "vertexCount": 6,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Additive",
+  "depth": "LessNoWrite",
+  "cull": "None"
+}

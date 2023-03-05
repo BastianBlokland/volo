@@ -48,7 +48,8 @@ configure_shaders(volo_shaders
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
     shaders/vfx/particle_depth.frag
-    shaders/vfx/particle.frag
+    shaders/vfx/particle_distortion.frag
+    shaders/vfx/particle_forward.frag
     shaders/vfx/particle.vert
   )
 
@@ -155,6 +156,8 @@ if(${EXTERNAL_ASSETS})
       vfx/arrow.tga
       vfx/flash_2.tga
       vfx/flash_star_2.tga
+      vfx/heat_distortion_2_nrm.tga
+      vfx/ring_distortion_nrm.tga
       vfx/rock.tga
       vfx/smoke.tga
       vfx/trail_2.tga
