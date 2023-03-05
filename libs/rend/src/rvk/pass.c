@@ -100,6 +100,8 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
     diag_crash_msg("Pass has no color attachment at index: {}", fmt_int(index));
   case RvkPassFormat_Color1Linear:
     return VK_FORMAT_R8_UNORM;
+  case RvkPassFormat_Color2Linear:
+    return VK_FORMAT_R8G8_UNORM;
   case RvkPassFormat_Color4Linear:
     return VK_FORMAT_R8G8B8A8_UNORM;
   case RvkPassFormat_Color4Srgb:

@@ -39,6 +39,7 @@ typedef enum {
 typedef enum {
   RvkPassFormat_None = 0,
   RvkPassFormat_Color1Linear, // R    (unorm)  sdr linear.
+  RvkPassFormat_Color2Linear, // RG   (unorm)  sdr linear.
   RvkPassFormat_Color4Linear, // RGBA (unorm)  sdr linear.
   RvkPassFormat_Color4Srgb,   // RGBA (unorm)  sdr srgb.
   RvkPassFormat_Color3Float,  // RGB  (ufloat) hdr.
