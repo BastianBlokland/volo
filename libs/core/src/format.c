@@ -95,11 +95,11 @@ static FormatReplOpt format_replacement_parse_opt(String str) {
  * Find a format replacement '{}'.
  */
 static bool format_replacement_find(String str, FormatRepl* result) {
-  const usize startIdx = string_find_first(str, string_lit("{"));
+  const usize startIdx = string_find_first_char(str, '{');
   if (sentinel_check(startIdx)) {
     return false;
   }
-  const usize len = string_find_first(format_mem_consume(str, startIdx), string_lit("}"));
+  const usize len = string_find_first_char(format_mem_consume(str, startIdx), '}');
   if (sentinel_check(len)) {
     return false;
   }

@@ -68,7 +68,7 @@ cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags
 
   if ((flags & CliOptionFlags_MultiValue) == CliOptionFlags_MultiValue) {
     usize commaPos;
-    while (!sentinel_check(commaPos = string_find_first(value, string_lit(",")))) {
+    while (!sentinel_check(commaPos = string_find_first_char(value, ','))) {
       const String partBeforeComma = string_slice(value, 0, commaPos);
       if (LIKELY(!string_is_empty(partBeforeComma))) {
         *dynarray_push_t(&opt->values, String) = partBeforeComma;
@@ -324,9 +324,9 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
   *invoc               = (CliInvocation){
-      .alloc   = app->alloc,
-      .errors  = ctx.errors,
-      .options = ctx.options,
+                    .alloc   = app->alloc,
+                    .errors  = ctx.errors,
+                    .options = ctx.options,
   };
   return invoc;
 }
