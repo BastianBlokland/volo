@@ -10,6 +10,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_instance.h"
 #include "rend_light.h"
 #include "scene_lifetime.h"
 #include "scene_time.h"
@@ -59,7 +60,17 @@ static void ecs_combine_asset_request(void* dataA, void* dataB) {
   compA->flags |= compB->flags;
 }
 
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(ParticleDrawView) {
+  ecs_access_with(VfxParticleDrawComp);
+  ecs_access_write(RendDrawComp);
+
+  /**
+   * Mark the particle draws as explicitly exclusive with scene renderable instance draws. This
+   * allows the scheduler to run the vfx draw filling and the instance draw filling in parallel.
+   */
+  ecs_access_without(RendInstanceDrawComp);
+}
+
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetVfxComp); }
 
@@ -449,10 +460,10 @@ ecs_system_define(VfxSystemUpdateSys) {
   }
   // Initialize the particle draws.
   RendDrawComp* particleDraws[VfxParticleType_Count];
-  for (VfxParticleType particleType = 0; particleType != VfxParticleType_Count; ++particleType) {
-    const EcsEntityId drawEntity = vfx_particle_draw(rend, particleType);
-    particleDraws[particleType]  = ecs_utils_write_t(world, DrawView, drawEntity, RendDrawComp);
-    vfx_particle_init(particleDraws[particleType], particleAtlas);
+  for (VfxParticleType type = 0; type != VfxParticleType_Count; ++type) {
+    const EcsEntityId drawEntity = vfx_particle_draw(rend, type);
+    particleDraws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
+    vfx_particle_init(particleDraws[type], particleAtlas);
   }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
@@ -504,7 +515,7 @@ ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxStateComp, .destructor = ecs_destruct_vfx_state_comp);
   ecs_register_comp(VfxAssetRequestComp, .combinator = ecs_combine_asset_request);
 
-  ecs_register_view(DrawView);
+  ecs_register_view(ParticleDrawView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
 
@@ -517,7 +528,7 @@ ecs_module_init(vfx_system_module) {
       VfxSystemUpdateSys,
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
-      ecs_view_id(DrawView),
+      ecs_view_id(ParticleDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
