@@ -70,6 +70,7 @@ static void ecs_destruct_draw(void* data) {
 static void ecs_combine_draw(void* dataA, void* dataB) {
   RendDrawComp* drawA = dataA;
   RendDrawComp* drawB = dataB;
+  diag_assert_msg(drawA->flags == drawB->flags, "Only draws with the same flags can be combined");
   diag_assert_msg(
       drawA->instDataSize == drawB->instDataSize,
       "Only draws with the same instance-data stride can be combined");
