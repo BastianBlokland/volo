@@ -160,6 +160,7 @@ String string_consume(String, usize amount);
  * NOTE: Returns 'sentinel_usize' if the substring could not be found.
  */
 usize string_find_first(String, String subStr);
+usize string_find_first_char(String, u8 subChar);
 
 /**
  * Find the first occurrence of any of the given characters.

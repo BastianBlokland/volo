@@ -70,6 +70,7 @@ static void ecs_destruct_draw(void* data) {
 static void ecs_combine_draw(void* dataA, void* dataB) {
   RendDrawComp* drawA = dataA;
   RendDrawComp* drawB = dataB;
+  diag_assert_msg(drawA->flags == drawB->flags, "Only draws with the same flags can be combined");
   diag_assert_msg(
       drawA->instDataSize == drawB->instDataSize,
       "Only draws with the same instance-data stride can be combined");
@@ -182,7 +183,7 @@ ecs_module_init(rend_draw_module) {
       RendDrawRequestGraphicSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
-  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 1);
+  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 10);
 }
 
 RendDrawComp*

@@ -52,31 +52,33 @@ String string_combine_raw(Allocator* alloc, const String* parts) {
   return result;
 }
 
-void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
+void string_free(Allocator* alloc, const String str) { alloc_free(alloc, str); }
 
-void string_maybe_free(Allocator* alloc, String str) {
+void string_maybe_free(Allocator* alloc, const String str) {
   if (!string_is_empty(str)) {
     alloc_free(alloc, str);
   }
 }
 
-i8 string_cmp(String a, String b) { return mem_cmp(a, b); }
+i8 string_cmp(const String a, const String b) { return mem_cmp(a, b); }
 
-bool string_eq(String a, String b) { return mem_eq(a, b); }
+bool string_eq(const String a, const String b) { return mem_eq(a, b); }
 
-bool string_starts_with(String str, String start) {
+bool string_starts_with(const String str, const String start) {
   return str.size >= start.size && string_eq(string_slice(str, 0, start.size), start);
 }
 
-bool string_ends_with(String str, String end) {
+bool string_ends_with(const String str, const String end) {
   return str.size >= end.size && string_eq(string_slice(str, str.size - end.size, end.size), end);
 }
 
-String string_slice(String str, usize offset, usize size) { return mem_slice(str, offset, size); }
+String string_slice(const String str, const usize offset, const usize size) {
+  return mem_slice(str, offset, size);
+}
 
-String string_consume(String str, usize amount) { return mem_consume(str, amount); }
+String string_consume(const String str, const usize amount) { return mem_consume(str, amount); }
 
-usize string_find_first(String str, String subStr) {
+usize string_find_first(const String str, const String subStr) {
   for (u8* itr = mem_begin(str); itr <= string_end(str) - subStr.size; ++itr) {
     if (mem_eq(mem_create(itr, subStr.size), subStr)) {
       return itr - string_begin(str);
@@ -85,7 +87,16 @@ usize string_find_first(String str, String subStr) {
   return sentinel_usize;
 }
 
-usize string_find_first_any(String str, String chars) {
+usize string_find_first_char(const String str, const u8 subChar) {
+  mem_for_u8(str, itr) {
+    if (*itr == subChar) {
+      return itr - string_begin(str);
+    }
+  }
+  return sentinel_usize;
+}
+
+usize string_find_first_any(const String str, const String chars) {
   mem_for_u8(str, itr) {
     if (mem_contains(chars, *itr)) {
       return itr - string_begin(str);
@@ -94,7 +105,7 @@ usize string_find_first_any(String str, String chars) {
   return sentinel_usize;
 }
 
-usize string_find_last(String str, String subStr) {
+usize string_find_last(const String str, const String subStr) {
   for (u8* itr = mem_end(str) - subStr.size + 1; itr-- > string_begin(str);) {
     if (mem_eq(mem_create(itr, subStr.size), subStr)) {
       return itr - string_begin(str);
@@ -103,7 +114,7 @@ usize string_find_last(String str, String subStr) {
   return sentinel_usize;
 }
 
-usize string_find_last_any(String str, String chars) {
+usize string_find_last_any(const String str, const String chars) {
   for (u8* itr = mem_end(str); itr-- != mem_begin(str);) {
     if (mem_contains(chars, *itr)) {
       return itr - string_begin(str);
@@ -112,7 +123,7 @@ usize string_find_last_any(String str, String chars) {
   return sentinel_usize;
 }
 
-bool string_match_glob(String str, String pattern, const StringMatchFlags flags) {
+bool string_match_glob(const String str, const String pattern, const StringMatchFlags flags) {
   /**
    * Basic glob matching algorithm.
    * More information on the implementation: https://research.swtch.com/glob.

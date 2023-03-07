@@ -111,11 +111,16 @@ spec(string) {
     check_eq_int(string_find_first(string_lit("Hello World"), string_lit("d")), 10);
     check_eq_int(string_find_first(string_lit("Hello World"), string_lit("ld")), 9);
     check_eq_int(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
     check_eq_int(string_find_first(string_lit("Hello World"), string_lit("He")), 0);
     check_eq_int(string_find_first(string_lit("Hello World"), string_lit("q")), sentinel_usize);
     check_eq_int(
         string_find_first(string_lit("Hello World"), string_lit("Hello World!")), sentinel_usize);
+  }
+
+  it("can find the first occurrence of a single character") {
+    check_eq_int(string_find_first_char(string_lit("Hello World"), 'd'), 10);
+    check_eq_int(string_find_first_char(string_lit("Hello World"), 'H'), 0);
+    check_eq_int(string_find_first_char(string_lit("Hello World"), 'q'), sentinel_usize);
   }
 
   it("can find the first occurrence of any of the specified characters") {

@@ -54,10 +54,13 @@ ecs_comp_define(VfxParticleRendererComp) {
   EcsEntityId      drawEntities[VfxParticleType_Count];
 };
 
+ecs_comp_define(VfxParticleDrawComp);
+
 static EcsEntityId
 vfx_particle_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxParticleType type) {
   const EcsEntityId entity = asset_lookup(world, assets, g_vfxParticleGraphics[type]);
-  RendDrawComp*     draw   = rend_draw_create(world, entity, g_vfxParticleDrawFlags[type]);
+  ecs_world_add_empty_t(world, entity, VfxParticleDrawComp);
+  RendDrawComp* draw = rend_draw_create(world, entity, g_vfxParticleDrawFlags[type]);
   rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
   return entity;
 }
@@ -121,6 +124,7 @@ ecs_system_define(VfxParticleUnloadChangedAtlasSys) {
 
 ecs_module_init(vfx_particle_module) {
   ecs_register_comp(VfxParticleRendererComp);
+  ecs_register_comp_empty(VfxParticleDrawComp);
 
   ecs_register_view(GlobalView);
 

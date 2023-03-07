@@ -43,6 +43,7 @@ typedef struct {
  * Global particle renderer.
  */
 ecs_comp_extern(VfxParticleRendererComp);
+ecs_comp_extern(VfxParticleDrawComp);
 
 EcsEntityId vfx_particle_atlas(const VfxParticleRendererComp*);
 EcsEntityId vfx_particle_draw(const VfxParticleRendererComp*, VfxParticleType);
