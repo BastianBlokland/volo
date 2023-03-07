@@ -9,7 +9,7 @@ enum {
   DebugOrder_CameraDebugDraw     = 700,
   DebugOrder_GizmoRender         = 725,
   DebugOrder_TextRender          = 750,
-  DebugOrder_ShapeRender         = 800,
+  DebugOrder_ShapeRender         = 850,
 };
 
 /**

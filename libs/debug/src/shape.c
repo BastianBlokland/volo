@@ -9,6 +9,7 @@
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
+#include "rend_instance.h"
 
 typedef enum {
   DebugShapeType_Box,
@@ -147,7 +148,16 @@ static void ecs_destruct_shape(void* data) {
 ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
 ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+ecs_view_define(DrawView) {
+  ecs_access_write(RendDrawComp);
+
+  /**
+   * Mark the shape draws as explicitly exclusive with scene renderable instance draws. This
+   * allows the scheduler to run the shape draw filling and the instance draw filling in parallel.
+   */
+  ecs_access_without(RendInstanceDrawComp);
+}
 
 static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, AssetManagerView);
@@ -193,17 +203,23 @@ INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape s
   *((DebugShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
 }
 
-ecs_system_define(DebugShapeRenderSys) {
-  AssetManagerComp* assets = debug_asset_manager(world);
-  if (!assets) {
-    return; // Asset manager hasn't been initialized yet.
+ecs_system_define(DebugShapeInitSys) {
+  DebugShapeRendererComp* renderer = debug_shape_renderer(world);
+  if (LIKELY(renderer)) {
+    return; // Already initialized.
   }
 
-  DebugShapeRendererComp* renderer = debug_shape_renderer(world);
-  if (!renderer) {
+  AssetManagerComp* assets = debug_asset_manager(world);
+  if (assets) {
     debug_shape_renderer_create(world, assets);
     debug_shape_create(world, ecs_world_global(world)); // Global shape component for convenience.
-    return;
+  }
+}
+
+ecs_system_define(DebugShapeRenderSys) {
+  DebugShapeRendererComp* renderer = debug_shape_renderer(world);
+  if (UNLIKELY(!renderer)) {
+    return; // Renderer not yet initialized.
   }
 
   EcsView*     drawView = ecs_world_view_t(world, DrawView);
@@ -357,8 +373,10 @@ ecs_module_init(debug_shape_module) {
   ecs_register_view(DrawView);
 
   ecs_register_system(
+      DebugShapeInitSys, ecs_view_id(AssetManagerView), ecs_view_id(ShapeRendererView));
+
+  ecs_register_system(
       DebugShapeRenderSys,
-      ecs_view_id(AssetManagerView),
       ecs_view_id(ShapeRendererView),
       ecs_view_id(ShapeView),
       ecs_view_id(DrawView));
