@@ -59,6 +59,8 @@ static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
   return res;
 }
 
+ecs_comp_define(RendInstanceDrawComp);
+
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneBoundsComp);
@@ -72,6 +74,7 @@ ecs_view_define(RenderableView) {
 ecs_view_define(DrawView) {
   ecs_access_write(RendDrawComp);
   ecs_access_maybe_read(SceneSkeletonTemplComp);
+  ecs_access_with(RendInstanceDrawComp);
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
@@ -95,13 +98,14 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
     const bool                isSkinned     = skeletonComp->jointCount != 0;
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendInstanceDrawComp))) {
       if (++createdDraws > rend_instance_max_draw_create_per_task) {
         continue; // Limit the amount of new draws to create per frame.
       }
       const RendDrawFlags flags = isSkinned ? RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned
                                             : RendDrawFlags_StandardGeometry;
-      RendDrawComp*       draw  = rend_draw_create(world, renderable->graphic, flags);
+      ecs_world_add_empty_t(world, renderable->graphic, RendInstanceDrawComp);
+      RendDrawComp* draw = rend_draw_create(world, renderable->graphic, flags);
       rend_draw_set_graphic(draw, renderable->graphic);
       continue;
     }
@@ -141,6 +145,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 }
 
 ecs_module_init(rend_instance_module) {
+  ecs_register_comp_empty(RendInstanceDrawComp);
+
   ecs_register_view(RenderableView);
   ecs_register_view(DrawView);
 
