@@ -401,7 +401,9 @@ ecs_module_init(rend_light_module) {
       ecs_view_id(DrawView),
       ecs_view_id(CameraView));
 
-  ecs_order(RendLightRenderSys, RendOrder_DrawCollect);
+  // NOTE: +1 is added to allow the vfx system (which also adds lights) to run in parallel with
+  // instance draw filling without the created lights rendering a frame too late.
+  ecs_order(RendLightRenderSys, RendOrder_DrawCollect + 1);
 }
 
 RendLightComp* rend_light_create(EcsWorld* world, const EcsEntityId entity) {

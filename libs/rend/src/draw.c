@@ -183,7 +183,7 @@ ecs_module_init(rend_draw_module) {
       RendDrawRequestGraphicSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
-  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 1);
+  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 10);
 }
 
 RendDrawComp*
