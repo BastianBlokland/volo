@@ -7,28 +7,31 @@
 #include "core_thread.h"
 #include "core_time.h"
 
-static String test_random_path() {
-  return path_build_scratch(
-      g_path_tempdir,
-      path_name_random_scratch(g_rng, string_lit("test-file-monitor"), string_lit("tmp")));
+static String test_random_name() {
+  return path_name_random_scratch(g_rng, string_lit("test-file-monitor"), string_lit("tmp"));
 }
 
 spec(file_monitor) {
 
   FileMonitor* monitor = null;
 
-  setup() { monitor = file_monitor_create(g_alloc_heap); }
+  setup() {
+    monitor = file_monitor_create(g_alloc_heap, g_path_tempdir);
+
+    // Create an empty test file.
+    file_write_to_path_sync(path_build_scratch(g_path_tempdir, string_lit("test")), string_empty);
+  }
 
   it("can watch a file") {
-    const FileMonitorResult res = file_monitor_watch(monitor, g_path_executable, 0);
+    const FileMonitorResult res = file_monitor_watch(monitor, string_lit("test"), 0);
     check_eq_int(res, FileMonitorResult_Success);
   }
 
   it("fails when watching a file twice") {
-    const FileMonitorResult res1 = file_monitor_watch(monitor, g_path_executable, 0);
+    const FileMonitorResult res1 = file_monitor_watch(monitor, string_lit("test"), 0);
     check_eq_int(res1, FileMonitorResult_Success);
 
-    const FileMonitorResult res2 = file_monitor_watch(monitor, g_path_executable, 0);
+    const FileMonitorResult res2 = file_monitor_watch(monitor, string_lit("test"), 0);
     check_eq_int(res2, FileMonitorResult_AlreadyWatching);
   }
 
@@ -43,22 +46,24 @@ spec(file_monitor) {
   }
 
   it("returns false when polling when no modifications have happened") {
-    const String path = test_random_path();
-    file_write_to_path_sync(path, string_lit("Hello world"));
+    const String pathRel = test_random_name();
+    const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
+    file_write_to_path_sync(pathAbs, string_lit("Hello world"));
 
-    check_eq_int(file_monitor_watch(monitor, path, 0), FileMonitorResult_Success);
+    check_eq_int(file_monitor_watch(monitor, pathRel, 0), FileMonitorResult_Success);
 
     FileMonitorEvent event;
     check(!file_monitor_poll(monitor, &event));
 
-    file_delete_sync(path);
+    file_delete_sync(pathAbs);
   }
 
   it("returns a single event when a file is modified") {
-    const String path = test_random_path();
+    const String pathRel = test_random_name();
+    const String path    = path_build_scratch(g_path_tempdir, pathRel);
     file_write_to_path_sync(path, string_lit(""));
 
-    check_eq_int(file_monitor_watch(monitor, path, 42), FileMonitorResult_Success);
+    check_eq_int(file_monitor_watch(monitor, pathRel, 42), FileMonitorResult_Success);
 
     thread_sleep(time_milliseconds(10));
 
@@ -67,7 +72,7 @@ spec(file_monitor) {
     FileMonitorEvent event;
     check_require(file_monitor_poll(monitor, &event));
 
-    check_eq_string(event.path, path);
+    check_eq_string(event.path, pathRel);
     check_eq_int(event.userData, 42);
 
     check(!file_monitor_poll(monitor, &event));
@@ -76,19 +81,21 @@ spec(file_monitor) {
   }
 
   it("can watch multiple files") {
-    const String pathA = test_random_path();
-    file_write_to_path_sync(pathA, string_lit("A"));
+    const String pathRelA = test_random_name();
+    const String pathAbsA = path_build_scratch(g_path_tempdir, pathRelA);
+    file_write_to_path_sync(pathAbsA, string_lit("A"));
 
-    const String pathB = test_random_path();
-    file_write_to_path_sync(pathB, string_lit("B"));
+    const String pathRelB = test_random_name();
+    const String pathAbsB = path_build_scratch(g_path_tempdir, pathRelB);
+    file_write_to_path_sync(pathAbsB, string_lit("B"));
 
-    check_eq_int(file_monitor_watch(monitor, pathA, 1), FileMonitorResult_Success);
-    check_eq_int(file_monitor_watch(monitor, pathB, 2), FileMonitorResult_Success);
+    check_eq_int(file_monitor_watch(monitor, pathRelA, 1), FileMonitorResult_Success);
+    check_eq_int(file_monitor_watch(monitor, pathRelB, 2), FileMonitorResult_Success);
 
     thread_sleep(time_milliseconds(10));
 
-    file_write_to_path_sync(pathA, string_lit("A-Modified"));
-    file_write_to_path_sync(pathB, string_lit("B-Modified"));
+    file_write_to_path_sync(pathAbsA, string_lit("A-Modified"));
+    file_write_to_path_sync(pathAbsB, string_lit("B-Modified"));
 
     FileMonitorEvent event1;
     check_require(file_monitor_poll(monitor, &event1));
@@ -101,8 +108,8 @@ spec(file_monitor) {
 
     check(!file_monitor_poll(monitor, &event1));
 
-    file_delete_sync(pathA);
-    file_delete_sync(pathB);
+    file_delete_sync(pathAbsA);
+    file_delete_sync(pathAbsB);
   }
 
   teardown() { file_monitor_destroy(monitor); }

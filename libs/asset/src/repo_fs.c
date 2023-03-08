@@ -74,12 +74,11 @@ static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String da
 static void asset_repo_fs_changes_watch(AssetRepo* repo, const String id, const u64 userData) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  const String            path = path_build_scratch(repoFs->rootPath, id);
-  const FileMonitorResult res  = file_monitor_watch(repoFs->monitor, path, userData);
+  const FileMonitorResult res = file_monitor_watch(repoFs->monitor, id, userData);
   if (UNLIKELY(res != FileMonitorResult_Success && res != FileMonitorResult_AlreadyWatching)) {
     log_w(
         "AssetRepository: Failed to watch file for changes",
-        log_param("path", fmt_path(path)),
+        log_param("id", fmt_path(id)),
         log_param("result", fmt_text(file_monitor_result_str(res))));
   }
 }
@@ -116,7 +115,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
               .changesPoll  = asset_repo_fs_changes_poll,
           },
       .rootPath = string_dup(g_alloc_heap, rootPath),
-      .monitor  = file_monitor_create(g_alloc_heap),
+      .monitor  = file_monitor_create(g_alloc_heap, rootPath),
   };
 
   return (AssetRepo*)repo;

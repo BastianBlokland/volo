@@ -1,7 +1,9 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
+#include "core_path.h"
 #include "core_thread.h"
 
 /**
@@ -32,6 +34,7 @@ struct sFileMonitor {
   ThreadMutex mutex;
   DynArray    watches;  // FileWatch[], kept sorted on the pathHash.
   DynArray    modFiles; // StringHash[] (file hashes)
+  String      rootPath;
 };
 
 static i8 watch_compare_path(const void* a, const void* b) {
@@ -58,15 +61,16 @@ static FileMonitorResult monitor_result_from_file_result(const FileResult res) {
   }
 }
 
-static bool monitor_file_can_be_read(const String path) {
+static bool monitor_file_can_be_read(FileMonitor* monitor, const String path) {
   /**
    * Check if the file can be opened for reading (meaning no-one is currently writing to it).
    * Reason for this check is to get semantics closer to the linux inotify 'CLOSE_WRITE' event where
    * we only report the event after file is finished being written to.
    */
+  const String          pathAbs = path_build_scratch(monitor->rootPath, path);
   File*                 file;
   const FileAccessFlags access = FileAccess_Read;
-  if (file_create(g_alloc_scratch, path, FileMode_Open, access, &file) != FileResult_Success) {
+  if (file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file) != FileResult_Success) {
     return false;
   }
   file_destroy(file);
@@ -76,7 +80,7 @@ static bool monitor_file_can_be_read(const String path) {
 static void monitor_scan_modified_files(FileMonitor* monitor) {
   dynarray_for_t(&monitor->watches, FileWatch, watch) {
     const TimeReal newModTime = file_stat_sync(watch->handle).modTime;
-    if (newModTime > watch->lastModTime && monitor_file_can_be_read(watch->path)) {
+    if (newModTime > watch->lastModTime && monitor_file_can_be_read(monitor, watch->path)) {
       *dynarray_push_t(&monitor->modFiles, StringHash) = watch->pathHash;
       watch->lastModTime                               = newModTime;
     }
@@ -92,9 +96,10 @@ file_monitor_watch_locked(FileMonitor* monitor, const String path, const u64 use
   if (file_watch_by_path(monitor, pathHash)) {
     return FileMonitorResult_AlreadyWatching;
   }
-  File*      handle;
-  FileResult openRes;
-  if ((openRes = file_create(monitor->alloc, path, FileMode_Open, FileAccess_None, &handle))) {
+  const String pathAbs = path_build_scratch(monitor->rootPath, path);
+  File*        handle;
+  FileResult   openRes;
+  if ((openRes = file_create(monitor->alloc, pathAbs, FileMode_Open, FileAccess_None, &handle))) {
     return monitor_result_from_file_result(openRes);
   }
   const FileWatch watch = {
@@ -133,7 +138,9 @@ static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out
   return false; // No files modified.
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+  diag_assert(path_is_absolute(rootPath));
+
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
   *monitor = (FileMonitor){
@@ -141,6 +148,7 @@ FileMonitor* file_monitor_create(Allocator* alloc) {
       .mutex    = thread_mutex_create(alloc),
       .watches  = dynarray_create_t(alloc, FileWatch, 64),
       .modFiles = dynarray_create_t(alloc, StringHash, 16),
+      .rootPath = string_dup(alloc, rootPath),
   };
 
   return monitor;
@@ -151,6 +159,7 @@ void file_monitor_destroy(FileMonitor* monitor) {
     file_destroy(watch->handle);
     string_free(monitor->alloc, watch->path);
   }
+  string_free(monitor->alloc, monitor->rootPath);
   dynarray_destroy(&monitor->watches);
   dynarray_destroy(&monitor->modFiles);
   thread_mutex_destroy(monitor->mutex);
@@ -159,6 +168,8 @@ void file_monitor_destroy(FileMonitor* monitor) {
 }
 
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
+  diag_assert(!path_is_absolute(path));
+
   thread_mutex_lock(monitor->mutex);
   const FileMonitorResult res = file_monitor_watch_locked(monitor, path, userData);
   thread_mutex_unlock(monitor->mutex);
