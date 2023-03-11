@@ -88,7 +88,7 @@ static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String p
   const FileAccessFlags access  = FileAccess_None;
   File*                 file;
   FileResult            res;
-  if (res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file)) {
+  if ((res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file))) {
     return monitor_result_from_file_result(res);
   }
   *outId = monitor_file_id_from_handle(file->handle);
