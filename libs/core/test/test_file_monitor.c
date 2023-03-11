@@ -50,9 +50,13 @@ spec(file_monitor) {
     const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
     file_write_to_path_sync(pathAbs, string_lit("Hello world"));
 
-    check_eq_int(file_monitor_watch(monitor, pathRel, 0), FileMonitorResult_Success);
+    thread_sleep(time_milliseconds(1));
 
     FileMonitorEvent event;
+    check(!file_monitor_poll(monitor, &event));
+
+    check_eq_int(file_monitor_watch(monitor, pathRel, 0), FileMonitorResult_Success);
+
     check(!file_monitor_poll(monitor, &event));
 
     file_delete_sync(pathAbs);
@@ -65,9 +69,11 @@ spec(file_monitor) {
 
     check_eq_int(file_monitor_watch(monitor, pathRel, 42), FileMonitorResult_Success);
 
-    thread_sleep(time_milliseconds(10));
+    thread_sleep(time_milliseconds(1));
 
     file_write_to_path_sync(path, string_lit("Hello World"));
+
+    thread_sleep(time_milliseconds(1));
 
     FileMonitorEvent event;
     check_require(file_monitor_poll(monitor, &event));
@@ -92,10 +98,12 @@ spec(file_monitor) {
     check_eq_int(file_monitor_watch(monitor, pathRelA, 1), FileMonitorResult_Success);
     check_eq_int(file_monitor_watch(monitor, pathRelB, 2), FileMonitorResult_Success);
 
-    thread_sleep(time_milliseconds(10));
+    thread_sleep(time_milliseconds(1));
 
     file_write_to_path_sync(pathAbsA, string_lit("A-Modified"));
     file_write_to_path_sync(pathAbsB, string_lit("B-Modified"));
+
+    thread_sleep(time_milliseconds(1));
 
     FileMonitorEvent event1;
     check_require(file_monitor_poll(monitor, &event1));
