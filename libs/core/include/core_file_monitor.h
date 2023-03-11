@@ -29,6 +29,7 @@ typedef enum {
   FileMonitorResult_NoAccess,
   FileMonitorResult_PathTooLong,
   FileMonitorResult_FileDoesNotExist,
+  FileMonitorResult_UnableToOpenRoot,
   FileMonitorResult_UnknownError,
 
   FileMonitorResult_Count,

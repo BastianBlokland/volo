@@ -9,6 +9,7 @@ static const String g_fileMonitorResultStrs[] = {
     string_static("FileMonitorNoAccess"),
     string_static("FileMonitorPathTooLong"),
     string_static("FileMonitorFileDoesNotExist"),
+    string_static("FileMonitorUnableToOpenRoot"),
     string_static("FileMonitorUnknownError"),
 };
 
