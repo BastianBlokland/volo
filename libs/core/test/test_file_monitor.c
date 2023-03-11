@@ -64,14 +64,14 @@ spec(file_monitor) {
 
   it("returns a single event when a file is modified") {
     const String pathRel = test_random_name();
-    const String path    = path_build_scratch(g_path_tempdir, pathRel);
-    file_write_to_path_sync(path, string_lit(""));
+    const String pathAbs = path_build_scratch(g_path_tempdir, pathRel);
+    file_write_to_path_sync(pathAbs, string_lit(""));
 
     check_eq_int(file_monitor_watch(monitor, pathRel, 42), FileMonitorResult_Success);
 
     thread_sleep(time_milliseconds(1));
 
-    file_write_to_path_sync(path, string_lit("Hello World"));
+    file_write_to_path_sync(pathAbs, string_lit("Hello World"));
 
     thread_sleep(time_milliseconds(1));
 
@@ -83,7 +83,7 @@ spec(file_monitor) {
 
     check(!file_monitor_poll(monitor, &event));
 
-    file_delete_sync(path);
+    file_delete_sync(pathAbs);
   }
 
   it("can watch multiple files") {
@@ -118,6 +118,16 @@ spec(file_monitor) {
 
     file_delete_sync(pathAbsA);
     file_delete_sync(pathAbsB);
+  }
+
+  it("watching fails when the root directory cannot be opened") {
+    const String nonExistentDir = path_build_scratch(g_path_tempdir, string_lit("does-not-exist"));
+    FileMonitor* mon            = file_monitor_create(g_alloc_heap, nonExistentDir);
+
+    const String filePath = string_lit("test.txt");
+    check_eq_int(file_monitor_watch(mon, filePath, 1), FileMonitorResult_UnableToOpenRoot);
+
+    file_monitor_destroy(mon);
   }
 
   teardown() { file_monitor_destroy(monitor); }
