@@ -38,7 +38,7 @@ Mem winutils_to_widestr_scratch(String input);
  *
  * Pre-condition: inputCharCount != 0
  */
-usize winutils_from_widestr_size(void* input, usize inputCharCount);
+usize winutils_from_widestr_size(const void* input, usize inputCharCount);
 
 /**
  * Convert a wide string (as is commonly used in win32 apis) to a string (encoded as utf8).
@@ -48,7 +48,7 @@ usize winutils_from_widestr_size(void* input, usize inputCharCount);
  *
  * Pre-condition: inputCharCount != 0
  */
-usize winutils_from_widestr(String output, void* input, usize inputCharCount);
+usize winutils_from_widestr(String output, const void* input, usize inputCharCount);
 
 /**
  * Convert a wide string (as is commonly used in win32 apis) to a string (encoded as utf8) allocated
@@ -57,7 +57,7 @@ usize winutils_from_widestr(String output, void* input, usize inputCharCount);
  * Pre-condition: inputCharCount != 0
  * Pre-condition: input can be represented as utf8.
  */
-String winutils_from_widestr_scratch(void* input, usize inputCharCount);
+String winutils_from_widestr_scratch(const void* input, usize inputCharCount);
 
 /**
  * Retieve a human readable error message for a win32 error-code into a string allocated in scratch

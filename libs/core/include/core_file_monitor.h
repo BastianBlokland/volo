@@ -15,7 +15,7 @@ typedef struct sFileMonitor FileMonitor;
  * Event that signifies that the given file was modified.
  */
 typedef struct {
-  String path;
+  String path; // Relative to the root path.
   u64    userData;
 } FileMonitorEvent;
 
@@ -29,6 +29,7 @@ typedef enum {
   FileMonitorResult_NoAccess,
   FileMonitorResult_PathTooLong,
   FileMonitorResult_FileDoesNotExist,
+  FileMonitorResult_UnableToOpenRoot,
   FileMonitorResult_UnknownError,
 
   FileMonitorResult_Count,
@@ -42,8 +43,9 @@ String file_monitor_result_str(FileMonitorResult);
 /**
  * Create a new file-monitor.
  * Destroy using 'file_monitor_destroy()'.
+ * Pre-condition: path_is_absolute(rootPath).
  */
-FileMonitor* file_monitor_create(Allocator*);
+FileMonitor* file_monitor_create(Allocator*, String rootPath);
 
 /**
  * Destroy a file-monitor.
@@ -52,6 +54,7 @@ void file_monitor_destroy(FileMonitor*);
 
 /**
  * Watch the file at the given path for modifications.
+ * NOTE: Path is relative to the monitor's root-path.
  * NOTE: Poll for modification events using 'file_monitor_poll'.
  * NOTE: 'userData' is returned through the 'FileMonitorEvent' structure.
  */

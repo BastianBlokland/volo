@@ -1,46 +1,58 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
-#include "core_file.h"
+#include "core_diag.h"
 #include "core_file_monitor.h"
+#include "core_path.h"
 #include "core_thread.h"
+#include "core_time.h"
+#include "core_winutils.h"
+
+#include "file_internal.h"
+
+#include <Windows.h>
+
+#define monitor_event_size (sizeof(FILE_NOTIFY_INFORMATION) + MAX_PATH)
 
 /**
- * File Monitor.
- *
- * Unfortunately Win32 doesn't have a way to track modifications for a set of files.
- * The 'FindFirstChangeNotification' and 'ReadDirectoryChanges' apis both read changes in
- * directories and not in sets of files.
- *
- * Currently this implementation detects changes by polling for the 'modTime' of the files.
- * Unfortunately the cost of this scales linearly with the amount of files watched.
- *
- * In the future we could experiment with an alternative implementation that uses
- * 'ReadDirectoryChanges' to read changes in the parent directories of the files that we are
- * watching.
+ * Minimal interval between reporting changes on the same file.
+ * Reason why we need this is that on Window's there's no such thing as linux inotify 'CLOSE_WRITE'
+ * event so a single file-write can produce many events.
  */
+#define monitor_min_interval time_milliseconds(10)
+
+typedef enum {
+  FileMonitorFlags_ReadPending = 1 << 0,
+} FileMonitorFlags;
 
 typedef struct {
-  File*      handle;
-  StringHash pathHash;
   String     path;
+  u64        fileId;
   u64        userData;
-  TimeReal   lastModTime;
+  TimeSteady lastChangeTime;
 } FileWatch;
 
 struct sFileMonitor {
-  Allocator*  alloc;
-  ThreadMutex mutex;
-  DynArray    watches;  // FileWatch[], kept sorted on the pathHash.
-  DynArray    modFiles; // StringHash[] (file hashes)
+  Allocator*       alloc;
+  ThreadMutex      mutex;
+  FileMonitorFlags flags;
+  String           rootPath;
+  HANDLE           rootHandle;
+  OVERLAPPED       rootOverlapped; // Overlapped IO handle for reading changes on the root dir.
+  DynArray         watches;        // FileWatch[], kept sorted on the pathHash.
+
+  Mem bufferRemaining;
+
+  ALIGNAS(alignof(FILE_NOTIFY_INFORMATION))
+  u8 buffer[monitor_event_size * 10]; // Big enough for atleast 10 events.
 };
 
-static i8 watch_compare_path(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, FileWatch, pathHash), field_ptr(b, FileWatch, pathHash));
+static i8 monitor_watch_compare(const void* a, const void* b) {
+  return compare_u64(field_ptr(a, FileWatch, fileId), field_ptr(b, FileWatch, fileId));
 }
 
-static FileWatch* file_watch_by_path(FileMonitor* monitor, const StringHash pathHash) {
+static FileWatch* monitor_watch_by_file(FileMonitor* monitor, const u64 fileId) {
   return dynarray_search_binary(
-      &monitor->watches, watch_compare_path, mem_struct(FileWatch, .pathHash = pathHash).ptr);
+      &monitor->watches, monitor_watch_compare, mem_struct(FileWatch, .fileId = fileId).ptr);
 }
 
 static FileMonitorResult monitor_result_from_file_result(const FileResult res) {
@@ -58,116 +70,247 @@ static FileMonitorResult monitor_result_from_file_result(const FileResult res) {
   }
 }
 
-static bool monitor_file_can_be_read(const String path) {
-  /**
-   * Check if the file can be opened for reading (meaning no-one is currently writing to it).
-   * Reason for this check is to get semantics closer to the linux inotify 'CLOSE_WRITE' event where
-   * we only report the event after file is finished being written to.
-   */
-  File*                 file;
-  const FileAccessFlags access = FileAccess_Read;
-  if (file_create(g_alloc_scratch, path, FileMode_Open, access, &file) != FileResult_Success) {
-    return false;
+static u64 monitor_file_id_from_handle(const HANDLE handle) {
+  BY_HANDLE_FILE_INFORMATION info;
+  const BOOL                 success = GetFileInformationByHandle(handle, &info);
+  if (UNLIKELY(!success)) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "GetFileInformationByHandle() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
-  file_destroy(file);
-  return true;
+  return ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow;
 }
 
-static void monitor_scan_modified_files(FileMonitor* monitor) {
-  dynarray_for_t(&monitor->watches, FileWatch, watch) {
-    const TimeReal newModTime = file_stat_sync(watch->handle).modTime;
-    if (newModTime > watch->lastModTime && monitor_file_can_be_read(watch->path)) {
-      *dynarray_push_t(&monitor->modFiles, StringHash) = watch->pathHash;
-      watch->lastModTime                               = newModTime;
-    }
+static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String path, u64* outId) {
+  const String          pathAbs = path_build_scratch(monitor->rootPath, path);
+  const FileAccessFlags access  = FileAccess_None;
+  File*                 file;
+  FileResult            res;
+  if ((res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file))) {
+    return monitor_result_from_file_result(res);
   }
+  *outId = monitor_file_id_from_handle(file->handle);
+  file_destroy(file);
+  return FileMonitorResult_Success;
+}
+
+static HANDLE monitor_open_root(const String rootPath) {
+  // Convert the path to a null-terminated wide-char string.
+  const Mem rootPathWideStr = winutils_to_widestr_scratch(rootPath);
+
+  // Open a handle to the root directory.
+  const DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS |
+                      FILE_FLAG_POSIX_SEMANTICS | FILE_FLAG_OVERLAPPED;
+  return CreateFile(
+      (const wchar_t*)rootPathWideStr.ptr,
+      FILE_LIST_DIRECTORY,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      null,
+      OPEN_EXISTING,
+      flags,
+      null);
+}
+
+static HANDLE monitor_event_create() {
+  const HANDLE result = CreateEventEx(null, null, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+  if (UNLIKELY(!result)) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "CreateEventEx() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
+  }
+  return result;
 }
 
 /**
  * NOTE: Should only be called while having monitor->mutex locked.
  */
-static FileMonitorResult
-file_monitor_watch_locked(FileMonitor* monitor, const String path, const u64 userData) {
-  const StringHash pathHash = string_hash(path);
-  if (file_watch_by_path(monitor, pathHash)) {
+static FileMonitorResult monitor_watch_locked(
+    FileMonitor* monitor, const String path, const u64 fileId, const u64 userData) {
+
+  if (monitor_watch_by_file(monitor, fileId)) {
     return FileMonitorResult_AlreadyWatching;
   }
-  File*      handle;
-  FileResult openRes;
-  if ((openRes = file_create(monitor->alloc, path, FileMode_Open, FileAccess_None, &handle))) {
-    return monitor_result_from_file_result(openRes);
-  }
   const FileWatch watch = {
-      .handle      = handle,
-      .pathHash    = pathHash,
-      .path        = string_dup(monitor->alloc, path),
-      .userData    = userData,
-      .lastModTime = file_stat_sync(handle).modTime,
+      .path     = string_dup(monitor->alloc, path),
+      .fileId   = fileId,
+      .userData = userData,
   };
-  *dynarray_insert_sorted_t(&monitor->watches, FileWatch, watch_compare_path, &watch) = watch;
+  *dynarray_insert_sorted_t(&monitor->watches, FileWatch, monitor_watch_compare, &watch) = watch;
   return FileMonitorResult_Success;
 }
 
 /**
  * NOTE: Should only be called while having monitor->mutex locked.
  */
-static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out) {
-  if (!monitor->modFiles.size) {
-    monitor_scan_modified_files(monitor);
+static void monitor_read_begin_locked(FileMonitor* monitor) {
+  diag_assert(monitor->rootHandle != INVALID_HANDLE_VALUE);
+  diag_assert(!(monitor->flags & FileMonitorFlags_ReadPending));
+
+  const bool  watchSubtree = true;
+  const DWORD notifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE;
+  const bool  success      = ReadDirectoryChangesW(
+      monitor->rootHandle,
+      monitor->buffer,
+      sizeof(monitor->buffer),
+      watchSubtree,
+      notifyFilter,
+      null,
+      &monitor->rootOverlapped,
+      null);
+
+  if (UNLIKELY(!success)) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "ReadDirectoryChanges() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
-  if (monitor->modFiles.size) {
-    const StringHash p = *dynarray_at_t(&monitor->modFiles, monitor->modFiles.size - 1, StringHash);
-    dynarray_pop(&monitor->modFiles, 1);
+  monitor->flags |= FileMonitorFlags_ReadPending;
+}
 
-    const FileWatch* watch = file_watch_by_path(monitor, p);
+/**
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static bool monitor_read_observe_locked(FileMonitor* monitor) {
+  diag_assert(!monitor->bufferRemaining.size);
+
+  DWORD bytesRead;
+  if (!GetOverlappedResult(monitor->rootHandle, &monitor->rootOverlapped, &bytesRead, false)) {
+    const DWORD err = GetLastError();
+    if (LIKELY(err == ERROR_IO_INCOMPLETE)) {
+      return false; // No data available.
+    }
+    diag_crash_msg(
+        "GetOverlappedResult() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
+  }
+
+  monitor->bufferRemaining = mem_create(monitor->buffer, (usize)bytesRead);
+  monitor->flags &= ~FileMonitorFlags_ReadPending;
+  return true;
+}
+
+/**
+ * NOTE: Should only be called while having monitor->mutex locked.
+ */
+static bool monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out) {
+Begin:
+  /**
+   * If our buffer is empty then read new events from the kernel.
+   */
+  if (!monitor->bufferRemaining.size && !monitor_read_observe_locked(monitor)) {
+    return false; // No events available.
+  }
+
+  const TimeSteady timeNow = time_steady_clock();
+
+  /**
+   * Return the first valid event from the buffer.
+   */
+  while (monitor->bufferRemaining.size) {
+    const FILE_NOTIFY_INFORMATION* event = monitor->bufferRemaining.ptr;
+    if (event->NextEntryOffset) {
+      monitor->bufferRemaining = mem_consume(monitor->bufferRemaining, event->NextEntryOffset);
+    } else {
+      monitor->bufferRemaining = mem_empty;
+    }
+    const usize  pathNumWideChars = event->FileNameLength / sizeof(WCHAR);
+    const String path = winutils_from_widestr_scratch(event->FileName, pathNumWideChars);
+
+    u64               fileId;
+    FileMonitorResult res;
+    if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+      continue; // Skip event; Unable to open file (could have been deleted since).
+    }
+    FileWatch* watch = monitor_watch_by_file(monitor, fileId);
+    if (!watch) {
+      continue; // Skip event; Not a file we are watching.
+    }
+    if (time_steady_duration(watch->lastChangeTime, timeNow) < monitor_min_interval) {
+      continue; // Skip event; Already reported an event for this file in the interval window.
+    }
+    watch->lastChangeTime = timeNow;
 
     *out = (FileMonitorEvent){
         .path     = watch->path,
         .userData = watch->userData,
     };
-
+    if (!monitor->bufferRemaining.size) {
+      monitor_read_begin_locked(monitor); // Buffer fully consumed; start a new async read.
+    }
     return true;
   }
 
-  return false; // No files modified.
+  /**
+   * Buffer contained no events for files we are watching.
+   * Begin a new async read and restart this routine.
+   */
+  monitor_read_begin_locked(monitor);
+  goto Begin;
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+  diag_assert(path_is_absolute(rootPath));
+
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
   *monitor = (FileMonitor){
-      .alloc    = alloc,
-      .mutex    = thread_mutex_create(alloc),
-      .watches  = dynarray_create_t(alloc, FileWatch, 64),
-      .modFiles = dynarray_create_t(alloc, StringHash, 16),
+      .alloc                 = alloc,
+      .mutex                 = thread_mutex_create(alloc),
+      .watches               = dynarray_create_t(alloc, FileWatch, 64),
+      .rootPath              = string_dup(alloc, rootPath),
+      .rootHandle            = monitor_open_root(rootPath),
+      .rootOverlapped.hEvent = monitor_event_create(),
   };
+
+  if (monitor->rootHandle != INVALID_HANDLE_VALUE) {
+    monitor_read_begin_locked(monitor);
+  }
 
   return monitor;
 }
 
 void file_monitor_destroy(FileMonitor* monitor) {
-  dynarray_for_t(&monitor->watches, FileWatch, watch) {
-    file_destroy(watch->handle);
-    string_free(monitor->alloc, watch->path);
+  dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
+  if (monitor->rootHandle != INVALID_HANDLE_VALUE) {
+    CloseHandle(monitor->rootHandle);
   }
+  CloseHandle(monitor->rootOverlapped.hEvent);
+  string_free(monitor->alloc, monitor->rootPath);
   dynarray_destroy(&monitor->watches);
-  dynarray_destroy(&monitor->modFiles);
   thread_mutex_destroy(monitor->mutex);
 
   alloc_free_t(monitor->alloc, monitor);
 }
 
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
+  diag_assert(!path_is_absolute(path));
+
+  if (UNLIKELY(monitor->rootHandle == INVALID_HANDLE_VALUE)) {
+    return FileMonitorResult_UnableToOpenRoot;
+  }
+
+  u64               fileId;
+  FileMonitorResult res;
+  if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+    return res;
+  }
+
   thread_mutex_lock(monitor->mutex);
-  const FileMonitorResult res = file_monitor_watch_locked(monitor, path, userData);
+  res = monitor_watch_locked(monitor, path, fileId, userData);
   thread_mutex_unlock(monitor->mutex);
   return res;
 }
 
 bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
   thread_mutex_lock(monitor->mutex);
-  const FileMonitorResult res = file_monitor_poll_locked(monitor, out);
+  const FileMonitorResult res = monitor_poll_locked(monitor, out);
   thread_mutex_unlock(monitor->mutex);
   return res;
 }

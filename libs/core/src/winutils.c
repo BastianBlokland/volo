@@ -7,7 +7,7 @@
 
 #include <Windows.h>
 
-usize winutils_to_widestr_size(String input) {
+usize winutils_to_widestr_size(const String input) {
   diag_assert_msg(!string_is_empty(input), "Empty input provided to winutils_to_widestr_size");
 
   const int wideChars = MultiByteToWideChar(
@@ -18,7 +18,7 @@ usize winutils_to_widestr_size(String input) {
   return (wideChars + 1) * sizeof(wchar_t); // +1 for the null-terminator.
 }
 
-usize winutils_to_widestr(Mem output, String input) {
+usize winutils_to_widestr(Mem output, const String input) {
   diag_assert_msg(!string_is_empty(input), "Empty input provided to winutils_to_widestr");
 
   if (output.size < sizeof(wchar_t) * 2) { // +1 for the null-terminator.
@@ -38,7 +38,7 @@ usize winutils_to_widestr(Mem output, String input) {
   return wideChars;
 }
 
-Mem winutils_to_widestr_scratch(String input) {
+Mem winutils_to_widestr_scratch(const String input) {
   const usize size = winutils_to_widestr_size(input);
   if (UNLIKELY(sentinel_check(size))) {
     diag_crash_msg("winutils_to_widestr_scratch: Input is not valid utf8");
@@ -48,7 +48,7 @@ Mem winutils_to_widestr_scratch(String input) {
   return result;
 }
 
-usize winutils_from_widestr_size(void* input, usize inputCharCount) {
+usize winutils_from_widestr_size(const void* input, const usize inputCharCount) {
   diag_assert_msg(inputCharCount, "Zero characters provided to winutils_from_widestr_size");
 
   const int chars = WideCharToMultiByte(
@@ -66,7 +66,7 @@ usize winutils_from_widestr_size(void* input, usize inputCharCount) {
   return chars;
 }
 
-usize winutils_from_widestr(String output, void* input, usize inputCharCount) {
+usize winutils_from_widestr(const String output, const void* input, const usize inputCharCount) {
   diag_assert_msg(inputCharCount, "Zero characters provided to winutils_from_widestr");
 
   const int chars = WideCharToMultiByte(
@@ -84,7 +84,7 @@ usize winutils_from_widestr(String output, void* input, usize inputCharCount) {
   return chars;
 }
 
-String winutils_from_widestr_scratch(void* input, usize inputCharCount) {
+String winutils_from_widestr_scratch(const void* input, const usize inputCharCount) {
   const usize size = winutils_from_widestr_size(input, inputCharCount);
   if (UNLIKELY(sentinel_check(size))) {
     diag_crash_msg("winutils_from_widestr_scratch: Input cannot be represented as utf8");
@@ -94,7 +94,7 @@ String winutils_from_widestr_scratch(void* input, usize inputCharCount) {
   return result;
 }
 
-String winutils_error_msg_scratch(unsigned long errCode) {
+String winutils_error_msg_scratch(const unsigned long errCode) {
   Mem buffer = alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1);
 
   const DWORD chars = FormatMessage(

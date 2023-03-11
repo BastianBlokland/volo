@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_file.h"
 #include "core_file_monitor.h"
+#include "core_path.h"
 #include "core_thread.h"
 
 #include <errno.h>
@@ -11,6 +13,10 @@
 #define monitor_inotifyMask IN_CLOSE_WRITE
 #define monitor_event_size (sizeof(struct inotify_event) + NAME_MAX + 1)
 
+typedef enum {
+  FileMonitorFlags_RootDirectoryInaccessible = 1 << 0,
+} FileMonitorFlags;
+
 typedef struct {
   int    wd;
   String path;
@@ -18,10 +24,12 @@ typedef struct {
 } FileWatch;
 
 struct sFileMonitor {
-  Allocator*  alloc;
-  ThreadMutex mutex;
-  int         fd;
-  DynArray    watches; // FileWatch[], kept sorted on the wd.
+  Allocator*       alloc;
+  ThreadMutex      mutex;
+  FileMonitorFlags flags;
+  int              fd;
+  String           rootPath;
+  DynArray         watches; // FileWatch[], kept sorted on the wd.
 
   Mem bufferRemaining;
 
@@ -121,19 +129,31 @@ static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out
   return false; // No event was valid.
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+  diag_assert(path_is_absolute(rootPath));
+
   const int fd = inotify_init1(IN_NONBLOCK);
   if (fd == -1) {
     diag_crash_msg("inotify_init() failed: {}", fmt_int(errno));
   }
 
+  FileMonitorFlags flags = 0;
+  /**
+   * Stat the rootPath for more consistent error messages across platforms.
+   */
+  if (file_stat_path_sync(rootPath).type != FileType_Directory) {
+    flags |= FileMonitorFlags_RootDirectoryInaccessible;
+  }
+
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
   *monitor = (FileMonitor){
-      .alloc   = alloc,
-      .mutex   = thread_mutex_create(alloc),
-      .fd      = fd,
-      .watches = dynarray_create_t(alloc, FileWatch, 64),
+      .alloc    = alloc,
+      .mutex    = thread_mutex_create(alloc),
+      .flags    = flags,
+      .fd       = fd,
+      .rootPath = string_dup(alloc, rootPath),
+      .watches  = dynarray_create_t(alloc, FileWatch, 64),
   };
 
   return monitor;
@@ -142,6 +162,7 @@ FileMonitor* file_monitor_create(Allocator* alloc) {
 void file_monitor_destroy(FileMonitor* monitor) {
   close(monitor->fd);
 
+  string_free(monitor->alloc, monitor->rootPath);
   dynarray_for_t(&monitor->watches, FileWatch, watch) { string_free(monitor->alloc, watch->path); }
   dynarray_destroy(&monitor->watches);
 
@@ -150,12 +171,20 @@ void file_monitor_destroy(FileMonitor* monitor) {
 }
 
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
-  const char* pathNullTerm = to_null_term_scratch(path);
-  u32         mask         = monitor_inotifyMask;
+  diag_assert(!path_is_absolute(path));
+
+  if (UNLIKELY(monitor->flags & FileMonitorFlags_RootDirectoryInaccessible)) {
+    return FileMonitorResult_UnableToOpenRoot;
+  }
+
+  // TODO: We can avoid one copy by combining the absolute path building and the null terminating.
+  const String pathAbs         = path_build_scratch(monitor->rootPath, path);
+  const char*  pathAbsNullTerm = to_null_term_scratch(pathAbs);
+  u32          mask            = monitor_inotifyMask;
 #if defined(IN_MASK_CREATE)
   mask |= IN_MASK_CREATE;
 #endif
-  const int wd = inotify_add_watch(monitor->fd, pathNullTerm, mask);
+  const int wd = inotify_add_watch(monitor->fd, pathAbsNullTerm, mask);
   if (wd < 0) {
     return result_from_errno();
   }
