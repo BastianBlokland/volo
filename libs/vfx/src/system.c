@@ -245,12 +245,14 @@ static void vfx_system_spawn(
   if (spriteAtlasEntryName) {
     const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, spriteAtlasEntryName);
     if (UNLIKELY(!atlasEntry)) {
-      log_e("Vfx atlas entry missing", log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
+      log_e(
+          "Vfx particle atlas entry missing",
+          log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
       return;
     }
     if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
       log_e(
-          "Vfx atlas has not enough entries for flipbook",
+          "Vfx particle atlas has not enough entries for flipbook",
           log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
           log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
       return;
