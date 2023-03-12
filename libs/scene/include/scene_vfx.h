@@ -2,17 +2,11 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-/**
- * Vfx system.
- */
-ecs_comp_extern_public(SceneVfxComp) {
+ecs_comp_extern_public(SceneVfxSystemComp) {
   EcsEntityId asset; // Vfx system asset.
   f32         alpha;
 };
 
-/**
- * Decal.
- */
-ecs_comp_extern_public(SceneDecalComp) {
+ecs_comp_extern_public(SceneVfxDecalComp) {
   EcsEntityId asset; // Decal asset.
 };

@@ -102,7 +102,7 @@ static void projectile_impact_spawn(
   const GeoQuat     rot = geo_quat_look(norm, geo_up);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = projectile->impactLifetime);
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = projectile->impactVfx, .alpha = 1.0f);
+  ecs_world_add_t(world, e, SceneVfxSystemComp, .asset = projectile->impactVfx, .alpha = 1.0f);
 }
 
 static void projectile_hit(

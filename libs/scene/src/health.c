@@ -114,7 +114,7 @@ static void health_spawn_death_vfx(EcsWorld* world, const GeoVector pos, const E
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(3));
-  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfx, .alpha = 1.0f);
+  ecs_world_add_t(world, e, SceneVfxSystemComp, .asset = vfx, .alpha = 1.0f);
 }
 
 /**

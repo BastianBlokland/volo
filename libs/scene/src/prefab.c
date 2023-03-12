@@ -133,12 +133,12 @@ static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitR
   }
 }
 
-static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
-  ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset, .alpha = 1.0f);
+static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
+  ecs_world_add_t(w, e, SceneVfxSystemComp, .asset = t->asset, .alpha = 1.0f);
 }
 
-static void setup_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
-  ecs_world_add_t(w, e, SceneDecalComp, .asset = t->asset);
+static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
+  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
@@ -274,10 +274,10 @@ static void setup_trait(
     setup_renderable(w, e, &t->data_renderable);
     return;
   case AssetPrefabTrait_Vfx:
-    setup_vfx(w, e, &t->data_vfx);
+    setup_vfx_system(w, e, &t->data_vfx);
     return;
   case AssetPrefabTrait_Decal:
-    setup_decal(w, e, &t->data_decal);
+    setup_vfx_decal(w, e, &t->data_decal);
     return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);
