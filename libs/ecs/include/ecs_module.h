@@ -96,7 +96,7 @@ typedef struct {
 /**
  * Variable that stores the EcsSystemId for a system with the given name.
  */
-#define ecs_system_id(_NAME_) g_ecs_system_##_NAME_
+#define ecs_system_id(_NAME_) g_ecs_sys_##_NAME_
 
 /**
  * Define a component struct.
@@ -205,7 +205,7 @@ typedef struct {
  */
 #define ecs_system_define(_NAME_)                                                                  \
   static EcsSystemId ecs_system_id(_NAME_);                                                        \
-  static void _ecs_system_##_NAME_(                                                                \
+  static void _ecs_sys_##_NAME_(                                                                   \
     MAYBE_UNUSED EcsWorld* world,                                                                  \
     MAYBE_UNUSED const u16 parCount,                                                               \
     MAYBE_UNUSED const u16 parIndex)
@@ -250,7 +250,7 @@ typedef struct {
 #define ecs_register_system_with_flags(_NAME_, _FLAGS_, ...)                                       \
   ecs_module_register_system(_builder, &ecs_system_id(_NAME_), &(EcsSystemConfig){                 \
       .name      = string_lit(#_NAME_),                                                            \
-      .routine   = &_ecs_system_##_NAME_,                                                          \
+      .routine   = &_ecs_sys_##_NAME_,                                                             \
       .flags     = (_FLAGS_),                                                                      \
       .views     = (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) },                 \
       .viewCount = COUNT_VA_ARGS(__VA_ARGS__)})
