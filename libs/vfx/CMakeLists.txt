@@ -5,6 +5,7 @@
 message(STATUS "> library: vfx")
 
 add_library(lib_vfx STATIC
+  src/decal.c
   src/particle.c
   src/register.c
   src/system.c

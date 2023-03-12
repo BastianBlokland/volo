@@ -1,0 +1,13 @@
+{
+  "size": 512,
+  "entrySize": 128,
+  "entryPadding": 5,
+  "mipmaps": true,
+  "srgb": true,
+  "entries": [
+    {
+      "name": "grid",
+      "texture": "external/vfx/grid.tga"
+    }
+  ]
+}
