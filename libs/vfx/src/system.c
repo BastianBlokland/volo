@@ -22,6 +22,11 @@
 
 #define vfx_system_max_asset_requests 4
 
+typedef enum {
+  VfxLoad_Acquired  = 1 << 0,
+  VfxLoad_Unloading = 1 << 1,
+} VfxLoadFlags;
+
 typedef struct {
   u8        emitter;
   u16       spriteAtlasBaseIndex;
@@ -42,22 +47,17 @@ ecs_comp_define(VfxSystemStateComp) {
   DynArray        instances; // VfxSystemInstance[].
 };
 
-typedef enum {
-  VfxSystemAsset_Acquired  = 1 << 0,
-  VfxSystemAsset_Unloading = 1 << 1,
-} VfxSystemAssetRequestFlags;
-
-ecs_comp_define(VfxSystemAssetRequestComp) { VfxSystemAssetRequestFlags flags; };
+ecs_comp_define(VfxSystemAssetComp) { VfxLoadFlags loadFlags; };
 
 static void ecs_destruct_system_state_comp(void* data) {
   VfxSystemStateComp* comp = data;
   dynarray_destroy(&comp->instances);
 }
 
-static void ecs_combine_system_asset_request(void* dataA, void* dataB) {
-  VfxSystemAssetRequestComp* compA = dataA;
-  VfxSystemAssetRequestComp* compB = dataB;
-  compA->flags |= compB->flags;
+static void ecs_combine_system_asset(void* dataA, void* dataB) {
+  VfxSystemAssetComp* compA = dataA;
+  VfxSystemAssetComp* compB = dataB;
+  compA->loadFlags |= compB->loadFlags;
 }
 
 ecs_view_define(ParticleDrawView) {
@@ -72,7 +72,11 @@ ecs_view_define(ParticleDrawView) {
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
-ecs_view_define(AssetView) { ecs_access_read(AssetVfxComp); }
+
+ecs_view_define(AssetView) {
+  ecs_access_with(VfxSystemAssetComp);
+  ecs_access_read(AssetVfxComp);
+}
 
 static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
@@ -80,8 +84,8 @@ static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasE
 }
 
 static bool vfx_system_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
-  if (!ecs_world_has_t(world, assetEntity, VfxSystemAssetRequestComp)) {
-    ecs_world_add_t(world, assetEntity, VfxSystemAssetRequestComp);
+  if (!ecs_world_has_t(world, assetEntity, VfxSystemAssetComp)) {
+    ecs_world_add_t(world, assetEntity, VfxSystemAssetComp);
     return true;
   }
   return false;
@@ -115,28 +119,28 @@ ecs_system_define(VfxSystemStateDeinitSys) {
   }
 }
 
-ecs_view_define(LoadView) { ecs_access_write(VfxSystemAssetRequestComp); }
+ecs_view_define(LoadView) { ecs_access_write(VfxSystemAssetComp); }
 
 ecs_system_define(VfxSystemAssetLoadSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId          entity     = ecs_view_entity(itr);
-    VfxSystemAssetRequestComp* request    = ecs_view_write_t(itr, VfxSystemAssetRequestComp);
-    const bool                 isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
-    const bool                 isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
-    const bool                 hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
+    const EcsEntityId   entity     = ecs_view_entity(itr);
+    VfxSystemAssetComp* request    = ecs_view_write_t(itr, VfxSystemAssetComp);
+    const bool          isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
+    const bool          isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
+    const bool          hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
 
-    if (request->flags & VfxSystemAsset_Acquired && (isLoaded || isFailed) && hasChanged) {
+    if (request->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
       asset_release(world, entity);
-      request->flags &= ~VfxSystemAsset_Acquired;
-      request->flags |= VfxSystemAsset_Unloading;
+      request->loadFlags &= ~VfxLoad_Acquired;
+      request->loadFlags |= VfxLoad_Unloading;
     }
-    if (request->flags & VfxSystemAsset_Unloading && !isLoaded) {
-      request->flags &= ~VfxSystemAsset_Unloading;
+    if (request->loadFlags & VfxLoad_Unloading && !isLoaded) {
+      request->loadFlags &= ~VfxLoad_Unloading;
     }
-    if (!(request->flags & (VfxSystemAsset_Acquired | VfxSystemAsset_Unloading))) {
+    if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
       asset_acquire(world, entity);
-      request->flags |= VfxSystemAsset_Acquired;
+      request->loadFlags |= VfxLoad_Acquired;
     }
   }
 }
@@ -514,7 +518,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
 ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxSystemStateComp, .destructor = ecs_destruct_system_state_comp);
-  ecs_register_comp(VfxSystemAssetRequestComp, .combinator = ecs_combine_system_asset_request);
+  ecs_register_comp(VfxSystemAssetComp, .combinator = ecs_combine_system_asset);
 
   ecs_register_view(ParticleDrawView);
   ecs_register_view(AssetView);

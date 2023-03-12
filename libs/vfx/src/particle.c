@@ -44,14 +44,14 @@ ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in g
 ASSERT(alignof(VfxParticleData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef enum {
-  VfxRenderer_AtlasAcquired  = 1 << 0,
-  VfxRenderer_AtlasUnloading = 1 << 1,
-} VfxRendererFlags;
+  VfxLoad_Acquired  = 1 << 0,
+  VfxLoad_Unloading = 1 << 1,
+} VfxLoadFlags;
 
 ecs_comp_define(VfxParticleRendererComp) {
-  VfxRendererFlags flags;
-  EcsEntityId      atlas;
-  EcsEntityId      drawEntities[VfxParticleType_Count];
+  VfxLoadFlags loadFlags;
+  EcsEntityId  atlas;
+  EcsEntityId  drawEntities[VfxParticleType_Count];
 };
 
 ecs_comp_define(VfxParticleDrawComp);
@@ -87,10 +87,10 @@ ecs_system_define(VfxParticleRendererInitSys) {
     }
   }
 
-  if (!(renderer->flags & (VfxRenderer_AtlasAcquired | VfxRenderer_AtlasUnloading))) {
+  if (!(renderer->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
     log_i("Acquiring particle atlas", log_param("id", fmt_text(g_vfxParticleAtlas)));
     asset_acquire(world, renderer->atlas);
-    renderer->flags |= VfxRenderer_AtlasAcquired;
+    renderer->loadFlags |= VfxLoad_Acquired;
   }
 }
 
@@ -106,18 +106,18 @@ ecs_system_define(VfxParticleUnloadChangedAtlasSys) {
     const bool isFailed   = ecs_world_has_t(world, renderer->atlas, AssetFailedComp);
     const bool hasChanged = ecs_world_has_t(world, renderer->atlas, AssetChangedComp);
 
-    if (renderer->flags & VfxRenderer_AtlasAcquired && (isLoaded || isFailed) && hasChanged) {
+    if (renderer->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
       log_i(
           "Unloading particle atlas",
           log_param("id", fmt_text(g_vfxParticleAtlas)),
           log_param("reason", fmt_text_lit("Asset changed")));
 
       asset_release(world, renderer->atlas);
-      renderer->flags &= ~VfxRenderer_AtlasAcquired;
-      renderer->flags |= VfxRenderer_AtlasUnloading;
+      renderer->loadFlags &= ~VfxLoad_Acquired;
+      renderer->loadFlags |= VfxLoad_Unloading;
     }
-    if (renderer->flags & VfxRenderer_AtlasUnloading && !isLoaded) {
-      renderer->flags &= ~VfxRenderer_AtlasUnloading;
+    if (renderer->loadFlags & VfxLoad_Unloading && !isLoaded) {
+      renderer->loadFlags &= ~VfxLoad_Unloading;
     }
   }
 }
