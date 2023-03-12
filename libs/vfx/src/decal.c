@@ -7,6 +7,8 @@
 #include "rend_draw.h"
 #include "scene_vfx.h"
 
+#include "decal_internal.h"
+
 #define vfx_decal_max_asset_requests 4
 
 // clang-format off
