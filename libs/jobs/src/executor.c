@@ -188,7 +188,7 @@ static void executor_perform_work(WorkItem item) {
     return;
   }
 
-  // Task has no children; decrement the job depedency counter.
+  // Task has no children; decrement the job dependency counter.
   if (thread_atomic_sub_i64(&item.job->dependencies, 1) == 1) {
     // All dependencies for the job have been finished; Finish the job.
     jobs_scheduler_finish(item.job);
