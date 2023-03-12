@@ -503,6 +503,15 @@
       ]
     },
     {
+      "name": "PropDecalTest",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Decal",
+          "assetId": "vfx/game/test.dcl"
+        }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {
