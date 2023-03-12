@@ -43,6 +43,13 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
   compA->loadFlags |= compB->loadFlags;
 }
 
+ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
+
+static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
+  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
+  return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
+}
+
 static EcsEntityId vfx_decal_draw_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId entity = asset_lookup(world, assets, g_vfxDecalGraphic);
   ecs_world_add_empty_t(world, entity, VfxDecalDrawComp);
@@ -158,6 +165,11 @@ ecs_system_define(VfxDecalInstanceInitSys) {
   if (!globalItr) {
     return;
   }
+  const VfxDecalRendererComp* renderer   = ecs_view_read_t(globalItr, VfxDecalRendererComp);
+  const AssetAtlasComp*       colorAtlas = vfx_atlas(world, renderer->atlasColor);
+  if (!colorAtlas) {
+    return; // Atlas hasn't loaded yet.
+  }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InstanceInitAssetView));
   u32          numAssetRequests = 0;
@@ -174,10 +186,20 @@ ecs_system_define(VfxDecalInstanceInitSys) {
       }
       continue;
     }
-    const AssetDecalComp* asset = ecs_view_read_t(assetItr, AssetDecalComp);
-
-    (void)e;
-    (void)asset;
+    const AssetDecalComp*  asset           = ecs_view_read_t(assetItr, AssetDecalComp);
+    const AssetAtlasEntry* colorAtlasEntry = asset_atlas_lookup(colorAtlas, asset->colorAtlasEntry);
+    if (UNLIKELY(!colorAtlasEntry)) {
+      log_e(
+          "Vfx decal color-atlas entry missing",
+          log_param("entry-hash", fmt_int(asset->colorAtlasEntry)));
+      continue;
+    }
+    ecs_world_add_t(
+        world,
+        e,
+        VfxDecalInstanceComp,
+        .colorAtlasIndex = colorAtlasEntry->atlasIndex,
+        .size            = geo_vector(asset->width, asset->height, asset->thickness));
   }
 }
 
@@ -200,6 +222,8 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_comp(VfxDecalInstanceComp);
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
+  ecs_register_view(AtlasView);
+
   ecs_register_system(VfxDecalRendererInitSys, ecs_register_view(RendererInitGlobalView));
   ecs_register_system(VfxDecalRendererUpdateSys, ecs_register_view(RendererUpdateGlobalView));
 
@@ -209,7 +233,8 @@ ecs_module_init(vfx_decal_module) {
       VfxDecalInstanceInitSys,
       ecs_register_view(InstanceInitGlobalView),
       ecs_register_view(InstanceInitView),
-      ecs_register_view(InstanceInitAssetView));
+      ecs_register_view(InstanceInitAssetView),
+      ecs_register_view(AtlasView));
 
   ecs_register_system(VfxDecalInstanceDeinitSys, ecs_register_view(InstanceDeinitView));
 }
