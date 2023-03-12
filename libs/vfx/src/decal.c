@@ -1,8 +1,13 @@
 #include "asset_atlas.h"
+#include "asset_decal.h"
 #include "asset_manager.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "scene_vfx.h"
+
+#define vfx_decal_max_asset_requests 4
 
 // clang-format off
 static const String         g_vfxDecalGraphic    = string_static("graphics/vfx/decal.gra");
@@ -11,17 +16,30 @@ static const RendDrawFlags  g_vfxDecalDrawFlags  = /* RendDrawFlags_Decal | */ R
 // clang-format on
 
 typedef enum {
-  VfxRenderer_AtlasAcquired  = 1 << 0,
-  VfxRenderer_AtlasUnloading = 1 << 1,
-} VfxRendererFlags;
+  VfxLoad_Acquired  = 1 << 0,
+  VfxLoad_Unloading = 1 << 1,
+} VfxLoadFlags;
 
 ecs_comp_define(VfxDecalRendererComp) {
-  VfxRendererFlags flags;
-  EcsEntityId      atlasColor;
-  EcsEntityId      drawEntity;
+  VfxLoadFlags atlasLoadFlags;
+  EcsEntityId  atlasColor;
+  EcsEntityId  drawEntity;
 };
 
 ecs_comp_define(VfxDecalDrawComp);
+
+ecs_comp_define(VfxDecalInstanceComp) {
+  u16       colorAtlasIndex;
+  GeoVector size;
+};
+
+ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
+
+static void ecs_combine_decal_asset(void* dataA, void* dataB) {
+  VfxDecalAssetComp* compA = dataA;
+  VfxDecalAssetComp* compB = dataB;
+  compA->loadFlags |= compB->loadFlags;
+}
 
 static EcsEntityId vfx_decal_draw_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId entity = asset_lookup(world, assets, g_vfxDecalGraphic);
@@ -51,10 +69,10 @@ ecs_system_define(VfxDecalRendererInitSys) {
     renderer->drawEntity = vfx_decal_draw_create(world, assets);
   }
 
-  if (!(renderer->flags & (VfxRenderer_AtlasAcquired | VfxRenderer_AtlasUnloading))) {
+  if (!(renderer->atlasLoadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
     log_i("Acquiring decal atlas", log_param("id", fmt_text(g_vfxDecalAtlasColor)));
     asset_acquire(world, renderer->atlasColor);
-    renderer->flags |= VfxRenderer_AtlasAcquired;
+    renderer->atlasLoadFlags |= VfxLoad_Acquired;
   }
 }
 
@@ -70,28 +88,118 @@ ecs_system_define(VfxDecalUnloadChangedAtlasSys) {
     const bool isFailed   = ecs_world_has_t(world, renderer->atlasColor, AssetFailedComp);
     const bool hasChanged = ecs_world_has_t(world, renderer->atlasColor, AssetChangedComp);
 
-    if (renderer->flags & VfxRenderer_AtlasAcquired && (isLoaded || isFailed) && hasChanged) {
+    if (renderer->atlasLoadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
       log_i(
           "Unloading decal atlas",
           log_param("id", fmt_text(g_vfxDecalAtlasColor)),
           log_param("reason", fmt_text_lit("Asset changed")));
 
       asset_release(world, renderer->atlasColor);
-      renderer->flags &= ~VfxRenderer_AtlasAcquired;
-      renderer->flags |= VfxRenderer_AtlasUnloading;
+      renderer->atlasLoadFlags &= ~VfxLoad_Acquired;
+      renderer->atlasLoadFlags |= VfxLoad_Unloading;
     }
-    if (renderer->flags & VfxRenderer_AtlasUnloading && !isLoaded) {
-      renderer->flags &= ~VfxRenderer_AtlasUnloading;
+    if (renderer->atlasLoadFlags & VfxLoad_Unloading && !isLoaded) {
+      renderer->atlasLoadFlags &= ~VfxLoad_Unloading;
     }
+  }
+}
+
+ecs_view_define(AssetLoadView) { ecs_access_write(VfxDecalAssetComp); }
+
+ecs_system_define(VfxDecalAssetLoadSys) {
+  EcsView* loadView = ecs_world_view_t(world, AssetLoadView);
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId  entity     = ecs_view_entity(itr);
+    VfxDecalAssetComp* request    = ecs_view_write_t(itr, VfxDecalAssetComp);
+    const bool         isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
+    const bool         isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
+    const bool         hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
+
+    if (request->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
+      asset_release(world, entity);
+      request->loadFlags &= ~VfxLoad_Acquired;
+      request->loadFlags |= VfxLoad_Unloading;
+    }
+    if (request->loadFlags & VfxLoad_Unloading && !isLoaded) {
+      request->loadFlags &= ~VfxLoad_Unloading;
+    }
+    if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
+      asset_acquire(world, entity);
+      request->loadFlags |= VfxLoad_Acquired;
+    }
+  }
+}
+
+static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
+  if (!ecs_world_has_t(world, assetEntity, VfxDecalAssetComp)) {
+    ecs_world_add_t(world, assetEntity, VfxDecalAssetComp);
+    return true;
+  }
+  return false;
+}
+
+ecs_view_define(InstanceInitView) {
+  ecs_access_read(SceneVfxDecalComp);
+  ecs_access_without(VfxDecalInstanceComp);
+}
+
+ecs_view_define(InstanceInitAssetView) {
+  ecs_access_with(VfxDecalAssetComp);
+  ecs_access_read(AssetDecalComp);
+}
+
+ecs_system_define(VfxDecalInstanceInitSys) {
+  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InstanceInitAssetView));
+  u32          numAssetRequests = 0;
+
+  EcsView* initView = ecs_world_view_t(world, InstanceInitView);
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId        e     = ecs_view_entity(itr);
+    const SceneVfxDecalComp* decal = ecs_view_read_t(itr, SceneVfxDecalComp);
+
+    diag_assert_msg(ecs_entity_valid(decal->asset), "Vfx decal is missing an asset");
+    if (!ecs_view_maybe_jump(assetItr, decal->asset)) {
+      if (decal->asset && ++numAssetRequests < vfx_decal_max_asset_requests) {
+        vfx_decal_asset_request(world, decal->asset);
+      }
+      continue;
+    }
+    const AssetDecalComp* asset = ecs_view_read_t(assetItr, AssetDecalComp);
+
+    (void)e;
+    (void)asset;
+  }
+}
+
+ecs_view_define(InstanceDeinitView) {
+  ecs_access_with(VfxDecalInstanceComp);
+  ecs_access_without(SceneVfxDecalComp);
+}
+
+ecs_system_define(VfxDecalInstanceDeinitSys) {
+  EcsView* deinitView = ecs_world_view_t(world, InstanceDeinitView);
+  for (EcsIterator* itr = ecs_view_itr(deinitView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, VfxDecalInstanceComp);
   }
 }
 
 ecs_module_init(vfx_decal_module) {
   ecs_register_comp(VfxDecalRendererComp);
   ecs_register_comp_empty(VfxDecalDrawComp);
+  ecs_register_comp(VfxDecalInstanceComp);
+  ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
   ecs_register_view(GlobalView);
+  ecs_register_view(AssetLoadView);
+  ecs_register_view(InstanceInitView);
+  ecs_register_view(InstanceInitAssetView);
+  ecs_register_view(InstanceDeinitView);
 
   ecs_register_system(VfxDecalRendererInitSys, ecs_view_id(GlobalView));
   ecs_register_system(VfxDecalUnloadChangedAtlasSys, ecs_view_id(GlobalView));
+  ecs_register_system(VfxDecalAssetLoadSys, ecs_view_id(AssetLoadView));
+  ecs_register_system(
+      VfxDecalInstanceInitSys, ecs_view_id(InstanceInitView), ecs_view_id(InstanceInitAssetView));
+  ecs_register_system(VfxDecalInstanceDeinitSys, ecs_view_id(InstanceDeinitView));
 }
