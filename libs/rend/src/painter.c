@@ -883,7 +883,7 @@ static bool rend_canvas_paint(
       const f32 exposure = 0.5f;
       painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
-      const f32 exposure = 10.0f;
+      const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
