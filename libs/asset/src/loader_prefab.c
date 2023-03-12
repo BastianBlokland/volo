@@ -54,6 +54,10 @@ typedef struct {
 } AssetPrefabTraitVfxDef;
 
 typedef struct {
+  String assetId;
+} AssetPrefabTraitDecalDef;
+
+typedef struct {
   f32 duration;
 } AssetPrefabTraitLifetimeDef;
 
@@ -106,6 +110,7 @@ typedef struct {
   union {
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
+    AssetPrefabTraitDecalDef      data_decal;
     AssetPrefabTraitLifetimeDef   data_lifetime;
     AssetPrefabTraitScaleDef      data_scale;
     AssetPrefabTraitMovementDef   data_movement;
@@ -173,6 +178,9 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitVfxDef);
     data_reg_field_t(reg, AssetPrefabTraitVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitDecalDef);
+    data_reg_field_t(reg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
@@ -218,6 +226,7 @@ static void prefab_datareg_init() {
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetimeDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scale, data_scale, t_AssetPrefabTraitScaleDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
@@ -351,6 +360,11 @@ static void prefab_build(
     case AssetPrefabTrait_Vfx:
       outTrait->data_vfx = (AssetPrefabTraitVfx){
           .asset = asset_lookup(ctx->world, manager, traitDef->data_vfx.assetId),
+      };
+      break;
+    case AssetPrefabTrait_Decal:
+      outTrait->data_decal = (AssetPrefabTraitDecal){
+          .asset = asset_lookup(ctx->world, manager, traitDef->data_decal.assetId),
       };
       break;
     case AssetPrefabTrait_Lifetime:
