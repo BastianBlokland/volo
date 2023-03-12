@@ -1,6 +1,7 @@
 #include "asset_decal.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -8,12 +9,15 @@
 
 #include "repo_internal.h"
 
+#define decal_default_thickness 0.1f
+
 static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
   String colorAtlasEntry;
   f32    width, height;
+  f32    thickness;
 } DecalDef;
 
 static void decal_datareg_init() {
@@ -30,6 +34,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     // clang-format on
 
     g_dataDecalDefMeta = data_meta_t(t_DecalDef);
@@ -60,6 +65,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->colorAtlasEntry = string_hash(def->colorAtlasEntry);
   out->width           = def->width;
   out->height          = def->height;
+  out->thickness       = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
 }
 
 ecs_module_init(asset_decal_module) {
