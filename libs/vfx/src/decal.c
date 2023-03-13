@@ -2,10 +2,13 @@
 #include "asset_decal.h"
 #include "asset_manager.h"
 #include "core_diag.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "scene_transform.h"
 #include "scene_vfx.h"
+#include "vfx_register.h"
 
 #include "decal_internal.h"
 
@@ -16,6 +19,16 @@ static const String         g_vfxDecalGraphic    = string_static("graphics/vfx/d
 static const String         g_vfxDecalAtlasColor = string_static("textures/vfx/decal_color.atl");
 static const RendDrawFlags  g_vfxDecalDrawFlags  = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload;
 // clang-format on
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector pos;
+  GeoQuat   rot;
+  GeoVector scale;
+} VfxDecalData;
+
+ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
+ASSERT(alignof(VfxDecalData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -44,6 +57,11 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
+
+ecs_view_define(DecalDrawView) {
+  ecs_access_with(VfxDecalDrawComp);
+  ecs_access_write(RendDrawComp);
+}
 
 static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
@@ -216,6 +234,44 @@ ecs_system_define(VfxDecalInstanceDeinitSys) {
   }
 }
 
+ecs_view_define(InstanceUpdateGlobalView) { ecs_access_read(VfxDecalRendererComp); }
+
+ecs_view_define(InstanceUpdateView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(VfxDecalInstanceComp);
+}
+
+ecs_system_define(VfxDecalInstanceUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, InstanceUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const VfxDecalRendererComp* rend = ecs_view_read_t(globalItr, VfxDecalRendererComp);
+  RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, rend->drawEntity, RendDrawComp);
+
+  EcsView* updateView = ecs_world_view_t(world, InstanceUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
+    const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
+
+    const GeoVector pos    = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   rot    = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       scale  = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector size   = geo_vector_mul(instance->size, scale);
+    const GeoBox    box    = geo_box_from_center(pos, size);
+    const GeoBox    bounds = geo_box_from_rotated(&box, rot);
+
+    const SceneTags tags = SceneTags_Vfx;
+    VfxDecalData*   data = rend_draw_add_instance_t(decalDraw, VfxDecalData, tags, bounds);
+    data->pos            = pos;
+    data->rot            = rot;
+    data->scale          = size;
+  }
+}
+
 ecs_module_init(vfx_decal_module) {
   ecs_register_comp(VfxDecalRendererComp);
   ecs_register_comp_empty(VfxDecalDrawComp);
@@ -223,6 +279,7 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
   ecs_register_view(AtlasView);
+  ecs_register_view(DecalDrawView);
 
   ecs_register_system(VfxDecalRendererInitSys, ecs_register_view(RendererInitGlobalView));
   ecs_register_system(VfxDecalRendererUpdateSys, ecs_register_view(RendererUpdateGlobalView));
@@ -234,7 +291,15 @@ ecs_module_init(vfx_decal_module) {
       ecs_register_view(InstanceInitGlobalView),
       ecs_register_view(InstanceInitView),
       ecs_register_view(InstanceInitAssetView),
-      ecs_register_view(AtlasView));
+      ecs_view_id(AtlasView));
 
   ecs_register_system(VfxDecalInstanceDeinitSys, ecs_register_view(InstanceDeinitView));
+
+  ecs_register_system(
+      VfxDecalInstanceUpdateSys,
+      ecs_register_view(InstanceUpdateGlobalView),
+      ecs_register_view(InstanceUpdateView),
+      ecs_view_id(DecalDrawView));
+
+  ecs_order(VfxDecalInstanceUpdateSys, VfxOrder_Update);
 }
