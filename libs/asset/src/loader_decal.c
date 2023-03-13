@@ -9,7 +9,7 @@
 
 #include "repo_internal.h"
 
-#define decal_default_thickness 0.1f
+#define decal_default_thickness 0.25f
 
 static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
