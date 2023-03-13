@@ -64,10 +64,10 @@ ecs_system_define(VfxAtlasInitSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_write(VfxAtlasManagerComp); }
+ecs_view_define(UnloadChangedGlobalView) { ecs_access_write(VfxAtlasManagerComp); }
 
-ecs_system_define(VfxAtlasUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+ecs_system_define(VfxAtlasUnloadChangedSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UnloadChangedGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (UNLIKELY(!globalItr)) {
     return;
@@ -101,7 +101,7 @@ ecs_module_init(vfx_atlas_module) {
   ecs_register_comp(VfxAtlasManagerComp);
 
   ecs_register_system(VfxAtlasInitSys, ecs_register_view(InitGlobalView));
-  ecs_register_system(VfxAtlasUpdateSys, ecs_register_view(UpdateGlobalView));
+  ecs_register_system(VfxAtlasUnloadChangedSys, ecs_register_view(UnloadChangedGlobalView));
 }
 
 EcsEntityId vfx_atlas_entity(const VfxAtlasManagerComp* manager, const VfxAtlasType type) {

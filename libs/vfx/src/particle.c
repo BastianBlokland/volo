@@ -4,7 +4,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
-#include "log_logger.h"
 #include "rend_draw.h"
 #include "scene_tag.h"
 
@@ -19,7 +18,6 @@ static const RendDrawFlags g_vfxParticleDrawFlags[VfxParticleType_Count] = {
     [VfxParticleType_Forward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
     [VfxParticleType_Distortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
-static const String g_vfxParticleAtlas = string_static("textures/vfx/particle.atl");
 // clang-format on
 
 typedef struct {
@@ -43,16 +41,7 @@ typedef struct {
 ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
 ASSERT(alignof(VfxParticleData) == 16, "Alignment needs to match the glsl alignment");
 
-typedef enum {
-  VfxLoad_Acquired  = 1 << 0,
-  VfxLoad_Unloading = 1 << 1,
-} VfxLoadFlags;
-
-ecs_comp_define(VfxParticleRendererComp) {
-  VfxLoadFlags loadFlags;
-  EcsEntityId  atlas;
-  EcsEntityId  drawEntities[VfxParticleType_Count];
-};
+ecs_comp_define(VfxParticleRendererComp) { EcsEntityId drawEntities[VfxParticleType_Count]; };
 
 ecs_comp_define(VfxParticleDrawComp);
 
@@ -80,44 +69,9 @@ ecs_system_define(VfxParticleRendererInitSys) {
   VfxParticleRendererComp* renderer = ecs_view_write_t(globalItr, VfxParticleRendererComp);
 
   if (!renderer) {
-    renderer        = ecs_world_add_t(world, ecs_world_global(world), VfxParticleRendererComp);
-    renderer->atlas = asset_lookup(world, assets, g_vfxParticleAtlas);
+    renderer = ecs_world_add_t(world, ecs_world_global(world), VfxParticleRendererComp);
     for (VfxParticleType type = 0; type != VfxParticleType_Count; ++type) {
       renderer->drawEntities[type] = vfx_particle_draw_create(world, assets, type);
-    }
-  }
-
-  if (!(renderer->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
-    log_i("Acquiring particle atlas", log_param("id", fmt_text(g_vfxParticleAtlas)));
-    asset_acquire(world, renderer->atlas);
-    renderer->loadFlags |= VfxLoad_Acquired;
-  }
-}
-
-ecs_system_define(VfxParticleUnloadChangedAtlasSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  VfxParticleRendererComp* renderer = ecs_view_write_t(globalItr, VfxParticleRendererComp);
-  if (renderer) {
-    const bool isLoaded   = ecs_world_has_t(world, renderer->atlas, AssetLoadedComp);
-    const bool isFailed   = ecs_world_has_t(world, renderer->atlas, AssetFailedComp);
-    const bool hasChanged = ecs_world_has_t(world, renderer->atlas, AssetChangedComp);
-
-    if (renderer->loadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
-      log_i(
-          "Unloading particle atlas",
-          log_param("id", fmt_text(g_vfxParticleAtlas)),
-          log_param("reason", fmt_text_lit("Asset changed")));
-
-      asset_release(world, renderer->atlas);
-      renderer->loadFlags &= ~VfxLoad_Acquired;
-      renderer->loadFlags |= VfxLoad_Unloading;
-    }
-    if (renderer->loadFlags & VfxLoad_Unloading && !isLoaded) {
-      renderer->loadFlags &= ~VfxLoad_Unloading;
     }
   }
 }
@@ -129,10 +83,7 @@ ecs_module_init(vfx_particle_module) {
   ecs_register_view(GlobalView);
 
   ecs_register_system(VfxParticleRendererInitSys, ecs_view_id(GlobalView));
-  ecs_register_system(VfxParticleUnloadChangedAtlasSys, ecs_view_id(GlobalView));
 }
-
-EcsEntityId vfx_particle_atlas(const VfxParticleRendererComp* renderer) { return renderer->atlas; }
 
 EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer, const VfxParticleType type) {
   diag_assert(type < VfxParticleType_Count);

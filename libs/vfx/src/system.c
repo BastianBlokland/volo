@@ -18,6 +18,7 @@
 #include "scene_vfx.h"
 #include "vfx_register.h"
 
+#include "atlas_internal.h"
 #include "particle_internal.h"
 
 #define vfx_system_max_asset_requests 4
@@ -78,8 +79,9 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetVfxComp);
 }
 
-static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
-  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
+static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
+  const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
+  EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
@@ -147,6 +149,7 @@ ecs_system_define(VfxSystemAssetLoadSys) {
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(VfxAtlasManagerComp);
   ecs_access_read(VfxParticleRendererComp);
   ecs_access_write(RendLightComp);
 }
@@ -456,11 +459,12 @@ ecs_system_define(VfxSystemUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*           time  = ecs_view_read_t(globalItr, SceneTimeComp);
-  const VfxParticleRendererComp* rend  = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  RendLightComp*                 light = ecs_view_write_t(globalItr, RendLightComp);
+  const SceneTimeComp*           time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxParticleRendererComp* rend         = ecs_view_read_t(globalItr, VfxParticleRendererComp);
+  const VfxAtlasManagerComp*     atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  RendLightComp*                 light        = ecs_view_write_t(globalItr, RendLightComp);
 
-  const AssetAtlasComp* particleAtlas = vfx_atlas(world, vfx_particle_atlas(rend));
+  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
   if (!particleAtlas) {
     return; // Atlas hasn't loaded yet.
   }

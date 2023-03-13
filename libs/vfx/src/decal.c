@@ -10,14 +10,14 @@
 #include "scene_vfx.h"
 #include "vfx_register.h"
 
+#include "atlas_internal.h"
 #include "decal_internal.h"
 
 #define vfx_decal_max_asset_requests 4
 
 // clang-format off
-static const String         g_vfxDecalGraphic    = string_static("graphics/vfx/decal.gra");
-static const String         g_vfxDecalAtlasColor = string_static("textures/vfx/decal_color.atl");
-static const RendDrawFlags  g_vfxDecalDrawFlags  = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload;
+static const String        g_vfxDecalGraphic   = string_static("graphics/vfx/decal.gra");
+static const RendDrawFlags g_vfxDecalDrawFlags = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload;
 // clang-format on
 
 typedef struct {
@@ -35,11 +35,7 @@ typedef enum {
   VfxLoad_Unloading = 1 << 1,
 } VfxLoadFlags;
 
-ecs_comp_define(VfxDecalRendererComp) {
-  VfxLoadFlags atlasLoadFlags;
-  EcsEntityId  atlasColor;
-  EcsEntityId  drawEntity;
-};
+ecs_comp_define(VfxDecalRendererComp) { EcsEntityId drawEntity; };
 
 ecs_comp_define(VfxDecalDrawComp);
 
@@ -65,8 +61,10 @@ ecs_view_define(DecalDrawView) {
 
 ecs_view_define(DecalInstanceView) { ecs_access_read(VfxDecalInstanceComp); }
 
-static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
-  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
+static const AssetAtlasComp*
+vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasType type) {
+  const EcsEntityId atlasEntity = vfx_atlas_entity(manager, type);
+  EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
@@ -86,50 +84,15 @@ ecs_view_define(RendererInitGlobalView) {
 ecs_system_define(VfxDecalRendererInitSys) {
   EcsView*     globalView = ecs_world_view_t(world, RendererInitGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
+  if (UNLIKELY(!globalItr)) {
     return;
   }
   AssetManagerComp*     assets   = ecs_view_write_t(globalItr, AssetManagerComp);
   VfxDecalRendererComp* renderer = ecs_view_write_t(globalItr, VfxDecalRendererComp);
 
-  if (!renderer) {
+  if (UNLIKELY(!renderer)) {
     renderer             = ecs_world_add_t(world, ecs_world_global(world), VfxDecalRendererComp);
-    renderer->atlasColor = asset_lookup(world, assets, g_vfxDecalAtlasColor);
     renderer->drawEntity = vfx_decal_draw_create(world, assets);
-  }
-
-  if (!(renderer->atlasLoadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
-    log_i("Acquiring decal atlas", log_param("id", fmt_text(g_vfxDecalAtlasColor)));
-    asset_acquire(world, renderer->atlasColor);
-    renderer->atlasLoadFlags |= VfxLoad_Acquired;
-  }
-}
-
-ecs_view_define(RendererUpdateGlobalView) { ecs_access_write(VfxDecalRendererComp); }
-
-ecs_system_define(VfxDecalRendererUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, RendererUpdateGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  VfxDecalRendererComp* renderer   = ecs_view_write_t(globalItr, VfxDecalRendererComp);
-  const bool            isLoaded   = ecs_world_has_t(world, renderer->atlasColor, AssetLoadedComp);
-  const bool            isFailed   = ecs_world_has_t(world, renderer->atlasColor, AssetFailedComp);
-  const bool            hasChanged = ecs_world_has_t(world, renderer->atlasColor, AssetChangedComp);
-
-  if (renderer->atlasLoadFlags & VfxLoad_Acquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading decal atlas",
-        log_param("id", fmt_text(g_vfxDecalAtlasColor)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
-    asset_release(world, renderer->atlasColor);
-    renderer->atlasLoadFlags &= ~VfxLoad_Acquired;
-    renderer->atlasLoadFlags |= VfxLoad_Unloading;
-  }
-  if (renderer->atlasLoadFlags & VfxLoad_Unloading && !isLoaded) {
-    renderer->atlasLoadFlags &= ~VfxLoad_Unloading;
   }
 }
 
@@ -182,7 +145,7 @@ static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEnti
   return false;
 }
 
-ecs_view_define(InstanceInitGlobalView) { ecs_access_read(VfxDecalRendererComp); }
+ecs_view_define(InstanceInitGlobalView) { ecs_access_read(VfxAtlasManagerComp); }
 
 ecs_view_define(InstanceInitView) {
   ecs_access_read(SceneVfxDecalComp);
@@ -200,8 +163,8 @@ ecs_system_define(VfxDecalInstanceInitSys) {
   if (!globalItr) {
     return;
   }
-  const VfxDecalRendererComp* renderer   = ecs_view_read_t(globalItr, VfxDecalRendererComp);
-  const AssetAtlasComp*       colorAtlas = vfx_atlas(world, renderer->atlasColor);
+  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const AssetAtlasComp*      colorAtlas   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   if (!colorAtlas) {
     return; // Atlas hasn't loaded yet.
   }
@@ -299,7 +262,6 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_view(DecalInstanceView);
 
   ecs_register_system(VfxDecalRendererInitSys, ecs_register_view(RendererInitGlobalView));
-  ecs_register_system(VfxDecalRendererUpdateSys, ecs_register_view(RendererUpdateGlobalView));
 
   ecs_register_system(
       VfxDecalAssetLoadSys, ecs_register_view(AssetLoadView), ecs_view_id(DecalInstanceView));
