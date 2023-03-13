@@ -217,7 +217,7 @@ ecs_system_define(VfxDecalInstanceInitSys) {
         e,
         VfxDecalInstanceComp,
         .colorAtlasIndex = colorAtlasEntry->atlasIndex,
-        .size            = geo_vector(asset->width, asset->height, asset->thickness));
+        .size            = geo_vector(asset->width, asset->thickness, asset->height));
   }
 }
 
@@ -264,11 +264,10 @@ ecs_system_define(VfxDecalInstanceUpdateSys) {
     const GeoBox    box    = geo_box_from_center(pos, size);
     const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 
-    const SceneTags tags = SceneTags_Vfx;
-    VfxDecalData*   data = rend_draw_add_instance_t(decalDraw, VfxDecalData, tags, bounds);
-    data->pos            = pos;
-    data->rot            = rot;
-    data->scale          = size;
+    VfxDecalData* data = rend_draw_add_instance_t(decalDraw, VfxDecalData, SceneTags_Vfx, bounds);
+    data->pos          = pos;
+    data->rot          = rot;
+    data->scale        = size;
   }
 }
 
