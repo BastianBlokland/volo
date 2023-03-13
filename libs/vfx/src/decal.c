@@ -63,6 +63,8 @@ ecs_view_define(DecalDrawView) {
   ecs_access_write(RendDrawComp);
 }
 
+ecs_view_define(DecalInstanceView) { ecs_access_read(VfxDecalInstanceComp); }
+
 static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId atlasEntity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
@@ -133,8 +135,17 @@ ecs_system_define(VfxDecalRendererUpdateSys) {
 
 ecs_view_define(AssetLoadView) { ecs_access_write(VfxDecalAssetComp); }
 
+static void vfx_decal_instance_reset_all(EcsWorld* world) {
+  EcsView* instanceView = ecs_world_view_t(world, DecalInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), VfxDecalInstanceComp);
+  }
+}
+
 ecs_system_define(VfxDecalAssetLoadSys) {
   EcsView* loadView = ecs_world_view_t(world, AssetLoadView);
+
+  bool decalUnloaded = false;
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity     = ecs_view_entity(itr);
     VfxDecalAssetComp* request    = ecs_view_write_t(itr, VfxDecalAssetComp);
@@ -149,11 +160,17 @@ ecs_system_define(VfxDecalAssetLoadSys) {
     }
     if (request->loadFlags & VfxLoad_Unloading && !isLoaded) {
       request->loadFlags &= ~VfxLoad_Unloading;
+      decalUnloaded = true;
     }
     if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
       asset_acquire(world, entity);
       request->loadFlags |= VfxLoad_Acquired;
     }
+  }
+
+  if (decalUnloaded) {
+    // TODO: Only reset decals whose asset was actually unloaded.
+    vfx_decal_instance_reset_all(world);
   }
 }
 
@@ -279,11 +296,13 @@ ecs_module_init(vfx_decal_module) {
 
   ecs_register_view(AtlasView);
   ecs_register_view(DecalDrawView);
+  ecs_register_view(DecalInstanceView);
 
   ecs_register_system(VfxDecalRendererInitSys, ecs_register_view(RendererInitGlobalView));
   ecs_register_system(VfxDecalRendererUpdateSys, ecs_register_view(RendererUpdateGlobalView));
 
-  ecs_register_system(VfxDecalAssetLoadSys, ecs_register_view(AssetLoadView));
+  ecs_register_system(
+      VfxDecalAssetLoadSys, ecs_register_view(AssetLoadView), ecs_view_id(DecalInstanceView));
 
   ecs_register_system(
       VfxDecalInstanceInitSys,
