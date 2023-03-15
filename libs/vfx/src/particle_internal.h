@@ -22,13 +22,6 @@ typedef enum {
   VfxParticle_ShadowCaster      = 1 << 3,
 } VfxParticleFlags;
 
-typedef enum {
-  VfxParticleType_Forward,
-  VfxParticleType_Distortion,
-
-  VfxParticleType_Count,
-} VfxParticleType;
-
 typedef struct {
   GeoVector        position;
   GeoQuat          rotation;
@@ -38,14 +31,6 @@ typedef struct {
   f32              opacity;
   GeoColor         color;
 } VfxParticle;
-
-/**
- * Global particle renderer.
- */
-ecs_comp_extern(VfxParticleRendererComp);
-ecs_comp_extern(VfxParticleDrawComp);
-
-EcsEntityId vfx_particle_draw(const VfxParticleRendererComp*, VfxParticleType);
 
 /**
  * Initialize a particle draw.

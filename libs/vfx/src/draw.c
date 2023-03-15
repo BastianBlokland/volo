@@ -9,17 +9,26 @@
 ecs_comp_define(VfxDrawManagerComp) { EcsEntityId drawEntities[VfxDrawType_Count]; };
 
 ecs_comp_define(VfxDrawDecalComp);
+ecs_comp_define(VfxDrawParticleComp);
 
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
-    [VfxDrawType_Decal] = string_static("graphics/vfx/decal.gra"),
+    [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.gra"),
+    [VfxDrawType_ParticleForward]    = string_static("graphics/vfx/particle_forward.gra"),
+    [VfxDrawType_ParticleDistortion] = string_static("graphics/vfx/particle_distortion.gra"),
 };
 
+// clang-format off
 static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
-    [VfxDrawType_Decal] = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload,
+    [VfxDrawType_Decal]              = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload,
+    [VfxDrawType_ParticleForward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
+    [VfxDrawType_ParticleDistortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
+// clang-format on
 
 static const EcsCompId* g_vfxDrawTags[VfxDrawType_Count] = {
-    [VfxDrawType_Decal] = &ecs_comp_id(VfxDrawDecalComp),
+    [VfxDrawType_Decal]              = &ecs_comp_id(VfxDrawDecalComp),
+    [VfxDrawType_ParticleForward]    = &ecs_comp_id(VfxDrawParticleComp),
+    [VfxDrawType_ParticleDistortion] = &ecs_comp_id(VfxDrawParticleComp),
 };
 
 static EcsEntityId
@@ -52,6 +61,7 @@ ecs_system_define(VfxDrawManagerInitSys) {
 ecs_module_init(vfx_draw_module) {
   ecs_register_comp(VfxDrawManagerComp);
   ecs_register_comp_empty(VfxDrawDecalComp);
+  ecs_register_comp_empty(VfxDrawParticleComp);
 
   ecs_register_system(VfxDrawManagerInitSys, ecs_register_view(InitGlobalView));
 }

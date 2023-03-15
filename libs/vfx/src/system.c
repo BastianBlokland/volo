@@ -19,6 +19,7 @@
 #include "vfx_register.h"
 
 #include "atlas_internal.h"
+#include "draw_internal.h"
 #include "particle_internal.h"
 
 #define vfx_system_max_asset_requests 4
@@ -62,7 +63,7 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(ParticleDrawView) {
-  ecs_access_with(VfxParticleDrawComp);
+  ecs_access_with(VfxDrawParticleComp);
   ecs_access_write(RendDrawComp);
 
   /**
@@ -150,7 +151,7 @@ ecs_system_define(VfxSystemAssetLoadSys) {
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxAtlasManagerComp);
-  ecs_access_read(VfxParticleRendererComp);
+  ecs_access_read(VfxDrawManagerComp);
   ecs_access_write(RendLightComp);
 }
 
@@ -215,8 +216,8 @@ static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
   UNREACHABLE
 }
 
-static VfxParticleType vfx_particle_type(const AssetVfxSprite* sprite) {
-  return sprite->distortion ? VfxParticleType_Distortion : VfxParticleType_Forward;
+static VfxDrawType vfx_sprite_draw_type(const AssetVfxSprite* sprite) {
+  return sprite->distortion ? VfxDrawType_ParticleDistortion : VfxDrawType_ParticleForward;
 }
 
 typedef struct {
@@ -347,7 +348,7 @@ static void vfx_system_simulate(
 
 static void vfx_instance_output_sprite(
     const VfxSystemInstance* instance,
-    RendDrawComp*            particleDraws[VfxParticleType_Count],
+    RendDrawComp*            draws[VfxDrawType_Count],
     const AssetVfxComp*      asset,
     const VfxTrans*          sysTrans,
     const TimeDuration       sysTimeRem,
@@ -402,7 +403,7 @@ static void vfx_instance_output_sprite(
     vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   }
   vfx_particle_output(
-      particleDraws[vfx_particle_type(sprite)],
+      draws[vfx_sprite_draw_type(sprite)],
       &(VfxParticle){
           .position   = pos,
           .rotation   = rot,
@@ -459,21 +460,23 @@ ecs_system_define(VfxSystemUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*           time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const VfxParticleRendererComp* rend         = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  const VfxAtlasManagerComp*     atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  RendLightComp*                 light        = ecs_view_write_t(globalItr, RendLightComp);
+  const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const VfxDrawManagerComp*  drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  RendLightComp*             light        = ecs_view_write_t(globalItr, RendLightComp);
 
   const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
   if (!particleAtlas) {
     return; // Atlas hasn't loaded yet.
   }
   // Initialize the particle draws.
-  RendDrawComp* particleDraws[VfxParticleType_Count];
-  for (VfxParticleType type = 0; type != VfxParticleType_Count; ++type) {
-    const EcsEntityId drawEntity = vfx_particle_draw(rend, type);
-    particleDraws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
-    vfx_particle_init(particleDraws[type], particleAtlas);
+  RendDrawComp* draws[VfxDrawType_Count] = {null};
+  for (VfxDrawType type = 0; type != VfxDrawType_Count; ++type) {
+    if (type == VfxDrawType_ParticleForward || type == VfxDrawType_ParticleDistortion) {
+      const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
+      draws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
+      vfx_particle_init(draws[type], particleAtlas);
+    }
   }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
@@ -516,7 +519,7 @@ ecs_system_define(VfxSystemUpdateSys) {
     vfx_system_simulate(state, asset, particleAtlas, time, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, particleDraws, asset, &sysTrans, sysTimeRem, sysAlpha);
+      vfx_instance_output_sprite(instance, draws, asset, &sysTrans, sysTimeRem, sysAlpha);
       vfx_instance_output_light(entity, instance, light, asset, &sysTrans, sysTimeRem, sysAlpha);
     }
   }

@@ -1,5 +1,4 @@
 #include "asset_atlas.h"
-#include "asset_manager.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -8,17 +7,6 @@
 #include "scene_tag.h"
 
 #include "particle_internal.h"
-
-// clang-format off
-static const String g_vfxParticleGraphics[VfxParticleType_Count] = {
-    [VfxParticleType_Forward]    = string_static("graphics/vfx/particle_forward.gra"),
-    [VfxParticleType_Distortion] = string_static("graphics/vfx/particle_distortion.gra"),
-};
-static const RendDrawFlags g_vfxParticleDrawFlags[VfxParticleType_Count] = {
-    [VfxParticleType_Forward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
-    [VfxParticleType_Distortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
-};
-// clang-format on
 
 typedef struct {
   ALIGNAS(16)
@@ -40,55 +28,6 @@ typedef struct {
 
 ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
 ASSERT(alignof(VfxParticleData) == 16, "Alignment needs to match the glsl alignment");
-
-ecs_comp_define(VfxParticleRendererComp) { EcsEntityId drawEntities[VfxParticleType_Count]; };
-
-ecs_comp_define(VfxParticleDrawComp);
-
-static EcsEntityId
-vfx_particle_draw_create(EcsWorld* world, AssetManagerComp* assets, const VfxParticleType type) {
-  const EcsEntityId entity = asset_lookup(world, assets, g_vfxParticleGraphics[type]);
-  ecs_world_add_empty_t(world, entity, VfxParticleDrawComp);
-  RendDrawComp* draw = rend_draw_create(world, entity, g_vfxParticleDrawFlags[type]);
-  rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
-  return entity;
-}
-
-ecs_view_define(GlobalView) {
-  ecs_access_maybe_write(VfxParticleRendererComp);
-  ecs_access_write(AssetManagerComp);
-}
-
-ecs_system_define(VfxParticleRendererInitSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  AssetManagerComp*        assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  VfxParticleRendererComp* renderer = ecs_view_write_t(globalItr, VfxParticleRendererComp);
-
-  if (!renderer) {
-    renderer = ecs_world_add_t(world, ecs_world_global(world), VfxParticleRendererComp);
-    for (VfxParticleType type = 0; type != VfxParticleType_Count; ++type) {
-      renderer->drawEntities[type] = vfx_particle_draw_create(world, assets, type);
-    }
-  }
-}
-
-ecs_module_init(vfx_particle_module) {
-  ecs_register_comp(VfxParticleRendererComp);
-  ecs_register_comp_empty(VfxParticleDrawComp);
-
-  ecs_register_view(GlobalView);
-
-  ecs_register_system(VfxParticleRendererInitSys, ecs_view_id(GlobalView));
-}
-
-EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer, const VfxParticleType type) {
-  diag_assert(type < VfxParticleType_Count);
-  return renderer->drawEntities[type];
-}
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
   const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
