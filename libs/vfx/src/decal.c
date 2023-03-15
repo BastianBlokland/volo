@@ -11,14 +11,9 @@
 #include "vfx_register.h"
 
 #include "atlas_internal.h"
-#include "decal_internal.h"
+#include "draw_internal.h"
 
 #define vfx_decal_max_asset_requests 4
-
-// clang-format off
-static const String        g_vfxDecalGraphic   = string_static("graphics/vfx/decal.gra");
-static const RendDrawFlags g_vfxDecalDrawFlags = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload;
-// clang-format on
 
 typedef struct {
   ALIGNAS(16)
@@ -34,10 +29,6 @@ typedef enum {
   VfxLoad_Acquired  = 1 << 0,
   VfxLoad_Unloading = 1 << 1,
 } VfxLoadFlags;
-
-ecs_comp_define(VfxDecalRendererComp) { EcsEntityId drawEntity; };
-
-ecs_comp_define(VfxDecalDrawComp);
 
 ecs_comp_define(VfxDecalInstanceComp) {
   u16       colorAtlasIndex;
@@ -55,7 +46,7 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
 ecs_view_define(DecalDrawView) {
-  ecs_access_with(VfxDecalDrawComp);
+  ecs_access_with(VfxDrawDecalComp);
   ecs_access_write(RendDrawComp);
 }
 
@@ -66,34 +57,6 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
   const EcsEntityId atlasEntity = vfx_atlas_entity(manager, type);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
-}
-
-static EcsEntityId vfx_decal_draw_create(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId entity = asset_lookup(world, assets, g_vfxDecalGraphic);
-  ecs_world_add_empty_t(world, entity, VfxDecalDrawComp);
-  RendDrawComp* draw = rend_draw_create(world, entity, g_vfxDecalDrawFlags);
-  rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
-  return entity;
-}
-
-ecs_view_define(RendererInitGlobalView) {
-  ecs_access_maybe_write(VfxDecalRendererComp);
-  ecs_access_write(AssetManagerComp);
-}
-
-ecs_system_define(VfxDecalRendererInitSys) {
-  EcsView*     globalView = ecs_world_view_t(world, RendererInitGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (UNLIKELY(!globalItr)) {
-    return;
-  }
-  AssetManagerComp*     assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  VfxDecalRendererComp* renderer = ecs_view_write_t(globalItr, VfxDecalRendererComp);
-
-  if (UNLIKELY(!renderer)) {
-    renderer             = ecs_world_add_t(world, ecs_world_global(world), VfxDecalRendererComp);
-    renderer->drawEntity = vfx_decal_draw_create(world, assets);
-  }
 }
 
 ecs_view_define(AssetLoadView) { ecs_access_write(VfxDecalAssetComp); }
@@ -214,7 +177,7 @@ ecs_system_define(VfxDecalInstanceDeinitSys) {
   }
 }
 
-ecs_view_define(InstanceUpdateGlobalView) { ecs_access_read(VfxDecalRendererComp); }
+ecs_view_define(InstanceUpdateGlobalView) { ecs_access_read(VfxDrawManagerComp); }
 
 ecs_view_define(InstanceUpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -228,8 +191,9 @@ ecs_system_define(VfxDecalInstanceUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const VfxDecalRendererComp* rend = ecs_view_read_t(globalItr, VfxDecalRendererComp);
-  RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, rend->drawEntity, RendDrawComp);
+  const VfxDrawManagerComp* drawManager     = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const EcsEntityId         decalDrawEntity = vfx_draw_entity(drawManager, VfxDrawType_Decal);
+  RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, decalDrawEntity, RendDrawComp);
 
   EcsView* updateView = ecs_world_view_t(world, InstanceUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
@@ -252,16 +216,12 @@ ecs_system_define(VfxDecalInstanceUpdateSys) {
 }
 
 ecs_module_init(vfx_decal_module) {
-  ecs_register_comp(VfxDecalRendererComp);
-  ecs_register_comp_empty(VfxDecalDrawComp);
   ecs_register_comp(VfxDecalInstanceComp);
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
   ecs_register_view(AtlasView);
   ecs_register_view(DecalDrawView);
   ecs_register_view(DecalInstanceView);
-
-  ecs_register_system(VfxDecalRendererInitSys, ecs_register_view(RendererInitGlobalView));
 
   ecs_register_system(
       VfxDecalAssetLoadSys, ecs_register_view(AssetLoadView), ecs_view_id(DecalInstanceView));
