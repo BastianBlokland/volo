@@ -17,13 +17,22 @@
 
 typedef struct {
   ALIGNAS(16)
+  f32 atlasEntriesPerDim;
+  f32 atlasEntrySize;
+  f32 atlasEntrySizeMinusPadding;
+  f32 atlasEntryPadding;
+} VfxDecalMetaData;
+
+ASSERT(sizeof(VfxDecalMetaData) == 16, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  ALIGNAS(16)
   GeoVector pos;
   GeoQuat   rot;
   GeoVector scale;
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
-ASSERT(alignof(VfxDecalData) == 16, "Alignment needs to match the glsl alignment");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -41,6 +50,11 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
   VfxDecalAssetComp* compA = dataA;
   VfxDecalAssetComp* compB = dataB;
   compA->loadFlags |= compB->loadFlags;
+}
+
+ecs_view_define(GlobalView) {
+  ecs_access_read(VfxAtlasManagerComp);
+  ecs_access_read(VfxDrawManagerComp);
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
@@ -108,8 +122,6 @@ static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEnti
   return false;
 }
 
-ecs_view_define(InitGlobalView) { ecs_access_read(VfxAtlasManagerComp); }
-
 ecs_view_define(InitView) {
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_without(VfxDecalInstanceComp);
@@ -121,7 +133,7 @@ ecs_view_define(InitAssetView) {
 }
 
 ecs_system_define(VfxDecalInitSys) {
-  EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -177,23 +189,42 @@ ecs_system_define(VfxDecalDeinitSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_read(VfxDrawManagerComp); }
-
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
 
+static void vfx_decal_draw_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
+  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
+  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
+
+  *rend_draw_set_data_t(draw, VfxDecalMetaData) = (VfxDecalMetaData){
+      .atlasEntriesPerDim         = atlas->entriesPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
+      .atlasEntryPadding          = atlas->entryPadding,
+  };
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+
+  const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
+  const AssetAtlasComp*      colorAtlas   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
+  if (!colorAtlas) {
+    return; // Atlas hasn't loaded yet.
+  }
+
   const VfxDrawManagerComp* drawManager     = ecs_view_read_t(globalItr, VfxDrawManagerComp);
   const EcsEntityId         decalDrawEntity = vfx_draw_entity(drawManager, VfxDrawType_Decal);
   RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, decalDrawEntity, RendDrawComp);
+
+  vfx_decal_draw_init(decalDraw, colorAtlas);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
@@ -219,6 +250,7 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_comp(VfxDecalInstanceComp);
   ecs_register_comp(VfxDecalAssetComp, .combinator = ecs_combine_decal_asset);
 
+  ecs_register_view(GlobalView);
   ecs_register_view(AtlasView);
   ecs_register_view(DecalDrawView);
   ecs_register_view(DecalInstanceView);
@@ -227,18 +259,19 @@ ecs_module_init(vfx_decal_module) {
 
   ecs_register_system(
       VfxDecalInitSys,
-      ecs_register_view(InitGlobalView),
       ecs_register_view(InitView),
       ecs_register_view(InitAssetView),
-      ecs_view_id(AtlasView));
+      ecs_view_id(AtlasView),
+      ecs_view_id(GlobalView));
 
   ecs_register_system(VfxDecalDeinitSys, ecs_register_view(DeinitView));
 
   ecs_register_system(
       VfxDecalUpdateSys,
-      ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
-      ecs_view_id(DecalDrawView));
+      ecs_view_id(DecalDrawView),
+      ecs_view_id(AtlasView),
+      ecs_view_id(GlobalView));
 
   ecs_order(VfxDecalUpdateSys, VfxOrder_Update);
 }

@@ -27,7 +27,6 @@ typedef struct {
 } VfxParticleData;
 
 ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
-ASSERT(alignof(VfxParticleData) == 16, "Alignment needs to match the glsl alignment");
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
   const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
