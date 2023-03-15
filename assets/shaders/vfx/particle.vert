@@ -1,6 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
+#include "atlas.glsl"
 #include "binding.glsl"
 #include "global.glsl"
 #include "instance.glsl"
@@ -31,10 +32,7 @@ const u32 c_flagBillboard         = c_flagBillboardSphere | c_flagBillboardCylin
 const u32 c_flagShadowCaster      = 1 << 3;
 
 struct MetaData {
-  f32 atlasEntriesPerDim;
-  f32 atlasEntrySize;             // 1.0 / atlasEntriesPerDim
-  f32 atlasEntrySizeMinusPadding; // 1.0 / atlasEntriesPerDim - atlasEntryPadding * 2.
-  f32 atlasEntryPadding;
+  AtlasMeta atlas;
 };
 
 struct ParticleData {
@@ -77,20 +75,6 @@ f32v3 world_pos(const f32v3 pos, const f32v4 rotQuat, const f32v2 scale, const u
   return vFacing + pos;
 }
 
-/**
- * Compute the x and y position in the texture atlas based on the atlas-index.
- */
-f32v2 atlas_entry_origin(const f32 index) {
-  const f32 entriesPerDim = u_meta.atlasEntriesPerDim;
-  const f32 entrySize     = u_meta.atlasEntrySize;
-  const f32 entryPadding  = u_meta.atlasEntryPadding;
-
-  // NOTE: '* entrySize' is equivalent to '/ entriesPerDim'.
-  const f32 entryX = mod(index, entriesPerDim) * entrySize + entryPadding;
-  const f32 entryY = floor(index * entrySize) * entrySize + entryPadding;
-  return f32v2(entryX, entryY);
-}
-
 void main() {
   const f32v3 instancePos        = u_instances[in_instanceIndex].data1.xyz;
   const f32   instanceAtlasIndex = u_instances[in_instanceIndex].data1.w;
@@ -101,12 +85,12 @@ void main() {
   const f32v4 instanceColor      = f32v4(u_instances[in_instanceIndex].data4);
 
   const f32v3 worldPos  = world_pos(instancePos, instanceRotQuat, instanceScale, instanceFlags);
-  const f32v2 texOrigin = atlas_entry_origin(instanceAtlasIndex);
+  const f32v2 texOrigin = atlas_entry_origin(u_meta.atlas, instanceAtlasIndex);
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_worldPosition  = worldPos;
   out_color          = instanceColor;
   out_opacity        = instanceOpacity;
   out_flags          = instanceFlags;
-  out_texcoord = texOrigin + c_unitTexCoords[in_vertexIndex] * u_meta.atlasEntrySizeMinusPadding;
+  out_texcoord       = texOrigin + c_unitTexCoords[in_vertexIndex] * atlas_entry_size(u_meta.atlas);
 }

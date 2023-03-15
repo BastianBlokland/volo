@@ -1,6 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
+#include "atlas.glsl"
 #include "binding.glsl"
 #include "global.glsl"
 #include "instance.glsl"
@@ -8,10 +9,7 @@
 #include "vertex.glsl"
 
 struct MetaData {
-  f32 atlasEntriesPerDim;
-  f32 atlasEntrySize;             // 1.0 / atlasEntriesPerDim
-  f32 atlasEntrySizeMinusPadding; // 1.0 / atlasEntriesPerDim - atlasEntryPadding * 2.
-  f32 atlasEntryPadding;
+  AtlasMeta atlasColor;
 };
 
 struct DecalData {
