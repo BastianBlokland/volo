@@ -1,6 +1,7 @@
 #include "asset_atlas.h"
 #include "asset_decal.h"
 #include "asset_manager.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -197,6 +198,23 @@ static void vfx_decal_draw_init(RendDrawComp* draw, const AssetAtlasComp* atlas)
   };
 }
 
+static void vfx_decal_draw_output(
+    RendDrawComp*               draw,
+    const VfxDecalInstanceComp* instance,
+    const GeoVector             pos,
+    const GeoQuat               rot,
+    const f32                   scale) {
+  const GeoVector size   = geo_vector_mul(instance->size, scale);
+  const GeoBox    box    = geo_box_from_center(pos, size);
+  const GeoBox    bounds = geo_box_from_rotated(&box, rot);
+
+  VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
+  mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
+  out->data1[3] = (f32)instance->colorAtlasIndex;
+  mem_cpy(array_mem(out->data2), array_mem(rot.comps));
+  mem_cpy(array_mem(out->data3), mem_create(size.comps, sizeof(f32) * 3));
+}
+
 ecs_system_define(VfxDecalUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -222,25 +240,11 @@ ecs_system_define(VfxDecalUpdateSys) {
     const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
     const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
 
-    const GeoVector pos    = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat   rot    = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
-    const f32       scale  = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoVector size   = geo_vector_mul(instance->size, scale);
-    const GeoBox    box    = geo_box_from_center(pos, size);
-    const GeoBox    bounds = geo_box_from_rotated(&box, rot);
+    const GeoVector pos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   rot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
 
-    VfxDecalData* data = rend_draw_add_instance_t(decalDraw, VfxDecalData, SceneTags_Vfx, bounds);
-    data->data1[0]     = pos.x;
-    data->data1[1]     = pos.y;
-    data->data1[2]     = pos.z;
-    data->data1[3]     = (f32)instance->colorAtlasIndex;
-    data->data2[0]     = rot.x;
-    data->data2[1]     = rot.y;
-    data->data2[2]     = rot.z;
-    data->data2[3]     = rot.w;
-    data->data3[0]     = size.x;
-    data->data3[1]     = size.y;
-    data->data3[2]     = size.z;
+    vfx_decal_draw_output(decalDraw, instance, pos, rot, scale);
   }
 }
 
