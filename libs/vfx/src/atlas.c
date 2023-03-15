@@ -108,3 +108,15 @@ EcsEntityId vfx_atlas_entity(const VfxAtlasManagerComp* manager, const VfxAtlasT
   diag_assert(type < VfxAtlasType_Count);
   return manager->atlases[type].entity;
 }
+
+VfxAtlasDrawData vfx_atlas_draw_data(const AssetAtlasComp* atlas) {
+  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
+  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
+
+  return (VfxAtlasDrawData){
+      .atlasEntriesPerDim         = atlas->entriesPerDim,
+      .atlasEntrySize             = atlasEntrySize,
+      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
+      .atlasEntryPadding          = atlas->entryPadding,
+  };
+}

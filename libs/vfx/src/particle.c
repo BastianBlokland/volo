@@ -6,14 +6,11 @@
 #include "rend_draw.h"
 #include "scene_tag.h"
 
+#include "atlas_internal.h"
 #include "particle_internal.h"
 
 typedef struct {
-  ALIGNAS(16)
-  f32 atlasEntriesPerDim;
-  f32 atlasEntrySize;
-  f32 atlasEntrySizeMinusPadding;
-  f32 atlasEntryPadding;
+  VfxAtlasDrawData atlas;
 } VfxParticleMetaData;
 
 ASSERT(sizeof(VfxParticleMetaData) == 16, "Size needs to match the size defined in glsl");
@@ -29,14 +26,8 @@ typedef struct {
 ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
 
 void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
-  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
-  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
-
   *rend_draw_set_data_t(draw, VfxParticleMetaData) = (VfxParticleMetaData){
-      .atlasEntriesPerDim         = atlas->entriesPerDim,
-      .atlasEntrySize             = atlasEntrySize,
-      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
-      .atlasEntryPadding          = atlas->entryPadding,
+      .atlas = vfx_atlas_draw_data(atlas),
   };
 }
 

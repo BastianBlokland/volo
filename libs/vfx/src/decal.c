@@ -16,11 +16,7 @@
 #define vfx_decal_max_asset_requests 4
 
 typedef struct {
-  ALIGNAS(16)
-  f32 atlasEntriesPerDim;
-  f32 atlasEntrySize;
-  f32 atlasEntrySizeMinusPadding;
-  f32 atlasEntryPadding;
+  VfxAtlasDrawData atlas;
 } VfxDecalMetaData;
 
 ASSERT(sizeof(VfxDecalMetaData) == 16, "Size needs to match the size defined in glsl");
@@ -196,14 +192,8 @@ ecs_view_define(UpdateView) {
 }
 
 static void vfx_decal_draw_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
-  const f32 atlasEntrySize             = 1.0f / atlas->entriesPerDim;
-  const f32 atlasEntrySizeMinusPadding = atlasEntrySize - atlas->entryPadding * 2;
-
   *rend_draw_set_data_t(draw, VfxDecalMetaData) = (VfxDecalMetaData){
-      .atlasEntriesPerDim         = atlas->entriesPerDim,
-      .atlasEntrySize             = atlasEntrySize,
-      .atlasEntrySizeMinusPadding = atlasEntrySizeMinusPadding,
-      .atlasEntryPadding          = atlas->entryPadding,
+      .atlas = vfx_atlas_draw_data(atlas),
   };
 }
 
