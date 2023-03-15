@@ -59,7 +59,7 @@ vfx_atlas(EcsWorld* world, const VfxAtlasManagerComp* manager, const VfxAtlasTyp
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
 
-ecs_view_define(AssetLoadView) { ecs_access_write(VfxDecalAssetComp); }
+ecs_view_define(LoadView) { ecs_access_write(VfxDecalAssetComp); }
 
 static void vfx_decal_instance_reset_all(EcsWorld* world) {
   EcsView* instanceView = ecs_world_view_t(world, DecalInstanceView);
@@ -68,8 +68,8 @@ static void vfx_decal_instance_reset_all(EcsWorld* world) {
   }
 }
 
-ecs_system_define(VfxDecalAssetLoadSys) {
-  EcsView* loadView = ecs_world_view_t(world, AssetLoadView);
+ecs_system_define(VfxDecalLoadSys) {
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
 
   bool decalUnloaded = false;
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
@@ -108,20 +108,20 @@ static bool vfx_decal_asset_request(EcsWorld* world, const EcsEntityId assetEnti
   return false;
 }
 
-ecs_view_define(InstanceInitGlobalView) { ecs_access_read(VfxAtlasManagerComp); }
+ecs_view_define(InitGlobalView) { ecs_access_read(VfxAtlasManagerComp); }
 
-ecs_view_define(InstanceInitView) {
+ecs_view_define(InitView) {
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_without(VfxDecalInstanceComp);
 }
 
-ecs_view_define(InstanceInitAssetView) {
+ecs_view_define(InitAssetView) {
   ecs_access_with(VfxDecalAssetComp);
   ecs_access_read(AssetDecalComp);
 }
 
-ecs_system_define(VfxDecalInstanceInitSys) {
-  EcsView*     globalView = ecs_world_view_t(world, InstanceInitGlobalView);
+ecs_system_define(VfxDecalInitSys) {
+  EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -132,17 +132,17 @@ ecs_system_define(VfxDecalInstanceInitSys) {
     return; // Atlas hasn't loaded yet.
   }
 
-  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InstanceInitAssetView));
+  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InitAssetView));
   u32          numAssetRequests = 0;
 
-  EcsView* initView = ecs_world_view_t(world, InstanceInitView);
+  EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId        e     = ecs_view_entity(itr);
     const SceneVfxDecalComp* decal = ecs_view_read_t(itr, SceneVfxDecalComp);
 
     diag_assert_msg(ecs_entity_valid(decal->asset), "Vfx decal is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, decal->asset)) {
-      if (decal->asset && ++numAssetRequests < vfx_decal_max_asset_requests) {
+      if (++numAssetRequests < vfx_decal_max_asset_requests) {
         vfx_decal_asset_request(world, decal->asset);
       }
       continue;
@@ -164,29 +164,29 @@ ecs_system_define(VfxDecalInstanceInitSys) {
   }
 }
 
-ecs_view_define(InstanceDeinitView) {
+ecs_view_define(DeinitView) {
   ecs_access_with(VfxDecalInstanceComp);
   ecs_access_without(SceneVfxDecalComp);
 }
 
-ecs_system_define(VfxDecalInstanceDeinitSys) {
-  EcsView* deinitView = ecs_world_view_t(world, InstanceDeinitView);
+ecs_system_define(VfxDecalDeinitSys) {
+  EcsView* deinitView = ecs_world_view_t(world, DeinitView);
   for (EcsIterator* itr = ecs_view_itr(deinitView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, VfxDecalInstanceComp);
   }
 }
 
-ecs_view_define(InstanceUpdateGlobalView) { ecs_access_read(VfxDrawManagerComp); }
+ecs_view_define(UpdateGlobalView) { ecs_access_read(VfxDrawManagerComp); }
 
-ecs_view_define(InstanceUpdateView) {
+ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
 
-ecs_system_define(VfxDecalInstanceUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, InstanceUpdateGlobalView);
+ecs_system_define(VfxDecalUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -195,7 +195,7 @@ ecs_system_define(VfxDecalInstanceUpdateSys) {
   const EcsEntityId         decalDrawEntity = vfx_draw_entity(drawManager, VfxDrawType_Decal);
   RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, decalDrawEntity, RendDrawComp);
 
-  EcsView* updateView = ecs_world_view_t(world, InstanceUpdateView);
+  EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
@@ -223,23 +223,22 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_view(DecalDrawView);
   ecs_register_view(DecalInstanceView);
 
-  ecs_register_system(
-      VfxDecalAssetLoadSys, ecs_register_view(AssetLoadView), ecs_view_id(DecalInstanceView));
+  ecs_register_system(VfxDecalLoadSys, ecs_register_view(LoadView), ecs_view_id(DecalInstanceView));
 
   ecs_register_system(
-      VfxDecalInstanceInitSys,
-      ecs_register_view(InstanceInitGlobalView),
-      ecs_register_view(InstanceInitView),
-      ecs_register_view(InstanceInitAssetView),
+      VfxDecalInitSys,
+      ecs_register_view(InitGlobalView),
+      ecs_register_view(InitView),
+      ecs_register_view(InitAssetView),
       ecs_view_id(AtlasView));
 
-  ecs_register_system(VfxDecalInstanceDeinitSys, ecs_register_view(InstanceDeinitView));
+  ecs_register_system(VfxDecalDeinitSys, ecs_register_view(DeinitView));
 
   ecs_register_system(
-      VfxDecalInstanceUpdateSys,
-      ecs_register_view(InstanceUpdateGlobalView),
-      ecs_register_view(InstanceUpdateView),
+      VfxDecalUpdateSys,
+      ecs_register_view(UpdateGlobalView),
+      ecs_register_view(UpdateView),
       ecs_view_id(DecalDrawView));
 
-  ecs_order(VfxDecalInstanceUpdateSys, VfxOrder_Update);
+  ecs_order(VfxDecalUpdateSys, VfxOrder_Update);
 }
