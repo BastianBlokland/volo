@@ -23,9 +23,9 @@ ASSERT(sizeof(VfxDecalMetaData) == 16, "Size needs to match the size defined in 
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector pos;
-  GeoQuat   rot;
-  GeoVector scale;
+  f32 data1[4]; // xyz: position, w: atlasIndex.
+  f32 data2[4]; // xyzw: rotation quaternion.
+  f32 data3[4]; // xyz: scale
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
@@ -230,9 +230,17 @@ ecs_system_define(VfxDecalUpdateSys) {
     const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 
     VfxDecalData* data = rend_draw_add_instance_t(decalDraw, VfxDecalData, SceneTags_Vfx, bounds);
-    data->pos          = pos;
-    data->rot          = rot;
-    data->scale        = size;
+    data->data1[0]     = pos.x;
+    data->data1[1]     = pos.y;
+    data->data1[2]     = pos.z;
+    data->data1[3]     = (f32)instance->colorAtlasIndex;
+    data->data2[0]     = rot.x;
+    data->data2[1]     = rot.y;
+    data->data2[2]     = rot.z;
+    data->data2[3]     = rot.w;
+    data->data3[0]     = size.x;
+    data->data3[1]     = size.y;
+    data->data3[2]     = size.z;
   }
 }
 

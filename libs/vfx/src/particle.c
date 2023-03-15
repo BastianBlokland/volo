@@ -17,10 +17,10 @@ ASSERT(sizeof(VfxParticleMetaData) == 16, "Size needs to match the size defined 
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector data1;    // xyz: position, w: atlasIndex.
-  f16       data2[4]; // xyzw: rotation quaternion.
-  f16       data3[4]; // xy: scale, z: opacity, w: flags.
-  f16       data4[4]; // xyzw: color.
+  f32 data1[4]; // xyz: position, w: atlasIndex.
+  f16 data2[4]; // xyzw: rotation quaternion.
+  f16 data3[4]; // xy: scale, z: opacity, w: flags.
+  f16 data4[4]; // xyzw: color.
 } VfxParticleData;
 
 ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
@@ -44,8 +44,10 @@ void vfx_particle_output(RendDrawComp* draw, const VfxParticle* p) {
     tags |= SceneTags_ShadowCaster;
   }
   VfxParticleData* data = rend_draw_add_instance_t(draw, VfxParticleData, tags, bounds);
-  data->data1           = p->position;
-  data->data1.w         = (f32)p->atlasIndex;
+  data->data1[0]        = p->position.x;
+  data->data1[1]        = p->position.y;
+  data->data1[2]        = p->position.z;
+  data->data1[3]        = (f32)p->atlasIndex;
 
   geo_quat_pack_f16(p->rotation, data->data2);
   data->data3[0] = float_f32_to_f16(p->sizeX);
