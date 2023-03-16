@@ -9,6 +9,7 @@ typedef enum {
   RendPass_AmbientOcclusion,
   RendPass_Bloom,
   RendPass_Distortion,
+  RendPass_Decal,
 
   RendPass_Count,
 } RendPass;
