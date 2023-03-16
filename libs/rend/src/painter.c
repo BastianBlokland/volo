@@ -43,6 +43,17 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachColorLoad[1]   = RvkPassLoad_Clear,
         },
 
+    [RendPass_Decal] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
+            .attachDepthLoad = RvkPassLoad_Preserve,
+
+            // Attachment color 0: color (rgb) and roughness (a).
+            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+            .attachColorLoad[0]   = RvkPassLoad_Preserve,
+        },
+
     [RendPass_Shadow] =
         {
             // Attachment depth.
@@ -286,6 +297,26 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
   return tagMask;
 }
 
+static void painter_push_decal(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Decal)) {
+      continue; // Shouldn't be included in the decal pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic));
+    }
+  }
+}
+
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
   RendDrawFlags requiredAny = 0;
   requiredAny |= RendDrawFlags_StandardGeometry; // Include geometry.
@@ -397,6 +428,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_Decal;      // Ignore decals (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
   ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
@@ -710,6 +742,17 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
+    painter_flush(&ctx);
+  }
+
+  // Decal pass.
+  RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
+  {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
+    rvk_pass_stage_attach_color(decalPass, geoData0, 0);
+    rvk_pass_stage_attach_depth(decalPass, geoDepth);
+    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_push_decal(&ctx, drawView, graphicView);
     painter_flush(&ctx);
   }
 

@@ -19,7 +19,7 @@ static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
 
 // clang-format off
 static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
-    [VfxDrawType_Decal]              = /* RendDrawFlags_Decal | */ RendDrawFlags_Preload,
+    [VfxDrawType_Decal]              = RendDrawFlags_Decal | RendDrawFlags_Preload,
     [VfxDrawType_ParticleForward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleDistortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
