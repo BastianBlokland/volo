@@ -399,7 +399,7 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE,
         .colorBlendOp        = VK_BLEND_OP_ADD,
         .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
         .alphaBlendOp        = VK_BLEND_OP_ADD,
         .colorWriteMask      = colorMask,
     };
