@@ -41,7 +41,6 @@ static void graphic_datareg_init() {
     data_reg_const_t(reg, AssetGraphicBlend, None);
     data_reg_const_t(reg, AssetGraphicBlend, Alpha);
     data_reg_const_t(reg, AssetGraphicBlend, Additive);
-    data_reg_const_t(reg, AssetGraphicBlend, AlphaAdditive);
     data_reg_const_t(reg, AssetGraphicBlend, PreMultiplied);
 
     data_reg_enum_t(reg, AssetGraphicWrap);

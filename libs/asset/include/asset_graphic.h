@@ -25,7 +25,6 @@ typedef enum {
   AssetGraphicBlend_None,          // No blending, just replace the framebuffer's rgb values.
   AssetGraphicBlend_Alpha,         // Blend between rgb and the framebuffer based on the alpha.
   AssetGraphicBlend_Additive,      // Add rgb to the framebuffer (ignores alpha).
-  AssetGraphicBlend_AlphaAdditive, // Multiply rgb by alpha and add them to the framebuffer.
   AssetGraphicBlend_PreMultiplied, // Multiply the framebuffer by the alpha and add the color's rgb.
 
   AssetGraphicBlend_Count,
