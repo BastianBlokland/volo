@@ -492,9 +492,13 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
     };
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
-      .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-      .attachmentCount = colorAttachmentCount,
-      .pAttachments    = colorBlends,
+      .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      .attachmentCount   = colorAttachmentCount,
+      .pAttachments      = colorBlends,
+      .blendConstants[0] = graphic->blendConstant,
+      .blendConstants[1] = graphic->blendConstant,
+      .blendConstants[2] = graphic->blendConstant,
+      .blendConstants[3] = graphic->blendConstant,
   };
 
   const VkDynamicState dynamicStates[] = {
@@ -542,11 +546,11 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplers[samplerIndex].texture = tex;
   graphic->samplers[samplerIndex].spec    = (RvkSamplerSpec){
-         .flags     = RvkSamplerFlags_None,
-         .wrap      = RvkSamplerWrap_Repeat,
-         .filter    = RvkSamplerFilter_Nearest,
-         .aniso     = RvkSamplerAniso_None,
-         .mipLevels = tex->image.mipLevels,
+      .flags     = RvkSamplerFlags_None,
+      .wrap      = RvkSamplerWrap_Repeat,
+      .filter    = RvkSamplerFilter_Nearest,
+      .aniso     = RvkSamplerAniso_None,
+      .mipLevels = tex->image.mipLevels,
   };
 }
 
@@ -662,6 +666,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .depth             = asset->depth,
       .cull              = asset->cull,
       .vertexCount       = asset->vertexCount,
+      .blendConstant     = asset->blendConstant,
   };
 
   log_d(
@@ -756,11 +761,11 @@ void rvk_graphic_sampler_add(
 
       itr->texture = tex;
       itr->spec    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
-             tex->image.mipLevels,
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          tex->image.mipLevels,
       };
       graphic->samplerMask |= 1 << samplerIndex;
       return;

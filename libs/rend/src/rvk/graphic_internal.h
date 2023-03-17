@@ -63,6 +63,7 @@ typedef struct sRvkGraphic {
   f32                    depthBiasConstant, depthBiasSlope;
   i32                    renderOrder;
   u32                    vertexCount;
+  f32                    blendConstant;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
   RvkGraphicSampler      samplers[rvk_graphic_samplers_max];

@@ -117,4 +117,12 @@ ecs_comp_extern_public(AssetGraphicComp) {
   AssetGraphicBlend      blend;
   AssetGraphicDepth      depth;
   AssetGraphicCull       cull;
+
+  /**
+   * Usage of the blend-constant is blend-mode dependent:
+   * - AssetGraphicBlend_Alpha:         Controls the output alpha value.
+   * - AssetGraphicBlend_Additive:      Unused.
+   * - AssetGraphicBlend_PreMultiplied: Unused.
+   */
+  f32 blendConstant;
 };

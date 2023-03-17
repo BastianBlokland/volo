@@ -18,6 +18,7 @@
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
+  "blendConstant": 0,
   "depth": "LessNoWrite",
   "cull": "Back"
 }
