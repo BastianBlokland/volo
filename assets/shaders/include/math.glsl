@@ -8,7 +8,7 @@ const f32 c_pi = 3.14159265359;
 /**
  * Create a 2x2 matrix that rotates by the given angle in radians.
  */
-f32m2 rotate_mat_f32m2(const f32 angle) {
+f32m2 math_rotate_mat_f32m2(const f32 angle) {
   const f32 s = sin(angle);
   const f32 c = cos(angle);
   return f32m2(c, -s, s, c);
@@ -39,6 +39,28 @@ f32v3 math_normal_decode(f32v2 f) {
   const f32 t = clamp(-n.z, 0, 1);
   n.xy += f32v2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
   return normalize(n);
+}
+
+/**
+ * Apply a tangent normal (from a normalmap for example) to a worldNormal.
+ * The tangent and bitangent vectors are derived from change in position and texcoords.
+ */
+f32v3 math_perturb_normal(
+    const f32v3 tangentNormal,
+    const f32v3 worldNormal,
+    const f32v3 worldPos,
+    const f32v2 texcoord) {
+  const f32v3 deltaPosX = dFdx(worldPos);
+  const f32v3 deltaPosY = dFdy(worldPos);
+  const f32v2 deltaTexX = dFdx(texcoord);
+  const f32v2 deltaTexY = dFdy(texcoord);
+
+  const f32v3 refNorm  = normalize(worldNormal);
+  const f32v3 refTan   = normalize(deltaPosX * deltaTexY.t - deltaPosY * deltaTexX.t);
+  const f32v3 refBitan = normalize(cross(refNorm, refTan));
+  const f32m3 rot      = f32m3(refTan, refBitan, refNorm);
+
+  return normalize(rot * tangentNormal);
 }
 
 #endif // INCLUDE_MATH

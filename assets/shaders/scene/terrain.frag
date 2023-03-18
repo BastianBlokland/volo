@@ -4,6 +4,7 @@
 #include "binding.glsl"
 #include "geometry.glsl"
 #include "global.glsl"
+#include "math.glsl"
 #include "tags.glsl"
 
 bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
@@ -39,31 +40,9 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 size, const f32 heightScale) {
 }
 
 /**
- * Apply a tangent normal (from a normalmap for example) to a worldNormal.
- * The tangent and bitangent vectors are derived from change in position and texcoords.
- */
-f32v3 perturbNormal(
-    const f32v3 tangentNormal,
-    const f32v3 worldNormal,
-    const f32v3 worldPos,
-    const f32v2 texcoord) {
-  const f32v3 deltaPosX = dFdx(worldPos);
-  const f32v3 deltaPosY = dFdy(worldPos);
-  const f32v2 deltaTexX = dFdx(texcoord);
-  const f32v2 deltaTexY = dFdy(texcoord);
-
-  const f32v3 refNorm  = normalize(worldNormal);
-  const f32v3 refTan   = normalize(deltaPosX * deltaTexY.t - deltaPosY * deltaTexX.t);
-  const f32v3 refBitan = normalize(cross(refNorm, refTan));
-  const f32m3 rot      = f32m3(refTan, refBitan, refNorm);
-
-  return normalize(rot * tangentNormal);
-}
-
-/**
  * Sample a texture at multiple texcoord frequencies to hide visible tiling patterns.
  */
-f32v4 textureMulti(const sampler2D s, const f32v2 texcoord) {
+f32v4 texture_multi(const sampler2D s, const f32v2 texcoord) {
   // TODO: Investigate different blending techniques.
   return mix(texture(s, texcoord), texture(s, texcoord * -0.25), 0.5);
 }
@@ -77,8 +56,8 @@ void main() {
 
   // Sample the color (and roughness) based on the splat-map.
   f32v4 splatColRough = f32v4(0);
-  splatColRough += splat.r * textureMulti(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
-  splatColRough += splat.g * textureMulti(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
+  splatColRough += splat.r * texture_multi(u_tex1ColorRough, in_texcoord * s_splat1UvScale);
+  splatColRough += splat.g * texture_multi(u_tex2ColorRough, in_texcoord * s_splat2UvScale);
 
   // Output color and roughness.
   geo.color     = splatColRough.rgb;
@@ -86,15 +65,15 @@ void main() {
 
   // Sample the detail-normal based on the splat-map.
   f32v3 splatNormRaw = f32v3(0, 0, 0);
-  splatNormRaw += splat.r * textureMulti(u_tex1Normal, in_texcoord * s_splat1UvScale).xyz;
-  splatNormRaw += splat.g * textureMulti(u_tex2Normal, in_texcoord * s_splat2UvScale).xyz;
+  splatNormRaw += splat.r * texture_multi(u_tex1Normal, in_texcoord * s_splat1UvScale).xyz;
+  splatNormRaw += splat.g * texture_multi(u_tex2Normal, in_texcoord * s_splat2UvScale).xyz;
   const f32v3 splatNorm = normal_tex_decode(splatNormRaw);
 
   // Compute the world-normal based on the normal map and the sampled detail normals.
   const f32v3 baseNormal = heightmap_normal(in_texcoord, in_size, in_heightScale);
 
   // Output world normal.
-  geo.normal = perturbNormal(splatNorm, baseNormal, in_worldPos, in_texcoord);
+  geo.normal = math_perturb_normal(splatNorm, baseNormal, in_worldPos, in_texcoord);
 
   const GeometryEncoded encoded = geometry_encode(geo);
   out_data0                     = encoded.data0;
