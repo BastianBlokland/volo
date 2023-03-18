@@ -753,7 +753,8 @@ static bool rend_canvas_paint(
     rvk_canvas_img_copy(painter->canvas, geoDepth, decalDepth); // Initialize to the geometry depth.
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
-    rvk_pass_stage_global_image(decalPass, geoDepth, 0);
+    rvk_pass_stage_global_image(decalPass, geoData1, 0);
+    rvk_pass_stage_global_image(decalPass, geoDepth, 1);
     rvk_pass_stage_attach_color(decalPass, geoData0, 0);
     rvk_pass_stage_attach_depth(decalPass, decalDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);

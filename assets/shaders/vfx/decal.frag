@@ -4,12 +4,14 @@
 #include "binding.glsl"
 #include "global.glsl"
 #include "quat.glsl"
+#include "tags.glsl"
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
 
-bind_global_img(0) uniform sampler2D u_texGeoDepth;
+bind_global_img(0) uniform sampler2D u_texGeoData1;
+bind_global_img(1) uniform sampler2D u_texGeoDepth;
 
 bind_internal(0) in flat f32v3 in_positionInv;    // -worldSpacePos.
 bind_internal(1) in flat f32v4 in_rotationInv;    // inverse(worldSpaceRot).
@@ -25,16 +27,20 @@ f32v3 clip_to_world(const f32v3 clipPos) {
 
 void main() {
   const f32v2 texcoord = in_fragCoord.xy / u_global.resolution.xy;
+  const f32v4 geoData1 = texture(u_texGeoData1, texcoord);
   const f32   depth    = texture(u_texGeoDepth, texcoord).r;
+  const u32   tags     = tags_tex_decode(geoData1.w);
+
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world(clipPos);
 
   // Transform back to coordinates local to the unit cube.
   const f32v3 localPos = quat_rotate(in_rotationInv, worldPos + in_positionInv) * in_scaleInv;
 
-  // Discard pixels outside of the decal space.
+  // Discard pixels outside of the decal space or on top of a unit.
+  const bool  isUnit      = tag_is_set(tags, tag_unit_bit);
   const f32v3 absLocalPos = abs(localPos);
-  if (absLocalPos.x > 0.5 || absLocalPos.y > 0.5 || absLocalPos.z > 0.5) {
+  if (isUnit || absLocalPos.x > 0.5 || absLocalPos.y > 0.5 || absLocalPos.z > 0.5) {
     discard;
   }
 
