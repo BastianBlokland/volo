@@ -751,7 +751,7 @@ static bool rend_canvas_paint(
 
   // Decal pass.
   RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
-  {
+  if (set->flags & RendFlags_Decals) {
     // TODO: Depth copy can be avoided by supporting read-only depth attachments.
     RvkImage* depthCpy = rvk_canvas_attach_acquire_depth(painter->canvas, decalPass, geoSize);
     rvk_canvas_img_copy(painter->canvas, geoDepth, depthCpy);

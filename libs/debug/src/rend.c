@@ -994,6 +994,11 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_label(canvas, string_lit("Distortion Debug"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugDistortion);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Decals"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Decals);
 }
 
 static void rend_panel_draw(
