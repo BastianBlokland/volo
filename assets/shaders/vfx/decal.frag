@@ -4,6 +4,7 @@
 #include "binding.glsl"
 #include "geometry.glsl"
 #include "global.glsl"
+#include "math.glsl"
 #include "quat.glsl"
 #include "tags.glsl"
 
@@ -13,15 +14,17 @@ const f32 c_angleFadeMax = 0.8;
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
+bind_graphic_img(1) uniform sampler2D u_atlasNormal;
 
 bind_global_img(0) uniform sampler2D u_texGeoData1;
 bind_global_img(1) uniform sampler2D u_texGeoDepth;
 
-bind_internal(0) in flat f32v3 in_position;       // World-space.
-bind_internal(1) in flat f32v4 in_rotation;       // World-space.
-bind_internal(2) in flat f32v3 in_scale;          // World-space.
-bind_internal(3) in flat f32v4 in_atlasColorMeta; // xy: origin, z: scale, w: unused.
-bind_internal(4) in flat f32 in_roughness;
+bind_internal(0) in flat f32v3 in_position;        // World-space.
+bind_internal(1) in flat f32v4 in_rotation;        // World-space.
+bind_internal(2) in flat f32v3 in_scale;           // World-space.
+bind_internal(3) in flat f32v4 in_atlasColorMeta;  // xy: origin, z: scale, w: unused.
+bind_internal(4) in flat f32v4 in_atlasNormalMeta; // xy: origin, z: scale, w: unused.
+bind_internal(5) in flat f32 in_roughness;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -68,8 +71,16 @@ void main() {
   const f32v2 colorTexCoord    = in_atlasColorMeta.xy + (localPos.xz + 0.5) * in_atlasColorMeta.z;
   const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
 
+  // Sample the normal atlas.
+  const f32v2 normalTexCoord = in_atlasNormalMeta.xy + (localPos.xz + 0.5) * in_atlasNormalMeta.z;
+  const f32v4 normalAtlasSample = texture(u_atlasNormal, normalTexCoord);
+  const f32v3 tangentNormal     = normal_tex_decode(normalAtlasSample.xyz);
+  const f32v3 normal            = math_perturb_normal(tangentNormal, geoNormal, worldPos, texcoord);
+
   // Output the result into the gbuffer.
-  const f32 alpha = colorAtlasSample.a * angleFade;
-  out_data0       = f32v4(colorAtlasSample.rgb, alpha);
-  out_data1       = f32v4(geoData1.rg, mix(geoData1.b, in_roughness, alpha), geoData1.w);
+  const f32   alpha        = colorAtlasSample.a * angleFade;
+  const f32v3 outNormal    = normalize(mix(geoNormal, normal, alpha));
+  const f32   outRoughness = mix(geoData1.b, in_roughness, alpha);
+  out_data0                = f32v4(colorAtlasSample.rgb, alpha);
+  out_data1                = f32v4(math_normal_encode(outNormal), outRoughness, geoData1.w);
 }

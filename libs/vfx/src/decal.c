@@ -17,19 +17,20 @@
 #define vfx_decal_max_asset_requests 4
 
 typedef struct {
-  VfxAtlasDrawData atlas;
+  VfxAtlasDrawData atlasColor, atlasNormal;
 } VfxDecalMetaData;
 
-ASSERT(sizeof(VfxDecalMetaData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxDecalMetaData) == 32, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
-  f32 data1[4]; // xyz: position, w: atlasIndex.
+  f32 data1[4]; // xyz: position, w: unused.
   f32 data2[4]; // xyzw: rotation quaternion.
-  f32 data3[4]; // xyz: scale, w: roughness.
+  f32 data3[4]; // xyz: scale, w: unused.
+  f32 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: unused.
 } VfxDecalData;
 
-ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -37,7 +38,7 @@ typedef enum {
 } VfxLoadFlags;
 
 ecs_comp_define(VfxDecalInstanceComp) {
-  u16       colorAtlasIndex;
+  u16       atlasColorIndex, atlasNormalIndex;
   f32       roughness;
   GeoVector size;
 };
@@ -137,8 +138,9 @@ ecs_system_define(VfxDecalInitSys) {
     return;
   }
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      colorAtlas   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
-  if (!colorAtlas) {
+  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
+  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
+  if (!atlasColor || !atlasNormal) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -157,21 +159,32 @@ ecs_system_define(VfxDecalInitSys) {
       }
       continue;
     }
-    const AssetDecalComp*  asset           = ecs_view_read_t(assetItr, AssetDecalComp);
-    const AssetAtlasEntry* colorAtlasEntry = asset_atlas_lookup(colorAtlas, asset->colorAtlasEntry);
-    if (UNLIKELY(!colorAtlasEntry)) {
-      log_e(
-          "Vfx decal color-atlas entry missing",
-          log_param("entry-hash", fmt_int(asset->colorAtlasEntry)));
-      continue;
+    const AssetDecalComp* asset           = ecs_view_read_t(assetItr, AssetDecalComp);
+    u16                   atlasColorIndex = 0, atlasNormalIndex = 0;
+    {
+      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->colorAtlasEntry);
+      if (UNLIKELY(!entry)) {
+        log_e("Vfx decal color-atlas entry missing");
+        continue;
+      }
+      atlasColorIndex = entry->atlasIndex;
+    }
+    if (asset->normalAtlasEntry) {
+      const AssetAtlasEntry* entry = asset_atlas_lookup(atlasNormal, asset->normalAtlasEntry);
+      if (UNLIKELY(!entry)) {
+        log_e("Vfx decal normal-atlas entry missing");
+        continue;
+      }
+      atlasNormalIndex = entry->atlasIndex;
     }
     ecs_world_add_t(
         world,
         e,
         VfxDecalInstanceComp,
-        .colorAtlasIndex = colorAtlasEntry->atlasIndex,
-        .size            = geo_vector(asset->width, asset->thickness, asset->height),
-        .roughness       = asset->roughness);
+        .atlasColorIndex  = atlasColorIndex,
+        .atlasNormalIndex = atlasNormalIndex,
+        .size             = geo_vector(asset->width, asset->thickness, asset->height),
+        .roughness        = asset->roughness);
   }
 }
 
@@ -194,9 +207,11 @@ ecs_view_define(UpdateView) {
   ecs_access_read(VfxDecalInstanceComp);
 }
 
-static void vfx_decal_draw_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
+static void vfx_decal_draw_init(
+    RendDrawComp* draw, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
   *rend_draw_set_data_t(draw, VfxDecalMetaData) = (VfxDecalMetaData){
-      .atlas = vfx_atlas_draw_data(atlas),
+      .atlasColor  = vfx_atlas_draw_data(atlasColor),
+      .atlasNormal = vfx_atlas_draw_data(atlasNormal),
   };
 }
 
@@ -212,10 +227,11 @@ static void vfx_decal_draw_output(
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)instance->colorAtlasIndex;
   mem_cpy(array_mem(out->data2), array_mem(rot.comps));
   mem_cpy(array_mem(out->data3), mem_create(size.comps, sizeof(f32) * 3));
-  out->data3[3] = instance->roughness;
+  out->data4[0] = (f32)instance->atlasColorIndex;
+  out->data4[1] = (f32)instance->atlasNormalIndex;
+  out->data4[2] = instance->roughness;
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
@@ -226,8 +242,9 @@ ecs_system_define(VfxDecalUpdateSys) {
   }
 
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      colorAtlas   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
-  if (!colorAtlas) {
+  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
+  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
+  if (!atlasColor || !atlasNormal) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -235,7 +252,7 @@ ecs_system_define(VfxDecalUpdateSys) {
   const EcsEntityId         decalDrawEntity = vfx_draw_entity(drawManager, VfxDrawType_Decal);
   RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, decalDrawEntity, RendDrawComp);
 
-  vfx_decal_draw_init(decalDraw, colorAtlas);
+  vfx_decal_draw_init(decalDraw, atlasColor, atlasNormal);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {

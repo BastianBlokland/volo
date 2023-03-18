@@ -1,7 +1,8 @@
 {
-  "colorAtlasEntry": "grid",
-  "roughness": 0.5,
-  "width": 10,
-  "height": 10,
-  "thickness": 10
+  "colorAtlasEntry": "glow",
+  "normalAtlasEntry": "test",
+  "roughness": 0,
+  "width": 5,
+  "height": 5,
+  "thickness": 2
 }

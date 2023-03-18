@@ -8,13 +8,15 @@
 #include "atlas_internal.h"
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
-    [VfxAtlasType_Particle]   = string_static("textures/vfx/particle.atl"),
-    [VfxAtlasType_DecalColor] = string_static("textures/vfx/decal_color.atl"),
+    [VfxAtlasType_Particle]    = string_static("textures/vfx/particle.atl"),
+    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/decal_color.atl"),
+    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/decal_normal.atl"),
 };
 
 static const String g_vfxAtlasTypeNames[] = {
     string_static("particle"),
     string_static("decal-color"),
+    string_static("decal-normal"),
 };
 ASSERT(array_elems(g_vfxAtlasTypeNames) == VfxAtlasType_Count, "Incorrect number of names");
 

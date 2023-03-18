@@ -12,6 +12,11 @@
       "textureId": "textures/vfx/decal_color.atl",
       "wrap": "Clamp",
       "filter": "Linear"
+    },
+    {
+      "textureId": "textures/vfx/decal_normal.atl",
+      "wrap": "Clamp",
+      "filter": "Linear"
     }
   ],
   "meshId": "meshes/vfx/decal_box.pme",

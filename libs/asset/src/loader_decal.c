@@ -16,6 +16,7 @@ static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
   String colorAtlasEntry;
+  String normalAtlasEntry; // Optional, empty if unused.
   f32    roughness;
   f32    width, height;
   f32    thickness;
@@ -33,6 +34,7 @@ static void decal_datareg_init() {
     // clang-format off
     data_reg_struct_t(reg, DecalDef);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -64,11 +66,12 @@ ecs_system_define(DecalUnloadAssetSys) {
 }
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
-  out->colorAtlasEntry = string_hash(def->colorAtlasEntry);
-  out->roughness       = def->roughness;
-  out->width           = def->width;
-  out->height          = def->height;
-  out->thickness       = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->colorAtlasEntry  = string_hash(def->colorAtlasEntry);
+  out->normalAtlasEntry = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
+  out->roughness        = def->roughness;
+  out->width            = def->width;
+  out->height           = def->height;
+  out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
 }
 
 ecs_module_init(asset_decal_module) {
