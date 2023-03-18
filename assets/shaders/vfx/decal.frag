@@ -20,7 +20,7 @@ bind_global_img(1) uniform sampler2D u_texGeoDepth;
 bind_internal(0) in flat f32v3 in_position;       // World-space.
 bind_internal(1) in flat f32v4 in_rotation;       // World-space.
 bind_internal(2) in flat f32v3 in_scale;          // World-space.
-bind_internal(3) in flat f32v4 in_atlasColorRect; // xy: origin, zw: scale.
+bind_internal(3) in flat f32v4 in_atlasColorMeta; // xy: origin, z: scale, w: unused.
 bind_internal(4) in flat f32 in_roughness;
 
 /**
@@ -65,7 +65,7 @@ void main() {
   const f32 angleFade = smoothstep(c_angleFadeMax, c_angleFadeMin, 1 - dot(geoNormal, decalNormal));
 
   // Sample the color atlas.
-  const f32v2 colorTexCoord    = in_atlasColorRect.xy + (localPos.xz + 0.5) * in_atlasColorRect.zw;
+  const f32v2 colorTexCoord    = in_atlasColorMeta.xy + (localPos.xz + 0.5) * in_atlasColorMeta.z;
   const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
 
   // Output the result into the gbuffer.
