@@ -22,7 +22,17 @@ bind_internal(1) in flat f32v4 in_rotation;       // World-space.
 bind_internal(2) in flat f32v3 in_scale;          // World-space.
 bind_internal(3) in flat f32v4 in_atlasColorRect; // xy: origin, zw: scale.
 
-bind_internal(0) out f32v4 out_color;
+/**
+ * Geometry Data0: color (rgb), emissive (a).
+ * Alpha blended, w component is used to control the blending, outputting emissive is not supported.
+ */
+bind_internal(0) out f32v4 out_data0;
+
+/**
+ * Geometry Data1: normal (rg), roughness (b) and tags (a).
+ * NOT blended, any blending needs to be done manually before outputting.
+ */
+bind_internal(1) out f32v4 out_data1;
 
 f32v3 clip_to_world(const f32v3 clipPos) {
   const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
@@ -57,5 +67,6 @@ void main() {
   const f32v2 colorTexCoord    = in_atlasColorRect.xy + (localPos.xz + 0.5) * in_atlasColorRect.zw;
   const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
 
-  out_color = f32v4(colorAtlasSample.rgb, colorAtlasSample.a * angleFade);
+  out_data0 = f32v4(colorAtlasSample.rgb, colorAtlasSample.a * angleFade);
+  out_data1 = geoData1;
 }
