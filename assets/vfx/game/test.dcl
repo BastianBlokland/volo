@@ -1,6 +1,7 @@
 {
   "colorAtlasEntry": "grid",
-  "width": 1,
-  "height": 1,
-  "thickness": 1
+  "roughness": 0.5,
+  "width": 10,
+  "height": 10,
+  "thickness": 10
 }

@@ -21,6 +21,7 @@ bind_internal(0) in flat f32v3 in_position;       // World-space.
 bind_internal(1) in flat f32v4 in_rotation;       // World-space.
 bind_internal(2) in flat f32v3 in_scale;          // World-space.
 bind_internal(3) in flat f32v4 in_atlasColorRect; // xy: origin, zw: scale.
+bind_internal(4) in flat f32 in_roughness;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -67,6 +68,8 @@ void main() {
   const f32v2 colorTexCoord    = in_atlasColorRect.xy + (localPos.xz + 0.5) * in_atlasColorRect.zw;
   const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
 
-  out_data0 = f32v4(colorAtlasSample.rgb, colorAtlasSample.a * angleFade);
-  out_data1 = geoData1;
+  // Output the result into the gbuffer.
+  const f32 alpha = colorAtlasSample.a * angleFade;
+  out_data0       = f32v4(colorAtlasSample.rgb, alpha);
+  out_data1       = f32v4(geoData1.rg, mix(geoData1.b, in_roughness, alpha), geoData1.w);
 }

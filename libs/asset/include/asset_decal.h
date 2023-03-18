@@ -3,6 +3,7 @@
 
 ecs_comp_extern_public(AssetDecalComp) {
   StringHash colorAtlasEntry;
+  f32        roughness;
   f32        width, height;
   f32        thickness;
 };
