@@ -23,7 +23,10 @@ bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { DecalData[c_maxInstances] u_instances; };
 
-bind_internal(0) out f32v2 out_texcoordColor;
+bind_internal(0) out flat f32v3 out_positionInv;    // -worldSpacePos.
+bind_internal(1) out flat f32v4 out_rotationInv;    // inverse(worldSpaceRot).
+bind_internal(2) out flat f32v3 out_scaleInv;       // 1.0 / worldSpaceScale.
+bind_internal(3) out flat f32v4 out_atlasColorRect; // xy: origin, zw: scale.
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -37,5 +40,8 @@ void main() {
   const f32v2 colorTexOrigin = atlas_entry_origin(u_meta.atlasColor, instanceColorAtlasIndex);
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
-  out_texcoordColor  = colorTexOrigin + vert.texcoord * atlas_entry_size(u_meta.atlasColor);
+  out_positionInv    = -instancePos;
+  out_rotationInv    = quat_inverse(instanceQuat);
+  out_scaleInv       = 1.0 / instanceScale;
+  out_atlasColorRect = f32v4(colorTexOrigin, atlas_entry_size(u_meta.atlasColor).xx);
 }

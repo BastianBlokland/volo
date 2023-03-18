@@ -748,12 +748,19 @@ static bool rend_canvas_paint(
   // Decal pass.
   RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
   {
+    // TODO: Depth copy can be avoided by supporting read-only depth attachments.
+    RvkImage* decalDepth = rvk_canvas_attach_acquire_depth(painter->canvas, decalPass, geoSize);
+    rvk_canvas_img_copy(painter->canvas, geoDepth, decalDepth); // Initialize to the geometry depth.
+
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
+    rvk_pass_stage_global_image(decalPass, geoDepth, 0);
     rvk_pass_stage_attach_color(decalPass, geoData0, 0);
-    rvk_pass_stage_attach_depth(decalPass, geoDepth);
+    rvk_pass_stage_attach_depth(decalPass, decalDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_decal(&ctx, drawView, graphicView);
     painter_flush(&ctx);
+
+    rvk_canvas_attach_release(painter->canvas, decalDepth);
   }
 
   // Shadow pass.
