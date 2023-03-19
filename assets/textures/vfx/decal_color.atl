@@ -12,6 +12,10 @@
     {
       "name": "sign_radioactive",
       "texture": "external/decal/radioactive.tga"
+    },
+    {
+      "name": "rust",
+      "texture": "external/decal/rust.tga"
     }
   ]
 }

@@ -349,6 +349,13 @@
       ]
     },
     {
+      "name": "DecalRust",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/rust.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {
