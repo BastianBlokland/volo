@@ -11,7 +11,8 @@
 const f32 c_angleFadeMin = 0.2;
 const f32 c_angleFadeMax = 0.8;
 
-const u32 c_flagNormalMap = 1 << 0;
+const u32 c_flagNormalMap         = 1 << 0;
+const u32 c_flagGBufferBaseNormal = 1 << 1;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
@@ -65,9 +66,11 @@ void main() {
     discard;
   }
 
-  // Compute a fade-factor based on the difference in angle between the decal and the geometry.
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 1, 0));
+  const f32v3 baseNormal  = (in_flags & c_flagGBufferBaseNormal) != 0 ? geoNormal : decalNormal;
+
+  // Compute a fade-factor based on the difference in angle between the decal and the geometry.
   const f32 angleFade = smoothstep(c_angleFadeMax, c_angleFadeMin, 1 - dot(geoNormal, decalNormal));
 
   // Sample the color atlas.
@@ -80,9 +83,9 @@ void main() {
     const f32v2 normalTexCoord = in_atlasNormalMeta.xy + (localPos.xz + 0.5) * in_atlasNormalMeta.z;
     const f32v4 normalAtlasSample = texture(u_atlasNormal, normalTexCoord);
     const f32v3 tangentNormal     = normal_tex_decode(normalAtlasSample.xyz);
-    normal = math_perturb_normal(tangentNormal, geoNormal, worldPos, texcoord);
+    normal = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
-    normal = geoNormal;
+    normal = baseNormal;
   }
 
   // Output the result into the gbuffer.

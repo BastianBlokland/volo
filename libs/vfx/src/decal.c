@@ -26,7 +26,8 @@ ASSERT(sizeof(VfxDecalMetaData) == 32, "Size needs to match the size defined in 
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
  */
 typedef enum {
-  VfxDecal_NormalMap = 1 << 0,
+  VfxDecal_NormalMap         = 1 << 0, // Output custom normals to the gbuffer.
+  VfxDecal_GBufferBaseNormal = 1 << 1, // Use the current gbuffer normal as the base normal.
 } VfxDecalFlags;
 
 typedef struct {
@@ -139,6 +140,17 @@ ecs_view_define(InitAssetView) {
   ecs_access_read(AssetDecalComp);
 }
 
+static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
+  VfxDecalFlags flags = 0;
+  if (decalAsset->normalAtlasEntry) {
+    flags |= VfxDecal_NormalMap;
+  }
+  if (decalAsset->baseNormal == AssetDecalNormal_GBuffer) {
+    flags |= VfxDecal_GBufferBaseNormal;
+  }
+  return flags;
+}
+
 ecs_system_define(VfxDecalInitSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -169,7 +181,6 @@ ecs_system_define(VfxDecalInitSys) {
     }
     const AssetDecalComp* asset           = ecs_view_read_t(assetItr, AssetDecalComp);
     u16                   atlasColorIndex = 0, atlasNormalIndex = 0;
-    VfxDecalFlags         flags = 0;
     {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->colorAtlasEntry);
       if (UNLIKELY(!entry)) {
@@ -185,7 +196,6 @@ ecs_system_define(VfxDecalInitSys) {
         continue;
       }
       atlasNormalIndex = entry->atlasIndex;
-      flags |= VfxDecal_NormalMap;
     }
     ecs_world_add_t(
         world,
@@ -193,7 +203,7 @@ ecs_system_define(VfxDecalInitSys) {
         VfxDecalInstanceComp,
         .atlasColorIndex  = atlasColorIndex,
         .atlasNormalIndex = atlasNormalIndex,
-        .flags            = flags,
+        .flags            = vfx_decal_flags(asset),
         .size             = geo_vector(asset->width, asset->thickness, asset->height),
         .roughness        = asset->roughness);
   }
