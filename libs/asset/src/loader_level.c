@@ -39,6 +39,7 @@ static void level_datareg_init() {
     data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction);
     data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);
     data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoVector);
+    data_reg_field_t(reg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetLevel);
     data_reg_field_t(reg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_Array);

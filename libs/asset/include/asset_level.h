@@ -20,6 +20,7 @@ typedef struct {
   u32               id; // Optional unique persistent object id.
   String            prefab;
   AssetLevelFaction faction;
+  f32               scale;
   GeoVector         position;
   GeoVector         rotation; // xyz: Euler angles in degrees.
 } AssetLevelObject;
