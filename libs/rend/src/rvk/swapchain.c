@@ -368,7 +368,6 @@ RvkSwapchainIdx rvk_swapchain_acquire(
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d("Sub-optimal swapchain detected during acquire");
     return index;
   case VK_ERROR_OUT_OF_DATE_KHR:
     log_d("Out-of-date swapchain detected during acquire");
@@ -416,9 +415,6 @@ bool rvk_swapchain_enqueue_present(
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d(
-        "Sub-optimal swapchain detected during present",
-        log_param("id", fmt_int(swapchain->curPresentId)));
     return true; // Presenting will still succeed.
   case VK_ERROR_OUT_OF_DATE_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
