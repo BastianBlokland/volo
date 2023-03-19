@@ -261,12 +261,7 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
-  if (UNLIKELY(scale < f32_epsilon)) {
-    return; // Negative or zero scale is not supported.
-  }
-  if (math_abs(scale - 1.0f) > f32_epsilon) {
-    ecs_world_add_t(w, e, SceneScaleComp, .scale = scale);
-  }
+  ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
 
 static void setup_trait(
