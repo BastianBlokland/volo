@@ -29,6 +29,7 @@ bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
 bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
+bind_internal(7) in flat f32 in_alpha;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -95,7 +96,7 @@ void main() {
   }
 
   // Output the result into the gbuffer.
-  const f32   alpha        = color.a * angleFade;
+  const f32   alpha        = color.a * angleFade * in_alpha;
   const f32v3 outNormal    = normalize(mix(geoNormal, normal, alpha));
   const f32   outRoughness = mix(geoData1.b, in_roughness, alpha);
   out_data0                = f32v4(color.rgb, alpha);

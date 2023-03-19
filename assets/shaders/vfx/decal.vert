@@ -16,7 +16,7 @@ struct DecalData {
   f32v4 data1; // x, y, z: position, w: flags
   f32v4 data2; // x, y, z, w: rotation quaternion.
   f32v4 data3; // x, y, z: scale, w: unused.
-  f32v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: unused.
+  f32v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -31,6 +31,7 @@ bind_internal(3) out flat f32v3 out_atlasColorMeta;  // xy: origin, z: scale.
 bind_internal(4) out flat f32v3 out_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) out flat u32 out_flags;
 bind_internal(6) out flat f32 out_roughness;
+bind_internal(7) out flat f32 out_alpha;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -42,6 +43,7 @@ void main() {
   const f32   instanceAtlasNormalIndex = u_instances[in_instanceIndex].data4.y;
   const u32   instanceFlags            = u32(u_instances[in_instanceIndex].data1.w);
   const f32   instanceRoughness        = u_instances[in_instanceIndex].data4.z;
+  const f32   instanceAlpha            = u_instances[in_instanceIndex].data4.w;
 
   const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceScale) + instancePos;
   const f32v2 colorTexOrigin  = atlas_entry_origin(u_meta.atlasColor, instanceAtlasColorIndex);
@@ -55,4 +57,5 @@ void main() {
   out_atlasNormalMeta = f32v3(normalTexOrigin, atlas_entry_size(u_meta.atlasNormal));
   out_flags           = instanceFlags;
   out_roughness       = instanceRoughness;
+  out_alpha           = instanceAlpha;
 }

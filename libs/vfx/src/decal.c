@@ -32,10 +32,10 @@ typedef enum {
 
 typedef struct {
   ALIGNAS(16)
-  f32 data1[4]; // xyz: position, w: unused.
+  f32 data1[4]; // xyz: position, w: flags.
   f32 data2[4]; // xyzw: rotation quaternion.
   f32 data3[4]; // xyz: scale, w: unused.
-  f32 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: unused.
+  f32 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
 } VfxDecalData;
 
 ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
@@ -49,6 +49,7 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16           atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags flags : 16;
   f32           roughness;
+  f32           alpha;
   GeoVector     size;
 };
 
@@ -205,7 +206,8 @@ ecs_system_define(VfxDecalInitSys) {
         .atlasNormalIndex = atlasNormalIndex,
         .flags            = vfx_decal_flags(asset),
         .size             = geo_vector(asset->width, asset->thickness, asset->height),
-        .roughness        = asset->roughness);
+        .roughness        = asset->roughness,
+        .alpha            = asset->alpha);
   }
 }
 
@@ -254,6 +256,7 @@ static void vfx_decal_draw_output(
   out->data4[0] = (f32)instance->atlasColorIndex;
   out->data4[1] = (f32)instance->atlasNormalIndex;
   out->data4[2] = instance->roughness;
+  out->data4[3] = instance->alpha;
 }
 
 ecs_system_define(VfxDecalUpdateSys) {

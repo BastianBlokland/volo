@@ -19,6 +19,7 @@ typedef struct {
   String           normalAtlasEntry; // Optional, empty if unused.
   AssetDecalNormal baseNormal;
   f32              roughness;
+  f32              alpha;
   f32              width, height;
   f32              thickness;
 } DecalDef;
@@ -42,6 +43,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
+    data_reg_field_t(reg, DecalDef, alpha, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -76,6 +78,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->normalAtlasEntry = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
   out->baseNormal       = def->baseNormal;
   out->roughness        = def->roughness;
+  out->alpha            = def->alpha;
   out->width            = def->width;
   out->height           = def->height;
   out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
