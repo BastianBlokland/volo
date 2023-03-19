@@ -175,7 +175,7 @@
       "name": "DebugPrefabCreate",
       "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
-        { "type": "Pressed", "key": "MouseLeft" }
+        { "type": "Released", "key": "MouseLeft" }
       ]
     },
     {

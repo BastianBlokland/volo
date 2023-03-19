@@ -167,7 +167,7 @@ static void prefab_create_cancel(const PrefabPanelContext* ctx) {
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
-  scene_prefab_spawn(
+  const EcsEntityId spawnedEntity = scene_prefab_spawn(
       ctx->world,
       &(ScenePrefabSpec){
           .prefabId = ctx->panelComp->createPrefabId,
@@ -176,6 +176,9 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .faction  = ctx->panelComp->createFaction,
           .flags    = ScenePrefabFlags_SnapToTerrain,
       });
+
+  scene_selection_clear(ctx->selection);
+  scene_selection_add(ctx->selection, spawnedEntity);
 
   if (!ctx->panelComp->createMultiple) {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
