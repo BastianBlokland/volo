@@ -2,588 +2,327 @@
   "actions": [
     {
       "name": "Select",
-      "blockers": [
-        "TextInput",
-        "CursorLocked",
-        "PrefabCreateMode"
-      ],
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "MouseLeft"
-        }
+        { "type": "Down", "key": "MouseLeft" }
       ]
     },
     {
       "name": "Order",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "PrefabCreateMode",
-        "CursorLocked"
-      ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseRight"
-        }
+        { "type": "Pressed", "key": "MouseRight" }
       ]
     },
     {
       "name": "OrderStop",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "S"
-        }
+        { "type": "Pressed", "key": "S" }
       ]
     },
     {
       "name": "Destroy",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Delete"
-        }
+        { "type": "Pressed", "key": "Delete" }
       ]
     },
     {
       "name": "CameraReset",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Backspace"
-        }
+        { "type": "Pressed", "key": "Backspace" }
       ]
     },
     {
       "name": "CameraPanForward",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "ArrowUp"
-        }
+        { "type": "Down", "key": "ArrowUp" }
       ]
     },
     {
       "name": "CameraPanBackward",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "ArrowDown"
-        }
+        { "type": "Down", "key": "ArrowDown" }
       ]
     },
     {
       "name": "CameraPanRight",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "ArrowRight"
-        }
+        { "type": "Down", "key": "ArrowRight" }
       ]
     },
     {
       "name": "CameraPanLeft",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "ArrowLeft"
-        }
+        { "type": "Down", "key": "ArrowLeft" }
       ]
     },
     {
       "name": "CameraPanCursor",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "Z"
-        },
-        {
-          "type": "Down",
-          "key": "MouseMiddle"
-        },
-        {
-          "type": "Down",
-          "key": "MouseExtra2"
-        }
+        { "type": "Down", "key": "Z" },
+        { "type": "Down", "key": "MouseMiddle" },
+        { "type": "Down", "key": "MouseExtra2" }
       ]
     },
     {
       "name": "CameraRotate",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Down",
-          "key": "Alt"
-        },
-        {
-          "type": "Down",
-          "key": "MouseExtra1"
-        }
+        { "type": "Down", "key": "Alt" },
+        { "type": "Down", "key": "MouseExtra1" }
       ]
     },
     {
       "name": "CameraToggleMode",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F1"
-        }
+        { "type": "Pressed", "key": "F1" }
       ]
     },
     {
       "name": "Reset",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "R"
-        }
+        { "type": "Pressed", "key": "R" }
       ]
     },
     {
       "name": "WindowNew",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "N",
-          "requiredModifiers": [
-            "Alt"
-          ]
-        }
+        { "type": "Pressed", "key": "N", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "WindowClose",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F4",
-          "requiredModifiers": [
-            "Alt"
-          ]
-        }
+        { "type": "Pressed", "key": "F4", "requiredModifiers": [ "Alt" ] }
       ]
     },
     {
       "name": "WindowFullscreen",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Return",
-          "requiredModifiers": [
-            "Alt"
-          ]
-        },
-        {
-          "type": "Pressed",
-          "key": "F11"
-        }
+        { "type": "Pressed", "key": "Return", "requiredModifiers": [ "Alt" ] },
+        { "type": "Pressed", "key": "F11" }
       ]
     },
     {
       "name": "DisableUiToggle",
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F12"
-        }
+        { "type": "Pressed", "key": "F12" }
       ]
     },
     {
       "name": "TimePauseToggle",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "P"
-        }
+        { "type": "Pressed", "key": "P" }
       ]
     },
     {
       "name": "TimeScaleUp",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Plus"
-        }
+        { "type": "Pressed", "key": "Plus" }
       ]
     },
     {
       "name": "TimeScaleDown",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Minus"
-        }
+        { "type": "Pressed", "key": "Minus" }
       ]
     },
     {
       "name": "TimeStep",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "O"
-        }
+        { "type": "Pressed", "key": "O" }
       ]
     },
     {
       "name": "GridShow",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "G"
-        }
+        { "type": "Pressed", "key": "G" }
       ]
     },
     {
       "name": "GridScaleUp",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "BracketRight"
-        }
+        { "type": "Pressed", "key": "BracketRight" }
       ]
     },
     {
       "name": "GridScaleDown",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "BracketLeft"
-        }
+        { "type": "Pressed", "key": "BracketLeft" }
       ]
     },
     {
       "name": "DebugPrefabCreate",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "CursorLocked"
-      ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseLeft"
-        }
+        { "type": "Pressed", "key": "MouseLeft" }
       ]
     },
     {
       "name": "DebugPrefabCreateCancel",
-      "blockers": [
-        "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
-        "CursorLocked"
-      ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "MouseRight"
-        }
+        { "type": "Pressed", "key": "MouseRight" }
       ]
     },
     {
       "name": "DebugPanelStats",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Tilde"
-        }
+        { "type": "Pressed", "key": "Tilde" }
       ]
     },
     {
       "name": "DebugPanelInspector",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F2"
-        }
+        { "type": "Pressed", "key": "F2" }
       ]
     },
     {
       "name": "DebugPanelPrefab",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F3"
-        }
+        { "type": "Pressed", "key": "F3" }
       ]
     },
     {
       "name": "DebugPanelTime",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F4"
-        }
+        { "type": "Pressed", "key": "F4" }
       ]
     },
     {
       "name": "DebugPanelAnimation",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F5"
-        }
+        { "type": "Pressed", "key": "F5" }
       ]
     },
     {
       "name": "DebugPanelAsset",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F6"
-        }
+        { "type": "Pressed", "key": "F6" }
       ]
     },
     {
       "name": "DebugPanelEcs",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F7"
-        }
+        { "type": "Pressed", "key": "F7" }
       ]
     },
     {
       "name": "DebugPanelCamera",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F8"
-        }
+        { "type": "Pressed", "key": "F8" }
       ]
     },
     {
       "name": "DebugPanelGrid",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F9"
-        }
+        { "type": "Pressed", "key": "F9" }
       ]
     },
     {
       "name": "DebugPanelRenderer",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "F10"
-        }
+        { "type": "Pressed", "key": "F10" }
       ]
     },
     {
       "name": "DebugPanelClose",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Escape"
-        }
+        { "type": "Pressed", "key": "Escape" }
       ]
     },
     {
       "name": "DebugInspectorToolTranslation",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha1"
-        }
+        { "type": "Pressed", "key": "Alpha1" }
       ]
     },
     {
       "name": "DebugInspectorToolRotation",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha2"
-        }
+        { "type": "Pressed", "key": "Alpha2" }
       ]
     },
     {
       "name": "DebugInspectorToolScale",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha3"
-        }
+        { "type": "Pressed", "key": "Alpha3" }
       ]
     },
     {
       "name": "DebugInspectorVisCollision",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha4"
-        }
+        { "type": "Pressed", "key": "Alpha4" }
       ]
     },
     {
       "name": "DebugInspectorVisLocomotion",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha5"
-        }
+        { "type": "Pressed", "key": "Alpha5" }
       ]
     },
     {
       "name": "DebugInspectorVisNavigationPath",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha6"
-        }
+        { "type": "Pressed", "key": "Alpha6" }
       ]
     },
     {
       "name": "DebugInspectorVisNavigationGrid",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha7"
-        }
+        { "type": "Pressed", "key": "Alpha7" }
       ]
     },
     {
       "name": "DebugInspectorVisHealth",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha8"
-        }
+        { "type": "Pressed", "key": "Alpha8" }
       ]
     },
     {
       "name": "DebugInspectorVisTarget",
-      "blockers": [
-        "TextInput"
-      ],
+      "blockers": [ "TextInput" ],
       "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha9"
-        }
+        { "type": "Pressed", "key": "Alpha9" }
       ]
     }
   ]
