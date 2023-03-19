@@ -84,6 +84,8 @@ if(${EXTERNAL_ASSETS})
       decal/oil_splatter.tga
       decal/radioactive.tga
       decal/rust.tga
+      decal/sand_normal.tga
+      decal/sand.tga
       decal/text_volo.tga
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga

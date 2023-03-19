@@ -303,6 +303,7 @@
       "name": "PropRock",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_rock.gra" },
+        { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -359,6 +360,13 @@
       "name": "DecalOilSplatter",
       "traits": [
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/oil_splatter.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
+      "name": "DecalSand",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/sand.dcl" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },

@@ -9,6 +9,10 @@
     {
       "name": "oil_splatter",
       "texture": "external/decal/oil_splatter_normal.tga"
+    },
+    {
+      "name": "sand",
+      "texture": "external/decal/sand_normal.tga"
     }
   ]
 }
