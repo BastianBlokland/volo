@@ -11,12 +11,14 @@
     {
       "textureId": "textures/vfx/decal_color.atl",
       "wrap": "Clamp",
-      "filter": "Linear"
+      "filter": "Linear",
+      "anisotropy": "x4"
     },
     {
       "textureId": "textures/vfx/decal_normal.atl",
       "wrap": "Clamp",
-      "filter": "Linear"
+      "filter": "Linear",
+      "anisotropy": "x4"
     }
   ],
   "meshId": "meshes/vfx/decal_box.pme",
