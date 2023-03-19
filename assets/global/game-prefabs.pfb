@@ -342,6 +342,13 @@
       ]
     },
     {
+      "name": "DecalSignRadioactive",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/sign_radioactive.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {

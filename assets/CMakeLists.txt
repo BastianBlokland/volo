@@ -80,6 +80,7 @@ if(${EXTERNAL_ASSETS})
       crate/crate_normal.tga
       crate/crate.bin
       crate/crate.gltf
+      decal/radioactive.tga
       decal/text_volo.tga
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
