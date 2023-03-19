@@ -26,8 +26,9 @@ ASSERT(sizeof(VfxDecalMetaData) == 32, "Size needs to match the size defined in 
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
  */
 typedef enum {
-  VfxDecal_NormalMap         = 1 << 0, // Output custom normals to the gbuffer.
-  VfxDecal_GBufferBaseNormal = 1 << 1, // Use the current gbuffer normal as the base normal.
+  VfxDecal_NormalMap             = 1 << 0, // Output custom normals to the gbuffer.
+  VfxDecal_GBufferBaseNormal     = 1 << 1, // Use the current gbuffer normal as the base normal.
+  VfxDecal_DepthBufferBaseNormal = 1 << 2, // Compute the base normal from the depth buffer.
 } VfxDecalFlags;
 
 typedef struct {
@@ -146,8 +147,16 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
   if (decalAsset->normalAtlasEntry) {
     flags |= VfxDecal_NormalMap;
   }
-  if (decalAsset->baseNormal == AssetDecalNormal_GBuffer) {
+  switch (decalAsset->baseNormal) {
+  case AssetDecalNormal_GBuffer:
     flags |= VfxDecal_GBufferBaseNormal;
+    break;
+  case AssetDecalNormal_DepthBuffer:
+    flags |= VfxDecal_DepthBufferBaseNormal;
+    break;
+  case AssetDecalNormal_DecalTransform:
+    // DecalTransform as the base-normal is the default.
+    break;
   }
   return flags;
 }

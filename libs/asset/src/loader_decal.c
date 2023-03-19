@@ -36,6 +36,7 @@ static void decal_datareg_init() {
     // clang-format off
     data_reg_enum_t(reg, AssetDecalNormal);
     data_reg_const_t(reg, AssetDecalNormal, GBuffer);
+    data_reg_const_t(reg, AssetDecalNormal, DepthBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DecalTransform);
 
     data_reg_struct_t(reg, DecalDef);
