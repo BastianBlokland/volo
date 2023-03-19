@@ -7,8 +7,8 @@
   "paddingColor": { "r": 128, "g": 128, "b": 255, "a": 255 },
   "entries": [
     {
-      "name": "test",
-      "texture": "external/tiling/dirt_2_normal.tga"
+      "name": "oil_splatter",
+      "texture": "external/decal/oil_splatter_normal.tga"
     }
   ]
 }

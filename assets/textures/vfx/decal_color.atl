@@ -1,6 +1,6 @@
 {
-  "size": 512,
-  "entrySize": 128,
+  "size": 1024,
+  "entrySize": 256,
   "entryPadding": 5,
   "mipmaps": true,
   "srgb": true,
@@ -16,6 +16,10 @@
     {
       "name": "rust",
       "texture": "external/decal/rust.tga"
+    },
+    {
+      "name": "oil_splatter",
+      "texture": "external/decal/oil_splatter.tga"
     }
   ]
 }

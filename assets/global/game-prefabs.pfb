@@ -356,6 +356,13 @@
       ]
     },
     {
+      "name": "DecalOilSplatter",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/oil_splatter.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {
