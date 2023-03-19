@@ -25,8 +25,8 @@ bind_global_img(1) uniform sampler2D u_texGeoDepth;
 bind_internal(0) in flat f32v3 in_position;        // World-space.
 bind_internal(1) in flat f32v4 in_rotation;        // World-space.
 bind_internal(2) in flat f32v3 in_scale;           // World-space.
-bind_internal(3) in flat f32v4 in_atlasColorMeta;  // xy: origin, z: scale, w: unused.
-bind_internal(4) in flat f32v4 in_atlasNormalMeta; // xy: origin, z: scale, w: unused.
+bind_internal(3) in flat f32v3 in_atlasColorMeta;  // xy: origin, z: scale.
+bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
 
@@ -45,6 +45,15 @@ bind_internal(1) out f32v4 out_data1;
 f32v3 clip_to_world(const f32v3 clipPos) {
   const f32v4 v = u_global.viewProjInv * f32v4(clipPos, 1);
   return v.xyz / v.w;
+}
+
+f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
+  const f32v2 texcoord = atlasMeta.xy + (decalPos.xz + 0.5) * atlasMeta.z;
+  return texture(atlas, texcoord);
+}
+
+f32v3 atlas_sample_normal(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
+  return normal_tex_decode(atlas_sample(atlas, atlasMeta, decalPos).xyz);
 }
 
 void main() {
@@ -74,24 +83,21 @@ void main() {
   const f32 angleFade = smoothstep(c_angleFadeMax, c_angleFadeMin, 1 - dot(geoNormal, decalNormal));
 
   // Sample the color atlas.
-  const f32v2 colorTexCoord    = in_atlasColorMeta.xy + (localPos.xz + 0.5) * in_atlasColorMeta.z;
-  const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
+  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, localPos);
 
   // Sample the normal atlas.
   f32v3 normal;
   if ((in_flags & c_flagNormalMap) != 0) {
-    const f32v2 normalTexCoord = in_atlasNormalMeta.xy + (localPos.xz + 0.5) * in_atlasNormalMeta.z;
-    const f32v4 normalAtlasSample = texture(u_atlasNormal, normalTexCoord);
-    const f32v3 tangentNormal     = normal_tex_decode(normalAtlasSample.xyz);
-    normal = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
+    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, localPos);
+    normal                    = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
     normal = baseNormal;
   }
 
   // Output the result into the gbuffer.
-  const f32   alpha        = colorAtlasSample.a * angleFade;
+  const f32   alpha        = color.a * angleFade;
   const f32v3 outNormal    = normalize(mix(geoNormal, normal, alpha));
   const f32   outRoughness = mix(geoData1.b, in_roughness, alpha);
-  out_data0                = f32v4(colorAtlasSample.rgb, alpha);
+  out_data0                = f32v4(color.rgb, alpha);
   out_data1                = f32v4(math_normal_encode(outNormal), outRoughness, geoData1.w);
 }

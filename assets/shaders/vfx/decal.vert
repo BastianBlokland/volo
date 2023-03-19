@@ -27,8 +27,8 @@ bind_instance_data(0) readonly uniform Instance { DecalData[c_maxInstances] u_in
 bind_internal(0) out flat f32v3 out_position;        // World-space.
 bind_internal(1) out flat f32v4 out_rotation;        // World-space.
 bind_internal(2) out flat f32v3 out_scale;           // World-space.
-bind_internal(3) out flat f32v4 out_atlasColorMeta;  // xy: origin, z: scale, w: unused.
-bind_internal(4) out flat f32v4 out_atlasNormalMeta; // xy: origin, z: scale, w: unused.
+bind_internal(3) out flat f32v3 out_atlasColorMeta;  // xy: origin, z: scale.
+bind_internal(4) out flat f32v3 out_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) out flat u32 out_flags;
 bind_internal(6) out flat f32 out_roughness;
 
@@ -51,8 +51,8 @@ void main() {
   out_position        = instancePos;
   out_rotation        = instanceQuat;
   out_scale           = instanceScale;
-  out_atlasColorMeta  = f32v4(colorTexOrigin, atlas_entry_size(u_meta.atlasColor), 0);
-  out_atlasNormalMeta = f32v4(normalTexOrigin, atlas_entry_size(u_meta.atlasNormal), 0);
+  out_atlasColorMeta  = f32v3(colorTexOrigin, atlas_entry_size(u_meta.atlasColor));
+  out_atlasNormalMeta = f32v3(normalTexOrigin, atlas_entry_size(u_meta.atlasNormal));
   out_flags           = instanceFlags;
   out_roughness       = instanceRoughness;
 }
