@@ -1,8 +1,7 @@
 {
   "prefabs": [
     {
-      "name": "UnitRifle",
-      "isUnit": true,
+      "name": "UnitRifle", "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
@@ -32,9 +31,7 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": {
-              "y": 0.3
-            },
+            "offset": { "y": 0.3 },
             "radius": 0.3,
             "height": 1.2
           }
@@ -46,8 +43,7 @@
       ]
     },
     {
-      "name": "UnitEnemy",
-      "isUnit": true,
+      "name": "UnitEnemy", "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
@@ -77,9 +73,7 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": {
-              "y": 0.3
-            },
+            "offset": { "y": 0.3 },
             "radius": 0.3,
             "height": 1.1
           }
@@ -91,8 +85,7 @@
       ]
     },
     {
-      "name": "TurretGun",
-      "isUnit": true,
+      "name": "TurretGun", "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
@@ -118,9 +111,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Sphere",
-            "offset": {
-              "y": 0.7
-            },
+            "offset": { "y": 0.7 },
             "radius": 0.95
           }
         },
@@ -131,8 +122,7 @@
       ]
     },
     {
-      "name": "TurretMissile",
-      "isUnit": true,
+      "name": "TurretMissile", "isUnit": true,
       "traits": [
         {
           "$type": "AssetPrefabTrait_Renderable",
@@ -157,9 +147,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Sphere",
-            "offset": {
-              "y": 0.7
-            },
+            "offset": { "y": 0.7 },
             "radius": 0.95
           }
         },
@@ -185,25 +173,14 @@
           "$type": "AssetPrefabTrait_Renderable",
           "graphicId": "graphics/game/prop_fence.gra"
         },
-        {
-          "$type": "AssetPrefabTrait_Scale",
-          "scale": 1.25
-        },
+        { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -0.15,
-              "y": 0,
-              "z": -1.5
-            },
-            "max": {
-              "x": 0.1,
-              "y": 2,
-              "z": 1.5
-            }
+            "min": { "x": -0.15, "y": 0, "z": -1.5 },
+            "max": { "x": 0.1, "y": 2, "z": 1.5 }
           }
         }
       ]
@@ -220,9 +197,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": {
-              "y": 0.25
-            },
+            "offset": { "y": 0.25 },
             "radius": 0.35,
             "height": 0.6
           }
@@ -245,9 +220,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": {
-              "y": 0.25
-            },
+            "offset": { "y": 0.25 },
             "radius": 0.3,
             "height": 2
           }
@@ -275,16 +248,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -1,
-              "y": 0,
-              "z": -2.5
-            },
-            "max": {
-              "x": 1,
-              "y": 1.5,
-              "z": 2.5
-            }
+            "min": { "x": -1, "y": 0, "z": -2.5 },
+            "max": { "x": 1, "y": 1.5, "z": 2.5 }
           }
         }
       ]
@@ -301,16 +266,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -1,
-              "y": 0,
-              "z": -1
-            },
-            "max": {
-              "x": 1,
-              "y": 6,
-              "z": 1
-            }
+            "min": { "x": -1, "y": 0, "z": -1 },
+            "max": { "x": 1, "y": 6, "z": 1 }
           }
         }
       ]
@@ -327,16 +284,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -1.25,
-              "y": 0,
-              "z": -3
-            },
-            "max": {
-              "x": 1.25,
-              "y": 2.5,
-              "z": 3
-            }
+            "min": { "x": -1.25, "y": 0, "z": -3 },
+            "max": { "x": 1.25, "y": 2.5, "z": 3 }
           }
         }
       ]
@@ -353,16 +302,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -0.5,
-              "y": 0,
-              "z": -0.5
-            },
-            "max": {
-              "x": 0.5,
-              "y": 1.15,
-              "z": 0.5
-            }
+            "min": { "x": -0.5, "y": 0, "z": -0.5 },
+            "max": { "x": 0.5, "y": 1.15, "z": 0.5 }
           }
         }
       ]
@@ -379,16 +320,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -1.75,
-              "y": 0,
-              "z": -2.5
-            },
-            "max": {
-              "x": 1.75,
-              "y": 1.15,
-              "z": 2.5
-            }
+            "min": { "x": -1.75, "y": 0, "z": -2.5 },
+            "max": { "x": 1.75, "y": 1.15, "z": 2.5 }
           }
         }
       ]
@@ -405,16 +338,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -0.9,
-              "y": 0,
-              "z": -2.2
-            },
-            "max": {
-              "x": 0.9,
-              "y": 1.5,
-              "z": 2.2
-            }
+            "min": { "x": -0.9, "y": 0, "z": -2.2 },
+            "max": { "x": 0.9, "y": 1.5, "z": 2.2 }
           }
         }
       ]
@@ -431,16 +356,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -0.4,
-              "y": 0,
-              "z": -0.8
-            },
-            "max": {
-              "x": 0.4,
-              "y": 1,
-              "z": 0.4
-            }
+            "min": { "x": -0.4, "y": 0, "z": -0.8 },
+            "max": { "x": 0.4, "y": 1, "z": 0.4 }
           }
         }
       ]
@@ -457,16 +374,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -1.2,
-              "y": 0,
-              "z": -0.9
-            },
-            "max": {
-              "x": 1.2,
-              "y": 1,
-              "z": 0.75
-            }
+            "min": { "x": -1.2, "y": 0, "z": -0.9 },
+            "max": { "x": 1.2, "y": 1, "z": 0.75 }
           }
         }
       ]
@@ -484,16 +393,8 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Box",
-            "min": {
-              "x": -0.1,
-              "y": 0,
-              "z": -0.1
-            },
-            "max": {
-              "x": 0.1,
-              "y": 3.7,
-              "z": 0.1
-            }
+            "min": { "x": -0.1, "y": 0, "z": -0.1 },
+            "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
           }
         },
         {

@@ -41,6 +41,7 @@ typedef struct {
   StringHash       prefabId;
   SceneFaction     faction;
   ScenePrefabFlags flags;
+  f32              scale;
   GeoVector        position;
   GeoQuat          rotation;
 } ScenePrefabSpec;

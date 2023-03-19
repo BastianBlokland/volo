@@ -82,6 +82,7 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
             .prefabId = prefabId,
             .position = obj->position,
             .rotation = rot,
+            .scale    = obj->scale,
             .faction  = (SceneFaction)obj->faction,
         });
   }

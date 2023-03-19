@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -145,10 +146,6 @@ static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLif
   ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
 
-static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScale* t) {
-  ecs_world_add_t(w, e, SceneScaleComp, .scale = t->scale);
-}
-
 static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
   ecs_world_add_t(
       w,
@@ -263,6 +260,15 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
       .intervalMax  = t->intervalMax);
 }
 
+static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
+  if (UNLIKELY(scale < f32_epsilon)) {
+    return; // Negative or zero scale is not supported.
+  }
+  if (math_abs(scale - 1.0f) > f32_epsilon) {
+    ecs_world_add_t(w, e, SceneScaleComp, .scale = scale);
+  }
+}
+
 static void setup_trait(
     EcsWorld*               w,
     const EcsEntityId       e,
@@ -282,9 +288,6 @@ static void setup_trait(
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);
     return;
-  case AssetPrefabTrait_Scale:
-    setup_scale(w, e, &t->data_scale);
-    return;
   case AssetPrefabTrait_Movement:
     setup_movement(w, e, &t->data_movement);
     return;
@@ -302,6 +305,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Spawner:
     setup_spawner(w, e, &t->data_spawner);
+    return;
+  case AssetPrefabTrait_Scalable:
+    setup_scale(w, e, s->scale);
     return;
   case AssetPrefabTrait_Count:
     break;

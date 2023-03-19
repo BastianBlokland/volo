@@ -42,13 +42,13 @@ typedef enum {
   AssetPrefabTrait_Vfx,
   AssetPrefabTrait_Decal,
   AssetPrefabTrait_Lifetime,
-  AssetPrefabTrait_Scale,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Health,
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Brain,
   AssetPrefabTrait_Spawner,
+  AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
 } AssetPrefabTraitType;
@@ -69,10 +69,6 @@ typedef struct {
 typedef struct {
   TimeDuration duration;
 } AssetPrefabTraitLifetime;
-
-typedef struct {
-  f32 scale;
-} AssetPrefabTraitScale;
 
 typedef struct {
   f32        speed;
@@ -121,7 +117,6 @@ typedef struct {
     AssetPrefabTraitVfx        data_vfx;
     AssetPrefabTraitDecal      data_decal;
     AssetPrefabTraitLifetime   data_lifetime;
-    AssetPrefabTraitScale      data_scale;
     AssetPrefabTraitMovement   data_movement;
     AssetPrefabTraitHealth     data_health;
     AssetPrefabTraitAttack     data_attack;
