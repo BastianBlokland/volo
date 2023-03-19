@@ -1,17 +1,13 @@
 {
-  "size": 1024,
-  "entrySize": 256,
+  "size": 512,
+  "entrySize": 128,
   "entryPadding": 5,
   "mipmaps": true,
   "srgb": true,
   "entries": [
     {
-      "name": "grid",
-      "texture": "external/vfx/grid.tga"
-    },
-    {
-      "name": "glow",
-      "texture": "textures/glow.ptx"
+      "name": "text_volo",
+      "texture": "external/decal/text_volo.tga"
     }
   ]
 }

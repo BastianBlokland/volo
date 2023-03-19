@@ -3,10 +3,7 @@
     {
       "name": "UnitRifle", "isUnit": true,
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/unit_swat.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_swat.gra" },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
@@ -36,19 +33,13 @@
             "height": 1.2
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Brain",
-          "behaviorId": "behaviors/unit-ranged-manual.bt"
-        }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" }
       ]
     },
     {
       "name": "UnitEnemy", "isUnit": true,
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/unit_maynard.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_maynard.gra" },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4.5,
@@ -78,19 +69,13 @@
             "height": 1.1
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Brain",
-          "behaviorId": "behaviors/unit-melee-auto.bt"
-        }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" }
       ]
     },
     {
       "name": "TurretGun", "isUnit": true,
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/unit_turret_gun.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,
@@ -115,19 +100,13 @@
             "radius": 0.95
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Brain",
-          "behaviorId": "behaviors/unit-turret.bt"
-        }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" }
       ]
     },
     {
       "name": "TurretMissile", "isUnit": true,
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/unit_turret_missile.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
@@ -151,28 +130,19 @@
             "radius": 0.95
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Brain",
-          "behaviorId": "behaviors/unit-turret.bt"
-        }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" }
       ]
     },
     {
       "name": "PropFloor",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_floor_panel.gra"
-        }
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_panel.gra" }
       ]
     },
     {
       "name": "PropFence",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_fence.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_fence.gra" },
         { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -188,10 +158,7 @@
     {
       "name": "PropBarrel",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_barrel.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barrel.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -202,19 +169,13 @@
             "height": 0.6
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Vfx",
-          "assetId": "vfx/game/fire_barrel.vfx"
-        }
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_barrel.vfx" }
       ]
     },
     {
       "name": "PropTree",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_tree.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tree.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -230,19 +191,13 @@
     {
       "name": "PropPlant",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_plant.gra"
-        }
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_plant.gra" }
       ]
     },
     {
       "name": "PropWreck",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_wreck.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_wreck.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -257,10 +212,7 @@
     {
       "name": "PropTower",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_tower.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tower.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -275,10 +227,7 @@
     {
       "name": "PropContainer",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_container.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_container.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -293,10 +242,7 @@
     {
       "name": "PropCrate",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_crate.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_crate.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -311,10 +257,7 @@
     {
       "name": "PropTent",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_tent.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tent.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -329,10 +272,7 @@
     {
       "name": "PropGasTank",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_gas_tank.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gas_tank.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -347,10 +287,7 @@
     {
       "name": "PropTires",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_tires.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tires.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -365,10 +302,7 @@
     {
       "name": "PropRock",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Renderable",
-          "graphicId": "graphics/game/prop_rock.gra"
-        },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_rock.gra" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -397,19 +331,14 @@
             "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
           }
         },
-        {
-          "$type": "AssetPrefabTrait_Vfx",
-          "assetId": "vfx/game/alarm_light.vfx"
-        }
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/alarm_light.vfx" }
       ]
     },
     {
-      "name": "PropDecalTest",
+      "name": "DecalTextVolo",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Decal",
-          "assetId": "vfx/game/test.dcl"
-        }
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/text_volo.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
