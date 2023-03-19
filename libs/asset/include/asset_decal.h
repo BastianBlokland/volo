@@ -11,6 +11,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   StringHash       colorAtlasEntry;
   StringHash       normalAtlasEntry; // Optional, 0 if unused.
   AssetDecalNormal baseNormal; // Base normal where the normal-map is optionally applied on top.
+  bool             fadeUsingDepthNormal; // Angle fade using depth-buffer instead of gbuffer normal.
   f32              roughness;
   f32              alpha;
   f32              width, height;

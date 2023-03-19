@@ -8,12 +8,13 @@
 #include "quat.glsl"
 #include "tags.glsl"
 
-const f32 c_angleFadeMin = 0.2;
-const f32 c_angleFadeMax = 0.8;
+const f32 c_fadeAngleMin = 0.2;
+const f32 c_fadeAngleMax = 0.8;
 
 const u32 c_flagNormalMap             = 1 << 0;
 const u32 c_flagGBufferBaseNormal     = 1 << 1;
 const u32 c_flagDepthBufferBaseNormal = 1 << 2;
+const u32 c_flagFadeUsingDepthNormal  = 1 << 3;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
@@ -85,17 +86,19 @@ void main() {
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
   const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 1, 0));
+  const f32v3 depthNormal = flat_normal_from_position(worldPos);
   f32v3       baseNormal;
   if ((in_flags & c_flagGBufferBaseNormal) != 0) {
     baseNormal = geoNormal;
   } else if ((in_flags & c_flagDepthBufferBaseNormal) != 0) {
-    baseNormal = flat_normal_from_position(worldPos);
+    baseNormal = depthNormal;
   } else {
     baseNormal = decalNormal;
   }
 
   // Compute a fade-factor based on the difference in angle between the decal and the geometry.
-  const f32 angleFade = smoothstep(c_angleFadeMax, c_angleFadeMin, 1 - dot(geoNormal, decalNormal));
+  const f32v3 fadeNormal = (in_flags & c_flagFadeUsingDepthNormal) != 0 ? depthNormal : geoNormal;
+  const f32   fade = smoothstep(c_fadeAngleMax, c_fadeAngleMin, 1 - dot(fadeNormal, decalNormal));
 
   // Sample the color atlas.
   const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, localPos);
@@ -110,7 +113,7 @@ void main() {
   }
 
   // Output the result into the gbuffer.
-  const f32   alpha        = color.a * angleFade * in_alpha;
+  const f32   alpha        = color.a * fade * in_alpha;
   const f32v3 outNormal    = normalize(mix(geoNormal, normal, alpha));
   const f32   outRoughness = mix(geoData1.b, in_roughness, alpha);
   out_data0                = f32v4(color.rgb, alpha);

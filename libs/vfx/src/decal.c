@@ -29,6 +29,7 @@ typedef enum {
   VfxDecal_NormalMap             = 1 << 0, // Output custom normals to the gbuffer.
   VfxDecal_GBufferBaseNormal     = 1 << 1, // Use the current gbuffer normal as the base normal.
   VfxDecal_DepthBufferBaseNormal = 1 << 2, // Compute the base normal from the depth buffer.
+  VfxDecal_FadeUsingDepthNormal  = 1 << 3, // Angle fade using depth-buffer instead of gbuffer nrm.
 } VfxDecalFlags;
 
 typedef struct {
@@ -157,6 +158,9 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
   case AssetDecalNormal_DecalTransform:
     // DecalTransform as the base-normal is the default.
     break;
+  }
+  if (decalAsset->fadeUsingDepthNormal) {
+    flags |= VfxDecal_FadeUsingDepthNormal;
   }
   return flags;
 }
