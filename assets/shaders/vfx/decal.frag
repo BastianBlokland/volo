@@ -11,6 +11,8 @@
 const f32 c_angleFadeMin = 0.2;
 const f32 c_angleFadeMax = 0.8;
 
+const u32 c_flagNormalMap = 1 << 0;
+
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic_img(0) uniform sampler2D u_atlasColor;
@@ -24,7 +26,8 @@ bind_internal(1) in flat f32v4 in_rotation;        // World-space.
 bind_internal(2) in flat f32v3 in_scale;           // World-space.
 bind_internal(3) in flat f32v4 in_atlasColorMeta;  // xy: origin, z: scale, w: unused.
 bind_internal(4) in flat f32v4 in_atlasNormalMeta; // xy: origin, z: scale, w: unused.
-bind_internal(5) in flat f32 in_roughness;
+bind_internal(5) in flat u32 in_flags;
+bind_internal(6) in flat f32 in_roughness;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -72,10 +75,15 @@ void main() {
   const f32v4 colorAtlasSample = texture(u_atlasColor, colorTexCoord);
 
   // Sample the normal atlas.
-  const f32v2 normalTexCoord = in_atlasNormalMeta.xy + (localPos.xz + 0.5) * in_atlasNormalMeta.z;
-  const f32v4 normalAtlasSample = texture(u_atlasNormal, normalTexCoord);
-  const f32v3 tangentNormal     = normal_tex_decode(normalAtlasSample.xyz);
-  const f32v3 normal            = math_perturb_normal(tangentNormal, geoNormal, worldPos, texcoord);
+  f32v3 normal;
+  if ((in_flags & c_flagNormalMap) != 0) {
+    const f32v2 normalTexCoord = in_atlasNormalMeta.xy + (localPos.xz + 0.5) * in_atlasNormalMeta.z;
+    const f32v4 normalAtlasSample = texture(u_atlasNormal, normalTexCoord);
+    const f32v3 tangentNormal     = normal_tex_decode(normalAtlasSample.xyz);
+    normal = math_perturb_normal(tangentNormal, geoNormal, worldPos, texcoord);
+  } else {
+    normal = geoNormal;
+  }
 
   // Output the result into the gbuffer.
   const f32   alpha        = colorAtlasSample.a * angleFade;

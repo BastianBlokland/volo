@@ -22,6 +22,13 @@ typedef struct {
 
 ASSERT(sizeof(VfxDecalMetaData) == 32, "Size needs to match the size defined in glsl");
 
+/**
+ * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
+ */
+typedef enum {
+  VfxDecal_NormalMap = 1 << 0,
+} VfxDecalFlags;
+
 typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: unused.
@@ -38,9 +45,10 @@ typedef enum {
 } VfxLoadFlags;
 
 ecs_comp_define(VfxDecalInstanceComp) {
-  u16       atlasColorIndex, atlasNormalIndex;
-  f32       roughness;
-  GeoVector size;
+  u16           atlasColorIndex, atlasNormalIndex;
+  VfxDecalFlags flags : 16;
+  f32           roughness;
+  GeoVector     size;
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -161,6 +169,7 @@ ecs_system_define(VfxDecalInitSys) {
     }
     const AssetDecalComp* asset           = ecs_view_read_t(assetItr, AssetDecalComp);
     u16                   atlasColorIndex = 0, atlasNormalIndex = 0;
+    VfxDecalFlags         flags = 0;
     {
       const AssetAtlasEntry* entry = asset_atlas_lookup(atlasColor, asset->colorAtlasEntry);
       if (UNLIKELY(!entry)) {
@@ -176,6 +185,7 @@ ecs_system_define(VfxDecalInitSys) {
         continue;
       }
       atlasNormalIndex = entry->atlasIndex;
+      flags |= VfxDecal_NormalMap;
     }
     ecs_world_add_t(
         world,
@@ -183,6 +193,7 @@ ecs_system_define(VfxDecalInitSys) {
         VfxDecalInstanceComp,
         .atlasColorIndex  = atlasColorIndex,
         .atlasNormalIndex = atlasNormalIndex,
+        .flags            = flags,
         .size             = geo_vector(asset->width, asset->thickness, asset->height),
         .roughness        = asset->roughness);
   }
@@ -227,6 +238,7 @@ static void vfx_decal_draw_output(
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
+  out->data1[3] = (f32)instance->flags;
   mem_cpy(array_mem(out->data2), array_mem(rot.comps));
   mem_cpy(array_mem(out->data3), mem_create(size.comps, sizeof(f32) * 3));
   out->data4[0] = (f32)instance->atlasColorIndex;
