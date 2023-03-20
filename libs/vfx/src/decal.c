@@ -242,6 +242,7 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneVfxDecalComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
 
@@ -264,7 +265,8 @@ static void vfx_decal_draw_output(
     const VfxDecalInstanceComp* instance,
     const GeoVector             pos,
     const GeoQuat               rot,
-    const f32                   scale) {
+    const f32                   scale,
+    const f32                   alpha) {
   const GeoVector size   = geo_vector_mul(instance->size, scale);
   const GeoBox    box    = geo_box_from_center(pos, size);
   const GeoBox    bounds = geo_box_from_rotated(&box, rot);
@@ -277,7 +279,7 @@ static void vfx_decal_draw_output(
   out->data4[0] = (f32)instance->atlasColorIndex;
   out->data4[1] = (f32)instance->atlasNormalIndex;
   out->data4[2] = instance->roughness;
-  out->data4[3] = instance->alpha;
+  out->data4[3] = instance->alpha * alpha;
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
@@ -307,16 +309,18 @@ ecs_system_define(VfxDecalUpdateSys) {
     const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTagComp*         tagComp   = ecs_view_read_t(itr, SceneTagComp);
+    const SceneVfxDecalComp*    decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
     const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
 
     const GeoVector pos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
     const GeoQuat   rot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
     const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
+    const f32       alpha = decal->alpha;
 
-    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale);
+    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale, alpha);
 
     if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
-      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale);
+      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale, alpha);
     }
   }
 }

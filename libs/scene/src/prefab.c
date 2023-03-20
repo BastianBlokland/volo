@@ -139,7 +139,7 @@ static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitV
 }
 
 static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
-  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset);
+  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
