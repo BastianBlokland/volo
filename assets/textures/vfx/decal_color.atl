@@ -28,6 +28,10 @@
     {
       "name": "scorch",
       "texture": "external/decal/scorch.tga"
+    },
+    {
+      "name": "tarp",
+      "texture": "external/decal/tarp.tga"
     }
   ]
 }

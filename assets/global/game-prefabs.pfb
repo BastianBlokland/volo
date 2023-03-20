@@ -243,6 +243,7 @@
       "name": "PropCrate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_crate.gra" },
+        { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -374,6 +375,13 @@
       "name": "DecalScorch",
       "traits": [
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/scorch.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
+      "name": "DecalTarp",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/tarp.dcl" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
