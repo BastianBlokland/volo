@@ -267,7 +267,7 @@ static void vfx_decal_draw_output(
     const GeoQuat               rot,
     const f32                   scale,
     const f32                   alpha) {
-  const GeoVector size   = geo_vector_mul(instance->size, scale);
+  const GeoVector size   = geo_vector_mul_comps(instance->size, geo_vector(scale, 1, scale));
   const GeoBox    box    = geo_box_from_center(pos, size);
   const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 

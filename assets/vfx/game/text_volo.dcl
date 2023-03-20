@@ -5,5 +5,5 @@
   "alpha": 0.5,
   "width": 1.5,
   "height": 0.75,
-  "thickness": 0.3
+  "thickness": 0.15
 }
