@@ -37,6 +37,7 @@ ecs_view_define(BlinkGlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(BlinkView) {
   ecs_access_maybe_write(SceneVfxSystemComp);
+  ecs_access_maybe_write(SceneVfxDecalComp);
   ecs_access_read(SceneRenderableBlinkComp);
   ecs_access_with(SceneRenderableComp);
   ecs_access_write(SceneTagComp);
@@ -53,9 +54,10 @@ ecs_system_define(SceneRenderableBlinkSys) {
 
   EcsView* blinkView = ecs_world_view_t(world, BlinkView);
   for (EcsIterator* itr = ecs_view_itr(blinkView); ecs_view_walk(itr);) {
-    const SceneRenderableBlinkComp* blink   = ecs_view_read_t(itr, SceneRenderableBlinkComp);
-    SceneTagComp*                   tagComp = ecs_view_write_t(itr, SceneTagComp);
-    SceneVfxSystemComp*             vfxSys  = ecs_view_write_t(itr, SceneVfxSystemComp);
+    const SceneRenderableBlinkComp* blink    = ecs_view_read_t(itr, SceneRenderableBlinkComp);
+    SceneTagComp*                   tagComp  = ecs_view_write_t(itr, SceneTagComp);
+    SceneVfxSystemComp*             vfxSys   = ecs_view_write_t(itr, SceneVfxSystemComp);
+    SceneVfxDecalComp*              vfxDecal = ecs_view_write_t(itr, SceneVfxDecalComp);
 
     const bool on = (u32)(timeSec * blink->blinkFrequency) % 2;
     if (on) {
@@ -65,6 +67,9 @@ ecs_system_define(SceneRenderableBlinkSys) {
     }
     if (vfxSys) {
       vfxSys->alpha = on ? 1.0f : 0.0f;
+    }
+    if (vfxDecal) {
+      vfxDecal->alpha = on ? 1.0f : 0.0f;
     }
   }
 }
