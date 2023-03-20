@@ -88,6 +88,7 @@ if(${EXTERNAL_ASSETS})
       decal/sand_normal.tga
       decal/sand.tga
       decal/scorch.tga
+      decal/tarp_normal.tga
       decal/tarp.tga
       decal/text_volo.tga
       fence/fence_1_color_rough.tga
