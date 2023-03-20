@@ -47,6 +47,7 @@ configure_shaders(volo_shaders
     shaders/tonemapper.frag
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
+    shaders/vfx/decal_debug.frag
     shaders/vfx/decal.frag
     shaders/vfx/decal.vert
     shaders/vfx/particle_depth.frag

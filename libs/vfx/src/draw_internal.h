@@ -4,6 +4,7 @@
 
 typedef enum {
   VfxDrawType_Decal,
+  VfxDrawType_DecalDebug,
   VfxDrawType_ParticleForward,
   VfxDrawType_ParticleDistortion,
 

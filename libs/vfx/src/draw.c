@@ -13,6 +13,7 @@ ecs_comp_define(VfxDrawParticleComp);
 
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
     [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.gra"),
+    [VfxDrawType_DecalDebug]         = string_static("graphics/vfx/decal_debug.gra"),
     [VfxDrawType_ParticleForward]    = string_static("graphics/vfx/particle_forward.gra"),
     [VfxDrawType_ParticleDistortion] = string_static("graphics/vfx/particle_distortion.gra"),
 };
@@ -20,6 +21,7 @@ static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
 // clang-format off
 static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
     [VfxDrawType_Decal]              = RendDrawFlags_Decal | RendDrawFlags_Preload,
+    [VfxDrawType_DecalDebug]         = RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleForward]    = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleDistortion] = RendDrawFlags_Particle | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };
@@ -27,6 +29,7 @@ static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
 
 static const EcsCompId* g_vfxDrawTags[VfxDrawType_Count] = {
     [VfxDrawType_Decal]              = &ecs_comp_id(VfxDrawDecalComp),
+    [VfxDrawType_DecalDebug]         = &ecs_comp_id(VfxDrawDecalComp),
     [VfxDrawType_ParticleForward]    = &ecs_comp_id(VfxDrawParticleComp),
     [VfxDrawType_ParticleDistortion] = &ecs_comp_id(VfxDrawParticleComp),
 };

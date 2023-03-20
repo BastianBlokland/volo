@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "scene_tag.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "vfx_register.h"
@@ -239,6 +240,7 @@ ecs_system_define(VfxDecalDeinitSys) {
 
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
@@ -249,6 +251,12 @@ static void vfx_decal_draw_init(
       .atlasColor  = vfx_atlas_draw_data(atlasColor),
       .atlasNormal = vfx_atlas_draw_data(atlasNormal),
   };
+}
+
+static RendDrawComp*
+vfx_draw_get(EcsWorld* world, const VfxDrawManagerComp* drawManager, const VfxDrawType type) {
+  const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
+  return ecs_utils_write_t(world, DecalDrawView, drawEntity, RendDrawComp);
 }
 
 static void vfx_decal_draw_output(
@@ -286,23 +294,30 @@ ecs_system_define(VfxDecalUpdateSys) {
     return; // Atlas hasn't loaded yet.
   }
 
-  const VfxDrawManagerComp* drawManager     = ecs_view_read_t(globalItr, VfxDrawManagerComp);
-  const EcsEntityId         decalDrawEntity = vfx_draw_entity(drawManager, VfxDrawType_Decal);
-  RendDrawComp* decalDraw = ecs_utils_write_t(world, DecalDrawView, decalDrawEntity, RendDrawComp);
+  const VfxDrawManagerComp* drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
-  vfx_decal_draw_init(decalDraw, atlasColor, atlasNormal);
+  RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_Decal);
+  RendDrawComp* drawDebug  = vfx_draw_get(world, drawManager, VfxDrawType_DecalDebug);
+
+  vfx_decal_draw_init(drawNormal, atlasColor, atlasNormal);
+  vfx_decal_draw_init(drawDebug, atlasColor, atlasNormal);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTagComp*         tagComp   = ecs_view_read_t(itr, SceneTagComp);
     const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
 
     const GeoVector pos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
     const GeoQuat   rot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
     const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
 
-    vfx_decal_draw_output(decalDraw, instance, pos, rot, scale);
+    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale);
+
+    if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Outline)) {
+      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale);
+    }
   }
 }
 
