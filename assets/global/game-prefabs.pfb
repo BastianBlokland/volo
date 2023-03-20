@@ -371,6 +371,13 @@
       ]
     },
     {
+      "name": "DecalScorch",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/scorch.dcl" },
+        { "$type": "AssetPrefabTrait_Scalable" }
+      ]
+    },
+    {
       "name": "SpawnerUnitEnemy",
       "traits": [
         {
