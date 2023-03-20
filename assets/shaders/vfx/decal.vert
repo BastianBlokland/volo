@@ -14,9 +14,9 @@ struct MetaData {
 
 struct DecalData {
   f32v4 data1; // x, y, z: position, w: flags
-  f32v4 data2; // x, y, z, w: rotation quaternion.
-  f32v4 data3; // x, y, z: scale, w: unused.
-  f32v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
+  f16v4 data2; // x, y, z, w: rotation quaternion.
+  f16v4 data3; // x, y, z: scale, w: unused.
+  f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -37,13 +37,13 @@ void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
   const f32v3 instancePos              = u_instances[in_instanceIndex].data1.xyz;
-  const f32v4 instanceQuat             = u_instances[in_instanceIndex].data2;
-  const f32v3 instanceScale            = u_instances[in_instanceIndex].data3.xyz;
-  const f32   instanceAtlasColorIndex  = u_instances[in_instanceIndex].data4.x;
-  const f32   instanceAtlasNormalIndex = u_instances[in_instanceIndex].data4.y;
-  const u32   instanceFlags            = u32(u_instances[in_instanceIndex].data1.w);
-  const f32   instanceRoughness        = u_instances[in_instanceIndex].data4.z;
-  const f32   instanceAlpha            = u_instances[in_instanceIndex].data4.w;
+  const f32v4 instanceQuat             = f32v4(u_instances[in_instanceIndex].data2);
+  const f32v3 instanceScale            = f32v4(u_instances[in_instanceIndex].data3).xyz;
+  const f32   instanceAtlasColorIndex  = f32(u_instances[in_instanceIndex].data4.x);
+  const f32   instanceAtlasNormalIndex = f32(u_instances[in_instanceIndex].data4.y);
+  const u32   instanceFlags            = u32(f32(u_instances[in_instanceIndex].data1.w));
+  const f32   instanceRoughness        = f32(u_instances[in_instanceIndex].data4.z);
+  const f32   instanceAlpha            = f32(u_instances[in_instanceIndex].data4.w);
 
   const f32v3 worldPos = quat_rotate(instanceQuat, vert.position * instanceScale) + instancePos;
   const f32v2 colorTexOrigin  = atlas_entry_origin(u_meta.atlasColor, instanceAtlasColorIndex);

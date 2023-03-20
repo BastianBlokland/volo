@@ -3,6 +3,7 @@
 #include "asset_manager.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -36,12 +37,12 @@ typedef enum {
 typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: flags.
-  f32 data2[4]; // xyzw: rotation quaternion.
-  f32 data3[4]; // xyz: scale, w: unused.
-  f32 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
+  f16 data2[4]; // xyzw: rotation quaternion.
+  f16 data3[4]; // xyz: scale, w: unused.
+  f16 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
 } VfxDecalData;
 
-ASSERT(sizeof(VfxDecalData) == 64, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxDecalData) == 48, "Size needs to match the size defined in glsl");
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -274,12 +275,20 @@ static void vfx_decal_draw_output(
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
   out->data1[3] = (f32)instance->flags;
-  mem_cpy(array_mem(out->data2), array_mem(rot.comps));
-  mem_cpy(array_mem(out->data3), mem_create(size.comps, sizeof(f32) * 3));
-  out->data4[0] = (f32)instance->atlasColorIndex;
-  out->data4[1] = (f32)instance->atlasNormalIndex;
-  out->data4[2] = instance->roughness;
-  out->data4[3] = instance->alpha * alpha;
+
+  geo_quat_pack_f16(rot, out->data2);
+
+  out->data3[0] = float_f32_to_f16(size.x);
+  out->data3[1] = float_f32_to_f16(size.y);
+  out->data3[2] = float_f32_to_f16(size.z);
+
+  diag_assert_msg(instance->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(instance->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
+
+  out->data4[0] = float_f32_to_f16((f32)instance->atlasColorIndex);
+  out->data4[1] = float_f32_to_f16((f32)instance->atlasNormalIndex);
+  out->data4[2] = float_f32_to_f16(instance->roughness);
+  out->data4[3] = float_f32_to_f16(instance->alpha * alpha);
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
