@@ -81,6 +81,7 @@ if(${EXTERNAL_ASSETS})
       crate/crate_normal.tga
       crate/crate.bin
       crate/crate.gltf
+      decal/dirt.tga
       decal/oil_splatter_normal.tga
       decal/oil_splatter.tga
       decal/radioactive.tga
