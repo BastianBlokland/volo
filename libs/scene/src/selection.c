@@ -32,19 +32,19 @@ static void ecs_destruct_selection_comp(void* data) {
 ecs_view_define(UpdateView) { ecs_access_write(SceneSelectionComp); }
 ecs_view_define(TagView) { ecs_access_write(SceneTagComp); }
 
-static void outline_tag_clear(EcsWorld* world, const EcsEntityId entity) {
+static void selection_tag_clear(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* tagItr = ecs_view_itr(ecs_world_view_t(world, TagView));
   if (ecs_view_maybe_jump(tagItr, entity)) {
-    ecs_view_write_t(tagItr, SceneTagComp)->tags &= ~SceneTags_Outline;
+    ecs_view_write_t(tagItr, SceneTagComp)->tags &= ~SceneTags_Selected;
   }
 }
 
-static void outline_tag_set(EcsWorld* world, const EcsEntityId entity) {
+static void selection_tag_set(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* tagItr = ecs_view_itr(ecs_world_view_t(world, TagView));
   if (ecs_view_maybe_jump(tagItr, entity)) {
-    ecs_view_write_t(tagItr, SceneTagComp)->tags |= SceneTags_Outline;
+    ecs_view_write_t(tagItr, SceneTagComp)->tags |= SceneTags_Selected;
   } else {
-    scene_tag_add(world, entity, SceneTags_Default | SceneTags_Outline);
+    scene_tag_add(world, entity, SceneTags_Default | SceneTags_Selected);
   }
 }
 
@@ -55,7 +55,7 @@ static void selection_add(EcsWorld* world, SceneSelectionComp* comp, const EcsEn
   if (!comp->mainSelectedEntity) {
     comp->mainSelectedEntity = tgt;
   }
-  outline_tag_set(world, tgt);
+  selection_tag_set(world, tgt);
 }
 
 static void selection_remove(EcsWorld* world, SceneSelectionComp* comp, const EcsEntityId tgt) {
@@ -72,12 +72,12 @@ static void selection_remove(EcsWorld* world, SceneSelectionComp* comp, const Ec
       comp->mainSelectedEntity = 0;
     }
   }
-  outline_tag_clear(world, tgt);
+  selection_tag_clear(world, tgt);
 }
 
 static void selection_clear(EcsWorld* world, SceneSelectionComp* comp) {
   dynarray_for_t(&comp->selectedEntities, EcsEntityId, entity) {
-    outline_tag_clear(world, *entity);
+    selection_tag_clear(world, *entity);
   }
   dynarray_clear(&comp->selectedEntities);
   comp->mainSelectedEntity = 0;

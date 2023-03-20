@@ -315,7 +315,7 @@ ecs_system_define(VfxDecalUpdateSys) {
 
     vfx_decal_draw_output(drawNormal, instance, pos, rot, scale);
 
-    if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Outline)) {
+    if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
       vfx_decal_draw_output(drawDebug, instance, pos, rot, scale);
     }
   }

@@ -23,14 +23,14 @@ bind_internal(0) out f32v3 out_color;
 
 void main() {
   /**
-   * Draw a white border around pixels that have the 'outline' tag set.
+   * Draw a white border around pixels that have the 'selected' tag set.
    * Exclude neighbors that are further away then the current pixel;
    */
 
   const f32 depth = depth_at_offset(0, 0);
   const u32 tags  = tags_at_offset(0, 0);
 
-  if (tag_is_set(tags, tag_outline_bit)) {
+  if (tag_is_set(tags, tag_selected_bit)) {
     out_color = f32v3(0);
     return;
   }
@@ -57,7 +57,7 @@ void main() {
   neighborTags |= (depth - depth_at_offset(-2, -2)) < c_depthThreshold ? tags_at_offset(-2, -2) : 0;
 
   /**
-   * Output white when any closer neighbor has the 'outline' tag set.
+   * Output white when any closer neighbor has the 'selected' tag set.
    */
-  out_color = tag_is_set(neighborTags, tag_outline_bit) ? c_outlineColor : f32v3(0);
+  out_color = tag_is_set(neighborTags, tag_selected_bit) ? c_outlineColor : f32v3(0);
 }

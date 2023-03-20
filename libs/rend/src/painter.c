@@ -842,7 +842,7 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_SkyCubeMapGraphic, mem_empty);
       break;
     }
-    if (geoTagMask & SceneTags_Outline) {
+    if (geoTagMask & SceneTags_Selected) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
