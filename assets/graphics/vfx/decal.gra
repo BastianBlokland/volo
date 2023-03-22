@@ -24,7 +24,7 @@
   "meshId": "meshes/vfx/decal_box.pme",
   "topology": "Triangles",
   "rasterizer": "Fill",
-  "blend": "Alpha",
+  "blend": "AlphaConstant",
   "blendConstant": 0,
   "depth": "LessNoWrite",
   "cull": "Back"

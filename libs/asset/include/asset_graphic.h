@@ -22,10 +22,11 @@ typedef enum {
 } AssetGraphicRasterizer;
 
 typedef enum {
-  AssetGraphicBlend_None,          // No blending, just replace the framebuffer's rgb values.
-  AssetGraphicBlend_Alpha,         // Blend between rgb and the framebuffer based on the alpha.
-  AssetGraphicBlend_Additive,      // Add rgba to the framebuffer.
-  AssetGraphicBlend_PreMultiplied, // Multiply the framebuffer by the alpha and add the color's rgb.
+  AssetGraphicBlend_None,          // No blending, overwrite the attachment rgba.
+  AssetGraphicBlend_Alpha,         // Blend based on alpha (attachment alpha is unchanged).
+  AssetGraphicBlend_AlphaConstant, // Blend based on alpha (attachment alpha is set to constant).
+  AssetGraphicBlend_Additive,      // Add the input to the attachment rgba.
+  AssetGraphicBlend_PreMultiplied, // Multiply the attachment by the alpha and add the color's rgb.
 
   AssetGraphicBlend_Count,
 } AssetGraphicBlend;
@@ -120,7 +121,8 @@ ecs_comp_extern_public(AssetGraphicComp) {
 
   /**
    * Usage of the blend-constant is blend-mode dependent:
-   * - AssetGraphicBlend_Alpha:         Controls the output alpha value.
+   * - AssetGraphicBlend_Alpha:         Unused.
+   * - AssetGraphicBlend_AlphaConstant: Controls the output alpha value.
    * - AssetGraphicBlend_Additive:      Unused.
    * - AssetGraphicBlend_PreMultiplied: Unused.
    */

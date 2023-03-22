@@ -110,6 +110,7 @@ MAYBE_UNUSED static String rvk_graphic_blend_str(const AssetGraphicBlend blend) 
   static const String g_names[] = {
       string_static("None"),
       string_static("Alpha"),
+      string_static("AlphaConstant"),
       string_static("Additive"),
       string_static("PreMultiplied"),
   };
@@ -382,6 +383,17 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   switch (graphic->blend) {
   case AssetGraphicBlend_Alpha:
+    return (VkPipelineColorBlendAttachmentState){
+        .blendEnable         = true,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp        = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .alphaBlendOp        = VK_BLEND_OP_ADD,
+        .colorWriteMask      = colorMask,
+    };
+  case AssetGraphicBlend_AlphaConstant:
     return (VkPipelineColorBlendAttachmentState){
         .blendEnable         = true,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
