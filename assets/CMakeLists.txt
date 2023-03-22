@@ -92,6 +92,8 @@ if(${EXTERNAL_ASSETS})
       decal/tarp_normal.tga
       decal/tarp.tga
       decal/text_volo.tga
+      decal/tire_track_alpha.tga
+      decal/tire_track_normal.tga
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
