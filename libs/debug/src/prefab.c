@@ -139,7 +139,7 @@ static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash p
 static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
-  if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
+  if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
     scene_selection_clear(ctx->selection);
   }
 
