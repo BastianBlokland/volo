@@ -53,7 +53,8 @@ typedef struct sRvkGraphic {
   RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
   AssetGraphicRasterizer rasterizer : 8;
-  AssetGraphicBlend      blend : 8;
+  AssetGraphicBlend      blend : 8;    // Blend mode for the primary attachment.
+  AssetGraphicBlend      blendAux : 8; // Blend mode for the other attachments.
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
   u8                     samplerMask;

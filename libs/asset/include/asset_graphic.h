@@ -113,9 +113,10 @@ ecs_comp_extern_public(AssetGraphicComp) {
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u16                    lineWidth;  // Line width (in pixels) when the rasterizer mode is 'lines'.
-  bool                   depthClamp; // Disables primitive clipping z clipping.
+  bool                   depthClamp; // Disables primitive z clipping.
   f32                    depthBiasConstant, depthBiasSlope;
-  AssetGraphicBlend      blend;
+  AssetGraphicBlend      blend;    // Blend mode for the primary attachment.
+  AssetGraphicBlend      blendAux; // Blend mode for the other attachments.
   AssetGraphicDepth      depth;
   AssetGraphicCull       cull;
 

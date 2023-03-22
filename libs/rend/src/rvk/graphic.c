@@ -378,10 +378,10 @@ static bool rvk_pipeline_depth_clamp(RvkGraphic* graphic) {
   return (graphic->flags & RvkGraphicFlags_DepthClamp) != 0;
 }
 
-static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGraphic* graphic) {
+static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGraphicBlend blend) {
   const VkColorComponentFlags colorMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  switch (graphic->blend) {
+  switch (blend) {
   case AssetGraphicBlend_Alpha:
     return (VkPipelineColorBlendAttachmentState){
         .blendEnable         = true,
@@ -494,14 +494,9 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
 
   const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
   VkPipelineColorBlendAttachmentState colorBlends[16];
-  // TODO: Validate that the output at index 0 is actually used.
-  colorBlends[0] = rvk_pipeline_colorblend_attach(graphic);
+  colorBlends[0] = rvk_pipeline_colorblend(graphic->blend);
   for (u32 i = 1; i < colorAttachmentCount; ++i) {
-    // NOTE: No blending for the other color attachments.
-    colorBlends[i] = (VkPipelineColorBlendAttachmentState){
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-    };
+    colorBlends[i] = rvk_pipeline_colorblend(graphic->blendAux);
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
@@ -675,22 +670,14 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .depthBiasSlope    = asset->depthBiasSlope,
       .renderOrder       = asset->renderOrder,
       .blend             = asset->blend,
+      .blendAux          = asset->blendAux,
       .depth             = asset->depth,
       .cull              = asset->cull,
       .vertexCount       = asset->vertexCount,
       .blendConstant     = asset->blendConstant,
   };
 
-  log_d(
-      "Vulkan graphic created",
-      log_param("name", fmt_text(dbgName)),
-      log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
-      log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
-      log_param("line-width", fmt_int(asset->lineWidth)),
-      log_param("depth-clamp", fmt_bool(asset->depthClamp)),
-      log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
-      log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),
-      log_param("cull", fmt_text(rvk_graphic_cull_str(asset->cull))));
+  log_d("Vulkan graphic created", log_param("name", fmt_text(dbgName)));
 
   return graphic;
 }
