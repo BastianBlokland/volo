@@ -26,6 +26,7 @@
   "rasterizer": "Fill",
   "blend": "AlphaConstant",
   "blendConstant": 0,
+  "blendAux": "Alpha",
   "depth": "LessNoWrite",
   "cull": "Back"
 }

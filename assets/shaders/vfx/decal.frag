@@ -35,14 +35,10 @@ bind_internal(7) in flat f32 in_alpha;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
- * Alpha blended, w component is used to control the blending, outputting emissive is not supported.
+ * Geometry Data1: normal (rg), roughness (b) and tags (a).
+ * Alpha blended, w is used to control the blending, outputting emissive / tags is not supported.
  */
 bind_internal(0) out f32v4 out_data0;
-
-/**
- * Geometry Data1: normal (rg), roughness (b) and tags (a).
- * NOT blended, any blending needs to be done manually before outputting.
- */
 bind_internal(1) out f32v4 out_data1;
 
 f32v3 clip_to_world(const f32v3 clipPos) {
@@ -113,9 +109,6 @@ void main() {
   }
 
   // Output the result into the gbuffer.
-  const f32   alpha        = color.a * fade * in_alpha;
-  const f32v3 outNormal    = normalize(mix(geoNormal, normal, alpha));
-  const f32   outRoughness = mix(geoData1.b, in_roughness, alpha);
-  out_data0                = f32v4(color.rgb, alpha);
-  out_data1                = f32v4(math_normal_encode(outNormal), outRoughness, geoData1.w);
+  out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
+  out_data1 = f32v4(math_normal_encode(normal), in_roughness, color.a * fade * in_alpha);
 }
