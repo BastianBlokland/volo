@@ -131,7 +131,7 @@ void thread_cond_broadcast(ThreadCondition cond) { thread_pal_cond_broadcast(con
 
 void thread_spinlock_lock(ThreadSpinLock* lock) {
   /**
-   * Naive implemenation of a general-purpose spin-lock using atomic operations. If required a much
+   * Naive implementation of a general-purpose spin-lock using atomic operations. If required a much
    * faster architecture specific routine can be implemented.
    *
    * Includes a general memory barrier that synchronizes with 'thread_spinlock_unlock' because both

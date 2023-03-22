@@ -188,7 +188,7 @@ static void executor_perform_work(WorkItem item) {
     return;
   }
 
-  // Task has no children; decrement the job depedency counter.
+  // Task has no children; decrement the job dependency counter.
   if (thread_atomic_sub_i64(&item.job->dependencies, 1) == 1) {
     // All dependencies for the job have been finished; Finish the job.
     jobs_scheduler_finish(item.job);
@@ -212,7 +212,7 @@ static void executor_worker_thread(void* data) {
     // Attempt get a work item from our own queues.
     work = executor_work_pop();
     if (!workitem_valid(work)) {
-      // No work on our own queue; attemp to steal some.
+      // No work on our own queue; attempt to steal some.
       work = executor_work_steal_loop();
     }
 

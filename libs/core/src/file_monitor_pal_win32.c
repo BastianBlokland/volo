@@ -256,7 +256,7 @@ Begin:
 }
 
 FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
-  diag_assert(path_is_absolute(rootPath));
+  const String rootPathAbs = path_build_scratch(rootPath);
 
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
 
@@ -264,8 +264,8 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
       .alloc                 = alloc,
       .mutex                 = thread_mutex_create(alloc),
       .watches               = dynarray_create_t(alloc, FileWatch, 64),
-      .rootPath              = string_dup(alloc, rootPath),
-      .rootHandle            = monitor_open_root(rootPath),
+      .rootPath              = string_dup(alloc, rootPathAbs),
+      .rootHandle            = monitor_open_root(rootPathAbs),
       .rootOverlapped.hEvent = monitor_event_create(),
   };
 

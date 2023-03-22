@@ -130,7 +130,7 @@ static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out
 }
 
 FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
-  diag_assert(path_is_absolute(rootPath));
+  const String rootPathAbs = path_build_scratch(rootPath);
 
   const int fd = inotify_init1(IN_NONBLOCK);
   if (fd == -1) {
@@ -139,9 +139,9 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
 
   FileMonitorFlags flags = 0;
   /**
-   * Stat the rootPath for more consistent error messages across platforms.
+   * Stat the root-path for more consistent error messages across platforms.
    */
-  if (file_stat_path_sync(rootPath).type != FileType_Directory) {
+  if (file_stat_path_sync(rootPathAbs).type != FileType_Directory) {
     flags |= FileMonitorFlags_RootDirectoryInaccessible;
   }
 
@@ -152,7 +152,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
       .mutex    = thread_mutex_create(alloc),
       .flags    = flags,
       .fd       = fd,
-      .rootPath = string_dup(alloc, rootPath),
+      .rootPath = string_dup(alloc, rootPathAbs),
       .watches  = dynarray_create_t(alloc, FileWatch, 64),
   };
 
