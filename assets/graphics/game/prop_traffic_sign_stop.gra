@@ -1,0 +1,37 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 0,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/traffic_signs/traffic_signs_color_rough.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    },
+    {
+      "textureId": "external/traffic_signs/traffic_signs_normal.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x2"
+    }
+  ],
+  "meshId": "external/traffic_signs/traffic_sign_stop.gltf",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "None"
+}

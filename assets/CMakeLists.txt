@@ -158,6 +158,14 @@ if(${EXTERNAL_ASSETS})
       tires/tires_normal.tga
       tires/tires.bin
       tires/tires.gltf
+      traffic_signs/traffic_blockade.bin
+      traffic_signs/traffic_blockade.gltf
+      traffic_signs/traffic_cone.bin
+      traffic_signs/traffic_cone.gltf
+      traffic_signs/traffic_sign_stop.bin
+      traffic_signs/traffic_sign_stop.gltf
+      traffic_signs/traffic_signs_color_rough.tga
+      traffic_signs/traffic_signs_normal.tga
       tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga
