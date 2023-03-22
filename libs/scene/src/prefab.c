@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -133,16 +134,16 @@ static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitR
   }
 }
 
-static void setup_vfx(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
-  ecs_world_add_t(w, e, SceneVfxComp, .asset = t->asset, .alpha = 1.0f);
+static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
+  ecs_world_add_t(w, e, SceneVfxSystemComp, .asset = t->asset, .alpha = 1.0f);
+}
+
+static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
+  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
   ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
-}
-
-static void setup_scale(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScale* t) {
-  ecs_world_add_t(w, e, SceneScaleComp, .scale = t->scale);
 }
 
 static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
@@ -259,6 +260,10 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
       .intervalMax  = t->intervalMax);
 }
 
+static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
+  ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
+}
+
 static void setup_trait(
     EcsWorld*               w,
     const EcsEntityId       e,
@@ -270,13 +275,13 @@ static void setup_trait(
     setup_renderable(w, e, &t->data_renderable);
     return;
   case AssetPrefabTrait_Vfx:
-    setup_vfx(w, e, &t->data_vfx);
+    setup_vfx_system(w, e, &t->data_vfx);
+    return;
+  case AssetPrefabTrait_Decal:
+    setup_vfx_decal(w, e, &t->data_decal);
     return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);
-    return;
-  case AssetPrefabTrait_Scale:
-    setup_scale(w, e, &t->data_scale);
     return;
   case AssetPrefabTrait_Movement:
     setup_movement(w, e, &t->data_movement);
@@ -295,6 +300,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Spawner:
     setup_spawner(w, e, &t->data_spawner);
+    return;
+  case AssetPrefabTrait_Scalable:
+    setup_scale(w, e, s->scale);
     return;
   case AssetPrefabTrait_Count:
     break;

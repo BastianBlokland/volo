@@ -40,8 +40,8 @@ static void graphic_datareg_init() {
     data_reg_enum_t(reg, AssetGraphicBlend);
     data_reg_const_t(reg, AssetGraphicBlend, None);
     data_reg_const_t(reg, AssetGraphicBlend, Alpha);
+    data_reg_const_t(reg, AssetGraphicBlend, AlphaConstant);
     data_reg_const_t(reg, AssetGraphicBlend, Additive);
-    data_reg_const_t(reg, AssetGraphicBlend, AlphaAdditive);
     data_reg_const_t(reg, AssetGraphicBlend, PreMultiplied);
 
     data_reg_enum_t(reg, AssetGraphicWrap);
@@ -106,6 +106,8 @@ static void graphic_datareg_init() {
     data_reg_field_t(reg, AssetGraphicComp, depthBiasConstant, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetGraphicComp, depthBiasSlope, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetGraphicComp, blendAux, t_AssetGraphicBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetGraphicComp, blendConstant, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
     // clang-format on

@@ -75,10 +75,18 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
       drawA->instDataSize == drawB->instDataSize,
       "Only draws with the same instance-data stride can be combined");
 
-  for (u32 i = 0; i != (u32)drawB->instCount; ++i) {
+  for (u32 i = 0; i != drawB->instCount; ++i) {
     const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
-    const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
-    const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
+
+    SceneTags tags;
+    GeoBox    aabb;
+    if (drawB->flags & RendDrawFlags_NoInstanceFiltering) {
+      tags = 0;
+      aabb = geo_box_inverted3();
+    } else {
+      tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
+      aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
+    }
 
     const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
     intrinsic_memcpy(newData.ptr, data.ptr, data.size);
@@ -259,7 +267,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   }
 
   draw->outputInstCount = 0;
-  for (u32 i = 0; i != (u32)draw->instCount; ++i) {
+  for (u32 i = 0; i != draw->instCount; ++i) {
     const SceneTags instTags = ((SceneTags*)draw->instTagsMem.ptr)[i];
     const GeoBox*   instAabb = &((GeoBox*)draw->instAabbMem.ptr)[i];
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
@@ -294,7 +302,7 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
   u32 instCount;
   Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
-    instCount = (u32)draw->instCount;
+    instCount = draw->instCount;
     instData  = mem_slice(draw->instDataMem, 0, instCount * draw->instDataSize);
   } else {
     instCount = draw->outputInstCount;
@@ -340,7 +348,7 @@ Mem rend_draw_add_instance(
   if (UNLIKELY(!draw->instDataSize)) {
     draw->instDataSize = rend_draw_align((u32)size, rend_min_align);
   }
-  diag_assert_msg(size <= (u32)draw->instDataSize, "Draw instance-data size mismatch");
+  diag_assert_msg(size <= draw->instDataSize, "Draw instance-data size mismatch");
 
   /**
    * Add a new instance and return instance memory for the caller to write into.

@@ -10,6 +10,7 @@ const String g_rendPassNames[] = {
     string_static("ambient-occlusion"),
     string_static("bloom"),
     string_static("distortion"),
+    string_static("decal"),
 };
 ASSERT(array_elems(g_rendPassNames) == RendPass_Count, "Incorrect number of names");
 

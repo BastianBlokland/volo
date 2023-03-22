@@ -56,6 +56,7 @@ static i8 level_compare_object_id(const void* a, const void* b) {
 ecs_view_define(InstanceView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_read(ScenePrefabInstanceComp);
 }
 
@@ -81,6 +82,7 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
             .prefabId = prefabId,
             .position = obj->position,
             .rotation = rot,
+            .scale    = obj->scale,
             .faction  = (SceneFaction)obj->faction,
         });
   }
@@ -173,6 +175,7 @@ static void scene_level_object_push(
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
   const SceneTransformComp*      maybeTrans = ecs_view_read_t(instanceItr, SceneTransformComp);
+  const SceneScaleComp*          maybeScale = ecs_view_read_t(instanceItr, SceneScaleComp);
   const SceneFactionComp*        maybeFaction = ecs_view_read_t(instanceItr, SceneFactionComp);
 
   const String prefabName = stringtable_lookup(g_stringtable, prefabInst->prefabId);
@@ -189,6 +192,7 @@ static void scene_level_object_push(
       .prefab   = prefabName,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = rotEulerDeg,
+      .scale    = maybeScale ? maybeScale->scale : 1.0f,
       .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
   };
 

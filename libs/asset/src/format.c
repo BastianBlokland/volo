@@ -9,6 +9,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("atx"),
       string_static("bin"),
       string_static("bt"),
+      string_static("dcl"),
       string_static("ftx"),
       string_static("gltf"),
       string_static("gra"),

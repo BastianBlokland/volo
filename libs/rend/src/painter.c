@@ -34,13 +34,28 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachDepth     = RvkPassDepth_Stored,
             .attachDepthLoad = RvkPassLoad_Clear,
 
-            // Attachment color 0: color (rgb) and roughness (a).
+            // Attachment color 0: color (rgb) and emissive (a).
             .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
             .attachColorLoad[0]   = RvkPassLoad_Clear,
 
-            // Attachment color 1: normal (rg), emissive (b) and tags (a).
+            // Attachment color 1: normal (rg), roughness (b) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
             .attachColorLoad[1]   = RvkPassLoad_Clear,
+        },
+
+    [RendPass_Decal] =
+        {
+            // Attachment depth.
+            .attachDepth     = RvkPassDepth_Stored,
+            .attachDepthLoad = RvkPassLoad_Preserve,
+
+            // Attachment color 0: color (rgb) and emissive (a).
+            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+            .attachColorLoad[0]   = RvkPassLoad_Preserve,
+
+            // Attachment color 1: normal (rg), roughness (b) and tags (a).
+            .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+            .attachColorLoad[1]   = RvkPassLoad_Preserve,
         },
 
     [RendPass_Shadow] =
@@ -286,6 +301,26 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
   return tagMask;
 }
 
+static void painter_push_decal(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+  EcsIterator* graphicItr = ecs_view_itr(graView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!(rend_draw_flags(draw) & RendDrawFlags_Decal)) {
+      continue; // Shouldn't be included in the decal pass.
+    }
+    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
+      continue; // Draw culled.
+    }
+    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
+      continue; // Graphic not loaded.
+    }
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
+    if (rvk_pass_prepare(ctx->pass, graphic)) {
+      painter_push(ctx, rend_draw_output(draw, graphic));
+    }
+  }
+}
+
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
   RendDrawFlags requiredAny = 0;
   requiredAny |= RendDrawFlags_StandardGeometry; // Include geometry.
@@ -397,6 +432,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* graphicView) {
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_Decal;      // Ignore decals (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
   ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
@@ -713,6 +749,33 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
   }
 
+  // Decal pass.
+  RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
+  if (set->flags & RendFlags_Decals) {
+    // TODO: Depth copy can be avoided by supporting read-only depth attachments.
+    RvkImage* depthCpy = rvk_canvas_attach_acquire_depth(painter->canvas, decalPass, geoSize);
+    rvk_canvas_img_copy(painter->canvas, geoDepth, depthCpy);
+
+    // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
+    // Potentially this can be avoided by using the stencil buffer for tags and reconstructing
+    // geometry normals based on the depth.
+    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_color(painter->canvas, decalPass, 1, geoSize);
+    rvk_canvas_img_copy(painter->canvas, geoData1, geoData1Cpy);
+
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
+    rvk_pass_stage_global_image(decalPass, geoData1Cpy, 0);
+    rvk_pass_stage_global_image(decalPass, geoDepth, 1);
+    rvk_pass_stage_attach_color(decalPass, geoData0, 0);
+    rvk_pass_stage_attach_color(decalPass, geoData1, 1);
+    rvk_pass_stage_attach_depth(decalPass, depthCpy);
+    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_push_decal(&ctx, drawView, graphicView);
+    painter_flush(&ctx);
+
+    rvk_canvas_attach_release(painter->canvas, depthCpy);
+    rvk_canvas_attach_release(painter->canvas, geoData1Cpy);
+  }
+
   // Shadow pass.
   const RvkSize shadowSize = rend_light_has_shadow(light)
                                  ? (RvkSize){set->shadowResolution, set->shadowResolution}
@@ -755,10 +818,9 @@ static bool rend_canvas_paint(
   }
 
   // Forward pass.
-  const RvkSize fwdSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
-  RvkPass*      fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
-  RvkImage*     fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, fwdSize);
-  RvkImage*     fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, fwdSize);
+  RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
+  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
+  RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, geoSize);
   {
     rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
 
@@ -770,7 +832,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_global_shadow(fwdPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(fwdPass, fwdColor, 0);
     rvk_pass_stage_attach_depth(fwdPass, fwdDepth);
-    painter_stage_global_data(&ctx, &camMat, &projMat, fwdSize, time, RendViewType_Main);
+    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_ambient(&ctx);
     switch ((u32)set->skyMode) {
     case RendSkyMode_Gradient:
@@ -780,7 +842,7 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_SkyCubeMapGraphic, mem_empty);
       break;
     }
-    if (geoTagMask & SceneTags_Outline) {
+    if (geoTagMask & SceneTags_Selected) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
@@ -827,7 +889,7 @@ static bool rend_canvas_paint(
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     RendPaintContext ctx  = painter_context(painter, set, setGlobal, time, bloomPass, mainView);
-    RvkSize          size = fwdSize;
+    RvkSize          size = geoSize;
     RvkImage*        images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
 
@@ -868,22 +930,21 @@ static bool rend_canvas_paint(
   }
 
   // Post pass.
-  const RvkSize postSize = swapchainSize;
-  RvkPass*      postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
   {
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, postSize, time, RendViewType_Main);
+    painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
     if (set->flags & RendFlags_DebugShadow) {
       const f32 exposure = 0.5f;
       painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
-      const f32 exposure = 10.0f;
+      const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);

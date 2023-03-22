@@ -47,6 +47,9 @@ configure_shaders(volo_shaders
     shaders/tonemapper.frag
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
+    shaders/vfx/decal_debug.frag
+    shaders/vfx/decal.frag
+    shaders/vfx/decal.vert
     shaders/vfx/particle_depth.frag
     shaders/vfx/particle_distortion.frag
     shaders/vfx/particle_forward.frag
@@ -78,6 +81,19 @@ if(${EXTERNAL_ASSETS})
       crate/crate_normal.tga
       crate/crate.bin
       crate/crate.gltf
+      decal/dirt.tga
+      decal/oil_splatter_normal.tga
+      decal/oil_splatter.tga
+      decal/radioactive.tga
+      decal/rust.tga
+      decal/sand_normal.tga
+      decal/sand.tga
+      decal/scorch.tga
+      decal/tarp_normal.tga
+      decal/tarp.tga
+      decal/text_volo.tga
+      decal/tire_track_alpha.tga
+      decal/tire_track_normal.tga
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
       fence/fence_1.bin
@@ -142,6 +158,14 @@ if(${EXTERNAL_ASSETS})
       tires/tires_normal.tga
       tires/tires.bin
       tires/tires.gltf
+      traffic_signs/traffic_blockade.bin
+      traffic_signs/traffic_blockade.gltf
+      traffic_signs/traffic_cone.bin
+      traffic_signs/traffic_cone.gltf
+      traffic_signs/traffic_sign_stop.bin
+      traffic_signs/traffic_sign_stop.gltf
+      traffic_signs/traffic_signs_color_rough.tga
+      traffic_signs/traffic_signs_normal.tga
       tree_acacia/tree_acacia_2_color_rough.tga
       tree_acacia/tree_acacia_alpha.tga
       tree_acacia/tree_acacia_normal.tga
@@ -156,6 +180,7 @@ if(${EXTERNAL_ASSETS})
       vfx/arrow.tga
       vfx/flash_2.tga
       vfx/flash_star_2.tga
+      vfx/grid.tga
       vfx/heat_distortion_2_nrm.tga
       vfx/ring_distortion_nrm.tga
       vfx/rock.tga

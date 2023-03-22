@@ -22,11 +22,11 @@ typedef enum {
 } AssetGraphicRasterizer;
 
 typedef enum {
-  AssetGraphicBlend_None,          // No blending, just replace the framebuffer's rgb values.
-  AssetGraphicBlend_Alpha,         // Blend between rgb and the framebuffer based on the alpha.
-  AssetGraphicBlend_Additive,      // Add rgb to the framebuffer (ignores alpha).
-  AssetGraphicBlend_AlphaAdditive, // Multiply rgb by alpha and add them to the framebuffer.
-  AssetGraphicBlend_PreMultiplied, // Multiply the framebuffer by the alpha and add the color's rgb.
+  AssetGraphicBlend_None,          // No blending, overwrite the attachment rgba.
+  AssetGraphicBlend_Alpha,         // Blend based on alpha (attachment alpha is unchanged).
+  AssetGraphicBlend_AlphaConstant, // Blend based on alpha (attachment alpha is set to constant).
+  AssetGraphicBlend_Additive,      // Add the input to the attachment rgba.
+  AssetGraphicBlend_PreMultiplied, // Multiply the attachment by the alpha and add the color's rgb.
 
   AssetGraphicBlend_Count,
 } AssetGraphicBlend;
@@ -113,9 +113,19 @@ ecs_comp_extern_public(AssetGraphicComp) {
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u16                    lineWidth;  // Line width (in pixels) when the rasterizer mode is 'lines'.
-  bool                   depthClamp; // Disables primitive clipping z clipping.
+  bool                   depthClamp; // Disables primitive z clipping.
   f32                    depthBiasConstant, depthBiasSlope;
-  AssetGraphicBlend      blend;
+  AssetGraphicBlend      blend;    // Blend mode for the primary attachment.
+  AssetGraphicBlend      blendAux; // Blend mode for the other attachments.
   AssetGraphicDepth      depth;
   AssetGraphicCull       cull;
+
+  /**
+   * Usage of the blend-constant is blend-mode dependent:
+   * - AssetGraphicBlend_Alpha:         Unused.
+   * - AssetGraphicBlend_AlphaConstant: Controls the output alpha value.
+   * - AssetGraphicBlend_Additive:      Unused.
+   * - AssetGraphicBlend_PreMultiplied: Unused.
+   */
+  f32 blendConstant;
 };

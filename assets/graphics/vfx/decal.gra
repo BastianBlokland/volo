@@ -1,0 +1,32 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/vfx/decal.vert.spv"
+    },
+    {
+      "shaderId": "shaders/vfx/decal.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/vfx/decal_color.atl",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "textures/vfx/decal_normal.atl",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    }
+  ],
+  "meshId": "meshes/vfx/decal_box.pme",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "AlphaConstant",
+  "blendConstant": 0,
+  "blendAux": "Alpha",
+  "depth": "LessNoWrite",
+  "cull": "Back"
+}

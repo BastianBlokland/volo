@@ -26,6 +26,7 @@
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -151,6 +152,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_maybe_write(SceneTargetFinderComp);
+  ecs_access_maybe_write(SceneVfxDecalComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -436,6 +438,23 @@ static void inspector_panel_draw_renderable(
   }
 }
 
+static void inspector_panel_draw_decal(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneVfxDecalComp* decal = subject ? ecs_view_write_t(subject, SceneVfxDecalComp) : null;
+  if (decal) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Decal"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Alpha"));
+      ui_table_next_column(canvas, table);
+      ui_slider(canvas, &decal->alpha);
+    }
+  }
+}
+
 static void inspector_panel_draw_tags(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -666,6 +685,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_decal(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
