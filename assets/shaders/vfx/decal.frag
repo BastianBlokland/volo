@@ -11,10 +11,11 @@
 const f32 c_fadeAngleMin = 0.2;
 const f32 c_fadeAngleMax = 0.8;
 
-const u32 c_flagNormalMap             = 1 << 0;
-const u32 c_flagGBufferBaseNormal     = 1 << 1;
-const u32 c_flagDepthBufferBaseNormal = 1 << 2;
-const u32 c_flagFadeUsingDepthNormal  = 1 << 3;
+const u32 c_flagNoColorOutput         = 1 << 0;
+const u32 c_flagNormalMap             = 1 << 1;
+const u32 c_flagGBufferBaseNormal     = 1 << 2;
+const u32 c_flagDepthBufferBaseNormal = 1 << 3;
+const u32 c_flagFadeUsingDepthNormal  = 1 << 4;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
@@ -109,6 +110,10 @@ void main() {
   }
 
   // Output the result into the gbuffer.
-  out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
+  if ((in_flags & c_flagNoColorOutput) == 0) {
+    out_data0 = f32v4(color.rgb, color.a * fade * in_alpha);
+  } else {
+    out_data0 = f32v4(0);
+  }
   out_data1 = f32v4(math_normal_encode(normal), in_roughness, color.a * fade * in_alpha);
 }
