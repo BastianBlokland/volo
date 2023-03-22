@@ -6,10 +6,11 @@ typedef union uGeoColor {
   struct {
     f32 r, g, b, a;
   };
-  f32 data[4];
+  ALIGNAS(16) f32 data[4];
 } GeoColor;
 
 ASSERT(sizeof(GeoColor) == 16, "GeoColor has to be 128 bits");
+ASSERT(alignof(GeoColor) == 16, "GeoColor has to be aligned to 128 bits");
 
 /**
  * Construct a new color.
