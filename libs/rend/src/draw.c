@@ -77,8 +77,16 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
 
   for (u32 i = 0; i != (u32)drawB->instCount; ++i) {
     const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
-    const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
-    const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
+
+    SceneTags tags;
+    GeoBox    aabb;
+    if (drawB->flags & RendDrawFlags_NoInstanceFiltering) {
+      tags = 0;
+      aabb = geo_box_inverted3();
+    } else {
+      tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
+      aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
+    }
 
     const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
     intrinsic_memcpy(newData.ptr, data.ptr, data.size);
