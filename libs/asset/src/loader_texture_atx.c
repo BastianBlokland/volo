@@ -222,24 +222,12 @@ static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static AssetTexturePixelB4 atx_color_to_b4_linear(const GeoColor color) {
+static AssetTexturePixelB4 atx_color_to_b4(const GeoColor color) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
   return (AssetTexturePixelB4){
       .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
       .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
       .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
-  };
-}
-
-static AssetTexturePixelB4 atx_color_to_b4_srgb(const GeoColor color) {
-  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  static const f32 g_gammaInv = 1.0f / 2.2f;
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
-      .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
-      .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
       .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
   };
 }
@@ -284,15 +272,14 @@ static void atx_write_resample(
     for (u32 y = 0; y != height; ++y) {
       const f32 yFrac = (y + 0.5f) * invHeight;
       for (u32 x = 0; x != width; ++x) {
-        const f32      xFrac = (x + 0.5f) * invWidth;
-        const GeoColor color = asset_texture_sample(tex, xFrac, yFrac, 0);
+        const f32 xFrac = (x + 0.5f) * invWidth;
+        GeoColor  color = asset_texture_sample(tex, xFrac, yFrac, 0);
 
         if (srgb) {
-          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_srgb(color);
-        } else {
-          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(color);
+          color = geo_color_linear_to_srgb(color);
         }
-        dest = mem_consume(dest, sizeof(AssetTexturePixelB4));
+        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(color);
+        dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
   }
@@ -379,7 +366,7 @@ static void atx_write_diff_irradiance_b4(
         const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
         const GeoColor  irradiance = atx_diff_irradiance_convolve(textures, dir);
 
-        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irradiance);
+        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(irradiance);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -459,7 +446,7 @@ static void atx_write_spec_irradiance_b4(
           const GeoVector dir      = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
           const GeoColor  irr = atx_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
-          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4_linear(irr);
+          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(irr);
           dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
         }
       }

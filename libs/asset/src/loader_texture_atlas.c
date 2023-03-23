@@ -145,24 +145,12 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   return flags;
 }
 
-static AssetTexturePixelB4 atlas_color_to_b4_linear(const GeoColor color) {
+static AssetTexturePixelB4 atlas_color_to_b4(const GeoColor color) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
   return (AssetTexturePixelB4){
       .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
       .g = (u8)(color.g * g_u8MaxPlusOneRoundDown),
       .b = (u8)(color.b * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
-  };
-}
-
-static AssetTexturePixelB4 atlas_color_to_b4_srgb(const GeoColor color) {
-  static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
-  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
-  static const f32 g_gammaInv = 1.0f / 2.2f;
-  return (AssetTexturePixelB4){
-      .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
-      .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
-      .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
       .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
   };
 }
@@ -187,15 +175,14 @@ static void atlas_generate_entry(
       const u32 layer = 0;
       const f32 xNorm = (entryPixelX + 0.5f) * texSizeInv;
 
-      const GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
-
-      const usize outTexPixelY = texY + entryPixelY;
-      const usize outTexPixelX = texX + entryPixelX;
+      GeoColor color = asset_texture_sample(texture, xNorm, yNorm, layer);
       if (def->srgb) {
-        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_srgb(color);
-      } else {
-        out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4_linear(color);
+        color = geo_color_linear_to_srgb(color);
       }
+
+      const usize outTexPixelY                     = texY + entryPixelY;
+      const usize outTexPixelX                     = texX + entryPixelX;
+      out[outTexPixelY * def->size + outTexPixelX] = atlas_color_to_b4(color);
     }
   }
 }
