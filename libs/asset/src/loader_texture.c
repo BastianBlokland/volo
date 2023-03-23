@@ -207,7 +207,7 @@ GeoColor asset_texture_at(const AssetTextureComp* tex, const u32 layer, const us
         res.r = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].r];
         res.g = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].g];
         res.b = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].b];
-        res.a = g_textureSrgbToFloat[((AssetTexturePixelB4*)pixelsMip0)[index].a];
+        res.a = ((AssetTexturePixelB4*)pixelsMip0)[index].a * g_u8MaxInv;
       } else {
         res.r = ((AssetTexturePixelB4*)pixelsMip0)[index].r * g_u8MaxInv;
         res.g = ((AssetTexturePixelB4*)pixelsMip0)[index].g * g_u8MaxInv;
