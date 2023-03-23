@@ -163,7 +163,7 @@ static AssetTexturePixelB4 atlas_color_to_b4_srgb(const GeoColor color) {
       .r = (u8)(math_pow_f32(color.r, g_gammaInv) * g_u8MaxPlusOneRoundDown),
       .g = (u8)(math_pow_f32(color.g, g_gammaInv) * g_u8MaxPlusOneRoundDown),
       .b = (u8)(math_pow_f32(color.b, g_gammaInv) * g_u8MaxPlusOneRoundDown),
-      .a = (u8)(math_pow_f32(color.a, g_gammaInv) * g_u8MaxPlusOneRoundDown),
+      .a = (u8)(color.a * g_u8MaxPlusOneRoundDown),
   };
 }
 
