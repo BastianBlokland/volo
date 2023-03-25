@@ -340,6 +340,9 @@ ecs_system_define(VfxDecalUpdateSys) {
     case AssetDecalAxis_LocalZ:
       rot = transRot;
       break;
+    case AssetDecalAxis_WorldY:
+      rot = geo_quat_forward_to_up;
+      break;
     }
 
     vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);

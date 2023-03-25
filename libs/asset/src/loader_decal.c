@@ -40,6 +40,7 @@ static void decal_datareg_init() {
     data_reg_enum_t(reg, AssetDecalAxis);
     data_reg_const_t(reg, AssetDecalAxis, LocalY);
     data_reg_const_t(reg, AssetDecalAxis, LocalZ);
+    data_reg_const_t(reg, AssetDecalAxis, WorldY);
 
     data_reg_enum_t(reg, AssetDecalNormal);
     data_reg_const_t(reg, AssetDecalNormal, GBuffer);

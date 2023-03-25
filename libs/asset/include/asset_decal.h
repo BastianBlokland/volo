@@ -4,6 +4,7 @@
 typedef enum {
   AssetDecalAxis_LocalY,
   AssetDecalAxis_LocalZ,
+  AssetDecalAxis_WorldY,
 } AssetDecalAxis;
 
 typedef enum {
