@@ -1,5 +1,5 @@
 {
-  "projectionAxis": "Y",
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "oil_splatter",
   "normalAtlasEntry": "oil_splatter",
   "baseNormal": "DecalTransform",

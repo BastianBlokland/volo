@@ -1,5 +1,5 @@
 {
-  "projectionAxis": "Y",
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "dirt",
   "baseNormal": "GBuffer",
   "roughness": 0.95,

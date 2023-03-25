@@ -1,5 +1,5 @@
 {
-  "projectionAxis": "Y",
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "sign_radioactive",
   "baseNormal": "GBuffer",
   "roughness": 0.3,

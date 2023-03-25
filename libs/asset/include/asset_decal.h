@@ -2,8 +2,8 @@
 #include "ecs_module.h"
 
 typedef enum {
-  AssetDecalAxis_Y,
-  AssetDecalAxis_Z,
+  AssetDecalAxis_LocalY,
+  AssetDecalAxis_LocalZ,
 } AssetDecalAxis;
 
 typedef enum {

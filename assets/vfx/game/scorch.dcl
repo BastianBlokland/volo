@@ -1,5 +1,5 @@
 {
-  "projectionAxis": "Y",
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "scorch",
   "baseNormal": "GBuffer",
   "roughness": 0.9,

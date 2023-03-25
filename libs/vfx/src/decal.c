@@ -327,25 +327,25 @@ ecs_system_define(VfxDecalUpdateSys) {
     const SceneVfxDecalComp*    decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
     const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
 
-    const GeoVector pos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
-    const f32       alpha = decal->alpha;
+    const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       transScale = scaleComp ? scaleComp->scale : 1.0f;
+    const f32       alpha      = decal->alpha;
 
     GeoQuat rot;
     switch (instance->projectionAxis) {
-    case AssetDecalAxis_Y:
-      rot = LIKELY(transComp) ? geo_quat_mul(transComp->rotation, geo_quat_forward_to_up)
-                              : geo_quat_forward_to_up;
+    case AssetDecalAxis_LocalY:
+      rot = geo_quat_mul(transRot, geo_quat_forward_to_up);
       break;
-    case AssetDecalAxis_Z:
-      rot = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    case AssetDecalAxis_LocalZ:
+      rot = transRot;
       break;
     }
 
-    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale, alpha);
+    vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
 
     if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
-      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale, alpha);
+      vfx_decal_draw_output(drawDebug, instance, transPos, rot, transScale, alpha);
     }
   }
 }
