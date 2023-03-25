@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "Y",
   "colorAtlasEntry": "text_volo",
   "baseNormal": "GBuffer",
   "roughness": 0.2,

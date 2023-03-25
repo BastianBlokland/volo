@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "Y",
   "colorAtlasEntry": "explosion",
   "normalAtlasEntry": "explosion",
   "baseNormal": "DepthBuffer",

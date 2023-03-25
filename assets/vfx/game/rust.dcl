@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "Y",
   "colorAtlasEntry": "rust",
   "baseNormal": "GBuffer",
   "roughness": 0.8,

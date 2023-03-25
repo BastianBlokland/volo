@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "Y",
   "colorAtlasEntry": "dirt",
   "baseNormal": "GBuffer",
   "roughness": 0.95,

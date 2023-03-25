@@ -15,6 +15,7 @@ static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
+  AssetDecalAxis   projectionAxis;
   String           colorAtlasEntry;
   String           normalAtlasEntry; // Optional, empty if unused.
   AssetDecalNormal baseNormal;
@@ -36,12 +37,16 @@ static void decal_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_enum_t(reg, AssetDecalAxis);
+    data_reg_const_t(reg, AssetDecalAxis, Y);
+
     data_reg_enum_t(reg, AssetDecalNormal);
     data_reg_const_t(reg, AssetDecalNormal, GBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DepthBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DecalTransform);
 
     data_reg_struct_t(reg, DecalDef);
+    data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
@@ -79,6 +84,7 @@ ecs_system_define(DecalUnloadAssetSys) {
 }
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
+  out->projectionAxis       = def->projectionAxis;
   out->colorAtlasEntry      = string_hash(def->colorAtlasEntry);
   out->normalAtlasEntry     = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
   out->baseNormal           = def->baseNormal;

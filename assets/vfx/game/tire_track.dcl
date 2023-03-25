@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "Y",
   "colorAtlasEntry": "tire_track_alpha",
   "normalAtlasEntry": "tire_track",
   "baseNormal": "GBuffer",
