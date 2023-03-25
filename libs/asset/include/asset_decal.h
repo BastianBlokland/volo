@@ -3,6 +3,7 @@
 
 typedef enum {
   AssetDecalAxis_Y,
+  AssetDecalAxis_Z,
 } AssetDecalAxis;
 
 typedef enum {
