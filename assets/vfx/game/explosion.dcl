@@ -1,6 +1,7 @@
 {
   "colorAtlasEntry": "explosion",
-  "baseNormal": "GBuffer",
+  "normalAtlasEntry": "explosion",
+  "baseNormal": "DepthBuffer",
   "roughness": 0.9,
   "alpha": 1.0,
   "width": 4,
