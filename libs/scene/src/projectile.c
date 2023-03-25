@@ -103,6 +103,9 @@ static void projectile_impact_spawn(
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = projectile->impactLifetime);
   ecs_world_add_t(world, e, SceneVfxSystemComp, .asset = projectile->impactVfx, .alpha = 1.0f);
+  if (projectile->impactDecal) {
+    ecs_world_add_t(world, e, SceneVfxDecalComp, .asset = projectile->impactDecal, .alpha = 1.0f);
+  }
 }
 
 static void projectile_hit(

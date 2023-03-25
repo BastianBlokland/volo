@@ -22,6 +22,7 @@ typedef struct {
   f32          damage, damageRadius;
   TimeDuration delay, lifetime, destroyDelay, impactLifetime;
   EcsEntityId  vfxProjectile, vfxImpact;
+  EcsEntityId  decalImpact; // Optional, 0 if unused.
 } AssetWeaponEffectProj;
 
 typedef struct {
@@ -29,7 +30,7 @@ typedef struct {
   f32          radius;
   f32          damage;
   TimeDuration delay;
-  EcsEntityId  vfxImpact;
+  EcsEntityId  vfxImpact; // Optional, 0 if unused.
 } AssetWeaponEffectDmg;
 
 typedef struct {
