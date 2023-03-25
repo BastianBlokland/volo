@@ -79,6 +79,13 @@ GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 GeoColor geo_color_bilerp(GeoColor v1, GeoColor v2, GeoColor v3, GeoColor v4, f32 tX, f32 tY);
 
 /**
+ * Apply the srgb encoding curve.
+ * More info: https://en.wikipedia.org/wiki/SRGB.
+ * NOTE: Only defined for values within the 0 - 1 range.
+ */
+GeoColor geo_color_linear_to_srgb(GeoColor);
+
+/**
  * Pack a color to 16 bit floats.
  */
 void geo_color_pack_f16(GeoColor, f16 out[4]);

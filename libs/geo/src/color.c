@@ -103,6 +103,35 @@ GeoColor geo_color_bilerp(
 #endif
 }
 
+GeoColor geo_color_linear_to_srgb(const GeoColor linear) {
+/**
+ * Linear to srgb curve approximation.
+ * Implementation based on: http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+ */
+#if geo_color_simd_enable
+  const SimdVec vecLinear = simd_vec_load(linear.data);
+  const SimdVec s1        = simd_vec_sqrt(vecLinear);
+  const SimdVec s2        = simd_vec_sqrt(s1);
+  const SimdVec s3        = simd_vec_sqrt(s2);
+  const SimdVec srgb      = simd_vec_sub(
+      simd_vec_add(
+          simd_vec_mul(s1, simd_vec_broadcast(0.585122381f)),
+          simd_vec_mul(s2, simd_vec_broadcast(0.783140355f))),
+      simd_vec_mul(s3, simd_vec_broadcast(0.368262736f)));
+
+  GeoColor res;
+  simd_vec_store(simd_vec_copy_w(simd_vec_max(srgb, simd_vec_zero()), vecLinear), res.data);
+  return res;
+#else
+  return (GeoColor){
+      .r = math_max(1.055f * math_pow_f32(linear.r, 0.416666667f) - 0.055f, 0),
+      .g = math_max(1.055f * math_pow_f32(linear.g, 0.416666667f) - 0.055f, 0),
+      .b = math_max(1.055f * math_pow_f32(linear.b, 0.416666667f) - 0.055f, 0),
+      .a = linear.a,
+  };
+#endif
+}
+
 void geo_color_pack_f16(const GeoColor color, f16 out[4]) {
   out[0] = float_f32_to_f16(color.r);
   out[1] = float_f32_to_f16(color.g);

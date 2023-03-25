@@ -49,13 +49,17 @@ INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
   return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
 }
 
+INLINE_HINT static SimdVec simd_vec_copy_w(const SimdVec dst, const SimdVec src) {
+  return _mm_blend_ps(dst, src, 0b1000);
+}
+
 INLINE_HINT static SimdVec simd_vec_w_one(const SimdVec vec) {
-  return _mm_blend_ps(vec, simd_vec_broadcast(1.0f), 0b1000);
+  return simd_vec_copy_w(vec, simd_vec_broadcast(1.0f));
 }
 
 INLINE_HINT static SimdVec simd_vec_w_all_ones(const SimdVec vec) {
   static const u32 g_mask[4] = {0, 0, 0, ~u32_lit(0)};
-  return _mm_blend_ps(vec, simd_vec_load((f32*)g_mask), 0b1000);
+  return simd_vec_copy_w(vec, simd_vec_load((f32*)g_mask));
 }
 
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {

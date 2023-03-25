@@ -46,22 +46,4 @@ f32v3 color_from_hsv(const f32 h, const f32 s, const f32 v) {
   return v * mix(k.xxx, clamp(p - k.xxx, 0.0, 1.0), s);
 }
 
-/**
- * Decode a srgb encoded color to a linear color.
- * NOTE: Fast approximation, more info: https://en.wikipedia.org/wiki/SRGB
- */
-f32v3 color_decode_srgb(const f32v3 color) {
-  const f32 inverseGamma = 2.2;
-  return pow(color, f32v3(inverseGamma));
-}
-
-/**
- * Encode a linear color to srgb.
- * NOTE: Fast approximation, more info: https://en.wikipedia.org/wiki/SRGB
- */
-f32v3 color_encode_srgb(const f32v3 color) {
-  const f32 gamma = 1.0 / 2.2;
-  return pow(color, f32v3(gamma));
-}
-
 #endif // INCLUDE_COLOR
