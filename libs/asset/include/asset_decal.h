@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_module.h"
 
 typedef enum {
@@ -24,4 +25,5 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              alpha;
   f32              width, height;
   f32              thickness;
+  TimeDuration     fadeOutTime;
 };
