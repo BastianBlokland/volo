@@ -15,6 +15,7 @@ static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
+  AssetDecalAxis   projectionAxis;
   String           colorAtlasEntry;
   String           normalAtlasEntry; // Optional, empty if unused.
   AssetDecalNormal baseNormal;
@@ -24,6 +25,7 @@ typedef struct {
   f32              alpha;
   f32              width, height;
   f32              thickness;
+  f32              fadeOutTime;
 } DecalDef;
 
 static void decal_datareg_init() {
@@ -36,12 +38,18 @@ static void decal_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_enum_t(reg, AssetDecalAxis);
+    data_reg_const_t(reg, AssetDecalAxis, LocalY);
+    data_reg_const_t(reg, AssetDecalAxis, LocalZ);
+    data_reg_const_t(reg, AssetDecalAxis, WorldY);
+
     data_reg_enum_t(reg, AssetDecalNormal);
     data_reg_const_t(reg, AssetDecalNormal, GBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DepthBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DecalTransform);
 
     data_reg_struct_t(reg, DecalDef);
+    data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
@@ -52,6 +60,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataDecalDefMeta = data_meta_t(t_DecalDef);
@@ -79,6 +88,7 @@ ecs_system_define(DecalUnloadAssetSys) {
 }
 
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
+  out->projectionAxis       = def->projectionAxis;
   out->colorAtlasEntry      = string_hash(def->colorAtlasEntry);
   out->normalAtlasEntry     = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
   out->baseNormal           = def->baseNormal;
@@ -88,7 +98,8 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->alpha                = def->alpha;
   out->width                = def->width;
   out->height               = def->height;
-  out->thickness = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->thickness   = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->fadeOutTime = (TimeDuration)time_seconds(def->fadeOutTime);
 }
 
 ecs_module_init(asset_decal_module) {

@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "tarp",
   "normalAtlasEntry": "tarp",
   "baseNormal": "DecalTransform",

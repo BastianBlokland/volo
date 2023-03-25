@@ -21,6 +21,10 @@
     {
       "name": "tire_track",
       "texture": "external/decal/tire_track_normal.tga"
+    },
+    {
+      "name": "explosion",
+      "texture": "external/decal/explosion_normal.tga"
     }
   ]
 }

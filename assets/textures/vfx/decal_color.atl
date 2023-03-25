@@ -30,6 +30,10 @@
       "texture": "external/decal/scorch.tga"
     },
     {
+      "name": "explosion",
+      "texture": "external/decal/explosion.tga"
+    },
+    {
       "name": "tarp",
       "texture": "external/decal/tarp.tga"
     },

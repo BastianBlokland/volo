@@ -16,7 +16,7 @@ ecs_comp_extern_public(SceneProjectileComp) {
   TimeDuration         destroyDelay;
   TimeDuration         impactLifetime;
   EcsEntityId          instigator;
-  EcsEntityId          impactVfx;
+  EcsEntityId          impactVfx, impactDecal;
   EcsEntityId          seekEntity;
   GeoVector            seekPos;
 };

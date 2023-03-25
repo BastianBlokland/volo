@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "sand",
   "normalAtlasEntry": "sand",
   "baseNormal": "DecalTransform",

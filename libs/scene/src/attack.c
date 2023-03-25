@@ -263,6 +263,7 @@ static EffectResult effect_update_proj(
       .impactLifetime = def->impactLifetime,
       .instigator     = ctx->instigator,
       .impactVfx      = def->vfxImpact,
+      .impactDecal    = def->decalImpact,
       .seekEntity     = ctx->attack->targetEntity,
       .seekPos        = ctx->attack->targetPos);
 

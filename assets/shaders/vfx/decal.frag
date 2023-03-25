@@ -48,7 +48,8 @@ f32v3 clip_to_world(const f32v3 clipPos) {
 }
 
 f32v4 atlas_sample(const sampler2D atlas, const f32v3 atlasMeta, const f32v3 decalPos) {
-  const f32v2 texcoord = atlasMeta.xy + (decalPos.xz + 0.5) * atlasMeta.z;
+  // NOTE: Flip the Y component as we are using the bottom as the texture origin.
+  const f32v2 texcoord = atlasMeta.xy + (f32v2(decalPos.x, -decalPos.y) + 0.5) * atlasMeta.z;
   return texture(atlas, texcoord);
 }
 
@@ -82,7 +83,7 @@ void main() {
   }
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
-  const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 1, 0));
+  const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
   const f32v3 depthNormal = flat_normal_from_position(worldPos);
   f32v3       baseNormal;
   if ((in_flags & c_flagGBufferBaseNormal) != 0) {

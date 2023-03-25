@@ -26,6 +26,7 @@ typedef struct {
   f32    damage, damageRadius;
   f32    destroyDelay, impactLifetime;
   String vfxIdProjectile, vfxIdImpact;
+  String decalIdImpact; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
 typedef struct {
@@ -33,7 +34,7 @@ typedef struct {
   f32    delay;
   f32    radius;
   f32    damage;
-  String vfxIdImpact;
+  String vfxIdImpact; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
@@ -105,6 +106,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, impactLifetime, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, decalIdImpact, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -181,6 +183,10 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
+static EcsEntityId weapon_asset_maybe_lookup(BuildCtx* ctx, const String id) {
+  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
+}
+
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -200,6 +206,7 @@ static void weapon_effect_proj_build(
       .impactLifetime      = (TimeDuration)time_seconds(def->impactLifetime),
       .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
       .vfxImpact           = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
+      .decalImpact         = weapon_asset_maybe_lookup(ctx, def->decalIdImpact),
   };
   *err = WeaponError_None;
 }
@@ -215,9 +222,7 @@ static void weapon_effect_dmg_build(
       .delay       = (TimeDuration)time_seconds(def->delay),
       .damage      = def->damage,
       .radius      = def->radius,
-      .vfxImpact   = string_is_empty(def->vfxIdImpact)
-                         ? 0
-                         : asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
+      .vfxImpact   = weapon_asset_maybe_lookup(ctx, def->vfxIdImpact),
   };
   *err = WeaponError_None;
 }

@@ -4,10 +4,12 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "scene_lifetime.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -51,11 +53,13 @@ typedef enum {
 } VfxLoadFlags;
 
 ecs_comp_define(VfxDecalInstanceComp) {
-  u16           atlasColorIndex, atlasNormalIndex;
-  VfxDecalFlags flags : 16;
-  f32           roughness;
-  f32           alpha;
-  GeoVector     size;
+  u16            atlasColorIndex, atlasNormalIndex;
+  VfxDecalFlags  flags : 16;
+  AssetDecalAxis projectionAxis : 8;
+  f32            roughness;
+  f32            alpha;
+  TimeDuration   fadeOutTime;
+  GeoVector      size;
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -224,9 +228,11 @@ ecs_system_define(VfxDecalInitSys) {
         .atlasColorIndex  = atlasColorIndex,
         .atlasNormalIndex = atlasNormalIndex,
         .flags            = vfx_decal_flags(asset),
-        .size             = geo_vector(asset->width, asset->thickness, asset->height),
+        .projectionAxis   = asset->projectionAxis,
         .roughness        = asset->roughness,
-        .alpha            = asset->alpha);
+        .alpha            = asset->alpha,
+        .fadeOutTime      = asset->fadeOutTime,
+        .size             = geo_vector(asset->width, asset->height, asset->thickness));
   }
 }
 
@@ -244,6 +250,7 @@ ecs_system_define(VfxDecalDeinitSys) {
 }
 
 ecs_view_define(UpdateView) {
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -272,7 +279,7 @@ static void vfx_decal_draw_output(
     const GeoQuat               rot,
     const f32                   scale,
     const f32                   alpha) {
-  const GeoVector size   = geo_vector_mul_comps(instance->size, geo_vector(scale, 1, scale));
+  const GeoVector size   = geo_vector_mul_comps(instance->size, geo_vector(scale, scale, 1));
   const GeoBox    box    = geo_box_from_center(pos, size);
   const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 
@@ -319,21 +326,38 @@ ecs_system_define(VfxDecalUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const SceneTransformComp*   transComp = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTagComp*         tagComp   = ecs_view_read_t(itr, SceneTagComp);
-    const SceneVfxDecalComp*    decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const VfxDecalInstanceComp* instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
+    const SceneTransformComp*        transComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
+    const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
+    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
+    const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
-    const GeoVector pos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat   rot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
-    const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
-    const f32       alpha = decal->alpha;
+    const GeoVector    transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat      transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32          transScale = scaleComp ? scaleComp->scale : 1.0f;
+    const TimeDuration timeRem    = lifetime ? lifetime->duration : i64_max;
 
-    vfx_decal_draw_output(drawNormal, instance, pos, rot, scale, alpha);
+    GeoQuat rot;
+    switch (instance->projectionAxis) {
+    case AssetDecalAxis_LocalY:
+      rot = geo_quat_mul(transRot, geo_quat_forward_to_up);
+      break;
+    case AssetDecalAxis_LocalZ:
+      rot = transRot;
+      break;
+    case AssetDecalAxis_WorldY:
+      rot = geo_quat_forward_to_up;
+      break;
+    }
+
+    f32 alpha = decal->alpha;
+    alpha *= instance->fadeOutTime ? math_min(timeRem / (f32)instance->fadeOutTime, 1.0f) : 1.0f;
+
+    vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
 
     if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
-      vfx_decal_draw_output(drawDebug, instance, pos, rot, scale, alpha);
+      vfx_decal_draw_output(drawDebug, instance, transPos, rot, transScale, alpha);
     }
   }
 }

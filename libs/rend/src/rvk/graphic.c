@@ -124,11 +124,13 @@ MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) 
       string_static("LessOrEqual"),
       string_static("Equal"),
       string_static("Greater"),
+      string_static("GreaterOrEqual"),
       string_static("Always"),
       string_static("LessNoWrite"),
       string_static("LessOrEqualNoWrite"),
       string_static("EqualNoWrite"),
       string_static("GreaterNoWrite"),
+      string_static("GreaterOrEqualNoWrite"),
       string_static("AlwaysNoWrite"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
@@ -330,6 +332,9 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_GreaterNoWrite:
     // Use the 'less' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_LESS;
+  case AssetGraphicDepth_GreaterOrEqual:
+  case AssetGraphicDepth_GreaterOrEqualNoWrite:
+    return VK_COMPARE_OP_LESS_OR_EQUAL;
   case AssetGraphicDepth_Always:
   case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
@@ -345,12 +350,14 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_Equal:
   case AssetGraphicDepth_Greater:
+  case AssetGraphicDepth_GreaterOrEqual:
   case AssetGraphicDepth_Always:
     return true;
   case AssetGraphicDepth_LessNoWrite:
   case AssetGraphicDepth_LessOrEqualNoWrite:
   case AssetGraphicDepth_EqualNoWrite:
   case AssetGraphicDepth_GreaterNoWrite:
+  case AssetGraphicDepth_GreaterOrEqualNoWrite:
   case AssetGraphicDepth_AlwaysNoWrite:
     return false;
   case AssetGraphicDepth_Count:

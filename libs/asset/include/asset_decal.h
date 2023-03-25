@@ -1,5 +1,12 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_module.h"
+
+typedef enum {
+  AssetDecalAxis_LocalY,
+  AssetDecalAxis_LocalZ,
+  AssetDecalAxis_WorldY,
+} AssetDecalAxis;
 
 typedef enum {
   AssetDecalNormal_GBuffer,        // The current gbuffer normal.
@@ -8,6 +15,7 @@ typedef enum {
 } AssetDecalNormal;
 
 ecs_comp_extern_public(AssetDecalComp) {
+  AssetDecalAxis   projectionAxis;
   StringHash       colorAtlasEntry;
   StringHash       normalAtlasEntry; // Optional, 0 if unused.
   AssetDecalNormal baseNormal; // Base normal where the normal-map is optionally applied on top.
@@ -17,4 +25,5 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              alpha;
   f32              width, height;
   f32              thickness;
+  TimeDuration     fadeOutTime;
 };

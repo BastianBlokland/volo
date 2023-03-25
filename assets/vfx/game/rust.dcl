@@ -1,4 +1,5 @@
 {
+  "projectionAxis": "LocalY",
   "colorAtlasEntry": "rust",
   "baseNormal": "GBuffer",
   "roughness": 0.8,

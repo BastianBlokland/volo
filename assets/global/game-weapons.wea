@@ -128,9 +128,10 @@
           "damage": 250,
           "damageRadius": 3,
           "destroyDelay": 0.75,
-          "impactLifetime": 3,
+          "impactLifetime": 25,
           "vfxIdProjectile": "vfx/game/projectile_missile.vfx",
-          "vfxIdImpact": "vfx/game/explosion.vfx"
+          "vfxIdImpact": "vfx/game/explosion.vfx",
+          "decalIdImpact": "vfx/game/explosion.dcl"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
