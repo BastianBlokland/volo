@@ -84,8 +84,8 @@ if(${EXTERNAL_ASSETS})
       decal/dirt.tga
       decal/explosion_normal.tga
       decal/explosion.tga
-      decal/foot_shoe_left_normal.tga
-      decal/foot_shoe_right_normal.tga
+      decal/foot_shoe_left_2_normal.tga
+      decal/foot_shoe_right_2_normal.tga
       decal/oil_splatter_normal.tga
       decal/oil_splatter.tga
       decal/radioactive.tga
