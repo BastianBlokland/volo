@@ -43,6 +43,7 @@ typedef enum {
   AssetPrefabTrait_Decal,
   AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Movement,
+  AssetPrefabTrait_Footstep,
   AssetPrefabTrait_Health,
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
@@ -76,6 +77,11 @@ typedef struct {
   f32        radius;
   StringHash moveAnimation; // Optional: 0 to disable.
 } AssetPrefabTraitMovement;
+
+typedef struct {
+  StringHash  jointA, jointB;
+  EcsEntityId decalAsset;
+} AssetPrefabTraitFootstep;
 
 typedef struct {
   f32          amount;
@@ -118,6 +124,7 @@ typedef struct {
     AssetPrefabTraitDecal      data_decal;
     AssetPrefabTraitLifetime   data_lifetime;
     AssetPrefabTraitMovement   data_movement;
+    AssetPrefabTraitFootstep   data_footstep;
     AssetPrefabTraitHealth     data_health;
     AssetPrefabTraitAttack     data_attack;
     AssetPrefabTraitCollision  data_collision;
