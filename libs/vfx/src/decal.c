@@ -59,8 +59,8 @@ ecs_comp_define(VfxDecalInstanceComp) {
   AssetDecalAxis projectionAxis : 8;
   f32            roughness, alpha;
   f32            fadeInSec, fadeOutSec;
+  f32            width, height, thickness;
   TimeDuration   creationTime;
-  GeoVector      size;
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -237,7 +237,9 @@ ecs_system_define(VfxDecalInitSys) {
         .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
         .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
         .creationTime     = timeComp->time,
-        .size             = geo_vector(asset->width, asset->height, asset->thickness));
+        .width            = asset->width,
+        .height           = asset->height,
+        .thickness        = asset->thickness);
   }
 }
 
@@ -279,18 +281,18 @@ vfx_draw_get(EcsWorld* world, const VfxDrawManagerComp* drawManager, const VfxDr
 
 static void vfx_decal_draw_output(
     RendDrawComp*               draw,
-    const VfxDecalInstanceComp* instance,
+    const VfxDecalInstanceComp* inst,
     const GeoVector             pos,
     const GeoQuat               rot,
     const f32                   scale,
     const f32                   alpha) {
-  const GeoVector size   = geo_vector_mul_comps(instance->size, geo_vector(scale, scale, 1));
+  const GeoVector size   = geo_vector(inst->width * scale, inst->height * scale, inst->thickness);
   const GeoBox    box    = geo_box_from_center(pos, size);
   const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)instance->flags;
+  out->data1[3] = (f32)inst->flags;
 
   geo_quat_pack_f16(rot, out->data2);
 
@@ -298,13 +300,13 @@ static void vfx_decal_draw_output(
   out->data3[1] = float_f32_to_f16(size.y);
   out->data3[2] = float_f32_to_f16(size.z);
 
-  diag_assert_msg(instance->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
-  diag_assert_msg(instance->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(inst->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(inst->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
-  out->data4[0] = float_f32_to_f16((f32)instance->atlasColorIndex);
-  out->data4[1] = float_f32_to_f16((f32)instance->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(instance->roughness);
-  out->data4[3] = float_f32_to_f16(instance->alpha * alpha);
+  out->data4[0] = float_f32_to_f16((f32)inst->atlasColorIndex);
+  out->data4[1] = float_f32_to_f16((f32)inst->atlasNormalIndex);
+  out->data4[2] = float_f32_to_f16(inst->roughness);
+  out->data4[3] = float_f32_to_f16(inst->alpha * alpha);
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
