@@ -180,7 +180,10 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
       });
 
   scene_selection_clear(ctx->selection);
-  scene_selection_add(ctx->selection, spawnedEntity);
+
+  if (!(input_modifiers(ctx->input) & InputModifier_Shift)) {
+    scene_selection_add(ctx->selection, spawnedEntity);
+  }
 
   if (!ctx->panelComp->createMultiple) {
     ctx->panelComp->mode = PrefabPanelMode_Normal;
