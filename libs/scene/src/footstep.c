@@ -12,6 +12,7 @@
 
 #define scene_footstep_lift_threshold 0.05f
 #define scene_footstep_decal_lifetime time_seconds(2)
+#define scene_footstep_max_per_tick 100
 
 ASSERT(scene_footstep_feet_max <= 8, "Feet state needs to be representable with 8 bits")
 
@@ -95,6 +96,8 @@ static void footstep_decal_spawn(
 }
 
 ecs_system_define(SceneFootstepUpdateSys) {
+  u32 numFootsteps = 0;
+
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneFootstepComp*  footstep  = ecs_view_read_t(itr, SceneFootstepComp);
@@ -115,6 +118,7 @@ ecs_system_define(SceneFootstepUpdateSys) {
 
       if (!footLifted && footWasUp) {
         state->feetUpBits &= ~(1 << footIdx);
+        ++numFootsteps;
 
         const GeoMatrix localToWorld = scene_matrix_world(transComp, scaleComp);
         const GeoVector footLocalPos = geo_matrix_to_translation(jointLocalTrans);
@@ -123,6 +127,14 @@ ecs_system_define(SceneFootstepUpdateSys) {
       } else if (footLifted && !footWasUp) {
         state->feetUpBits |= 1 << footIdx;
       }
+    }
+
+    if (numFootsteps >= scene_footstep_max_per_tick) {
+      /**
+       * Throttle the maximum amount of footsteps in a single tick.
+       * As long as the feet are down for enough ticks no steps will be missed.
+       */
+      break;
     }
   }
 }
