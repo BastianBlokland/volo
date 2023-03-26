@@ -187,6 +187,7 @@ static void vfx_decal_create(
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
+  const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
   const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
   ecs_world_add_t(
       world,
@@ -198,7 +199,7 @@ static void vfx_decal_create(
       .projectionAxis   = asset->projectionAxis,
       .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
-      .alpha            = asset->alpha,
+      .alpha            = alpha,
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
       .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
       .creationTime     = timeComp->time,

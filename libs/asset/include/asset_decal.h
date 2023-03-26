@@ -23,7 +23,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   bool             noColorOutput;        // Disable modifying the gbuffer color.
   bool             randomRotation;
   f32              roughness;
-  f32              alpha;
+  f32              alphaMin, alphaMax;
   f32              width, height;
   f32              thickness;
   f32              scaleMin, scaleMax;
