@@ -3,6 +3,7 @@
   "colorAtlasEntry": "explosion",
   "normalAtlasEntry": "explosion",
   "baseNormal": "DepthBuffer",
+  "randomRotation": true,
   "roughness": 0.9,
   "alpha": 1.0,
   "width": 3.5,
