@@ -10,6 +10,8 @@
 
 #define rvk_mesh_vertex_align 16
 
+#define VOLO_RVK_MESH_LOGGING 0
+
 typedef struct {
   ALIGNAS(16)
   f16 data1[4]; // x, y, z position
@@ -112,6 +114,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 
   alloc_free(verticesAlloc, verticesMem);
 
+#if VOLO_RVK_MESH_LOGGING
   log_d(
       "Vulkan mesh created",
       log_param("name", fmt_text(dbgName)),
@@ -120,6 +123,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),
       log_param("index-memory", fmt_size(mesh->indexBuffer.mem.size)));
+#endif
 
   return mesh;
 }
@@ -129,7 +133,9 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
+#if VOLO_RVK_MESH_LOGGING
   log_d("Vulkan mesh destroyed", log_param("name", fmt_text(mesh->dbgName)));
+#endif
 
   string_free(g_alloc_heap, mesh->dbgName);
   alloc_free_t(g_alloc_heap, mesh);
