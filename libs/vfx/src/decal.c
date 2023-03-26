@@ -20,6 +20,7 @@
 #include "atlas_internal.h"
 #include "draw_internal.h"
 
+#define vfx_decal_max_create_per_tick 50
 #define vfx_decal_max_asset_requests 4
 
 typedef struct {
@@ -223,6 +224,7 @@ ecs_system_define(VfxDecalInitSys) {
   }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InitAssetView));
+  u32          numDecalCreate   = 0;
   u32          numAssetRequests = 0;
 
   EcsView* initView = ecs_world_view_t(world, InitView);
@@ -256,6 +258,10 @@ ecs_system_define(VfxDecalInitSys) {
       atlasNormalIndex = entry->atlasIndex;
     }
     vfx_decal_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+
+    if (++numDecalCreate == vfx_decal_max_create_per_tick) {
+      break; // Throttle the maximum amount of decals to create per tick.
+    }
   }
 }
 
