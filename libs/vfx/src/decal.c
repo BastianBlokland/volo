@@ -58,7 +58,7 @@ ecs_comp_define(VfxDecalInstanceComp) {
   AssetDecalAxis projectionAxis : 8;
   f32            roughness;
   f32            alpha;
-  TimeDuration   fadeOutTime;
+  f32            fadeOutSec;
   GeoVector      size;
 };
 
@@ -231,7 +231,7 @@ ecs_system_define(VfxDecalInitSys) {
         .projectionAxis   = asset->projectionAxis,
         .roughness        = asset->roughness,
         .alpha            = asset->alpha,
-        .fadeOutTime      = asset->fadeOutTime,
+        .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
         .size             = geo_vector(asset->width, asset->height, asset->thickness));
   }
 }
@@ -333,10 +333,10 @@ ecs_system_define(VfxDecalUpdateSys) {
     const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
-    const GeoVector    transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat      transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
-    const f32          transScale = scaleComp ? scaleComp->scale : 1.0f;
-    const TimeDuration timeRem    = lifetime ? lifetime->duration : i64_max;
+    const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       transScale = scaleComp ? scaleComp->scale : 1.0f;
+    const f32       timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
 
     GeoQuat rot;
     switch (instance->projectionAxis) {
@@ -352,8 +352,9 @@ ecs_system_define(VfxDecalUpdateSys) {
     }
 
     f32 alpha = decal->alpha;
-    alpha *= instance->fadeOutTime ? math_min(timeRem / (f32)instance->fadeOutTime, 1.0f) : 1.0f;
-
+    if (instance->fadeOutSec > 0) {
+      alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
+    }
     vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
 
     if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
