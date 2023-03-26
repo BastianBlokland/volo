@@ -152,15 +152,15 @@ ecs_view_define(InitAssetView) {
   ecs_access_read(AssetDecalComp);
 }
 
-static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
+static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  if (decalAsset->noColorOutput) {
+  if (asset->noColorOutput) {
     flags |= VfxDecal_NoColorOutput;
   }
-  if (decalAsset->normalAtlasEntry) {
+  if (asset->normalAtlasEntry) {
     flags |= VfxDecal_NormalMap;
   }
-  switch (decalAsset->baseNormal) {
+  switch (asset->baseNormal) {
   case AssetDecalNormal_GBuffer:
     flags |= VfxDecal_GBufferBaseNormal;
     break;
@@ -171,10 +171,35 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
     // DecalTransform as the base-normal is the default.
     break;
   }
-  if (decalAsset->fadeUsingDepthNormal) {
+  if (asset->fadeUsingDepthNormal) {
     flags |= VfxDecal_FadeUsingDepthNormal;
   }
   return flags;
+}
+
+static void vfx_decal_create(
+    EcsWorld*             world,
+    const EcsEntityId     entity,
+    const u16             atlasColorIndex,
+    const u16             atlasNormalIndex,
+    const AssetDecalComp* asset,
+    const SceneTimeComp*  timeComp) {
+  ecs_world_add_t(
+      world,
+      entity,
+      VfxDecalInstanceComp,
+      .atlasColorIndex  = atlasColorIndex,
+      .atlasNormalIndex = atlasNormalIndex,
+      .flags            = vfx_decal_flags(asset),
+      .projectionAxis   = asset->projectionAxis,
+      .roughness        = asset->roughness,
+      .alpha            = asset->alpha,
+      .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
+      .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
+      .creationTime     = timeComp->time,
+      .width            = asset->width,
+      .height           = asset->height,
+      .thickness        = asset->thickness);
 }
 
 ecs_system_define(VfxDecalInitSys) {
@@ -224,22 +249,7 @@ ecs_system_define(VfxDecalInitSys) {
       }
       atlasNormalIndex = entry->atlasIndex;
     }
-    ecs_world_add_t(
-        world,
-        e,
-        VfxDecalInstanceComp,
-        .atlasColorIndex  = atlasColorIndex,
-        .atlasNormalIndex = atlasNormalIndex,
-        .flags            = vfx_decal_flags(asset),
-        .projectionAxis   = asset->projectionAxis,
-        .roughness        = asset->roughness,
-        .alpha            = asset->alpha,
-        .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
-        .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
-        .creationTime     = timeComp->time,
-        .width            = asset->width,
-        .height           = asset->height,
-        .thickness        = asset->thickness);
+    vfx_decal_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
   }
 }
 
