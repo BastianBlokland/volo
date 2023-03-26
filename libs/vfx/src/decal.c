@@ -186,6 +186,8 @@ static void vfx_decal_create(
     const u16             atlasNormalIndex,
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
+
+  const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
   ecs_world_add_t(
       world,
       entity,
@@ -200,8 +202,8 @@ static void vfx_decal_create(
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
       .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
       .creationTime     = timeComp->time,
-      .width            = asset->width,
-      .height           = asset->height,
+      .width            = asset->width * scale,
+      .height           = asset->height * scale,
       .thickness        = asset->thickness);
 }
 
