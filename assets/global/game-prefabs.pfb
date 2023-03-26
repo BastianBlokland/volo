@@ -456,6 +456,14 @@
           "intervalMax": 60
         }
       ]
+    },
+    {
+      "name": "TestEffectExplosion",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion.dcl" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" },
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 }
+      ]
     }
   ]
 }

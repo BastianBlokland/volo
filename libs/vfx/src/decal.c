@@ -5,12 +5,14 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "scene_tag.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "vfx_register.h"
@@ -56,10 +58,11 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis projectionAxis : 8;
-  f32            roughness;
-  f32            alpha;
-  TimeDuration   fadeOutTime;
-  GeoVector      size;
+  f32            angle;
+  f32            roughness, alpha;
+  f32            fadeInSec, fadeOutSec;
+  f32            width, height, thickness;
+  TimeDuration   creationTime;
 };
 
 ecs_comp_define(VfxDecalAssetComp) { VfxLoadFlags loadFlags; };
@@ -71,6 +74,7 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxAtlasManagerComp);
   ecs_access_read(VfxDrawManagerComp);
 }
@@ -150,15 +154,15 @@ ecs_view_define(InitAssetView) {
   ecs_access_read(AssetDecalComp);
 }
 
-static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
+static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  if (decalAsset->noColorOutput) {
+  if (asset->noColorOutput) {
     flags |= VfxDecal_NoColorOutput;
   }
-  if (decalAsset->normalAtlasEntry) {
+  if (asset->normalAtlasEntry) {
     flags |= VfxDecal_NormalMap;
   }
-  switch (decalAsset->baseNormal) {
+  switch (asset->baseNormal) {
   case AssetDecalNormal_GBuffer:
     flags |= VfxDecal_GBufferBaseNormal;
     break;
@@ -169,10 +173,38 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* decalAsset) {
     // DecalTransform as the base-normal is the default.
     break;
   }
-  if (decalAsset->fadeUsingDepthNormal) {
+  if (asset->fadeUsingDepthNormal) {
     flags |= VfxDecal_FadeUsingDepthNormal;
   }
   return flags;
+}
+
+static void vfx_decal_create(
+    EcsWorld*             world,
+    const EcsEntityId     entity,
+    const u16             atlasColorIndex,
+    const u16             atlasNormalIndex,
+    const AssetDecalComp* asset,
+    const SceneTimeComp*  timeComp) {
+
+  const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
+  ecs_world_add_t(
+      world,
+      entity,
+      VfxDecalInstanceComp,
+      .atlasColorIndex  = atlasColorIndex,
+      .atlasNormalIndex = atlasNormalIndex,
+      .flags            = vfx_decal_flags(asset),
+      .projectionAxis   = asset->projectionAxis,
+      .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
+      .roughness        = asset->roughness,
+      .alpha            = asset->alpha,
+      .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
+      .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
+      .creationTime     = timeComp->time,
+      .width            = asset->width * scale,
+      .height           = asset->height * scale,
+      .thickness        = asset->thickness);
 }
 
 ecs_system_define(VfxDecalInitSys) {
@@ -181,6 +213,7 @@ ecs_system_define(VfxDecalInitSys) {
   if (!globalItr) {
     return;
   }
+  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
@@ -221,18 +254,7 @@ ecs_system_define(VfxDecalInitSys) {
       }
       atlasNormalIndex = entry->atlasIndex;
     }
-    ecs_world_add_t(
-        world,
-        e,
-        VfxDecalInstanceComp,
-        .atlasColorIndex  = atlasColorIndex,
-        .atlasNormalIndex = atlasNormalIndex,
-        .flags            = vfx_decal_flags(asset),
-        .projectionAxis   = asset->projectionAxis,
-        .roughness        = asset->roughness,
-        .alpha            = asset->alpha,
-        .fadeOutTime      = asset->fadeOutTime,
-        .size             = geo_vector(asset->width, asset->height, asset->thickness));
+    vfx_decal_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
   }
 }
 
@@ -274,18 +296,18 @@ vfx_draw_get(EcsWorld* world, const VfxDrawManagerComp* drawManager, const VfxDr
 
 static void vfx_decal_draw_output(
     RendDrawComp*               draw,
-    const VfxDecalInstanceComp* instance,
+    const VfxDecalInstanceComp* inst,
     const GeoVector             pos,
     const GeoQuat               rot,
     const f32                   scale,
     const f32                   alpha) {
-  const GeoVector size   = geo_vector_mul_comps(instance->size, geo_vector(scale, scale, 1));
+  const GeoVector size   = geo_vector(inst->width * scale, inst->height * scale, inst->thickness);
   const GeoBox    box    = geo_box_from_center(pos, size);
   const GeoBox    bounds = geo_box_from_rotated(&box, rot);
 
   VfxDecalData* out = rend_draw_add_instance_t(draw, VfxDecalData, SceneTags_Vfx, bounds);
   mem_cpy(array_mem(out->data1), mem_create(pos.comps, sizeof(f32) * 3));
-  out->data1[3] = (f32)instance->flags;
+  out->data1[3] = (f32)inst->flags;
 
   geo_quat_pack_f16(rot, out->data2);
 
@@ -293,13 +315,13 @@ static void vfx_decal_draw_output(
   out->data3[1] = float_f32_to_f16(size.y);
   out->data3[2] = float_f32_to_f16(size.z);
 
-  diag_assert_msg(instance->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
-  diag_assert_msg(instance->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(inst->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
+  diag_assert_msg(inst->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
 
-  out->data4[0] = float_f32_to_f16((f32)instance->atlasColorIndex);
-  out->data4[1] = float_f32_to_f16((f32)instance->atlasNormalIndex);
-  out->data4[2] = float_f32_to_f16(instance->roughness);
-  out->data4[3] = float_f32_to_f16(instance->alpha * alpha);
+  out->data4[0] = float_f32_to_f16((f32)inst->atlasColorIndex);
+  out->data4[1] = float_f32_to_f16((f32)inst->atlasNormalIndex);
+  out->data4[2] = float_f32_to_f16(inst->roughness);
+  out->data4[3] = float_f32_to_f16(inst->alpha * alpha);
 }
 
 ecs_system_define(VfxDecalUpdateSys) {
@@ -308,7 +330,7 @@ ecs_system_define(VfxDecalUpdateSys) {
   if (!globalItr) {
     return;
   }
-
+  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
@@ -326,17 +348,17 @@ ecs_system_define(VfxDecalUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
     const SceneTransformComp*        transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
-    const GeoVector    transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat      transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
-    const f32          transScale = scaleComp ? scaleComp->scale : 1.0f;
-    const TimeDuration timeRem    = lifetime ? lifetime->duration : i64_max;
+    const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       transScale = scaleComp ? scaleComp->scale : 1.0f;
+    const f32       timeRemSec = lifetime ? lifetime->duration / (f32)time_second : f32_max;
 
     GeoQuat rot;
     switch (instance->projectionAxis) {
@@ -350,10 +372,16 @@ ecs_system_define(VfxDecalUpdateSys) {
       rot = geo_quat_forward_to_up;
       break;
     }
+    rot = geo_quat_mul(rot, geo_quat_angle_axis(geo_forward, instance->angle));
 
     f32 alpha = decal->alpha;
-    alpha *= instance->fadeOutTime ? math_min(timeRem / (f32)instance->fadeOutTime, 1.0f) : 1.0f;
-
+    if (instance->fadeInSec > 0) {
+      const f32 ageSec = (timeComp->time - instance->creationTime) / (f32)time_second;
+      alpha *= math_min(ageSec / instance->fadeInSec, 1.0f);
+    }
+    if (instance->fadeOutSec > 0) {
+      alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
+    }
     vfx_decal_draw_output(drawNormal, instance, transPos, rot, transScale, alpha);
 
     if (UNLIKELY(tagComp && tagComp->tags & SceneTags_Selected)) {
