@@ -11,6 +11,7 @@
 #include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
+#include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_locomotion.h"
@@ -160,9 +161,13 @@ static void setup_movement(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 }
 
 static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitFootstep* t) {
-  (void)w;
-  (void)e;
-  (void)t;
+  ecs_world_add_t(
+      w,
+      e,
+      SceneFootstepComp,
+      .jointA     = t->jointA,
+      .jointB     = t->jointB,
+      .decalAsset = t->decalAsset);
 }
 
 static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {
