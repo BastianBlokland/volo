@@ -10,8 +10,8 @@
   "width": 0.2,
   "height": 0.35,
   "thickness": 0.5,
-  "scaleMin": 0.9,
-  "scaleMax": 1.1,
+  "scaleMin": 0.95,
+  "scaleMax": 1.05,
   "fadeInTime": 0.025,
   "fadeOutTime": 1
 }
