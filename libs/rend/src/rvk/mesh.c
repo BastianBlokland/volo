@@ -8,9 +8,9 @@
 #include "mesh_internal.h"
 #include "transfer_internal.h"
 
-#define rvk_mesh_vertex_align 16
-
 #define VOLO_RVK_MESH_LOGGING 0
+
+#define rvk_mesh_vertex_align 16
 
 typedef struct {
   ALIGNAS(16)
@@ -84,12 +84,12 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
-      .device            = dev,
-      .dbgName           = string_dup(g_alloc_heap, dbgName),
-      .vertexCount       = (u32)asset->vertexCount,
-      .indexCount        = (u32)asset->indexCount,
-      .positionBounds    = asset->positionBounds,
-      .positionRawBounds = asset->positionRawBounds,
+              .device            = dev,
+              .dbgName           = string_dup(g_alloc_heap, dbgName),
+              .vertexCount       = (u32)asset->vertexCount,
+              .indexCount        = (u32)asset->indexCount,
+              .positionBounds    = asset->positionBounds,
+              .positionRawBounds = asset->positionRawBounds,
   };
 
   if (rvk_mesh_skinned(asset)) {
