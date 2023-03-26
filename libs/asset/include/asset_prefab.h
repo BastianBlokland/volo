@@ -80,7 +80,7 @@ typedef struct {
 
 typedef struct {
   StringHash  jointA, jointB;
-  EcsEntityId decalAsset;
+  EcsEntityId decalAssetA, decalAssetB;
 } AssetPrefabTraitFootstep;
 
 typedef struct {

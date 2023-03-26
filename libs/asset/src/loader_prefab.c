@@ -70,7 +70,7 @@ typedef struct {
 
 typedef struct {
   String jointA, jointB;
-  String decalAssetId;
+  String decalIdA, decalIdB;
 } AssetPrefabTraitFootstepDef;
 
 typedef struct {
@@ -194,7 +194,8 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitFootstepDef);
     data_reg_field_t(reg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitFootstepDef, jointB, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabTraitFootstepDef, decalAssetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitFootstepDef, decalIdA, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitFootstepDef, decalIdB, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitHealthDef);
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -388,9 +389,10 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Footstep:
       outTrait->data_footstep = (AssetPrefabTraitFootstep){
-          .jointA     = string_hash(traitDef->data_footstep.jointA),
-          .jointB     = string_hash(traitDef->data_footstep.jointB),
-          .decalAsset = asset_lookup(ctx->world, manager, traitDef->data_footstep.decalAssetId),
+          .jointA      = stringtable_add(g_stringtable, traitDef->data_footstep.jointA),
+          .jointB      = stringtable_add(g_stringtable, traitDef->data_footstep.jointB),
+          .decalAssetA = asset_lookup(ctx->world, manager, traitDef->data_footstep.decalIdA),
+          .decalAssetB = asset_lookup(ctx->world, manager, traitDef->data_footstep.decalIdB),
       };
       break;
     case AssetPrefabTrait_Health:
