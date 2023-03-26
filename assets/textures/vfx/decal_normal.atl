@@ -25,6 +25,14 @@
     {
       "name": "explosion",
       "texture": "external/decal/explosion_normal.tga"
+    },
+    {
+      "name": "foot_boot_left",
+      "texture": "external/decal/foot_shoe_left_normal.tga"
+    },
+    {
+      "name": "foot_boot_right",
+      "texture": "external/decal/foot_shoe_right_normal.tga"
     }
   ]
 }

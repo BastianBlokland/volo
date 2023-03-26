@@ -42,8 +42,8 @@
       "texture": "external/decal/dirt.tga"
     },
     {
-      "name": "tire_track_alpha",
-      "texture": "external/decal/tire_track_alpha.tga"
+      "name": "square_alpha",
+      "texture": "external/decal/square_alpha.tga"
     }
   ]
 }

@@ -84,6 +84,8 @@ if(${EXTERNAL_ASSETS})
       decal/dirt.tga
       decal/explosion_normal.tga
       decal/explosion.tga
+      decal/foot_shoe_left_normal.tga
+      decal/foot_shoe_right_normal.tga
       decal/oil_splatter_normal.tga
       decal/oil_splatter.tga
       decal/radioactive.tga
@@ -91,10 +93,10 @@ if(${EXTERNAL_ASSETS})
       decal/sand_normal.tga
       decal/sand.tga
       decal/scorch.tga
+      decal/square_alpha.tga
       decal/tarp_normal.tga
       decal/tarp.tga
       decal/text_volo.tga
-      decal/tire_track_alpha.tga
       decal/tire_track_normal.tga
       fence/fence_1_color_rough.tga
       fence/fence_1_normal.tga
