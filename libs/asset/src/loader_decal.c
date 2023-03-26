@@ -25,7 +25,7 @@ typedef struct {
   f32              alpha;
   f32              width, height;
   f32              thickness;
-  f32              fadeOutTime;
+  f32              fadeInTime, fadeOutTime;
 } DecalDef;
 
 static void decal_datareg_init() {
@@ -60,6 +60,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     // clang-format on
 
@@ -99,6 +100,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->width                = def->width;
   out->height               = def->height;
   out->thickness   = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->fadeInTime  = (TimeDuration)time_seconds(def->fadeInTime);
   out->fadeOutTime = (TimeDuration)time_seconds(def->fadeOutTime);
 }
 

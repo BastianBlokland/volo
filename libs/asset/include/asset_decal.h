@@ -25,5 +25,5 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              alpha;
   f32              width, height;
   f32              thickness;
-  TimeDuration     fadeOutTime;
+  TimeDuration     fadeInTime, fadeOutTime;
 };

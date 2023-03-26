@@ -11,6 +11,7 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "scene_tag.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "vfx_register.h"
@@ -56,9 +57,9 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis projectionAxis : 8;
-  f32            roughness;
-  f32            alpha;
-  f32            fadeOutSec;
+  f32            roughness, alpha;
+  f32            fadeInSec, fadeOutSec;
+  TimeDuration   creationTime;
   GeoVector      size;
 };
 
@@ -71,6 +72,7 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxAtlasManagerComp);
   ecs_access_read(VfxDrawManagerComp);
 }
@@ -181,6 +183,7 @@ ecs_system_define(VfxDecalInitSys) {
   if (!globalItr) {
     return;
   }
+  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
@@ -231,7 +234,9 @@ ecs_system_define(VfxDecalInitSys) {
         .projectionAxis   = asset->projectionAxis,
         .roughness        = asset->roughness,
         .alpha            = asset->alpha,
+        .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
         .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
+        .creationTime     = timeComp->time,
         .size             = geo_vector(asset->width, asset->height, asset->thickness));
   }
 }
@@ -308,7 +313,7 @@ ecs_system_define(VfxDecalUpdateSys) {
   if (!globalItr) {
     return;
   }
-
+  const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
   const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
@@ -326,11 +331,11 @@ ecs_system_define(VfxDecalUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
     const SceneTransformComp*        transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*            scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
-    const VfxDecalInstanceComp*      instance  = ecs_view_read_t(itr, VfxDecalInstanceComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
     const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
@@ -352,6 +357,10 @@ ecs_system_define(VfxDecalUpdateSys) {
     }
 
     f32 alpha = decal->alpha;
+    if (instance->fadeInSec > 0) {
+      const f32 ageSec = (timeComp->time - instance->creationTime) / (f32)time_second;
+      alpha *= math_min(ageSec / instance->fadeInSec, 1.0f);
+    }
     if (instance->fadeOutSec > 0) {
       alpha *= math_min(timeRemSec / instance->fadeOutSec, 1.0f);
     }
