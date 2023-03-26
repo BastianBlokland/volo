@@ -24,7 +24,7 @@ typedef struct {
   bool             noColorOutput;
   bool             randomRotation;
   f32              roughness;
-  f32              alpha;
+  f32              alphaMin, alphaMax;
   f32              width, height;
   f32              thickness;
   f32              scaleMin, scaleMax;
@@ -60,7 +60,8 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
-    data_reg_field_t(reg, DecalDef, alpha, data_prim_t(f32));
+    data_reg_field_t(reg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, thickness, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -103,12 +104,13 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->noColorOutput        = def->noColorOutput;
   out->randomRotation       = def->randomRotation;
   out->roughness            = def->roughness;
-  out->alpha                = def->alpha;
+  out->alphaMin             = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
+  out->alphaMax             = math_max(out->alphaMin, def->alphaMax);
   out->width                = def->width;
   out->height               = def->height;
   out->thickness   = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
   out->scaleMin    = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
-  out->scaleMax    = math_max(out->scaleMin, def->scaleMax < f32_epsilon ? 1.0f : def->scaleMax);
+  out->scaleMax    = math_max(out->scaleMin, def->scaleMax);
   out->fadeInTime  = (TimeDuration)time_seconds(def->fadeInTime);
   out->fadeOutTime = (TimeDuration)time_seconds(def->fadeOutTime);
 }

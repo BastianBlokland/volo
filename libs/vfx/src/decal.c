@@ -20,6 +20,7 @@
 #include "atlas_internal.h"
 #include "draw_internal.h"
 
+#define vfx_decal_max_create_per_tick 50
 #define vfx_decal_max_asset_requests 4
 
 typedef struct {
@@ -187,6 +188,7 @@ static void vfx_decal_create(
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
+  const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
   const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
   ecs_world_add_t(
       world,
@@ -198,7 +200,7 @@ static void vfx_decal_create(
       .projectionAxis   = asset->projectionAxis,
       .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
-      .alpha            = asset->alpha,
+      .alpha            = alpha,
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
       .fadeOutSec       = asset->fadeOutTime ? asset->fadeOutTime / (f32)time_second : -1.0f,
       .creationTime     = timeComp->time,
@@ -222,6 +224,7 @@ ecs_system_define(VfxDecalInitSys) {
   }
 
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, InitAssetView));
+  u32          numDecalCreate   = 0;
   u32          numAssetRequests = 0;
 
   EcsView* initView = ecs_world_view_t(world, InitView);
@@ -255,6 +258,10 @@ ecs_system_define(VfxDecalInitSys) {
       atlasNormalIndex = entry->atlasIndex;
     }
     vfx_decal_create(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
+
+    if (++numDecalCreate == vfx_decal_max_create_per_tick) {
+      break; // Throttle the maximum amount of decals to create per tick.
+    }
   }
 }
 

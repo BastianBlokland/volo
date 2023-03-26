@@ -10,6 +10,8 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
+#define VOLO_RVK_TEXTURE_LOGGING 0
+
 /**
  * Compute how many times we can cut the image in half before both sides hit 1 pixel.
  */
@@ -107,6 +109,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));
 
+#if VOLO_RVK_TEXTURE_LOGGING
   log_d(
       "Vulkan texture created",
       log_param("name", fmt_text(dbgName)),
@@ -114,6 +117,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       log_param("size", rvk_size_fmt(texture->image.size)),
       log_param("layers", fmt_int(texture->image.layers)),
       log_param("memory", fmt_size(texture->image.mem.size)));
+#endif
 
   return texture;
 }
@@ -122,7 +126,9 @@ void rvk_texture_destroy(RvkTexture* texture) {
   RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 
+#if VOLO_RVK_TEXTURE_LOGGING
   log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
+#endif
 
   string_free(g_alloc_heap, texture->dbgName);
   alloc_free_t(g_alloc_heap, texture);

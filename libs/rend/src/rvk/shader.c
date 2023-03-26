@@ -8,6 +8,8 @@
 #include "device_internal.h"
 #include "shader_internal.h"
 
+#define VOLO_RVK_SHADER_LOGGING 0
+
 static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShaderComp* asset) {
   const VkShaderModuleCreateInfo createInfo = {
       .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -174,6 +176,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
     shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
   }
 
+#if VOLO_RVK_SHADER_LOGGING
   log_d(
       "Vulkan shader created",
       log_param("name", fmt_text(dbgName)),
@@ -181,6 +184,8 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       log_param("entry", fmt_text(asset->entryPoint)),
       log_param("resources", fmt_int(asset->resources.count)),
       log_param("specs", fmt_int(asset->specs.count)));
+#endif
+
   return shader;
 }
 
@@ -194,7 +199,9 @@ void rvk_shader_destroy(RvkShader* shader) {
     alloc_free_array_t(g_alloc_heap, shader->specs.values, shader->specs.count);
   }
 
+#if VOLO_RVK_SHADER_LOGGING
   log_d("Vulkan shader destroyed", log_param("name", fmt_text(shader->dbgName)));
+#endif
 
   string_free(g_alloc_heap, shader->dbgName);
   alloc_free_t(g_alloc_heap, shader);
