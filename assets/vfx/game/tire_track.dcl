@@ -1,6 +1,6 @@
 {
   "projectionAxis": "LocalY",
-  "colorAtlasEntry": "tire_track_alpha",
+  "colorAtlasEntry": "square_alpha",
   "normalAtlasEntry": "tire_track",
   "baseNormal": "GBuffer",
   "noColorOutput": true,

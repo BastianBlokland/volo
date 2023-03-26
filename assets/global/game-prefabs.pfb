@@ -12,6 +12,13 @@
           "moveAnimation": "run"
         },
         {
+          "$type": "AssetPrefabTrait_Footstep",
+          "jointA": "LeftToeBase",
+          "jointB": "RightToeBase",
+          "decalIdA": "vfx/game/footstep_left.dcl",
+          "decalIdB": "vfx/game/footstep_right.dcl"
+        },
+        {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
           "deathDestroyDelay": 2.5
@@ -46,6 +53,13 @@
           "rotationSpeed": 360,
           "radius": 0.3,
           "moveAnimation": "run"
+        },
+        {
+          "$type": "AssetPrefabTrait_Footstep",
+          "jointA": "LeftToeBase",
+          "jointB": "RightToeBase",
+          "decalIdA": "vfx/game/footstep_left.dcl",
+          "decalIdB": "vfx/game/footstep_right.dcl"
         },
         {
           "$type": "AssetPrefabTrait_Health",
