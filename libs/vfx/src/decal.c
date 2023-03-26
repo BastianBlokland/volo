@@ -5,6 +5,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -57,6 +58,7 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis projectionAxis : 8;
+  f32            angle;
   f32            roughness, alpha;
   f32            fadeInSec, fadeOutSec;
   f32            width, height, thickness;
@@ -192,6 +194,7 @@ static void vfx_decal_create(
       .atlasNormalIndex = atlasNormalIndex,
       .flags            = vfx_decal_flags(asset),
       .projectionAxis   = asset->projectionAxis,
+      .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = asset->alpha,
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
@@ -367,6 +370,7 @@ ecs_system_define(VfxDecalUpdateSys) {
       rot = geo_quat_forward_to_up;
       break;
     }
+    rot = geo_quat_mul(rot, geo_quat_angle_axis(geo_forward, instance->angle));
 
     f32 alpha = decal->alpha;
     if (instance->fadeInSec > 0) {

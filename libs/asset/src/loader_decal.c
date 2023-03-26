@@ -21,6 +21,7 @@ typedef struct {
   AssetDecalNormal baseNormal;
   bool             fadeUsingDepthNormal;
   bool             noColorOutput;
+  bool             randomRotation;
   f32              roughness;
   f32              alpha;
   f32              width, height;
@@ -55,6 +56,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, alpha, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, width, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -95,6 +97,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->baseNormal           = def->baseNormal;
   out->fadeUsingDepthNormal = def->fadeUsingDepthNormal;
   out->noColorOutput        = def->noColorOutput;
+  out->randomRotation       = def->randomRotation;
   out->roughness            = def->roughness;
   out->alpha                = def->alpha;
   out->width                = def->width;
