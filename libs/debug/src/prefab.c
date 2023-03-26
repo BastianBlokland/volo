@@ -10,6 +10,7 @@
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_camera.h"
+#include "scene_collision.h"
 #include "scene_prefab.h"
 #include "scene_selection.h"
 #include "scene_terrain.h"
@@ -48,14 +49,15 @@ static void ecs_destruct_prefab_panel(void* data) {
 }
 
 typedef struct {
-  EcsWorld*                 world;
-  const AssetPrefabMapComp* prefabMap;
-  const SceneTerrainComp*   terrain;
-  DebugPrefabPanelComp*     panelComp;
-  const InputManagerComp*   input;
-  DebugShapeComp*           shape;
-  DebugStatsGlobalComp*     globalStats;
-  SceneSelectionComp*       selection;
+  EcsWorld*                    world;
+  const AssetPrefabMapComp*    prefabMap;
+  const SceneCollisionEnvComp* collision;
+  const SceneTerrainComp*      terrain;
+  DebugPrefabPanelComp*        panelComp;
+  const InputManagerComp*      input;
+  DebugShapeComp*              shape;
+  DebugStatsGlobalComp*        globalStats;
+  SceneSelectionComp*          selection;
 } PrefabPanelContext;
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
@@ -176,7 +178,6 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
           .position = pos,
           .rotation = geo_quat_ident,
           .faction  = ctx->panelComp->createFaction,
-          .flags    = ScenePrefabFlags_SnapToTerrain,
       });
 
   scene_selection_clear(ctx->selection);
@@ -213,10 +214,18 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  f32 rayT;
-  if (ctx->terrain) {
+  f32 rayT = -1.0f;
+  if (ctx->collision) {
+    const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
+    SceneRayHit            hit;
+    if (scene_query_ray(ctx->collision, &inputRay, g_createMaxInteractDist, &filter, &hit)) {
+      rayT = hit.time;
+    }
+  }
+  if (rayT < 0 && ctx->terrain) {
     rayT = scene_terrain_intersect_ray(ctx->terrain, &inputRay, g_createMaxInteractDist);
-  } else {
+  }
+  if (rayT < 0) {
     rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, &inputRay);
   }
   if (rayT < g_createMinInteractDist || blocked) {
@@ -402,6 +411,7 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_maybe_read(SceneCollisionEnvComp);
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(ScenePrefabResourceComp);
   ecs_access_write(DebugShapeComp);
@@ -422,6 +432,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     return;
   }
   const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  const SceneCollisionEnvComp*   collision = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
   InputManagerComp*              input     = ecs_view_write_t(globalItr, InputManagerComp);
 
@@ -444,6 +455,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     const PrefabPanelContext ctx = {
         .world       = world,
         .prefabMap   = prefabMap,
+        .collision   = collision,
         .terrain     = terrain,
         .panelComp   = panelComp,
         .input       = input,
