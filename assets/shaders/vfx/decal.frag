@@ -33,7 +33,7 @@ bind_internal(4) in flat f32v3 in_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) in flat u32 in_flags;
 bind_internal(6) in flat f32 in_roughness;
 bind_internal(7) in flat f32 in_alpha;
-bind_internal(8) in flat u32 in_excludeMask;
+bind_internal(8) in flat u32 in_excludeTags;
 
 /**
  * Geometry Data0: color (rgb), emissive (a).
@@ -77,7 +77,7 @@ void main() {
   const f32v3 localPos = quat_rotate(quat_inverse(in_rotation), worldPos - in_position) / in_scale;
 
   // Discard pixels on invalid surface or outside of the decal space.
-  const bool  validSurface = (tags & in_excludeMask) == 0;
+  const bool  validSurface = (tags & in_excludeTags) == 0;
   const f32v3 absLocalPos  = abs(localPos);
   if (!validSurface || absLocalPos.x > 0.5 || absLocalPos.y > 0.5 || absLocalPos.z > 0.5) {
     discard;

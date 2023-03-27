@@ -16,6 +16,11 @@ static DataReg* g_dataReg;
 static DataMeta g_dataDecalDefMeta;
 
 typedef struct {
+  AssetDecalMask* values;
+  usize           count;
+} DecalMaskDef;
+
+typedef struct {
   AssetDecalAxis   projectionAxis;
   String           colorAtlasEntry;
   String           normalAtlasEntry; // Optional, empty if unused.
@@ -23,6 +28,7 @@ typedef struct {
   bool             fadeUsingDepthNormal;
   bool             noColorOutput;
   bool             randomRotation;
+  DecalMaskDef     excludeMask;
   f32              roughness;
   f32              alphaMin, alphaMax;
   f32              width, height;
@@ -51,6 +57,11 @@ static void decal_datareg_init() {
     data_reg_const_t(reg, AssetDecalNormal, DepthBuffer);
     data_reg_const_t(reg, AssetDecalNormal, DecalTransform);
 
+    data_reg_enum_t(reg, AssetDecalMask);
+    data_reg_const_t(reg, AssetDecalMask, Geometry);
+    data_reg_const_t(reg, AssetDecalMask, Terrain);
+    data_reg_const_t(reg, AssetDecalMask, Unit);
+
     data_reg_struct_t(reg, DecalDef);
     data_reg_field_t(reg, DecalDef, projectionAxis, t_AssetDecalAxis);
     data_reg_field_t(reg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -59,6 +70,7 @@ static void decal_datareg_init() {
     data_reg_field_t(reg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, DecalDef, excludeMask, t_AssetDecalMask, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(reg, DecalDef, roughness, data_prim_t(f32));
     data_reg_field_t(reg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -95,6 +107,12 @@ ecs_system_define(DecalUnloadAssetSys) {
   }
 }
 
+static AssetDecalMask decal_build_mask(const DecalMaskDef* def) {
+  AssetDecalMask mask = 0;
+  array_ptr_for_t(*def, AssetDecalMask, val) { mask |= *val; }
+  return mask;
+}
+
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->projectionAxis       = def->projectionAxis;
   out->colorAtlasEntry      = string_hash(def->colorAtlasEntry);
@@ -103,6 +121,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->fadeUsingDepthNormal = def->fadeUsingDepthNormal;
   out->noColorOutput        = def->noColorOutput;
   out->randomRotation       = def->randomRotation;
+  out->excludeMask          = decal_build_mask(&def->excludeMask);
   out->roughness            = def->roughness;
   out->alphaMin             = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
   out->alphaMax             = math_max(out->alphaMin, def->alphaMax);

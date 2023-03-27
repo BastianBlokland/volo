@@ -14,6 +14,12 @@ typedef enum {
   AssetDecalNormal_DecalTransform, // The decals own normal.
 } AssetDecalNormal;
 
+typedef enum {
+  AssetDecalMask_Geometry = 1 << 0,
+  AssetDecalMask_Terrain  = 1 << 1,
+  AssetDecalMask_Unit     = 1 << 2,
+} AssetDecalMask;
+
 ecs_comp_extern_public(AssetDecalComp) {
   AssetDecalAxis   projectionAxis;
   StringHash       colorAtlasEntry;
@@ -22,6 +28,7 @@ ecs_comp_extern_public(AssetDecalComp) {
   bool             fadeUsingDepthNormal; // Angle fade using depth-buffer instead of gbuffer normal.
   bool             noColorOutput;        // Disable modifying the gbuffer color.
   bool             randomRotation;
+  AssetDecalMask   excludeMask : 8;
   f32              roughness;
   f32              alphaMin, alphaMax;
   f32              width, height;

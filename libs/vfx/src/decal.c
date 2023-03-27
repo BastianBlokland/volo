@@ -44,7 +44,7 @@ typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: flags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  f16 data3[4]; // xyz: scale, w: excludeMask.
+  f16 data3[4]; // xyz: scale, w: excludeTags.
   f16 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
 } VfxDecalData;
 
@@ -59,7 +59,7 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis projectionAxis : 8;
-  u8             excludeMask; // First 8 entries of SceneTags are supported.
+  u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            angle;
   f32            roughness, alpha;
   f32            fadeInSec, fadeOutSec;
@@ -181,6 +181,17 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   return flags;
 }
 
+static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
+  u8 excludeTags = 0;
+  if (mask & AssetDecalMask_Unit) {
+    excludeTags |= SceneTags_Unit;
+  }
+  if (mask & AssetDecalMask_Geometry) {
+    excludeTags |= SceneTags_Geometry;
+  }
+  return excludeTags;
+}
+
 static void vfx_decal_create(
     EcsWorld*             world,
     const EcsEntityId     entity,
@@ -199,7 +210,7 @@ static void vfx_decal_create(
       .atlasNormalIndex = atlasNormalIndex,
       .flags            = vfx_decal_flags(asset),
       .projectionAxis   = asset->projectionAxis,
-      .excludeMask      = SceneTags_Unit,
+      .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
       .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
@@ -323,7 +334,7 @@ static void vfx_decal_draw_output(
   out->data3[0] = float_f32_to_f16(size.x);
   out->data3[1] = float_f32_to_f16(size.y);
   out->data3[2] = float_f32_to_f16(size.z);
-  out->data3[3] = float_f32_to_f16((u32)inst->excludeMask);
+  out->data3[3] = float_f32_to_f16((u32)inst->excludeTags);
 
   diag_assert_msg(inst->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(inst->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
