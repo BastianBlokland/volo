@@ -15,7 +15,7 @@ struct MetaData {
 struct DecalData {
   f32v4 data1; // x, y, z: position, w: flags
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  f16v4 data3; // x, y, z: scale, w: unused.
+  f16v4 data3; // x, y, z: scale, w: excludeMask.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: roughness, w: alpha.
 };
 
@@ -32,6 +32,7 @@ bind_internal(4) out flat f32v3 out_atlasNormalMeta; // xy: origin, z: scale.
 bind_internal(5) out flat u32 out_flags;
 bind_internal(6) out flat f32 out_roughness;
 bind_internal(7) out flat f32 out_alpha;
+bind_internal(8) out flat u32 out_excludeMask;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -39,6 +40,7 @@ void main() {
   const f32v3 instancePos              = u_instances[in_instanceIndex].data1.xyz;
   const f32v4 instanceQuat             = f32v4(u_instances[in_instanceIndex].data2);
   const f32v3 instanceScale            = f32v4(u_instances[in_instanceIndex].data3).xyz;
+  const u32   instanceExcludeMask      = u32(f32(u_instances[in_instanceIndex].data3.w));
   const f32   instanceAtlasColorIndex  = f32(u_instances[in_instanceIndex].data4.x);
   const f32   instanceAtlasNormalIndex = f32(u_instances[in_instanceIndex].data4.y);
   const u32   instanceFlags            = u32(f32(u_instances[in_instanceIndex].data1.w));
@@ -58,4 +60,5 @@ void main() {
   out_flags           = instanceFlags;
   out_roughness       = instanceRoughness;
   out_alpha           = instanceAlpha;
+  out_excludeMask     = instanceExcludeMask;
 }
