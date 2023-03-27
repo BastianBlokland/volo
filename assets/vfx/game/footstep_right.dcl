@@ -4,6 +4,7 @@
   "normalAtlasEntry": "foot_boot_right",
   "baseNormal": "GBuffer",
   "noColorOutput": true,
+  "excludeMask": [ "Geometry" ],
   "roughness": 0.9,
   "alphaMin": 0.6,
   "alphaMax": 0.75,

@@ -4,6 +4,7 @@
   "normalAtlasEntry": "explosion",
   "baseNormal": "DepthBuffer",
   "randomRotation": true,
+  "excludeMask": [ "Unit" ],
   "roughness": 0.9,
   "alphaMin": 0.8,
   "alphaMax": 1,

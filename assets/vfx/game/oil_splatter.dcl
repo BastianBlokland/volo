@@ -3,6 +3,7 @@
   "colorAtlasEntry": "oil_splatter",
   "normalAtlasEntry": "oil_splatter",
   "baseNormal": "DecalTransform",
+  "excludeMask": [ "Unit" ],
   "roughness": 0,
   "width": 1,
   "height": 1,
