@@ -158,9 +158,7 @@ ecs_view_define(InitAssetView) {
 
 static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  if (asset->noColorOutput) {
-    flags |= VfxDecal_NoColorOutput;
-  }
+  flags |= asset->flags & AssetDecalFlags_NoColorOutput ? VfxDecal_NoColorOutput : 0;
   if (asset->normalAtlasEntry) {
     flags |= VfxDecal_NormalMap;
   }
@@ -175,20 +173,14 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
     // DecalTransform as the base-normal is the default.
     break;
   }
-  if (asset->fadeUsingDepthNormal) {
-    flags |= VfxDecal_FadeUsingDepthNormal;
-  }
+  flags |= asset->flags & AssetDecalFlags_FadeUsingDepthNormal ? VfxDecal_FadeUsingDepthNormal : 0;
   return flags;
 }
 
 static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
   u8 excludeTags = 0;
-  if (mask & AssetDecalMask_Unit) {
-    excludeTags |= SceneTags_Unit;
-  }
-  if (mask & AssetDecalMask_Geometry) {
-    excludeTags |= SceneTags_Geometry;
-  }
+  excludeTags |= mask & AssetDecalMask_Unit ? SceneTags_Unit : 0;
+  excludeTags |= mask & AssetDecalMask_Geometry ? SceneTags_Geometry : 0;
   return excludeTags;
 }
 
@@ -200,8 +192,9 @@ static void vfx_decal_create(
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
-  const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
-  const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
+  const f32  alpha          = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
+  const f32  scale          = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
+  const bool randomRotation = (asset->flags & AssetDecalFlags_RandomRotation) != 0;
   ecs_world_add_t(
       world,
       entity,
@@ -211,7 +204,7 @@ static void vfx_decal_create(
       .flags            = vfx_decal_flags(asset),
       .projectionAxis   = asset->projectionAxis,
       .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
-      .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
+      .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,

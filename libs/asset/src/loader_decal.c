@@ -113,25 +113,31 @@ static AssetDecalMask decal_build_mask(const DecalMaskDef* def) {
   return mask;
 }
 
+static AssetDecalFlags decal_build_flags(const DecalDef* def) {
+  AssetDecalFlags flags = 0;
+  flags |= def->fadeUsingDepthNormal ? AssetDecalFlags_FadeUsingDepthNormal : 0;
+  flags |= def->noColorOutput ? AssetDecalFlags_NoColorOutput : 0;
+  flags |= def->randomRotation ? AssetDecalFlags_RandomRotation : 0;
+  return flags;
+}
+
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
-  out->projectionAxis       = def->projectionAxis;
-  out->colorAtlasEntry      = string_hash(def->colorAtlasEntry);
-  out->normalAtlasEntry     = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
-  out->baseNormal           = def->baseNormal;
-  out->fadeUsingDepthNormal = def->fadeUsingDepthNormal;
-  out->noColorOutput        = def->noColorOutput;
-  out->randomRotation       = def->randomRotation;
-  out->excludeMask          = decal_build_mask(&def->excludeMask);
-  out->roughness            = def->roughness;
-  out->alphaMin             = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
-  out->alphaMax             = math_max(out->alphaMin, def->alphaMax);
-  out->width                = def->width;
-  out->height               = def->height;
-  out->thickness   = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
-  out->scaleMin    = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
-  out->scaleMax    = math_max(out->scaleMin, def->scaleMax);
-  out->fadeInTime  = (TimeDuration)time_seconds(def->fadeInTime);
-  out->fadeOutTime = (TimeDuration)time_seconds(def->fadeOutTime);
+  out->projectionAxis   = def->projectionAxis;
+  out->colorAtlasEntry  = string_hash(def->colorAtlasEntry);
+  out->normalAtlasEntry = def->normalAtlasEntry.size ? string_hash(def->normalAtlasEntry) : 0;
+  out->baseNormal       = def->baseNormal;
+  out->flags            = decal_build_flags(def);
+  out->excludeMask      = decal_build_mask(&def->excludeMask);
+  out->roughness        = def->roughness;
+  out->alphaMin         = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
+  out->alphaMax         = math_max(out->alphaMin, def->alphaMax);
+  out->width            = def->width;
+  out->height           = def->height;
+  out->thickness        = def->thickness > f32_epsilon ? def->thickness : decal_default_thickness;
+  out->scaleMin         = def->scaleMin < f32_epsilon ? 1.0f : def->scaleMin;
+  out->scaleMax         = math_max(out->scaleMin, def->scaleMax);
+  out->fadeInTime       = (TimeDuration)time_seconds(def->fadeInTime);
+  out->fadeOutTime      = (TimeDuration)time_seconds(def->fadeOutTime);
 }
 
 ecs_module_init(asset_decal_module) {
