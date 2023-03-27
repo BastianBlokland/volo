@@ -4,6 +4,7 @@
   "normalAtlasEntry": "tire_track",
   "baseNormal": "GBuffer",
   "noColorOutput": true,
+  "excludeMask": [ "Unit" ],
   "roughness": 0.9,
   "width": 0.75,
   "height": 4,

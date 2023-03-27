@@ -2,6 +2,7 @@
   "projectionAxis": "LocalY",
   "colorAtlasEntry": "text_volo",
   "baseNormal": "GBuffer",
+  "excludeMask": [ "Unit" ],
   "roughness": 0.2,
   "alphaMin": 0.5,
   "width": 1.5,

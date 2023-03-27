@@ -44,7 +44,7 @@ typedef struct {
   ALIGNAS(16)
   f32 data1[4]; // xyz: position, w: flags.
   f16 data2[4]; // xyzw: rotation quaternion.
-  f16 data3[4]; // xyz: scale, w: unused.
+  f16 data3[4]; // xyz: scale, w: excludeTags.
   f16 data4[4]; // x: atlasColorIndex, x: atlasNormalIndex, y: roughness, w: alpha.
 } VfxDecalData;
 
@@ -59,6 +59,7 @@ ecs_comp_define(VfxDecalInstanceComp) {
   u16            atlasColorIndex, atlasNormalIndex;
   VfxDecalFlags  flags : 16;
   AssetDecalAxis projectionAxis : 8;
+  u8             excludeTags; // First 8 entries of SceneTags are supported.
   f32            angle;
   f32            roughness, alpha;
   f32            fadeInSec, fadeOutSec;
@@ -157,9 +158,7 @@ ecs_view_define(InitAssetView) {
 
 static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
   VfxDecalFlags flags = 0;
-  if (asset->noColorOutput) {
-    flags |= VfxDecal_NoColorOutput;
-  }
+  flags |= asset->flags & AssetDecalFlags_NoColorOutput ? VfxDecal_NoColorOutput : 0;
   if (asset->normalAtlasEntry) {
     flags |= VfxDecal_NormalMap;
   }
@@ -174,10 +173,15 @@ static VfxDecalFlags vfx_decal_flags(const AssetDecalComp* asset) {
     // DecalTransform as the base-normal is the default.
     break;
   }
-  if (asset->fadeUsingDepthNormal) {
-    flags |= VfxDecal_FadeUsingDepthNormal;
-  }
+  flags |= asset->flags & AssetDecalFlags_FadeUsingDepthNormal ? VfxDecal_FadeUsingDepthNormal : 0;
   return flags;
+}
+
+static u8 vfx_decal_mask_to_tags(const AssetDecalMask mask) {
+  u8 excludeTags = 0;
+  excludeTags |= mask & AssetDecalMask_Unit ? SceneTags_Unit : 0;
+  excludeTags |= mask & AssetDecalMask_Geometry ? SceneTags_Geometry : 0;
+  return excludeTags;
 }
 
 static void vfx_decal_create(
@@ -188,8 +192,9 @@ static void vfx_decal_create(
     const AssetDecalComp* asset,
     const SceneTimeComp*  timeComp) {
 
-  const f32 alpha = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
-  const f32 scale = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
+  const f32  alpha          = rng_sample_range(g_rng, asset->alphaMin, asset->alphaMax);
+  const f32  scale          = rng_sample_range(g_rng, asset->scaleMin, asset->scaleMax);
+  const bool randomRotation = (asset->flags & AssetDecalFlags_RandomRotation) != 0;
   ecs_world_add_t(
       world,
       entity,
@@ -198,7 +203,8 @@ static void vfx_decal_create(
       .atlasNormalIndex = atlasNormalIndex,
       .flags            = vfx_decal_flags(asset),
       .projectionAxis   = asset->projectionAxis,
-      .angle            = asset->randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
+      .excludeTags      = vfx_decal_mask_to_tags(asset->excludeMask),
+      .angle            = randomRotation ? rng_sample_f32(g_rng) * math_pi_f32 * 2.0f : 0.0f,
       .roughness        = asset->roughness,
       .alpha            = alpha,
       .fadeInSec        = asset->fadeInTime ? asset->fadeInTime / (f32)time_second : -1.0f,
@@ -321,6 +327,7 @@ static void vfx_decal_draw_output(
   out->data3[0] = float_f32_to_f16(size.x);
   out->data3[1] = float_f32_to_f16(size.y);
   out->data3[2] = float_f32_to_f16(size.z);
+  out->data3[3] = float_f32_to_f16((u32)inst->excludeTags);
 
   diag_assert_msg(inst->atlasColorIndex <= 1024, "Index not representable by 16 bit float");
   diag_assert_msg(inst->atlasNormalIndex <= 1024, "Index not representable by 16 bit float");
