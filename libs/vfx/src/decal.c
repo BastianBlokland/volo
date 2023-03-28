@@ -10,6 +10,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_draw.h"
+#include "rend_instance.h"
 #include "scene_lifetime.h"
 #include "scene_tag.h"
 #include "scene_time.h"
@@ -86,6 +87,13 @@ ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(DecalDrawView) {
   ecs_access_with(VfxDrawDecalComp);
   ecs_access_write(RendDrawComp);
+
+  /**
+   * Mark the draws as explicitly exclusive with other types of draws.
+   * This allows the scheduler to run the draw filling in parallel with other draw filling.
+   */
+  ecs_access_without(VfxDrawParticleComp);
+  ecs_access_without(RendInstanceDrawComp);
 }
 
 ecs_view_define(DecalInstanceView) { ecs_access_read(VfxDecalInstanceComp); }
