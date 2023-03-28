@@ -8,13 +8,6 @@
 
 #include <vulkan/vulkan_core.h>
 
-// clang-format off
-MAYBE_UNUSED static const RvkImageCapability g_allowedExtraCaps =
-    RvkImageCapability_TransferSource |
-    RvkImageCapability_TransferDest |
-    RvkImageCapability_Sampled;
-// clang-format on
-
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;
   mem_cpy(mem_var(result), mem_var(color));
@@ -393,7 +386,7 @@ RvkImage rvk_image_create_attach_color(
     const VkFormat           vkFormat,
     const RvkSize            size,
     const RvkImageCapability extraCaps) {
-  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+  diag_assert((extraCaps & (RvkImageCapability_AttachmentDepth | RvkImageCapability_Present)) == 0);
 
   const RvkImageCapability caps      = RvkImageCapability_AttachmentColor | extraCaps;
   const u8                 layers    = 1;
@@ -408,7 +401,7 @@ RvkImage rvk_image_create_attach_depth(
     const RvkSize            size,
     const RvkImageCapability extraCaps) {
   diag_assert(rvk_format_info(vkFormat).channels == 1);
-  diag_assert((extraCaps & ~g_allowedExtraCaps) == 0);
+  diag_assert((extraCaps & (RvkImageCapability_AttachmentColor | RvkImageCapability_Present)) == 0);
 
   const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth | extraCaps;
   const u8                 layers    = 1;
@@ -634,11 +627,11 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
   const VkClearColorValue       clearColor = rvk_rend_clear_color(color);
   const VkImageSubresourceRange ranges[]   = {
       {
-          .aspectMask     = rvk_image_vkaspect(img->type),
-          .baseMipLevel   = 0,
-          .levelCount     = img->mipLevels,
-          .baseArrayLayer = 0,
-          .layerCount     = img->layers,
+            .aspectMask     = rvk_image_vkaspect(img->type),
+            .baseMipLevel   = 0,
+            .levelCount     = img->mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount     = img->layers,
       },
   };
   vkCmdClearColorImage(
@@ -657,11 +650,11 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
   const VkClearDepthStencilValue clearValue = {.depth = depth};
   const VkImageSubresourceRange  ranges[]   = {
       {
-          .aspectMask     = rvk_image_vkaspect(img->type),
-          .baseMipLevel   = 0,
-          .levelCount     = img->mipLevels,
-          .baseArrayLayer = 0,
-          .layerCount     = img->layers,
+             .aspectMask     = rvk_image_vkaspect(img->type),
+             .baseMipLevel   = 0,
+             .levelCount     = img->mipLevels,
+             .baseArrayLayer = 0,
+             .layerCount     = img->layers,
       },
   };
   vkCmdClearDepthStencilImage(

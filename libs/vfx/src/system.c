@@ -67,9 +67,10 @@ ecs_view_define(ParticleDrawView) {
   ecs_access_write(RendDrawComp);
 
   /**
-   * Mark the particle draws as explicitly exclusive with scene renderable instance draws. This
-   * allows the scheduler to run the vfx draw filling and the instance draw filling in parallel.
+   * Mark the draws as explicitly exclusive with other types of draws.
+   * This allows the scheduler to run the draw filling in parallel with other draw filling.
    */
+  ecs_access_without(VfxDrawDecalComp);
   ecs_access_without(RendInstanceDrawComp);
 }
 

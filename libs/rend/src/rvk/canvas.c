@@ -148,6 +148,26 @@ RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas* canvas, RvkPass* pass, cons
   return rvk_attach_acquire_depth(canvas->attachPool, spec, size);
 }
 
+RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas* canvas, RvkImage* src) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+
+  const RvkAttachSpec spec = {
+      .vkFormat     = src->vkFormat,
+      .capabilities = src->caps,
+  };
+  RvkImage* res;
+  if (src->type == RvkImageType_DepthAttachment) {
+    res = rvk_attach_acquire_depth(canvas->attachPool, spec, src->size);
+  } else {
+    res = rvk_attach_acquire_color(canvas->attachPool, spec, src->size);
+  }
+
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_img_copy(job, src, res);
+
+  return res;
+}
+
 void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {
   rvk_attach_release(canvas->attachPool, img);
 }

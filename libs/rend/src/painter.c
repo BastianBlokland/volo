@@ -36,11 +36,11 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
             // Attachment color 0: color (rgb) and emissive (a).
             .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
             // Attachment color 1: normal (rg), roughness (b) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-            .attachColorLoad[1]   = RvkPassLoad_Clear,
+            .attachColorLoad[1]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Decal] =
@@ -80,14 +80,14 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
             // Attachment color 0: color (rgb).
             .attachColorFormat[0] = RvkPassFormat_Color3Float,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Distortion] =
         {
             // Attachment depth.
             .attachDepth     = RvkPassDepth_Transient,
-            .attachDepthLoad = RvkPassLoad_Preserve,
+            .attachDepthLoad = RvkPassLoad_PreserveDontCheck,
 
             // Attachment color 0: distortion-offset(rg).
             .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
@@ -749,30 +749,26 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
   }
 
+  // Make a copy of the geometry depth to read from while still writing to the original.
+  // TODO: Instead of a straight copy considering performing linearization at the same time.
+  RvkImage* geoDepthRead = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
+
   // Decal pass.
   RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
   if (set->flags & RendFlags_Decals) {
-    // TODO: Depth copy can be avoided by supporting read-only depth attachments.
-    RvkImage* depthCpy = rvk_canvas_attach_acquire_depth(painter->canvas, decalPass, geoSize);
-    rvk_canvas_img_copy(painter->canvas, geoDepth, depthCpy);
-
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
-    // Potentially this can be avoided by using the stencil buffer for tags and reconstructing
-    // geometry normals based on the depth.
-    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_color(painter->canvas, decalPass, 1, geoSize);
-    rvk_canvas_img_copy(painter->canvas, geoData1, geoData1Cpy);
+    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
     rvk_pass_stage_global_image(decalPass, geoData1Cpy, 0);
-    rvk_pass_stage_global_image(decalPass, geoDepth, 1);
+    rvk_pass_stage_global_image(decalPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(decalPass, geoData0, 0);
     rvk_pass_stage_attach_color(decalPass, geoData1, 1);
-    rvk_pass_stage_attach_depth(decalPass, depthCpy);
+    rvk_pass_stage_attach_depth(decalPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_decal(&ctx, drawView, graphicView);
     painter_flush(&ctx);
 
-    rvk_canvas_attach_release(painter->canvas, depthCpy);
     rvk_canvas_attach_release(painter->canvas, geoData1Cpy);
   }
 
@@ -808,7 +804,7 @@ static bool rend_canvas_paint(
   if (set->flags & RendFlags_AmbientOcclusion) {
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, aoPass, mainView);
     rvk_pass_stage_global_image(aoPass, geoData1, 0);
-    rvk_pass_stage_global_image(aoPass, geoDepth, 1);
+    rvk_pass_stage_global_image(aoPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
     painter_push_ambient_occlusion(&ctx);
@@ -820,18 +816,15 @@ static bool rend_canvas_paint(
   // Forward pass.
   RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
-  RvkImage* fwdDepth = rvk_canvas_attach_acquire_depth(painter->canvas, fwdPass, geoSize);
   {
-    rvk_canvas_img_copy(painter->canvas, geoDepth, fwdDepth); // Initialize to the geometry depth.
-
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fwdPass, mainView);
     rvk_pass_stage_global_image(fwdPass, geoData0, 0);
     rvk_pass_stage_global_image(fwdPass, geoData1, 1);
-    rvk_pass_stage_global_image(fwdPass, geoDepth, 2);
+    rvk_pass_stage_global_image(fwdPass, geoDepthRead, 2);
     rvk_pass_stage_global_image(fwdPass, aoBuffer, 3);
     rvk_pass_stage_global_shadow(fwdPass, shadowDepth, 4);
     rvk_pass_stage_attach_color(fwdPass, fwdColor, 0);
-    rvk_pass_stage_attach_depth(fwdPass, fwdDepth);
+    rvk_pass_stage_attach_depth(fwdPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_ambient(&ctx);
     switch ((u32)set->skyMode) {
@@ -857,8 +850,8 @@ static bool rend_canvas_paint(
 
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
+  rvk_canvas_attach_release(painter->canvas, geoDepthRead);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
-  rvk_canvas_attach_release(painter->canvas, fwdDepth);
 
   // Distortion.
   const RvkSize distSize = set->flags & RendFlags_Distortion
@@ -866,9 +859,14 @@ static bool rend_canvas_paint(
                                : (RvkSize){1, 1};
   RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
-  RvkImage* distDepth    = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
   if (set->flags & RendFlags_Distortion) {
-    rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth); // Initialize to the geometry depth.
+    RvkImage* distDepth;
+    if (distSize.data == geoSize.data) {
+      distDepth = geoDepth;
+    } else {
+      distDepth = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
+      rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
+    }
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, distPass, mainView);
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
@@ -877,12 +875,15 @@ static bool rend_canvas_paint(
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_distortion(&ctx, drawView, graphicView);
     painter_flush(&ctx);
+
+    if (distSize.data != geoSize.data) {
+      rvk_canvas_attach_release(painter->canvas, distDepth);
+    }
   } else {
     rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
   }
 
   rvk_canvas_attach_release(painter->canvas, geoDepth);
-  rvk_canvas_attach_release(painter->canvas, distDepth);
 
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);

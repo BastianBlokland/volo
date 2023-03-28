@@ -57,6 +57,7 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
 RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, RvkSize);
 RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*, RvkSize);
+RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas*, RvkImage*);
 void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
 
 void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
