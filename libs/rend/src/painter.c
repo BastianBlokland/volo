@@ -87,7 +87,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         {
             // Attachment depth.
             .attachDepth     = RvkPassDepth_Transient,
-            .attachDepthLoad = RvkPassLoad_Preserve,
+            .attachDepthLoad = RvkPassLoad_PreserveDontCheck,
 
             // Attachment color 0: distortion-offset(rg).
             .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
@@ -850,6 +850,7 @@ static bool rend_canvas_paint(
 
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
+  rvk_canvas_attach_release(painter->canvas, geoDepthRead);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
 
   // Distortion.
@@ -858,9 +859,14 @@ static bool rend_canvas_paint(
                                : (RvkSize){1, 1};
   RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
-  RvkImage* distDepth    = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
   if (set->flags & RendFlags_Distortion) {
-    rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth); // Initialize to the geometry depth.
+    RvkImage* distDepth;
+    if (distSize.data == geoSize.data) {
+      distDepth = geoDepth;
+    } else {
+      distDepth = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
+      rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
+    }
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, distPass, mainView);
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
@@ -869,13 +875,15 @@ static bool rend_canvas_paint(
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_distortion(&ctx, drawView, graphicView);
     painter_flush(&ctx);
+
+    if (distSize.data != geoSize.data) {
+      rvk_canvas_attach_release(painter->canvas, distDepth);
+    }
   } else {
     rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
   }
 
   rvk_canvas_attach_release(painter->canvas, geoDepth);
-  rvk_canvas_attach_release(painter->canvas, geoDepthRead);
-  rvk_canvas_attach_release(painter->canvas, distDepth);
 
   // Bloom pass.
   RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
