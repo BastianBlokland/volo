@@ -40,7 +40,6 @@ typedef struct sRvkSamplerSpec {
   RvkSamplerWrap   wrap : 8;
   RvkSamplerFilter filter : 8;
   RvkSamplerAniso  aniso : 8;
-  u8               mipLevels;
 } RvkSamplerSpec;
 
 /**
