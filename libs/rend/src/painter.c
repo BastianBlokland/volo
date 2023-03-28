@@ -36,11 +36,11 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
             // Attachment color 0: color (rgb) and emissive (a).
             .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
             // Attachment color 1: normal (rg), roughness (b) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-            .attachColorLoad[1]   = RvkPassLoad_Clear,
+            .attachColorLoad[1]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Decal] =
@@ -80,7 +80,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
 
             // Attachment color 0: color (rgb).
             .attachColorFormat[0] = RvkPassFormat_Color3Float,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
+            .attachColorLoad[0]   = RvkPassLoad_DontCare,
         },
 
     [RendPass_Distortion] =
