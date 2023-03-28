@@ -753,14 +753,12 @@ static bool rend_canvas_paint(
   RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
   if (set->flags & RendFlags_Decals) {
     // TODO: Depth copy can be avoided by supporting read-only depth attachments.
-    RvkImage* depthCpy = rvk_canvas_attach_acquire_depth(painter->canvas, decalPass, geoSize);
-    rvk_canvas_img_copy(painter->canvas, geoDepth, depthCpy);
+    RvkImage* depthCpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
 
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
     // Potentially this can be avoided by using the stencil buffer for tags and reconstructing
     // geometry normals based on the depth.
-    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_color(painter->canvas, decalPass, 1, geoSize);
-    rvk_canvas_img_copy(painter->canvas, geoData1, geoData1Cpy);
+    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, decalPass, mainView);
     rvk_pass_stage_global_image(decalPass, geoData1Cpy, 0);
