@@ -447,11 +447,10 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
       rvk_image_transition(img, RvkImagePhase_ShaderRead, pass->vkCmdBuf);
     }
     const RvkSamplerSpec samplerSpec = {
-        .flags     = RvkSamplerFlags_None,
-        .wrap      = RvkSamplerWrap_Clamp,
-        .filter    = RvkSamplerFilter_Linear,
-        .aniso     = RvkSamplerAniso_x8,
-        .mipLevels = img->mipLevels,
+        .flags  = RvkSamplerFlags_None,
+        .wrap   = RvkSamplerWrap_Clamp,
+        .filter = RvkSamplerFilter_Linear,
+        .aniso  = RvkSamplerAniso_x8,
     };
     rvk_desc_set_attach_sampler(descSet, 1, img, samplerSpec);
   }
@@ -789,11 +788,10 @@ void rvk_pass_stage_global_image(RvkPass* pass, RvkImage* image, const u16 image
       image,
       imageIndex,
       (RvkSamplerSpec){
-          .flags     = RvkSamplerFlags_None,
-          .wrap      = RvkSamplerWrap_Clamp,
-          .filter    = RvkSamplerFilter_Linear,
-          .aniso     = RvkSamplerAniso_None,
-          .mipLevels = image->mipLevels,
+          .flags  = RvkSamplerFlags_None,
+          .wrap   = RvkSamplerWrap_Clamp,
+          .filter = RvkSamplerFilter_Linear,
+          .aniso  = RvkSamplerAniso_None,
       });
 }
 
@@ -803,11 +801,10 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
       image,
       imageIndex,
       (RvkSamplerSpec){
-          .flags     = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
-          .wrap      = RvkSamplerWrap_Zero,
-          .filter    = RvkSamplerFilter_Linear,
-          .aniso     = RvkSamplerAniso_None,
-          .mipLevels = image->mipLevels,
+          .flags  = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
+          .wrap   = RvkSamplerWrap_Zero,
+          .filter = RvkSamplerFilter_Linear,
+          .aniso  = RvkSamplerAniso_None,
       });
 }
 

@@ -560,11 +560,10 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplers[samplerIndex].texture = tex;
   graphic->samplers[samplerIndex].spec    = (RvkSamplerSpec){
-      .flags     = RvkSamplerFlags_None,
-      .wrap      = RvkSamplerWrap_Repeat,
-      .filter    = RvkSamplerFilter_Nearest,
-      .aniso     = RvkSamplerAniso_None,
-      .mipLevels = tex->image.mipLevels,
+      .flags  = RvkSamplerFlags_None,
+      .wrap   = RvkSamplerWrap_Repeat,
+      .filter = RvkSamplerFilter_Nearest,
+      .aniso  = RvkSamplerAniso_None,
   };
 }
 
@@ -771,7 +770,6 @@ void rvk_graphic_sampler_add(
           .wrap   = rvk_graphic_wrap(sampler->wrap),
           .filter = rvk_graphic_filter(sampler->filter),
           .aniso  = rvk_graphic_aniso(sampler->anisotropy),
-          tex->image.mipLevels,
       };
       graphic->samplerMask |= 1 << samplerIndex;
       return;

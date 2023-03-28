@@ -114,7 +114,7 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
                                                                : VK_SAMPLER_MIPMAP_MODE_NEAREST,
       .mipLodBias = 0,
       .minLod     = 0,
-      .maxLod     = spec.mipLevels,
+      .maxLod     = VK_LOD_CLAMP_NONE,
   };
 
   if (dev->flags & RvkDeviceFlags_SupportAnisotropy) {
@@ -151,8 +151,7 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
           "Vulkan sampler created",
           log_param("wrap", fmt_text(rvk_sampler_wrap_str(spec.wrap))),
           log_param("filter", fmt_text(rvk_sampler_filter_str(spec.filter))),
-          log_param("anisotropic", fmt_text(rvk_sampler_aniso_str(spec.aniso))),
-          log_param("mip-levels", fmt_int(spec.mipLevels)));
+          log_param("anisotropic", fmt_text(rvk_sampler_aniso_str(spec.aniso))));
 #endif
 
       return newSampler;
