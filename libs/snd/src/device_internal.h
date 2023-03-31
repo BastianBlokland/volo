@@ -21,6 +21,8 @@ typedef struct sSndDevice SndDevice;
 SndDevice* snd_device_create(Allocator*);
 void       snd_device_destroy(SndDevice*);
 
+SndDeviceStatus snd_device_status(const SndDevice*);
+
 void           snd_device_begin(SndDevice*);
 SndDeviceFrame snd_device_frame(SndDevice*);
 void           snd_device_end();

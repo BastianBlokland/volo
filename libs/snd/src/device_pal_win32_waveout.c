@@ -13,13 +13,13 @@ SndDevice* snd_device_create(Allocator* alloc) {
       .alloc = alloc,
   };
 
-  log_i("Alsa sound device created");
+  log_i("WaveOut sound device created");
 
   return dev;
 }
 
 void snd_device_destroy(SndDevice* dev) {
-  log_i("Alsa sound device destroyed");
+  log_i("WaveOut sound device destroyed");
 
   alloc_free_t(dev->alloc, dev);
 }
