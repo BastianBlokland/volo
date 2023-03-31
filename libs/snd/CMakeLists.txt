@@ -11,3 +11,15 @@ add_library(lib_snd STATIC
 target_include_directories(lib_snd PUBLIC include)
 target_link_libraries(lib_snd PUBLIC lib_core)
 target_link_libraries(lib_snd PRIVATE lib_log)
+
+#
+# On linux use the 'asound' libray for the Alsa audio architecture (https://alsa-project.org/).
+# For debian based systems: apt install libasound2-dev libasound2
+#
+if(${VOLO_PLATFORM} STREQUAL "linux")
+
+  message(STATUS "> Configuring Alsa")
+  find_package(asound REQUIRED)
+  target_link_libraries(lib_gap PRIVATE asound)
+
+endif()

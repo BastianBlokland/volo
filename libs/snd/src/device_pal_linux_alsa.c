@@ -3,6 +3,8 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
+#include <alsa/asoundlib.h>
+
 typedef struct sSndDevice {
   Allocator* alloc;
 } SndDevice;
