@@ -12,6 +12,7 @@ typedef struct {
 typedef enum {
   SndDeviceStatus_Ready,
   SndDeviceStatus_FrameActive,
+  SndDeviceStatus_InitFailed,
 
   SndDeviceStatus_Count,
 } SndDeviceStatus;

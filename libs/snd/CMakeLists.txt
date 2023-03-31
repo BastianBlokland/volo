@@ -7,9 +7,10 @@ message(STATUS "> library: snd")
 add_library(lib_snd STATIC
   src/device_pal.c
   src/device.c
+  src/register.c
   )
 target_include_directories(lib_snd PUBLIC include)
-target_link_libraries(lib_snd PUBLIC lib_core)
+target_link_libraries(lib_snd PUBLIC lib_core lib_ecs)
 target_link_libraries(lib_snd PRIVATE lib_log)
 
 #

@@ -20,6 +20,7 @@ target_link_libraries(app_game PRIVATE
   lib_log
   lib_rend
   lib_scene
+  lib_snd
   lib_ui
   lib_vfx
   )
