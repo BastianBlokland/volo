@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "log_logger.h"
 
@@ -9,10 +10,13 @@
 
 static const char* snd_pcm_device = "plughw:0,0";
 
+#define snd_alsa_frames_per_period 2048
+
 typedef struct sSndDevice {
   Allocator*     alloc;
   snd_pcm_t*     pcm;
   SndDeviceState state;
+  i16*           activeMapping;
 } SndDevice;
 
 typedef struct {
@@ -64,7 +68,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE))) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_sample_channels))) {
+  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_channel_count))) {
     goto Err;
   }
   u32 actualSampleRate = snd_sample_frequency;
@@ -117,8 +121,37 @@ static u32 alsa_pcm_available_frames(snd_pcm_t* pcm) {
   const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm);
   if (UNLIKELY(avail < 0)) {
     log_e("Failed to query sound-device", log_param("err", fmt_text(alsa_error_str((i32)avail))));
+    return 0;
   }
   return (u32)avail;
+}
+
+static i16* alsa_pcm_period_map(snd_pcm_t* pcm) {
+  const snd_pcm_channel_area_t* areas;
+  snd_pcm_uframes_t             offset;
+  snd_pcm_uframes_t             frames = snd_alsa_frames_per_period;
+  i32                           err;
+  if ((err = snd_pcm_mmap_begin(pcm, &areas, &offset, &frames))) {
+    log_e("Failed to map from sound-device", log_param("err", fmt_text(alsa_error_str(err))));
+    return null;
+  }
+  diag_assert(areas[0].step == sizeof(i16) * snd_channel_count);
+  diag_assert(areas[1].step == sizeof(i16) * snd_channel_count);
+  diag_assert(offset == 0); // Expect to start on a period boundary.
+  diag_assert(areas[1].addr == bits_ptr_offset(areas[0].addr, sizeof(i16))); // Expect interleaved.
+  return (i16*)areas[0].addr;
+}
+
+static bool alsa_pcm_period_commit(snd_pcm_t* pcm) {
+  const snd_pcm_uframes_t offset    = 0;                          // Start on a period boundary.
+  const snd_pcm_uframes_t frames    = snd_alsa_frames_per_period; // Commit a whole period.
+  const snd_pcm_sframes_t committed = snd_pcm_mmap_commit(pcm, offset, frames);
+  if (committed < 0 || (snd_pcm_uframes_t)committed != frames) {
+    const i32 err = (i32)committed;
+    log_e("Failed to commit to sound-device", log_param("err", fmt_text(alsa_error_str(err))));
+    return false;
+  }
+  return true;
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
@@ -189,30 +222,37 @@ bool snd_device_begin(SndDevice* dev) {
   }
 
   const u32 availableFrames = alsa_pcm_available_frames(dev->pcm);
-  if (UNLIKELY(availableFrames == 0)) {
+  if (availableFrames < snd_alsa_frames_per_period) {
+    return false; // TODO: Does it make any sense to render less then a full period?
+  }
+  dev->activeMapping = alsa_pcm_period_map(dev->pcm);
+  if (UNLIKELY(!dev->activeMapping)) {
+    dev->state = SndDeviceState_Error;
     return false;
   }
-
   dev->state = SndDeviceState_PeriodActive;
   return true;
 }
 
 SndDevicePeriod snd_device_period(SndDevice* dev) {
   diag_assert(dev->state == SndDeviceState_PeriodActive);
+  diag_assert(dev->activeMapping != null);
 
-  // TODO: retrieve period data.
-
+  // TODO: Compute period timestamp.
   return (SndDevicePeriod){
       .time       = time_steady_clock(),
-      .frameCount = 0,
-      .samples    = null,
+      .frameCount = snd_alsa_frames_per_period,
+      .samples    = dev->activeMapping,
   };
 }
 
 void snd_device_end(SndDevice* dev) {
   diag_assert(dev->state == SndDeviceState_PeriodActive);
 
-  // TODO: Submit period.
-
-  dev->state = SndDeviceState_Playing;
+  if (alsa_pcm_period_commit(dev->pcm)) {
+    dev->state = SndDeviceState_Playing;
+  } else {
+    dev->state = SndDeviceState_Error;
+  }
+  dev->activeMapping = null;
 }
