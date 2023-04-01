@@ -57,7 +57,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_any(pcm, hwParams))) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, 1))) {
+  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, false))) {
     goto Err;
   }
   if ((err = snd_pcm_hw_params_set_access(pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED))) {
