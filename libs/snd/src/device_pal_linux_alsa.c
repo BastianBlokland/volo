@@ -57,7 +57,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_any(pcm, hwParams))) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, false))) {
+  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, true))) {
     goto Err;
   }
   if ((err = snd_pcm_hw_params_set_access(pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED))) {
@@ -135,9 +135,9 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
-      .alloc  = alloc,
-      .pcm    = pcm,
-      .status = config.valid ? SndDeviceStatus_Ready : SndDeviceStatus_Error,
+                .alloc  = alloc,
+                .pcm    = pcm,
+                .status = config.valid ? SndDeviceStatus_Ready : SndDeviceStatus_Error,
   };
   return dev;
 }
