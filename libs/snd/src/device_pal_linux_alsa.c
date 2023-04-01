@@ -17,9 +17,9 @@
  * one being recorded. There's many strategies we can explore to reduce latency in the future.
  */
 
-static const char* snd_pcm_device = "plughw:0,0";
+static const char* snd_pcm_device = "default";
 
-#define snd_alsa_period_count 2
+#define snd_alsa_period_desired_count 2
 #define snd_alsa_period_frames 2048
 
 typedef struct sSndDevice {
@@ -73,12 +73,12 @@ static void alsa_init() {
 
 static snd_pcm_t* alsa_pcm_open() {
   snd_pcm_t* pcm = null;
-  const i32  err = snd_pcm_open(&pcm, snd_pcm_device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
-  if (err) {
+  const i32  ret = snd_pcm_open(&pcm, snd_pcm_device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+  if (ret < 0) {
     log_e(
         "Failed to open sound-device",
         log_param("name", fmt_text(string_from_null_term(snd_pcm_device))),
-        log_param("err", fmt_text(alsa_error_str(err))));
+        log_param("err", fmt_text(alsa_error_str(ret))));
     return null;
   }
   return pcm;
@@ -86,9 +86,9 @@ static snd_pcm_t* alsa_pcm_open() {
 
 static snd_pcm_info_t* alsa_pcm_info_scratch(snd_pcm_t* pcm) {
   snd_pcm_info_t* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
-  const i32       err  = snd_pcm_info(pcm, info);
-  if (err) {
-    log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(alsa_error_str(err))));
+  const i32       ret  = snd_pcm_info(pcm, info);
+  if (ret < 0) {
+    log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(alsa_error_str(ret))));
     return null;
   }
   return info;
@@ -101,34 +101,35 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   // Configure the hardware parameters.
   const usize          hwParamsSize = snd_pcm_hw_params_sizeof();
   snd_pcm_hw_params_t* hwParams     = alloc_alloc(g_alloc_scratch, hwParamsSize, sizeof(void*)).ptr;
-  if ((err = snd_pcm_hw_params_any(pcm, hwParams))) {
+  if ((err = snd_pcm_hw_params_any(pcm, hwParams)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, true))) {
+  if ((err = snd_pcm_hw_params_set_rate_resample(pcm, hwParams, true)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_access(pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED))) {
+  if ((err = snd_pcm_hw_params_set_access(pcm, hwParams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE))) {
+  if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_channel_count))) {
+  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_channel_count)) < 0) {
     goto Err;
   }
   u32 sampleFreq = snd_sample_frequency;
-  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &sampleFreq, 0))) {
+  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &sampleFreq, 0)) < 0) {
     goto Err;
   }
   if (sampleFreq != snd_sample_frequency) {
     log_e("Sound-device sample frequency not supported");
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_periods(pcm, hwParams, snd_alsa_period_count, 0))) {
+  u32 periodCount = snd_alsa_period_desired_count;
+  if ((err = snd_pcm_hw_params_set_periods_near(pcm, hwParams, &periodCount, 0)) < 0) {
     goto Err;
   }
   snd_pcm_uframes_t periodSize = snd_alsa_period_frames;
-  if ((err = snd_pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0))) {
+  if ((err = snd_pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0)) < 0) {
     goto Err;
   }
   if (periodSize != snd_alsa_period_frames) {
@@ -137,12 +138,12 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   }
 
   // Apply the hardware parameters.
-  if ((err = snd_pcm_hw_params(pcm, hwParams))) {
+  if ((err = snd_pcm_hw_params(pcm, hwParams)) < 0) {
     goto Err;
   }
 
   // Retrieve buffer config.
-  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &result.bufferSize))) {
+  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &result.bufferSize)) < 0) {
     goto Err;
   }
   if (snd_pcm_hw_params_get_sbits(hwParams) != 16) {
@@ -154,8 +155,9 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   result.valid = true;
   return result;
 
-Err:
-  log_e("Failed to setup sound-device", log_param("err", fmt_text(alsa_error_str(err))));
+Err:;
+  const String errName = err < 0 ? alsa_error_str(err) : string_lit("unkown");
+  log_e("Failed to setup sound-device", log_param("err", fmt_text(errName)));
   return result;
 }
 
@@ -182,7 +184,7 @@ static u32 alsa_pcm_available_frames(snd_pcm_t* pcm) {
 
 static i16* alsa_pcm_period_map(snd_pcm_t* pcm) {
   const snd_pcm_channel_area_t* areas;
-  snd_pcm_uframes_t             offset;
+  snd_pcm_uframes_t             offset = 0;
   snd_pcm_uframes_t             frames = snd_alsa_period_frames;
   i32                           err;
   if ((err = snd_pcm_mmap_begin(pcm, &areas, &offset, &frames))) {
@@ -224,7 +226,7 @@ SndDevice* snd_device_create(Allocator* alloc) {
     const i32             card     = info ? snd_pcm_info_get_card(info) : -1;
     const String id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_empty;
 
-    if (pcmState == SND_PCM_STATE_PREPARED || pcmState == SND_PCM_STATE_RUNNING) {
+    if (pcmState == SND_PCM_STATE_PREPARED) {
       state = SndDeviceState_Playing;
     } else {
       state = SndDeviceState_Idle;
