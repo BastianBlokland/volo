@@ -5,15 +5,15 @@
 
 typedef struct {
   TimeSteady time;
-  usize      sampleCount;
-  i16*       sampleBuffer; // Interleaved left and right channels (LRLRLR).
-} SndDeviceFrame;
+  usize      frameCount;
+  i16*       samples; // [frameCount * 2] Interleaved left and right channels (LRLRLR).
+} SndDevicePeriod;
 
 typedef enum {
   SndDeviceState_Error,
   SndDeviceState_Idle,
   SndDeviceState_Playing,
-  SndDeviceState_FrameActive,
+  SndDeviceState_PeriodActive,
 
   SndDeviceState_Count,
 } SndDeviceState;
@@ -26,6 +26,6 @@ void       snd_device_destroy(SndDevice*);
 SndDeviceState snd_device_state(const SndDevice*);
 String         snd_device_state_str(SndDeviceState);
 
-bool           snd_device_begin(SndDevice*);
-SndDeviceFrame snd_device_frame(SndDevice*);
-void           snd_device_end(SndDevice*);
+bool            snd_device_begin(SndDevice*);
+SndDevicePeriod snd_device_period(SndDevice*);
+void            snd_device_end(SndDevice*);

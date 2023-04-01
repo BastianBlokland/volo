@@ -113,7 +113,7 @@ Err:
   return false;
 }
 
-static u32 alsa_pcm_available(snd_pcm_t* pcm) {
+static u32 alsa_pcm_available_frames(snd_pcm_t* pcm) {
   const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm);
   if (UNLIKELY(avail < 0)) {
     log_e("Failed to query sound-device", log_param("err", fmt_text(alsa_error_str((i32)avail))));
@@ -182,37 +182,37 @@ bool snd_device_begin(SndDevice* dev) {
   }
   case SndDeviceState_Playing:
     break;
-  case SndDeviceState_FrameActive:
-    diag_assert_fail("Unable to begin a new sound device frame: Frame already active");
+  case SndDeviceState_PeriodActive:
+    diag_assert_fail("Unable to begin a new sound device period: Already active");
   case SndDeviceState_Count:
     UNREACHABLE
   }
 
-  const u32 availableSamples = alsa_pcm_available(dev->pcm);
-  if (UNLIKELY(availableSamples == 0)) {
+  const u32 availableFrames = alsa_pcm_available_frames(dev->pcm);
+  if (UNLIKELY(availableFrames == 0)) {
     return false;
   }
 
-  dev->state = SndDeviceState_FrameActive;
+  dev->state = SndDeviceState_PeriodActive;
   return true;
 }
 
-SndDeviceFrame snd_device_frame(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_FrameActive);
+SndDevicePeriod snd_device_period(SndDevice* dev) {
+  diag_assert(dev->state == SndDeviceState_PeriodActive);
 
-  // TODO: retrieve frame data.
+  // TODO: retrieve period data.
 
-  return (SndDeviceFrame){
-      .time         = time_steady_clock(),
-      .sampleCount  = 0,
-      .sampleBuffer = null,
+  return (SndDevicePeriod){
+      .time       = time_steady_clock(),
+      .frameCount = 0,
+      .samples    = null,
   };
 }
 
 void snd_device_end(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_FrameActive);
+  diag_assert(dev->state == SndDeviceState_PeriodActive);
 
-  // TODO: Submit frame.
+  // TODO: Submit period.
 
   dev->state = SndDeviceState_Playing;
 }
