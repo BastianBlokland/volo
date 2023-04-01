@@ -1,6 +1,8 @@
 #include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
+#include "core_thread.h"
 #include "log_logger.h"
 
 #include "constants_internal.h"
@@ -8,14 +10,14 @@
 
 #include <alsa/asoundlib.h>
 
-static const char* snd_pcm_device = "plughw:0,0";
-
 /**
  * Alsa PCM playback sound device implementation.
  *
  * Use a simple double-buffering strategy where we use two periods, one playing on the device and
  * one being recorded. There's many strategies we can explore to reduce latency in the future.
  */
+
+static const char* snd_pcm_device = "plughw:0,0";
 
 #define snd_alsa_period_count 2
 #define snd_alsa_period_frames 2048
@@ -33,6 +35,41 @@ typedef struct {
 } AlsaPcmConfig;
 
 static String alsa_error_str(const int err) { return string_from_null_term(snd_strerror(err)); }
+
+static void alsa_error_handler(
+    const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
+
+  va_list arg;
+  va_start(arg, fmt);
+
+  char         msgBuf[64];
+  const i32    msgLength = vsnprintf(msgBuf, sizeof(msgBuf), fmt, arg);
+  const String msg       = {.ptr = msgBuf, .size = math_clamp_i32(msgLength, 0, sizeof(msgBuf))};
+
+  log_e(
+      "Alsa error: {}",
+      log_param("msg", fmt_text(msg)),
+      log_param("err", fmt_text(alsa_error_str(err))),
+      log_param("file", fmt_text(string_from_null_term(file))),
+      log_param("line", fmt_int(line)),
+      log_param("func", fmt_text(string_from_null_term(func))));
+
+  va_end(arg);
+}
+
+static void alsa_init() {
+  static ThreadSpinLock g_initLock;
+  static bool           g_initialized;
+  if (LIKELY(g_initialized)) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_initialized) {
+    snd_lib_error_set_handler(&alsa_error_handler);
+    g_initialized = true;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
 
 static snd_pcm_t* alsa_pcm_open() {
   snd_pcm_t* pcm = null;
@@ -172,6 +209,8 @@ static bool alsa_pcm_period_commit(snd_pcm_t* pcm) {
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
+  alsa_init();
+
   snd_pcm_t*    pcm    = alsa_pcm_open();
   AlsaPcmConfig config = {0};
   if (pcm) {
