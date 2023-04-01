@@ -3,6 +3,7 @@
 #include "snd_output.h"
 #include "snd_register.h"
 
+#include "constants_internal.h"
 #include "device_internal.h"
 
 ecs_comp_define(SndOutputComp) { SndDevice* device; };
@@ -34,8 +35,11 @@ ecs_system_define(SndOutputUpdateSys) {
   }
 
   if (snd_device_begin(output->device)) {
-    const SndDeviceFrame frame = snd_device_frame(output->device);
-    (void)frame;
+    const SndDevicePeriod period = snd_device_period(output->device);
+    for (u32 frame = 0; frame != period.frameCount; ++frame) {
+      period.samples[frame * snd_channel_count + 0] = 0; // Left sample.
+      period.samples[frame * snd_channel_count + 1] = 0; // Right sample.
+    }
     snd_device_end(output->device);
   }
 }
