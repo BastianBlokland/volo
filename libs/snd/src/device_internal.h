@@ -6,13 +6,13 @@
 typedef struct {
   TimeSteady time;
   usize      sampleCount;
-  i16*       sampleBuffer;
+  i16*       sampleBuffer; // Interleaved left and right channels (LRLRLR).
 } SndDeviceFrame;
 
 typedef enum {
+  SndDeviceStatus_Error,
   SndDeviceStatus_Ready,
   SndDeviceStatus_FrameActive,
-  SndDeviceStatus_InitFailed,
 
   SndDeviceStatus_Count,
 } SndDeviceStatus;
