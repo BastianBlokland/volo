@@ -10,7 +10,15 @@
 
 static const char* snd_pcm_device = "plughw:0,0";
 
-#define snd_alsa_frames_per_period 2048
+/**
+ * Alsa PCM playback sound device implementation.
+ *
+ * Use a simple double-buffering strategy where we use two periods, one playing on the device and
+ * one being recorded. There's many strategies we can explore to reduce latency in the future.
+ */
+
+#define snd_alsa_period_count 2
+#define snd_alsa_period_frames 2048
 
 typedef struct sSndDevice {
   Allocator*     alloc;
@@ -71,14 +79,23 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_channel_count))) {
     goto Err;
   }
-  u32 actualSampleRate = snd_sample_frequency;
-  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &actualSampleRate, 0))) {
+  u32 sampleFreq = snd_sample_frequency;
+  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &sampleFreq, 0))) {
     goto Err;
   }
-  if (actualSampleRate != snd_sample_frequency) {
-    log_e(
-        "Sound-device does not support frequency {}",
-        log_param("freq", fmt_int(snd_sample_frequency)));
+  if (sampleFreq != snd_sample_frequency) {
+    log_e("Sound-device sample frequency not supported");
+    goto Err;
+  }
+  if ((err = snd_pcm_hw_params_set_periods(pcm, hwParams, snd_alsa_period_count, 0))) {
+    goto Err;
+  }
+  snd_pcm_uframes_t periodSize = snd_alsa_period_frames;
+  if ((err = snd_pcm_hw_params_set_period_size_near(pcm, hwParams, &periodSize, 0))) {
+    goto Err;
+  }
+  if (periodSize != snd_alsa_period_frames) {
+    log_e("Sound-device period-size not supported");
     goto Err;
   }
 
@@ -129,7 +146,7 @@ static u32 alsa_pcm_available_frames(snd_pcm_t* pcm) {
 static i16* alsa_pcm_period_map(snd_pcm_t* pcm) {
   const snd_pcm_channel_area_t* areas;
   snd_pcm_uframes_t             offset;
-  snd_pcm_uframes_t             frames = snd_alsa_frames_per_period;
+  snd_pcm_uframes_t             frames = snd_alsa_period_frames;
   i32                           err;
   if ((err = snd_pcm_mmap_begin(pcm, &areas, &offset, &frames))) {
     log_e("Failed to map from sound-device", log_param("err", fmt_text(alsa_error_str(err))));
@@ -143,8 +160,8 @@ static i16* alsa_pcm_period_map(snd_pcm_t* pcm) {
 }
 
 static bool alsa_pcm_period_commit(snd_pcm_t* pcm) {
-  const snd_pcm_uframes_t offset    = 0;                          // Start on a period boundary.
-  const snd_pcm_uframes_t frames    = snd_alsa_frames_per_period; // Commit a whole period.
+  const snd_pcm_uframes_t offset    = 0;                      // Start on a period boundary.
+  const snd_pcm_uframes_t frames    = snd_alsa_period_frames; // Commit a whole period.
   const snd_pcm_sframes_t committed = snd_pcm_mmap_commit(pcm, offset, frames);
   if (committed < 0 || (snd_pcm_uframes_t)committed != frames) {
     const i32 err = (i32)committed;
@@ -222,7 +239,7 @@ bool snd_device_begin(SndDevice* dev) {
   }
 
   const u32 availableFrames = alsa_pcm_available_frames(dev->pcm);
-  if (availableFrames < snd_alsa_frames_per_period) {
+  if (availableFrames < snd_alsa_period_frames) {
     return false; // TODO: Does it make any sense to render less then a full period?
   }
   dev->activeMapping = alsa_pcm_period_map(dev->pcm);
@@ -241,7 +258,7 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
   // TODO: Compute period timestamp.
   return (SndDevicePeriod){
       .time       = time_steady_clock(),
-      .frameCount = snd_alsa_frames_per_period,
+      .frameCount = snd_alsa_period_frames,
       .samples    = dev->activeMapping,
   };
 }
