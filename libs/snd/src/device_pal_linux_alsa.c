@@ -56,8 +56,8 @@ static String alsa_pcm_type_str(const snd_pcm_type_t type) {
 
 static snd_pcm_t* alsa_pcm_open() {
   snd_pcm_t* pcm = null;
-  const int  err = snd_pcm_open(&pcm, snd_pcm_device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
-  if (err != 0) {
+  const i32  err = snd_pcm_open(&pcm, snd_pcm_device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+  if (err) {
     log_e(
         "Failed to open sound-device",
         log_param("name", fmt_text(string_from_null_term(snd_pcm_device))),
@@ -68,6 +68,19 @@ static snd_pcm_t* alsa_pcm_open() {
   return pcm;
 }
 
+static snd_pcm_info_t* alsa_pcm_info_scratch(snd_pcm_t* pcm) {
+  snd_pcm_info_t* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
+  const i32       err  = snd_pcm_info(pcm, info);
+  if (err) {
+    log_e(
+        "Failed to retrieve sound-device info",
+        log_param("error-code", fmt_int(err)),
+        log_param("error", fmt_text(alsa_error_str(err))));
+    return null;
+  }
+  return info;
+}
+
 SndDevice* snd_device_create(Allocator* alloc) {
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
@@ -75,9 +88,16 @@ SndDevice* snd_device_create(Allocator* alloc) {
       .pcm   = alsa_pcm_open(),
   };
   if (dev->pcm) {
-    const snd_pcm_type_t type = snd_pcm_type(dev->pcm);
+    const snd_pcm_type_t  type = snd_pcm_type(dev->pcm);
+    const snd_pcm_info_t* info = alsa_pcm_info_scratch(dev->pcm);
+    const i32             card = info ? snd_pcm_info_get_card(info) : -1;
+    const String id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_empty;
 
-    log_i("Alsa sound device created", log_param("type", fmt_text(alsa_pcm_type_str(type))));
+    log_i(
+        "Alsa sound device created",
+        log_param("id", fmt_text(id)),
+        log_param("card", fmt_int(card)),
+        log_param("type", fmt_text(alsa_pcm_type_str(type))));
 
     // TODO: https://soundprogramming.net/programming/alsa-tutorial-1-initialization/
     dev->status = SndDeviceStatus_Ready;
