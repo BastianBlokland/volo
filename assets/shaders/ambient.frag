@@ -131,7 +131,7 @@ void main() {
       out_color = geo.emissive.rrr;
       break;
     case c_modeDebugNormal:
-      out_color = geo.normal;
+      out_color = normal_tex_encode(geo.normal);
       break;
     case c_modeDebugDepth: {
       const f32 debugMaxDist = 100.0;
