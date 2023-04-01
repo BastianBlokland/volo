@@ -33,8 +33,11 @@ ecs_system_define(SndOutputUpdateSys) {
     output = snd_output_create(world);
   }
 
-  snd_device_begin(output->device);
-  snd_device_end(output->device);
+  if (snd_device_begin(output->device)) {
+    const SndDeviceFrame frame = snd_device_frame(output->device);
+    (void)frame;
+    snd_device_end(output->device);
+  }
 }
 
 ecs_module_init(snd_output_module) {

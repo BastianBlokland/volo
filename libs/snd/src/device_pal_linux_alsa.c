@@ -1,3 +1,5 @@
+#include "core_annotation.h"
+#include "core_diag.h"
 #include "log_logger.h"
 
 #include "constants_internal.h"
@@ -8,9 +10,9 @@
 static const char* snd_pcm_device = "plughw:0,0";
 
 typedef struct sSndDevice {
-  Allocator*      alloc;
-  snd_pcm_t*      pcm;
-  SndDeviceStatus status;
+  Allocator*     alloc;
+  snd_pcm_t*     pcm;
+  SndDeviceState state;
 } SndDevice;
 
 typedef struct {
@@ -95,11 +97,6 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
         log_param("depth", fmt_int(snd_sample_depth)));
   }
 
-  // Prepare the device for use.
-  if ((err = snd_pcm_prepare(pcm))) {
-    goto Err;
-  }
-
   result.valid = true;
   return result;
 
@@ -111,34 +108,52 @@ Err:
   return result;
 }
 
+static bool alsa_pcm_prepare(snd_pcm_t* pcm) {
+  i32 err;
+  if (UNLIKELY(err = snd_pcm_prepare(pcm))) {
+    goto Err;
+  }
+  return true; // Ready for playing.
+
+Err:
+  log_e(
+      "Failed to prepare sound-device",
+      log_param("error-code", fmt_int(err)),
+      log_param("error", fmt_text(err ? alsa_error_str(err) : string_lit("unknown"))));
+  return false;
+}
+
 SndDevice* snd_device_create(Allocator* alloc) {
   snd_pcm_t*    pcm    = alsa_pcm_open();
   AlsaPcmConfig config = {0};
   if (pcm) {
     config = alsa_pcm_initialize(pcm);
   }
+  SndDeviceState state = SndDeviceState_Error;
   if (config.valid) {
-    const snd_pcm_type_t  type  = snd_pcm_type(pcm);
-    const snd_pcm_state_t state = snd_pcm_state(pcm);
-    const snd_pcm_info_t* info  = alsa_pcm_info_scratch(pcm);
-    const i32             card  = info ? snd_pcm_info_get_card(info) : -1;
+    const snd_pcm_type_t  type     = snd_pcm_type(pcm);
+    const snd_pcm_state_t pcmState = snd_pcm_state(pcm);
+    const snd_pcm_info_t* info     = alsa_pcm_info_scratch(pcm);
+    const i32             card     = info ? snd_pcm_info_get_card(info) : -1;
     const String id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_empty;
+
+    if (pcmState == SND_PCM_STATE_PREPARED || pcmState == SND_PCM_STATE_RUNNING) {
+      state = SndDeviceState_Playing;
+    } else {
+      state = SndDeviceState_Idle;
+    }
 
     log_i(
         "Alsa sound device created",
         log_param("id", fmt_text(id)),
         log_param("card", fmt_int(card)),
         log_param("type", fmt_text(string_from_null_term(snd_pcm_type_name(type)))),
-        log_param("state", fmt_text(string_from_null_term(snd_pcm_state_name(state)))),
+        log_param("state", fmt_text(string_from_null_term(snd_pcm_state_name(pcmState)))),
         log_param("buffer", fmt_size(config.bufferSize)));
   }
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-  *dev           = (SndDevice){
-                .alloc  = alloc,
-                .pcm    = pcm,
-                .status = config.valid ? SndDeviceStatus_Ready : SndDeviceStatus_Error,
-  };
+  *dev           = (SndDevice){.alloc = alloc, .pcm = pcm, .state = state};
   return dev;
 }
 
@@ -152,12 +167,37 @@ void snd_device_destroy(SndDevice* dev) {
   alloc_free_t(dev->alloc, dev);
 }
 
-SndDeviceStatus snd_device_status(const SndDevice* dev) { return dev->status; }
+SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 
-void snd_device_begin(SndDevice* dev) { (void)dev; }
+bool snd_device_begin(SndDevice* dev) {
+  switch (dev->state) {
+  case SndDeviceState_Error:
+    return false;
+  case SndDeviceState_Idle: {
+    if (alsa_pcm_prepare(dev->pcm)) {
+      break;
+    } else {
+      dev->state = SndDeviceState_Error;
+      return false;
+    }
+  }
+  case SndDeviceState_Playing:
+    break;
+  case SndDeviceState_FrameActive:
+    diag_assert_fail("Unable to begin a new sound device frame: Frame already active");
+  case SndDeviceState_Count:
+    UNREACHABLE
+  }
+
+  dev->state = SndDeviceState_FrameActive;
+  return true;
+}
 
 SndDeviceFrame snd_device_frame(SndDevice* dev) {
-  (void)dev;
+  diag_assert(dev->state == SndDeviceState_FrameActive);
+
+  // TODO: retrieve frame data.
+
   return (SndDeviceFrame){
       .time         = time_steady_clock(),
       .sampleCount  = 0,
@@ -165,4 +205,10 @@ SndDeviceFrame snd_device_frame(SndDevice* dev) {
   };
 }
 
-void snd_device_end() {}
+void snd_device_end(SndDevice* dev) {
+  diag_assert(dev->state == SndDeviceState_FrameActive);
+
+  // TODO: Submit frame.
+
+  dev->state = SndDeviceState_Playing;
+}

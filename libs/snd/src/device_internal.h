@@ -10,22 +10,22 @@ typedef struct {
 } SndDeviceFrame;
 
 typedef enum {
-  SndDeviceStatus_Error,
-  SndDeviceStatus_Ready,
-  SndDeviceStatus_FrameActive,
+  SndDeviceState_Error,
+  SndDeviceState_Idle,
+  SndDeviceState_Playing,
+  SndDeviceState_FrameActive,
 
-  SndDeviceStatus_Count,
-} SndDeviceStatus;
+  SndDeviceState_Count,
+} SndDeviceState;
 
 typedef struct sSndDevice SndDevice;
 
 SndDevice* snd_device_create(Allocator*);
 void       snd_device_destroy(SndDevice*);
 
-SndDeviceStatus snd_device_status(const SndDevice*);
+SndDeviceState snd_device_state(const SndDevice*);
+String         snd_device_state_str(SndDeviceState);
 
-void           snd_device_begin(SndDevice*);
+bool           snd_device_begin(SndDevice*);
 SndDeviceFrame snd_device_frame(SndDevice*);
-void           snd_device_end();
-
-String snd_device_status_str(SndDeviceStatus);
+void           snd_device_end(SndDevice*);

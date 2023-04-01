@@ -2,12 +2,13 @@
 
 #include "device_internal.h"
 
-String snd_device_status_str(const SndDeviceStatus status) {
+String snd_device_state_str(const SndDeviceState state) {
   static const String g_msgs[] = {
       string_static("Error"),
-      string_static("Ready"),
+      string_static("Idle"),
+      string_static("Playing"),
       string_static("FrameActive"),
   };
-  ASSERT(array_elems(g_msgs) == SndDeviceStatus_Count, "Incorrect number of status messages");
-  return g_msgs[status];
+  ASSERT(array_elems(g_msgs) == SndDeviceState_Count, "Incorrect number of state messages");
+  return g_msgs[state];
 }
