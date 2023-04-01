@@ -29,8 +29,7 @@ static snd_pcm_t* alsa_pcm_open() {
     log_e(
         "Failed to open sound-device",
         log_param("name", fmt_text(string_from_null_term(snd_pcm_device))),
-        log_param("error-code", fmt_int(err)),
-        log_param("error", fmt_text(alsa_error_str(err))));
+        log_param("err", fmt_text(alsa_error_str(err))));
     return null;
   }
   return pcm;
@@ -40,10 +39,7 @@ static snd_pcm_info_t* alsa_pcm_info_scratch(snd_pcm_t* pcm) {
   snd_pcm_info_t* info = alloc_alloc(g_alloc_scratch, snd_pcm_info_sizeof(), sizeof(void*)).ptr;
   const i32       err  = snd_pcm_info(pcm, info);
   if (err) {
-    log_e(
-        "Failed to retrieve sound-device info",
-        log_param("error-code", fmt_int(err)),
-        log_param("error", fmt_text(alsa_error_str(err))));
+    log_e("Failed to retrieve sound-device info", log_param("err", fmt_text(alsa_error_str(err))));
     return null;
   }
   return info;
@@ -78,7 +74,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if (actualSampleRate != snd_sample_frequency) {
     log_e(
         "Sound-device does not support frequency {}",
-        log_param("frequency", fmt_int(snd_sample_frequency)));
+        log_param("freq", fmt_int(snd_sample_frequency)));
     goto Err;
   }
 
@@ -101,10 +97,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   return result;
 
 Err:
-  log_e(
-      "Failed to setup sound-device",
-      log_param("error-code", fmt_int(err)),
-      log_param("error", fmt_text(err ? alsa_error_str(err) : string_lit("unknown"))));
+  log_e("Failed to setup sound-device", log_param("err", fmt_text(alsa_error_str(err))));
   return result;
 }
 
@@ -116,11 +109,16 @@ static bool alsa_pcm_prepare(snd_pcm_t* pcm) {
   return true; // Ready for playing.
 
 Err:
-  log_e(
-      "Failed to prepare sound-device",
-      log_param("error-code", fmt_int(err)),
-      log_param("error", fmt_text(err ? alsa_error_str(err) : string_lit("unknown"))));
+  log_e("Failed to prepare sound-device", log_param("err", fmt_text(alsa_error_str(err))));
   return false;
+}
+
+static u32 alsa_pcm_available(snd_pcm_t* pcm) {
+  const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm);
+  if (UNLIKELY(avail < 0)) {
+    log_e("Failed to query sound-device", log_param("err", fmt_text(alsa_error_str((i32)avail))));
+  }
+  return (u32)avail;
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
@@ -175,6 +173,7 @@ bool snd_device_begin(SndDevice* dev) {
     return false;
   case SndDeviceState_Idle: {
     if (alsa_pcm_prepare(dev->pcm)) {
+      dev->state = SndDeviceState_Playing;
       break;
     } else {
       dev->state = SndDeviceState_Error;
@@ -187,6 +186,11 @@ bool snd_device_begin(SndDevice* dev) {
     diag_assert_fail("Unable to begin a new sound device frame: Frame already active");
   case SndDeviceState_Count:
     UNREACHABLE
+  }
+
+  const u32 availableSamples = alsa_pcm_available(dev->pcm);
+  if (UNLIKELY(availableSamples == 0)) {
+    return false;
   }
 
   dev->state = SndDeviceState_FrameActive;
