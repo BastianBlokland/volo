@@ -1,6 +1,10 @@
 #pragma once
 #include "ecs_def.h"
 
+enum {
+  SndOrder_Output = 1000,
+};
+
 /**
  * Register the ecs modules for the Sound library.
  */
