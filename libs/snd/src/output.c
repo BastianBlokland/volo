@@ -24,13 +24,13 @@ static SndOutputComp* snd_output_create(EcsWorld* world) {
       world, ecs_world_global(world), SndOutputComp, .device = snd_device_create(g_alloc_heap));
 }
 
-static void snd_output_sine(const SndDevicePeriod period, const f32 frequency) {
+static void snd_output_sine(const SndDevicePeriod period, const f32 frequency, const f32 volume) {
   const f64 stepPerSec   = 2.0f * math_pi_f64 * frequency;
   const f64 stepPerFrame = stepPerSec / snd_frame_rate;
 
   f64 phase = period.time / (f64)time_second * stepPerSec;
   for (u32 frame = 0; frame != period.frameCount; ++frame) {
-    const i16 val = (i16)(math_sin_f64(phase) * i16_max);
+    const i16 val = (i16)(math_sin_f64(phase) * volume * i16_max);
 
     period.samples[frame * snd_frame_channels + 0] = val; // Left sample.
     period.samples[frame * snd_frame_channels + 1] = val; // Right sample.
@@ -52,7 +52,7 @@ ecs_system_define(SndOutputUpdateSys) {
   if (snd_device_begin(output->device)) {
     const SndDevicePeriod period = snd_device_period(output->device);
 
-    snd_output_sine(period, 440);
+    snd_output_sine(period, 440, 0.1f);
     snd_device_end(output->device);
   }
 }
