@@ -13,11 +13,6 @@
 #define snd_mixer_history_frames 4096
 ASSERT((snd_mixer_history_frames & (snd_mixer_history_frames - 1u)) == 0, "Non power-of-two")
 
-typedef struct {
-  SndMixerFrame* frames;
-  usize          frameCount;
-} SndSoundView;
-
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
   f32        volume;
@@ -53,7 +48,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       .historyBuffer = historyBuf);
 }
 
-static void snd_mixer_render_sine(SndSoundView out, const TimeSteady time, const f32 frequency) {
+static void snd_mixer_render_sine(SndMixerView out, const TimeSteady time, const f32 frequency) {
   const f64 stepPerSec   = 2.0f * math_pi_f64 * frequency;
   const f64 stepPerFrame = stepPerSec / snd_frame_rate;
 
@@ -68,7 +63,7 @@ static void snd_mixer_render_sine(SndSoundView out, const TimeSteady time, const
   }
 }
 
-static void snd_mixer_render(SndSoundView out, const TimeSteady time) {
+static void snd_mixer_render(SndMixerView out, const TimeSteady time) {
   snd_mixer_render_sine(out, time, 261.63f);
   // snd_mixer_render_sine(out, time, 329.63f);
   // snd_mixer_render_sine(out, time, 392.0f);
@@ -80,7 +75,7 @@ static void snd_mixer_history_add(SndMixerComp* mixer, const SndChannel channel,
 }
 
 static void snd_mixer_fill_device_period(
-    SndMixerComp* mixer, const SndDevicePeriod devicePeriod, const SndSoundView buffer) {
+    SndMixerComp* mixer, const SndDevicePeriod devicePeriod, const SndMixerView buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
@@ -112,7 +107,7 @@ ecs_system_define(SndMixerUpdateSys) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
 
     SndMixerFrame      soundFrames[snd_frame_count_max] = {0};
-    const SndSoundView soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
+    const SndMixerView soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
 
     snd_mixer_render(soundBuffer, period.timeBegin);
 

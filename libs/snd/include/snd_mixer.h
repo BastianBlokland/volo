@@ -6,6 +6,11 @@ typedef struct {
   f32 samples[SndChannel_Count];
 } SndMixerFrame;
 
+typedef struct {
+  SndMixerFrame* frames;
+  usize          frameCount;
+} SndMixerView;
+
 /**
  * Global sound mixer.
  */
