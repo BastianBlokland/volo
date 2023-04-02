@@ -15,3 +15,8 @@ typedef struct {
  * Global sound mixer.
  */
 ecs_comp_extern(SndMixerComp);
+
+/**
+ * History ring-buffer for analysis / debug purposes.
+ */
+SndMixerView snd_mixer_history(const SndMixerComp*);

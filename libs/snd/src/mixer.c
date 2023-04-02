@@ -126,3 +126,7 @@ ecs_module_init(snd_mixer_module) {
 
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
+
+SndMixerView snd_mixer_history(const SndMixerComp* mixer) {
+  return (SndMixerView){.frames = mixer->historyBuffer, .frameCount = snd_mixer_history_frames};
+}
