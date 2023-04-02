@@ -65,12 +65,15 @@ static void snd_mixer_render_sine(SndMixerView out, const TimeSteady time, const
 
 static void snd_mixer_render(SndMixerView out, const TimeSteady time) {
   snd_mixer_render_sine(out, time, 261.63f);
-  // snd_mixer_render_sine(out, time, 329.63f);
-  // snd_mixer_render_sine(out, time, 392.0f);
+  snd_mixer_render_sine(out, time, 329.63f);
+  snd_mixer_render_sine(out, time, 392.0f);
 }
 
-static void snd_mixer_history_add(SndMixerComp* mixer, const SndChannel channel, const f32 value) {
+static void snd_mixer_history_set(SndMixerComp* mixer, const SndChannel channel, const f32 value) {
   mixer->historyBuffer[mixer->historyCursor].samples[channel] = value;
+}
+
+static void snd_mixer_history_advance(SndMixerComp* mixer) {
   mixer->historyCursor = (mixer->historyCursor + 1) & (snd_mixer_history_frames - 1);
 }
 
@@ -87,8 +90,9 @@ static void snd_mixer_fill_device_period(
       devicePeriod.samples[frame * SndChannel_Count + channel] = (i16)(clipped * i16_max);
 
       // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_add(mixer, channel, clipped);
+      snd_mixer_history_set(mixer, channel, clipped);
     }
+    snd_mixer_history_advance(mixer);
   }
 }
 
