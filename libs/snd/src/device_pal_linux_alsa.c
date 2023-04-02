@@ -23,6 +23,7 @@
 #define snd_alsa_period_time (snd_alsa_period_frames * time_second / snd_frame_rate)
 
 ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
+ASSERT(snd_alsa_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
 typedef struct {
   bool valid;

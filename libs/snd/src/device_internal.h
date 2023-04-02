@@ -4,12 +4,24 @@
 #include "core_time.h"
 
 typedef struct {
-  TimeSteady timeBegin; // Timestamp of the begin of this period.
-                        // timeEnd = timeBegin + frameCount / snd_frame_rate.
-  usize frameCount;     // Number of frames in this period.
-                        // bits_aligned(frameCount, snd_frame_count_alignment).
-  i16* samples;         // [frameCount * 2] Interleaved left and right channels (LRLRLR).
-                        // bits_aligned_ptr(samples, snd_frame_sample_alignment).
+  /**
+   * Timestamp of the begin of this period.
+   * NOTE: timeEnd = timeBegin + frameCount / snd_frame_rate.
+   */
+  TimeSteady timeBegin;
+
+  /**
+   * Number of frames in this period.
+   * Pre-condition: bits_aligned(frameCount, snd_frame_count_alignment).
+   * Pre-condition: frameCount <= snd_frame_count_max.
+   */
+  usize frameCount;
+
+  /**
+   * [frameCount * 2] Interleaved left and right channels (LRLRLR).
+   * Pre-condition: bits_aligned_ptr(samples, snd_frame_sample_alignment).
+   */
+  i16* samples;
 } SndDevicePeriod;
 
 typedef enum {
