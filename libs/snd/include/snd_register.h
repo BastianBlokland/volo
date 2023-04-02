@@ -2,7 +2,7 @@
 #include "ecs_def.h"
 
 enum {
-  SndOrder_Output = 1000,
+  SndOrder_Mix = 1000,
 };
 
 /**

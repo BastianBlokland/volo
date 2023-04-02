@@ -7,7 +7,7 @@ message(STATUS "> library: snd")
 add_library(lib_snd STATIC
   src/device_pal.c
   src/device.c
-  src/output.c
+  src/mixer.c
   src/register.c
   )
 target_include_directories(lib_snd PUBLIC include)
