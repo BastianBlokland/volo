@@ -1,4 +1,5 @@
 #include "core_format.h"
+#include "core_math.h"
 #include "debug_sound.h"
 #include "ecs_world.h"
 #include "snd.h"
@@ -13,17 +14,46 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static void sound_draw_scope(UiCanvasComp* canvas, const SndMixerView buf, const SndChannel chan) {
+  static const f32 g_step = 1.0f / 256.0f;
+
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 0);
+
+  for (f32 t = 0.0; t < 1.0f; t += g_step) {
+    const f32 sample    = snd_mixer_sample(buf, chan, t);
+    const f32 sampleAbs = math_abs(sample);
+
+    const UiVector size = {.width = g_step, .height = sampleAbs * 0.5f};
+    const UiVector pos  = {.x = t, .y = sample > 0.0f ? 0.5f : 0.5f - size.height};
+
+    UiColor color;
+    if (sampleAbs >= 0.95f) {
+      color = ui_color_red;
+    } else if (sampleAbs >= 0.8f) {
+      color = ui_color_yellow;
+    } else {
+      color = ui_color_white;
+    }
+    ui_style_color(canvas, color);
+
+    ui_layout_push(canvas);
+    ui_layout_set(canvas, ui_rect(pos, size), UiBase_Current);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 5, UiFlags_None);
+    ui_layout_pop(canvas);
+  }
+
+  ui_style_pop(canvas);
+}
+
 static void
 sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerComp* mixer) {
-
-  (void)mixer;
 
   const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+  const SndMixerView history = snd_mixer_history(mixer);
+  sound_draw_scope(canvas, history, SndChannel_Left);
 
   ui_panel_end(canvas, &panelComp->panel);
 }
