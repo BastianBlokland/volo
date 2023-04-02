@@ -3,7 +3,6 @@
 #include "core_format.h"
 #include "debug_interface.h"
 #include "ecs_world.h"
-#include "scene_lifetime.h"
 #include "ui.h"
 #include "ui_settings.h"
 

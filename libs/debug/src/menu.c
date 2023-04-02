@@ -14,6 +14,7 @@
 #include "debug_menu.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
+#include "debug_sound.h"
 #include "debug_stats.h"
 #include "debug_time.h"
 #include "ecs_utils.h"
@@ -56,6 +57,12 @@ static const struct {
         .name      = string_static("Level"),
         .iconShape = UiShape_Globe,
         .openFunc  = debug_level_panel_open,
+    },
+    {
+        .name       = string_static("Sound"),
+        .iconShape  = UiShape_MusicNote,
+        .openFunc   = debug_sound_panel_open,
+        .hotkeyName = string_static("DebugPanelSound"),
     },
     {
         .name       = string_static("Time"),

@@ -21,6 +21,7 @@ add_library(lib_debug STATIC
   src/register.c
   src/rend.c
   src/shape.c
+  src/sound.c
   src/stats.c
   src/text.c
   src/time.c
@@ -28,4 +29,4 @@ add_library(lib_debug STATIC
   )
 target_include_directories(lib_debug PUBLIC include)
 target_link_libraries(lib_debug PUBLIC lib_core lib_ecs lib_scene)
-target_link_libraries(lib_debug PRIVATE lib_gap lib_log lib_rend lib_input lib_ui)
+target_link_libraries(lib_debug PRIVATE lib_gap lib_log lib_rend lib_input lib_ui lib_snd)

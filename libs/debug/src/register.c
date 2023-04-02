@@ -17,6 +17,7 @@ void debug_register(EcsDef* def) {
   ecs_register_module(def, debug_prefab_module);
   ecs_register_module(def, debug_rend_module);
   ecs_register_module(def, debug_shape_module);
+  ecs_register_module(def, debug_sound_module);
   ecs_register_module(def, debug_stats_module);
   ecs_register_module(def, debug_text_module);
   ecs_register_module(def, debug_time_module);
