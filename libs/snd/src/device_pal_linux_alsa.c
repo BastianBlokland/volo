@@ -43,6 +43,9 @@ typedef struct sSndDevice {
   AlsaPcmConfig  pcmConfig;
   TimeSteady     nextPeriodBeginTime;
 
+  u64        underrunCounter;
+  TimeSteady underrunLastReportTime;
+
   /**
    * Buffer for rendering the period samples into.
    *
@@ -247,6 +250,16 @@ static AlsaPcmWriteResult alsa_pcm_write(snd_pcm_t* pcm, i16 buf[static snd_alsa
   return AlsaPcmWriteResult_Success;
 }
 
+static void snd_device_report_underrun(SndDevice* device) {
+  ++device->underrunCounter;
+
+  const TimeSteady timeNow = time_steady_clock();
+  if ((timeNow - device->underrunLastReportTime) > time_second) {
+    log_d("Sound-device buffer underrun", log_param("counter", fmt_int(device->underrunCounter)));
+    device->underrunLastReportTime = timeNow;
+  }
+}
+
 SndDevice* snd_device_create(Allocator* alloc) {
   alsa_init();
 
@@ -312,6 +325,7 @@ StartPlayingIfIdle:
   // Query the device-status to check if there's a period ready for rendering.
   switch (alsa_pcm_query(dev->pcm)) {
   case AlsaPcmStatus_Underrun:
+    snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // PCM ran out of samples in the buffer; Restart the playback.
     goto StartPlayingIfIdle;
   case AlsaPcmStatus_Busy:
@@ -343,6 +357,7 @@ void snd_device_end(SndDevice* dev) {
     dev->nextPeriodBeginTime += snd_alsa_period_time;
     break;
   case AlsaPcmWriteResult_Underrun:
+    snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // Playback stopped due to an underrun.
     break;
   case AlsaPcmWriteResult_Error:
