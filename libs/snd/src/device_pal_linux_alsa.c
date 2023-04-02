@@ -1,4 +1,3 @@
-#include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -13,26 +12,45 @@
 /**
  * Alsa PCM playback sound device implementation.
  *
- * Use a simple double-buffering strategy where we use two periods, one playing on the device and
- * one being recorded. There's many strategies we can explore to reduce latency in the future.
+ * Use a simple double-buffering strategy where we use (at least) two periods, one playing on the
+ * device and one being recorded.
  */
 
-static const char* snd_pcm_device = "default";
-
+#define snd_alsa_device_name "default"
 #define snd_alsa_period_desired_count 2
 #define snd_alsa_period_frames 2048
+#define snd_alsa_period_samples (snd_alsa_period_frames * snd_frame_channels)
+#define snd_alsa_period_time (snd_alsa_period_frames * time_second / snd_frame_rate)
+
+typedef struct {
+  bool valid;
+  u32  periodCount;
+  u32  bufferSize;
+} AlsaPcmConfig;
 
 typedef struct sSndDevice {
   Allocator*     alloc;
-  snd_pcm_t*     pcm;
   SndDeviceState state;
-  i16*           activeMapping;
+  snd_pcm_t*     pcm;
+  AlsaPcmConfig  pcmConfig;
+  TimeSteady     nextPeriodBeginTime;
+
+  /**
+   * Buffer for rendering the period samples into.
+   *
+   * TODO: We can avoid copying from our rendering-buffer to the device buffer if the device
+   * supports mmap-ing the buffer, however not all devices support this so we need to keep the
+   * copying path as a fallback.
+   */
+  i16 periodRenderingBuffer[snd_alsa_period_samples];
 } SndDevice;
 
-typedef struct {
-  bool              valid;
-  snd_pcm_uframes_t bufferSize;
-} AlsaPcmConfig;
+typedef enum {
+  AlsaPcmStatus_Underrun, // Device buffer under-run has occurred.
+  AlsaPcmStatus_Busy,     // No period is available for recording.
+  AlsaPcmStatus_Ready,    // A period is available for recording.
+  AlsaPcmStatus_Error,    // Device has encountered an error.
+} AlsaPcmStatus;
 
 static String alsa_error_str(const int err) { return string_from_null_term(snd_strerror(err)); }
 
@@ -42,7 +60,7 @@ static void alsa_error_handler(
   va_list arg;
   va_start(arg, fmt);
 
-  char         msgBuf[64];
+  char         msgBuf[128];
   const i32    msgLength = vsnprintf(msgBuf, sizeof(msgBuf), fmt, arg);
   const String msg       = {.ptr = msgBuf, .size = math_clamp_i32(msgLength, 0, sizeof(msgBuf))};
 
@@ -73,12 +91,13 @@ static void alsa_init() {
 
 static snd_pcm_t* alsa_pcm_open() {
   snd_pcm_t* pcm = null;
-  const i32  ret = snd_pcm_open(&pcm, snd_pcm_device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
-  if (ret < 0) {
+  const i32  err = snd_pcm_open(&pcm, snd_alsa_device_name, SND_PCM_STREAM_PLAYBACK, 0);
+  if (err < 0) {
     log_e(
         "Failed to open sound-device",
-        log_param("name", fmt_text(string_from_null_term(snd_pcm_device))),
-        log_param("err", fmt_text(alsa_error_str(ret))));
+        log_param("name", fmt_text(string_from_null_term(snd_alsa_device_name))),
+        log_param("err-code", fmt_int(err)),
+        log_param("err", fmt_text(alsa_error_str(err))));
     return null;
   }
   return pcm;
@@ -95,8 +114,7 @@ static snd_pcm_info_t* alsa_pcm_info_scratch(snd_pcm_t* pcm) {
 }
 
 static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
-  i32           err    = 0;
-  AlsaPcmConfig result = {0};
+  i32 err = 0;
 
   // Configure the hardware parameters.
   const usize          hwParamsSize = snd_pcm_hw_params_sizeof();
@@ -113,15 +131,15 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_channel_count)) < 0) {
+  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_frame_channels)) < 0) {
     goto Err;
   }
-  u32 sampleFreq = snd_sample_frequency;
-  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &sampleFreq, 0)) < 0) {
+  u32 frameRate = snd_frame_rate;
+  if ((err = snd_pcm_hw_params_set_rate_near(pcm, hwParams, &frameRate, 0)) < 0) {
     goto Err;
   }
-  if (sampleFreq != snd_sample_frequency) {
-    log_e("Sound-device sample frequency not supported");
+  if (frameRate != snd_frame_rate) {
+    log_e("Sound-device frame-rate not supported");
     goto Err;
   }
   u32 periodCount = snd_alsa_period_desired_count;
@@ -142,69 +160,62 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
     goto Err;
   }
 
-  // Retrieve buffer config.
-  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &result.bufferSize)) < 0) {
+  // Retrieve the config.
+  snd_pcm_uframes_t bufferSize;
+  if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
     goto Err;
   }
-  if (snd_pcm_hw_params_get_sbits(hwParams) != 16) {
-    log_e(
-        "Sound-device does not support bit-depth {}",
-        log_param("depth", fmt_int(snd_sample_depth)));
-  }
-
-  result.valid = true;
-  return result;
+  return (AlsaPcmConfig){
+      .valid       = true,
+      .periodCount = periodCount,
+      .bufferSize  = (u32)bufferSize,
+  };
 
 Err:;
   const String errName = err < 0 ? alsa_error_str(err) : string_lit("unkown");
-  log_e("Failed to setup sound-device", log_param("err", fmt_text(errName)));
-  return result;
+  log_e(
+      "Failed to setup sound-device",
+      log_param("err-code", fmt_int(err)),
+      log_param("err", fmt_text(errName)));
+  return (AlsaPcmConfig){0};
 }
 
 static bool alsa_pcm_prepare(snd_pcm_t* pcm) {
   i32 err;
   if (UNLIKELY(err = snd_pcm_prepare(pcm))) {
-    goto Err;
+    log_e(
+        "Failed to prepare sound-device",
+        log_param("err-code", fmt_int(err)),
+        log_param("err", fmt_text(alsa_error_str(err))));
+    return false;
   }
   return true; // Ready for playing.
-
-Err:
-  log_e("Failed to prepare sound-device", log_param("err", fmt_text(alsa_error_str(err))));
-  return false;
 }
 
-static u32 alsa_pcm_available_frames(snd_pcm_t* pcm) {
+static AlsaPcmStatus alsa_pcm_query(snd_pcm_t* pcm) {
   const snd_pcm_sframes_t avail = snd_pcm_avail_update(pcm);
   if (UNLIKELY(avail < 0)) {
-    log_e("Failed to query sound-device", log_param("err", fmt_text(alsa_error_str((i32)avail))));
-    return 0;
+    const i32 err = (i32)avail;
+    if (err == -EPIPE) {
+      return AlsaPcmStatus_Underrun;
+    }
+    log_e(
+        "Failed to query sound-device",
+        log_param("err-code", fmt_int(err)),
+        log_param("err", fmt_text(alsa_error_str((i32)avail))));
+    return AlsaPcmStatus_Error;
   }
-  return (u32)avail;
+  return avail < snd_alsa_period_frames ? AlsaPcmStatus_Busy : AlsaPcmStatus_Ready;
 }
 
-static i16* alsa_pcm_period_map(snd_pcm_t* pcm) {
-  const snd_pcm_channel_area_t* areas;
-  snd_pcm_uframes_t             offset = 0;
-  snd_pcm_uframes_t             frames = snd_alsa_period_frames;
-  i32                           err;
-  if ((err = snd_pcm_mmap_begin(pcm, &areas, &offset, &frames))) {
-    log_e("Failed to map from sound-device", log_param("err", fmt_text(alsa_error_str(err))));
-    return null;
-  }
-  diag_assert(areas[0].step == sizeof(i16) * snd_channel_count);
-  diag_assert(areas[1].step == sizeof(i16) * snd_channel_count);
-  diag_assert(offset == 0); // Expect to start on a period boundary.
-  diag_assert(areas[1].addr == bits_ptr_offset(areas[0].addr, sizeof(i16))); // Expect interleaved.
-  return (i16*)areas[0].addr;
-}
-
-static bool alsa_pcm_period_commit(snd_pcm_t* pcm) {
-  const snd_pcm_uframes_t offset    = 0;                      // Start on a period boundary.
-  const snd_pcm_uframes_t frames    = snd_alsa_period_frames; // Commit a whole period.
-  const snd_pcm_sframes_t committed = snd_pcm_mmap_commit(pcm, offset, frames);
-  if (committed < 0 || (snd_pcm_uframes_t)committed != frames) {
-    const i32 err = (i32)committed;
-    log_e("Failed to commit to sound-device", log_param("err", fmt_text(alsa_error_str(err))));
+static bool alsa_pcm_write(snd_pcm_t* pcm, i16 buffer[static snd_alsa_period_samples]) {
+  const snd_pcm_sframes_t written = snd_pcm_writei(pcm, buffer, snd_alsa_period_frames);
+  if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
+    const i32 err = (i32)written;
+    log_e(
+        "Failed to write to sound-device",
+        log_param("err-code", fmt_int(err)),
+        log_param("err", fmt_text(alsa_error_str(err))));
     return false;
   }
   return true;
@@ -213,36 +224,35 @@ static bool alsa_pcm_period_commit(snd_pcm_t* pcm) {
 SndDevice* snd_device_create(Allocator* alloc) {
   alsa_init();
 
-  snd_pcm_t*    pcm    = alsa_pcm_open();
-  AlsaPcmConfig config = {0};
+  snd_pcm_t*    pcm       = alsa_pcm_open();
+  AlsaPcmConfig pcmConfig = {0};
   if (pcm) {
-    config = alsa_pcm_initialize(pcm);
+    pcmConfig = alsa_pcm_initialize(pcm);
   }
-  SndDeviceState state = SndDeviceState_Error;
-  if (config.valid) {
-    const snd_pcm_type_t  type     = snd_pcm_type(pcm);
-    const snd_pcm_state_t pcmState = snd_pcm_state(pcm);
-    const snd_pcm_info_t* info     = alsa_pcm_info_scratch(pcm);
-    const i32             card     = info ? snd_pcm_info_get_card(info) : -1;
+  if (pcmConfig.valid) {
+    const snd_pcm_type_t  type = snd_pcm_type(pcm);
+    const snd_pcm_info_t* info = alsa_pcm_info_scratch(pcm);
+    const i32             card = info ? snd_pcm_info_get_card(info) : -1;
     const String id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_empty;
-
-    if (pcmState == SND_PCM_STATE_PREPARED) {
-      state = SndDeviceState_Playing;
-    } else {
-      state = SndDeviceState_Idle;
-    }
 
     log_i(
         "Alsa sound device created",
         log_param("id", fmt_text(id)),
         log_param("card", fmt_int(card)),
         log_param("type", fmt_text(string_from_null_term(snd_pcm_type_name(type)))),
-        log_param("state", fmt_text(string_from_null_term(snd_pcm_state_name(pcmState)))),
-        log_param("buffer", fmt_size(config.bufferSize)));
+        log_param("period-count", fmt_int(pcmConfig.periodCount)),
+        log_param("period-frames", fmt_int(snd_alsa_period_frames)),
+        log_param("period-time", fmt_duration(snd_alsa_period_time)),
+        log_param("device-buffer", fmt_size(pcmConfig.bufferSize)));
   }
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
-  *dev           = (SndDevice){.alloc = alloc, .pcm = pcm, .state = state};
+  *dev           = (SndDevice){
+      .alloc     = alloc,
+      .pcm       = pcm,
+      .pcmConfig = pcmConfig,
+      .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
+  };
   return dev;
 }
 
@@ -250,21 +260,22 @@ void snd_device_destroy(SndDevice* dev) {
   if (dev->pcm) {
     snd_pcm_close(dev->pcm);
   }
-
   log_i("Alsa sound device destroyed");
-
   alloc_free_t(dev->alloc, dev);
 }
 
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 
 bool snd_device_begin(SndDevice* dev) {
+StartPlaying:
+  // Start playing if the device is currently idle.
   switch (dev->state) {
   case SndDeviceState_Error:
-    return false;
+    return false; // Device is in an unrecoverable error state.
   case SndDeviceState_Idle: {
     if (alsa_pcm_prepare(dev->pcm)) {
-      dev->state = SndDeviceState_Playing;
+      dev->nextPeriodBeginTime = time_steady_clock();
+      dev->state               = SndDeviceState_Playing;
       break;
     } else {
       dev->state = SndDeviceState_Error;
@@ -273,44 +284,47 @@ bool snd_device_begin(SndDevice* dev) {
   }
   case SndDeviceState_Playing:
     break;
-  case SndDeviceState_PeriodActive:
-    diag_assert_fail("Unable to begin a new sound device period: Already active");
+  case SndDeviceState_Rendering:
+    diag_assert_fail("Unable to begin a new sound device period: Already rendering");
   case SndDeviceState_Count:
     UNREACHABLE
   }
 
-  const u32 availableFrames = alsa_pcm_available_frames(dev->pcm);
-  if (availableFrames < snd_alsa_period_frames) {
-    return false; // TODO: Does it make any sense to render less then a full period?
-  }
-  dev->activeMapping = alsa_pcm_period_map(dev->pcm);
-  if (UNLIKELY(!dev->activeMapping)) {
+  // Query the device-status to check if there's a period ready for rendering.
+  switch (alsa_pcm_query(dev->pcm)) {
+  case AlsaPcmStatus_Underrun:
+    // PCM ran out of samples in the buffer; Restart the playback.
+    dev->state = SndDeviceState_Idle;
+    goto StartPlaying;
+  case AlsaPcmStatus_Busy:
+    return false; // No period available for rendering.
+  case AlsaPcmStatus_Ready:
+    dev->state = SndDeviceState_Rendering;
+    return true;
+  case AlsaPcmStatus_Error:
+    // PCM has encountered an error, set the device to an error state too.
     dev->state = SndDeviceState_Error;
     return false;
   }
-  dev->state = SndDeviceState_PeriodActive;
-  return true;
+  UNREACHABLE;
 }
 
 SndDevicePeriod snd_device_period(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_PeriodActive);
-  diag_assert(dev->activeMapping != null);
-
-  // TODO: Compute period timestamp.
+  diag_assert(dev->state == SndDeviceState_Rendering);
   return (SndDevicePeriod){
-      .time       = time_steady_clock(),
+      .timeBegin  = dev->nextPeriodBeginTime,
       .frameCount = snd_alsa_period_frames,
-      .samples    = dev->activeMapping,
+      .samples    = dev->periodRenderingBuffer,
   };
 }
 
 void snd_device_end(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_PeriodActive);
+  diag_assert(dev->state == SndDeviceState_Rendering);
 
-  if (alsa_pcm_period_commit(dev->pcm)) {
+  if (alsa_pcm_write(dev->pcm, dev->periodRenderingBuffer)) {
     dev->state = SndDeviceState_Playing;
+    dev->nextPeriodBeginTime += snd_alsa_period_time;
   } else {
     dev->state = SndDeviceState_Error;
   }
-  dev->activeMapping = null;
 }

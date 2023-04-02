@@ -4,16 +4,17 @@
 #include "core_time.h"
 
 typedef struct {
-  TimeSteady time;
-  usize      frameCount;
-  i16*       samples; // [frameCount * 2] Interleaved left and right channels (LRLRLR).
+  TimeSteady timeBegin; // Timestamp of the begin of this period.
+                        // timeEnd = timeBegin + frameCount / snd_frame_rate
+  usize frameCount;     // Number of frames in this period.
+  i16*  samples;        // [frameCount * 2] Interleaved left and right channels (LRLRLR).
 } SndDevicePeriod;
 
 typedef enum {
   SndDeviceState_Error,
   SndDeviceState_Idle,
   SndDeviceState_Playing,
-  SndDeviceState_PeriodActive,
+  SndDeviceState_Rendering, // A period is currently being rendered.
 
   SndDeviceState_Count,
 } SndDeviceState;

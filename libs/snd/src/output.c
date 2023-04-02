@@ -28,7 +28,7 @@ static void snd_output_sine(const SndDevicePeriod period, const f32 frequency, c
   const f64 stepPerSec   = 2.0f * math_pi_f64 * frequency;
   const f64 stepPerFrame = stepPerSec / snd_frame_rate;
 
-  f64 phase = period.time / (f64)time_second * stepPerSec;
+  f64 phase = period.timeBegin / (f64)time_second * stepPerSec;
   for (u32 frame = 0; frame != period.frameCount; ++frame) {
     const i16 val = (i16)(math_sin_f64(phase) * volume * i16_max);
 
