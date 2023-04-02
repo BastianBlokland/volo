@@ -60,6 +60,12 @@ typedef enum {
   AlsaPcmStatus_Error,    // Device has encountered an error.
 } AlsaPcmStatus;
 
+typedef enum {
+  AlsaPcmWriteResult_Success,
+  AlsaPcmWriteResult_Underrun, // Device buffer under-run was detected while writing.
+  AlsaPcmWriteResult_Error,
+} AlsaPcmWriteResult;
+
 static String alsa_error_str(const int err) { return string_from_null_term(snd_strerror(err)); }
 
 static void alsa_error_handler(
@@ -224,17 +230,20 @@ static AlsaPcmStatus alsa_pcm_query(snd_pcm_t* pcm) {
   return avail < snd_alsa_period_frames ? AlsaPcmStatus_Busy : AlsaPcmStatus_Ready;
 }
 
-static bool alsa_pcm_write(snd_pcm_t* pcm, i16 buffer[static snd_alsa_period_samples]) {
-  const snd_pcm_sframes_t written = snd_pcm_writei(pcm, buffer, snd_alsa_period_frames);
+static AlsaPcmWriteResult alsa_pcm_write(snd_pcm_t* pcm, i16 buf[static snd_alsa_period_samples]) {
+  const snd_pcm_sframes_t written = snd_pcm_writei(pcm, buf, snd_alsa_period_frames);
   if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;
+    if (err == -EPIPE) {
+      return AlsaPcmWriteResult_Underrun;
+    }
     log_e(
         "Failed to write to sound-device",
         log_param("err-code", fmt_int(err)),
         log_param("err", fmt_text(alsa_error_str(err))));
-    return false;
+    return AlsaPcmWriteResult_Error;
   }
-  return true;
+  return AlsaPcmWriteResult_Success;
 }
 
 SndDevice* snd_device_create(Allocator* alloc) {
@@ -328,10 +337,16 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
 void snd_device_end(SndDevice* dev) {
   diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
 
-  if (alsa_pcm_write(dev->pcm, dev->periodRenderingBuffer)) {
-    dev->flags &= ~SndDeviceFlags_Rendering;
+  switch (alsa_pcm_write(dev->pcm, dev->periodRenderingBuffer)) {
+  case AlsaPcmWriteResult_Success:
     dev->nextPeriodBeginTime += snd_alsa_period_time;
-  } else {
+    break;
+  case AlsaPcmWriteResult_Underrun:
+    dev->state = SndDeviceState_Idle; // Playback stopped due to an underrun.
+    break;
+  case AlsaPcmWriteResult_Error:
     dev->state = SndDeviceState_Error;
+    break;
   }
+  dev->flags &= ~SndDeviceFlags_Rendering;
 }
