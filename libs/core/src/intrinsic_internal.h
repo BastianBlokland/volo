@@ -45,6 +45,7 @@ float SYS_DECL  roundf(float);
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
 #pragma intrinsic(sinf)
+#pragma intrinsic(sin)
 #pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(tanf)
@@ -65,6 +66,7 @@ float SYS_DECL  roundf(float);
 #define intrinsic_round_up_f32 ceilf
 #define intrinsic_round_up_f64 ceil
 #define intrinsic_sin_f32 sinf
+#define intrinsic_sin_f64 sin
 #define intrinsic_sqrt_f32 sqrtf
 #define intrinsic_sqrt_f64 sqrt
 #define intrinsic_cbrt_f32 cbrtf
@@ -88,6 +90,7 @@ float SYS_DECL  roundf(float);
 #define intrinsic_round_up_f32 __builtin_ceilf
 #define intrinsic_round_up_f64 __builtin_ceil
 #define intrinsic_sin_f32 __builtin_sinf
+#define intrinsic_sin_f64 __builtin_sin
 #define intrinsic_sqrt_f32 __builtin_sqrtf
 #define intrinsic_sqrt_f64 __builtin_sqrt
 #define intrinsic_cbrt_f32 __builtin_cbrtf

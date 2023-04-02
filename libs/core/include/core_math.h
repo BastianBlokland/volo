@@ -78,6 +78,7 @@ f32 math_log_f32(f32);
  * Computes the sine of the given value (in radians).
  */
 f32 math_sin_f32(f32);
+f64 math_sin_f64(f64);
 
 /**
  * Computes the arc (inverse) sine of the given value (in radians).
