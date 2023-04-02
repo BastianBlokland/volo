@@ -22,6 +22,8 @@
 #define snd_alsa_period_samples (snd_alsa_period_frames * snd_frame_channels)
 #define snd_alsa_period_time (snd_alsa_period_frames * time_second / snd_frame_rate)
 
+ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
+
 typedef struct {
   bool valid;
   u32  periodCount;
@@ -169,6 +171,14 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   // Retrieve the config.
   snd_pcm_uframes_t bufferSize;
   if ((err = snd_pcm_hw_params_get_buffer_size(hwParams, &bufferSize)) < 0) {
+    goto Err;
+  }
+  snd_pcm_uframes_t minTransferAlign;
+  if ((err = snd_pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
+    goto Err;
+  }
+  if (minTransferAlign > (snd_frame_count_alignment * snd_frame_channels)) {
+    log_e("Sound-device requires stronger frame alignment then we support");
     goto Err;
   }
   return (AlsaPcmConfig){
