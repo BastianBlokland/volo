@@ -14,11 +14,7 @@
 ASSERT((snd_mixer_history_frames & (snd_mixer_history_frames - 1u)) == 0, "Non power-of-two")
 
 typedef struct {
-  f32 samples[SndChannel_Count];
-} SndSoundFrame;
-
-typedef struct {
-  SndSoundFrame* frames;
+  SndMixerFrame* frames;
   usize          frameCount;
 } SndSoundView;
 
@@ -29,7 +25,7 @@ ecs_comp_define(SndMixerComp) {
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
    */
-  SndSoundFrame* historyBuffer;
+  SndMixerFrame* historyBuffer;
   usize          historyCursor;
 };
 
@@ -45,8 +41,8 @@ ecs_view_define(GlobalView) {
 }
 
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
-  SndSoundFrame* historyBuf = alloc_array_t(g_alloc_heap, SndSoundFrame, snd_mixer_history_frames);
-  mem_set(mem_create(historyBuf, sizeof(SndSoundFrame) * snd_mixer_history_frames), 0);
+  SndMixerFrame* historyBuf = alloc_array_t(g_alloc_heap, SndMixerFrame, snd_mixer_history_frames);
+  mem_set(mem_create(historyBuf, sizeof(SndMixerFrame) * snd_mixer_history_frames), 0);
 
   return ecs_world_add_t(
       world,
@@ -115,7 +111,7 @@ ecs_system_define(SndMixerUpdateSys) {
   if (snd_device_begin(mixer->device)) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
 
-    SndSoundFrame      soundFrames[snd_frame_count_max] = {0};
+    SndMixerFrame      soundFrames[snd_frame_count_max] = {0};
     const SndSoundView soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
 
     snd_mixer_render(soundBuffer, period.timeBegin);
