@@ -242,17 +242,10 @@
       ]
     },
     {
-      "name": "DebugPanelGrid",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "F9" }
-      ]
-    },
-    {
       "name": "DebugPanelRenderer",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F10" }
+        { "type": "Pressed", "key": "F9" }
       ]
     },
     {

@@ -93,12 +93,11 @@ static const struct {
         .openFunc   = debug_camera_panel_open,
         .hotkeyName = string_static("DebugPanelCamera"),
     },
-    {
-        .name       = string_static("Grid"),
-        .iconShape  = UiShape_Grid4x4,
-        .openFunc   = debug_grid_panel_open,
-        .hotkeyName = string_static("DebugPanelGrid"),
-    },
+    // {
+    //     .name       = string_static("Grid"),
+    //     .iconShape  = UiShape_Grid4x4,
+    //     .openFunc   = debug_grid_panel_open,
+    // },
     {
         .name       = string_static("Renderer"),
         .iconShape  = UiShape_Brush,
