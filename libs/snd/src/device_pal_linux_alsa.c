@@ -3,6 +3,7 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "log_logger.h"
+#include "snd_channel.h"
 
 #include "constants_internal.h"
 #include "device_internal.h"
@@ -19,7 +20,7 @@
 #define snd_alsa_device_name "default"
 #define snd_alsa_period_desired_count 2
 #define snd_alsa_period_frames 2048
-#define snd_alsa_period_samples (snd_alsa_period_frames * snd_frame_channels)
+#define snd_alsa_period_samples (snd_alsa_period_frames * SndChannel_Count)
 #define snd_alsa_period_time (snd_alsa_period_frames * time_second / snd_frame_rate)
 
 ASSERT(bits_aligned(snd_alsa_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
@@ -149,7 +150,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_set_format(pcm, hwParams, SND_PCM_FORMAT_S16_LE)) < 0) {
     goto Err;
   }
-  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, snd_frame_channels)) < 0) {
+  if ((err = snd_pcm_hw_params_set_channels(pcm, hwParams, SndChannel_Count)) < 0) {
     goto Err;
   }
   u32 frameRate = snd_frame_rate;
@@ -187,7 +188,7 @@ static AlsaPcmConfig alsa_pcm_initialize(snd_pcm_t* pcm) {
   if ((err = snd_pcm_hw_params_get_min_align(hwParams, &minTransferAlign)) < 0) {
     goto Err;
   }
-  if (minTransferAlign > (snd_frame_count_alignment * snd_frame_channels)) {
+  if (minTransferAlign > (snd_frame_count_alignment * SndChannel_Count)) {
     log_e("Sound-device requires stronger frame alignment then we support");
     goto Err;
   }

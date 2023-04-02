@@ -3,6 +3,7 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_time.h"
+#include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
 
@@ -13,7 +14,7 @@
 ASSERT((snd_mixer_history_frames & (snd_mixer_history_frames - 1u)) == 0, "Non power-of-two")
 
 typedef struct {
-  f32 samples[snd_frame_channels];
+  f32 samples[SndChannel_Count];
 } SndSoundFrame;
 
 typedef struct {
@@ -65,7 +66,7 @@ static void snd_mixer_render_sine(SndSoundView out, const TimeSteady time, const
     const f32 val = (f32)math_sin_f64(phase);
     phase += stepPerFrame;
 
-    for (u32 channel = 0; channel != snd_frame_channels; ++channel) {
+    for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       out.frames[frame].samples[channel] += val;
     }
   }
@@ -77,25 +78,25 @@ static void snd_mixer_render(SndSoundView out, const TimeSteady time) {
   // snd_mixer_render_sine(out, time, 392.0f);
 }
 
-static void snd_mixer_history_add(SndMixerComp* mixerComp, const u32 channel, const f32 value) {
-  mixerComp->historyBuffer[mixerComp->historyCursor].samples[channel] = value;
-  mixerComp->historyCursor = (mixerComp->historyCursor + 1) & (snd_mixer_history_frames - 1);
+static void snd_mixer_history_add(SndMixerComp* mixer, const SndChannel channel, const f32 value) {
+  mixer->historyBuffer[mixer->historyCursor].samples[channel] = value;
+  mixer->historyCursor = (mixer->historyCursor + 1) & (snd_mixer_history_frames - 1);
 }
 
 static void snd_mixer_fill_device_period(
-    SndMixerComp* mixerComp, const SndDevicePeriod devicePeriod, const SndSoundView buffer) {
+    SndMixerComp* mixer, const SndDevicePeriod devicePeriod, const SndSoundView buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
-    for (u32 channel = 0; channel != snd_frame_channels; ++channel) {
-      const f32 val     = buffer.frames[frame].samples[channel] * mixerComp->volume;
+    for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
+      const f32 val     = buffer.frames[frame].samples[channel] * mixer->volume;
       const f32 clipped = val > 1.0 ? 1.0f : (val < -1.0 ? -1.0f : val);
 
       // Write to the device buffer.
-      devicePeriod.samples[frame * snd_frame_channels + channel] = (i16)(clipped * i16_max);
+      devicePeriod.samples[frame * SndChannel_Count + channel] = (i16)(clipped * i16_max);
 
       // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_add(mixerComp, channel, clipped);
+      snd_mixer_history_add(mixer, channel, clipped);
     }
   }
 }
@@ -106,22 +107,22 @@ ecs_system_define(SndMixerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  SndMixerComp* mixerComp = ecs_view_write_t(globalItr, SndMixerComp);
-  if (!mixerComp) {
-    mixerComp = snd_mixer_create(world);
+  SndMixerComp* mixer = ecs_view_write_t(globalItr, SndMixerComp);
+  if (!mixer) {
+    mixer = snd_mixer_create(world);
   }
 
-  if (snd_device_begin(mixerComp->device)) {
-    const SndDevicePeriod period = snd_device_period(mixerComp->device);
+  if (snd_device_begin(mixer->device)) {
+    const SndDevicePeriod period = snd_device_period(mixer->device);
 
     SndSoundFrame      soundFrames[snd_frame_count_max] = {0};
     const SndSoundView soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
 
     snd_mixer_render(soundBuffer, period.timeBegin);
 
-    snd_mixer_fill_device_period(mixerComp, period, soundBuffer);
+    snd_mixer_fill_device_period(mixer, period, soundBuffer);
 
-    snd_device_end(mixerComp->device);
+    snd_device_end(mixer->device);
   }
 }
 
