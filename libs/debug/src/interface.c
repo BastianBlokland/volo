@@ -48,18 +48,11 @@ ecs_comp_define(DebugInterfacePanelComp) {
   i32         defaultColorIndex;
 };
 
-ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(WindowView) { ecs_access_write(UiSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugInterfacePanelComp);
   ecs_access_write(UiCanvasComp);
-}
-
-static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
 }
 
 static void interface_panel_draw(
@@ -131,11 +124,6 @@ static void interface_panel_draw(
 }
 
 ecs_system_define(DebugInterfaceUpdatePanelSys) {
-  AssetManagerComp* assets = debug_asset_manager(world);
-  if (!assets) {
-    return;
-  }
-
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -168,15 +156,11 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 ecs_module_init(debug_interface_module) {
   ecs_register_comp(DebugInterfacePanelComp);
 
-  ecs_register_view(GlobalAssetsView);
   ecs_register_view(WindowView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugInterfaceUpdatePanelSys,
-      ecs_view_id(GlobalAssetsView),
-      ecs_view_id(PanelUpdateView),
-      ecs_view_id(WindowView));
+      DebugInterfaceUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
 }
 
 EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window) {
