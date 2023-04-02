@@ -10,7 +10,7 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
-#define snd_mixer_history_frames 4096
+#define snd_mixer_history_frames 2048
 ASSERT((snd_mixer_history_frames & (snd_mixer_history_frames - 1u)) == 0, "Non power-of-two")
 
 ecs_comp_define(SndMixerComp) {
