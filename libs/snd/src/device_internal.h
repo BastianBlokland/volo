@@ -14,7 +14,6 @@ typedef enum {
   SndDeviceState_Error,
   SndDeviceState_Idle,
   SndDeviceState_Playing,
-  SndDeviceState_Rendering, // A period is currently being rendered.
 
   SndDeviceState_Count,
 } SndDeviceState;

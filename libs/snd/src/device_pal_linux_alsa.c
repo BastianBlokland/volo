@@ -28,9 +28,14 @@ typedef struct {
   u32  bufferSize;
 } AlsaPcmConfig;
 
+typedef enum {
+  SndDeviceFlags_Rendering = 1 << 0,
+} SndDeviceFlags;
+
 typedef struct sSndDevice {
   Allocator*     alloc;
-  SndDeviceState state;
+  SndDeviceState state : 8;
+  SndDeviceFlags flags : 8;
   snd_pcm_t*     pcm;
   AlsaPcmConfig  pcmConfig;
   TimeSteady     nextPeriodBeginTime;
@@ -267,42 +272,33 @@ void snd_device_destroy(SndDevice* dev) {
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 
 bool snd_device_begin(SndDevice* dev) {
-StartPlaying:
-  // Start playing if the device is currently idle.
-  switch (dev->state) {
-  case SndDeviceState_Error:
-    return false; // Device is in an unrecoverable error state.
-  case SndDeviceState_Idle: {
+  diag_assert_msg(!(dev->flags & SndDeviceFlags_Rendering), "Device rendering already active");
+
+StartPlayingIfIdle:
+  if (dev->state == SndDeviceState_Idle) {
     if (alsa_pcm_prepare(dev->pcm)) {
       dev->nextPeriodBeginTime = time_steady_clock();
       dev->state               = SndDeviceState_Playing;
-      break;
     } else {
       dev->state = SndDeviceState_Error;
-      return false;
     }
   }
-  case SndDeviceState_Playing:
-    break;
-  case SndDeviceState_Rendering:
-    diag_assert_fail("Unable to begin a new sound device period: Already rendering");
-  case SndDeviceState_Count:
-    UNREACHABLE
+
+  if (UNLIKELY(dev->state == SndDeviceState_Error)) {
+    return false; // Device is in an unrecoverable error state.
   }
 
   // Query the device-status to check if there's a period ready for rendering.
   switch (alsa_pcm_query(dev->pcm)) {
   case AlsaPcmStatus_Underrun:
-    // PCM ran out of samples in the buffer; Restart the playback.
-    dev->state = SndDeviceState_Idle;
-    goto StartPlaying;
+    dev->state = SndDeviceState_Idle; // PCM ran out of samples in the buffer; Restart the playback.
+    goto StartPlayingIfIdle;
   case AlsaPcmStatus_Busy:
     return false; // No period available for rendering.
   case AlsaPcmStatus_Ready:
-    dev->state = SndDeviceState_Rendering;
-    return true;
+    dev->flags |= SndDeviceFlags_Rendering;
+    return true; // Period can be rendered.
   case AlsaPcmStatus_Error:
-    // PCM has encountered an error, set the device to an error state too.
     dev->state = SndDeviceState_Error;
     return false;
   }
@@ -310,7 +306,7 @@ StartPlaying:
 }
 
 SndDevicePeriod snd_device_period(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_Rendering);
+  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
   return (SndDevicePeriod){
       .timeBegin  = dev->nextPeriodBeginTime,
       .frameCount = snd_alsa_period_frames,
@@ -319,10 +315,10 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
 }
 
 void snd_device_end(SndDevice* dev) {
-  diag_assert(dev->state == SndDeviceState_Rendering);
+  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
 
   if (alsa_pcm_write(dev->pcm, dev->periodRenderingBuffer)) {
-    dev->state = SndDeviceState_Playing;
+    dev->flags &= ~SndDeviceFlags_Rendering;
     dev->nextPeriodBeginTime += snd_alsa_period_time;
   } else {
     dev->state = SndDeviceState_Error;
