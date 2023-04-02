@@ -83,14 +83,14 @@ static void snd_mixer_fill_device_period(
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      const f32 val     = buffer.frames[frame].samples[channel] * mixer->volume;
-      const f32 clipped = val > 1.0 ? 1.0f : (val < -1.0 ? -1.0f : val);
-
-      // Write to the device buffer.
-      devicePeriod.samples[frame * SndChannel_Count + channel] = (i16)(clipped * i16_max);
+      const f32 val = buffer.frames[frame].samples[channel] * mixer->volume;
 
       // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_set(mixer, channel, clipped);
+      snd_mixer_history_set(mixer, channel, val);
+
+      // Write to the device buffer.
+      const f32 clipped = val > 1.0 ? 1.0f : (val < -1.0 ? -1.0f : val);
+      devicePeriod.samples[frame * SndChannel_Count + channel] = (i16)(clipped * i16_max);
     }
     snd_mixer_history_advance(mixer);
   }
