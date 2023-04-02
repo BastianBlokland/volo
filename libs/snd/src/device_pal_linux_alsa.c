@@ -47,6 +47,7 @@ typedef struct sSndDevice {
    * supports mmap-ing the buffer, however not all devices support this so we need to keep the
    * copying path as a fallback.
    */
+  ALIGNAS(snd_frame_sample_alignment)
   i16 periodRenderingBuffer[snd_alsa_period_samples];
 } SndDevice;
 

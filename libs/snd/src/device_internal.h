@@ -8,6 +8,7 @@ typedef struct {
                         // timeEnd = timeBegin + frameCount / snd_frame_rate
   usize frameCount;     // Number of frames in this period.
   i16*  samples;        // [frameCount * 2] Interleaved left and right channels (LRLRLR).
+                        // bits_aligned_ptr(samples, snd_frame_sample_alignment).
 } SndDevicePeriod;
 
 typedef enum {
