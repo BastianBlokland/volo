@@ -13,7 +13,7 @@
 #define snd_mixer_history_size 2048
 ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
 
-#define snd_mixer_gain_speed 1.0f
+#define snd_mixer_gain_adjust_per_frame 0.0001f
 
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
@@ -46,7 +46,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       ecs_world_global(world),
       SndMixerComp,
       .device        = snd_device_create(g_alloc_heap),
-      .gainTarget    = 0.5f,
+      .gainTarget    = 0.15f,
       .historyBuffer = historyBuf);
 }
 
@@ -84,6 +84,8 @@ static void snd_mixer_fill_device_period(
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
+    math_towards_f32(&mixer->gainActual, mixer->gainTarget, snd_mixer_gain_adjust_per_frame);
+
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       const f32 val = buffer.frames[frame].samples[channel] * mixer->gainActual;
 
@@ -104,13 +106,10 @@ ecs_system_define(SndMixerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time  = ecs_view_read_t(globalItr, SceneTimeComp);
-  SndMixerComp*        mixer = ecs_view_write_t(globalItr, SndMixerComp);
+  SndMixerComp* mixer = ecs_view_write_t(globalItr, SndMixerComp);
   if (!mixer) {
     mixer = snd_mixer_create(world);
   }
-  const f32 deltaSeconds = scene_delta_seconds(time);
-  math_towards_f32(&mixer->gainActual, mixer->gainTarget, deltaSeconds * snd_mixer_gain_speed);
 
   if (snd_device_begin(mixer->device)) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
