@@ -37,12 +37,16 @@ typedef enum {
 } SndDeviceFlags;
 
 typedef struct sSndDevice {
-  Allocator*     alloc;
+  Allocator* alloc;
+  String     id;
+
   SndDeviceState state : 8;
   SndDeviceFlags flags : 8;
-  snd_pcm_t*     pcm;
-  AlsaPcmConfig  pcmConfig;
-  TimeSteady     nextPeriodBeginTime;
+
+  snd_pcm_t*    pcm;
+  AlsaPcmConfig pcmConfig;
+
+  TimeSteady nextPeriodBeginTime;
 
   u64        underrunCounter;
   TimeSteady underrunLastReportTime;
@@ -269,11 +273,13 @@ SndDevice* snd_device_create(Allocator* alloc) {
   if (pcm) {
     pcmConfig = alsa_pcm_initialize(pcm);
   }
+
+  String id;
   if (pcmConfig.valid) {
     const snd_pcm_type_t  type = snd_pcm_type(pcm);
     const snd_pcm_info_t* info = alsa_pcm_info_scratch(pcm);
     const i32             card = info ? snd_pcm_info_get_card(info) : -1;
-    const String id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_empty;
+    id = info ? string_from_null_term(snd_pcm_info_get_id(info)) : string_lit("<unknown>");
 
     log_i(
         "Alsa sound device created",
@@ -284,11 +290,14 @@ SndDevice* snd_device_create(Allocator* alloc) {
         log_param("period-frames", fmt_int(snd_alsa_period_frames)),
         log_param("period-time", fmt_duration(snd_alsa_period_time)),
         log_param("device-buffer", fmt_size(pcmConfig.bufferSize)));
+  } else {
+    id = string_lit("<error>");
   }
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
       .alloc     = alloc,
+      .id        = string_maybe_dup(alloc, id),
       .pcm       = pcm,
       .pcmConfig = pcmConfig,
       .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
@@ -300,9 +309,13 @@ void snd_device_destroy(SndDevice* dev) {
   if (dev->pcm) {
     snd_pcm_close(dev->pcm);
   }
-  log_i("Alsa sound device destroyed");
+  string_maybe_free(dev->alloc, dev->id);
   alloc_free_t(dev->alloc, dev);
+
+  log_i("Alsa sound device destroyed");
 }
+
+String snd_device_id(const SndDevice* dev) { return dev->id; }
 
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 

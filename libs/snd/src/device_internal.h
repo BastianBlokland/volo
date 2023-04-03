@@ -37,6 +37,7 @@ typedef struct sSndDevice SndDevice;
 SndDevice* snd_device_create(Allocator*);
 void       snd_device_destroy(SndDevice*);
 
+String         snd_device_id(const SndDevice*);
 SndDeviceState snd_device_state(const SndDevice*);
 String         snd_device_state_str(SndDeviceState);
 
