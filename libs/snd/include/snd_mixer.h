@@ -8,6 +8,12 @@
 ecs_comp_extern(SndMixerComp);
 
 /**
+ * Controls.
+ */
+f32  snd_mixer_gain_get(const SndMixerComp*);
+void snd_mixer_gain_set(SndMixerComp*, f32 gain);
+
+/**
  * Query output device info.
  */
 String snd_mixer_device_id(const SndMixerComp*);

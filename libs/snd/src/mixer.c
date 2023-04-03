@@ -15,7 +15,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
-  f32        volume;
+  f32        gain;
 
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
@@ -44,7 +44,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       ecs_world_global(world),
       SndMixerComp,
       .device        = snd_device_create(g_alloc_heap),
-      .volume        = 0.4f,
+      .gain          = 0.4f,
       .historyBuffer = historyBuf);
 }
 
@@ -83,7 +83,7 @@ static void snd_mixer_fill_device_period(
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      const f32 val = buffer.frames[frame].samples[channel] * mixer->volume;
+      const f32 val = buffer.frames[frame].samples[channel] * mixer->gain;
 
       // Add it to the history ring-buffer for analysis / debug purposes.
       snd_mixer_history_set(mixer, channel, val);
@@ -130,6 +130,9 @@ ecs_module_init(snd_mixer_module) {
 
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
+
+f32  snd_mixer_gain_get(const SndMixerComp* mixer) { return mixer->gain; }
+void snd_mixer_gain_set(SndMixerComp* mixer, const f32 gain) { mixer->gain = gain; }
 
 String snd_mixer_device_id(const SndMixerComp* mixer) { return snd_device_id(mixer->device); }
 
