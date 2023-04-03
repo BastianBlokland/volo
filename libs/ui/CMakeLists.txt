@@ -8,6 +8,7 @@ add_library(lib_ui STATIC
   src/builder.c
   src/canvas.c
   src/cmd.c
+  src/color.c
   src/editor.c
   src/escape.c
   src/layout.c

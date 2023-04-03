@@ -46,6 +46,12 @@ ASSERT(sizeof(UiColor) == 4, "UiColor has to be 32 bits");
 // clang-format on
 
 /**
+ * Calculate the linearly interpolated color from x to y at time t.
+ * NOTE: Does not clamp t (so can extrapolate too).
+ */
+UiColor ui_color_lerp(UiColor x, UiColor y, f32 t);
+
+/**
  * Create a formatting argument for a color.
  */
 #define ui_color_fmt(_VAL_) fmt_int((_VAL_).data, .base = 16, minDigits = 8)
