@@ -6,6 +6,7 @@ message(STATUS "> library: snd")
 
 add_library(lib_snd STATIC
   src/buffer.c
+  src/channel.c
   src/device_pal.c
   src/device.c
   src/mixer.c
