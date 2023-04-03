@@ -319,6 +319,8 @@ String snd_device_id(const SndDevice* dev) { return dev->id; }
 
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 
+u64 snd_device_underruns(const SndDevice* dev) { return dev->underrunCounter; }
+
 bool snd_device_begin(SndDevice* dev) {
   diag_assert_msg(!(dev->flags & SndDeviceFlags_Rendering), "Device rendering already active");
 
