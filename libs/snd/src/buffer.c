@@ -18,3 +18,25 @@ f32 snd_buffer_sample(const SndBufferView view, const SndChannel channel, const 
   const f32 valB  = view.frames[(usize)edgeB].samples[channel];
   return math_lerp(valA, valB, index - edgeA);
 }
+
+f32 snd_buffer_level_peak(const SndBufferView view, const SndChannel channel) {
+  f32 peak = 0;
+  for (u32 frame = 0; frame != view.frameCount; ++frame) {
+    const f32 sample    = view.frames[frame].samples[channel];
+    const f32 sampleAbs = math_abs(sample);
+    if (sampleAbs > peak) {
+      peak = sampleAbs;
+    }
+  }
+  return peak;
+}
+
+f32 snd_buffer_level_rms(const SndBufferView view, const SndChannel channel) {
+  f32 sum = 0;
+  for (u32 frame = 0; frame != view.frameCount; ++frame) {
+    const f32 sample = view.frames[frame].samples[channel];
+    sum += sample * sample;
+  }
+  sum /= view.frameCount;
+  return math_sqrt_f32(sum);
+}
