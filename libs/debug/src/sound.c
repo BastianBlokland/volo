@@ -28,6 +28,16 @@ static void sound_draw_table_header(UiCanvasComp* canvas, UiTable* table, const 
   ui_table_next_column(canvas, table);
 }
 
+static UiColor sound_level_color(const f32 level) {
+  const f32 warnLevel = 0.85f;
+  if (level < warnLevel) {
+    return ui_color_lerp(ui_color_lime, ui_color_yellow, level / warnLevel);
+  } else {
+    const f32 factor = (math_min(level, 1.0f) - warnLevel) * (1.0f / (1.0f - warnLevel));
+    return ui_color_lerp(ui_color_yellow, ui_color_red, factor);
+  }
+}
+
 static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const SndChannel chan) {
   static const f32 g_step = 1.0f / 256.0f;
 
@@ -41,15 +51,7 @@ static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const
     const UiVector size = {.width = g_step, .height = math_clamp_f32(sampleAbs, 0, 1) * 0.5f};
     const UiVector pos  = {.x = t, .y = sample > 0.0f ? 0.5f : 0.5f - size.height};
 
-    UiColor color;
-    if (sampleAbs >= 0.95f) {
-      color = ui_color(255, 0, 0, 178);
-    } else if (sampleAbs >= 0.8f) {
-      color = ui_color(255, 255, 0, 178);
-    } else {
-      color = ui_color(255, 255, 255, 178);
-    }
-    ui_style_color(canvas, color);
+    ui_style_color(canvas, sound_level_color(sampleAbs));
 
     ui_layout_push(canvas);
     ui_layout_set(canvas, ui_rect(pos, size), UiBase_Current);
@@ -57,6 +59,27 @@ static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const
     ui_layout_pop(canvas);
   }
 
+  ui_style_pop(canvas);
+}
+
+static void sound_draw_stats(UiCanvasComp* canvas, const SndBufferView buf, const SndChannel chan) {
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
+
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
+
+  const f32    levelRms  = snd_buffer_level_rms(buf, chan);
+  const f32    levelPeak = snd_buffer_level_peak(buf, chan);
+  const String text      = fmt_write_scratch(
+      "Level: \ab{}{<6}\ar RMS\nLevel: \ab{}{<6}\ar Peak",
+      fmt_ui_color(sound_level_color(levelRms)),
+      fmt_float(levelRms, .minDecDigits = 4, .maxDecDigits = 4),
+      fmt_ui_color(sound_level_color(levelPeak)),
+      fmt_float(levelPeak, .minDecDigits = 4, .maxDecDigits = 4));
+
+  ui_label(canvas, text, .align = UiAlign_TopLeft);
+  ui_layout_pop(canvas);
   ui_style_pop(canvas);
 }
 
@@ -118,11 +141,12 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
   sound_draw_controls(canvas, mixer);
 
   const SndBufferView history = snd_mixer_history(mixer);
-  for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-    sound_draw_table_header(
-        canvas, &table, fmt_write_scratch("Channel {} (Time)", fmt_text(snd_channel_str(channel))));
+  for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+    const String header = fmt_write_scratch("Channel {} (Time)", fmt_text(snd_channel_str(chan)));
+    sound_draw_table_header(canvas, &table, header);
     sound_draw_bg(canvas);
-    sound_draw_time(canvas, history, channel);
+    sound_draw_time(canvas, history, chan);
+    sound_draw_stats(canvas, history, chan);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
