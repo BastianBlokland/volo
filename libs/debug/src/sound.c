@@ -142,7 +142,7 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
 
   const SndBufferView history = snd_mixer_history(mixer);
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-    const String header = fmt_write_scratch("Channel {} (Time)", fmt_text(snd_channel_str(chan)));
+    const String header = fmt_write_scratch("Channel {}", fmt_text(snd_channel_str(chan)));
     sound_draw_table_header(canvas, &table, header);
     sound_draw_bg(canvas);
     sound_draw_time(canvas, history, chan);
