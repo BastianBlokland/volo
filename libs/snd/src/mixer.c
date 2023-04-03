@@ -10,8 +10,8 @@
 #include "constants_internal.h"
 #include "device_internal.h"
 
-#define snd_mixer_history_frames 2048
-ASSERT((snd_mixer_history_frames & (snd_mixer_history_frames - 1u)) == 0, "Non power-of-two")
+#define snd_mixer_history_size 2048
+ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
 
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
@@ -20,14 +20,14 @@ ecs_comp_define(SndMixerComp) {
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
    */
-  SndMixerFrame* historyBuffer;
-  usize          historyCursor;
+  SndBufferFrame* historyBuffer;
+  usize           historyCursor;
 };
 
 static void ecs_destruct_mixer_comp(void* data) {
   SndMixerComp* comp = data;
   snd_device_destroy(comp->device);
-  alloc_free_array_t(g_alloc_heap, comp->historyBuffer, snd_mixer_history_frames);
+  alloc_free_array_t(g_alloc_heap, comp->historyBuffer, snd_mixer_history_size);
 }
 
 ecs_view_define(GlobalView) {
@@ -36,19 +36,19 @@ ecs_view_define(GlobalView) {
 }
 
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
-  SndMixerFrame* historyBuf = alloc_array_t(g_alloc_heap, SndMixerFrame, snd_mixer_history_frames);
-  mem_set(mem_create(historyBuf, sizeof(SndMixerFrame) * snd_mixer_history_frames), 0);
+  SndBufferFrame* historyBuf = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
+  mem_set(mem_create(historyBuf, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
 
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
       SndMixerComp,
       .device        = snd_device_create(g_alloc_heap),
-      .volume        = 0.1f,
+      .volume        = 0.4f,
       .historyBuffer = historyBuf);
 }
 
-static void snd_mixer_render_sine(SndMixerView out, const TimeSteady time, const f32 frequency) {
+static void snd_mixer_render_sine(SndBuffer out, const TimeSteady time, const f32 frequency) {
   const f64 stepPerSec   = 2.0f * math_pi_f64 * frequency;
   const f64 stepPerFrame = stepPerSec / snd_frame_rate;
 
@@ -63,7 +63,7 @@ static void snd_mixer_render_sine(SndMixerView out, const TimeSteady time, const
   }
 }
 
-static void snd_mixer_render(SndMixerView out, const TimeSteady time) {
+static void snd_mixer_render(SndBuffer out, const TimeSteady time) {
   snd_mixer_render_sine(out, time, 261.63f);
   snd_mixer_render_sine(out, time, 329.63f);
   snd_mixer_render_sine(out, time, 392.0f);
@@ -74,11 +74,11 @@ static void snd_mixer_history_set(SndMixerComp* mixer, const SndChannel channel,
 }
 
 static void snd_mixer_history_advance(SndMixerComp* mixer) {
-  mixer->historyCursor = (mixer->historyCursor + 1) & (snd_mixer_history_frames - 1);
+  mixer->historyCursor = (mixer->historyCursor + 1) & (snd_mixer_history_size - 1);
 }
 
 static void snd_mixer_fill_device_period(
-    SndMixerComp* mixer, const SndDevicePeriod devicePeriod, const SndMixerView buffer) {
+    SndMixerComp* mixer, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
@@ -110,8 +110,8 @@ ecs_system_define(SndMixerUpdateSys) {
   if (snd_device_begin(mixer->device)) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
 
-    SndMixerFrame      soundFrames[snd_frame_count_max] = {0};
-    const SndMixerView soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
+    SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
+    const SndBuffer soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
 
     snd_mixer_render(soundBuffer, period.timeBegin);
 
@@ -131,23 +131,6 @@ ecs_module_init(snd_mixer_module) {
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
 
-SndMixerView snd_mixer_history(const SndMixerComp* mixer) {
-  return (SndMixerView){.frames = mixer->historyBuffer, .frameCount = snd_mixer_history_frames};
-}
-
-f32 snd_mixer_sample(const SndMixerView view, const SndChannel channel, const f32 frac) {
-  diag_assert(frac >= 0.0 && frac <= 1.0f);
-  diag_assert(view.frameCount >= 2);
-
-  /**
-   * Linear interpolation between the two closest samples.
-   * NOTE: We can explore other methods that preserve the curve better, like Hermite interpolation.
-   */
-
-  const f32 index = frac * (view.frameCount - 1);
-  const f32 edgeA = math_min(view.frameCount - 2, math_round_down_f32(index));
-  const f32 edgeB = edgeA + 1.0f;
-  const f32 valA  = view.frames[(usize)edgeA].samples[channel];
-  const f32 valB  = view.frames[(usize)edgeB].samples[channel];
-  return math_lerp(valA, valB, index - edgeA);
+SndBufferView snd_mixer_history(const SndMixerComp* mixer) {
+  return (SndBufferView){.frames = mixer->historyBuffer, .frameCount = snd_mixer_history_size};
 }

@@ -21,7 +21,7 @@ static void sound_draw_bg(UiCanvasComp* canvas) {
   ui_style_pop(canvas);
 }
 
-static void sound_draw_time(UiCanvasComp* canvas, const SndMixerView buf, const SndChannel chan) {
+static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const SndChannel chan) {
   static const f32 g_step = 1.0f / 256.0f;
 
   sound_draw_bg(canvas);
@@ -30,7 +30,7 @@ static void sound_draw_time(UiCanvasComp* canvas, const SndMixerView buf, const 
   ui_style_outline(canvas, 0);
 
   for (f32 t = 0.0; t < 1.0f; t += g_step) {
-    const f32 sample    = snd_mixer_sample(buf, chan, t);
+    const f32 sample    = snd_buffer_sample(buf, chan, t);
     const f32 sampleAbs = math_abs(sample);
 
     const UiVector size = {.width = g_step, .height = sampleAbs * 0.5f};
@@ -61,7 +61,7 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
   const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  const SndMixerView history = snd_mixer_history(mixer);
+  const SndBufferView history = snd_mixer_history(mixer);
   sound_draw_time(canvas, history, SndChannel_Left);
 
   ui_panel_end(canvas, &panelComp->panel);
