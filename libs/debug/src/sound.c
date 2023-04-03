@@ -14,8 +14,17 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static void sound_draw_scope(UiCanvasComp* canvas, const SndMixerView buf, const SndChannel chan) {
+static void sound_draw_bg(UiCanvasComp* canvas) {
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color(0, 0, 0, 128));
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(canvas);
+}
+
+static void sound_draw_time(UiCanvasComp* canvas, const SndMixerView buf, const SndChannel chan) {
   static const f32 g_step = 1.0f / 256.0f;
+
+  sound_draw_bg(canvas);
 
   ui_style_push(canvas);
   ui_style_outline(canvas, 0);
@@ -29,11 +38,11 @@ static void sound_draw_scope(UiCanvasComp* canvas, const SndMixerView buf, const
 
     UiColor color;
     if (sampleAbs >= 0.95f) {
-      color = ui_color_red;
+      color = ui_color(255, 0, 0, 178);
     } else if (sampleAbs >= 0.8f) {
-      color = ui_color_yellow;
+      color = ui_color(255, 255, 0, 178);
     } else {
-      color = ui_color_white;
+      color = ui_color(255, 255, 255, 178);
     }
     ui_style_color(canvas, color);
 
@@ -53,7 +62,7 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   const SndMixerView history = snd_mixer_history(mixer);
-  sound_draw_scope(canvas, history, SndChannel_Left);
+  sound_draw_time(canvas, history, SndChannel_Left);
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -97,9 +106,6 @@ ecs_module_init(debug_sound_module) {
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world,
-      panelEntity,
-      DebugSoundPanelComp,
-      .panel = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(330, 190)));
+      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(750, 350)));
   return panelEntity;
 }
