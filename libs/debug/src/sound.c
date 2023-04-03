@@ -61,8 +61,17 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
   const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
+  UiTable table = ui_table(.rowHeight = 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
   const SndBufferView history = snd_mixer_history(mixer);
-  sound_draw_time(canvas, history, SndChannel_Left);
+  for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("Channel {} (Time)", fmt_text(snd_channel_str(channel))));
+    ui_table_next_column(canvas, &table);
+    sound_draw_time(canvas, history, channel);
+  }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
