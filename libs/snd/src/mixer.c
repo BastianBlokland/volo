@@ -13,9 +13,11 @@
 #define snd_mixer_history_size 2048
 ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
 
+#define snd_mixer_gain_speed 1.0f
+
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
-  f32        gain;
+  f32        gainActual, gainTarget;
 
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
@@ -44,7 +46,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       ecs_world_global(world),
       SndMixerComp,
       .device        = snd_device_create(g_alloc_heap),
-      .gain          = 0.4f,
+      .gainTarget    = 0.5f,
       .historyBuffer = historyBuf);
 }
 
@@ -83,14 +85,14 @@ static void snd_mixer_fill_device_period(
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      const f32 val = buffer.frames[frame].samples[channel] * mixer->gain;
+      const f32 val = buffer.frames[frame].samples[channel] * mixer->gainActual;
 
       // Add it to the history ring-buffer for analysis / debug purposes.
       snd_mixer_history_set(mixer, channel, val);
 
       // Write to the device buffer.
-      const f32 clipped = val > 1.0 ? 1.0f : (val < -1.0 ? -1.0f : val);
-      devicePeriod.samples[frame * SndChannel_Count + channel] = (i16)(clipped * i16_max);
+      const i16 clipped = val > 1.0 ? i16_max : (val < -1.0 ? i16_min : (i16)(val * i16_max));
+      devicePeriod.samples[frame * SndChannel_Count + channel] = clipped;
     }
     snd_mixer_history_advance(mixer);
   }
@@ -102,10 +104,13 @@ ecs_system_define(SndMixerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  SndMixerComp* mixer = ecs_view_write_t(globalItr, SndMixerComp);
+  const SceneTimeComp* time  = ecs_view_read_t(globalItr, SceneTimeComp);
+  SndMixerComp*        mixer = ecs_view_write_t(globalItr, SndMixerComp);
   if (!mixer) {
     mixer = snd_mixer_create(world);
   }
+  const f32 deltaSeconds = scene_delta_seconds(time);
+  math_towards_f32(&mixer->gainActual, mixer->gainTarget, deltaSeconds * snd_mixer_gain_speed);
 
   if (snd_device_begin(mixer->device)) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
@@ -131,8 +136,8 @@ ecs_module_init(snd_mixer_module) {
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
 
-f32  snd_mixer_gain_get(const SndMixerComp* mixer) { return mixer->gain; }
-void snd_mixer_gain_set(SndMixerComp* mixer, const f32 gain) { mixer->gain = gain; }
+f32  snd_mixer_gain_get(const SndMixerComp* mixer) { return mixer->gainTarget; }
+void snd_mixer_gain_set(SndMixerComp* mixer, const f32 gain) { mixer->gainTarget = gain; }
 
 String snd_mixer_device_id(const SndMixerComp* mixer) { return snd_device_id(mixer->device); }
 
