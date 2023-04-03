@@ -55,6 +55,26 @@ static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const
   ui_style_pop(canvas);
 }
 
+static void sound_draw_device_info(UiCanvasComp* canvas, SndMixerComp* mixer) {
+  const String id        = snd_mixer_device_id(mixer);
+  const String state     = snd_mixer_device_state(mixer);
+  const u64    underruns = snd_mixer_device_underruns(mixer);
+
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
+
+  const String text = fmt_write_scratch(
+      "Id:        {}\n"
+      "State:     {}\n"
+      "Underruns: {}",
+      fmt_text(id),
+      fmt_text(state),
+      fmt_int(underruns));
+
+  ui_label(canvas, text);
+  ui_style_pop(canvas);
+}
+
 static void
 sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerComp* mixer) {
 
@@ -64,6 +84,11 @@ sound_panel_draw(UiCanvasComp* canvas, DebugSoundPanelComp* panelComp, SndMixerC
   UiTable table = ui_table(.rowHeight = 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Device"));
+  ui_table_next_column(canvas, &table);
+  sound_draw_device_info(canvas, mixer);
 
   const SndBufferView history = snd_mixer_history(mixer);
   for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {

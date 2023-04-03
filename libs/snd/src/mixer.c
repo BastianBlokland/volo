@@ -131,6 +131,17 @@ ecs_module_init(snd_mixer_module) {
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
 
+String snd_mixer_device_id(const SndMixerComp* mixer) { return snd_device_id(mixer->device); }
+
+String snd_mixer_device_state(const SndMixerComp* mixer) {
+  const SndDeviceState state = snd_device_state(mixer->device);
+  return snd_device_state_str(state);
+}
+
+u64 snd_mixer_device_underruns(const SndMixerComp* mixer) {
+  return snd_device_underruns(mixer->device);
+}
+
 SndBufferView snd_mixer_history(const SndMixerComp* mixer) {
   return (SndBufferView){.frames = mixer->historyBuffer, .frameCount = snd_mixer_history_size};
 }
