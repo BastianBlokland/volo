@@ -33,7 +33,7 @@ static void sound_draw_time(UiCanvasComp* canvas, const SndBufferView buf, const
     const f32 sample    = snd_buffer_sample(buf, chan, t);
     const f32 sampleAbs = math_abs(sample);
 
-    const UiVector size = {.width = g_step, .height = sampleAbs * 0.5f};
+    const UiVector size = {.width = g_step, .height = math_clamp_f32(sampleAbs, 0, 1) * 0.5f};
     const UiVector pos  = {.x = t, .y = sample > 0.0f ? 0.5f : 0.5f - size.height};
 
     UiColor color;
