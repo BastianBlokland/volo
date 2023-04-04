@@ -13,13 +13,16 @@ float SYS_DECL  atanf(float);
 double SYS_DECL ceil(double);
 float SYS_DECL  ceilf(float);
 float SYS_DECL  cosf(float);
+double SYS_DECL cos(double);
 float SYS_DECL  expf(float);
 double SYS_DECL floor(double);
 float SYS_DECL  floorf(float);
 float SYS_DECL  fmodf(float, float);
 float SYS_DECL  logf(float);
 float SYS_DECL  powf(float, float);
+double SYS_DECL pow(double, double);
 float SYS_DECL  sinf(float);
+double SYS_DECL sin(double);
 double SYS_DECL sqrt(double);
 float SYS_DECL  sqrtf(float);
 float SYS_DECL  cbrtf(float);
@@ -38,12 +41,14 @@ float SYS_DECL  roundf(float);
 #pragma intrinsic(ceil)
 #pragma intrinsic(ceilf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(cos)
 #pragma intrinsic(expf)
 #pragma intrinsic(floor)
 #pragma intrinsic(floorf)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
+#pragma intrinsic(pow)
 #pragma intrinsic(sinf)
 #pragma intrinsic(sin)
 #pragma intrinsic(sqrt)
@@ -55,10 +60,12 @@ float SYS_DECL  roundf(float);
 #define intrinsic_atan_f32 atanf
 #define intrinsic_atan2_f32 atan2f
 #define intrinsic_cos_f32 cosf
+#define intrinsic_cos_f64 cos
 #define intrinsic_exp_f32 expf
 #define intrinsic_fmod_f32 fmodf
 #define intrinsic_log_f32 logf
 #define intrinsic_pow_f32 powf
+#define intrinsic_pow_f64 pow
 #define intrinsic_round_down_f32 floorf
 #define intrinsic_round_down_f64 floor
 #define intrinsic_round_nearest_f32 roundf
@@ -79,10 +86,12 @@ float SYS_DECL  roundf(float);
 #define intrinsic_atan_f32 __builtin_atanf
 #define intrinsic_atan2_f32 __builtin_atan2f
 #define intrinsic_cos_f32 __builtin_cosf
+#define intrinsic_cos_f64 __builtin_cos
 #define intrinsic_exp_f32 __builtin_expf
 #define intrinsic_fmod_f32 __builtin_fmodf
 #define intrinsic_log_f32 __builtin_logf
 #define intrinsic_pow_f32 __builtin_powf
+#define intrinsic_pow_f64 __builtin_pow
 #define intrinsic_round_down_f32 __builtin_floorf
 #define intrinsic_round_down_f64 __builtin_floor
 #define intrinsic_round_nearest_f32 __builtin_roundf

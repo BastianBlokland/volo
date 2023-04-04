@@ -91,6 +91,7 @@ f32 math_asin_f32(f32);
  * Computes the cosine of the given value (in radians).
  */
 f32 math_cos_f32(f32);
+f64 math_cos_f64(f64);
 
 /**
  * Computes the arc (inverse) cosine of the given value (in radians).
@@ -117,6 +118,7 @@ f32 math_atan2_f32(f32 x, f32 y);
  * Compute the given base to the power of exp.
  */
 f32 math_pow_f32(f32 base, f32 exp);
+f64 math_pow_f64(f64 base, f64 exp);
 
 /**
  * Compute the natural logarithm e raised to the power of exp.
