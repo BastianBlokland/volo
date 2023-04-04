@@ -12,6 +12,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, bits);
   register_spec(check, bitset);
   register_spec(check, compare);
+  register_spec(check, complex);
   register_spec(check, dynarray);
   register_spec(check, dynbitset);
   register_spec(check, dynstring);

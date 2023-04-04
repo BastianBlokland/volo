@@ -18,6 +18,7 @@ add_library(lib_core STATIC
   src/bits.c
   src/bitset.c
   src/compare.c
+  src/complex.c
   src/diag_pal.c
   src/diag.c
   src/dynarray.c
@@ -77,6 +78,7 @@ add_executable(test_lib_core
   test/test_bits.c
   test/test_bitset.c
   test/test_compare.c
+  test/test_complex.c
   test/test_dynarray.c
   test/test_dynbitset.c
   test/test_dynstring.c
