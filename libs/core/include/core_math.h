@@ -45,6 +45,8 @@
 
 #define math_pi_f32 3.141592653589793238463f
 #define math_pi_f64 3.141592653589793238463
+#define math_e_f32 2.718281828459045f
+#define math_e_f64 2.718281828459045
 #define math_deg_to_rad 0.0174532924f
 #define math_rad_to_deg 57.29578f
 
