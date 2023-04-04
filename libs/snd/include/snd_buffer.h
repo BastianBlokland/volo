@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core_time.h"
 #include "snd_channel.h"
 
 typedef struct {
@@ -8,13 +8,16 @@ typedef struct {
 
 typedef struct {
   SndBufferFrame* frames;
-  usize           frameCount;
+  u32             frameCount, frameRate;
 } SndBuffer;
 
 typedef struct {
   const SndBufferFrame* frames;
-  usize                 frameCount;
+  u32                   frameCount, frameRate;
 } SndBufferView;
+
+SndBufferView snd_buffer_view(SndBuffer);
+TimeDuration  snd_buffer_duration(SndBufferView);
 
 /**
  * Sample the buffer at the given fraction.

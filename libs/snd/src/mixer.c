@@ -115,7 +115,11 @@ ecs_system_define(SndMixerUpdateSys) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
-    const SndBuffer soundBuffer = {.frames = soundFrames, .frameCount = period.frameCount};
+    const SndBuffer soundBuffer                      = {
+        .frames     = soundFrames,
+        .frameCount = period.frameCount,
+        .frameRate  = snd_frame_rate,
+    };
 
     snd_mixer_render(soundBuffer, period.timeBegin);
 
@@ -150,5 +154,8 @@ u64 snd_mixer_device_underruns(const SndMixerComp* mixer) {
 }
 
 SndBufferView snd_mixer_history(const SndMixerComp* mixer) {
-  return (SndBufferView){.frames = mixer->historyBuffer, .frameCount = snd_mixer_history_size};
+  return (SndBufferView){
+      .frames     = mixer->historyBuffer,
+      .frameCount = snd_mixer_history_size,
+      .frameRate  = snd_frame_rate};
 }

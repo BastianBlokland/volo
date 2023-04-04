@@ -2,6 +2,18 @@
 #include "core_math.h"
 #include "snd_buffer.h"
 
+SndBufferView snd_buffer_view(const SndBuffer buffer) {
+  return (SndBufferView){
+      .frames     = buffer.frames,
+      .frameCount = buffer.frameCount,
+      .frameRate  = buffer.frameRate,
+  };
+}
+
+TimeDuration snd_buffer_duration(const SndBufferView view) {
+  return view.frameCount * time_second / view.frameRate;
+}
+
 f32 snd_buffer_sample(const SndBufferView view, const SndChannel channel, const f32 frac) {
   diag_assert(frac >= 0.0 && frac <= 1.0f);
   diag_assert(view.frameCount >= 2);

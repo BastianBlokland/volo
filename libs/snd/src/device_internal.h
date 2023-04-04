@@ -15,7 +15,7 @@ typedef struct {
    * Pre-condition: bits_aligned(frameCount, snd_frame_count_alignment).
    * Pre-condition: frameCount <= snd_frame_count_max.
    */
-  usize frameCount;
+  u32 frameCount;
 
   /**
    * [frameCount * 2] Interleaved left and right channels (LRLRLR).
