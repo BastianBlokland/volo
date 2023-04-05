@@ -11,6 +11,16 @@ typedef struct {
 #define complex(_REAL_, _IMAGINARY_) ((Complex){(_REAL_), (_IMAGINARY_)})
 
 /**
+ * Add two complex numbers.
+ */
+Complex complex_add(Complex, Complex);
+
+/**
+ * Subtract two complex numbers.
+ */
+Complex complex_sub(Complex, Complex);
+
+/**
  * Multiply two complex numbers.
  */
 Complex complex_mul(Complex, Complex);
