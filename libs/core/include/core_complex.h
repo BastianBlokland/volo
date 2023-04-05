@@ -26,6 +26,11 @@ Complex complex_sub(Complex, Complex);
 Complex complex_mul(Complex, Complex);
 
 /**
+ * Compute the natural logarithm e raised to the power of exp.
+ */
+Complex complex_exp(Complex exp);
+
+/**
  * Create a formatting argument for a complex number.
  * NOTE: _COMPLEX_ is expanded multiple times, so care must be taken when providing expressions.
  */
