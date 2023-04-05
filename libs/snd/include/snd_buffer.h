@@ -18,6 +18,7 @@ typedef struct {
 
 SndBufferView snd_buffer_view(SndBuffer);
 TimeDuration  snd_buffer_duration(SndBufferView);
+f32           snd_buffer_frequency_max(SndBufferView);
 
 /**
  * Sample the buffer at the given fraction.
