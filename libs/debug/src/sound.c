@@ -96,25 +96,39 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
 }
 
 static void sound_draw_spectrum(UiCanvasComp* c, const SndBufferView buf, const SndChannel chan) {
-  static const u32 g_buckets = 256;
-  static const f32 g_step    = 1.0f / (f32)g_buckets;
+  enum { BucketCount = 256, SliceSampleCount = BucketCount * 2 };
 
-  diag_assert(buf.frameCount >= g_buckets * 2);
+  const u32 sliceCount = buf.frameCount / SliceSampleCount;
 
-  f32 magnitudes[g_buckets];
-  snd_buffer_spectrum(snd_buffer_slice(buf, 0, g_buckets * 2), chan, magnitudes);
+  f32 buckets[BucketCount] = {0};
+  for (u32 sliceIdx = 0; sliceIdx != sliceCount; ++sliceIdx) {
+    // Compute the frequency spectrum of the slice.
+    const u32           sliceOffset = sliceIdx * SliceSampleCount;
+    const SndBufferView slice       = snd_buffer_slice(buf, sliceOffset, SliceSampleCount);
+    f32                 sliceBuckets[BucketCount];
+    snd_buffer_spectrum(slice, chan, sliceBuckets);
+
+    // Add it to the output buckets.
+    for (u32 i = 0; i != BucketCount; ++i) {
+      buckets[i] += sliceBuckets[i];
+    }
+  }
+
+  // Normalize the buckets.
+  const f32 normFactor = sliceCount ? 1.0f / sliceCount : 1.0f;
+  for (u32 i = 0; i != BucketCount; ++i) {
+    buckets[i] *= normFactor;
+  }
 
   ui_style_push(c);
   ui_style_outline(c, 0);
 
-  for (u32 i = 0; i != g_buckets; ++i) {
-    const f32 magnitude = magnitudes[i];
-    const f32 frac      = i / (f32)g_buckets;
+  const f32 bucketStep = 1.0f / (f32)BucketCount;
+  for (u32 i = 0; i != BucketCount; ++i) {
+    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(buckets[i], 0, 1)};
+    const UiVector pos  = {.x = i / (f32)BucketCount, .y = 0};
 
-    const UiVector size = {.width = g_step, .height = math_clamp_f32(magnitude, 0, 1)};
-    const UiVector pos  = {.x = frac, .y = 0};
-
-    ui_style_color(c, sound_level_color(magnitude));
+    ui_style_color(c, sound_level_color(buckets[i]));
 
     ui_layout_push(c);
     ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
