@@ -10,6 +10,15 @@ SndBufferView snd_buffer_view(const SndBuffer buffer) {
   };
 }
 
+SndBufferView snd_buffer_slice(const SndBufferView view, const u32 offset, const u32 count) {
+  diag_assert(view.frameCount >= offset + count);
+  return (SndBufferView){
+      .frames     = view.frames + offset,
+      .frameCount = count,
+      .frameRate  = view.frameRate,
+  };
+}
+
 TimeDuration snd_buffer_duration(const SndBufferView view) {
   return view.frameCount * time_second / view.frameRate;
 }

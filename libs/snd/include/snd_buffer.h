@@ -17,6 +17,7 @@ typedef struct {
 } SndBufferView;
 
 SndBufferView snd_buffer_view(SndBuffer);
+SndBufferView snd_buffer_slice(SndBufferView, u32 offset, u32 count);
 TimeDuration  snd_buffer_duration(SndBufferView);
 f32           snd_buffer_frequency_max(SndBufferView);
 
