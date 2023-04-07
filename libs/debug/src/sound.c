@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "debug_sound.h"
@@ -94,6 +95,56 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_style_pop(c);
 }
 
+static void sound_draw_spectrum(UiCanvasComp* c, const SndBufferView buf, const SndChannel chan) {
+  static const u32 g_buckets = 256;
+  static const f32 g_step    = 1.0f / (f32)g_buckets;
+
+  diag_assert(buf.frameCount >= g_buckets * 2);
+
+  f32 magnitudes[g_buckets];
+  snd_buffer_spectrum(snd_buffer_slice(buf, 0, g_buckets * 2), chan, magnitudes);
+
+  ui_style_push(c);
+  ui_style_outline(c, 0);
+
+  for (u32 i = 0; i != g_buckets; ++i) {
+    const f32 magnitude = magnitudes[i];
+    const f32 frac      = i / (f32)g_buckets;
+
+    const UiVector size = {.width = g_step, .height = math_clamp_f32(magnitude, 0, 1)};
+    const UiVector pos  = {.x = frac, .y = 0};
+
+    ui_style_color(c, sound_level_color(magnitude));
+
+    ui_layout_push(c);
+    ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
+    ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+    ui_layout_pop(c);
+  }
+
+  ui_style_pop(c);
+}
+
+static void sound_draw_spectrum_stats(UiCanvasComp* c, const SndBufferView buf) {
+  ui_style_push(c);
+  ui_style_variation(c, UiVariation_Monospace);
+
+  ui_layout_push(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
+
+  // Name label.
+  ui_label(c, string_lit("Frequency domain"), .align = UiAlign_TopLeft);
+
+  // Y-axis label.
+  const f32 freqMax = snd_buffer_frequency_max(buf);
+  ui_label(c, string_lit("0hz"), .align = UiAlign_BottomLeft);
+  ui_label(c, fmt_write_scratch("{}hz", fmt_float(freqMax)), .align = UiAlign_BottomRight);
+  ui_label(c, fmt_write_scratch("{}hz", fmt_float(freqMax * 0.5f)), .align = UiAlign_BottomCenter);
+
+  ui_layout_pop(c);
+  ui_style_pop(c);
+}
+
 static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_None);
@@ -153,9 +204,19 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
     const String header = fmt_write_scratch("Channel {}", fmt_text(snd_channel_str(chan)));
     sound_draw_table_header(c, &table, header);
+
+    // Time domain graph.
     sound_draw_bg(c);
     sound_draw_time(c, history, chan);
     sound_draw_time_stats(c, history, chan);
+
+    ui_table_next_row(c, &table);
+    ui_table_next_column(c, &table);
+
+    // Frequency domain graph.
+    sound_draw_bg(c);
+    sound_draw_spectrum(c, history, chan);
+    sound_draw_spectrum_stats(c, history);
   }
 
   ui_panel_end(c, &panelComp->panel);
@@ -200,6 +261,6 @@ ecs_module_init(debug_sound_module) {
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(750, 500)));
+      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(750, 655)));
   return panelEntity;
 }
