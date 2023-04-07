@@ -1,6 +1,49 @@
+#include "core_alloc.h"
+#include "core_bits.h"
+#include "core_complex.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "snd_buffer.h"
+
+/**
+ * Fast-Fourier-Transform.
+ * More info: https://en.wikipedia.org/wiki/Fast_Fourier_transform
+ * Pre-condition: bits_ispow2(count).
+ * Pre-condition: count <= 8192.
+ */
+static void snd_fft(Complex buffer[], const u32 count) {
+  diag_assert(bits_ispow2(count));
+
+  /**
+   * Basic (recursive) Cooley-Tukey FFT implementation.
+   * More info: https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm
+   */
+
+  if (count < 2) {
+    return; // Recursion done.
+  }
+
+  // Split even and odd indices into their own buffers.
+  const u32 countHalf  = count / 2;
+  Complex*  bufferEven = alloc_array_t(g_alloc_scratch, Complex, countHalf);
+  Complex*  bufferOdd  = alloc_array_t(g_alloc_scratch, Complex, countHalf);
+  for (u32 i = 0; i != countHalf; ++i) {
+    bufferEven[i] = buffer[i * 2];
+    bufferOdd[i]  = buffer[i * 2 + 1];
+  }
+
+  // Process both halves.
+  snd_fft(bufferEven, countHalf);
+  snd_fft(bufferOdd, countHalf);
+
+  // Compute the Discrete-Fourier-Transform.
+  for (u32 i = 0; i != countHalf; ++i) {
+    const Complex exp     = complex_exp(complex(0, -2.0 * math_pi_f64 * i / count));
+    const Complex t       = complex_mul(exp, bufferOdd[i]);
+    buffer[i]             = complex_add(bufferEven[i], t);
+    buffer[countHalf + i] = complex_sub(bufferEven[i], t);
+  }
+}
 
 SndBufferView snd_buffer_view(const SndBuffer buffer) {
   return (SndBufferView){
@@ -67,4 +110,33 @@ f32 snd_buffer_level_rms(const SndBufferView view, const SndChannel channel) {
   }
   sum /= view.frameCount;
   return math_sqrt_f32(sum);
+}
+
+void snd_buffer_spectrum(const SndBufferView view, const SndChannel channel, f32 outMagnitudes[]) {
+  diag_assert(bits_ispow2(view.frameCount));
+  diag_assert(view.frameCount <= 8192);
+
+  Complex* buffer = mem_stack(view.frameCount * sizeof(Complex)).ptr;
+
+  // Initialize the fft buffer.
+  for (u32 frame = 0; frame != view.frameCount; ++frame) {
+    const f32 sample = view.frames[frame].samples[channel];
+    buffer[frame]    = complex(sample, 0);
+  }
+
+  // Perform the fast-fourier-transform.
+  snd_fft(buffer, view.frameCount);
+
+  // Extract the output.
+  // More info: http://howthefouriertransformworks.com/understanding-the-output-of-an-fft/
+  const u32 outputCount = view.frameCount / 2;
+  const f32 normFactor  = 1.0f / (f32)outputCount;
+  for (u32 i = 0; i != outputCount; ++i) {
+    const Complex val = buffer[i];
+    // Use pythagoras to compute magnitude from the amplitudes of the cosine and sine waves.
+    outMagnitudes[i] = (f32)math_sqrt_f64(val.real * val.real + val.imaginary * val.imaginary);
+
+    // Normalize the magnitude.
+    outMagnitudes[i] *= normFactor;
+  }
 }

@@ -38,3 +38,13 @@ f32 snd_buffer_level_peak(SndBufferView, SndChannel);
  * More info: https://en.wikipedia.org/wiki/Root_mean_square
  */
 f32 snd_buffer_level_rms(SndBufferView, SndChannel);
+
+/**
+ * Compute the amplitude per frequency of the sound.
+ * The first output value represents 0hz and the last represents 'snd_buffer_frequency_max(view)'.
+ * NOTE: Output buffer needs to be big enough to hold half the amount of input frames.
+ * Pre-condition: bits_ispow2(view.frameCount).
+ * Pre-condition: view.frameCount <= 8192.
+ * Pre-condition: out[view.frameCount / 2].
+ */
+void snd_buffer_spectrum(SndBufferView, SndChannel, f32 outMagnitudes[]);
