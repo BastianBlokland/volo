@@ -27,6 +27,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("tga"),
       string_static("ttf"),
       string_static("vfx"),
+      string_static("wav"),
       string_static("wea"),
   };
   ASSERT(array_elems(g_names) == AssetFormat_Count, "Incorrect number of asset-format names");
