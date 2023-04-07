@@ -69,10 +69,16 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_layout_push(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, -10), UiBase_Absolute, Ui_XY);
 
-  const TimeDuration duration  = snd_buffer_duration(buf);
-  const String       titleText = fmt_write_scratch("Time domain ({})", fmt_duration(duration));
-  ui_label(c, titleText, .align = UiAlign_BottomLeft);
+  // Name label.
+  ui_label(c, string_lit("Time domain"), .align = UiAlign_TopLeft);
 
+  // Y-axis label.
+  const TimeDuration duration = snd_buffer_duration(buf);
+  ui_label(c, string_lit("0ms"), .align = UiAlign_BottomLeft);
+  ui_label(c, fmt_write_scratch("{}", fmt_duration(duration)), .align = UiAlign_BottomRight);
+  ui_label(c, fmt_write_scratch("{}", fmt_duration(duration / 2)), .align = UiAlign_BottomCenter);
+
+  // Signal level labels.
   const f32    levelRms  = snd_buffer_level_rms(buf, chan);
   const f32    levelPeak = snd_buffer_level_peak(buf, chan);
   const String levelText = fmt_write_scratch(
