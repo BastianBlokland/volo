@@ -1,4 +1,5 @@
 #include "asset_sound.h"
+#include "core_alloc.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"
@@ -7,7 +8,7 @@ ecs_comp_define_public(AssetSoundComp);
 
 static void ecs_destruct_sound_comp(void* data) {
   AssetSoundComp* comp = data;
-  (void)comp;
+  alloc_free_array_t(g_alloc_heap, comp->samples, comp->frameCount * comp->frameChannels);
 }
 
 ecs_view_define(UnloadView) {

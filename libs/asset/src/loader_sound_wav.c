@@ -14,7 +14,9 @@
  * Riff: https://en.wikipedia.org/wiki/Resource_Interchange_File_Format
  */
 
-#define wav_max_channels 2
+#define wav_channels_max 2
+#define wav_frames_min 64
+#define wav_frames_max (1024 * 1024)
 
 typedef struct {
   String tag;
@@ -23,11 +25,11 @@ typedef struct {
 
 typedef struct {
   u16 formatType;
-  u16 channels;
-  u32 samplesPerSec;
-  u32 avgBytesPerSec;
-  u16 blockAlign;
-  u16 bitsPerSample;
+  u16 channels;    // mono = 1, stereo = 2.
+  u32 frameRate;   // eg. 44100.
+  u32 byteRate;    // frameRate * channels * sampleDepth / 8.
+  u16 frameSize;   // channels * sampleDepth / 8
+  u16 sampleDepth; // eg. 16 bits.
 } WavFormat;
 
 typedef enum {
@@ -45,6 +47,9 @@ typedef enum {
   WavError_FormatChunkMalformed       = 7,
   WavError_FormatTypeUnsupported      = 8,
   WavError_ChannelCountExceedsMaximum = 9,
+  WavError_DataChunkMissing           = 10,
+  WavError_FrameCountUnsupported      = 11,
+  WavError_SampleDepthUnsupported     = 12,
 
   WavError_Count,
 } WavError;
@@ -61,6 +66,9 @@ static String wav_error_str(WavError res) {
       string_static("Format chunk malformed"),
       string_static("Format type unsupported (Only 'PCM' is supported)"),
       string_static("Channel count exceeds the maximum"),
+      string_static("Data chunk missing"),
+      string_static("Unsupported frame-count"),
+      string_static("Unsupported sample-depth"),
   };
   ASSERT(array_elems(g_msgs) == WavError_Count, "Incorrect number of wav-error messages");
   return g_msgs[res];
@@ -128,7 +136,7 @@ static Mem wav_consume_chunk_list(
 
 static WavChunk* wav_chunk(DynArray* chunks, const String tag) {
   dynarray_for_t(chunks, WavChunk, chunk) {
-    if (string_starts_with(chunk->tag, tag)) {
+    if (string_eq(chunk->tag, tag)) {
       return chunk;
     }
   }
@@ -136,7 +144,7 @@ static WavChunk* wav_chunk(DynArray* chunks, const String tag) {
 }
 
 static void wav_read_format(DynArray* chunks, WavFormat* out, WavError* err) {
-  WavChunk* chunk = wav_chunk(chunks, string_lit("fmt"));
+  WavChunk* chunk = wav_chunk(chunks, string_lit("fmt "));
   if (UNLIKELY(!chunk)) {
     *err = WavError_FormatChunkMissing;
     return;
@@ -148,16 +156,61 @@ static void wav_read_format(DynArray* chunks, WavFormat* out, WavError* err) {
   }
   data = mem_consume_le_u16(data, &out->formatType);
   data = mem_consume_le_u16(data, &out->channels);
-  data = mem_consume_le_u32(data, &out->samplesPerSec);
-  data = mem_consume_le_u32(data, &out->avgBytesPerSec);
-  data = mem_consume_le_u16(data, &out->blockAlign);
-  data = mem_consume_le_u16(data, &out->bitsPerSample);
+  data = mem_consume_le_u32(data, &out->frameRate);
+  data = mem_consume_le_u32(data, &out->byteRate);
+  data = mem_consume_le_u16(data, &out->frameSize);
+  data = mem_consume_le_u16(data, &out->sampleDepth);
 }
 
-static void wav_load_succeed(EcsWorld* world, const EcsEntityId entity) {
+static void
+wav_read_frame_count(const WavFormat format, DynArray* chunks, u32* outFrameCount, WavError* err) {
+  WavChunk* chunk = wav_chunk(chunks, string_lit("data"));
+  if (UNLIKELY(!chunk)) {
+    *err = WavError_DataChunkMissing;
+    return;
+  }
+  *outFrameCount = (u32)chunk->data.size / format.frameSize;
+}
+
+static void wav_read_samples(
+    const WavFormat format,
+    DynArray*       chunks,
+    const u32       frameCount,
+    f32*            outSamples,
+    WavError*       err) {
+  WavChunk* chunk = wav_chunk(chunks, string_lit("data"));
+  if (UNLIKELY(!chunk)) {
+    *err = WavError_DataChunkMissing;
+    return;
+  }
+  if (format.sampleDepth != 16) {
+    *err = WavError_SampleDepthUnsupported;
+    return;
+  }
+  static const f32 g_i16MaxInv = 1.0f / i16_max;
+  // Assumes the host system is using little-endian byte-order and 2's complement integers.
+  i16*      data        = chunk->data.ptr;
+  const u32 sampleCount = frameCount * format.channels;
+  for (u32 i = 0; i != sampleCount; ++i) {
+    outSamples[i] = (f32)data[i] * g_i16MaxInv;
+  }
+}
+
+static void wav_load_succeed(
+    EcsWorld*         world,
+    const EcsEntityId entity,
+    const WavFormat   format,
+    const u32         frameCount,
+    const f32*        samples) {
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  AssetSoundComp* result = ecs_world_add_t(world, entity, AssetSoundComp);
-  (void)result;
+  ecs_world_add_t(
+      world,
+      entity,
+      AssetSoundComp,
+      .frameCount    = frameCount,
+      .frameRate     = format.frameRate,
+      .frameChannels = format.channels,
+      .samples       = samples);
 }
 
 static void wav_load_fail(EcsWorld* world, const EcsEntityId entity, const WavError err) {
@@ -168,8 +221,10 @@ static void wav_load_fail(EcsWorld* world, const EcsEntityId entity, const WavEr
 void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  WavError err    = WavError_None;
-  DynArray chunks = dynarray_create_t(g_alloc_heap, WavChunk, 8);
+  WavError err        = WavError_None;
+  DynArray chunks     = dynarray_create_t(g_alloc_heap, WavChunk, 8);
+  f32*     samples    = null;
+  u32      frameCount = 0;
   WavChunk rootChunk;
   wav_consume_chunk(src->data, &rootChunk, &err);
   if (err) {
@@ -195,13 +250,33 @@ void asset_load_wav(EcsWorld* world, const String id, const EcsEntityId entity, 
     wav_load_fail(world, entity, WavError_FormatTypeUnsupported);
     goto End;
   }
-  if (format.channels > wav_max_channels) {
+  if (format.channels > wav_channels_max) {
     wav_load_fail(world, entity, WavError_ChannelCountExceedsMaximum);
     goto End;
   }
-  wav_load_succeed(world, entity);
+  wav_read_frame_count(format, &chunks, &frameCount, &err);
+  if (err) {
+    wav_load_fail(world, entity, err);
+    goto End;
+  }
+  if (frameCount < wav_frames_min || frameCount > wav_frames_max) {
+    wav_load_fail(world, entity, WavError_FrameCountUnsupported);
+    goto End;
+  }
+  samples = alloc_array_t(g_alloc_heap, f32, frameCount * format.channels);
+  wav_read_samples(format, &chunks, frameCount, samples, &err);
+  if (err) {
+    wav_load_fail(world, entity, err);
+    goto End;
+  }
+
+  wav_load_succeed(world, entity, format, frameCount, samples);
+  samples = null; // Moved into the result component, which will take ownership.
 
 End:
   dynarray_destroy(&chunks);
+  if (samples) {
+    alloc_free_array_t(g_alloc_heap, samples, frameCount * format.channels);
+  }
   asset_repo_source_close(src);
 }
