@@ -167,6 +167,16 @@ SndDevice* snd_device_create(Allocator* alloc) {
   return dev;
 }
 
+static bool snd_device_detect_underrun(SndDevice* device) {
+  bool anyPeriodBusy = false;
+  for (u32 period = 0; period != snd_mme_period_count; ++period) {
+    if (!(device->periodHeaders[period].dwFlags & WHDR_DONE)) {
+      anyPeriodBusy = true;
+    }
+  }
+  return !anyPeriodBusy;
+}
+
 static void snd_device_report_underrun(SndDevice* device) {
   ++device->underrunCounter;
 
@@ -214,13 +224,8 @@ bool snd_device_begin(SndDevice* dev) {
 
   // Check if the device has underrun.
   if (LIKELY(dev->state == SndDeviceState_Playing)) {
-    bool anyPeriodBusy = false;
-    for (u32 period = 0; period != snd_mme_period_count; ++period) {
-      if (!(dev->periodHeaders[period].dwFlags & WHDR_DONE)) {
-        anyPeriodBusy = true;
-      }
-    }
-    if (!anyPeriodBusy) {
+    // Detect if the device has underrun.
+    if (snd_device_detect_underrun(dev)) {
       snd_device_report_underrun(dev);
       dev->state = SndDeviceState_Idle;
     }
@@ -256,6 +261,12 @@ void snd_device_end(SndDevice* dev) {
 
   if (UNLIKELY(mme_pcm_write(dev->pcm, &dev->periodHeaders[dev->activePeriod]))) {
     dev->nextPeriodBeginTime += snd_mme_period_time;
+
+    // Detect if we where too late in writing an additional period.
+    if (snd_device_detect_underrun(dev)) {
+      snd_device_report_underrun(dev);
+      dev->state = SndDeviceState_Idle;
+    }
   } else {
     mme_pcm_reset(dev->pcm);
     dev->state = SndDeviceState_Error;
