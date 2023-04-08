@@ -1,8 +1,9 @@
+#include "asset_manager.h"
+#include "asset_sound.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
-#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -15,9 +16,18 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 
 #define snd_mixer_gain_adjust_per_frame 0.0001f
 
+static const String g_mixerTestSoundName = string_lit("external/sound/blinded-by-the-light.wav");
+
+typedef struct {
+  EcsEntityId asset;
+  TimeSteady  startTime;
+} SndMixerSound;
+
 ecs_comp_define(SndMixerComp) {
   SndDevice* device;
   f32        gainActual, gainTarget;
+
+  SndMixerSound testSound;
 
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
@@ -33,9 +43,11 @@ static void ecs_destruct_mixer_comp(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(SceneTimeComp);
+  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(SndMixerComp);
 }
+
+ecs_view_define(AssetView) { ecs_access_read(AssetSoundComp); }
 
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   SndBufferFrame* historyBuf = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
@@ -50,25 +62,23 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       .historyBuffer = historyBuf);
 }
 
-static void snd_mixer_render_sine(SndBuffer out, const TimeSteady time, const f32 frequency) {
-  const f64 stepPerSec   = 2.0f * math_pi_f64 * frequency;
-  const f64 stepPerFrame = stepPerSec / snd_frame_rate;
+static void snd_mixer_render(SndBuffer out, const TimeDuration time, const AssetSoundComp* sound) {
+  const TimeDuration outputTimePerFrame = time_second / out.frameRate;
+  const TimeDuration assetTimePerFrame  = time_second / sound->frameRate;
 
-  f64 phase = time / (f64)time_second * stepPerSec;
-  for (u32 frame = 0; frame != out.frameCount; ++frame) {
-    const f32 val = (f32)math_sin_f64(phase);
-    phase += stepPerFrame;
-
-    for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      out.frames[frame].samples[channel] += val;
+  for (u32 outputFrame = 0; outputFrame != out.frameCount; ++outputFrame) {
+    const TimeDuration frameTime = time + outputTimePerFrame * outputFrame;
+    // TODO: Implement interpolation for resampling instead of just picking the nearest frame.
+    const u32 assetFrame = (u32)(frameTime / assetTimePerFrame);
+    if (assetFrame > sound->frameCount) {
+      continue;
+    }
+    for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
+      const u32 assetChannel     = math_min(outputChannel, sound->frameChannels - 1);
+      const u32 assetSampleIndex = assetFrame * sound->frameChannels + assetChannel;
+      out.frames[outputFrame].samples[outputChannel] += sound->samples[assetSampleIndex];
     }
   }
-}
-
-static void snd_mixer_render(SndBuffer out, const TimeSteady time) {
-  snd_mixer_render_sine(out, time, 261.63f);
-  snd_mixer_render_sine(out, time, 329.63f);
-  snd_mixer_render_sine(out, time, 392.0f);
 }
 
 static void snd_mixer_history_set(SndMixerComp* mixer, const SndChannel channel, const f32 value) {
@@ -111,6 +121,17 @@ ecs_system_define(SndMixerUpdateSys) {
     mixer = snd_mixer_create(world);
   }
 
+  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+
+  if (!mixer->testSound.asset) {
+    const EcsEntityId assetEntity = asset_lookup(world, assets, g_mixerTestSoundName);
+    asset_acquire(world, assetEntity);
+    mixer->testSound.asset = assetEntity;
+  }
+
+  EcsView*     assetView = ecs_world_view_t(world, AssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
+
   if (snd_device_begin(mixer->device)) {
     const SndDevicePeriod period = snd_device_period(mixer->device);
 
@@ -121,7 +142,13 @@ ecs_system_define(SndMixerUpdateSys) {
         .frameRate  = snd_frame_rate,
     };
 
-    snd_mixer_render(soundBuffer, period.timeBegin);
+    if (ecs_view_maybe_jump(assetItr, mixer->testSound.asset)) {
+      const AssetSoundComp* asset = ecs_view_read_t(assetItr, AssetSoundComp);
+      if (!mixer->testSound.startTime) {
+        mixer->testSound.startTime = period.timeBegin;
+      }
+      snd_mixer_render(soundBuffer, period.timeBegin - mixer->testSound.startTime, asset);
+    }
 
     snd_mixer_fill_device_period(mixer, period, soundBuffer);
 
@@ -133,8 +160,9 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_comp(SndMixerComp, .destructor = ecs_destruct_mixer_comp);
 
   ecs_register_view(GlobalView);
+  ecs_register_view(AssetView);
 
-  ecs_register_system(SndMixerUpdateSys, ecs_view_id(GlobalView));
+  ecs_register_system(SndMixerUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
 
   ecs_order(SndMixerUpdateSys, SndOrder_Mix);
 }
