@@ -16,7 +16,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 
 #define snd_mixer_gain_adjust_per_frame 0.0001f
 
-static const String g_mixerTestSoundName = string_lit("external/sound/blinded-by-the-light.wav");
+static const String g_mixerTestSoundName = string_static("external/sound/blinded-by-the-light.wav");
 
 typedef struct {
   EcsEntityId asset;
@@ -75,7 +75,7 @@ static bool snd_mixer_render(SndBuffer out, const TimeDuration time, const Asset
       return false;
     }
     for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
-      const u32 assetChannel     = math_min(outputChannel, sound->frameChannels - 1);
+      const u32 assetChannel     = math_min((u32)outputChannel, sound->frameChannels - 1);
       const u32 assetSampleIndex = assetFrame * sound->frameChannels + assetChannel;
       out.frames[outputFrame].samples[outputChannel] += sound->samples[assetSampleIndex];
     }
@@ -140,9 +140,9 @@ ecs_system_define(SndMixerUpdateSys) {
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
-        .frames     = soundFrames,
-        .frameCount = period.frameCount,
-        .frameRate  = snd_frame_rate,
+                             .frames     = soundFrames,
+                             .frameCount = period.frameCount,
+                             .frameRate  = snd_frame_rate,
     };
 
     if (ecs_view_maybe_jump(assetItr, mixer->testSound.asset)) {
