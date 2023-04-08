@@ -296,11 +296,11 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
-      .alloc     = alloc,
-      .id        = string_maybe_dup(alloc, id),
-      .pcm       = pcm,
-      .pcmConfig = pcmConfig,
-      .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
+                .alloc     = alloc,
+                .id        = string_maybe_dup(alloc, id),
+                .pcm       = pcm,
+                .pcmConfig = pcmConfig,
+                .state     = pcmConfig.valid ? SndDeviceState_Idle : SndDeviceState_Error,
   };
   return dev;
 }
@@ -316,6 +316,11 @@ void snd_device_destroy(SndDevice* dev) {
 }
 
 String snd_device_id(const SndDevice* dev) { return dev->id; }
+
+String snd_device_backend(const SndDevice* dev) {
+  (void)dev;
+  return string_lit("alsa");
+}
 
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 

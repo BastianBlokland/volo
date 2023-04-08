@@ -103,7 +103,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-      "Level: \a|02\ab{}{<5}\ar  RMS",
+         "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),
@@ -191,13 +191,19 @@ static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   sound_draw_table_header(c, &table, string_lit("Id"));
-  ui_label(c, snd_mixer_device_id(mixer), .selectable = true);
+  ui_label(
+      c,
+      fmt_write_scratch(
+          "{} ({})",
+          fmt_text(snd_mixer_device_id(mixer)),
+          fmt_text(snd_mixer_device_backend(mixer))),
+      .selectable = true);
 
   sound_draw_table_header(c, &table, string_lit("State"));
   ui_label(
       c,
       fmt_write_scratch(
-          "{} ({} Underruns)",
+          "{} (Underruns: {})",
           fmt_text(snd_mixer_device_state(mixer)),
           fmt_int(snd_mixer_device_underruns(mixer))));
 

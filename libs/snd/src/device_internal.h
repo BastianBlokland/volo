@@ -38,6 +38,7 @@ SndDevice* snd_device_create(Allocator*);
 void       snd_device_destroy(SndDevice*);
 
 String         snd_device_id(const SndDevice*);
+String         snd_device_backend(const SndDevice*);
 SndDeviceState snd_device_state(const SndDevice*);
 u64            snd_device_underruns(const SndDevice*);
 String         snd_device_state_str(SndDeviceState);

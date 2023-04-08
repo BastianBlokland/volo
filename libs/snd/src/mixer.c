@@ -178,6 +178,10 @@ void snd_mixer_gain_set(SndMixerComp* mixer, const f32 gain) { mixer->gainTarget
 
 String snd_mixer_device_id(const SndMixerComp* mixer) { return snd_device_id(mixer->device); }
 
+String snd_mixer_device_backend(const SndMixerComp* mixer) {
+  return snd_device_backend(mixer->device);
+}
+
 String snd_mixer_device_state(const SndMixerComp* mixer) {
   const SndDeviceState state = snd_device_state(mixer->device);
   return snd_device_state_str(state);

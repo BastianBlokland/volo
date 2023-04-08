@@ -196,6 +196,11 @@ void snd_device_destroy(SndDevice* dev) {
 
 String snd_device_id(const SndDevice* dev) { return dev->id; }
 
+String snd_device_backend(const SndDevice* dev) {
+  (void)dev;
+  return string_lit("mme-waveout");
+}
+
 SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 
 u64 snd_device_underruns(const SndDevice* dev) { return dev->underrunCounter; }

@@ -17,6 +17,7 @@ void snd_mixer_gain_set(SndMixerComp*, f32 gain);
  * Query output device info.
  */
 String snd_mixer_device_id(const SndMixerComp*);
+String snd_mixer_device_backend(const SndMixerComp*);
 String snd_mixer_device_state(const SndMixerComp*);
 u64    snd_mixer_device_underruns(const SndMixerComp*);
 
