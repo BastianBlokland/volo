@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -17,6 +18,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 #define snd_mixer_gain_adjust_per_frame 0.0001f
 
 static const String g_mixerTestSoundName = string_static("external/sound/blinded-by-the-light.wav");
+static const TimeDuration g_mixerTestSoundDelay = time_seconds(2);
 
 typedef struct {
   EcsEntityId asset;
@@ -44,8 +46,9 @@ static void ecs_destruct_mixer_comp(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(SndMixerComp);
+  ecs_access_read(SceneTimeComp);
+  ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetSoundComp); }
@@ -122,10 +125,10 @@ ecs_system_define(SndMixerUpdateSys) {
   if (!mixer) {
     mixer = snd_mixer_create(world);
   }
+  const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
+  AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
-
-  if (!mixer->testSound.asset) {
+  if (!mixer->testSound.asset && time->realTime > g_mixerTestSoundDelay) {
     const EcsEntityId assetEntity = asset_lookup(world, assets, g_mixerTestSoundName);
     asset_acquire(world, assetEntity);
     mixer->testSound.asset = assetEntity;
