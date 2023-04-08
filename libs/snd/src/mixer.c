@@ -24,8 +24,9 @@ typedef struct {
 } SndMixerSound;
 
 ecs_comp_define(SndMixerComp) {
-  SndDevice* device;
-  f32        gainActual, gainTarget;
+  SndDevice*   device;
+  f32          gainActual, gainTarget;
+  TimeDuration lastRenderDuration;
 
   SndMixerSound testSound;
 
@@ -134,7 +135,8 @@ ecs_system_define(SndMixerUpdateSys) {
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
   if (snd_device_begin(mixer->device)) {
-    const SndDevicePeriod period = snd_device_period(mixer->device);
+    const TimeSteady      renderStartTime = time_steady_clock();
+    const SndDevicePeriod period          = snd_device_period(mixer->device);
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
@@ -156,6 +158,7 @@ ecs_system_define(SndMixerUpdateSys) {
     snd_mixer_fill_device_period(mixer, period, soundBuffer);
 
     snd_device_end(mixer->device);
+    mixer->lastRenderDuration = time_steady_duration(renderStartTime, time_steady_clock());
   }
 }
 
@@ -182,6 +185,10 @@ String snd_mixer_device_state(const SndMixerComp* mixer) {
 
 u64 snd_mixer_device_underruns(const SndMixerComp* mixer) {
   return snd_device_underruns(mixer->device);
+}
+
+TimeDuration snd_mixer_render_duration(const SndMixerComp* mixer) {
+  return mixer->lastRenderDuration;
 }
 
 SndBufferView snd_mixer_history(const SndMixerComp* mixer) {

@@ -187,7 +187,7 @@ static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   sound_draw_table_header(c, &table, string_lit("Id"));
@@ -201,6 +201,10 @@ static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
           fmt_text(snd_mixer_device_state(mixer)),
           fmt_int(snd_mixer_device_underruns(mixer))));
 
+  const TimeDuration renderDuration = snd_mixer_render_duration(mixer);
+  sound_draw_table_header(c, &table, string_lit("Render time"));
+  ui_label(c, fmt_write_scratch("{}", fmt_duration(renderDuration)));
+
   ui_layout_container_pop(c);
   ui_layout_pop(c);
 }
@@ -210,7 +214,7 @@ static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   sound_draw_table_header(c, &table, string_lit("Gain"));
