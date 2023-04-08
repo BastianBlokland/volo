@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "debug_sound.h"
@@ -28,6 +29,12 @@ static void sound_draw_table_header(UiCanvasComp* c, UiTable* table, const Strin
   ui_label(c, header);
   ui_table_next_column(c, table);
 }
+
+/**
+ * Convert the given magnitude to decibel (logarithmic scale).
+ * Ouput range: <0: attenuated, 0: maximum ouput without clipping, >0: boosted.
+ */
+static f32 sound_magnitude_to_db(const f32 magnitude) { return 20 * math_log10_f32(magnitude); }
 
 static UiColor sound_level_color(const f32 level) {
   const f32 warnLevel = 0.85f;
@@ -124,11 +131,16 @@ static void sound_draw_spectrum(UiCanvasComp* c, const SndBufferView buf, const 
   ui_style_outline(c, 0);
 
   const f32 bucketStep = 1.0f / (f32)BucketCount;
+  const f32 dbMin      = -50.0f;
   for (u32 i = 0; i != BucketCount; ++i) {
-    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(buckets[i], 0, 1)};
+    const f32 value = math_unlerp(dbMin, 0, sound_magnitude_to_db(buckets[i]));
+    if (value <= f32_epsilon) {
+      continue;
+    }
+    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(value, 0, 1)};
     const UiVector pos  = {.x = i / (f32)BucketCount, .y = 0};
 
-    ui_style_color(c, sound_level_color(buckets[i]));
+    ui_style_color(c, sound_level_color(value));
 
     ui_layout_push(c);
     ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
