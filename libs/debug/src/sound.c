@@ -36,6 +36,14 @@ static void sound_draw_table_header(UiCanvasComp* c, UiTable* table, const Strin
  */
 static f32 sound_magnitude_to_db(const f32 magnitude) { return 20 * math_log10_f32(magnitude); }
 
+/**
+ * Convert the given decibel value to a normalized fraction.
+ */
+static f32 sound_db_to_level(const f32 db) {
+  static const f32 g_dbMin = -50.0f;
+  return math_unlerp(g_dbMin, 0, db);
+}
+
 static UiColor sound_level_color(const f32 level) {
   const f32 warnLevel = 0.85f;
   if (level < warnLevel) {
@@ -131,16 +139,15 @@ static void sound_draw_spectrum(UiCanvasComp* c, const SndBufferView buf, const 
   ui_style_outline(c, 0);
 
   const f32 bucketStep = 1.0f / (f32)BucketCount;
-  const f32 dbMin      = -50.0f;
   for (u32 i = 0; i != BucketCount; ++i) {
-    const f32 value = math_unlerp(dbMin, 0, sound_magnitude_to_db(buckets[i]));
-    if (value <= f32_epsilon) {
+    const f32 level = sound_db_to_level(sound_magnitude_to_db(buckets[i]));
+    if (level <= f32_epsilon) {
       continue;
     }
-    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(value, 0, 1)};
+    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(level, 0, 1)};
     const UiVector pos  = {.x = i / (f32)BucketCount, .y = 0};
 
-    ui_style_color(c, sound_level_color(value));
+    ui_style_color(c, sound_level_color(level));
 
     ui_layout_push(c);
     ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
@@ -202,7 +209,7 @@ static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
 
   sound_draw_table_header(c, &table, string_lit("Gain"));
   f32 gain = snd_mixer_gain_get(mixer);
-  if (ui_slider(c, &gain)) {
+  if (ui_slider(c, &gain, .max = 2.0f)) {
     snd_mixer_gain_set(mixer, gain);
   }
 
