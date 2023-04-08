@@ -39,17 +39,17 @@ static f32 sound_magnitude_to_db(const f32 magnitude) { return 20 * math_log10_f
 /**
  * Convert the given decibel value to a normalized fraction.
  */
-static f32 sound_db_to_level(const f32 db) {
+static f32 sound_db_to_fraction(const f32 db) {
   static const f32 g_dbMin = -50.0f;
   return math_unlerp(g_dbMin, 0, db);
 }
 
-static UiColor sound_level_color(const f32 level) {
-  const f32 warnLevel = 0.85f;
-  if (level < warnLevel) {
-    return ui_color_lerp(ui_color_lime, ui_color_yellow, level / warnLevel);
+static UiColor sound_color_from_fraction(const f32 fraction) {
+  const f32 warnFraction = 0.85f;
+  if (fraction < warnFraction) {
+    return ui_color_lerp(ui_color_lime, ui_color_yellow, fraction / warnFraction);
   } else {
-    const f32 factor = (math_min(level, 1.0f) - warnLevel) * (1.0f / (1.0f - warnLevel));
+    const f32 factor = (math_min(fraction, 1.0f) - warnFraction) * (1.0f / (1.0f - warnFraction));
     return ui_color_lerp(ui_color_yellow, ui_color_red, factor);
   }
 }
@@ -67,7 +67,7 @@ static void sound_draw_time(UiCanvasComp* c, const SndBufferView buf, const SndC
     const UiVector size = {.width = g_step, .height = math_clamp_f32(sampleAbs, 0, 1) * 0.5f};
     const UiVector pos  = {.x = t, .y = sample > 0.0f ? 0.5f : 0.5f - size.height};
 
-    ui_style_color(c, sound_level_color(sampleAbs));
+    ui_style_color(c, sound_color_from_fraction(sampleAbs));
 
     ui_layout_push(c);
     ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
@@ -95,15 +95,15 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_label(c, fmt_write_scratch("{}", fmt_duration(duration / 2)), .align = UiAlign_BottomCenter);
 
   // Signal level labels.
-  const f32    levelRms  = snd_buffer_magnitude_rms(buf, chan);
-  const f32    levelPeak = snd_buffer_magnitude_peak(buf, chan);
-  const String levelText = fmt_write_scratch(
+  const f32    magnitudeRms  = snd_buffer_magnitude_rms(buf, chan);
+  const f32    magnitudePeak = snd_buffer_magnitude_peak(buf, chan);
+  const String levelText     = fmt_write_scratch(
       "Level: \a|02\ab{}{<6}\ar  RMS\n"
       "Level: \a|02\ab{}{<6}\ar Peak",
-      fmt_ui_color(sound_level_color(levelRms)),
-      fmt_float(levelRms, .minDecDigits = 4, .maxDecDigits = 4),
-      fmt_ui_color(sound_level_color(levelPeak)),
-      fmt_float(levelPeak, .minDecDigits = 4, .maxDecDigits = 4));
+      fmt_ui_color(sound_color_from_fraction(magnitudeRms)),
+      fmt_float(magnitudeRms, .minDecDigits = 4, .maxDecDigits = 4),
+      fmt_ui_color(sound_color_from_fraction(magnitudePeak)),
+      fmt_float(magnitudePeak, .minDecDigits = 4, .maxDecDigits = 4));
   ui_label(c, levelText, .align = UiAlign_TopRight);
 
   ui_layout_pop(c);
@@ -140,14 +140,14 @@ static void sound_draw_spectrum(UiCanvasComp* c, const SndBufferView buf, const 
 
   const f32 bucketStep = 1.0f / (f32)BucketCount;
   for (u32 i = 0; i != BucketCount; ++i) {
-    const f32 level = sound_db_to_level(sound_magnitude_to_db(buckets[i]));
-    if (level <= f32_epsilon) {
+    const f32 fraction = sound_db_to_fraction(sound_magnitude_to_db(buckets[i]));
+    if (fraction <= f32_epsilon) {
       continue;
     }
-    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(level, 0, 1)};
+    const UiVector size = {.width = bucketStep, .height = math_clamp_f32(fraction, 0, 1)};
     const UiVector pos  = {.x = i / (f32)BucketCount, .y = 0};
 
-    ui_style_color(c, sound_level_color(level));
+    ui_style_color(c, sound_color_from_fraction(fraction));
 
     ui_layout_push(c);
     ui_layout_set(c, ui_rect(pos, size), UiBase_Current);
