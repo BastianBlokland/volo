@@ -16,7 +16,7 @@
 
 #define wav_channels_max 2
 #define wav_frames_min 64
-#define wav_frames_max (1024 * 1024)
+#define wav_frames_max (1024 * 1024 * 64)
 
 typedef struct {
   String tag;
