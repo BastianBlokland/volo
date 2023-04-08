@@ -24,6 +24,8 @@ typedef struct sSndDevice {
 SndDevice* snd_device_create(Allocator* alloc) {
   const String id = string_lit("uknown");
 
+  log_i("MME sound device created", log_param("id", fmt_text(id)));
+
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
                 .alloc = alloc,
@@ -37,7 +39,7 @@ void snd_device_destroy(SndDevice* dev) {
   string_maybe_free(dev->alloc, dev->id);
   alloc_free_t(dev->alloc, dev);
 
-  log_i("WaveOut sound device destroyed");
+  log_i("MME sound device destroyed");
 }
 
 String snd_device_id(const SndDevice* dev) { return dev->id; }
