@@ -385,7 +385,7 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
 
   const struct FormatF64Parts parts = format_f64_decompose(val, opts);
 
-  format_write_int(str, parts.intPart);
+  format_write_int(str, parts.intPart, .minDigits = opts->minIntDigits);
   if (parts.decDigits) {
     dynstring_append_char(str, '.');
     format_write_int(str, parts.decPart, .minDigits = parts.decDigits);
