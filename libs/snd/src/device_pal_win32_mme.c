@@ -10,7 +10,7 @@
 #include "device_internal.h"
 
 #include <Windows.h>
-#include <mmeapi.h>
+#include <mmsystem.h> // NOTE: Need to manually include due to 'WIN32_LEAN_AND_MEAN'.
 
 /**
  * Win32 Multimedia 'WaveOut' sound device implementation.
@@ -144,11 +144,11 @@ SndDevice* snd_device_create(Allocator* alloc) {
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
   *dev           = (SndDevice){
-      .alloc        = alloc,
-      .id           = string_maybe_dup(alloc, id),
-      .pcm          = pcm,
-      .state        = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
-      .activePeriod = sentinel_u8,
+                .alloc        = alloc,
+                .id           = string_maybe_dup(alloc, id),
+                .pcm          = pcm,
+                .state        = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
+                .activePeriod = sentinel_u8,
   };
 
   if (pcm != INVALID_HANDLE_VALUE) {
