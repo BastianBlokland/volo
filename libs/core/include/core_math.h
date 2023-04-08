@@ -77,6 +77,11 @@ f32 math_cbrt_f32(f32);
 f32 math_log_f32(f32);
 
 /**
+ * Return the common (base 10) logarithm of the given value.
+ */
+f32 math_log10_f32(f32);
+
+/**
  * Computes the sine of the given value (in radians).
  */
 f32 math_sin_f32(f32);

@@ -19,6 +19,7 @@ double SYS_DECL floor(double);
 float SYS_DECL  floorf(float);
 float SYS_DECL  fmodf(float, float);
 float SYS_DECL  logf(float);
+float SYS_DECL  log10f(float);
 float SYS_DECL  powf(float, float);
 double SYS_DECL pow(double, double);
 float SYS_DECL  sinf(float);
@@ -47,6 +48,7 @@ float SYS_DECL  roundf(float);
 #pragma intrinsic(floorf)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
+#pragma intrinsic(log10f)
 #pragma intrinsic(powf)
 #pragma intrinsic(pow)
 #pragma intrinsic(sinf)
@@ -64,6 +66,7 @@ float SYS_DECL  roundf(float);
 #define intrinsic_exp_f32 expf
 #define intrinsic_fmod_f32 fmodf
 #define intrinsic_log_f32 logf
+#define intrinsic_log10_f32 log10f
 #define intrinsic_pow_f32 powf
 #define intrinsic_pow_f64 pow
 #define intrinsic_round_down_f32 floorf
@@ -90,6 +93,7 @@ float SYS_DECL  roundf(float);
 #define intrinsic_exp_f32 __builtin_expf
 #define intrinsic_fmod_f32 __builtin_fmodf
 #define intrinsic_log_f32 __builtin_logf
+#define intrinsic_log10_f32 __builtin_log10f
 #define intrinsic_pow_f32 __builtin_powf
 #define intrinsic_pow_f64 __builtin_pow
 #define intrinsic_round_down_f32 __builtin_floorf
