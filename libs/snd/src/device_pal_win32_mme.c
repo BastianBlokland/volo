@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_winutils.h"
 #include "log_logger.h"
@@ -10,6 +11,21 @@
 
 #include <Windows.h>
 #include <mmeapi.h>
+
+/**
+ * Win32 Multimedia 'WaveOut' sound device implementation.
+ *
+ * Use a simple double-buffering strategy where we use two periods, one playing on the device and
+ * one being recorded.
+ */
+
+#define snd_mme_period_count 2
+#define snd_mme_period_frames 2048
+#define snd_mme_period_samples (snd_mme_period_frames * SndChannel_Count)
+#define snd_mme_period_time (snd_mme_period_frames * time_second / snd_frame_rate)
+
+ASSERT(bits_aligned(snd_mme_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
+ASSERT(snd_mme_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
 typedef enum {
   SndDeviceFlags_Rendering = 1 << 0,
@@ -27,6 +43,9 @@ typedef struct sSndDevice {
   TimeSteady nextPeriodBeginTime;
 
   u64 underrunCounter;
+
+  ALIGNAS(snd_frame_sample_alignment)
+  i16 periodBuffer[snd_mme_period_samples * snd_mme_period_count];
 } SndDevice;
 
 static String mme_result_str_scratch(const MMRESULT result) {
@@ -80,7 +99,7 @@ static void mme_pcm_reset(HWAVEOUT pcm) {
 }
 
 static String mme_pcm_name_scratch(HWAVEOUT pcm) {
-  (void)pcm;
+  (void)pcm; // TODO: Get the name of the specified device instead of hardcoding 'WAVE_MAPPER'.
   WAVEOUTCAPS    capabilities;
   const MMRESULT result = waveOutGetDevCaps(WAVE_MAPPER, &capabilities, sizeof(WAVEOUTCAPS));
   if (result != MMSYSERR_NOERROR) {
@@ -104,7 +123,12 @@ SndDevice* snd_device_create(Allocator* alloc) {
   if (pcm != INVALID_HANDLE_VALUE) {
     id = mme_pcm_name_scratch(pcm);
 
-    log_i("MME sound device created", log_param("id", fmt_text(id)));
+    log_i(
+        "MME sound device created",
+        log_param("id", fmt_text(id)),
+        log_param("period-count", fmt_int(snd_mme_period_count)),
+        log_param("period-frames", fmt_int(snd_mme_period_frames)),
+        log_param("period-time", fmt_duration(snd_mme_period_time)));
   } else {
     id = string_lit("<error>");
   }
