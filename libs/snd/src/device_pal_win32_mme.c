@@ -79,12 +79,34 @@ static void mme_pcm_reset(HWAVEOUT pcm) {
   }
 }
 
-SndDevice* snd_device_create(Allocator* alloc) {
-  HWAVEOUT     pcm = mme_pcm_open();
-  const String id  = string_lit("<unknown>");
+static String mme_pcm_name_scratch(HWAVEOUT pcm) {
+  (void)pcm;
+  WAVEOUTCAPS    capabilities;
+  const MMRESULT result = waveOutGetDevCaps(WAVE_MAPPER, &capabilities, sizeof(WAVEOUTCAPS));
+  if (result != MMSYSERR_NOERROR) {
+    log_e(
+        "Failed get capabilities of sound-device",
+        log_param("err-code", fmt_int(result)),
+        log_param("err", fmt_text(mme_result_str_scratch(result))));
+    return string_lit("<error>");
+  }
+  const usize pcmNameChars = wcslen(capabilities.szPname);
+  if (!pcmNameChars) {
+    return string_empty;
+  }
+  return winutils_from_widestr_scratch(capabilities.szPname, pcmNameChars);
+}
 
+SndDevice* snd_device_create(Allocator* alloc) {
+  HWAVEOUT pcm = mme_pcm_open();
+
+  String id;
   if (pcm != INVALID_HANDLE_VALUE) {
+    id = mme_pcm_name_scratch(pcm);
+
     log_i("MME sound device created", log_param("id", fmt_text(id)));
+  } else {
+    id = string_lit("<error>");
   }
 
   SndDevice* dev = alloc_alloc_t(alloc, SndDevice);
