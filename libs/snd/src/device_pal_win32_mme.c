@@ -1,5 +1,7 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
+#include "core_winutils.h"
 #include "log_logger.h"
 #include "snd_channel.h"
 
@@ -27,29 +29,12 @@ typedef struct sSndDevice {
   u64 underrunCounter;
 } SndDevice;
 
-static String mme_result_str(const MMRESULT err) {
-  switch (err) {
-  case MMSYSERR_INVALHANDLE:
-    return string_lit("Invalid device");
-  case MMSYSERR_ALLOCATED:
-    return string_lit("Specified resource is already allocated");
-  case MMSYSERR_BADDEVICEID:
-    return string_lit("Specified device identifier is out of range");
-  case MMSYSERR_NODRIVER:
-    return string_lit("No device driver is present");
-  case MMSYSERR_NOMEM:
-    return string_lit("Unable to allocate or lock memory");
-  case MMSYSERR_NOTSUPPORTED:
-    return string_lit("Operation not supported");
-  case WAVERR_BADFORMAT:
-    return string_lit("Attempted to open with an unsupported waveform-audio format");
-  case WAVERR_SYNC:
-    return string_lit("Synchronous device is not allowed");
-  case WAVERR_STILLPLAYING:
-    return string_lit("Device is still playing");
-  default:
-    return string_lit("unknown error");
+static String mme_result_str_scratch(const MMRESULT result) {
+  wchar_t buffer[MAXERRORLENGTH];
+  if (waveOutGetErrorText(result, buffer, array_elems(buffer)) != MMSYSERR_NOERROR) {
+    return string_lit("Unknown error occured");
   }
+  return winutils_from_widestr_scratch(buffer, wcslen(buffer));
 }
 
 static HWAVEOUT mme_pcm_open() {
@@ -67,7 +52,7 @@ static HWAVEOUT mme_pcm_open() {
     log_e(
         "Failed to open sound-device",
         log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str(result))));
+        log_param("err", fmt_text(mme_result_str_scratch(result))));
 
     return INVALID_HANDLE_VALUE;
   }
@@ -80,7 +65,7 @@ static void mme_pcm_close(HWAVEOUT pcm) {
     log_e(
         "Failed to close sound-device",
         log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str(result))));
+        log_param("err", fmt_text(mme_result_str_scratch(result))));
   }
 }
 
@@ -90,7 +75,7 @@ static void mme_pcm_reset(HWAVEOUT pcm) {
     log_e(
         "Failed to reset sound-device",
         log_param("err-code", fmt_int(result)),
-        log_param("err", fmt_text(mme_result_str(result))));
+        log_param("err", fmt_text(mme_result_str_scratch(result))));
   }
 }
 
