@@ -46,7 +46,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       ecs_world_global(world),
       SndMixerComp,
       .device        = snd_device_create(g_alloc_heap),
-      .gainTarget    = 0.15f,
+      .gainTarget    = 1.0f,
       .historyBuffer = historyBuf);
 }
 
