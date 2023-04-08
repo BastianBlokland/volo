@@ -62,7 +62,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
       .historyBuffer = historyBuf);
 }
 
-static void snd_mixer_render(SndBuffer out, const TimeDuration time, const AssetSoundComp* sound) {
+static bool snd_mixer_render(SndBuffer out, const TimeDuration time, const AssetSoundComp* sound) {
   const TimeDuration outputTimePerFrame = time_second / out.frameRate;
   const TimeDuration assetTimePerFrame  = time_second / sound->frameRate;
 
@@ -71,7 +71,7 @@ static void snd_mixer_render(SndBuffer out, const TimeDuration time, const Asset
     // TODO: Implement interpolation for resampling instead of just picking the nearest frame.
     const u32 assetFrame = (u32)(frameTime / assetTimePerFrame);
     if (assetFrame > sound->frameCount) {
-      continue;
+      return false;
     }
     for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
       const u32 assetChannel     = math_min(outputChannel, sound->frameChannels - 1);
@@ -79,6 +79,7 @@ static void snd_mixer_render(SndBuffer out, const TimeDuration time, const Asset
       out.frames[outputFrame].samples[outputChannel] += sound->samples[assetSampleIndex];
     }
   }
+  return true;
 }
 
 static void snd_mixer_history_set(SndMixerComp* mixer, const SndChannel channel, const f32 value) {
@@ -147,7 +148,9 @@ ecs_system_define(SndMixerUpdateSys) {
       if (!mixer->testSound.startTime) {
         mixer->testSound.startTime = period.timeBegin;
       }
-      snd_mixer_render(soundBuffer, period.timeBegin - mixer->testSound.startTime, asset);
+      if (!snd_mixer_render(soundBuffer, period.timeBegin - mixer->testSound.startTime, asset)) {
+        mixer->testSound.startTime = 0;
+      }
     }
 
     snd_mixer_fill_device_period(mixer, period, soundBuffer);
