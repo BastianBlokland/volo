@@ -377,6 +377,8 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
   if (val < 0.0) {
     dynstring_append_char(str, '-');
     val = -val;
+  } else if(opts->plusSign) {
+    dynstring_append_char(str, '+');
   }
   if (float_isinf(val)) {
     dynstring_append(str, string_lit("inf"));

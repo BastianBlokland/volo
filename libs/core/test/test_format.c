@@ -173,6 +173,8 @@ spec(format) {
         {1, format_opts_float(.minIntDigits = 1), string_lit("1")},
         {1, format_opts_float(.minIntDigits = 2), string_lit("01")},
         {1, format_opts_float(.minIntDigits = 3), string_lit("001")},
+        {1, format_opts_float(.plusSign = true), string_lit("+1")},
+        {-1, format_opts_float(.plusSign = true), string_lit("-1")},
         {f64_min, format_opts_float(), string_lit("-1.7976931e308")},
         {f64_max, format_opts_float(), string_lit("1.7976931e308")},
         {1e255, format_opts_float(), string_lit("1e255")},

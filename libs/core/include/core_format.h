@@ -274,6 +274,11 @@ typedef struct {
  */
 typedef struct {
   /**
+   * Prefix positive numbers with a '+' sign.
+   */
+  bool plusSign;
+
+  /**
    * Minimum amount of digits before the decimal place.
    */
   u8 minIntDigits;
