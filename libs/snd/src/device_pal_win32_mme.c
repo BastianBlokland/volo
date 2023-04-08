@@ -27,22 +27,19 @@
 ASSERT(bits_aligned(snd_mme_period_frames, snd_frame_count_alignment), "Invalid sample alignment");
 ASSERT(snd_mme_period_frames <= snd_frame_count_max, "FrameCount exceeds maximum");
 
-typedef enum {
-  SndDeviceFlags_Rendering = 1 << 0,
-} SndDeviceFlags;
-
 typedef struct sSndDevice {
   Allocator* alloc;
   String     id;
 
   SndDeviceState state : 8;
-  SndDeviceFlags flags : 8;
+  u8             activePeriod;
 
   HWAVEOUT pcm;
 
+  u64        underrunCounter;
   TimeSteady nextPeriodBeginTime;
 
-  u64 underrunCounter;
+  WAVEHDR periodHeaders[snd_mme_period_count];
 
   ALIGNAS(snd_frame_sample_alignment)
   i16 periodBuffer[snd_mme_period_samples * snd_mme_period_count];
@@ -140,6 +137,15 @@ SndDevice* snd_device_create(Allocator* alloc) {
                 .pcm   = pcm,
                 .state = pcm == INVALID_HANDLE_VALUE ? SndDeviceState_Error : SndDeviceState_Idle,
   };
+
+  // Initialize the period buffers.
+  for (u32 period = 0; period != snd_mme_period_count; ++period) {
+    WAVEHDR* periodHeader        = &dev->periodHeaders[period];
+    periodHeader->lpData         = (void*)&dev->periodBuffer[snd_mme_period_samples * period];
+    periodHeader->dwBufferLength = snd_mme_period_samples * snd_frame_sample_depth / 8;
+    periodHeader->dwFlags        = WHDR_DONE;
+  }
+
   return dev;
 }
 
@@ -163,7 +169,7 @@ SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 u64 snd_device_underruns(const SndDevice* dev) { return dev->underrunCounter; }
 
 bool snd_device_begin(SndDevice* dev) {
-  diag_assert_msg(!(dev->flags & SndDeviceFlags_Rendering), "Device rendering already active");
+  diag_assert_msg(sentinel_check(dev->activePeriod), "Device rendering already active");
 
   if (UNLIKELY(dev->state == SndDeviceState_Error)) {
     return false; // Device is in an unrecoverable error state.
@@ -173,16 +179,16 @@ bool snd_device_begin(SndDevice* dev) {
 }
 
 SndDevicePeriod snd_device_period(SndDevice* dev) {
-  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
+  diag_assert_msg(!sentinel_check(dev->activePeriod), "Device not currently rendering");
   return (SndDevicePeriod){
       .timeBegin  = dev->nextPeriodBeginTime,
-      .frameCount = 0,
-      .samples    = null,
+      .frameCount = snd_mme_period_frames,
+      .samples    = &dev->periodBuffer[dev->activePeriod * snd_mme_period_samples],
   };
 }
 
 void snd_device_end(SndDevice* dev) {
-  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
+  diag_assert_msg(!sentinel_check(dev->activePeriod), "Device not currently rendering");
 
-  dev->flags &= ~SndDeviceFlags_Rendering;
+  dev->activePeriod = sentinel_u8;
 }
