@@ -29,15 +29,15 @@ f32           snd_buffer_frequency_max(SndBufferView);
 f32 snd_buffer_sample(SndBufferView, SndChannel, f32 frac);
 
 /**
- * Compute the peak level (amplitude) of the sound.
+ * Compute the peak magnitude of the sound.
  */
-f32 snd_buffer_level_peak(SndBufferView, SndChannel);
+f32 snd_buffer_magnitude_peak(SndBufferView, SndChannel);
 
 /**
- * Compute the RMS (aka quadratic mean) level (amplitude) of the sound.
+ * Compute the RMS (aka quadratic mean) magnitude of the sound.
  * More info: https://en.wikipedia.org/wiki/Root_mean_square
  */
-f32 snd_buffer_level_rms(SndBufferView, SndChannel);
+f32 snd_buffer_magnitude_rms(SndBufferView, SndChannel);
 
 /**
  * Compute the amplitude per frequency of the sound.

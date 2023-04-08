@@ -90,7 +90,7 @@ f32 snd_buffer_sample(const SndBufferView view, const SndChannel channel, const 
   return math_lerp(valA, valB, index - edgeA);
 }
 
-f32 snd_buffer_level_peak(const SndBufferView view, const SndChannel channel) {
+f32 snd_buffer_magnitude_peak(const SndBufferView view, const SndChannel channel) {
   f32 peak = 0;
   for (u32 frame = 0; frame != view.frameCount; ++frame) {
     const f32 sample    = view.frames[frame].samples[channel];
@@ -102,7 +102,7 @@ f32 snd_buffer_level_peak(const SndBufferView view, const SndChannel channel) {
   return peak;
 }
 
-f32 snd_buffer_level_rms(const SndBufferView view, const SndChannel channel) {
+f32 snd_buffer_magnitude_rms(const SndBufferView view, const SndChannel channel) {
   f32 sum = 0;
   for (u32 frame = 0; frame != view.frameCount; ++frame) {
     const f32 sample = view.frames[frame].samples[channel];

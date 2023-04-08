@@ -87,8 +87,8 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_label(c, fmt_write_scratch("{}", fmt_duration(duration / 2)), .align = UiAlign_BottomCenter);
 
   // Signal level labels.
-  const f32    levelRms  = snd_buffer_level_rms(buf, chan);
-  const f32    levelPeak = snd_buffer_level_peak(buf, chan);
+  const f32    levelRms  = snd_buffer_magnitude_rms(buf, chan);
+  const f32    levelPeak = snd_buffer_magnitude_peak(buf, chan);
   const String levelText = fmt_write_scratch(
       "Level: \a|02\ab{}{<6}\ar  RMS\n"
       "Level: \a|02\ab{}{<6}\ar Peak",
