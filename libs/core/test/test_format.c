@@ -170,6 +170,11 @@ spec(format) {
         {42.0042, format_opts_float(.maxDecDigits = 2), string_lit("42")},
         {42.005, format_opts_float(.maxDecDigits = 2), string_lit("42.01")},
         {42.005, format_opts_float(.maxDecDigits = 0), string_lit("42")},
+        {1, format_opts_float(.minIntDigits = 1), string_lit("1")},
+        {1, format_opts_float(.minIntDigits = 2), string_lit("01")},
+        {1, format_opts_float(.minIntDigits = 3), string_lit("001")},
+        {1, format_opts_float(.plusSign = true), string_lit("+1")},
+        {-1, format_opts_float(.plusSign = true), string_lit("-1")},
         {f64_min, format_opts_float(), string_lit("-1.7976931e308")},
         {f64_max, format_opts_float(), string_lit("1.7976931e308")},
         {1e255, format_opts_float(), string_lit("1e255")},
@@ -370,27 +375,27 @@ spec(format) {
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("nisl condimentum\n\n"
-                                     "id venenatis a condimentum \n"
-                                     "vitae"),
+                                   "id venenatis a condimentum \n"
+                                   "vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("> nisl condimentum\n"
-                                     "> \n"
-                                     "> id venenatis a condimentum \n"
-                                     "> vitae"),
+                                   "> \n"
+                                   "> id venenatis a condimentum \n"
+                                   "> vitae"),
         },
         {
             .linePrefix = string_lit("> "),
             .maxWidth   = 30,
             .val        = string_lit("cursuseuismodquisviverranibhcraspulvinar "
-                                     "cursuseuismodquisviverranibhcraspulvinar"),
+                              "cursuseuismodquisviverranibhcraspulvinar"),
             .expected   = string_lit("> cursuseuismodquisviverranibhcr\n"
-                                     "> aspulvinar \n"
-                                     "> cursuseuismodquisviverranibhcr\n"
-                                     "> aspulvinar"),
+                                   "> aspulvinar \n"
+                                   "> cursuseuismodquisviverranibhcr\n"
+                                   "> aspulvinar"),
         },
         {
             .linePrefix = string_lit("> "),

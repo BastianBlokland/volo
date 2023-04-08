@@ -45,6 +45,8 @@
 
 #define math_pi_f32 3.141592653589793238463f
 #define math_pi_f64 3.141592653589793238463
+#define math_e_f32 2.718281828459045f
+#define math_e_f64 2.718281828459045
 #define math_deg_to_rad 0.0174532924f
 #define math_rad_to_deg 57.29578f
 
@@ -75,9 +77,15 @@ f32 math_cbrt_f32(f32);
 f32 math_log_f32(f32);
 
 /**
+ * Return the common (base 10) logarithm of the given value.
+ */
+f32 math_log10_f32(f32);
+
+/**
  * Computes the sine of the given value (in radians).
  */
 f32 math_sin_f32(f32);
+f64 math_sin_f64(f64);
 
 /**
  * Computes the arc (inverse) sine of the given value (in radians).
@@ -88,6 +96,7 @@ f32 math_asin_f32(f32);
  * Computes the cosine of the given value (in radians).
  */
 f32 math_cos_f32(f32);
+f64 math_cos_f64(f64);
 
 /**
  * Computes the arc (inverse) cosine of the given value (in radians).
@@ -114,6 +123,7 @@ f32 math_atan2_f32(f32 x, f32 y);
  * Compute the given base to the power of exp.
  */
 f32 math_pow_f32(f32 base, f32 exp);
+f64 math_pow_f64(f64 base, f64 exp);
 
 /**
  * Compute the natural logarithm e raised to the power of exp.

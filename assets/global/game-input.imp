@@ -207,42 +207,42 @@
       ]
     },
     {
-      "name": "DebugPanelTime",
+      "name": "DebugPanelSound",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F4" }
       ]
     },
     {
-      "name": "DebugPanelAnimation",
+      "name": "DebugPanelTime",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F5" }
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelAnimation",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F6" }
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F7" }
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DebugPanelGrid",
+      "name": "DebugPanelCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }

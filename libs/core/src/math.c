@@ -40,11 +40,15 @@ f32 math_cbrt_f32(const f32 val) { return intrinsic_cbrt_f32(val); }
 
 f32 math_log_f32(const f32 val) { return intrinsic_log_f32(val); }
 
+f32 math_log10_f32(const f32 val) { return intrinsic_log10_f32(val); }
+
 f32 math_sin_f32(const f32 val) { return intrinsic_sin_f32(val); }
+f64 math_sin_f64(const f64 val) { return intrinsic_sin_f64(val); }
 
 f32 math_asin_f32(const f32 val) { return intrinsic_asin_f32(val); }
 
 f32 math_cos_f32(const f32 val) { return intrinsic_cos_f32(val); }
+f64 math_cos_f64(const f64 val) { return intrinsic_cos_f64(val); }
 
 f32 math_acos_f32(const f32 val) { return intrinsic_acos_f32(val); }
 
@@ -55,6 +59,7 @@ f32 math_atan_f32(const f32 val) { return intrinsic_atan_f32(val); }
 f32 math_atan2_f32(const f32 x, const f32 y) { return intrinsic_atan2_f32(x, y); }
 
 f32 math_pow_f32(const f32 base, const f32 exp) { return intrinsic_pow_f32(base, exp); }
+f64 math_pow_f64(const f64 base, const f64 exp) { return intrinsic_pow_f64(base, exp); }
 
 f32 math_exp_f32(const f32 exp) { return intrinsic_exp_f32(exp); }
 

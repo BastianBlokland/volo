@@ -76,6 +76,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Vfx: {
     RET_LOADER(vfx);
   }
+  case AssetFormat_Wav: {
+    RET_LOADER(wav);
+  }
   case AssetFormat_Wea: {
     RET_LOADER(wea);
   }

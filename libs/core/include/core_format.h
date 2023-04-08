@@ -274,6 +274,16 @@ typedef struct {
  */
 typedef struct {
   /**
+   * Prefix positive numbers with a '+' sign.
+   */
+  bool plusSign;
+
+  /**
+   * Minimum amount of digits before the decimal place.
+   */
+  u8 minIntDigits;
+
+  /**
    * Minimum amount of digits after the decimal place.
    */
   u8 minDecDigits;
@@ -357,6 +367,7 @@ typedef struct {
 
 #define format_opts_float(...)                                                                     \
   ((FormatOptsFloat){                                                                              \
+    .minIntDigits     = 0,                                                                         \
     .minDecDigits     = 0,                                                                         \
     .maxDecDigits     = 7,                                                                         \
     .expThresholdPos  = 1e7,                                                                       \

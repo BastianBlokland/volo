@@ -141,6 +141,7 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_left.tga
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
+      sound/blinded-by-the-light.wav
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
       swat/swat_4.bin

@@ -16,6 +16,7 @@
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
+#include "snd_register.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
@@ -147,6 +148,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   scene_register(def);
   ui_register(def);
   vfx_register(def);
+  snd_register(def);
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);

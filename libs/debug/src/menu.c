@@ -14,6 +14,7 @@
 #include "debug_menu.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
+#include "debug_sound.h"
 #include "debug_stats.h"
 #include "debug_time.h"
 #include "ecs_utils.h"
@@ -58,6 +59,12 @@ static const struct {
         .openFunc  = debug_level_panel_open,
     },
     {
+        .name       = string_static("Sound"),
+        .iconShape  = UiShape_MusicNote,
+        .openFunc   = debug_sound_panel_open,
+        .hotkeyName = string_static("DebugPanelSound"),
+    },
+    {
         .name       = string_static("Time"),
         .iconShape  = UiShape_Timer,
         .openFunc   = debug_time_panel_open,
@@ -93,12 +100,11 @@ static const struct {
         .openFunc   = debug_camera_panel_open,
         .hotkeyName = string_static("DebugPanelCamera"),
     },
-    {
-        .name       = string_static("Grid"),
-        .iconShape  = UiShape_Grid4x4,
-        .openFunc   = debug_grid_panel_open,
-        .hotkeyName = string_static("DebugPanelGrid"),
-    },
+    // {
+    //     .name       = string_static("Grid"),
+    //     .iconShape  = UiShape_Grid4x4,
+    //     .openFunc   = debug_grid_panel_open,
+    // },
     {
         .name       = string_static("Renderer"),
         .iconShape  = UiShape_Brush,
