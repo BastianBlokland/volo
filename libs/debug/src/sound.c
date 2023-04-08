@@ -46,7 +46,9 @@ static f32 sound_db_to_fraction(const f32 db) {
 
 static UiColor sound_color_from_fraction(const f32 fraction) {
   const f32 warnFraction = 0.85f;
-  if (fraction < warnFraction) {
+  if (fraction < 0) {
+    return ui_color_lime;
+  } else if (fraction < warnFraction) {
     return ui_color_lerp(ui_color_lime, ui_color_yellow, fraction / warnFraction);
   } else {
     const f32 factor = (math_min(fraction, 1.0f) - warnFraction) * (1.0f / (1.0f - warnFraction));
@@ -95,15 +97,17 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_label(c, fmt_write_scratch("{}", fmt_duration(duration / 2)), .align = UiAlign_BottomCenter);
 
   // Signal level labels.
-  const f32    magnitudeRms  = snd_buffer_magnitude_rms(buf, chan);
-  const f32    magnitudePeak = snd_buffer_magnitude_peak(buf, chan);
-  const String levelText     = fmt_write_scratch(
-      "Level: \a|02\ab{}{<6}\ar  RMS\n"
-      "Level: \a|02\ab{}{<6}\ar Peak",
-      fmt_ui_color(sound_color_from_fraction(magnitudeRms)),
-      fmt_float(magnitudeRms, .minDecDigits = 4, .maxDecDigits = 4),
-      fmt_ui_color(sound_color_from_fraction(magnitudePeak)),
-      fmt_float(magnitudePeak, .minDecDigits = 4, .maxDecDigits = 4));
+  const f32    peakDb       = sound_magnitude_to_db(snd_buffer_magnitude_peak(buf, chan));
+  const f32    peakFraction = sound_db_to_fraction(peakDb);
+  const f32    rmsDb        = sound_magnitude_to_db(snd_buffer_magnitude_rms(buf, chan));
+  const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
+  const String levelText    = fmt_write_scratch(
+      "Level: \a|02\ab{}{<5}\ar Peak\n"
+      "Level: \a|02\ab{}{<5}\ar  RMS",
+      fmt_ui_color(sound_color_from_fraction(peakFraction)),
+      fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_ui_color(sound_color_from_fraction(rmsFraction)),
+      fmt_float(rmsDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1));
   ui_label(c, levelText, .align = UiAlign_TopRight);
 
   ui_layout_pop(c);
@@ -190,10 +194,12 @@ static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_label(c, snd_mixer_device_id(mixer), .selectable = true);
 
   sound_draw_table_header(c, &table, string_lit("State"));
-  ui_label(c, snd_mixer_device_state(mixer));
-
-  sound_draw_table_header(c, &table, string_lit("Underruns"));
-  ui_label(c, fmt_write_scratch("{}", fmt_int(snd_mixer_device_underruns(mixer))));
+  ui_label(
+      c,
+      fmt_write_scratch(
+          "{} ({} Underruns)",
+          fmt_text(snd_mixer_device_state(mixer)),
+          fmt_int(snd_mixer_device_underruns(mixer))));
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);
