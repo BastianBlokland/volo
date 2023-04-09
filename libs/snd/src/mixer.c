@@ -201,7 +201,7 @@ static void snd_mixer_render(SndBuffer out, const TimeSteady time, SndObject* ob
       return;
     }
     for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
-      const u32 assetChannel     = math_min((u32)outputChannel, obj->frameChannels - 1);
+      const u8  assetChannel     = math_min((u8)outputChannel, (u8)(obj->frameChannels - 1));
       const u32 assetSampleIndex = objFrameIndex * obj->frameChannels + assetChannel;
       out.frames[outputFrame].samples[outputChannel] += obj->samples[assetSampleIndex];
     }
@@ -245,9 +245,9 @@ ecs_system_define(SndMixerRenderSys) {
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
-                             .frames     = soundFrames,
-                             .frameCount = period.frameCount,
-                             .frameRate  = snd_frame_rate,
+        .frames     = soundFrames,
+        .frameCount = period.frameCount,
+        .frameRate  = snd_frame_rate,
     };
 
     // Render all objects into the soundBuffer.
