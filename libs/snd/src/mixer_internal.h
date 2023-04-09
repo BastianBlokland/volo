@@ -4,7 +4,7 @@
 
 #include "result_internal.h"
 
-typedef u32 SndMixerId;
+typedef u32 SndObjectId;
 
-SndResult snd_mixer_obj_new(SndMixerComp*, SndMixerId* outId);
-SndResult snd_mixer_obj_set_asset(SndMixerComp*, SndMixerId, EcsEntityId asset);
+SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
+SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);

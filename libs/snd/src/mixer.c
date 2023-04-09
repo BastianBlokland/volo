@@ -77,12 +77,12 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   return m;
 }
 
-static SndMixerId snd_mixer_obj_id(SndMixerComp* m, const SndObject* obj) {
+static SndObjectId snd_object_id(SndMixerComp* m, const SndObject* obj) {
   const u16 index = (u16)(obj - m->objects);
-  return (SndMixerId)index | ((SndMixerId)obj->generation << 16);
+  return (SndObjectId)index | ((SndObjectId)obj->generation << 16);
 }
 
-static SndObject* snd_mixer_obj_get(SndMixerComp* m, const SndMixerId id) {
+static SndObject* snd_object_get(SndMixerComp* m, const SndObjectId id) {
   const u16 index      = (u16)(id >> 0);
   const u16 generation = (u16)(id >> 16);
   if (index >= snd_mixer_objects_max) {
@@ -95,18 +95,18 @@ static SndObject* snd_mixer_obj_get(SndMixerComp* m, const SndMixerId id) {
   return obj;
 }
 
-static SndMixerId snd_mixer_obj_acquire(SndMixerComp* m) {
+static SndObjectId snd_object_acquire(SndMixerComp* m) {
   const usize index = bitset_next(m->objectFreeSet, 0);
   if (UNLIKELY(sentinel_check(index))) {
-    return (SndMixerId)sentinel_u16;
+    return (SndObjectId)sentinel_u16;
   }
   bitset_clear(m->objectFreeSet, index);
   SndObject* obj = &m->objects[index];
   ++obj->generation; // NOTE: Expected to wrap when the object is reused often.
-  return snd_mixer_obj_id(m, obj);
+  return snd_object_id(m, obj);
 }
 
-static void snd_mixer_obj_release(SndMixerComp* m, const SndObject* obj) {
+static void snd_object_release(SndMixerComp* m, const SndObject* obj) {
   const u16 index = (u16)(obj - m->objects);
   diag_assert_msg(!bitset_test(m->objectFreeSet, index), "Object double free");
   bitset_set(m->objectFreeSet, index);
@@ -181,7 +181,7 @@ ecs_system_define(SndMixerUpdateSys) {
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
-  for (SndMixerId id = 0; id != snd_mixer_objects_max; ++id) {
+  for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
     SndObject* obj = &m->objects[id];
     switch (obj->phase) {
     case SndObjectPhase_Idle:
@@ -211,7 +211,7 @@ ecs_system_define(SndMixerUpdateSys) {
       continue;
     case SndObjectPhase_Cleanup:
       asset_release(world, obj->asset);
-      snd_mixer_obj_release(m, obj);
+      snd_object_release(m, obj);
       *obj = (SndObject){0};
       continue;
     }
@@ -260,9 +260,9 @@ ecs_module_init(snd_mixer_module) {
   ecs_order(SndMixerRenderSys, SndOrder_Render);
 }
 
-SndResult snd_mixer_obj_new(SndMixerComp* m, SndMixerId* outId) {
-  const SndMixerId id  = snd_mixer_obj_acquire(m);
-  SndObject*       obj = snd_mixer_obj_get(m, id);
+SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
+  const SndObjectId id  = snd_object_acquire(m);
+  SndObject*        obj = snd_object_get(m, id);
   if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
@@ -271,8 +271,8 @@ SndResult snd_mixer_obj_new(SndMixerComp* m, SndMixerId* outId) {
   return SndResult_Success;
 }
 
-SndResult snd_mixer_obj_set_asset(SndMixerComp* m, const SndMixerId id, const EcsEntityId asset) {
-  SndObject* obj = snd_mixer_obj_get(m, id);
+SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsEntityId asset) {
+  SndObject* obj = snd_object_get(m, id);
   if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
     return SndResult_InvalidObjectPhase;
   }
