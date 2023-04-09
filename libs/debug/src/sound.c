@@ -237,7 +237,7 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  sound_draw_table_header(c, &table, string_lit("Device"));
+  sound_draw_table_header(c, &table, string_lit("Mixer"));
   sound_draw_bg(c);
   sound_draw_mixer_info(c, mixer);
 
