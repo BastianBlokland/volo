@@ -131,27 +131,6 @@ static void snd_mixer_history_advance(SndMixerComp* m) {
   m->historyCursor = (m->historyCursor + 1) & (snd_mixer_history_size - 1);
 }
 
-static void snd_mixer_fill_device_period(
-    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
-  diag_assert(devicePeriod.frameCount == buffer.frameCount);
-
-  for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
-    math_towards_f32(&m->gainActual, m->gainTarget, snd_mixer_gain_adjust_per_frame);
-
-    for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
-      const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
-
-      // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_set(m, channel, val);
-
-      // Write to the device buffer.
-      const i16 clipped = val > 1.0 ? i16_max : (val < -1.0 ? i16_min : (i16)(val * i16_max));
-      devicePeriod.samples[frame * SndChannel_Count + channel] = clipped;
-    }
-    snd_mixer_history_advance(m);
-  }
-}
-
 ecs_view_define(AssetView) {
   ecs_access_read(AssetSoundComp);
   ecs_access_with(AssetLoadedComp);
@@ -226,6 +205,27 @@ static void snd_mixer_render(SndBuffer out, const TimeSteady time, SndObject* ob
       const u32 assetSampleIndex = objFrameIndex * obj->frameChannels + assetChannel;
       out.frames[outputFrame].samples[outputChannel] += obj->samples[assetSampleIndex];
     }
+  }
+}
+
+static void snd_mixer_fill_device_period(
+    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
+  diag_assert(devicePeriod.frameCount == buffer.frameCount);
+
+  for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
+    math_towards_f32(&m->gainActual, m->gainTarget, snd_mixer_gain_adjust_per_frame);
+
+    for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
+      const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
+
+      // Add it to the history ring-buffer for analysis / debug purposes.
+      snd_mixer_history_set(m, channel, val);
+
+      // Write to the device buffer.
+      const i16 clipped = val > 1.0 ? i16_max : (val < -1.0 ? i16_min : (i16)(val * i16_max));
+      devicePeriod.samples[frame * SndChannel_Count + channel] = clipped;
+    }
+    snd_mixer_history_advance(m);
   }
 }
 
