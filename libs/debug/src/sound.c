@@ -199,9 +199,12 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
       fmt_int(snd_mixer_device_underruns(mixer)));
   ui_label(c, deviceText, .selectable = true);
 
-  const u32 objectsPlaying = snd_mixer_objects_playing(mixer);
+  const u32 objectsPlaying   = snd_mixer_objects_playing(mixer);
+  const u32 objectsAllocated = snd_mixer_objects_allocated(mixer);
   sound_draw_table_header(c, &table, string_lit("Objects"));
-  ui_label(c, fmt_write_scratch("Playing: {<4}", fmt_int(objectsPlaying)));
+  const String objectsText = fmt_write_scratch(
+      "Playing: {<4} Allocated: {}", fmt_int(objectsPlaying), fmt_int(objectsAllocated));
+  ui_label(c, objectsText);
 
   const TimeDuration renderDuration = snd_mixer_render_duration(mixer);
   sound_draw_table_header(c, &table, string_lit("Render time"));

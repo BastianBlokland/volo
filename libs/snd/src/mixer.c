@@ -329,6 +329,11 @@ u32 snd_mixer_objects_playing(const SndMixerComp* m) {
   return snd_object_count_in_phase(m, SndObjectPhase_Playing);
 }
 
+u32 snd_mixer_objects_allocated(const SndMixerComp* m) {
+  const usize freeObjects = bitset_count(m->objectFreeSet);
+  return snd_mixer_objects_max - (u32)freeObjects;
+}
+
 TimeDuration snd_mixer_render_duration(const SndMixerComp* m) { return m->lastRenderDuration; }
 
 SndBufferView snd_mixer_history(const SndMixerComp* m) {
