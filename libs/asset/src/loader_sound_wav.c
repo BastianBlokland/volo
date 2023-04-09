@@ -207,9 +207,9 @@ static void wav_load_succeed(
       world,
       entity,
       AssetSoundComp,
+      .frameChannels = (u8)format.channels,
       .frameCount    = frameCount,
       .frameRate     = format.frameRate,
-      .frameChannels = format.channels,
       .samples       = samples);
 }
 

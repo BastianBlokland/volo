@@ -125,9 +125,9 @@ static i8 asset_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, AssetEntry, idHash), field_ptr(b, AssetEntry, idHash));
 }
 
-static void
+static AssetManagerComp*
 asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManagerFlags flags) {
-  ecs_world_add_t(
+  return ecs_world_add_t(
       world,
       ecs_world_global(world),
       AssetManagerComp,
@@ -390,17 +390,17 @@ ecs_module_init(asset_manager_module) {
 
 String asset_id(const AssetComp* comp) { return comp->id; }
 
-void asset_manager_create_fs(
-    EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
-  asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
+AssetManagerComp*
+asset_manager_create_fs(EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
+  return asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
 }
 
-void asset_manager_create_mem(
+AssetManagerComp* asset_manager_create_mem(
     EcsWorld*               world,
     const AssetManagerFlags flags,
     const AssetMemRecord*   records,
     const usize             recordCount) {
-  asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount), flags);
+  return asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount), flags);
 }
 
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {

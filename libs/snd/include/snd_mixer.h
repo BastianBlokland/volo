@@ -24,6 +24,8 @@ u64    snd_mixer_device_underruns(const SndMixerComp*);
 /**
  * Stats.
  */
+u32          snd_mixer_objects_playing(const SndMixerComp*);
+u32          snd_mixer_objects_allocated(const SndMixerComp*);
 TimeDuration snd_mixer_render_duration(const SndMixerComp*);
 
 /**

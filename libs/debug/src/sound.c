@@ -182,7 +182,7 @@ static void sound_draw_spectrum_stats(UiCanvasComp* c, const SndBufferView buf) 
   ui_style_pop(c);
 }
 
-static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
+static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_None);
 
@@ -190,22 +190,21 @@ static void sound_draw_device_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  sound_draw_table_header(c, &table, string_lit("Id"));
-  ui_label(
-      c,
-      fmt_write_scratch(
-          "{} ({})",
-          fmt_text(snd_mixer_device_id(mixer)),
-          fmt_text(snd_mixer_device_backend(mixer))),
-      .selectable = true);
+  sound_draw_table_header(c, &table, string_lit("Device"));
+  const String deviceText = fmt_write_scratch(
+      "{} ({}) [{}] Underruns: {}",
+      fmt_text(snd_mixer_device_id(mixer)),
+      fmt_text(snd_mixer_device_backend(mixer)),
+      fmt_text(snd_mixer_device_state(mixer)),
+      fmt_int(snd_mixer_device_underruns(mixer)));
+  ui_label(c, deviceText, .selectable = true);
 
-  sound_draw_table_header(c, &table, string_lit("State"));
-  ui_label(
-      c,
-      fmt_write_scratch(
-          "{} (Underruns: {})",
-          fmt_text(snd_mixer_device_state(mixer)),
-          fmt_int(snd_mixer_device_underruns(mixer))));
+  const u32 objectsPlaying   = snd_mixer_objects_playing(mixer);
+  const u32 objectsAllocated = snd_mixer_objects_allocated(mixer);
+  sound_draw_table_header(c, &table, string_lit("Objects"));
+  const String objectsText = fmt_write_scratch(
+      "Playing: {<4} Allocated: {}", fmt_int(objectsPlaying), fmt_int(objectsAllocated));
+  ui_label(c, objectsText);
 
   const TimeDuration renderDuration = snd_mixer_render_duration(mixer);
   sound_draw_table_header(c, &table, string_lit("Render time"));
@@ -241,9 +240,9 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  sound_draw_table_header(c, &table, string_lit("Device"));
+  sound_draw_table_header(c, &table, string_lit("Mixer"));
   sound_draw_bg(c);
-  sound_draw_device_info(c, mixer);
+  sound_draw_mixer_info(c, mixer);
 
   sound_draw_table_header(c, &table, string_lit("Controls"));
   sound_draw_bg(c);
