@@ -31,10 +31,11 @@ typedef enum {
 
 typedef struct {
   SndObjectPhase phase : 8;
-  u8             sourceChannels;
+  u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
-  u32            sourceFrameCount, sourceFrameRate;
-  const f32*     sourceSamples; // f32[sourceFrameCount * sourceChannels], Interleaved  (LRLRLR).
+  u32            frameCount, frameRate;
+  const f32*     samples; // f32[frameCount * frameChannels], Interleaved  (LRLRLR).
+  TimeSteady     startTime;
   EcsEntityId    asset;
 } SndObject;
 
@@ -112,27 +113,6 @@ static void snd_object_release(SndMixerComp* m, const SndObject* obj) {
   bitset_set(m->objectFreeSet, index);
 }
 
-// static bool snd_mixer_render(SndBuffer out, const TimeDuration time, const AssetSoundComp* sound)
-// {
-//   const TimeDuration outputTimePerFrame = time_second / out.frameRate;
-//   const TimeDuration assetTimePerFrame  = time_second / sound->frameRate;
-
-//   for (u32 outputFrame = 0; outputFrame != out.frameCount; ++outputFrame) {
-//     const TimeDuration frameTime = time + outputTimePerFrame * outputFrame;
-//     // TODO: Implement interpolation for resampling instead of just picking the nearest frame.
-//     const u32 assetFrame = (u32)(frameTime / assetTimePerFrame);
-//     if (assetFrame > sound->frameCount) {
-//       return false;
-//     }
-//     for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
-//       const u32 assetChannel     = math_min((u32)outputChannel, sound->frameChannels - 1);
-//       const u32 assetSampleIndex = assetFrame * sound->frameChannels + assetChannel;
-//       out.frames[outputFrame].samples[outputChannel] += sound->samples[assetSampleIndex];
-//     }
-//   }
-//   return true;
-// }
-
 static void snd_mixer_history_set(SndMixerComp* m, const SndChannel channel, const f32 value) {
   m->historyBuffer[m->historyCursor].samples[channel] = value;
 }
@@ -185,6 +165,8 @@ ecs_system_define(SndMixerUpdateSys) {
     SndObject* obj = &m->objects[id];
     switch (obj->phase) {
     case SndObjectPhase_Idle:
+    case SndObjectPhase_Loaded:
+    case SndObjectPhase_Playing:
       continue;
     case SndObjectPhase_Setup:
       if (obj->asset) {
@@ -197,18 +179,14 @@ ecs_system_define(SndMixerUpdateSys) {
     case SndObjectPhase_Acquired:
       if (ecs_view_maybe_jump(assetItr, obj->asset)) {
         const AssetSoundComp* asset = ecs_view_read_t(assetItr, AssetSoundComp);
-        obj->sourceChannels         = asset->frameChannels;
-        obj->sourceFrameCount       = asset->frameCount;
-        obj->sourceFrameRate        = asset->frameRate;
+        obj->frameChannels          = asset->frameChannels;
+        obj->frameCount             = asset->frameCount;
+        obj->frameRate              = asset->frameRate;
         obj->phase                  = SndObjectPhase_Loaded;
         // Fallthrough.
       } else {
         continue;
       }
-    case SndObjectPhase_Loaded:
-      continue;
-    case SndObjectPhase_Playing:
-      continue;
     case SndObjectPhase_Cleanup:
       asset_release(world, obj->asset);
       snd_object_release(m, obj);
@@ -216,6 +194,29 @@ ecs_system_define(SndMixerUpdateSys) {
       continue;
     }
     UNREACHABLE
+  }
+}
+
+static void snd_mixer_render(SndBuffer out, const TimeSteady time, SndObject* obj) {
+  diag_assert(obj->phase == SndObjectPhase_Playing);
+
+  const TimeDuration objTime            = time_steady_duration(obj->startTime, time);
+  const TimeDuration outputTimePerFrame = time_second / out.frameRate;
+  const TimeDuration objTimePerFrame    = time_second / obj->frameRate;
+
+  for (u32 outputFrame = 0; outputFrame != out.frameCount; ++outputFrame) {
+    const TimeDuration objFrameTime = objTime + outputTimePerFrame * outputFrame;
+    // TODO: Implement interpolation for resampling instead of just picking the nearest frame.
+    const u32 objFrameIndex = (u32)(objFrameTime / objTimePerFrame);
+    if (objFrameIndex > obj->frameCount) {
+      obj->phase = SndObjectPhase_Cleanup;
+      return;
+    }
+    for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
+      const u32 assetChannel     = math_min((u32)outputChannel, obj->frameChannels - 1);
+      const u32 assetSampleIndex = objFrameIndex * obj->frameChannels + assetChannel;
+      out.frames[outputFrame].samples[outputChannel] += obj->samples[assetSampleIndex];
+    }
   }
 }
 
@@ -240,6 +241,27 @@ ecs_system_define(SndMixerRenderSys) {
                              .frameRate  = snd_frame_rate,
     };
 
+    // Render all objects into the soundBuffer.
+    for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
+      SndObject* obj = &m->objects[id];
+      switch (obj->phase) {
+      case SndObjectPhase_Idle:
+      case SndObjectPhase_Setup:
+      case SndObjectPhase_Acquired:
+      case SndObjectPhase_Cleanup:
+        continue;
+      case SndObjectPhase_Loaded:
+        obj->startTime = period.timeBegin;
+        obj->phase     = SndObjectPhase_Playing;
+        // Fallthrough.
+      case SndObjectPhase_Playing:
+        snd_mixer_render(soundBuffer, period.timeBegin, obj);
+        continue;
+      }
+      UNREACHABLE
+    }
+
+    // Write the soundBuffer to the device.
     snd_mixer_fill_device_period(m, period, soundBuffer);
 
     snd_device_end(m->device);
