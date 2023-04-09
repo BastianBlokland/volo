@@ -200,7 +200,7 @@ ecs_system_define(SndMixerUpdateSys) {
     case SndObjectPhase_Cleanup:
       asset_release(world, obj->asset);
       snd_object_release(m, obj);
-      *obj = (SndObject){0};
+      *obj = (SndObject){.generation = obj->generation};
       continue;
     }
     UNREACHABLE
