@@ -16,6 +16,8 @@
 ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
 
 #define snd_mixer_objects_max 2048
+ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
+
 #define snd_mixer_gain_adjust_per_frame 0.0001f
 
 typedef enum {
@@ -24,11 +26,13 @@ typedef enum {
   SndObjectPhase_Acquired,
   SndObjectPhase_Loaded,
   SndObjectPhase_Playing,
+  SndObjectPhase_Cleanup,
 } SndObjectPhase;
 
 typedef struct {
   SndObjectPhase phase : 8;
   u8             sourceChannels;
+  u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            sourceFrameCount, sourceFrameRate;
   const f32*     sourceSamples; // f32[sourceFrameCount * sourceChannels], Interleaved  (LRLRLR).
   EcsEntityId    asset;
@@ -73,9 +77,22 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   return m;
 }
 
+static SndMixerId snd_mixer_obj_id(SndMixerComp* m, const SndObject* obj) {
+  const u16 index = (u16)(obj - m->objects);
+  return (SndMixerId)index | ((SndMixerId)obj->generation << 16);
+}
+
 static SndObject* snd_mixer_obj_get(SndMixerComp* m, const SndMixerId id) {
-  diag_assert(id < snd_mixer_objects_max);
-  return &m->objects[id];
+  const u16 index      = (u16)(id >> 0);
+  const u16 generation = (u16)(id >> 16);
+  if (index >= snd_mixer_objects_max) {
+    return null;
+  }
+  SndObject* obj = &m->objects[id];
+  if (obj->generation != generation) {
+    return null;
+  }
+  return obj;
 }
 
 static SndMixerId snd_mixer_obj_acquire(SndMixerComp* m) {
@@ -84,7 +101,15 @@ static SndMixerId snd_mixer_obj_acquire(SndMixerComp* m) {
     return (SndMixerId)sentinel_u16;
   }
   bitset_clear(m->objectFreeSet, index);
-  return (SndMixerId)index;
+  SndObject* obj = &m->objects[index];
+  ++obj->generation; // NOTE: Expected to wrap when the object is reused often.
+  return snd_mixer_obj_id(m, obj);
+}
+
+static void snd_mixer_obj_release(SndMixerComp* m, const SndObject* obj) {
+  const u16 index = (u16)(obj - m->objects);
+  diag_assert_msg(!bitset_test(m->objectFreeSet, index), "Object double free");
+  bitset_set(m->objectFreeSet, index);
 }
 
 // static bool snd_mixer_render(SndBuffer out, const TimeDuration time, const AssetSoundComp* sound)
@@ -184,6 +209,11 @@ ecs_system_define(SndMixerUpdateSys) {
       continue;
     case SndObjectPhase_Playing:
       continue;
+    case SndObjectPhase_Cleanup:
+      asset_release(world, obj->asset);
+      snd_mixer_obj_release(m, obj);
+      *obj = (SndObject){0};
+      continue;
     }
     UNREACHABLE
   }
@@ -231,21 +261,19 @@ ecs_module_init(snd_mixer_module) {
 }
 
 SndResult snd_mixer_obj_new(SndMixerComp* m, SndMixerId* outId) {
-  const SndMixerId id = snd_mixer_obj_acquire(m);
-  if (UNLIKELY(sentinel_check(id))) {
+  const SndMixerId id  = snd_mixer_obj_acquire(m);
+  SndObject*       obj = snd_mixer_obj_get(m, id);
+  if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
-  *snd_mixer_obj_get(m, id) = (SndObject){.phase = SndObjectPhase_Setup};
-  *outId                    = id;
+  obj->phase = SndObjectPhase_Setup;
+  *outId     = id;
   return SndResult_Success;
 }
 
 SndResult snd_mixer_obj_set_asset(SndMixerComp* m, const SndMixerId id, const EcsEntityId asset) {
-  if (UNLIKELY(id >= snd_mixer_objects_max)) {
-    return SndResult_InvalidObject;
-  }
   SndObject* obj = snd_mixer_obj_get(m, id);
-  if (obj->phase != SndObjectPhase_Setup) {
+  if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
     return SndResult_InvalidObjectPhase;
   }
   obj->asset = asset;
