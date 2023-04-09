@@ -89,7 +89,7 @@ static SndObject* snd_object_get(SndMixerComp* m, const SndObjectId id) {
   if (index >= snd_mixer_objects_max) {
     return null;
   }
-  SndObject* obj = &m->objects[id];
+  SndObject* obj = &m->objects[index];
   if (obj->generation != generation) {
     return null;
   }
@@ -115,8 +115,8 @@ static void snd_object_release(SndMixerComp* m, const SndObject* obj) {
 
 static u32 snd_object_count_in_phase(const SndMixerComp* m, const SndObjectPhase phase) {
   u32 count = 0;
-  for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
-    if (m->objects[id].phase == phase) {
+  for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+    if (m->objects[i].phase == phase) {
       ++count;
     }
   }
@@ -171,8 +171,8 @@ ecs_system_define(SndMixerUpdateSys) {
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
-  for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
-    SndObject* obj = &m->objects[id];
+  for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+    SndObject* obj = &m->objects[i];
     switch (obj->phase) {
     case SndObjectPhase_Idle:
     case SndObjectPhase_Loaded:
@@ -192,11 +192,10 @@ ecs_system_define(SndMixerUpdateSys) {
         obj->frameChannels          = asset->frameChannels;
         obj->frameCount             = asset->frameCount;
         obj->frameRate              = asset->frameRate;
+        obj->samples                = asset->samples;
         obj->phase                  = SndObjectPhase_Loaded;
-        // Fallthrough.
-      } else {
-        continue;
       }
+      continue;
     case SndObjectPhase_Cleanup:
       asset_release(world, obj->asset);
       snd_object_release(m, obj);
@@ -252,8 +251,8 @@ ecs_system_define(SndMixerRenderSys) {
     };
 
     // Render all objects into the soundBuffer.
-    for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
-      SndObject* obj = &m->objects[id];
+    for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+      SndObject* obj = &m->objects[i];
       switch (obj->phase) {
       case SndObjectPhase_Idle:
       case SndObjectPhase_Setup:
