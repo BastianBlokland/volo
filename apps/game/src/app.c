@@ -13,6 +13,7 @@
 #include "scene_level.h"
 #include "scene_prefab.h"
 #include "scene_register.h"
+#include "scene_sound.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
@@ -25,6 +26,13 @@
 static const GapVector g_appWindowSize = {1920, 1080};
 
 ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
+
+static void app_music_create(EcsWorld* world, AssetManagerComp* assets) {
+  static const String g_musicAssetName = string_static("external/sound/blinded-by-the-light.wav");
+
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset_lookup(world, assets, g_musicAssetName));
+}
 
 static void app_window_create(EcsWorld* world) {
   const EcsEntityId window    = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
@@ -161,8 +169,10 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
   }
-  asset_manager_create_fs(
+  AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
+
+  app_music_create(world, assets);
 
   scene_level_load(world, string_lit("levels/default.lvl"));
   input_resource_init(world, string_lit("global/game-input.imp"));
