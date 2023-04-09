@@ -216,7 +216,7 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
 
 static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_push(c);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_Rect);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -237,7 +237,7 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
   ui_panel_begin(c, &panelComp->panel, .title = title);
 
   UiTable table = ui_table(.rowHeight = 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   sound_draw_table_header(c, &table, string_lit("Mixer"));
@@ -309,6 +309,6 @@ ecs_module_init(debug_sound_module) {
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(750, 655)));
+      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(800, 655)));
   return panelEntity;
 }
