@@ -113,6 +113,16 @@ static void snd_object_release(SndMixerComp* m, const SndObject* obj) {
   bitset_set(m->objectFreeSet, index);
 }
 
+static u32 snd_object_count_in_phase(const SndMixerComp* m, const SndObjectPhase phase) {
+  u32 count = 0;
+  for (SndObjectId id = 0; id != snd_mixer_objects_max; ++id) {
+    if (m->objects[id].phase == phase) {
+      ++count;
+    }
+  }
+  return count;
+}
+
 static void snd_mixer_history_set(SndMixerComp* m, const SndChannel channel, const f32 value) {
   m->historyBuffer[m->historyCursor].samples[channel] = value;
 }
@@ -315,6 +325,10 @@ String snd_mixer_device_state(const SndMixerComp* m) {
 }
 
 u64 snd_mixer_device_underruns(const SndMixerComp* m) { return snd_device_underruns(m->device); }
+
+u32 snd_mixer_objects_playing(const SndMixerComp* m) {
+  return snd_object_count_in_phase(m, SndObjectPhase_Playing);
+}
 
 TimeDuration snd_mixer_render_duration(const SndMixerComp* m) { return m->lastRenderDuration; }
 
