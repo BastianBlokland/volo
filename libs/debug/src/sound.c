@@ -201,7 +201,7 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
 
   const u32 objectsPlaying = snd_mixer_objects_playing(mixer);
   sound_draw_table_header(c, &table, string_lit("Objects"));
-  ui_label(c, fmt_write_scratch("Playing: {<4} Loading: {}", fmt_int(objectsPlaying)));
+  ui_label(c, fmt_write_scratch("Playing: {<4}", fmt_int(objectsPlaying)));
 
   const TimeDuration renderDuration = snd_mixer_render_duration(mixer);
   sound_draw_table_header(c, &table, string_lit("Render time"));
