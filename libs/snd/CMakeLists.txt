@@ -11,6 +11,7 @@ add_library(lib_snd STATIC
   src/device.c
   src/mixer.c
   src/register.c
+  src/source.c
   )
 target_include_directories(lib_snd PUBLIC include)
 target_link_libraries(lib_snd PUBLIC lib_core lib_ecs)
