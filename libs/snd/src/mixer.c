@@ -45,6 +45,7 @@ ecs_comp_define(SndMixerComp) {
   TimeDuration lastRenderDuration;
 
   SndObject* objects;       // SndObject[snd_mixer_objects_max]
+  String*    objectNames;   // String[snd_mixer_objects_max]
   BitSet     objectFreeSet; // bit[snd_mixer_objects_max]
 
   /**
@@ -57,8 +58,11 @@ ecs_comp_define(SndMixerComp) {
 static void ecs_destruct_mixer_comp(void* data) {
   SndMixerComp* m = data;
   snd_device_destroy(m->device);
+
   alloc_free_array_t(g_alloc_heap, m->objects, snd_mixer_objects_max);
+  alloc_free_array_t(g_alloc_heap, m->objectNames, snd_mixer_objects_max);
   alloc_free(g_alloc_heap, m->objectFreeSet);
+
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
 }
 
@@ -71,31 +75,38 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
 
-  m->objects       = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
-  m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
-
+  m->objects     = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
+  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
   mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
+  mem_set(mem_create(m->objectNames, sizeof(String) * snd_mixer_objects_max), 0);
+
+  m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
 
   return m;
 }
 
-static SndObjectId snd_object_id(const SndMixerComp* m, const SndObject* obj) {
-  const u16 index = (u16)(obj - m->objects);
-  return (SndObjectId)index | ((SndObjectId)obj->generation << 16);
+static u16 snd_object_id_index(const SndObjectId id) { return (u16)id; }
+static u16 snd_object_id_generation(const SndObjectId id) { return (u16)(id >> 16); }
+
+static SndObjectId snd_object_id_create(const u16 index, const u16 generation) {
+  return (SndObjectId)index | ((SndObjectId)generation << 16);
 }
 
 static SndObject* snd_object_get(SndMixerComp* m, const SndObjectId id) {
-  const u16 index      = (u16)(id >> 0);
-  const u16 generation = (u16)(id >> 16);
+  const u16 index = snd_object_id_index(id);
   if (index >= snd_mixer_objects_max) {
     return null;
   }
   SndObject* obj = &m->objects[index];
-  if (obj->generation != generation) {
+  if (obj->generation != snd_object_id_generation(id)) {
     return null;
   }
   return obj;
+}
+
+static const SndObject* snd_object_get_readonly(const SndMixerComp* m, const SndObjectId id) {
+  return snd_object_get((SndMixerComp*)m, id);
 }
 
 static SndObjectId snd_object_acquire(SndMixerComp* m) {
@@ -106,7 +117,7 @@ static SndObjectId snd_object_acquire(SndMixerComp* m) {
   bitset_clear(m->objectFreeSet, index);
   SndObject* obj = &m->objects[index];
   ++obj->generation; // NOTE: Expected to wrap when the object is reused often.
-  return snd_object_id(m, obj);
+  return snd_object_id_create((u16)index, obj->generation);
 }
 
 static void snd_object_release(SndMixerComp* m, const SndObject* obj) {
@@ -134,6 +145,7 @@ static void snd_mixer_history_advance(SndMixerComp* m) {
 }
 
 ecs_view_define(AssetView) {
+  ecs_access_read(AssetComp);
   ecs_access_read(AssetSoundComp);
   ecs_access_with(AssetLoadedComp);
 }
@@ -169,18 +181,22 @@ ecs_system_define(SndMixerUpdateSys) {
       }
     case SndObjectPhase_Acquired:
       if (ecs_view_maybe_jump(assetItr, obj->asset)) {
-        const AssetSoundComp* asset = ecs_view_read_t(assetItr, AssetSoundComp);
-        obj->frameChannels          = asset->frameChannels;
-        obj->frameCount             = asset->frameCount;
-        obj->frameRate              = asset->frameRate;
-        obj->samples                = asset->samples;
-        obj->phase                  = SndObjectPhase_Loaded;
+        const AssetSoundComp* soundAsset = ecs_view_read_t(assetItr, AssetSoundComp);
+        obj->frameChannels               = soundAsset->frameChannels;
+        obj->frameCount                  = soundAsset->frameCount;
+        obj->frameRate                   = soundAsset->frameRate;
+        obj->samples                     = soundAsset->samples;
+        obj->phase                       = SndObjectPhase_Loaded;
+
+        const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
+        m->objectNames[i]      = asset_id(asset);
       }
       continue;
     case SndObjectPhase_Cleanup:
       asset_release(world, obj->asset);
       snd_object_release(m, obj);
-      *obj = (SndObject){.generation = obj->generation};
+      *obj              = (SndObject){.generation = obj->generation};
+      m->objectNames[i] = string_empty;
       continue;
     }
     UNREACHABLE
@@ -313,12 +329,17 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
   return SndResult_Success;
 }
 
+String snd_object_name(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
+}
+
 SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId) {
-  u32 index = sentinel_check(previousId) ? 0 : ((u16)previousId + 1);
+  u16 index = sentinel_check(previousId) ? 0 : (snd_object_id_index(previousId) + 1);
   for (; index < snd_mixer_objects_max; ++index) {
     const SndObject* obj = &m->objects[index];
     if (obj->phase != SndObjectPhase_Idle) {
-      return snd_object_id(m, obj);
+      return snd_object_id_create(index, obj->generation);
     }
   }
   return sentinel_u32;
