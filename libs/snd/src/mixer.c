@@ -38,7 +38,7 @@ typedef struct {
   u32            frameCount, frameRate;
   const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
   f64            cursor;  // In frames.
-  f32            pitchActual;
+  f32            pitchActual, pitchSetting;
   EcsEntityId    asset;
 } SndObject;
 
@@ -225,9 +225,11 @@ INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, 
 static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
+  const f32 pitchTarget     = obj->pitchSetting * outPitch;
   const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
+
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
-    math_towards_f32(&obj->pitchActual, outPitch, snd_mixer_pitch_adjust_per_frame);
+    math_towards_f32(&obj->pitchActual, pitchTarget, snd_mixer_pitch_adjust_per_frame);
 
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
       out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor);
@@ -330,9 +332,10 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
-  obj->phase       = SndObjectPhase_Setup;
-  obj->pitchActual = 1.0f;
-  *outId           = id;
+  obj->phase        = SndObjectPhase_Setup;
+  obj->pitchActual  = 1.0f;
+  obj->pitchSetting = 1.0f;
+  *outId            = id;
   return SndResult_Success;
 }
 
@@ -377,6 +380,15 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
     return SndResult_InvalidObjectPhase;
   }
   obj->asset = asset;
+  return SndResult_Success;
+}
+
+SndResult snd_object_set_pitch(SndMixerComp* m, const SndObjectId id, const f32 pitch) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj)) {
+    return SndResult_InvalidObject;
+  }
+  obj->pitchSetting = pitch;
   return SndResult_Success;
 }
 
