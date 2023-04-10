@@ -33,8 +33,8 @@ typedef struct {
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
-  const f32*     samples;    // f32[frameCount * frameChannels], Interleaved (LRLRLR).
-  f64            playCursor; // In frames.
+  const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
+  f64            cursor;  // In frames.
   EcsEntityId    asset;
 } SndObject;
 
@@ -224,10 +224,10 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->playCursor);
+      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor);
     }
-    obj->playCursor += advancePerFrame;
-    if (obj->playCursor >= obj->frameCount) {
+    obj->cursor += advancePerFrame;
+    if (obj->cursor >= obj->frameCount) {
       return false; // Finished playing.
     }
   }
@@ -341,6 +341,11 @@ u32 snd_object_get_frame_rate(const SndMixerComp* m, const SndObjectId id) {
 u8 snd_object_get_frame_channels(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
   return obj ? obj->frameChannels : 0;
+}
+
+f64 snd_object_get_cursor(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? obj->cursor : 0.0;
 }
 
 SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsEntityId asset) {
