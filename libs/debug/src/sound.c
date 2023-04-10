@@ -347,6 +347,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -354,9 +355,10 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
       &table,
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the sound-object.")},
-          {string_lit("Rate"), string_empty},
-          {string_lit("Channels"), string_empty},
-          {string_lit("Progress"), string_empty},
+          {string_lit("Rate"), string_lit("Rate of sound frames (in hertz).")},
+          {string_lit("Channels"), string_lit("Amount of channels per frame.")},
+          {string_lit("Pitch"), string_lit("Current pitch.")},
+          {string_lit("Progress"), string_lit("Current progress.")},
       });
 
   const u32 lastObjectRows  = panelComp->lastObjectRows;
@@ -375,6 +377,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     const u8           frameChannels = snd_object_get_frame_channels(m, obj);
     const f64          cursor        = snd_object_get_cursor(m, obj);
     const f32          progress      = (f32)(cursor / (f64)frameCount);
+    const f32          pitch         = snd_object_get_pitch(m, obj);
     const TimeDuration duration      = frameCount * time_second / frameRate;
     const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
 
@@ -385,10 +388,13 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_int(frameRate)));
+    ui_label(c, fmt_write_scratch("{}hz", fmt_int(frameRate)));
     ui_table_next_column(c, &table);
 
     ui_label(c, fmt_write_scratch("{}", fmt_int(frameChannels)));
+    ui_table_next_column(c, &table);
+
+    ui_label(c, fmt_write_scratch("{}", fmt_float(pitch, .minDecDigits = 2, .maxDecDigits = 2)));
     ui_table_next_column(c, &table);
 
     {

@@ -22,6 +22,7 @@ u32       snd_object_get_frame_count(const SndMixerComp*, SndObjectId);
 u32       snd_object_get_frame_rate(const SndMixerComp*, SndObjectId);
 u8        snd_object_get_frame_channels(const SndMixerComp*, SndObjectId);
 f64       snd_object_get_cursor(const SndMixerComp*, SndObjectId);
+f32       snd_object_get_pitch(const SndMixerComp*, SndObjectId);
 SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
 
 /**

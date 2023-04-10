@@ -366,6 +366,11 @@ f64 snd_object_get_cursor(const SndMixerComp* m, const SndObjectId id) {
   return obj ? obj->cursor : 0.0;
 }
 
+f32 snd_object_get_pitch(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? obj->pitchActual : 0.0f;
+}
+
 SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsEntityId asset) {
   SndObject* obj = snd_object_get(m, id);
   if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
