@@ -78,7 +78,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   return m;
 }
 
-static SndObjectId snd_object_id(SndMixerComp* m, const SndObject* obj) {
+static SndObjectId snd_object_id(const SndMixerComp* m, const SndObject* obj) {
   const u16 index = (u16)(obj - m->objects);
   return (SndObjectId)index | ((SndObjectId)obj->generation << 16);
 }
@@ -309,6 +309,17 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
   }
   obj->asset = asset;
   return SndResult_Success;
+}
+
+SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId) {
+  u32 index = sentinel_check(previousId) ? 0 : ((u16)previousId + 1);
+  for (; index < snd_mixer_objects_max; ++index) {
+    const SndObject* obj = &m->objects[index];
+    if (obj->phase != SndObjectPhase_Idle) {
+      return snd_object_id(m, obj);
+    }
+  }
+  return sentinel_u32;
 }
 
 f32  snd_mixer_gain_get(const SndMixerComp* m) { return m->gainTarget; }

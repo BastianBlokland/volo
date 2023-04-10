@@ -9,13 +9,20 @@
  */
 ecs_comp_extern(SndMixerComp);
 
-/**
- * Objects.
- */
 typedef u32 SndObjectId;
 
+/**
+ * Object apis.
+ */
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
 SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
+
+/**
+ * Iterate through the active sound objects.
+ * NOTE: Pass 'sentinel_u32' as the previous to get the first object, returns 'sentinel_u32' when
+ * the end has been reached.
+ */
+SndObjectId snd_object_next(const SndMixerComp*, SndObjectId previousId);
 
 /**
  * Controls.
