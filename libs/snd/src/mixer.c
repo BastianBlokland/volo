@@ -39,7 +39,6 @@ typedef struct {
   const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
   f64            cursor;  // In frames.
   f32            pitchActual, pitchSetting;
-  EcsEntityId    asset;
 } SndObject;
 
 ecs_comp_define(SndMixerComp) {
@@ -47,9 +46,10 @@ ecs_comp_define(SndMixerComp) {
   f32          gainActual, gainSetting;
   TimeDuration lastRenderDuration;
 
-  SndObject* objects;       // SndObject[snd_mixer_objects_max]
-  String*    objectNames;   // String[snd_mixer_objects_max]
-  BitSet     objectFreeSet; // bit[snd_mixer_objects_max]
+  SndObject*   objects;       // SndObject[snd_mixer_objects_max]
+  String*      objectNames;   // String[snd_mixer_objects_max]
+  EcsEntityId* objectAssets;  // EcsEntityId[snd_mixer_objects_max]
+  BitSet       objectFreeSet; // bit[snd_mixer_objects_max]
 
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
@@ -64,6 +64,7 @@ static void ecs_destruct_mixer_comp(void* data) {
 
   alloc_free_array_t(g_alloc_heap, m->objects, snd_mixer_objects_max);
   alloc_free_array_t(g_alloc_heap, m->objectNames, snd_mixer_objects_max);
+  alloc_free_array_t(g_alloc_heap, m->objectAssets, snd_mixer_objects_max);
   alloc_free(g_alloc_heap, m->objectFreeSet);
 
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
@@ -78,10 +79,14 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
 
-  m->objects     = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
-  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
+  m->objects = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
   mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
+
+  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
   mem_set(mem_create(m->objectNames, sizeof(String) * snd_mixer_objects_max), 0);
+
+  m->objectAssets = alloc_array_t(g_alloc_heap, EcsEntityId, snd_mixer_objects_max);
+  mem_set(mem_create(m->objectAssets, sizeof(EcsEntityId) * snd_mixer_objects_max), 0);
 
   m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
@@ -174,15 +179,15 @@ ecs_system_define(SndMixerUpdateSys) {
     case SndObjectPhase_Playing:
       continue;
     case SndObjectPhase_Setup:
-      if (obj->asset) {
-        asset_acquire(world, obj->asset);
+      if (m->objectAssets[i]) {
+        asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
         // Fallthrough.
       } else {
         continue;
       }
     case SndObjectPhase_Acquired:
-      if (ecs_view_maybe_jump(assetItr, obj->asset)) {
+      if (ecs_view_maybe_jump(assetItr, m->objectAssets[i])) {
         const AssetSoundComp* soundAsset = ecs_view_read_t(assetItr, AssetSoundComp);
         obj->frameChannels               = soundAsset->frameChannels;
         obj->frameCount                  = soundAsset->frameCount;
@@ -195,10 +200,11 @@ ecs_system_define(SndMixerUpdateSys) {
       }
       continue;
     case SndObjectPhase_Cleanup:
-      asset_release(world, obj->asset);
+      asset_release(world, m->objectAssets[i]);
       snd_object_release(m, obj);
-      *obj              = (SndObject){.generation = obj->generation};
-      m->objectNames[i] = string_empty;
+      *obj               = (SndObject){.generation = obj->generation};
+      m->objectNames[i]  = string_empty;
+      m->objectAssets[i] = 0;
       continue;
     }
     UNREACHABLE
@@ -379,7 +385,7 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
   if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
     return SndResult_InvalidObjectPhase;
   }
-  obj->asset = asset;
+  m->objectAssets[snd_object_id_index(id)] = asset;
   return SndResult_Success;
 }
 
