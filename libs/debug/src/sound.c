@@ -352,6 +352,11 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     if (!sound_panel_filter(panelComp, name)) {
       continue;
     }
+    const u32          frameCount    = snd_object_get_frame_count(m, obj);
+    const u32          frameRate     = snd_object_get_frame_rate(m, obj);
+    const u8           frameChannels = snd_object_get_frame_channels(m, obj);
+    const TimeDuration duration      = frameCount * time_second / frameRate;
+
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
     ui_table_next_row(c, &table);
     ui_table_draw_row_bg(c, &table, sound_object_bg_color(m, obj));
@@ -359,13 +364,13 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_get_frame_rate(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_int(frameRate)));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_get_frame_channels(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_int(frameChannels)));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_duration(snd_object_get_duration(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_duration(duration)));
 
     ++panelComp->lastObjectRows;
   }

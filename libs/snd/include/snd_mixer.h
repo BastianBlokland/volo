@@ -15,13 +15,13 @@ typedef u32 SndObjectId;
 /**
  * Object apis.
  */
-SndResult    snd_object_new(SndMixerComp*, SndObjectId* outId);
-String       snd_object_get_name(const SndMixerComp*, SndObjectId);
-bool         snd_object_get_loading(const SndMixerComp*, SndObjectId);
-TimeDuration snd_object_get_duration(const SndMixerComp*, SndObjectId);
-u32          snd_object_get_frame_rate(const SndMixerComp*, SndObjectId);
-u8           snd_object_get_frame_channels(const SndMixerComp*, SndObjectId);
-SndResult    snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
+SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
+String    snd_object_get_name(const SndMixerComp*, SndObjectId);
+bool      snd_object_get_loading(const SndMixerComp*, SndObjectId);
+u32       snd_object_get_frame_count(const SndMixerComp*, SndObjectId);
+u32       snd_object_get_frame_rate(const SndMixerComp*, SndObjectId);
+u8        snd_object_get_frame_channels(const SndMixerComp*, SndObjectId);
+SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
 
 /**
  * Iterate through the active sound objects.

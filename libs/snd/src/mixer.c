@@ -328,9 +328,9 @@ bool snd_object_get_loading(const SndMixerComp* m, const SndObjectId id) {
   return obj && obj->phase != SndObjectPhase_Playing;
 }
 
-TimeDuration snd_object_get_duration(const SndMixerComp* m, const SndObjectId id) {
+u32 snd_object_get_frame_count(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? (obj->frameCount * time_second / obj->frameRate) : time_seconds(0);
+  return obj ? obj->frameCount : 0;
 }
 
 u32 snd_object_get_frame_rate(const SndMixerComp* m, const SndObjectId id) {
