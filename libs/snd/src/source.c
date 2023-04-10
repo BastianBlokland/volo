@@ -1,8 +1,8 @@
+#include "core_float.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_sound.h"
-
-#include "mixer_internal.h"
+#include "snd_mixer.h"
 
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
 
@@ -32,6 +32,9 @@ ecs_system_define(SndSourceInitSys) {
     SndObjectId id;
     if (snd_object_new(mixer, &id) == SndResult_Success) {
       snd_object_set_asset(mixer, id, sndComp->asset);
+      if (sndComp->pitch > f32_epsilon) {
+        snd_object_set_pitch(mixer, id, sndComp->pitch);
+      }
       ecs_world_add_t(world, entity, SndSourceComp, .objectId = id);
     }
   }

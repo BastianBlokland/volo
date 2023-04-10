@@ -1,13 +1,35 @@
-#include "core_diag.h"
+#include "core_alloc.h"
+#include "core_array.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_path.h"
 #include "debug_sound.h"
 #include "ecs_world.h"
 #include "snd.h"
 #include "ui.h"
 
-ecs_comp_define(DebugSoundPanelComp) { UiPanel panel; };
+static const String g_tooltipMixerGain = string_static("Mixer output gain.");
+
+typedef enum {
+  DebugSoundTab_Mixer,
+  DebugSoundTab_Objects,
+
+  DebugSoundTab_Count,
+} DebugSoundTab;
+
+static const String g_soundTabNames[] = {
+    string_static("\uE429 Mixer"),
+    string_static("\uE574 Objects"),
+};
+ASSERT(array_elems(g_soundTabNames) == DebugSoundTab_Count, "Incorrect number of names");
+
+ecs_comp_define(DebugSoundPanelComp) {
+  UiPanel      panel;
+  UiScrollview scrollview;
+  DynString    nameFilter;
+  u32          lastObjectRows;
+};
 
 ecs_view_define(GlobalView) { ecs_access_write(SndMixerComp); }
 
@@ -16,11 +38,43 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static void ecs_destruct_sound_panel(void* data) {
+  DebugSoundPanelComp* comp = data;
+  dynstring_destroy(&comp->nameFilter);
+}
+
+static bool sound_panel_filter(DebugSoundPanelComp* panelComp, const String name) {
+  if (string_is_empty(panelComp->nameFilter)) {
+    return true;
+  }
+  const String rawFilter = dynstring_view(&panelComp->nameFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
+}
+
 static void sound_draw_bg(UiCanvasComp* c) {
   ui_style_push(c);
   ui_style_color(c, ui_color(0, 0, 0, 64));
   ui_style_outline(c, 2);
   ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(c);
+}
+
+static void sound_draw_progress(UiCanvasComp* c, const f32 progress) {
+  ui_style_push(c);
+
+  ui_style_outline(c, 3);
+  ui_style_color(c, ui_color(128, 128, 128, 178));
+  ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+
+  ui_style_outline(c, 0);
+  ui_style_color(c, ui_color(0, 255, 0, 128));
+
+  ui_layout_push(c);
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(progress, 1)), UiBase_Current);
+  ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+  ui_layout_pop(c);
+
   ui_style_pop(c);
 }
 
@@ -103,7 +157,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-         "Level: \a|02\ab{}{<5}\ar  RMS",
+      "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),
@@ -182,7 +236,7 @@ static void sound_draw_spectrum_stats(UiCanvasComp* c, const SndBufferView buf) 
   ui_style_pop(c);
 }
 
-static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
+static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* m) {
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_None);
 
@@ -193,20 +247,20 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
   sound_draw_table_header(c, &table, string_lit("Device"));
   const String deviceText = fmt_write_scratch(
       "{} ({}) [{}] Underruns: {}",
-      fmt_text(snd_mixer_device_id(mixer)),
-      fmt_text(snd_mixer_device_backend(mixer)),
-      fmt_text(snd_mixer_device_state(mixer)),
-      fmt_int(snd_mixer_device_underruns(mixer)));
+      fmt_text(snd_mixer_device_id(m)),
+      fmt_text(snd_mixer_device_backend(m)),
+      fmt_text(snd_mixer_device_state(m)),
+      fmt_int(snd_mixer_device_underruns(m)));
   ui_label(c, deviceText, .selectable = true);
 
-  const u32 objectsPlaying   = snd_mixer_objects_playing(mixer);
-  const u32 objectsAllocated = snd_mixer_objects_allocated(mixer);
+  const u32 objectsPlaying   = snd_mixer_objects_playing(m);
+  const u32 objectsAllocated = snd_mixer_objects_allocated(m);
   sound_draw_table_header(c, &table, string_lit("Objects"));
   const String objectsText = fmt_write_scratch(
       "Playing: {<4} Allocated: {}", fmt_int(objectsPlaying), fmt_int(objectsAllocated));
   ui_label(c, objectsText);
 
-  const TimeDuration renderDuration = snd_mixer_render_duration(mixer);
+  const TimeDuration renderDuration = snd_mixer_render_duration(m);
   sound_draw_table_header(c, &table, string_lit("Render time"));
   ui_label(c, fmt_write_scratch("{}", fmt_duration(renderDuration)));
 
@@ -214,41 +268,38 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_pop(c);
 }
 
-static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
+static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* m) {
   ui_layout_push(c);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_Rect);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   sound_draw_table_header(c, &table, string_lit("Gain"));
-  f32 gain = snd_mixer_gain_get(mixer);
-  if (ui_slider(c, &gain, .max = 2.0f)) {
-    snd_mixer_gain_set(mixer, gain);
+  f32 gain = snd_mixer_gain_get(m);
+  if (ui_slider(c, &gain, .max = 2.0f, .tooltip = g_tooltipMixerGain)) {
+    snd_mixer_gain_set(m, gain);
   }
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);
 }
 
-static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* mixer) {
-  const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
-  ui_panel_begin(c, &panelComp->panel, .title = title);
-
+static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
   UiTable table = ui_table(.rowHeight = 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  sound_draw_table_header(c, &table, string_lit("Mixer"));
+  sound_draw_table_header(c, &table, string_lit("Stats"));
   sound_draw_bg(c);
-  sound_draw_mixer_info(c, mixer);
+  sound_draw_mixer_stats(c, m);
 
   sound_draw_table_header(c, &table, string_lit("Controls"));
   sound_draw_bg(c);
-  sound_draw_controls(c, mixer);
+  sound_draw_mixer_controls(c, m);
 
-  const SndBufferView history = snd_mixer_history(mixer);
+  const SndBufferView history = snd_mixer_history(m);
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
     const String header = fmt_write_scratch("Channel {}", fmt_text(snd_channel_str(chan)));
     sound_draw_table_header(c, &table, header);
@@ -265,6 +316,126 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
     sound_draw_bg(c);
     sound_draw_spectrum(c, history, chan);
     sound_draw_spectrum_stats(c, history);
+  }
+}
+
+static UiColor sound_object_bg_color(const SndMixerComp* m, const SndObjectId obj) {
+  return snd_object_get_loading(m, obj) ? ui_color(16, 16, 64, 192) : ui_color(48, 48, 48, 192);
+}
+
+static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp) {
+  ui_layout_push(c);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Filter:"));
+  ui_table_next_column(c, &table);
+  ui_textbox(c, &panelComp->nameFilter, .placeholder = string_lit("*"));
+
+  ui_layout_pop(c);
+}
+
+static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
+  sound_objects_options_draw(c, panelComp);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      c,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Name"), string_lit("Name of the sound-object.")},
+          {string_lit("Rate"), string_lit("Rate of sound frames (in hertz).")},
+          {string_lit("Channels"), string_lit("Amount of channels per frame.")},
+          {string_lit("Pitch"), string_lit("Current pitch.")},
+          {string_lit("Progress"), string_lit("Current progress.")},
+      });
+
+  const u32 lastObjectRows  = panelComp->lastObjectRows;
+  panelComp->lastObjectRows = 0;
+
+  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, lastObjectRows));
+
+  ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
+  for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
+    const String name = snd_object_get_name(m, obj);
+    if (!sound_panel_filter(panelComp, name)) {
+      continue;
+    }
+    const u32          frameCount    = snd_object_get_frame_count(m, obj);
+    const u32          frameRate     = snd_object_get_frame_rate(m, obj);
+    const u8           frameChannels = snd_object_get_frame_channels(m, obj);
+    const f64          cursor        = snd_object_get_cursor(m, obj);
+    const f32          progress      = (f32)(cursor / (f64)frameCount);
+    const f32          pitch         = snd_object_get_pitch(m, obj);
+    const TimeDuration duration      = frameCount * time_second / frameRate;
+    const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
+
+    ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
+    ui_table_next_row(c, &table);
+    ui_table_draw_row_bg(c, &table, sound_object_bg_color(m, obj));
+
+    ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
+    ui_table_next_column(c, &table);
+
+    ui_label(c, fmt_write_scratch("{}hz", fmt_int(frameRate)));
+    ui_table_next_column(c, &table);
+
+    ui_label(c, fmt_write_scratch("{}", fmt_int(frameChannels)));
+    ui_table_next_column(c, &table);
+
+    const String pitchText = fmt_write_scratch(
+        "{}", fmt_float(pitch, .minDecDigits = 2, .maxDecDigits = 2, .expThresholdNeg = 0));
+    ui_label(c, pitchText);
+    ui_table_next_column(c, &table);
+
+    {
+      sound_draw_progress(c, progress);
+      const String progressText = fmt_write_scratch(
+          "{:6}/{:6}",
+          fmt_duration(elapsed, .minDecDigits = 1),
+          fmt_duration(duration, .minDecDigits = 1));
+      ui_style_push(c);
+      ui_style_variation(c, UiVariation_Monospace);
+      ui_style_outline(c, 2);
+      ui_label(c, progressText, .align = UiAlign_MiddleCenter);
+      ui_style_pop(c);
+    }
+
+    ++panelComp->lastObjectRows;
+  }
+  ui_canvas_id_block_next(c);
+
+  ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
+}
+
+static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
+  const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
+  ui_panel_begin(
+      c,
+      &panelComp->panel,
+      .title    = title,
+      .tabNames = g_soundTabNames,
+      .tabCount = DebugSoundTab_Count);
+
+  switch (panelComp->panel.activeTab) {
+  case DebugSoundTab_Mixer:
+    sound_mixer_draw(c, m);
+    break;
+  case DebugSoundTab_Objects:
+    sound_objects_draw(c, panelComp, m);
+    break;
   }
 
   ui_panel_end(c, &panelComp->panel);
@@ -297,7 +468,7 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
 }
 
 ecs_module_init(debug_sound_module) {
-  ecs_register_comp(DebugSoundPanelComp);
+  ecs_register_comp(DebugSoundPanelComp, .destructor = ecs_destruct_sound_panel);
 
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
@@ -309,6 +480,11 @@ ecs_module_init(debug_sound_module) {
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(750, 655)));
+      world,
+      panelEntity,
+      DebugSoundPanelComp,
+      .panel      = ui_panel(.size = ui_vector(800, 685)),
+      .scrollview = ui_scrollview(),
+      .nameFilter = dynstring_create(g_alloc_heap, 32));
   return panelEntity;
 }
