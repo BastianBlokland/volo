@@ -3,8 +3,10 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -19,6 +21,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
 #define snd_mixer_gain_adjust_per_frame 0.0001f
+#define snd_mixer_pitch_adjust_per_frame 0.001f
 
 typedef enum {
   SndObjectPhase_Idle,
@@ -35,12 +38,13 @@ typedef struct {
   u32            frameCount, frameRate;
   const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
   f64            cursor;  // In frames.
+  f32            pitchActual;
   EcsEntityId    asset;
 } SndObject;
 
 ecs_comp_define(SndMixerComp) {
   SndDevice*   device;
-  f32          gainActual, gainTarget;
+  f32          gainActual, gainSetting;
   TimeDuration lastRenderDuration;
 
   SndObject* objects;       // SndObject[snd_mixer_objects_max]
@@ -68,8 +72,8 @@ static void ecs_destruct_mixer_comp(void* data) {
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
-  m->device     = snd_device_create(g_alloc_heap);
-  m->gainTarget = 1.0f;
+  m->device      = snd_device_create(g_alloc_heap);
+  m->gainSetting = 1.0f;
 
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
@@ -218,15 +222,17 @@ INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, 
   return math_lerp(valA, valB, (f32)(frame - edgeA));
 }
 
-static bool snd_object_render(SndObject* obj, SndBuffer out) {
+static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
   const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
+    math_towards_f32(&obj->pitchActual, outPitch, snd_mixer_pitch_adjust_per_frame);
+
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
       out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor);
     }
-    obj->cursor += advancePerFrame;
+    obj->cursor += advancePerFrame * obj->pitchActual;
     if (obj->cursor >= obj->frameCount) {
       return false; // Finished playing.
     }
@@ -234,12 +240,12 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   return true; // Still playing.
 }
 
-static void snd_mixer_fill_device_period(
-    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
+static void snd_mixer_write_to_device(
+    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer, const f32 gain) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
-    math_towards_f32(&m->gainActual, m->gainTarget, snd_mixer_gain_adjust_per_frame);
+    math_towards_f32(&m->gainActual, gain, snd_mixer_gain_adjust_per_frame);
 
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
@@ -255,7 +261,10 @@ static void snd_mixer_fill_device_period(
   }
 }
 
-ecs_view_define(GlobalRenderView) { ecs_access_write(SndMixerComp); }
+ecs_view_define(GlobalRenderView) {
+  ecs_access_read(SceneTimeSettingsComp);
+  ecs_access_write(SndMixerComp);
+}
 
 ecs_system_define(SndMixerRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalRenderView);
@@ -263,7 +272,8 @@ ecs_system_define(SndMixerRenderSys) {
   if (!globalItr) {
     return;
   }
-  SndMixerComp* m = ecs_view_write_t(globalItr, SndMixerComp);
+  const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
+  SndMixerComp*                m            = ecs_view_write_t(globalItr, SndMixerComp);
 
   if (snd_device_begin(m->device)) {
     const TimeSteady      renderStartTime = time_steady_clock();
@@ -279,18 +289,22 @@ ecs_system_define(SndMixerRenderSys) {
     // TODO: Support skipping the cursor of objects forward based on the device period time, this
     // is to keep the sound in-sync when the application was paused for some time.
 
+    // Base the output pitch on the time-scale.
+    const f32 outPitch = timeSettings->flags & SceneTimeFlags_Paused ? 0.0f : timeSettings->scale;
+    const f32 outGain  = outPitch < f32_epsilon ? 0.0f : m->gainSetting;
+
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
       if (obj->phase == SndObjectPhase_Playing) {
-        if (!snd_object_render(obj, soundBuffer)) {
+        if (!snd_object_render(obj, soundBuffer, outPitch)) {
           ++obj->phase;
         }
       }
     }
 
     // Write the soundBuffer to the device.
-    snd_mixer_fill_device_period(m, period, soundBuffer);
+    snd_mixer_write_to_device(m, period, soundBuffer, outGain);
 
     snd_device_end(m->device);
     m->lastRenderDuration = time_steady_duration(renderStartTime, time_steady_clock());
@@ -316,8 +330,9 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
-  obj->phase = SndObjectPhase_Setup;
-  *outId     = id;
+  obj->phase       = SndObjectPhase_Setup;
+  obj->pitchActual = 1.0f;
+  *outId           = id;
   return SndResult_Success;
 }
 
@@ -371,8 +386,8 @@ SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId)
   return sentinel_u32;
 }
 
-f32  snd_mixer_gain_get(const SndMixerComp* m) { return m->gainTarget; }
-void snd_mixer_gain_set(SndMixerComp* m, const f32 gain) { m->gainTarget = gain; }
+f32  snd_mixer_gain_get(const SndMixerComp* m) { return m->gainSetting; }
+void snd_mixer_gain_set(SndMixerComp* m, const f32 gain) { m->gainSetting = gain; }
 
 String snd_mixer_device_id(const SndMixerComp* m) { return snd_device_id(m->device); }
 
