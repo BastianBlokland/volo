@@ -36,8 +36,8 @@ SndObjectId snd_object_next(const SndMixerComp*, SndObjectId previousId);
 /**
  * Global controls.
  */
-f32  snd_mixer_gain_get(const SndMixerComp*);
-void snd_mixer_gain_set(SndMixerComp*, f32 gain);
+f32       snd_mixer_gain_get(const SndMixerComp*);
+SndResult snd_mixer_gain_set(SndMixerComp*, f32 gain);
 
 /**
  * Stats.

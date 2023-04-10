@@ -8,6 +8,7 @@ String snd_result_str(const SndResult result) {
       string_static("FailedToAcquireObject"),
       string_static("InvalidObject"),
       string_static("InvalidObjectPhase"),
+      string_static("ParameterOutOfRange"),
   };
   ASSERT(array_elems(g_msgs) == SndResult_Count, "Incorrect number of result messages");
   return g_msgs[result];

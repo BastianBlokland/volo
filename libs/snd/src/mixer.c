@@ -394,6 +394,9 @@ SndResult snd_object_set_pitch(SndMixerComp* m, const SndObjectId id, const f32 
   if (UNLIKELY(!obj)) {
     return SndResult_InvalidObject;
   }
+  if (UNLIKELY(pitch < f32_epsilon || pitch > 10.0f)) {
+    return SndResult_ParameterOutOfRange;
+  }
   obj->pitchSetting = pitch;
   return SndResult_Success;
 }
@@ -409,8 +412,15 @@ SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId)
   return sentinel_u32;
 }
 
-f32  snd_mixer_gain_get(const SndMixerComp* m) { return m->gainSetting; }
-void snd_mixer_gain_set(SndMixerComp* m, const f32 gain) { m->gainSetting = gain; }
+f32 snd_mixer_gain_get(const SndMixerComp* m) { return m->gainSetting; }
+
+SndResult snd_mixer_gain_set(SndMixerComp* m, const f32 gain) {
+  if (UNLIKELY(gain < 0.0f || gain > 10.0f)) {
+    return SndResult_ParameterOutOfRange;
+  }
+  m->gainSetting = gain;
+  return SndResult_Success;
+}
 
 String snd_mixer_device_id(const SndMixerComp* m) { return snd_device_id(m->device); }
 
