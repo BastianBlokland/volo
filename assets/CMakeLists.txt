@@ -57,6 +57,7 @@ configure_shaders(volo_shaders
   )
 
 if(${EXTERNAL_ASSETS})
+  message(STATUS ">> Retrieving external assets, licensed seperatly: https://www.bastian.tech/assets/license.txt")
   download_external_files(
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
