@@ -336,7 +336,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
       &table,
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the sound-object.")},
-          {string_lit("Length"), string_empty},
+          {string_lit("Duration"), string_empty},
       });
 
   const u32 lastObjectRows  = panelComp->lastObjectRows;
@@ -356,6 +356,8 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
+
+    ui_label(c, fmt_write_scratch("{}", fmt_duration(snd_object_duration(m, obj))));
 
     ++panelComp->lastObjectRows;
   }

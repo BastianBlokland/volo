@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "snd_buffer.h"
@@ -14,10 +15,11 @@ typedef u32 SndObjectId;
 /**
  * Object apis.
  */
-SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
-SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
-String    snd_object_name(const SndMixerComp*, SndObjectId);
-bool      snd_object_loading(const SndMixerComp*, SndObjectId);
+SndResult    snd_object_new(SndMixerComp*, SndObjectId* outId);
+SndResult    snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
+String       snd_object_name(const SndMixerComp*, SndObjectId);
+bool         snd_object_loading(const SndMixerComp*, SndObjectId);
+TimeDuration snd_object_duration(const SndMixerComp*, SndObjectId);
 
 /**
  * Iterate through the active sound objects.

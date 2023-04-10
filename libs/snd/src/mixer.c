@@ -334,9 +334,14 @@ String snd_object_name(const SndMixerComp* m, const SndObjectId id) {
   return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
 }
 
-bool snd_object_loading(const SndMixerComp* m, SndObjectId id) {
+bool snd_object_loading(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
   return obj && obj->phase != SndObjectPhase_Playing;
+}
+
+TimeDuration snd_object_duration(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? (obj->frameCount * time_second / obj->frameRate) : time_seconds(0);
 }
 
 SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId) {
