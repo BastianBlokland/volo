@@ -60,6 +60,24 @@ static void sound_draw_bg(UiCanvasComp* c) {
   ui_style_pop(c);
 }
 
+static void sound_draw_progress(UiCanvasComp* c, const f32 progress) {
+  ui_style_push(c);
+
+  ui_style_outline(c, 3);
+  ui_style_color(c, ui_color(128, 128, 128, 178));
+  ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+
+  ui_style_outline(c, 0);
+  ui_style_color(c, ui_color(0, 255, 0, 128));
+
+  ui_layout_push(c);
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(progress, 1)), UiBase_Current);
+  ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+  ui_layout_pop(c);
+
+  ui_style_pop(c);
+}
+
 static void sound_draw_table_header(UiCanvasComp* c, UiTable* table, const String header) {
   ui_table_next_row(c, table);
   ui_label(c, header);
@@ -338,7 +356,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
           {string_lit("Name"), string_lit("Name of the sound-object.")},
           {string_lit("Rate"), string_empty},
           {string_lit("Channels"), string_empty},
-          {string_lit("Duration"), string_empty},
+          {string_lit("Progress"), string_empty},
       });
 
   const u32 lastObjectRows  = panelComp->lastObjectRows;
@@ -355,7 +373,10 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     const u32          frameCount    = snd_object_get_frame_count(m, obj);
     const u32          frameRate     = snd_object_get_frame_rate(m, obj);
     const u8           frameChannels = snd_object_get_frame_channels(m, obj);
+    const f64          cursor        = snd_object_get_cursor(m, obj);
+    const f32          progress      = (f32)(cursor / (f64)frameCount);
     const TimeDuration duration      = frameCount * time_second / frameRate;
+    const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
 
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
     ui_table_next_row(c, &table);
@@ -370,7 +391,18 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, fmt_write_scratch("{}", fmt_int(frameChannels)));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_duration(duration)));
+    {
+      sound_draw_progress(c, progress);
+      const String progressText = fmt_write_scratch(
+          "{:6}/{:6}",
+          fmt_duration(elapsed, .minDecDigits = 1),
+          fmt_duration(duration, .minDecDigits = 1));
+      ui_style_push(c);
+      ui_style_variation(c, UiVariation_Monospace);
+      ui_style_outline(c, 2);
+      ui_label(c, progressText, .align = UiAlign_MiddleCenter);
+      ui_style_pop(c);
+    }
 
     ++panelComp->lastObjectRows;
   }
