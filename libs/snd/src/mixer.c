@@ -73,6 +73,8 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
 
   m->objects       = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
   m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
+
+  mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
 
   return m;
