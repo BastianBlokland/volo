@@ -21,6 +21,7 @@ String       snd_object_name(const SndMixerComp*, SndObjectId);
 bool         snd_object_loading(const SndMixerComp*, SndObjectId);
 TimeDuration snd_object_duration(const SndMixerComp*, SndObjectId);
 u32          snd_object_frame_rate(const SndMixerComp*, SndObjectId);
+u8           snd_object_frame_channels(const SndMixerComp*, SndObjectId);
 
 /**
  * Iterate through the active sound objects.
