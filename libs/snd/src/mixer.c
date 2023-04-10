@@ -276,6 +276,9 @@ ecs_system_define(SndMixerRenderSys) {
         .frameRate  = snd_frame_rate,
     };
 
+    // TODO: Support skipping the cursor of objects forward based on the device period time, this
+    // is to keep the sound in-sync when the application was paused for some time.
+
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
