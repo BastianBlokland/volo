@@ -28,6 +28,7 @@ ecs_comp_define(DebugSoundPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   DynString    nameFilter;
+  u32          lastObjectRows;
 };
 
 ecs_view_define(GlobalView) { ecs_access_write(SndMixerComp); }
@@ -324,8 +325,19 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
           {string_lit("Length"), string_empty},
       });
 
-  const u32 numObjects = 128;
-  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, numObjects));
+  const u32 lastObjectRows  = panelComp->lastObjectRows;
+  panelComp->lastObjectRows = 0;
+
+  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, lastObjectRows));
+
+  ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
+  for (SndObjectId id = sentinel_u32; id = snd_object_next(m, id), !sentinel_check(id);) {
+    ui_table_next_row(c, &table);
+    ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
+
+    ++panelComp->lastObjectRows;
+  }
+  ui_canvas_id_block_next(c);
 
   ui_scrollview_end(c, &panelComp->scrollview);
   ui_layout_container_pop(c);
