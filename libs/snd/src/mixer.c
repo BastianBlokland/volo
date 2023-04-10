@@ -21,7 +21,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
 #define snd_mixer_gain_adjust_per_frame 0.0001f
-#define snd_mixer_pitch_adjust_per_frame 0.001f
+#define snd_mixer_pitch_adjust_per_frame 0.00025f
 
 typedef enum {
   SndObjectPhase_Idle,
