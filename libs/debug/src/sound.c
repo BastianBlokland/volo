@@ -329,6 +329,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -336,6 +337,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
       &table,
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the sound-object.")},
+          {string_lit("Rate"), string_empty},
           {string_lit("Duration"), string_empty},
       });
 
@@ -355,6 +357,9 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_table_draw_row_bg(c, &table, sound_object_bg_color(m, obj));
 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
+    ui_table_next_column(c, &table);
+
+    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_frame_rate(m, obj))));
     ui_table_next_column(c, &table);
 
     ui_label(c, fmt_write_scratch("{}", fmt_duration(snd_object_duration(m, obj))));
