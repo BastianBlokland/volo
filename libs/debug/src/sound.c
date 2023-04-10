@@ -4,6 +4,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_path.h"
 #include "debug_sound.h"
 #include "ecs_world.h"
 #include "snd.h"
@@ -41,6 +42,15 @@ ecs_view_define(PanelUpdateView) {
 static void ecs_destruct_sound_panel(void* data) {
   DebugSoundPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
+}
+
+static bool sound_panel_filter(DebugSoundPanelComp* panelComp, const String name) {
+  if (string_is_empty(panelComp->nameFilter)) {
+    return true;
+  }
+  const String rawFilter = dynstring_view(&panelComp->nameFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
 static void sound_draw_bg(UiCanvasComp* c) {
@@ -314,7 +324,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -332,8 +342,16 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
   ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
   for (SndObjectId id = sentinel_u32; id = snd_object_next(m, id), !sentinel_check(id);) {
+    const String name = snd_object_name(m, id);
+    if (!sound_panel_filter(panelComp, name)) {
+      continue;
+    }
+    ui_canvas_id_block_index(c, id); // Set a stable canvas id.
     ui_table_next_row(c, &table);
     ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
+
+    ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
+    ui_table_next_column(c, &table);
 
     ++panelComp->lastObjectRows;
   }
