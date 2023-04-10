@@ -1,7 +1,7 @@
 [![test](https://github.com/BastianBlokland/volo/actions/workflows/test.yaml/badge.svg)](https://github.com/BastianBlokland/volo/actions/workflows/test.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-*Work in progress toy 3d engine*
+*Work in progress RTS game*
 
 # Volo
 
