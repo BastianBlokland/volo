@@ -17,6 +17,7 @@ typedef u32 SndObjectId;
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
 SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
 String    snd_object_name(const SndMixerComp*, SndObjectId);
+bool      snd_object_loading(const SndMixerComp*, SndObjectId);
 
 /**
  * Iterate through the active sound objects.

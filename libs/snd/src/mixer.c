@@ -334,6 +334,11 @@ String snd_object_name(const SndMixerComp* m, const SndObjectId id) {
   return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
 }
 
+bool snd_object_loading(const SndMixerComp* m, SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj && obj->phase != SndObjectPhase_Playing;
+}
+
 SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId) {
   u16 index = sentinel_check(previousId) ? 0 : (snd_object_id_index(previousId) + 1);
   for (; index < snd_mixer_objects_max; ++index) {

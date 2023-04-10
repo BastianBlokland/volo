@@ -302,6 +302,10 @@ static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
   }
 }
 
+static UiColor sound_object_bg_color(const SndMixerComp* m, const SndObjectId obj) {
+  return snd_object_loading(m, obj) ? ui_color(16, 16, 64, 192) : ui_color(48, 48, 48, 192);
+}
+
 static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp) {
   ui_layout_push(c);
 
@@ -341,14 +345,14 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, lastObjectRows));
 
   ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
-  for (SndObjectId id = sentinel_u32; id = snd_object_next(m, id), !sentinel_check(id);) {
-    const String name = snd_object_name(m, id);
+  for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
+    const String name = snd_object_name(m, obj);
     if (!sound_panel_filter(panelComp, name)) {
       continue;
     }
-    ui_canvas_id_block_index(c, id); // Set a stable canvas id.
+    ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
     ui_table_next_row(c, &table);
-    ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
+    ui_table_draw_row_bg(c, &table, sound_object_bg_color(m, obj));
 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
