@@ -20,7 +20,7 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 #define snd_mixer_objects_max 2048
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
-#define snd_mixer_gain_adjust_per_frame 0.0001f
+#define snd_mixer_gain_adjust_per_frame 0.0005f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
 
 typedef enum {
@@ -39,6 +39,8 @@ typedef struct {
   const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
   f64            cursor;  // In frames.
   f32            pitchActual, pitchSetting;
+  f32            gainActual[SndChannel_Count];
+  f32            gainSetting[SndChannel_Count];
 } SndObject;
 
 ecs_comp_define(SndMixerComp) {
@@ -232,14 +234,19 @@ static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch)
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
   const f32 pitchTarget     = obj->pitchSetting * outPitch;
+  const f32 gainMult        = pitchTarget < f32_epsilon ? 0.0f : 1.0f;
   const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
 
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
     math_towards_f32(&obj->pitchActual, pitchTarget, snd_mixer_pitch_adjust_per_frame);
 
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor);
+      const f32 gainTarget = obj->gainSetting[chan] * gainMult;
+      math_towards_f32(&obj->gainActual[chan], gainTarget, snd_mixer_gain_adjust_per_frame);
+      const f32 gain = obj->gainActual[chan];
+      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor) * gain;
     }
+
     obj->cursor += advancePerFrame * obj->pitchActual;
     if (obj->cursor >= obj->frameCount) {
       return false; // Finished playing.
@@ -249,11 +256,11 @@ static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch)
 }
 
 static void snd_mixer_write_to_device(
-    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer, const f32 gain) {
+    SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
-    math_towards_f32(&m->gainActual, gain, snd_mixer_gain_adjust_per_frame);
+    math_towards_f32(&m->gainActual, m->gainSetting, snd_mixer_gain_adjust_per_frame);
 
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
@@ -299,7 +306,6 @@ ecs_system_define(SndMixerRenderSys) {
 
     // Base the output pitch on the time-scale.
     const f32 outPitch = timeSettings->flags & SceneTimeFlags_Paused ? 0.0f : timeSettings->scale;
-    const f32 outGain  = outPitch < f32_epsilon ? 0.0f : m->gainSetting;
 
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
@@ -312,7 +318,7 @@ ecs_system_define(SndMixerRenderSys) {
     }
 
     // Write the soundBuffer to the device.
-    snd_mixer_write_to_device(m, period, soundBuffer, outGain);
+    snd_mixer_write_to_device(m, period, soundBuffer);
 
     snd_device_end(m->device);
     m->lastRenderDuration = time_steady_duration(renderStartTime, time_steady_clock());
@@ -338,10 +344,12 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
-  obj->phase        = SndObjectPhase_Setup;
-  obj->pitchActual  = 1.0f;
-  obj->pitchSetting = 1.0f;
-  *outId            = id;
+  obj->phase       = SndObjectPhase_Setup;
+  obj->pitchActual = obj->pitchSetting = 1.0f;
+  for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+    obj->gainActual[chan] = obj->gainSetting[chan] = 1.0f;
+  }
+  *outId = id;
   return SndResult_Success;
 }
 
