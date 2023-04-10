@@ -9,6 +9,8 @@
 #include "snd.h"
 #include "ui.h"
 
+static const String g_tooltipMixerGain = string_static("Mixer output gain.");
+
 typedef enum {
   DebugSoundTab_Mixer,
   DebugSoundTab_Objects,
@@ -248,7 +250,7 @@ static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* m) {
 
   sound_draw_table_header(c, &table, string_lit("Gain"));
   f32 gain = snd_mixer_gain_get(m);
-  if (ui_slider(c, &gain, .max = 2.0f)) {
+  if (ui_slider(c, &gain, .max = 2.0f, .tooltip = g_tooltipMixerGain)) {
     snd_mixer_gain_set(m, gain);
   }
 
