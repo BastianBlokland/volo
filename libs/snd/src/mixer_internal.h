@@ -1,8 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "snd_mixer.h"
-
-#include "result_internal.h"
+#include "snd_result.h"
 
 typedef u32 SndObjectId;
 
