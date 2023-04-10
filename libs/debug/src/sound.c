@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
@@ -6,6 +7,17 @@
 #include "ecs_world.h"
 #include "snd.h"
 #include "ui.h"
+
+typedef enum {
+  DebugSoundTab_Mixer,
+
+  DebugSoundTab_Count,
+} DebugSoundTab;
+
+static const String g_soundTabNames[] = {
+    string_static("\uE429 Mixer"),
+};
+ASSERT(array_elems(g_soundTabNames) == DebugSoundTab_Count, "Incorrect number of names");
 
 ecs_comp_define(DebugSoundPanelComp) { UiPanel panel; };
 
@@ -103,7 +115,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-         "Level: \a|02\ab{}{<5}\ar  RMS",
+      "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),
@@ -182,7 +194,7 @@ static void sound_draw_spectrum_stats(UiCanvasComp* c, const SndBufferView buf) 
   ui_style_pop(c);
 }
 
-static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
+static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_None);
 
@@ -214,7 +226,7 @@ static void sound_draw_mixer_info(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_pop(c);
 }
 
-static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
+static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_push(c);
   ui_layout_container_push(c, UiClip_Rect);
 
@@ -232,21 +244,18 @@ static void sound_draw_controls(UiCanvasComp* c, SndMixerComp* mixer) {
   ui_layout_pop(c);
 }
 
-static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* mixer) {
-  const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
-  ui_panel_begin(c, &panelComp->panel, .title = title);
-
+static void sound_panel_mixer_draw(UiCanvasComp* c, SndMixerComp* mixer) {
   UiTable table = ui_table(.rowHeight = 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  sound_draw_table_header(c, &table, string_lit("Mixer"));
+  sound_draw_table_header(c, &table, string_lit("Stats"));
   sound_draw_bg(c);
-  sound_draw_mixer_info(c, mixer);
+  sound_draw_mixer_stats(c, mixer);
 
   sound_draw_table_header(c, &table, string_lit("Controls"));
   sound_draw_bg(c);
-  sound_draw_controls(c, mixer);
+  sound_draw_mixer_controls(c, mixer);
 
   const SndBufferView history = snd_mixer_history(mixer);
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
@@ -265,6 +274,22 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
     sound_draw_bg(c);
     sound_draw_spectrum(c, history, chan);
     sound_draw_spectrum_stats(c, history);
+  }
+}
+
+static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* mixer) {
+  const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
+  ui_panel_begin(
+      c,
+      &panelComp->panel,
+      .title    = title,
+      .tabNames = g_soundTabNames,
+      .tabCount = DebugSoundTab_Count);
+
+  switch (panelComp->panel.activeTab) {
+  case DebugSoundTab_Mixer:
+    sound_panel_mixer_draw(c, mixer);
+    break;
   }
 
   ui_panel_end(c, &panelComp->panel);
@@ -309,6 +334,6 @@ ecs_module_init(debug_sound_module) {
 EcsEntityId debug_sound_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(800, 655)));
+      world, panelEntity, DebugSoundPanelComp, .panel = ui_panel(.size = ui_vector(800, 685)));
   return panelEntity;
 }
