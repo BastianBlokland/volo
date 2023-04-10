@@ -6,11 +6,11 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "snd_channel.h"
+#include "snd_mixer.h"
 #include "snd_register.h"
 
 #include "constants_internal.h"
 #include "device_internal.h"
-#include "mixer_internal.h"
 
 #define snd_mixer_history_size 2048
 ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
@@ -245,9 +245,9 @@ ecs_system_define(SndMixerRenderSys) {
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
-        .frames     = soundFrames,
-        .frameCount = period.frameCount,
-        .frameRate  = snd_frame_rate,
+                             .frames     = soundFrames,
+                             .frameCount = period.frameCount,
+                             .frameRate  = snd_frame_rate,
     };
 
     // Render all objects into the soundBuffer.

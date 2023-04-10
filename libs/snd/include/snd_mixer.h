@@ -1,11 +1,21 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "snd_buffer.h"
+#include "snd_result.h"
 
 /**
  * Global sound mixer.
  */
 ecs_comp_extern(SndMixerComp);
+
+/**
+ * Objects.
+ */
+typedef u32 SndObjectId;
+
+SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
+SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
 
 /**
  * Controls.

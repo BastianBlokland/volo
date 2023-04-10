@@ -1,8 +1,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_sound.h"
-
-#include "mixer_internal.h"
+#include "snd_mixer.h"
 
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
 
