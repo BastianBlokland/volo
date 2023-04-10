@@ -34,7 +34,7 @@ typedef struct {
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
-  const f32*     samples; // f32[frameCount * frameChannels], Interleaved  (LRLRLR).
+  const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
   TimeSteady     startTime;
   EcsEntityId    asset;
 } SndObject;
@@ -320,6 +320,31 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   return SndResult_Success;
 }
 
+String snd_object_get_name(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
+}
+
+bool snd_object_get_loading(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj && obj->phase != SndObjectPhase_Playing;
+}
+
+TimeDuration snd_object_get_duration(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? (obj->frameCount * time_second / obj->frameRate) : time_seconds(0);
+}
+
+u32 snd_object_get_frame_rate(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? obj->frameRate : 0;
+}
+
+u8 snd_object_get_frame_channels(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? obj->frameChannels : 0;
+}
+
 SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsEntityId asset) {
   SndObject* obj = snd_object_get(m, id);
   if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
@@ -327,31 +352,6 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
   }
   obj->asset = asset;
   return SndResult_Success;
-}
-
-String snd_object_name(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
-}
-
-bool snd_object_loading(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj && obj->phase != SndObjectPhase_Playing;
-}
-
-TimeDuration snd_object_duration(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? (obj->frameCount * time_second / obj->frameRate) : time_seconds(0);
-}
-
-u32 snd_object_frame_rate(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? obj->frameRate : 0;
-}
-
-u8 snd_object_frame_channels(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? obj->frameChannels : 0;
 }
 
 SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId) {

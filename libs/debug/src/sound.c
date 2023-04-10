@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -303,7 +302,7 @@ static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
 }
 
 static UiColor sound_object_bg_color(const SndMixerComp* m, const SndObjectId obj) {
-  return snd_object_loading(m, obj) ? ui_color(16, 16, 64, 192) : ui_color(48, 48, 48, 192);
+  return snd_object_get_loading(m, obj) ? ui_color(16, 16, 64, 192) : ui_color(48, 48, 48, 192);
 }
 
 static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp) {
@@ -322,15 +321,14 @@ static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* pan
 }
 
 static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
-  (void)m;
   sound_objects_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -350,7 +348,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
   ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
   for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
-    const String name = snd_object_name(m, obj);
+    const String name = snd_object_get_name(m, obj);
     if (!sound_panel_filter(panelComp, name)) {
       continue;
     }
@@ -361,13 +359,13 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_frame_rate(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_get_frame_rate(m, obj))));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_frame_channels(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_int(snd_object_get_frame_channels(m, obj))));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_duration(snd_object_duration(m, obj))));
+    ui_label(c, fmt_write_scratch("{}", fmt_duration(snd_object_get_duration(m, obj))));
 
     ++panelComp->lastObjectRows;
   }
