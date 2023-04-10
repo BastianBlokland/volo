@@ -394,7 +394,9 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, fmt_write_scratch("{}", fmt_int(frameChannels)));
     ui_table_next_column(c, &table);
 
-    ui_label(c, fmt_write_scratch("{}", fmt_float(pitch, .minDecDigits = 2, .maxDecDigits = 2)));
+    const String pitchText = fmt_write_scratch(
+        "{}", fmt_float(pitch, .minDecDigits = 2, .maxDecDigits = 2, .expThresholdNeg = 0));
+    ui_label(c, pitchText);
     ui_table_next_column(c, &table);
 
     {
