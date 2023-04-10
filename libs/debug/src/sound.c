@@ -348,6 +348,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -358,6 +359,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
           {string_lit("Rate"), string_lit("Rate of sound frames (in hertz).")},
           {string_lit("Channels"), string_lit("Amount of channels per frame.")},
           {string_lit("Pitch"), string_lit("Current pitch.")},
+          {string_lit("Gain"), string_lit("Current gain (L/R).")},
           {string_lit("Progress"), string_lit("Current progress.")},
       });
 
@@ -378,6 +380,8 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     const f64          cursor        = snd_object_get_cursor(m, obj);
     const f32          progress      = (f32)(cursor / (f64)frameCount);
     const f32          pitch         = snd_object_get_pitch(m, obj);
+    const f32          gainLeft      = snd_object_get_gain(m, obj, SndChannel_Left);
+    const f32          gainRight     = snd_object_get_gain(m, obj, SndChannel_Right);
     const TimeDuration duration      = frameCount * time_second / frameRate;
     const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
 
@@ -399,18 +403,23 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_label(c, pitchText);
     ui_table_next_column(c, &table);
 
-    {
-      sound_draw_progress(c, progress);
-      const String progressText = fmt_write_scratch(
-          "{:6}/{:6}",
-          fmt_duration(elapsed, .minDecDigits = 1),
-          fmt_duration(duration, .minDecDigits = 1));
-      ui_style_push(c);
-      ui_style_variation(c, UiVariation_Monospace);
-      ui_style_outline(c, 2);
-      ui_label(c, progressText, .align = UiAlign_MiddleCenter);
-      ui_style_pop(c);
-    }
+    const String gainText = fmt_write_scratch(
+        "{} / {}",
+        fmt_float(gainLeft, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+        fmt_float(gainRight, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0));
+    ui_label(c, gainText);
+    ui_table_next_column(c, &table);
+
+    sound_draw_progress(c, progress);
+    const String progressText = fmt_write_scratch(
+        "{:6}/{:6}",
+        fmt_duration(elapsed, .minDecDigits = 1),
+        fmt_duration(duration, .minDecDigits = 1));
+    ui_style_push(c);
+    ui_style_variation(c, UiVariation_Monospace);
+    ui_style_outline(c, 2);
+    ui_label(c, progressText, .align = UiAlign_MiddleCenter);
+    ui_style_pop(c);
 
     ++panelComp->lastObjectRows;
   }
