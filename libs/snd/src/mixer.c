@@ -24,7 +24,6 @@ typedef enum {
   SndObjectPhase_Idle,
   SndObjectPhase_Setup,
   SndObjectPhase_Acquired,
-  SndObjectPhase_Loaded,
   SndObjectPhase_Playing,
   SndObjectPhase_Cleanup,
 } SndObjectPhase;
@@ -34,8 +33,8 @@ typedef struct {
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
-  const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
-  TimeSteady     startTime;
+  const f32*     samples;    // f32[frameCount * frameChannels], Interleaved (LRLRLR).
+  f64            playCursor; // In frames.
   EcsEntityId    asset;
 } SndObject;
 
@@ -168,7 +167,6 @@ ecs_system_define(SndMixerUpdateSys) {
     SndObject* obj = &m->objects[i];
     switch (obj->phase) {
     case SndObjectPhase_Idle:
-    case SndObjectPhase_Loaded:
     case SndObjectPhase_Playing:
       continue;
     case SndObjectPhase_Setup:
@@ -186,7 +184,7 @@ ecs_system_define(SndMixerUpdateSys) {
         obj->frameCount                  = soundAsset->frameCount;
         obj->frameRate                   = soundAsset->frameRate;
         obj->samples                     = soundAsset->samples;
-        obj->phase                       = SndObjectPhase_Loaded;
+        obj->phase                       = SndObjectPhase_Playing;
 
         const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
         m->objectNames[i]      = asset_id(asset);
@@ -203,27 +201,37 @@ ecs_system_define(SndMixerUpdateSys) {
   }
 }
 
-static void snd_mixer_render(SndBuffer out, const TimeSteady time, SndObject* obj) {
+INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, const f64 frame) {
+  if (chan >= obj->frameChannels) {
+    chan = SndChannel_Left;
+  }
+  /**
+   * Naive sampling using linear interpolation between the two closest samples.
+   * This works reasonably for up-sampling (even though we should consider methods that preserve the
+   * curve better, like Hermite interpolation), but for down-sampling this ignores the aliasing that
+   * occurs with frequencies that we cannot represent.
+   */
+  const u32 edgeA = math_min(obj->frameCount - 2, (u32)frame);
+  const u32 edgeB = edgeA + 1;
+  const f32 valA  = obj->samples[edgeA * obj->frameChannels + chan];
+  const f32 valB  = obj->samples[edgeB * obj->frameChannels + chan];
+  return math_lerp(valA, valB, (f32)(frame - edgeA));
+}
+
+static bool snd_object_render(SndObject* obj, SndBuffer out) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
-  const TimeDuration objTime            = time_steady_duration(obj->startTime, time);
-  const TimeDuration outputTimePerFrame = time_second / out.frameRate;
-  const TimeDuration objTimePerFrame    = time_second / obj->frameRate;
-
-  for (u32 outputFrame = 0; outputFrame != out.frameCount; ++outputFrame) {
-    const TimeDuration objFrameTime = objTime + outputTimePerFrame * outputFrame;
-    // TODO: Implement interpolation for resampling instead of just picking the nearest frame.
-    const u32 objFrameIndex = (u32)(objFrameTime / objTimePerFrame);
-    if (objFrameIndex > obj->frameCount) {
-      obj->phase = SndObjectPhase_Cleanup;
-      return;
+  const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
+  for (u32 frame = 0; frame != out.frameCount; ++frame) {
+    for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->playCursor);
     }
-    for (SndChannel outputChannel = 0; outputChannel != SndChannel_Count; ++outputChannel) {
-      const u8  assetChannel     = math_min((u8)outputChannel, (u8)(obj->frameChannels - 1));
-      const u32 assetSampleIndex = objFrameIndex * obj->frameChannels + assetChannel;
-      out.frames[outputFrame].samples[outputChannel] += obj->samples[assetSampleIndex];
+    obj->playCursor += advancePerFrame;
+    if (obj->playCursor >= obj->frameCount) {
+      return false; // Finished playing.
     }
   }
+  return true; // Still playing.
 }
 
 static void snd_mixer_fill_device_period(
@@ -263,29 +271,19 @@ ecs_system_define(SndMixerRenderSys) {
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
-                             .frames     = soundFrames,
-                             .frameCount = period.frameCount,
-                             .frameRate  = snd_frame_rate,
+        .frames     = soundFrames,
+        .frameCount = period.frameCount,
+        .frameRate  = snd_frame_rate,
     };
 
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
-      switch (obj->phase) {
-      case SndObjectPhase_Idle:
-      case SndObjectPhase_Setup:
-      case SndObjectPhase_Acquired:
-      case SndObjectPhase_Cleanup:
-        continue;
-      case SndObjectPhase_Loaded:
-        obj->startTime = period.timeBegin;
-        obj->phase     = SndObjectPhase_Playing;
-        // Fallthrough.
-      case SndObjectPhase_Playing:
-        snd_mixer_render(soundBuffer, period.timeBegin, obj);
-        continue;
+      if (obj->phase == SndObjectPhase_Playing) {
+        if (!snd_object_render(obj, soundBuffer)) {
+          ++obj->phase;
+        }
       }
-      UNREACHABLE
     }
 
     // Write the soundBuffer to the device.
