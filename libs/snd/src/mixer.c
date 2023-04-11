@@ -248,7 +248,7 @@ static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch)
     }
 
     obj->cursor += advancePerFrame * obj->pitchActual;
-    if (obj->cursor >= obj->frameCount) {
+    if (UNLIKELY(obj->cursor >= obj->frameCount)) {
       return false; // Finished playing.
     }
   }
