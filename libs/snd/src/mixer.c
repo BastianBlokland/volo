@@ -407,10 +407,23 @@ SndResult snd_object_set_pitch(SndMixerComp* m, const SndObjectId id, const f32 
   if (UNLIKELY(!obj)) {
     return SndResult_InvalidObject;
   }
-  if (UNLIKELY(pitch < f32_epsilon || pitch > 10.0f)) {
+  if (UNLIKELY(pitch < 0.0f || pitch > 10.0f)) {
     return SndResult_ParameterOutOfRange;
   }
   obj->pitchSetting = pitch;
+  return SndResult_Success;
+}
+
+SndResult
+snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan, const f32 gain) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj)) {
+    return SndResult_InvalidObject;
+  }
+  if (UNLIKELY(gain < 0.0f || gain > 10.0f)) {
+    return SndResult_ParameterOutOfRange;
+  }
+  obj->gainSetting[chan] = gain;
   return SndResult_Success;
 }
 
