@@ -35,6 +35,11 @@ ecs_system_define(SndSourceInitSys) {
       if (sndComp->pitch > f32_epsilon) {
         snd_object_set_pitch(mixer, id, sndComp->pitch);
       }
+      if (sndComp->gain > f32_epsilon) {
+        for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+          snd_object_set_gain(mixer, id, chan, sndComp->gain);
+        }
+      }
       ecs_world_add_t(world, entity, SndSourceComp, .objectId = id);
     }
   }

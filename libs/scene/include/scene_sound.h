@@ -4,5 +4,5 @@
 
 ecs_comp_extern_public(SceneSoundComp) {
   EcsEntityId asset; // Sound asset.
-  f32         pitch;
+  f32         pitch, gain;
 };
