@@ -378,11 +378,11 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     const u32          frameRate     = snd_object_get_frame_rate(m, obj);
     const u8           frameChannels = snd_object_get_frame_channels(m, obj);
     const f64          cursor        = snd_object_get_cursor(m, obj);
-    const f32          progress      = (f32)(cursor / (f64)frameCount);
+    const f32          progress      = frameCount ? (f32)(cursor / (f64)frameCount) : 0;
     const f32          pitch         = snd_object_get_pitch(m, obj);
     const f32          gainLeft      = snd_object_get_gain(m, obj, SndChannel_Left);
     const f32          gainRight     = snd_object_get_gain(m, obj, SndChannel_Right);
-    const TimeDuration duration      = frameCount * time_second / frameRate;
+    const TimeDuration duration      = frameCount ? frameCount * time_second / frameRate : 0;
     const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
 
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
