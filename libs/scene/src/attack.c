@@ -255,17 +255,15 @@ static EffectResult effect_update_proj(
       ctx->world,
       e,
       SceneProjectileComp,
-      .flags          = projectileFlags,
-      .speed          = def->speed,
-      .damage         = def->damage,
-      .damageRadius   = def->damageRadius,
-      .destroyDelay   = def->destroyDelay,
-      .impactLifetime = def->impactLifetime,
-      .instigator     = ctx->instigator,
-      .impactVfx      = def->vfxImpact,
-      .impactDecal    = def->decalImpact,
-      .seekEntity     = ctx->attack->targetEntity,
-      .seekPos        = ctx->attack->targetPos);
+      .flags        = projectileFlags,
+      .speed        = def->speed,
+      .damage       = def->damage,
+      .damageRadius = def->damageRadius,
+      .destroyDelay = def->destroyDelay,
+      .instigator   = ctx->instigator,
+      .impactPrefab = def->impactPrefab,
+      .seekEntity   = ctx->attack->targetEntity,
+      .seekPos      = ctx->attack->targetPos);
 
   return EffectResult_Done;
 }

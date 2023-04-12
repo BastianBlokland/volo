@@ -24,9 +24,9 @@ typedef struct {
   f32    spreadAngle;
   f32    speed;
   f32    damage, damageRadius;
-  f32    destroyDelay, impactLifetime;
-  String vfxIdProjectile, vfxIdImpact;
-  String decalIdImpact; // Optional, empty if unused.
+  f32    destroyDelay;
+  String vfxIdProjectile;
+  String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
 typedef struct {
@@ -103,10 +103,8 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, impactLifetime, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, decalIdImpact, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -187,6 +185,10 @@ static EcsEntityId weapon_asset_maybe_lookup(BuildCtx* ctx, const String id) {
   return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
 }
 
+static StringHash weapon_name_maybe_hash(const String name) {
+  return string_is_empty(name) ? 0 : string_hash(name);
+}
+
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -203,10 +205,8 @@ static void weapon_effect_proj_build(
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
-      .impactLifetime      = (TimeDuration)time_seconds(def->impactLifetime),
       .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
-      .vfxImpact           = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdImpact),
-      .decalImpact         = weapon_asset_maybe_lookup(ctx, def->decalIdImpact),
+      .impactPrefab        = weapon_name_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }

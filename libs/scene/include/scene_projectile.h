@@ -14,9 +14,8 @@ ecs_comp_extern_public(SceneProjectileComp) {
   f32                  damage, damageRadius;
   TimeDuration         age;
   TimeDuration         destroyDelay;
-  TimeDuration         impactLifetime;
+  StringHash           impactPrefab;
   EcsEntityId          instigator;
-  EcsEntityId          impactVfx, impactDecal;
   EcsEntityId          seekEntity;
   GeoVector            seekPos;
 };
