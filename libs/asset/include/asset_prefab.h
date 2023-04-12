@@ -41,6 +41,7 @@ typedef enum {
   AssetPrefabTrait_Renderable,
   AssetPrefabTrait_Vfx,
   AssetPrefabTrait_Decal,
+  AssetPrefabTrait_Sound,
   AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Footstep,
@@ -66,6 +67,10 @@ typedef struct {
 typedef struct {
   EcsEntityId asset;
 } AssetPrefabTraitDecal;
+
+typedef struct {
+  EcsEntityId asset;
+} AssetPrefabTraitSound;
 
 typedef struct {
   TimeDuration duration;
@@ -122,6 +127,7 @@ typedef struct {
     AssetPrefabTraitRenderable data_renderable;
     AssetPrefabTraitVfx        data_vfx;
     AssetPrefabTraitDecal      data_decal;
+    AssetPrefabTraitSound      data_sound;
     AssetPrefabTraitLifetime   data_lifetime;
     AssetPrefabTraitMovement   data_movement;
     AssetPrefabTraitFootstep   data_footstep;

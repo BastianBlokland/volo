@@ -18,6 +18,7 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
+#include "scene_sound.h"
 #include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -141,6 +142,10 @@ static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitV
 
 static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
   ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
+}
+
+static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
+  ecs_world_add_t(w, e, SceneSoundComp, .asset = t->asset, .gain = 1.0f, .pitch = 1.0f);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
@@ -291,6 +296,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Decal:
     setup_vfx_decal(w, e, &t->data_decal);
+    return;
+  case AssetPrefabTrait_Sound:
+    setup_sound(w, e, &t->data_sound);
     return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);

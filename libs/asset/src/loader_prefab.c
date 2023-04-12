@@ -58,6 +58,10 @@ typedef struct {
 } AssetPrefabTraitDecalDef;
 
 typedef struct {
+  String assetId;
+} AssetPrefabTraitSoundDef;
+
+typedef struct {
   f32 duration;
 } AssetPrefabTraitLifetimeDef;
 
@@ -112,6 +116,7 @@ typedef struct {
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
+    AssetPrefabTraitSoundDef      data_sound;
     AssetPrefabTraitLifetimeDef   data_lifetime;
     AssetPrefabTraitMovementDef   data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
@@ -182,6 +187,9 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitDecalDef);
     data_reg_field_t(reg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitSoundDef);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
@@ -231,6 +239,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetimeDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
@@ -370,6 +379,11 @@ static void prefab_build(
     case AssetPrefabTrait_Decal:
       outTrait->data_decal = (AssetPrefabTraitDecal){
           .asset = asset_lookup(ctx->world, manager, traitDef->data_decal.assetId),
+      };
+      break;
+    case AssetPrefabTrait_Sound:
+      outTrait->data_sound = (AssetPrefabTraitSound){
+          .asset = asset_lookup(ctx->world, manager, traitDef->data_sound.assetId),
       };
       break;
     case AssetPrefabTrait_Lifetime:
