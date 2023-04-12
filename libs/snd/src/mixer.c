@@ -53,10 +53,11 @@ ecs_comp_define(SndMixerComp) {
   f32          gainActual, gainSetting;
   TimeDuration lastRenderDuration;
 
-  SndObject*   objects;       // SndObject[snd_mixer_objects_max]
-  String*      objectNames;   // String[snd_mixer_objects_max]
-  EcsEntityId* objectAssets;  // EcsEntityId[snd_mixer_objects_max]
-  BitSet       objectFreeSet; // bit[snd_mixer_objects_max]
+  SndObject*   objects;        // SndObject[snd_mixer_objects_max]
+  String*      objectNames;    // String[snd_mixer_objects_max]
+  EcsEntityId* objectAssets;   // EcsEntityId[snd_mixer_objects_max]
+  u64*         objectUserData; // u64[snd_mixer_objects_max]
+  BitSet       objectFreeSet;  // bit[snd_mixer_objects_max]
 
   /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
@@ -72,6 +73,7 @@ static void ecs_destruct_mixer_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, m->objects, snd_mixer_objects_max);
   alloc_free_array_t(g_alloc_heap, m->objectNames, snd_mixer_objects_max);
   alloc_free_array_t(g_alloc_heap, m->objectAssets, snd_mixer_objects_max);
+  alloc_free_array_t(g_alloc_heap, m->objectUserData, snd_mixer_objects_max);
   alloc_free(g_alloc_heap, m->objectFreeSet);
 
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
@@ -94,6 +96,9 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
 
   m->objectAssets = alloc_array_t(g_alloc_heap, EcsEntityId, snd_mixer_objects_max);
   mem_set(mem_create(m->objectAssets, sizeof(EcsEntityId) * snd_mixer_objects_max), 0);
+
+  m->objectUserData = alloc_array_t(g_alloc_heap, u64, snd_mixer_objects_max);
+  mem_set(mem_create(m->objectUserData, sizeof(u64) * snd_mixer_objects_max), 0xFF);
 
   m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
@@ -209,9 +214,10 @@ ecs_system_define(SndMixerUpdateSys) {
     case SndObjectPhase_Cleanup:
       asset_release(world, m->objectAssets[i]);
       snd_object_release(m, obj);
-      *obj               = (SndObject){.generation = obj->generation};
-      m->objectNames[i]  = string_empty;
-      m->objectAssets[i] = 0;
+      *obj                 = (SndObject){.generation = obj->generation};
+      m->objectNames[i]    = string_empty;
+      m->objectAssets[i]   = 0;
+      m->objectUserData[i] = sentinel_u64;
       continue;
     }
     UNREACHABLE
@@ -362,6 +368,11 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   return SndResult_Success;
 }
 
+u64 snd_object_get_user_data(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj ? m->objectUserData[snd_object_id_index(id)] : sentinel_u64;
+}
+
 String snd_object_get_name(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
   return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
@@ -408,6 +419,15 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
     return SndResult_InvalidObjectPhase;
   }
   m->objectAssets[snd_object_id_index(id)] = asset;
+  return SndResult_Success;
+}
+
+SndResult snd_object_set_user_data(SndMixerComp* m, const SndObjectId id, const u64 userData) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
+    return SndResult_InvalidObjectPhase;
+  }
+  m->objectUserData[snd_object_id_index(id)] = userData;
   return SndResult_Success;
 }
 
