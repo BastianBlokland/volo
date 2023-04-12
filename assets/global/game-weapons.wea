@@ -19,9 +19,8 @@
           "speed": 55,
           "damage": 15,
           "destroyDelay": 0.05,
-          "impactLifetime": 1,
           "vfxIdProjectile": "vfx/game/projectile.vfx",
-          "vfxIdImpact": "vfx/game/impact.vfx"
+          "impactPrefab": "ImpactAssaultRifle"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
@@ -89,9 +88,8 @@
           "speed": 55,
           "damage": 75,
           "destroyDelay": 0.05,
-          "impactLifetime": 1,
           "vfxIdProjectile": "vfx/game/projectile.vfx",
-          "vfxIdImpact": "vfx/game/impact.vfx"
+          "impactPrefab": "ImpactTurretGun"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
@@ -128,10 +126,8 @@
           "damage": 250,
           "damageRadius": 3,
           "destroyDelay": 0.75,
-          "impactLifetime": 25,
           "vfxIdProjectile": "vfx/game/projectile_missile.vfx",
-          "vfxIdImpact": "vfx/game/explosion.vfx",
-          "decalIdImpact": "vfx/game/explosion.dcl"
+          "impactPrefab": "ImpactMissile"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
