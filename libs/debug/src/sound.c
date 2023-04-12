@@ -412,7 +412,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
     sound_draw_progress(c, progress);
     const String progressText = fmt_write_scratch(
-        "{:6}/{:6}",
+        "{:6}/ {:6}",
         fmt_duration(elapsed, .minDecDigits = 1),
         fmt_duration(duration, .minDecDigits = 1));
     ui_style_push(c);
