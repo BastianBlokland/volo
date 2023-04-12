@@ -319,10 +319,6 @@ static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
   }
 }
 
-static UiColor sound_object_bg_color(const SndMixerComp* m, const SndObjectId obj) {
-  return snd_object_get_loading(m, obj) ? ui_color(16, 16, 64, 192) : ui_color(48, 48, 48, 192);
-}
-
 static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp) {
   ui_layout_push(c);
 
@@ -387,7 +383,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
     ui_table_next_row(c, &table);
-    ui_table_draw_row_bg(c, &table, sound_object_bg_color(m, obj));
+    ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
     ui_label(c, path_stem(name), .selectable = true, .tooltip = name);
     ui_table_next_column(c, &table);
@@ -411,15 +407,19 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_table_next_column(c, &table);
 
     sound_draw_progress(c, progress);
-    const String progressText = fmt_write_scratch(
-        "{:6}/ {:6}",
-        fmt_duration(elapsed, .minDecDigits = 1),
-        fmt_duration(duration, .minDecDigits = 1));
-    ui_style_push(c);
-    ui_style_variation(c, UiVariation_Monospace);
-    ui_style_outline(c, 2);
-    ui_label(c, progressText, .align = UiAlign_MiddleCenter);
-    ui_style_pop(c);
+    if (!snd_object_get_loading(m, obj)) {
+      const f32    elapsedSecs  = elapsed / (f32)time_second;
+      const f32    durationSecs = duration / (f32)time_second;
+      const String progressText = fmt_write_scratch(
+          "{}s / {}s",
+          fmt_float(elapsedSecs, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+          fmt_float(durationSecs, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0));
+      ui_style_push(c);
+      ui_style_variation(c, UiVariation_Monospace);
+      ui_style_outline(c, 2);
+      ui_label(c, progressText, .align = UiAlign_MiddleCenter);
+      ui_style_pop(c);
+    }
 
     ++panelComp->lastObjectRows;
   }
