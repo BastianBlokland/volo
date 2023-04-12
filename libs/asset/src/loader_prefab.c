@@ -62,6 +62,7 @@ typedef struct {
   String assetId;
   f32    gainMin, gainMax;
   f32    pitchMin, pitchMax;
+  bool   looping;
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
@@ -197,6 +198,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, looping, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -399,6 +401,7 @@ static void prefab_build(
           .gainMax  = math_max(gainMin, soundDef->gainMax),
           .pitchMin = pitchMin,
           .pitchMax = math_max(pitchMin, soundDef->pitchMax),
+          .looping  = soundDef->looping,
       };
       break;
     }

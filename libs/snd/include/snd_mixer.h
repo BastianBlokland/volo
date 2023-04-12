@@ -25,6 +25,7 @@ f64       snd_object_get_cursor(const SndMixerComp*, SndObjectId);
 f32       snd_object_get_pitch(const SndMixerComp*, SndObjectId);
 f32       snd_object_get_gain(const SndMixerComp*, SndObjectId, SndChannel);
 SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
+SndResult snd_object_set_looping(SndMixerComp*, SndObjectId);
 SndResult snd_object_set_pitch(SndMixerComp*, SndObjectId, f32 pitch);
 SndResult snd_object_set_gain(SndMixerComp*, SndObjectId, SndChannel, f32 gain);
 

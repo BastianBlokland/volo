@@ -31,8 +31,13 @@ typedef enum {
   SndObjectPhase_Cleanup,
 } SndObjectPhase;
 
+typedef enum {
+  SndObjectFlags_Looping = 1 << 0,
+} SndObjectFlags;
+
 typedef struct {
   SndObjectPhase phase : 8;
+  SndObjectFlags flags : 8;
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
@@ -249,7 +254,11 @@ static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch)
 
     obj->cursor += advancePerFrame * obj->pitchActual;
     if (UNLIKELY(obj->cursor >= obj->frameCount)) {
-      return false; // Finished playing.
+      if (obj->flags & SndObjectFlags_Looping) {
+        obj->cursor -= obj->frameCount;
+      } else {
+        return false; // Finished playing.
+      }
     }
   }
   return true; // Still playing.
@@ -399,6 +408,15 @@ SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsE
     return SndResult_InvalidObjectPhase;
   }
   m->objectAssets[snd_object_id_index(id)] = asset;
+  return SndResult_Success;
+}
+
+SndResult snd_object_set_looping(SndMixerComp* m, const SndObjectId id) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
+    return SndResult_InvalidObjectPhase;
+  }
+  obj->flags |= SndObjectFlags_Looping;
   return SndResult_Success;
 }
 

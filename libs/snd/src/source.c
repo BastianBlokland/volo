@@ -32,6 +32,9 @@ ecs_system_define(SndSourceInitSys) {
     SndObjectId id;
     if (snd_object_new(mixer, &id) == SndResult_Success) {
       snd_object_set_asset(mixer, id, sndComp->asset);
+      if (sndComp->looping) {
+        snd_object_set_looping(mixer, id);
+      }
       if (sndComp->pitch > f32_epsilon) {
         snd_object_set_pitch(mixer, id, sndComp->pitch);
       }

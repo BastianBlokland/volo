@@ -72,6 +72,7 @@ typedef struct {
   EcsEntityId asset;
   f32         gainMin, gainMax;
   f32         pitchMin, pitchMax;
+  bool        looping;
 } AssetPrefabTraitSound;
 
 typedef struct {

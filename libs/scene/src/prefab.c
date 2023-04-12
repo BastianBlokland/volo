@@ -147,7 +147,8 @@ static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDe
 static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
   const f32 gain  = rng_sample_range(g_rng, t->gainMin, t->gainMax);
   const f32 pitch = rng_sample_range(g_rng, t->pitchMin, t->pitchMax);
-  ecs_world_add_t(w, e, SceneSoundComp, .asset = t->asset, .gain = gain, .pitch = pitch);
+  ecs_world_add_t(
+      w, e, SceneSoundComp, .asset = t->asset, .gain = gain, .pitch = pitch, .looping = t->looping);
 }
 
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
