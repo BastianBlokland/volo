@@ -32,6 +32,7 @@ u64 math_pow10_u64(const u8 val) {
 }
 
 f32 math_mod_f32(const f32 x, const f32 y) { return intrinsic_fmod_f32(x, y); }
+f64 math_mod_f64(const f64 x, const f64 y) { return intrinsic_fmod_f64(x, y); }
 
 f32 math_sqrt_f32(const f32 val) { return intrinsic_sqrt_f32(val); }
 f64 math_sqrt_f64(const f64 val) { return intrinsic_sqrt_f64(val); }
