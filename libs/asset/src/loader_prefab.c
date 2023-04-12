@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
@@ -59,6 +60,8 @@ typedef struct {
 
 typedef struct {
   String assetId;
+  f32    gainMin, gainMax;
+  f32    pitchMin, pitchMax;
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
@@ -190,6 +193,10 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitSoundDef);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -382,11 +389,19 @@ static void prefab_build(
           .asset = asset_lookup(ctx->world, manager, traitDef->data_decal.assetId),
       };
       break;
-    case AssetPrefabTrait_Sound:
+    case AssetPrefabTrait_Sound: {
+      const AssetPrefabTraitSoundDef* soundDef = &traitDef->data_sound;
+      const f32 gainMin    = soundDef->gainMin < f32_epsilon ? 1.0f : soundDef->gainMin;
+      const f32 pitchMin   = soundDef->pitchMin < f32_epsilon ? 1.0f : soundDef->pitchMin;
       outTrait->data_sound = (AssetPrefabTraitSound){
-          .asset = asset_lookup(ctx->world, manager, traitDef->data_sound.assetId),
+          .asset    = asset_lookup(ctx->world, manager, soundDef->assetId),
+          .gainMin  = gainMin,
+          .gainMax  = math_max(gainMin, soundDef->gainMax),
+          .pitchMin = pitchMin,
+          .pitchMax = math_max(pitchMin, soundDef->pitchMax),
       };
       break;
+    }
     case AssetPrefabTrait_Lifetime:
       outTrait->data_lifetime = (AssetPrefabTraitLifetime){
           .duration = (TimeDuration)time_seconds(traitDef->data_lifetime.duration),

@@ -70,6 +70,8 @@ typedef struct {
 
 typedef struct {
   EcsEntityId asset;
+  f32         gainMin, gainMax;
+  f32         pitchMin, pitchMax;
 } AssetPrefabTraitSound;
 
 typedef struct {
