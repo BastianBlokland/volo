@@ -480,7 +480,7 @@
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/explosion-01.wav",
           "gainMin": 0.3, "gainMax": 0.5,
-          "pitchMin": 0.95, "pitchMax": 1.05
+          "pitchMin": 0.8, "pitchMax": 0.9
         },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 }
       ]
