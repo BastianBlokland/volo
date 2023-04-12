@@ -29,9 +29,15 @@ ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
 
 static void app_music_create(EcsWorld* world, AssetManagerComp* assets) {
   static const String g_musicAssetName = string_static("external/sound/blinded-by-the-light.wav");
+  static const f32    g_musicGain      = 0.6f;
 
   const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset_lookup(world, assets, g_musicAssetName));
+  ecs_world_add_t(
+      world,
+      e,
+      SceneSoundComp,
+      .asset = asset_lookup(world, assets, g_musicAssetName),
+      .gain  = g_musicGain);
 }
 
 static void app_window_create(EcsWorld* world) {
