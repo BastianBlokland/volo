@@ -340,12 +340,16 @@ static void setup_prefab(
     const ScenePrefabSpec*    spec,
     const AssetPrefabMapComp* map) {
 
-  ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
+  ScenePrefabInstanceComp* instanceComp =
+      ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
+
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
     return;
   }
+  instanceComp->isVolatile = (prefab->flags & AssetPrefabFlags_Volatile) != 0;
+
   GeoVector spawnPos = spec->position;
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
     scene_terrain_snap(terrain, &spawnPos);

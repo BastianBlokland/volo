@@ -174,9 +174,13 @@ static void scene_level_object_push(
     EcsIterator* instanceItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
-  const SceneTransformComp*      maybeTrans = ecs_view_read_t(instanceItr, SceneTransformComp);
-  const SceneScaleComp*          maybeScale = ecs_view_read_t(instanceItr, SceneScaleComp);
-  const SceneFactionComp*        maybeFaction = ecs_view_read_t(instanceItr, SceneFactionComp);
+  if (prefabInst->isVolatile) {
+    return; // Volatile prefabs should not be persisted.
+  }
+
+  const SceneTransformComp* maybeTrans   = ecs_view_read_t(instanceItr, SceneTransformComp);
+  const SceneScaleComp*     maybeScale   = ecs_view_read_t(instanceItr, SceneScaleComp);
+  const SceneFactionComp*   maybeFaction = ecs_view_read_t(instanceItr, SceneFactionComp);
 
   const String prefabName = stringtable_lookup(g_stringtable, prefabInst->prefabId);
   if (string_is_empty(prefabName)) {

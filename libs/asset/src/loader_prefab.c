@@ -131,6 +131,7 @@ typedef struct {
 typedef struct {
   String name;
   bool   isUnit;
+  bool   isVolatile;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -253,6 +254,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabDef);
     data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabDef, isUnit, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
     data_reg_struct_t(reg, AssetPrefabMapDef);
@@ -329,9 +331,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
-  if (def->isUnit) {
-    result |= AssetPrefabFlags_Unit;
-  }
+  result |= def->isUnit ? AssetPrefabFlags_Unit : 0;
+  result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
   return result;
 }
 
