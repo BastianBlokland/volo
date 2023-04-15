@@ -37,6 +37,7 @@ static void app_music_create(EcsWorld* world, AssetManagerComp* assets) {
       e,
       SceneSoundComp,
       .asset   = asset_lookup(world, assets, g_musicAssetName),
+      .pitch   = 1.0f,
       .gain    = g_musicGain,
       .looping = true);
 }
