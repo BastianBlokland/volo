@@ -5,8 +5,8 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
-#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -156,7 +156,7 @@ static u32 snd_object_count_in_phase(const SndMixerComp* m, const SndObjectPhase
   return count;
 }
 
-static void snd_mixer_history_set(SndMixerComp* m, const SndChannel channel, const f32 value) {
+static void snd_mixer_history_update(SndMixerComp* m, const SndChannel channel, const f32 value) {
   m->historyBuffer[m->historyCursor].samples[channel] = value;
 }
 
@@ -170,16 +170,14 @@ ecs_view_define(AssetView) {
   ecs_access_with(AssetLoadedComp);
 }
 
-ecs_view_define(GlobalUpdateView) { ecs_access_write(SndMixerComp); }
+ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
 
 ecs_system_define(SndMixerUpdateSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SndMixerComp)) {
     snd_mixer_create(world);
     return;
   }
-  EcsView*      globalView = ecs_world_view_t(world, GlobalUpdateView);
-  EcsIterator*  globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  SndMixerComp* m          = ecs_view_write_t(globalItr, SndMixerComp);
+  SndMixerComp* m = ecs_utils_write_t(world, MixerView, ecs_world_global(world), SndMixerComp);
 
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
@@ -241,15 +239,14 @@ INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, 
   return math_lerp(valA, valB, (f32)(frame - edgeA));
 }
 
-static bool snd_object_render(SndObject* obj, SndBuffer out, const f32 outPitch) {
+static bool snd_object_render(SndObject* obj, SndBuffer out) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
-  const f32 pitchTarget     = obj->pitchSetting * outPitch;
-  const f32 gainMult        = pitchTarget < f32_epsilon ? 0.0f : 1.0f;
+  const f32 gainMult        = obj->pitchSetting < f32_epsilon ? 0.0f : 1.0f;
   const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
 
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
-    math_towards_f32(&obj->pitchActual, pitchTarget, snd_mixer_pitch_adjust_per_frame);
+    math_towards_f32(&obj->pitchActual, obj->pitchSetting, snd_mixer_pitch_adjust_per_frame);
 
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
       const f32 gainTarget = obj->gainSetting[chan] * gainMult;
@@ -281,7 +278,7 @@ static void snd_mixer_write_to_device(
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
 
       // Add it to the history ring-buffer for analysis / debug purposes.
-      snd_mixer_history_set(m, channel, val);
+      snd_mixer_history_update(m, channel, val);
 
       // Write to the device buffer.
       const i16 clipped = val > 1.0 ? i16_max : (val < -1.0 ? i16_min : (i16)(val * i16_max));
@@ -291,19 +288,13 @@ static void snd_mixer_write_to_device(
   }
 }
 
-ecs_view_define(GlobalRenderView) {
-  ecs_access_read(SceneTimeSettingsComp);
-  ecs_access_write(SndMixerComp);
-}
-
 ecs_system_define(SndMixerRenderSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalRenderView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
+  EcsView*     mixerView = ecs_world_view_t(world, MixerView);
+  EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
+  if (!mixerItr) {
     return;
   }
-  const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
-  SndMixerComp*                m            = ecs_view_write_t(globalItr, SndMixerComp);
+  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
   if (snd_device_begin(m->device)) {
     const TimeSteady      renderStartTime = time_steady_clock();
@@ -319,14 +310,11 @@ ecs_system_define(SndMixerRenderSys) {
     // TODO: Support skipping the cursor of objects forward based on the device period time, this
     // is to keep the sound in-sync when the application was paused for some time.
 
-    // Base the output pitch on the time-scale.
-    const f32 outPitch = timeSettings->flags & SceneTimeFlags_Paused ? 0.0f : timeSettings->scale;
-
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
       if (obj->phase == SndObjectPhase_Playing) {
-        if (!snd_object_render(obj, soundBuffer, outPitch)) {
+        if (!snd_object_render(obj, soundBuffer)) {
           ++obj->phase;
         }
       }
@@ -344,11 +332,10 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_comp(SndMixerComp, .destructor = ecs_destruct_mixer_comp);
 
   ecs_register_view(AssetView);
-  ecs_register_view(GlobalUpdateView);
-  ecs_register_view(GlobalRenderView);
+  ecs_register_view(MixerView);
 
-  ecs_register_system(SndMixerUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(AssetView));
-  ecs_register_system(SndMixerRenderSys, ecs_view_id(GlobalRenderView));
+  ecs_register_system(SndMixerUpdateSys, ecs_view_id(MixerView), ecs_view_id(AssetView));
+  ecs_register_system(SndMixerRenderSys, ecs_view_id(MixerView));
 
   ecs_order(SndMixerRenderSys, SndOrder_Render);
 }
@@ -448,6 +435,9 @@ SndResult snd_object_set_pitch(SndMixerComp* m, const SndObjectId id, const f32 
   if (UNLIKELY(pitch < 0.0f || pitch > 10.0f)) {
     return SndResult_ParameterOutOfRange;
   }
+  if (obj->phase == SndObjectPhase_Setup) {
+    obj->pitchActual = pitch;
+  }
   obj->pitchSetting = pitch;
   return SndResult_Success;
 }
@@ -460,6 +450,9 @@ snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan
   }
   if (UNLIKELY(gain < 0.0f || gain > 10.0f)) {
     return SndResult_ParameterOutOfRange;
+  }
+  if (obj->phase == SndObjectPhase_Setup) {
+    obj->gainActual[chan] = gain;
   }
   obj->gainSetting[chan] = gain;
   return SndResult_Success;
