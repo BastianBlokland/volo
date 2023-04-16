@@ -187,7 +187,7 @@
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/burning-01.wav",
-          "gainMin": 0.8, "gainMax": 0.9,
+          "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.95, "pitchMax": 1.05,
           "looping": true
         }
@@ -486,8 +486,8 @@
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/explosion-01.wav",
-          "gainMin": 0.3, "gainMax": 0.5,
-          "pitchMin": 0.8, "pitchMax": 0.9
+          "gainMin": 0.9, "gainMax": 1.1,
+          "pitchMin": 0.85, "pitchMax": 1.05
         },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 }
       ]
