@@ -102,6 +102,8 @@ ecs_system_define(SndSourceUpdateSys) {
     const SndSourceComp*      sourceComp    = ecs_view_read_t(itr, SndSourceComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
 
+    const bool spatial = transformComp != null;
+
     if (!sourceComp) {
       if (!ecs_entity_valid(soundComp->asset)) {
         log_e("SceneSoundComp is missing an asset");
@@ -114,6 +116,9 @@ ecs_system_define(SndSourceUpdateSys) {
         snd_object_set_user_data(m, id, (u64)ecs_view_entity(itr));
         if (soundComp->looping) {
           snd_object_set_looping(m, id);
+          if (spatial) {
+            snd_object_set_random_cursor(m, id);
+          }
         }
         sourceComp = ecs_world_add_t(world, ecs_view_entity(itr), SndSourceComp, .objectId = id);
       } else {
@@ -121,7 +126,7 @@ ecs_system_define(SndSourceUpdateSys) {
       }
     }
 
-    if (transformComp) {
+    if (spatial) {
       const GeoVector sourcePos = transformComp->position;
       snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);
     } else {

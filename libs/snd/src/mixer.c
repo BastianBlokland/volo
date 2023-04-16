@@ -33,8 +33,9 @@ typedef enum {
 } SndObjectPhase;
 
 typedef enum {
-  SndObjectFlags_Stop    = 1 << 0,
-  SndObjectFlags_Looping = 1 << 1,
+  SndObjectFlags_Stop         = 1 << 0,
+  SndObjectFlags_Looping      = 1 << 1,
+  SndObjectFlags_RandomCursor = 1 << 2,
 } SndObjectFlags;
 
 typedef struct {
@@ -210,10 +211,11 @@ ecs_system_define(SndMixerUpdateSys) {
         obj->samples                     = soundAsset->samples;
         obj->phase                       = SndObjectPhase_Playing;
 
-        if (obj->flags & SndObjectFlags_Looping) {
-          // Randomize starting position.
+        if (obj->flags & SndObjectFlags_RandomCursor) {
           obj->cursor = rng_sample_range(g_rng, 0.0, (f64)obj->frameCount);
-        } else /* !looping */ {
+        }
+
+        if (!(obj->flags & SndObjectFlags_Looping)) {
           // Start playing at the desired gain (as opposed to looping sounds which will fade-in).
           for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
             obj->gainActual[chan] = obj->gainSetting[chan];
@@ -467,6 +469,15 @@ SndResult snd_object_set_looping(SndMixerComp* m, const SndObjectId id) {
     return SndResult_InvalidObjectPhase;
   }
   obj->flags |= SndObjectFlags_Looping;
+  return SndResult_Success;
+}
+
+SndResult snd_object_set_random_cursor(SndMixerComp* m, const SndObjectId id) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj || obj->phase != SndObjectPhase_Setup)) {
+    return SndResult_InvalidObjectPhase;
+  }
+  obj->flags |= SndObjectFlags_RandomCursor;
   return SndResult_Success;
 }
 
