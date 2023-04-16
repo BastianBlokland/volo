@@ -5,6 +5,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "snd_channel.h"
@@ -204,6 +205,16 @@ ecs_system_define(SndMixerUpdateSys) {
         obj->frameRate                   = soundAsset->frameRate;
         obj->samples                     = soundAsset->samples;
         obj->phase                       = SndObjectPhase_Playing;
+
+        if (obj->flags & SndObjectFlags_Looping) {
+          // Randomize starting position.
+          obj->cursor = rng_sample_range(g_rng, 0.0, (f64)obj->frameCount);
+        } else /* !looping */ {
+          // Start playing at the desired gain (as opposed to looping sounds which will fade-in).
+          for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+            obj->gainActual[chan] = obj->gainSetting[chan];
+          }
+        }
 
         const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
         m->objectNames[i]      = asset_id(asset);
