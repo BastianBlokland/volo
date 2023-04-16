@@ -24,6 +24,7 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
+static const bool      g_appMusic      = false;
 
 ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
 
@@ -182,7 +183,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  app_music_create(world, assets);
+  if (g_appMusic) {
+    app_music_create(world, assets);
+  }
 
   scene_level_load(world, string_lit("levels/default.lvl"));
   input_resource_init(world, string_lit("global/game-input.imp"));
