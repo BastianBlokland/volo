@@ -126,12 +126,25 @@ ecs_system_define(SndSourceUpdateSys) {
 
 ecs_view_define(CleanupGlobalView) { ecs_access_write(SndMixerComp); }
 
+ecs_view_define(CleanupView) {
+  ecs_access_with(SndSourceComp);
+  ecs_access_without(SceneSoundComp);
+}
+
 ecs_system_define(SndSourceCleanupSys) {
   EcsView*     globalView = ecs_world_view_t(world, CleanupGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+
+  // Remove SndSourceComp's where the SceneSoundComp has been removed.
+  EcsView* cleanupView = ecs_world_view_t(world, CleanupView);
+  for (EcsIterator* itr = ecs_view_itr(cleanupView); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), SndSourceComp);
+  }
+
+  // Stop playing any sound objects if the SndSourceComp has since been removed.
   SndMixerComp* m = ecs_view_write_t(globalItr, SndMixerComp);
   for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
     const EcsEntityId e = (EcsEntityId)snd_object_get_user_data(m, obj);
@@ -155,5 +168,6 @@ ecs_module_init(snd_source_module) {
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView));
 
-  ecs_register_system(SndSourceCleanupSys, ecs_register_view(CleanupGlobalView));
+  ecs_register_system(
+      SndSourceCleanupSys, ecs_register_view(CleanupGlobalView), ecs_register_view(CleanupView));
 }
