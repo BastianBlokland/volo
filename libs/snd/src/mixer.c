@@ -207,8 +207,13 @@ ecs_system_define(SndMixerUpdateSys) {
 
         const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
         m->objectNames[i]      = asset_id(asset);
+        continue; // Ready for playback.
+      } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
+        obj->phase = SndObjectPhase_Cleanup;
+        // Fallthrough.
+      } else {
+        continue; // Wait for the asset to load (or to fail).
       }
-      continue;
     case SndObjectPhase_Cleanup:
       asset_release(world, m->objectAssets[i]);
       snd_object_release(m, obj);
