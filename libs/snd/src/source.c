@@ -7,6 +7,8 @@
 #include "scene_transform.h"
 #include "snd_mixer.h"
 
+ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
+
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
 ecs_comp_define(SndSourceFailedComp);
 
@@ -102,6 +104,7 @@ ecs_system_define(SndSourceUpdateSys) {
       SndObjectId id;
       if (snd_object_new(m, &id) == SndResult_Success) {
         snd_object_set_asset(m, id, soundComp->asset);
+        snd_object_set_user_data(m, id, (u64)ecs_view_entity(itr));
         if (soundComp->looping) {
           snd_object_set_looping(m, id);
         }
