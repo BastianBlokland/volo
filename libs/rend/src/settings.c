@@ -6,6 +6,7 @@
 #include "rend_settings.h"
 
 #define VOLO_REND_GPU_DEBUG 0
+#define VOLO_REND_LOW_POWER 0
 
 ecs_comp_define_public(RendSettingsComp);
 ecs_comp_define_public(RendSettingsGlobalComp);
@@ -22,20 +23,27 @@ ecs_module_init(rend_settings_module) {
 
 void rend_settings_to_default(RendSettingsComp* s) {
   // clang-format off
-  s->flags = RendFlags_FrustumCulling       |
-             RendFlags_AmbientOcclusion     |
-             RendFlags_AmbientOcclusionBlur |
-             RendFlags_Bloom                |
-             RendFlags_Distortion           |
-             RendFlags_Decals               |
-             RendFlags_ParticleShadows;
+  s->flags =  RendFlags_FrustumCulling       |
+              RendFlags_Decals;
+#if !VOLO_REND_LOW_POWER
+  s->flags |= RendFlags_AmbientOcclusion     |
+              RendFlags_AmbientOcclusionBlur |
+              RendFlags_Bloom                |
+              RendFlags_Distortion           |
+              RendFlags_ParticleShadows;
+#endif
   // clang-format on
-  s->presentMode               = RendPresentMode_VSyncRelaxed;
-  s->ambientMode               = RendAmbientMode_SpecularIrradiance;
-  s->skyMode                   = RendSkyMode_None;
-  s->exposure                  = 1.0f;
-  s->tonemapper                = RendTonemapper_LinearSmooth;
-  s->resolutionScale           = 1.0f;
+
+  s->presentMode = RendPresentMode_VSyncRelaxed;
+  s->ambientMode = RendAmbientMode_SpecularIrradiance;
+  s->skyMode     = RendSkyMode_None;
+  s->exposure    = 1.0f;
+  s->tonemapper  = RendTonemapper_LinearSmooth;
+#if VOLO_REND_LOW_POWER
+  s->resolutionScale = 0.75f;
+#else
+  s->resolutionScale = 1.0f;
+#endif
   s->aoAngle                   = 80 * math_deg_to_rad;
   s->aoRadius                  = 0.5f;
   s->aoRadiusPower             = 2.5f;
@@ -52,8 +60,12 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = RendGlobalFlags_SunShadows | RendGlobalFlags_SunCoverage;
+  s->flags = RendGlobalFlags_SunShadows | RendGlobalFlags_SunCoverage;
+#if VOLO_REND_LOW_POWER
+  s->limiterFreq = 30;
+#else
   s->limiterFreq = 0;
+#endif
 
 #if VOLO_REND_GPU_DEBUG
   s->flags |= RendGlobalFlags_Validation | RendGlobalFlags_DebugGpu;
