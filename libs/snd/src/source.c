@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
@@ -16,18 +17,6 @@ typedef struct {
   GeoVector pos;
   GeoVector rightDir;
 } SndListener;
-
-ecs_view_define(UpdateGlobalView) {
-  ecs_access_write(SndMixerComp);
-  ecs_access_read(SceneTimeSettingsComp);
-}
-
-ecs_view_define(UpdateView) {
-  ecs_access_read(SceneSoundComp);
-  ecs_access_maybe_read(SndSourceComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_without(SndSourceFailedComp);
-}
 
 ecs_view_define(ListenerView) {
   ecs_access_with(SceneSoundListenerComp);
@@ -77,6 +66,18 @@ static void snd_source_update_spatial(
   snd_object_set_gain(m, srcComp->objectId, SndChannel_Right, sndComp->gain * rightAttenuation);
 }
 
+ecs_view_define(UpdateGlobalView) {
+  ecs_access_write(SndMixerComp);
+  ecs_access_read(SceneTimeSettingsComp);
+}
+
+ecs_view_define(UpdateView) {
+  ecs_access_read(SceneSoundComp);
+  ecs_access_maybe_read(SndSourceComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_without(SndSourceFailedComp);
+}
+
 ecs_system_define(SndSourceUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -123,17 +124,36 @@ ecs_system_define(SndSourceUpdateSys) {
   }
 }
 
+ecs_view_define(CleanupGlobalView) { ecs_access_write(SndMixerComp); }
+
+ecs_system_define(SndSourceCleanupSys) {
+  EcsView*     globalView = ecs_world_view_t(world, CleanupGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SndMixerComp* m = ecs_view_write_t(globalItr, SndMixerComp);
+  for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
+    const EcsEntityId e = (EcsEntityId)snd_object_get_user_data(m, obj);
+    diag_assert(ecs_entity_valid(e));
+
+    if (!ecs_world_exists(world, e) || !ecs_world_has_t(world, e, SndSourceComp)) {
+      snd_object_set_pitch(m, obj, 0);
+    }
+  }
+}
+
 ecs_module_init(snd_source_module) {
   ecs_register_comp(SndSourceComp);
   ecs_register_comp_empty(SndSourceFailedComp);
 
-  ecs_register_view(UpdateGlobalView);
-  ecs_register_view(UpdateView);
   ecs_register_view(ListenerView);
 
   ecs_register_system(
       SndSourceUpdateSys,
-      ecs_view_id(UpdateGlobalView),
-      ecs_view_id(UpdateView),
-      ecs_view_id(ListenerView));
+      ecs_view_id(ListenerView),
+      ecs_register_view(UpdateGlobalView),
+      ecs_register_view(UpdateView));
+
+  ecs_register_system(SndSourceCleanupSys, ecs_register_view(CleanupGlobalView));
 }
