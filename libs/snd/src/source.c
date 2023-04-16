@@ -11,7 +11,7 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const f32 g_sndSourceMaxDistance = 100.0f;
+static const f32 g_sndSourceMaxDistance = 200.0f;
 
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
 ecs_comp_define(SndSourceFailedComp);
