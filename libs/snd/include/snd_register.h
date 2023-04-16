@@ -2,7 +2,8 @@
 #include "ecs_def.h"
 
 enum {
-  SndOrder_Render = 1000,
+  SndOrder_Cleanup = -100,
+  SndOrder_Render  = 1000,
 };
 
 /**

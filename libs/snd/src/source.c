@@ -7,8 +7,11 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "snd_mixer.h"
+#include "snd_register.h"
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
+
+static const f32 g_sndSourceMaxDistance = 100.0f;
 
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
 ecs_comp_define(SndSourceFailedComp);
@@ -53,16 +56,19 @@ static void snd_source_update_spatial(
     const SndListener*    listener,
     const f32             timeScale) {
   const GeoVector toSource = geo_vector_sub(sourcePos, listener->pos);
-  const f32       dist     = geo_vector_mag(toSource);
-  const GeoVector dir      = dist < f32_epsilon ? geo_forward : geo_vector_div(toSource, dist);
-  const f32       pan      = geo_vector_dot(dir, listener->rightDir); // LR pan, -1 0 +1
+
+  const f32 dist            = geo_vector_mag(toSource);
+  const f32 distAttenuation = 1.0f - math_min(1, dist / g_sndSourceMaxDistance);
+
+  const GeoVector dir = dist < f32_epsilon ? geo_forward : geo_vector_div(toSource, dist);
+  const f32       pan = geo_vector_dot(dir, listener->rightDir); // LR pan, -1 0 +1
 
   snd_object_set_pitch(m, srcComp->objectId, sndComp->pitch * timeScale);
 
-  const f32 leftAttenuation = math_clamp_f32((-pan + 1.0f) * 0.5f, 0, 1);
+  const f32 leftAttenuation = math_clamp_f32(distAttenuation * (-pan + 1.0f) * 0.5f, 0.0f, 1.0f);
   snd_object_set_gain(m, srcComp->objectId, SndChannel_Left, sndComp->gain * leftAttenuation);
 
-  const f32 rightAttenuation = math_clamp_f32((pan + 1.0f) * 0.5f, 0, 1);
+  const f32 rightAttenuation = math_clamp_f32(distAttenuation * (pan + 1.0f) * 0.5f, 0.0f, 1.0f);
   snd_object_set_gain(m, srcComp->objectId, SndChannel_Right, sndComp->gain * rightAttenuation);
 }
 
@@ -170,4 +176,6 @@ ecs_module_init(snd_source_module) {
 
   ecs_register_system(
       SndSourceCleanupSys, ecs_register_view(CleanupGlobalView), ecs_register_view(CleanupView));
+
+  ecs_order(SndSourceCleanupSys, SndOrder_Cleanup);
 }
