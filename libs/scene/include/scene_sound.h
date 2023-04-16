@@ -7,3 +7,5 @@ ecs_comp_extern_public(SceneSoundComp) {
   f32         pitch, gain;
   bool        looping;
 };
+
+ecs_comp_extern_public(SceneSoundListenerComp);

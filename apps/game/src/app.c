@@ -55,6 +55,8 @@ static void app_window_create(EcsWorld* world) {
       .persNear  = 0.75f,
       .orthoSize = 5);
 
+  ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
+
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
 }
 
