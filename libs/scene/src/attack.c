@@ -15,6 +15,7 @@
 #include "scene_projectile.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
+#include "scene_sound.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -396,6 +397,38 @@ static EffectResult effect_update_vfx(
   return EffectResult_Done;
 }
 
+static EffectResult effect_update_sound(
+    const AttackCtx*              ctx,
+    const TimeDuration            effectTime,
+    const u32                     effectIndex,
+    const AssetWeaponEffectSound* def) {
+
+  if (effectTime < def->delay) {
+    return EffectResult_Running; // Waiting to execute.
+  }
+  if (!effect_execute_once(ctx, effectIndex)) {
+    return EffectResult_Done;
+  }
+
+  const EcsEntityId inst     = ctx->instigator;
+  const u32         jointIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
+  if (UNLIKELY(sentinel_check(jointIdx))) {
+    log_e("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
+    return EffectResult_Done;
+  }
+  const GeoMatrix mat   = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, jointIdx);
+  const GeoVector pos   = geo_matrix_to_translation(&mat);
+  const f32       gain  = rng_sample_range(g_rng, def->gainMin, def->gainMax);
+  const f32       pitch = rng_sample_range(g_rng, def->pitchMin, def->pitchMax);
+
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
+  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
+  ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
+
+  return EffectResult_Done;
+}
+
 static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effectTime) {
   diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->executedEffects) * 8);
 
@@ -414,6 +447,10 @@ static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effec
       break;
     case AssetWeaponEffect_Vfx:
       result |= effect_update_vfx(ctx, effectTime, i, &effect->data_vfx);
+      break;
+    case AssetWeaponEffect_Sound:
+      result |= effect_update_sound(ctx, effectTime, i, &effect->data_sound);
+      break;
     }
   }
   return result;
