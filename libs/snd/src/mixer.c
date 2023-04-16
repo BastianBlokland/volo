@@ -329,9 +329,9 @@ ecs_system_define(SndMixerRenderSys) {
   }
   SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
+  const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
-    const TimeSteady      renderStartTime = time_steady_clock();
-    const SndDevicePeriod period          = snd_device_period(m->device);
+    const SndDevicePeriod period = snd_device_period(m->device);
 
     SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
     const SndBuffer soundBuffer                      = {
