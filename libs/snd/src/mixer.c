@@ -8,6 +8,7 @@
 #include "core_rng.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -226,6 +227,7 @@ ecs_system_define(SndMixerUpdateSys) {
         m->objectNames[i]      = asset_id(asset);
         continue; // Ready for playback.
       } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
+        log_e("Failed to sound resource");
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
       } else {
