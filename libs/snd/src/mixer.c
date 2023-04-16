@@ -354,7 +354,7 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   obj->phase       = SndObjectPhase_Setup;
   obj->pitchActual = obj->pitchSetting = 1.0f;
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-    obj->gainActual[chan] = obj->gainSetting[chan] = 1.0f;
+    obj->gainSetting[chan] = 1.0f;
   }
   *outId = id;
   return SndResult_Success;
@@ -455,9 +455,6 @@ snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan
   }
   if (UNLIKELY(gain < 0.0f || gain > 10.0f)) {
     return SndResult_ParameterOutOfRange;
-  }
-  if (obj->phase == SndObjectPhase_Setup) {
-    obj->gainActual[chan] = gain;
   }
   obj->gainSetting[chan] = gain;
   return SndResult_Success;
