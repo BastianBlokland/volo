@@ -151,7 +151,7 @@ ecs_system_define(SndSourceCleanupSys) {
     diag_assert(ecs_entity_valid(e));
 
     if (!ecs_world_exists(world, e) || !ecs_world_has_t(world, e, SndSourceComp)) {
-      snd_object_set_pitch(m, obj, 0);
+      snd_object_stop(m, obj);
     }
   }
 }

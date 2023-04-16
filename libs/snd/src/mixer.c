@@ -33,7 +33,8 @@ typedef enum {
 } SndObjectPhase;
 
 typedef enum {
-  SndObjectFlags_Looping = 1 << 0,
+  SndObjectFlags_Stop    = 1 << 0,
+  SndObjectFlags_Looping = 1 << 1,
 } SndObjectFlags;
 
 typedef struct {
@@ -198,7 +199,10 @@ ecs_system_define(SndMixerUpdateSys) {
         continue;
       }
     case SndObjectPhase_Acquired:
-      if (ecs_view_maybe_jump(assetItr, m->objectAssets[i])) {
+      if (obj->flags & SndObjectFlags_Stop) {
+        obj->phase = SndObjectPhase_Cleanup;
+        // Fallthrough.
+      } else if (ecs_view_maybe_jump(assetItr, m->objectAssets[i])) {
         const AssetSoundComp* soundAsset = ecs_view_read_t(assetItr, AssetSoundComp);
         obj->frameChannels               = soundAsset->frameChannels;
         obj->frameCount                  = soundAsset->frameCount;
@@ -280,6 +284,17 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
       }
     }
   }
+
+  if (UNLIKELY(obj->flags & SndObjectFlags_Stop)) {
+    f32 gainMax = 0.0f;
+    for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+      gainMax = math_max(gainMax, obj->gainActual[chan]);
+    }
+    if (gainMax <= f32_epsilon) {
+      return false; // Stopped and finished fading out.
+    }
+  }
+
   return true; // Still playing.
 }
 
@@ -368,6 +383,18 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
     obj->gainSetting[chan] = 1.0f;
   }
   *outId = id;
+  return SndResult_Success;
+}
+
+SndResult snd_object_stop(SndMixerComp* m, const SndObjectId id) {
+  SndObject* obj = snd_object_get(m, id);
+  if (UNLIKELY(!obj)) {
+    return SndResult_InvalidObject;
+  }
+  obj->flags |= SndObjectFlags_Stop;
+  for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+    obj->gainSetting[chan] = 0.0f;
+  }
   return SndResult_Success;
 }
 
@@ -466,6 +493,9 @@ snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan
   }
   if (UNLIKELY(gain < 0.0f || gain > 10.0f)) {
     return SndResult_ParameterOutOfRange;
+  }
+  if (UNLIKELY(obj->flags & SndObjectFlags_Stop)) {
+    return SndResult_ObjectStopped;
   }
   obj->gainSetting[chan] = gain;
   return SndResult_Success;

@@ -16,6 +16,7 @@ typedef u32 SndObjectId;
  * Object apis.
  */
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
+SndResult snd_object_stop(SndMixerComp*, SndObjectId);
 u64       snd_object_get_user_data(const SndMixerComp*, SndObjectId);
 String    snd_object_get_name(const SndMixerComp*, SndObjectId);
 bool      snd_object_get_loading(const SndMixerComp*, SndObjectId);

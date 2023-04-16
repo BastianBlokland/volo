@@ -6,6 +6,7 @@ typedef enum {
   SndResult_FailedToAcquireObject,
   SndResult_InvalidObject,
   SndResult_InvalidObjectPhase,
+  SndResult_ObjectStopped,
   SndResult_ParameterOutOfRange,
 
   SndResult_Count,
