@@ -2,11 +2,8 @@
   "weapons": [
     {
       "name": "AssaultRifle",
-      "intervalMin": 0.15,
-      "intervalMax": 0.35,
-      "readySpeed": 2.5,
-      "readyMinTime": 3,
-      "readyAnim": "aim",
+      "intervalMin": 0.15, "intervalMax": 0.35,
+      "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
       "predictiveAim": true,
       "effects": [
         {
@@ -39,10 +36,8 @@
     },
     {
       "name": "Melee",
-      "intervalMin": 0,
-      "intervalMax": 0,
-      "readySpeed": 1000,
-      "readyMinTime": 0,
+      "intervalMin": 0, "intervalMax": 0,
+      "readySpeed": 1000, "readyMinTime": 0,
       "effects": [
         {
           "$type": "AssetWeaponEffect_Damage",
@@ -71,11 +66,8 @@
     },
     {
       "name": "TurretGun",
-      "intervalMin": 0,
-      "intervalMax": 0,
-      "readySpeed": 2.5,
-      "readyMinTime": 3,
-      "readyAnim": "aim",
+      "intervalMin": 0, "intervalMax": 0,
+      "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
       "predictiveAim": true,
       "effects": [
         {
@@ -109,11 +101,8 @@
     },
     {
       "name": "TurretMissile",
-      "intervalMin": 2,
-      "intervalMax": 2.5,
-      "readySpeed": 2,
-      "readyMinTime": 5,
-      "readyAnim": "aim",
+      "intervalMin": 2, "intervalMax": 2.5,
+      "readySpeed": 2, "readyMinTime": 5, "readyAnim": "aim",
       "effects": [
         {
           "$type": "AssetWeaponEffect_Projectile",
@@ -142,6 +131,15 @@
           "delay": 0,
           "duration": 2,
           "assetId": "vfx/game/launch.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 1.75,
+          "assetId": "external/sound/launch-01.wav",
+          "gainMin": 0.1, "gainMax": 0.15,
+          "pitchMin": 0.6, "pitchMax": 0.8
         }
       ]
     }
