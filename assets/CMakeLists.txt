@@ -144,6 +144,7 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_up.tga
       sound/blinded-by-the-light.wav
       sound/burning-01.wav
+      sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/gun-01.wav
       sound/gun-02.wav
