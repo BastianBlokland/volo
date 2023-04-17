@@ -101,6 +101,7 @@
           "weaponId": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
+          "aimSoundId": "external/sound/electric-motor-01.wav",
           "targetDistanceMax": 40,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
@@ -132,6 +133,7 @@
           "weaponId": "TurretMissile",
           "aimJoint": "turret",
           "aimSpeed": 90,
+          "aimSoundId": "external/sound/electric-motor-01.wav",
           "targetDistanceMin": 30,
           "targetDistanceMax": 75
         },
