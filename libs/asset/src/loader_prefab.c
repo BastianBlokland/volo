@@ -84,7 +84,7 @@ typedef struct {
 typedef struct {
   f32    amount;
   f32    deathDestroyDelay;
-  String deathVfxId;
+  String deathEffectPrefab; // Optional, empty if unused.
 } AssetPrefabTraitHealthDef;
 
 typedef struct {
@@ -219,7 +219,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitHealthDef);
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathDestroyDelay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathVfxId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathEffectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitAttackDef);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -442,7 +442,7 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathVfx          = prefab_asset_maybe_lookup(ctx, traitDef->data_health.deathVfxId),
+          .deathEffectPrefab = prefab_name_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
       break;
     case AssetPrefabTrait_Attack:

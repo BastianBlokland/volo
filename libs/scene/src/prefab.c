@@ -187,7 +187,7 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .norm              = 1.0f,
       .max               = t->amount,
       .deathDestroyDelay = t->deathDestroyDelay,
-      .deathVfx          = t->deathVfx);
+      .deathEffectPrefab = t->deathEffectPrefab);
 
   ecs_world_add_t(w, e, SceneDamageComp);
 }

@@ -94,7 +94,7 @@ typedef struct {
 typedef struct {
   f32          amount;
   TimeDuration deathDestroyDelay;
-  EcsEntityId  deathVfx; // Optional: 0 to disable.
+  StringHash   deathEffectPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitHealth;
 
 typedef struct {
