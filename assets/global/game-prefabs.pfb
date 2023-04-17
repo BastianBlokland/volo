@@ -94,7 +94,7 @@
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,
           "deathDestroyDelay": 0.8,
-          "deathVfxId": "vfx/game/explosion.vfx"
+          "deathEffectPrefab": "DeathTurret"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -126,7 +126,7 @@
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
           "deathDestroyDelay": 0.8,
-          "deathVfxId": "vfx/game/explosion.vfx"
+          "deathEffectPrefab": "DeathTurret"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -512,6 +512,13 @@
           "pitchMin": 0.75, "pitchMax": 1
         },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 }
+      ]
+    },
+    {
+      "name": "DeathTurret", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" },
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 3 }
       ]
     }
   ]
