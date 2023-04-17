@@ -209,6 +209,9 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         .aimSpeedRad = t->aimSpeedRad,
         .aimRotLocal = geo_quat_ident);
   }
+  if (t->aimSoundAsset) {
+    ecs_world_add_t(w, e, SceneAttackSoundComp, .aimSoundAsset = t->aimSoundAsset);
+  }
   SceneTargetFlags flags = 0;
   if (t->targetExcludeUnreachable) {
     flags |= SceneTarget_ConfigExcludeUnreachable;

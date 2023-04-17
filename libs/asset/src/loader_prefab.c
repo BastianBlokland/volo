@@ -91,6 +91,7 @@ typedef struct {
   String weaponId;
   String aimJoint;
   f32    aimSpeed; // Degrees per second.
+  String aimSoundId;
   f32    targetDistanceMin, targetDistanceMax;
   f32    targetLineOfSightRadius;
   bool   targetExcludeUnreachable;
@@ -224,6 +225,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSoundId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetDistanceMin, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetDistanceMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -305,6 +307,14 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
+
+static EcsEntityId prefab_asset_maybe_lookup(BuildCtx* ctx, const String id) {
+  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
+}
+
+static StringHash prefab_name_maybe_hash(const String name) {
+  return string_is_empty(name) ? 0 : string_hash(name);
+}
 
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
@@ -432,20 +442,17 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathVfx          = string_is_empty(traitDef->data_health.deathVfxId)
-                                   ? 0
-                                   : asset_lookup(ctx->world, manager, traitDef->data_health.deathVfxId),
+          .deathVfx          = prefab_asset_maybe_lookup(ctx, traitDef->data_health.deathVfxId),
       };
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon                   = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint                 = string_is_empty(traitDef->data_attack.aimJoint)
-                                          ? 0
-                                          : string_hash(traitDef->data_attack.aimJoint),
-          .aimSpeedRad              = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .targetDistanceMin        = traitDef->data_attack.targetDistanceMin,
-          .targetDistanceMax        = traitDef->data_attack.targetDistanceMax,
+          .weapon            = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint          = prefab_name_maybe_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad       = traitDef->data_attack.aimSpeed * math_deg_to_rad,
+          .aimSoundAsset     = prefab_asset_maybe_lookup(ctx, traitDef->data_attack.aimSoundId),
+          .targetDistanceMin = traitDef->data_attack.targetDistanceMin,
+          .targetDistanceMax = traitDef->data_attack.targetDistanceMax,
           .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,

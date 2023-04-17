@@ -98,13 +98,14 @@ typedef struct {
 } AssetPrefabTraitHealth;
 
 typedef struct {
-  StringHash weapon;
-  StringHash aimJoint;
-  f32        aimSpeedRad; // Radians per second.
-  f32        targetDistanceMin, targetDistanceMax;
-  f32        targetLineOfSightRadius;
-  bool       targetExcludeUnreachable;
-  bool       targetExcludeObscured;
+  StringHash  weapon;
+  StringHash  aimJoint;
+  f32         aimSpeedRad; // Radians per second.
+  EcsEntityId aimSoundAsset;
+  f32         targetDistanceMin, targetDistanceMax;
+  f32         targetLineOfSightRadius;
+  bool        targetExcludeUnreachable;
+  bool        targetExcludeObscured;
 } AssetPrefabTraitAttack;
 
 typedef struct {
