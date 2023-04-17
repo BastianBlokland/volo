@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
+#include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_tag.h"
@@ -110,13 +111,6 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
   }
 }
 
-static void health_spawn_death_vfx(EcsWorld* world, const GeoVector pos, const EcsEntityId vfx) {
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(3));
-  ecs_world_add_t(world, e, SceneVfxSystemComp, .asset = vfx, .alpha = 1.0f);
-}
-
 /**
  * Remove various components on death.
  * TODO: Find another way to handle this, health should't know about all these components.
@@ -195,8 +189,14 @@ ecs_system_define(SceneHealthUpdateSys) {
       if (anim && healthAnim) {
         health_anim_play_death(anim);
       }
-      if (trans && health->deathVfx) {
-        health_spawn_death_vfx(world, trans->position, health->deathVfx);
+      if (trans && health->deathEffectPrefab) {
+        scene_prefab_spawn(
+            world,
+            &(ScenePrefabSpec){
+                .prefabId = health->deathEffectPrefab,
+                .faction  = SceneFaction_None,
+                .position = trans->position,
+                .rotation = geo_quat_ident});
       }
       ecs_world_add_t(
           world, entity, SceneLifetimeDurationComp, .duration = health->deathDestroyDelay);

@@ -18,6 +18,7 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
+#include "scene_sound.h"
 #include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -143,6 +144,13 @@ static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDe
   ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
 }
 
+static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
+  const f32 gain  = rng_sample_range(g_rng, t->gainMin, t->gainMax);
+  const f32 pitch = rng_sample_range(g_rng, t->pitchMin, t->pitchMax);
+  ecs_world_add_t(
+      w, e, SceneSoundComp, .asset = t->asset, .gain = gain, .pitch = pitch, .looping = t->looping);
+}
+
 static void setup_lifetime(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitLifetime* t) {
   ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
 }
@@ -179,7 +187,7 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .norm              = 1.0f,
       .max               = t->amount,
       .deathDestroyDelay = t->deathDestroyDelay,
-      .deathVfx          = t->deathVfx);
+      .deathEffectPrefab = t->deathEffectPrefab);
 
   ecs_world_add_t(w, e, SceneDamageComp);
 }
@@ -200,6 +208,9 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         .aimJoint    = t->aimJoint,
         .aimSpeedRad = t->aimSpeedRad,
         .aimRotLocal = geo_quat_ident);
+  }
+  if (t->aimSoundAsset) {
+    ecs_world_add_t(w, e, SceneAttackSoundComp, .aimSoundAsset = t->aimSoundAsset);
   }
   SceneTargetFlags flags = 0;
   if (t->targetExcludeUnreachable) {
@@ -292,6 +303,9 @@ static void setup_trait(
   case AssetPrefabTrait_Decal:
     setup_vfx_decal(w, e, &t->data_decal);
     return;
+  case AssetPrefabTrait_Sound:
+    setup_sound(w, e, &t->data_sound);
+    return;
   case AssetPrefabTrait_Lifetime:
     setup_lifetime(w, e, &t->data_lifetime);
     return;
@@ -332,12 +346,16 @@ static void setup_prefab(
     const ScenePrefabSpec*    spec,
     const AssetPrefabMapComp* map) {
 
-  ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
+  ScenePrefabInstanceComp* instanceComp =
+      ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
+
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
     return;
   }
+  instanceComp->isVolatile = (prefab->flags & AssetPrefabFlags_Volatile) != 0;
+
   GeoVector spawnPos = spec->position;
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
     scene_terrain_snap(terrain, &spawnPos);

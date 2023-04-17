@@ -12,6 +12,7 @@ typedef enum {
   AssetWeaponEffect_Damage,
   AssetWeaponEffect_Animation,
   AssetWeaponEffect_Vfx,
+  AssetWeaponEffect_Sound,
 } AssetWeaponEffectType;
 
 typedef struct {
@@ -20,9 +21,9 @@ typedef struct {
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;
-  TimeDuration delay, lifetime, destroyDelay, impactLifetime;
-  EcsEntityId  vfxProjectile, vfxImpact;
-  EcsEntityId  decalImpact; // Optional, 0 if unused.
+  TimeDuration delay, lifetime, destroyDelay;
+  EcsEntityId  vfxProjectile;
+  StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectProj;
 
 typedef struct {
@@ -49,12 +50,21 @@ typedef struct {
 } AssetWeaponEffectVfx;
 
 typedef struct {
+  StringHash   originJoint;
+  TimeDuration delay, duration;
+  EcsEntityId  asset;
+  f32          gainMin, gainMax;
+  f32          pitchMin, pitchMax;
+} AssetWeaponEffectSound;
+
+typedef struct {
   AssetWeaponEffectType type;
   union {
-    AssetWeaponEffectProj data_proj;
-    AssetWeaponEffectDmg  data_dmg;
-    AssetWeaponEffectAnim data_anim;
-    AssetWeaponEffectVfx  data_vfx;
+    AssetWeaponEffectProj  data_proj;
+    AssetWeaponEffectDmg   data_dmg;
+    AssetWeaponEffectAnim  data_anim;
+    AssetWeaponEffectVfx   data_vfx;
+    AssetWeaponEffectSound data_sound;
   };
 } AssetWeaponEffect;
 

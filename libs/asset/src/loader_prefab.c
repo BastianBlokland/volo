@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
@@ -58,6 +59,13 @@ typedef struct {
 } AssetPrefabTraitDecalDef;
 
 typedef struct {
+  String assetId;
+  f32    gainMin, gainMax;
+  f32    pitchMin, pitchMax;
+  bool   looping;
+} AssetPrefabTraitSoundDef;
+
+typedef struct {
   f32 duration;
 } AssetPrefabTraitLifetimeDef;
 
@@ -76,13 +84,14 @@ typedef struct {
 typedef struct {
   f32    amount;
   f32    deathDestroyDelay;
-  String deathVfxId;
+  String deathEffectPrefab; // Optional, empty if unused.
 } AssetPrefabTraitHealthDef;
 
 typedef struct {
   String weaponId;
   String aimJoint;
   f32    aimSpeed; // Degrees per second.
+  String aimSoundId;
   f32    targetDistanceMin, targetDistanceMax;
   f32    targetLineOfSightRadius;
   bool   targetExcludeUnreachable;
@@ -112,6 +121,7 @@ typedef struct {
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
+    AssetPrefabTraitSoundDef      data_sound;
     AssetPrefabTraitLifetimeDef   data_lifetime;
     AssetPrefabTraitMovementDef   data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
@@ -126,6 +136,7 @@ typedef struct {
 typedef struct {
   String name;
   bool   isUnit;
+  bool   isVolatile;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -182,6 +193,14 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitDecalDef);
     data_reg_field_t(reg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitSoundDef);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, looping, data_prim_t(bool), .flags = DataFlags_Opt);
+
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
@@ -200,12 +219,13 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitHealthDef);
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathDestroyDelay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathVfxId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitHealthDef, deathEffectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitAttackDef);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitAttackDef, aimSoundId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetDistanceMin, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetDistanceMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitAttackDef, targetLineOfSightRadius, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -231,6 +251,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetimeDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
@@ -244,6 +265,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabDef);
     data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabDef, isUnit, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
     data_reg_struct_t(reg, AssetPrefabMapDef);
@@ -286,6 +308,14 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
+static EcsEntityId prefab_asset_maybe_lookup(BuildCtx* ctx, const String id) {
+  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
+}
+
+static StringHash prefab_name_maybe_hash(const String name) {
+  return string_is_empty(name) ? 0 : string_hash(name);
+}
+
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
@@ -320,9 +350,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
-  if (def->isUnit) {
-    result |= AssetPrefabFlags_Unit;
-  }
+  result |= def->isUnit ? AssetPrefabFlags_Unit : 0;
+  result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
   return result;
 }
 
@@ -372,6 +401,20 @@ static void prefab_build(
           .asset = asset_lookup(ctx->world, manager, traitDef->data_decal.assetId),
       };
       break;
+    case AssetPrefabTrait_Sound: {
+      const AssetPrefabTraitSoundDef* soundDef = &traitDef->data_sound;
+      const f32 gainMin    = soundDef->gainMin < f32_epsilon ? 1.0f : soundDef->gainMin;
+      const f32 pitchMin   = soundDef->pitchMin < f32_epsilon ? 1.0f : soundDef->pitchMin;
+      outTrait->data_sound = (AssetPrefabTraitSound){
+          .asset    = asset_lookup(ctx->world, manager, soundDef->assetId),
+          .gainMin  = gainMin,
+          .gainMax  = math_max(gainMin, soundDef->gainMax),
+          .pitchMin = pitchMin,
+          .pitchMax = math_max(pitchMin, soundDef->pitchMax),
+          .looping  = soundDef->looping,
+      };
+      break;
+    }
     case AssetPrefabTrait_Lifetime:
       outTrait->data_lifetime = (AssetPrefabTraitLifetime){
           .duration = (TimeDuration)time_seconds(traitDef->data_lifetime.duration),
@@ -399,20 +442,17 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathVfx          = string_is_empty(traitDef->data_health.deathVfxId)
-                                   ? 0
-                                   : asset_lookup(ctx->world, manager, traitDef->data_health.deathVfxId),
+          .deathEffectPrefab = prefab_name_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon                   = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint                 = string_is_empty(traitDef->data_attack.aimJoint)
-                                          ? 0
-                                          : string_hash(traitDef->data_attack.aimJoint),
-          .aimSpeedRad              = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .targetDistanceMin        = traitDef->data_attack.targetDistanceMin,
-          .targetDistanceMax        = traitDef->data_attack.targetDistanceMax,
+          .weapon            = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint          = prefab_name_maybe_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad       = traitDef->data_attack.aimSpeed * math_deg_to_rad,
+          .aimSoundAsset     = prefab_asset_maybe_lookup(ctx, traitDef->data_attack.aimSoundId),
+          .targetDistanceMin = traitDef->data_attack.targetDistanceMin,
+          .targetDistanceMax = traitDef->data_attack.targetDistanceMax,
           .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,

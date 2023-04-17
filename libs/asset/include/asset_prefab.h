@@ -41,6 +41,7 @@ typedef enum {
   AssetPrefabTrait_Renderable,
   AssetPrefabTrait_Vfx,
   AssetPrefabTrait_Decal,
+  AssetPrefabTrait_Sound,
   AssetPrefabTrait_Lifetime,
   AssetPrefabTrait_Movement,
   AssetPrefabTrait_Footstep,
@@ -68,6 +69,13 @@ typedef struct {
 } AssetPrefabTraitDecal;
 
 typedef struct {
+  EcsEntityId asset;
+  f32         gainMin, gainMax;
+  f32         pitchMin, pitchMax;
+  bool        looping;
+} AssetPrefabTraitSound;
+
+typedef struct {
   TimeDuration duration;
 } AssetPrefabTraitLifetime;
 
@@ -86,17 +94,18 @@ typedef struct {
 typedef struct {
   f32          amount;
   TimeDuration deathDestroyDelay;
-  EcsEntityId  deathVfx; // Optional: 0 to disable.
+  StringHash   deathEffectPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitHealth;
 
 typedef struct {
-  StringHash weapon;
-  StringHash aimJoint;
-  f32        aimSpeedRad; // Radians per second.
-  f32        targetDistanceMin, targetDistanceMax;
-  f32        targetLineOfSightRadius;
-  bool       targetExcludeUnreachable;
-  bool       targetExcludeObscured;
+  StringHash  weapon;
+  StringHash  aimJoint;
+  f32         aimSpeedRad; // Radians per second.
+  EcsEntityId aimSoundAsset;
+  f32         targetDistanceMin, targetDistanceMax;
+  f32         targetLineOfSightRadius;
+  bool        targetExcludeUnreachable;
+  bool        targetExcludeObscured;
 } AssetPrefabTraitAttack;
 
 typedef struct {
@@ -122,6 +131,7 @@ typedef struct {
     AssetPrefabTraitRenderable data_renderable;
     AssetPrefabTraitVfx        data_vfx;
     AssetPrefabTraitDecal      data_decal;
+    AssetPrefabTraitSound      data_sound;
     AssetPrefabTraitLifetime   data_lifetime;
     AssetPrefabTraitMovement   data_movement;
     AssetPrefabTraitFootstep   data_footstep;
@@ -134,7 +144,8 @@ typedef struct {
 } AssetPrefabTrait;
 
 typedef enum {
-  AssetPrefabFlags_Unit = 1 << 0,
+  AssetPrefabFlags_Unit     = 1 << 0,
+  AssetPrefabFlags_Volatile = 1 << 1, // Prefab should not be persisted.
 } AssetPrefabFlags;
 
 typedef struct {

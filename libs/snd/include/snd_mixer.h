@@ -16,6 +16,8 @@ typedef u32 SndObjectId;
  * Object apis.
  */
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
+SndResult snd_object_stop(SndMixerComp*, SndObjectId);
+u64       snd_object_get_user_data(const SndMixerComp*, SndObjectId);
 String    snd_object_get_name(const SndMixerComp*, SndObjectId);
 bool      snd_object_get_loading(const SndMixerComp*, SndObjectId);
 u32       snd_object_get_frame_count(const SndMixerComp*, SndObjectId);
@@ -23,8 +25,13 @@ u32       snd_object_get_frame_rate(const SndMixerComp*, SndObjectId);
 u8        snd_object_get_frame_channels(const SndMixerComp*, SndObjectId);
 f64       snd_object_get_cursor(const SndMixerComp*, SndObjectId);
 f32       snd_object_get_pitch(const SndMixerComp*, SndObjectId);
+f32       snd_object_get_gain(const SndMixerComp*, SndObjectId, SndChannel);
 SndResult snd_object_set_asset(SndMixerComp*, SndObjectId, EcsEntityId asset);
+SndResult snd_object_set_user_data(SndMixerComp*, SndObjectId, u64 userData);
+SndResult snd_object_set_looping(SndMixerComp*, SndObjectId);
+SndResult snd_object_set_random_cursor(SndMixerComp*, SndObjectId);
 SndResult snd_object_set_pitch(SndMixerComp*, SndObjectId, f32 pitch);
+SndResult snd_object_set_gain(SndMixerComp*, SndObjectId, SndChannel, f32 gain);
 
 /**
  * Iterate through the active sound objects.

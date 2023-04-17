@@ -24,14 +24,23 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
+static const bool      g_appMusic      = false;
 
 ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
 
 static void app_music_create(EcsWorld* world, AssetManagerComp* assets) {
   static const String g_musicAssetName = string_static("external/sound/blinded-by-the-light.wav");
+  static const f32    g_musicGain      = 0.6f;
 
   const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = asset_lookup(world, assets, g_musicAssetName));
+  ecs_world_add_t(
+      world,
+      e,
+      SceneSoundComp,
+      .asset   = asset_lookup(world, assets, g_musicAssetName),
+      .pitch   = 1.0f,
+      .gain    = g_musicGain,
+      .looping = true);
 }
 
 static void app_window_create(EcsWorld* world) {
@@ -46,6 +55,8 @@ static void app_window_create(EcsWorld* world) {
       .persFov   = 50 * math_deg_to_rad,
       .persNear  = 0.75f,
       .orthoSize = 5);
+
+  ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
 
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
 }
@@ -172,7 +183,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  app_music_create(world, assets);
+  if (g_appMusic) {
+    app_music_create(world, assets);
+  }
 
   scene_level_load(world, string_lit("levels/default.lvl"));
   input_resource_init(world, string_lit("global/game-input.imp"));

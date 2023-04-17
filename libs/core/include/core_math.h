@@ -59,6 +59,7 @@ u64 math_pow10_u64(u8);
  * Computes the remainder of dividing x by y.
  */
 f32 math_mod_f32(f32 x, f32 y);
+f64 math_mod_f64(f64 x, f64 y);
 
 /**
  * Return the square-root of the given value.

@@ -8,7 +8,8 @@
 ecs_comp_extern(SceneTransformComp);
 
 typedef enum {
-  SceneAttackFlags_Firing = 1 << 0,
+  SceneAttackFlags_Firing   = 1 << 0,
+  SceneAttackFlags_Readying = 1 << 1,
 } SceneAttackFlags;
 
 ecs_comp_extern_public(SceneAttackComp) {
@@ -25,7 +26,13 @@ ecs_comp_extern_public(SceneAttackComp) {
 ecs_comp_extern_public(SceneAttackAimComp) {
   StringHash aimJoint;
   f32        aimSpeedRad; // Radians per second.
+  bool       isAiming;
   GeoQuat    aimRotLocal;
+};
+
+ecs_comp_extern_public(SceneAttackSoundComp) {
+  EcsEntityId aimSoundAsset;
+  EcsEntityId aimSoundInst;
 };
 
 /**

@@ -6,6 +6,7 @@
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
+#include "scene_prefab.h"
 #include "scene_projectile.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
@@ -98,14 +99,15 @@ static void projectile_impact_spawn(
     const SceneProjectileComp* projectile,
     const GeoVector            pos,
     const GeoVector            norm) {
-  const EcsEntityId e   = ecs_world_entity_create(world);
-  const GeoQuat     rot = geo_quat_look(norm, geo_up);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = projectile->impactLifetime);
-  ecs_world_add_t(world, e, SceneVfxSystemComp, .asset = projectile->impactVfx, .alpha = 1.0f);
-  if (projectile->impactDecal) {
-    ecs_world_add_t(world, e, SceneVfxDecalComp, .asset = projectile->impactDecal, .alpha = 1.0f);
-  }
+
+  scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = projectile->impactPrefab,
+          .faction  = SceneFaction_None,
+          .position = pos,
+          .rotation = geo_quat_look(norm, geo_up),
+      });
 }
 
 static void projectile_hit(
@@ -121,7 +123,7 @@ static void projectile_hit(
   ecs_world_remove_t(world, projEntity, SceneProjectileComp);
   ecs_world_add_t(world, projEntity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
 
-  if (proj->impactVfx) {
+  if (proj->impactPrefab) {
     projectile_impact_spawn(world, proj, hitPos, hitNormal);
   }
 
