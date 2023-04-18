@@ -126,6 +126,8 @@ ecs_system_define(SndSourceUpdateSys) {
       }
     }
 
+    // TODO: Skip objects that already finished playing on the mixer.
+
     if (spatial) {
       const GeoVector sourcePos = transformComp->position;
       snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);
