@@ -11,12 +11,11 @@
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
           "delay": 0.035,
-          "lifetime": 2,
           "spreadAngle": 1,
           "speed": 55,
           "damage": 15,
           "destroyDelay": 0.05,
-          "vfxIdProjectile": "vfx/game/projectile.vfx",
+          "projectilePrefab": "ProjectileBullet",
           "impactPrefab": "ImpactAssaultRifle"
         },
         {
@@ -75,12 +74,11 @@
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
           "delay": 0.025,
-          "lifetime": 1.5,
           "spreadAngle": 0.5,
           "speed": 55,
           "damage": 75,
           "destroyDelay": 0.05,
-          "vfxIdProjectile": "vfx/game/projectile.vfx",
+          "projectilePrefab": "ProjectileBullet",
           "impactPrefab": "ImpactTurretGun"
         },
         {
@@ -118,13 +116,12 @@
           "originJoint": "muzzle",
           "seekTowardsTarget": true,
           "delay": 0.075,
-          "lifetime": 7,
           "spreadAngle": 10,
           "speed": 20,
           "damage": 250,
           "damageRadius": 3,
           "destroyDelay": 0.75,
-          "vfxIdProjectile": "vfx/game/projectile_missile.vfx",
+          "projectilePrefab": "ProjectileMissile",
           "impactPrefab": "ImpactMissile"
         },
         {

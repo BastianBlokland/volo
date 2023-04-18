@@ -21,8 +21,8 @@ typedef struct {
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;
-  TimeDuration delay, lifetime, destroyDelay;
-  EcsEntityId  vfxProjectile;
+  TimeDuration delay, destroyDelay;
+  StringHash   projectilePrefab;
   StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectProj;
 
