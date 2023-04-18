@@ -484,6 +484,7 @@
     {
       "name": "ImpactMissile", "isVolatile": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion.dcl" },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" },
         {
@@ -491,8 +492,7 @@
           "assetId": "external/sound/explosion-01.wav",
           "gainMin": 0.9, "gainMax": 1.1,
           "pitchMin": 0.85, "pitchMax": 1.05
-        },
-        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 }
+        }
       ]
     },
     {
@@ -518,8 +518,15 @@
     {
       "name": "DeathTurret", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Lifetime", "duration": 3 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" }
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion.dcl" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/explosion-02.wav",
+          "gainMin": 0.9, "gainMax": 1.0,
+          "pitchMin": 1.0, "pitchMax": 1.1
+        }
       ]
     },
     {
