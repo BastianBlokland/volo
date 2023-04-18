@@ -30,6 +30,15 @@
           "delay": 0,
           "duration": 0.5,
           "assetId": "vfx/game/muzzleflash.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 0.75,
+          "assetId": "external/sound/gun-03.wav",
+          "gainMin": 0.35, "gainMax": 0.4,
+          "pitchMin": 0.9, "pitchMax": 1.1
         }
       ]
     },
