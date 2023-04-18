@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
@@ -8,6 +9,7 @@
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
 #include "scene_projectile.h"
+#include "scene_sound.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -121,6 +123,7 @@ static void projectile_hit(
     const EcsEntityId            hitEntity) {
 
   ecs_world_remove_t(world, projEntity, SceneProjectileComp);
+  ecs_utils_maybe_remove_t(world, projEntity, SceneSoundComp);
   ecs_world_add_t(world, projEntity, SceneLifetimeDurationComp, .duration = proj->destroyDelay);
 
   if (proj->impactPrefab) {
@@ -195,9 +198,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

@@ -552,7 +552,14 @@
       "name": "ProjectileMissile", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 7 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_missile.vfx" }
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_missile.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/projectile-loop-01.wav",
+          "gainMin": 0.4, "gainMax": 0.5,
+          "pitchMin": 0.9, "pitchMax": 1.1,
+          "looping": true
+        }
       ]
     }
   ]
