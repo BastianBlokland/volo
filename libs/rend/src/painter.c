@@ -75,7 +75,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
     [RendPass_Forward] =
         {
             // Attachment depth.
-            .attachDepth     = RvkPassDepth_Transient,
+            .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
             .attachDepthLoad = RvkPassLoad_Preserve,
 
             // Attachment color 0: color (rgb).
@@ -87,7 +87,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         {
             // Attachment depth.
             .attachDepth     = RvkPassDepth_Transient,
-            .attachDepthLoad = RvkPassLoad_PreserveDontCheck,
+            .attachDepthLoad = RvkPassLoad_Preserve,
 
             // Attachment color 0: distortion-offset(rg).
             .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
