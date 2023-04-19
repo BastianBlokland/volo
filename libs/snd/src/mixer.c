@@ -196,10 +196,9 @@ ecs_system_define(SndMixerUpdateSys) {
       if (m->objectAssets[i]) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
-        // Fallthrough.
-      } else {
-        continue;
+        // NOTE: We need to wait until the frame for the acquire to be processed before playing.
       }
+      continue;
     case SndObjectPhase_Acquired:
       if (obj->flags & SndObjectFlags_Stop) {
         obj->phase = SndObjectPhase_Cleanup;
