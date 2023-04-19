@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -11,19 +12,78 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-static const f32 g_sndSourceMaxDistance = 200.0f;
-
-ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
-ecs_comp_define(SndSourceFailedComp);
+#define snd_source_max_distance 200.0f
+#define snd_source_event_max_time time_milliseconds(100)
+#define snd_source_event_distance 10.0f
 
 typedef struct {
-  GeoVector pos;
-  GeoVector rightDir;
+  GeoVector position;
+  GeoVector tangent;
 } SndListener;
+
+typedef struct {
+  EcsEntityId  soundAsset;
+  TimeDuration timestamp;
+  GeoVector    position;
+} SndEvent;
+
+ecs_comp_define(SndEventMapComp) {
+  DynArray events; // SndEvent[]
+};
+
+ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
+
+ecs_comp_define(SndSourceDiscardComp);
+
+static void ecs_destruct_event_map_comp(void* data) {
+  SndEventMapComp* map = data;
+  dynarray_destroy(&map->events);
+}
 
 ecs_view_define(ListenerView) {
   ecs_access_with(SceneSoundListenerComp);
   ecs_access_read(SceneTransformComp);
+}
+
+static SndEventMapComp* snd_event_map_init(EcsWorld* world) {
+  return ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      SndEventMapComp,
+      .events = dynarray_create_t(g_alloc_heap, SndEvent, 64));
+}
+
+static void snd_event_map_prune_older(SndEventMapComp* map, const TimeDuration timestamp) {
+  const SndEvent* events = dynarray_begin_t(&map->events, SndEvent);
+  usize           index  = 0;
+  for (; index != map->events.size && events[index].timestamp < timestamp; ++index)
+    ;
+  dynarray_remove(&map->events, 0, index);
+}
+
+static bool snd_event_map_has(SndEventMapComp* map, const EcsEntityId sound, const GeoVector pos) {
+  dynarray_for_t(&map->events, SndEvent, evt) {
+    if (evt->soundAsset != sound) {
+      continue;
+    }
+    const f32 distSqr = geo_vector_mag_sqr(geo_vector_sub(pos, evt->position));
+    if (distSqr < (snd_source_event_distance * snd_source_event_distance)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void snd_event_map_add(
+    SndEventMapComp*   map,
+    const TimeDuration timestamp,
+    const EcsEntityId  sound,
+    const GeoVector    pos) {
+  *dynarray_push_t(&map->events, SndEvent) = (SndEvent){
+      .timestamp  = timestamp,
+      .soundAsset = sound,
+      .position   = pos,
+  };
 }
 
 static SndListener snd_listener(EcsWorld* world) {
@@ -32,11 +92,11 @@ static SndListener snd_listener(EcsWorld* world) {
   if (listenerItr) {
     const SceneTransformComp* trans = ecs_view_read_t(listenerItr, SceneTransformComp);
     return (SndListener){
-        .pos      = trans->position,
-        .rightDir = geo_quat_rotate(trans->rotation, geo_right),
+        .position = trans->position,
+        .tangent  = geo_quat_rotate(trans->rotation, geo_right),
     };
   }
-  return (SndListener){.rightDir = geo_right};
+  return (SndListener){.position = geo_vector(0), .tangent = geo_right};
 }
 
 static void snd_source_update_constant(
@@ -55,13 +115,13 @@ static void snd_source_update_spatial(
     const GeoVector       sourcePos,
     const SndListener*    listener,
     const f32             timeScale) {
-  const GeoVector toSource = geo_vector_sub(sourcePos, listener->pos);
+  const GeoVector toSource = geo_vector_sub(sourcePos, listener->position);
 
   const f32 dist            = geo_vector_mag(toSource);
-  const f32 distAttenuation = 1.0f - math_min(1, dist / g_sndSourceMaxDistance);
+  const f32 distAttenuation = 1.0f - math_min(1, dist / snd_source_max_distance);
 
   const GeoVector dir = dist < f32_epsilon ? geo_forward : geo_vector_div(toSource, dist);
-  const f32       pan = geo_vector_dot(dir, listener->rightDir); // LR pan, -1 0 +1
+  const f32       pan = geo_vector_dot(dir, listener->tangent); // LR pan, -1 0 +1
 
   snd_object_set_pitch(m, srcComp->objectId, sndComp->pitch * timeScale);
 
@@ -74,6 +134,8 @@ static void snd_source_update_spatial(
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_write(SndMixerComp);
+  ecs_access_maybe_write(SndEventMapComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneTimeSettingsComp);
 }
 
@@ -81,7 +143,7 @@ ecs_view_define(UpdateView) {
   ecs_access_read(SceneSoundComp);
   ecs_access_maybe_read(SndSourceComp);
   ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_without(SndSourceFailedComp);
+  ecs_access_without(SndSourceDiscardComp);
 }
 
 ecs_system_define(SndSourceUpdateSys) {
@@ -91,7 +153,16 @@ ecs_system_define(SndSourceUpdateSys) {
     return;
   }
   SndMixerComp*                m            = ecs_view_write_t(globalItr, SndMixerComp);
+  const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
+
+  SndEventMapComp* eventMap = ecs_view_write_t(globalItr, SndEventMapComp);
+  if (eventMap) {
+    const TimeSteady oldestEventToKeep = time->realTime - snd_source_event_max_time;
+    snd_event_map_prune_older(eventMap, oldestEventToKeep);
+  } else {
+    eventMap = snd_event_map_init(world);
+  }
 
   const SndListener listener = snd_listener(world);
   const f32 timeScale = timeSettings->flags & SceneTimeFlags_Paused ? 0.0f : timeSettings->scale;
@@ -101,13 +172,18 @@ ecs_system_define(SndSourceUpdateSys) {
     const SceneSoundComp*     soundComp     = ecs_view_read_t(itr, SceneSoundComp);
     const SndSourceComp*      sourceComp    = ecs_view_read_t(itr, SndSourceComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
-
-    const bool spatial = transformComp != null;
+    const bool                spatial       = transformComp != null;
+    const GeoVector           sourcePos     = spatial ? transformComp->position : geo_vector(0);
 
     if (!sourceComp) {
       if (!ecs_entity_valid(soundComp->asset)) {
         log_e("SceneSoundComp is missing an asset");
-        ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceFailedComp);
+        ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
+        continue;
+      }
+      // Skip duplicate (same sound in a close proximity) sounds.
+      if (!soundComp->looping && snd_event_map_has(eventMap, soundComp->asset, sourcePos)) {
+        ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
         continue;
       }
       SndObjectId id;
@@ -121,6 +197,9 @@ ecs_system_define(SndSourceUpdateSys) {
           }
         }
         sourceComp = ecs_world_add_t(world, ecs_view_entity(itr), SndSourceComp, .objectId = id);
+        if (!soundComp->looping) {
+          snd_event_map_add(eventMap, time->realTime, soundComp->asset, sourcePos);
+        }
       } else {
         continue; // Failed to create a sound-object; retry next tick.
       }
@@ -129,7 +208,6 @@ ecs_system_define(SndSourceUpdateSys) {
     // TODO: Skip objects that already finished playing on the mixer.
 
     if (spatial) {
-      const GeoVector sourcePos = transformComp->position;
       snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);
     } else {
       snd_source_update_constant(m, soundComp, sourceComp);
@@ -170,8 +248,9 @@ ecs_system_define(SndSourceCleanupSys) {
 }
 
 ecs_module_init(snd_source_module) {
+  ecs_register_comp(SndEventMapComp, .destructor = ecs_destruct_event_map_comp);
   ecs_register_comp(SndSourceComp);
-  ecs_register_comp_empty(SndSourceFailedComp);
+  ecs_register_comp_empty(SndSourceDiscardComp);
 
   ecs_register_view(ListenerView);
 
