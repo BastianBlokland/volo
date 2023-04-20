@@ -12,7 +12,7 @@
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 
-#define snd_source_max_distance 200.0f
+#define snd_source_max_distance 150.0f
 #define snd_source_event_max_time time_milliseconds(100)
 #define snd_source_event_distance 10.0f
 

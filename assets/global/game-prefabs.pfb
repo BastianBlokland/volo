@@ -536,8 +536,8 @@
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/death-02.wav",
-          "gainMin": 0.3, "gainMax": 0.5,
-          "pitchMin": 1, "pitchMax": 2.5
+          "gainMin": 0.8, "gainMax": 0.9,
+          "pitchMin": 1, "pitchMax": 2
         }
       ]
     },
