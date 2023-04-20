@@ -21,12 +21,14 @@ f32v2 math_oct_wrap(const f32v2 v) {
 /**
  * Encode a normal using Octahedron normal vector encoding.
  * Source: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
+ *
+ * The hemispheres are oriented along the positive y axis. The space is continuous in the same
+ * hemisphere but not across hemispheres, this means linear blending can be used as long as the
+ * source and destination points are both on the same hemisphere.
  */
 f32v2 math_normal_encode(f32v3 n) {
   n /= abs(n.x) + abs(n.y) + abs(n.z);
-  n.xy = n.z >= 0.0 ? n.xy : math_oct_wrap(n.xy);
-  n.xy = n.xy * 0.5 + 0.5;
-  return n.xy;
+  return (n.y >= 0.0 ? n.xz : math_oct_wrap(n.xz)) * 0.5 + 0.5;
 }
 
 /**
@@ -35,9 +37,9 @@ f32v2 math_normal_encode(f32v3 n) {
  */
 f32v3 math_normal_decode(f32v2 f) {
   f           = f * 2.0 - 1.0;
-  f32v3     n = f32v3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-  const f32 t = clamp(-n.z, 0, 1);
-  n.xy += f32v2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
+  f32v3     n = f32v3(f.x, 1.0 - abs(f.x) - abs(f.y), f.y);
+  const f32 t = clamp(-n.y, 0, 1);
+  n.xz += f32v2(n.x >= 0.0 ? -t : t, n.z >= 0.0 ? -t : t);
   return normalize(n);
 }
 
