@@ -39,6 +39,10 @@ bind_internal(8) in flat u32 in_excludeTags;
  * Geometry Data0: color (rgb), emissive (a).
  * Geometry Data1: normal (rg), roughness (b) and tags (a).
  * Alpha blended, w is used to control the blending, outputting emissive / tags is not supported.
+ *
+ * NOTE: Normals can only be blended (without discontinuities) if the source and destination both
+ * have a positive y value or both a negative value. Reason for this is that we use a octahedron
+ * normal encoding.
  */
 bind_internal(0) out f32v4 out_data0;
 bind_internal(1) out f32v4 out_data1;
