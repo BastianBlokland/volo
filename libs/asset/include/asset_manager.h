@@ -56,6 +56,7 @@ EcsEntityId asset_lookup(EcsWorld*, AssetManagerComp*, String id);
 
 /**
  * Acquire the asset, this tells the manager that the asset should be loaded.
+ * NOTE: The acquire takes effect in the next frame.
  * NOTE: Should be explicitly released using 'asset_release()'.
  */
 void asset_acquire(EcsWorld*, EcsEntityId assetEntity);

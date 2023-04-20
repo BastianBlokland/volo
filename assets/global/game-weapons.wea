@@ -11,12 +11,11 @@
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
           "delay": 0.035,
-          "lifetime": 2,
           "spreadAngle": 1,
           "speed": 55,
           "damage": 15,
           "destroyDelay": 0.05,
-          "vfxIdProjectile": "vfx/game/projectile.vfx",
+          "projectilePrefab": "ProjectileBullet",
           "impactPrefab": "ImpactAssaultRifle"
         },
         {
@@ -31,6 +30,15 @@
           "delay": 0,
           "duration": 0.5,
           "assetId": "vfx/game/muzzleflash.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 0.75,
+          "assetId": "external/sound/gun-03.wav",
+          "gainMin": 0.35, "gainMax": 0.4,
+          "pitchMin": 0.9, "pitchMax": 1.1
         }
       ]
     },
@@ -75,12 +83,11 @@
           "originJoint": "muzzle",
           "launchTowardsTarget": true,
           "delay": 0.025,
-          "lifetime": 1.5,
           "spreadAngle": 0.5,
           "speed": 55,
           "damage": 75,
           "destroyDelay": 0.05,
-          "vfxIdProjectile": "vfx/game/projectile.vfx",
+          "projectilePrefab": "ProjectileBullet",
           "impactPrefab": "ImpactTurretGun"
         },
         {
@@ -103,7 +110,7 @@
           "delay": 0,
           "duration": 0.65,
           "assetId": "external/sound/gun-02.wav",
-          "gainMin": 0.4, "gainMax": 0.45,
+          "gainMin": 0.35, "gainMax": 0.4,
           "pitchMin": 0.95, "pitchMax": 1.05
         }
       ]
@@ -118,13 +125,12 @@
           "originJoint": "muzzle",
           "seekTowardsTarget": true,
           "delay": 0.075,
-          "lifetime": 7,
           "spreadAngle": 10,
           "speed": 20,
           "damage": 250,
           "damageRadius": 3,
           "destroyDelay": 0.75,
-          "vfxIdProjectile": "vfx/game/projectile_missile.vfx",
+          "projectilePrefab": "ProjectileMissile",
           "impactPrefab": "ImpactMissile"
         },
         {
@@ -147,7 +153,7 @@
           "delay": 0,
           "duration": 1.75,
           "assetId": "external/sound/launch-01.wav",
-          "gainMin": 0.1, "gainMax": 0.15,
+          "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.6, "pitchMax": 0.8
         }
       ]

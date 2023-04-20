@@ -20,12 +20,12 @@ static DataMeta g_dataMapDefMeta;
 typedef struct {
   String originJoint;
   bool   launchTowardsTarget, seekTowardsTarget;
-  f32    delay, lifetime;
+  f32    delay;
   f32    spreadAngle;
   f32    speed;
   f32    damage, damageRadius;
   f32    destroyDelay;
-  String vfxIdProjectile;
+  String projectilePrefab;
   String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
@@ -106,13 +106,12 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, lifetime, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetWeaponEffectProjDef, vfxIdProjectile, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
@@ -214,18 +213,18 @@ static void weapon_effect_proj_build(
     const AssetWeaponEffectProjDef* def,
     AssetWeaponEffectProj*          out,
     WeaponError*                    err) {
+  (void)ctx;
   *out = (AssetWeaponEffectProj){
       .originJoint         = string_hash(def->originJoint),
       .launchTowardsTarget = def->launchTowardsTarget,
       .seekTowardsTarget   = def->seekTowardsTarget,
       .delay               = (TimeDuration)time_seconds(def->delay),
-      .lifetime            = (TimeDuration)time_seconds(def->lifetime),
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
-      .vfxProjectile       = asset_lookup(ctx->world, ctx->assetManager, def->vfxIdProjectile),
+      .projectilePrefab    = weapon_name_maybe_hash(def->projectilePrefab),
       .impactPrefab        = weapon_name_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;

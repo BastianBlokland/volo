@@ -379,7 +379,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     const f32          gainLeft      = snd_object_get_gain(m, obj, SndChannel_Left);
     const f32          gainRight     = snd_object_get_gain(m, obj, SndChannel_Right);
     const TimeDuration duration      = frameCount ? frameCount * time_second / frameRate : 0;
-    const TimeDuration elapsed       = (TimeDuration)(cursor * time_second / frameRate);
+    const TimeDuration elapsed = frameCount ? (TimeDuration)(cursor * time_second / frameRate) : 0;
 
     ui_canvas_id_block_index(c, obj); // Set a stable canvas id.
     ui_table_next_row(c, &table);

@@ -12,6 +12,7 @@
 #include "scene_health.h"
 #include "scene_lifetime.h"
 #include "scene_locomotion.h"
+#include "scene_prefab.h"
 #include "scene_projectile.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
@@ -248,15 +249,15 @@ static EffectResult effect_update_proj(
   }
   const GeoQuat rot = geo_quat_mul(geo_quat_look(dir, geo_up), proj_random_dev(def->spreadAngle));
 
-  const EcsEntityId e = ecs_world_entity_create(ctx->world);
-  if (def->vfxProjectile) {
-    ecs_world_add_t(ctx->world, e, SceneVfxSystemComp, .asset = def->vfxProjectile, .alpha = 1.0f);
-  }
-  if (ctx->factionId != SceneFaction_None) {
-    ecs_world_add_t(ctx->world, e, SceneFactionComp, .id = ctx->factionId);
-  }
-  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = orgPos, .rotation = rot);
-  ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->lifetime);
+  const EcsEntityId projectileEntity = scene_prefab_spawn(
+      ctx->world,
+      &(ScenePrefabSpec){
+          .prefabId = def->projectilePrefab,
+          .faction  = ctx->factionId,
+          .position = orgPos,
+          .rotation = rot,
+          .scale    = 1.0f,
+      });
 
   SceneProjectileFlags projectileFlags = 0;
   if (def->seekTowardsTarget) {
@@ -264,7 +265,7 @@ static EffectResult effect_update_proj(
   }
   ecs_world_add_t(
       ctx->world,
-      e,
+      projectileEntity,
       SceneProjectileComp,
       .flags        = projectileFlags,
       .speed        = def->speed,

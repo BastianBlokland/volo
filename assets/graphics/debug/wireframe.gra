@@ -13,7 +13,6 @@
   "lineWidth": 1,
   "blend": "None",
   "depth": "LessOrEqualNoWrite",
-  "depthBiasConstant": 1,
-  "depthBiasSlope": 1.5,
+  "depthBiasConstant": 1000,
   "cull": "Back"
 }
