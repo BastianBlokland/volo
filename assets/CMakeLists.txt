@@ -155,6 +155,7 @@ if(${EXTERNAL_ASSETS})
       sound/impact-01.wav
       sound/launch-01.wav
       sound/projectile-loop-01.wav
+      sound/swoosh-01.wav
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
       swat/swat_4.bin

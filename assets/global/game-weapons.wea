@@ -69,6 +69,15 @@
           "delay": 0.45,
           "duration": 1,
           "assetId": "vfx/game/melee_dust.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "RightHandMiddle1",
+          "delay": 0.4,
+          "duration": 0.5,
+          "assetId": "external/sound/swoosh-01.wav",
+          "gainMin": 0.4, "gainMax": 0.5,
+          "pitchMin": 0.6, "pitchMax": 1.1
         }
       ]
     },
