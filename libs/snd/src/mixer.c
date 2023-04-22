@@ -23,10 +23,10 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 #define snd_mixer_objects_max 1024
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
-#define snd_mixer_gain_adjust_per_frame 0.0005f
+#define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
-#define snd_mixer_limiter_release_time 3.0f
-#define snd_mixer_limiter_threshold 0.75f
+#define snd_mixer_limiter_release_time 5.0f
+#define snd_mixer_limiter_max 0.75f
 
 typedef enum {
   SndObjectPhase_Idle,
@@ -313,6 +313,9 @@ static void snd_mixer_write_to_device(
     SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
+  const f32 limiterThreshold =
+      math_min(snd_mixer_limiter_max * m->gainSetting, snd_mixer_limiter_max);
+
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
     const f32 gainTarget = m->gainSetting * m->limiterMult;
     math_towards_f32(&m->gainActual, gainTarget, snd_mixer_gain_adjust_per_frame);
@@ -321,8 +324,8 @@ static void snd_mixer_write_to_device(
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
 
       // Engage the limiter if the value exceeds the threshold.
-      if (val > snd_mixer_limiter_threshold) {
-        m->limiterMult = math_min(m->limiterMult, snd_mixer_limiter_threshold / val);
+      if (val > limiterThreshold) {
+        m->limiterMult = math_min(m->limiterMult, limiterThreshold / val);
       }
 
       // Add it to the history ring-buffer for analysis / debug purposes.
