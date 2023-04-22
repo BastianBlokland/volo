@@ -21,7 +21,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5
+          "deathDestroyDelay": 2.5,
+          "deathEffectPrefab": "DeathUnitRifle"
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -526,6 +527,18 @@
           "assetId": "external/sound/explosion-02.wav",
           "gainMin": 0.9, "gainMax": 1.0,
           "pitchMin": 1.0, "pitchMax": 1.1
+        }
+      ]
+    },
+    {
+      "name": "DeathUnitRifle", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/death-03.wav",
+          "gainMin": 0.7, "gainMax": 0.8,
+          "pitchMin": 0.9, "pitchMax": 1.5
         }
       ]
     },

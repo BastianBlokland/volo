@@ -145,6 +145,7 @@ if(${EXTERNAL_ASSETS})
       sound/blinded-by-the-light.wav
       sound/burning-01.wav
       sound/death-02.wav
+      sound/death-03.wav
       sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/explosion-02.wav
