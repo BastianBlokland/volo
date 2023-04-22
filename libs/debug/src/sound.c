@@ -407,7 +407,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
     ui_table_next_column(c, &table);
 
     sound_draw_progress(c, progress);
-    if (!snd_object_get_loading(m, obj)) {
+    if (!snd_object_is_loading(m, obj)) {
       const f32    elapsedSecs  = elapsed / (f32)time_second;
       const f32    durationSecs = duration / (f32)time_second;
       const String progressText = fmt_write_scratch(

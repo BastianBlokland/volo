@@ -205,7 +205,9 @@ ecs_system_define(SndSourceUpdateSys) {
       }
     }
 
-    // TODO: Skip objects that already finished playing on the mixer.
+    if (!snd_object_is_active(m, sourceComp->objectId)) {
+      continue; // Already finished playing on the mixer.
+    }
 
     if (spatial) {
       snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);

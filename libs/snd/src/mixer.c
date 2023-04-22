@@ -401,6 +401,15 @@ SndResult snd_object_stop(SndMixerComp* m, const SndObjectId id) {
   return SndResult_Success;
 }
 
+bool snd_object_is_active(const SndMixerComp* m, const SndObjectId id) {
+  return snd_object_get_readonly(m, id) != null;
+}
+
+bool snd_object_is_loading(const SndMixerComp* m, const SndObjectId id) {
+  const SndObject* obj = snd_object_get_readonly(m, id);
+  return obj && obj->phase != SndObjectPhase_Playing;
+}
+
 u64 snd_object_get_user_data(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
   return obj ? m->objectUserData[snd_object_id_index(id)] : sentinel_u64;
@@ -409,11 +418,6 @@ u64 snd_object_get_user_data(const SndMixerComp* m, const SndObjectId id) {
 String snd_object_get_name(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
   return obj ? m->objectNames[snd_object_id_index(id)] : string_empty;
-}
-
-bool snd_object_get_loading(const SndMixerComp* m, const SndObjectId id) {
-  const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj && obj->phase != SndObjectPhase_Playing;
 }
 
 u32 snd_object_get_frame_count(const SndMixerComp* m, const SndObjectId id) {

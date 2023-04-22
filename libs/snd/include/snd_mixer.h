@@ -17,9 +17,10 @@ typedef u32 SndObjectId;
  */
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
 SndResult snd_object_stop(SndMixerComp*, SndObjectId);
+bool      snd_object_is_active(const SndMixerComp*, SndObjectId);
+bool      snd_object_is_loading(const SndMixerComp*, SndObjectId);
 u64       snd_object_get_user_data(const SndMixerComp*, SndObjectId);
 String    snd_object_get_name(const SndMixerComp*, SndObjectId);
-bool      snd_object_get_loading(const SndMixerComp*, SndObjectId);
 u32       snd_object_get_frame_count(const SndMixerComp*, SndObjectId);
 u32       snd_object_get_frame_rate(const SndMixerComp*, SndObjectId);
 u8        snd_object_get_frame_channels(const SndMixerComp*, SndObjectId);
