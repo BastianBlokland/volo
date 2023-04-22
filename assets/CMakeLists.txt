@@ -142,9 +142,11 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_left.tga
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
+      sound/ambiance-01.wav
       sound/blinded-by-the-light.wav
       sound/burning-01.wav
       sound/death-02.wav
+      sound/death-03.wav
       sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/explosion-02.wav
@@ -152,8 +154,10 @@ if(${EXTERNAL_ASSETS})
       sound/gun-02.wav
       sound/gun-03.wav
       sound/impact-01.wav
+      sound/impact-02.wav
       sound/launch-01.wav
       sound/projectile-loop-01.wav
+      sound/swoosh-01.wav
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
       swat/swat_4.bin

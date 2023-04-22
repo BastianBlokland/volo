@@ -205,7 +205,16 @@ ecs_system_define(SndSourceUpdateSys) {
       }
     }
 
-    // TODO: Skip objects that already finished playing on the mixer.
+    if (!snd_object_is_active(m, sourceComp->objectId)) {
+      continue; // Already finished playing on the mixer.
+    }
+    if (soundComp->gain < f32_epsilon) {
+      // Fast-path for muted sounds.
+      for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+        snd_object_set_gain(m, sourceComp->objectId, chan, 0);
+      }
+      continue;
+    }
 
     if (spatial) {
       snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);

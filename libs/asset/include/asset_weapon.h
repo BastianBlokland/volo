@@ -31,7 +31,7 @@ typedef struct {
   f32          radius;
   f32          damage;
   TimeDuration delay;
-  EcsEntityId  vfxImpact; // Optional, 0 if unused.
+  StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectDmg;
 
 typedef struct {
