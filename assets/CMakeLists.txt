@@ -153,6 +153,7 @@ if(${EXTERNAL_ASSETS})
       sound/gun-02.wav
       sound/gun-03.wav
       sound/impact-01.wav
+      sound/impact-02.wav
       sound/launch-01.wav
       sound/projectile-loop-01.wav
       sound/swoosh-01.wav

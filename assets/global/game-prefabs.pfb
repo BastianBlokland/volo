@@ -507,7 +507,13 @@
       "name": "ImpactMelee", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/melee_impact.vfx" },
-        { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 }
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/impact-02.wav",
+          "gainMin": 0.4, "gainMax": 0.6,
+          "pitchMin": 0.75, "pitchMax": 1.25
+        }
       ]
     },
     {
