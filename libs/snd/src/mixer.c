@@ -9,6 +9,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -22,8 +23,10 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 #define snd_mixer_objects_max 1024
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
-#define snd_mixer_gain_adjust_per_frame 0.0005f
+#define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
+#define snd_mixer_limiter_release_time 5.0f
+#define snd_mixer_limiter_max 0.75f
 
 typedef enum {
   SndObjectPhase_Idle,
@@ -55,6 +58,7 @@ typedef struct {
 ecs_comp_define(SndMixerComp) {
   SndDevice*   device;
   f32          gainActual, gainSetting;
+  f32          limiterMult;
   TimeDuration lastRenderDuration;
 
   SndObject*   objects;        // SndObject[snd_mixer_objects_max]
@@ -88,6 +92,7 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
 
   m->device      = snd_device_create(g_alloc_heap);
   m->gainSetting = 1.0f;
+  m->limiterMult = 1.0f;
 
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
@@ -174,7 +179,10 @@ ecs_view_define(AssetView) {
   ecs_access_with(AssetLoadedComp);
 }
 
-ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
+ecs_view_define(MixerView) {
+  ecs_access_write(SndMixerComp);
+  ecs_access_read(SceneTimeComp);
+}
 
 ecs_system_define(SndMixerUpdateSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SndMixerComp)) {
@@ -305,11 +313,20 @@ static void snd_mixer_write_to_device(
     SndMixerComp* m, const SndDevicePeriod devicePeriod, const SndBuffer buffer) {
   diag_assert(devicePeriod.frameCount == buffer.frameCount);
 
+  const f32 limiterThreshold =
+      math_min(snd_mixer_limiter_max * m->gainSetting, snd_mixer_limiter_max);
+
   for (u32 frame = 0; frame != devicePeriod.frameCount; ++frame) {
-    math_towards_f32(&m->gainActual, m->gainSetting, snd_mixer_gain_adjust_per_frame);
+    const f32 gainTarget = m->gainSetting * m->limiterMult;
+    math_towards_f32(&m->gainActual, gainTarget, snd_mixer_gain_adjust_per_frame);
 
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
+
+      // Engage the limiter if the value exceeds the threshold.
+      if (val > limiterThreshold) {
+        m->limiterMult = math_min(m->limiterMult, limiterThreshold / val);
+      }
 
       // Add it to the history ring-buffer for analysis / debug purposes.
       snd_mixer_history_update(m, channel, val);
@@ -328,7 +345,11 @@ ecs_system_define(SndMixerRenderSys) {
   if (!mixerItr) {
     return;
   }
-  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
+  SndMixerComp*        m            = ecs_view_write_t(mixerItr, SndMixerComp);
+  const SceneTimeComp* time         = ecs_view_read_t(mixerItr, SceneTimeComp);
+  const f32            deltaSeconds = scene_real_delta_seconds(time);
+
+  math_towards_f32(&m->limiterMult, 1.0f, deltaSeconds / snd_mixer_limiter_release_time);
 
   const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
@@ -537,6 +558,8 @@ SndResult snd_mixer_gain_set(SndMixerComp* m, const f32 gain) {
   m->gainSetting = gain;
   return SndResult_Success;
 }
+
+f32 snd_mixer_limiter_get(const SndMixerComp* m) { return m->limiterMult; }
 
 String snd_mixer_device_id(const SndMixerComp* m) { return snd_device_id(m->device); }
 
