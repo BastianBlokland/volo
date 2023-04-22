@@ -53,7 +53,7 @@
           "delay": 0.55,
           "damage": 25,
           "radius": 1,
-          "vfxIdImpact": "vfx/game/melee_impact.vfx"
+          "impactPrefab": "ImpactMelee"
         },
         {
           "$type": "AssetWeaponEffect_Animation",

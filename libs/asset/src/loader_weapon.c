@@ -34,7 +34,7 @@ typedef struct {
   f32    delay;
   f32    radius;
   f32    damage;
-  String vfxIdImpact; // Optional, empty if unused.
+  String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
@@ -119,7 +119,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, vfxIdImpact, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -200,11 +200,7 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static EcsEntityId weapon_asset_maybe_lookup(BuildCtx* ctx, const String id) {
-  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
-}
-
-static StringHash weapon_name_maybe_hash(const String name) {
+static StringHash weapon_string_maybe_hash(const String name) {
   return string_is_empty(name) ? 0 : string_hash(name);
 }
 
@@ -224,8 +220,8 @@ static void weapon_effect_proj_build(
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
-      .projectilePrefab    = weapon_name_maybe_hash(def->projectilePrefab),
-      .impactPrefab        = weapon_name_maybe_hash(def->impactPrefab),
+      .projectilePrefab    = weapon_string_maybe_hash(def->projectilePrefab),
+      .impactPrefab        = weapon_string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -235,13 +231,13 @@ static void weapon_effect_dmg_build(
     const AssetWeaponEffectDmgDef* def,
     AssetWeaponEffectDmg*          out,
     WeaponError*                   err) {
-
+  (void)ctx;
   *out = (AssetWeaponEffectDmg){
-      .originJoint = string_hash(def->originJoint),
-      .delay       = (TimeDuration)time_seconds(def->delay),
-      .damage      = def->damage,
-      .radius      = def->radius,
-      .vfxImpact   = weapon_asset_maybe_lookup(ctx, def->vfxIdImpact),
+      .originJoint  = string_hash(def->originJoint),
+      .delay        = (TimeDuration)time_seconds(def->delay),
+      .damage       = def->damage,
+      .radius       = def->radius,
+      .impactPrefab = weapon_string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }

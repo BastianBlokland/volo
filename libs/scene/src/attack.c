@@ -322,18 +322,16 @@ static EffectResult effect_update_dmg(
     // Apply damage.
     scene_health_damage(ctx->world, hits[i], def->damage);
 
-    // Spawn vfx.
-    if (def->vfxImpact) {
-      const EcsEntityId vfxEntity = ecs_world_entity_create(ctx->world);
-      ecs_world_add_t(
+    // Spawn impact.
+    if (def->impactPrefab) {
+      scene_prefab_spawn(
           ctx->world,
-          vfxEntity,
-          SceneTransformComp,
-          .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
-          .rotation = geo_quat_ident);
-      ecs_world_add_t(ctx->world, vfxEntity, SceneLifetimeDurationComp, .duration = time_second);
-      ecs_world_add_t(
-          ctx->world, vfxEntity, SceneVfxSystemComp, .asset = def->vfxImpact, .alpha = 1.0f);
+          &(ScenePrefabSpec){
+              .prefabId = def->impactPrefab,
+              .faction  = SceneFaction_None,
+              .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
+              .rotation = geo_quat_ident,
+          });
     }
   }
   return EffectResult_Done;

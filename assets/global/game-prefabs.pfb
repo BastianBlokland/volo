@@ -504,6 +504,13 @@
       ]
     },
     {
+      "name": "ImpactMelee", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/melee_impact.vfx" },
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 }
+      ]
+    },
+    {
       "name": "ImpactTurretGun", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
