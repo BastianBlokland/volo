@@ -282,6 +282,10 @@ static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* m) {
     snd_mixer_gain_set(m, gain);
   }
 
+  sound_draw_table_header(c, &table, string_lit("Limiter"));
+  const f32 limiter = snd_mixer_limiter_get(m);
+  ui_label(c, fmt_write_scratch("{}", fmt_float(limiter, .minDecDigits = 2, .maxDecDigits = 2)));
+
   ui_layout_container_pop(c);
   ui_layout_pop(c);
 }

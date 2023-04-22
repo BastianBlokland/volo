@@ -46,6 +46,7 @@ SndObjectId snd_object_next(const SndMixerComp*, SndObjectId previousId);
  */
 f32       snd_mixer_gain_get(const SndMixerComp*);
 SndResult snd_mixer_gain_set(SndMixerComp*, f32 gain);
+f32       snd_mixer_limiter_get(const SndMixerComp*);
 
 /**
  * Stats.
