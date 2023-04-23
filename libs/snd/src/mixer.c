@@ -329,7 +329,7 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
         snd_object_sample(obj, SndChannel_Right, obj->cursor) * gainRight;
 
     ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
-    obj->cursor += advancePerFrame * simd_vec_x(paramActual);
+    obj->cursor += advancePerFrame * (f64)simd_vec_x(paramActual);
 
     if (UNLIKELY(obj->cursor >= obj->frameCount)) {
       if (obj->flags & SndObjectFlags_Looping) {
