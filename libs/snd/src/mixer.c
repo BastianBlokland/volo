@@ -359,6 +359,59 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   return true; // Still playing.
 }
 
+static bool snd_object_skip(SndObject* obj, const TimeDuration dur) {
+  diag_assert(obj->phase == SndObjectPhase_Playing);
+
+  const bool pitchTooLow = obj->paramSetting[SndObjectParam_Pitch] <= snd_mixer_pitch_min;
+  const f64  durSeconds  = (f64)dur / (f64)time_second;
+  const f64  durFrames   = durSeconds * snd_frame_rate;
+
+  ALIGNAS(16)
+  const f32 paramDeltaMaxValues[SndObjectParam_Count] = {
+      [SndObjectParam_Pitch]     = (f32)(durFrames * snd_mixer_pitch_adjust_per_frame),
+      [SndObjectParam_GainLeft]  = (f32)(durFrames * snd_mixer_gain_adjust_per_frame),
+      [SndObjectParam_GainRight] = (f32)(durFrames * snd_mixer_gain_adjust_per_frame),
+  };
+
+  ALIGNAS(16)
+  const f32 paramMultValues[SndObjectParam_Count] = {
+      [SndObjectParam_Pitch]     = 1.0f,
+      [SndObjectParam_GainLeft]  = pitchTooLow ? 0.0f : 1.0f,
+      [SndObjectParam_GainRight] = pitchTooLow ? 0.0f : 1.0f,
+  };
+
+  const SimdVec paramDeltaMax = simd_vec_load(paramDeltaMaxValues);
+  const SimdVec paramDeltaMin = simd_vec_mul(paramDeltaMax, simd_vec_broadcast(-1.0f));
+  const SimdVec paramMult     = simd_vec_load(paramMultValues);
+  const SimdVec paramTarget   = simd_vec_mul(simd_vec_load(obj->paramSetting), paramMult);
+
+  SimdVec paramActual = simd_vec_load(obj->paramActual);
+  paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
+  simd_vec_store(paramActual, obj->paramActual);
+
+  obj->cursor += durSeconds * obj->frameRate;
+
+  if (obj->cursor >= obj->frameCount) {
+    if (obj->flags & SndObjectFlags_Looping) {
+      obj->cursor = math_mod_f64(obj->cursor, (f64)obj->frameCount);
+    } else {
+      return false; // Finished playing.
+    }
+  }
+
+  return true; // Still playing.
+}
+
+static bool snd_object_is_muted(const SndObject* obj) {
+  if (obj->paramSetting[SndObjectParam_GainLeft] > f32_epsilon) {
+    return false;
+  }
+  if (obj->paramSetting[SndObjectParam_GainRight] > f32_epsilon) {
+    return false;
+  }
+  return true;
+}
+
 static bool snd_object_is_silent(const SndObject* obj) {
   if (obj->paramActual[SndObjectParam_GainLeft] > f32_epsilon) {
     return false;
@@ -413,7 +466,8 @@ ecs_system_define(SndMixerRenderSys) {
 
   const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
-    const SndDevicePeriod period = snd_device_period(m->device);
+    const SndDevicePeriod period     = snd_device_period(m->device);
+    const TimeDuration    periodTime = period.frameCount * time_second / snd_frame_rate;
 
     SndBufferFrame soundFrames[snd_frame_count_max] = {0};
 
@@ -432,12 +486,20 @@ ecs_system_define(SndMixerRenderSys) {
       if (obj->phase != SndObjectPhase_Playing) {
         continue;
       }
-      const bool stillPlaying = snd_object_render(obj, soundBuffer);
-      if (UNLIKELY(stillPlaying && obj->flags & SndObjectFlags_Stop && snd_object_is_silent(obj))) {
-        goto FinishedPlaying; // Stopped and finished fading out.
-      }
-      if (!stillPlaying) {
-        goto FinishedPlaying;
+      const bool muted  = snd_object_is_muted(obj);
+      const bool silent = snd_object_is_silent(obj);
+
+      if (muted && silent) {
+        if (obj->flags & SndObjectFlags_Stop) {
+          goto FinishedPlaying; // Stopped and finished fading out.
+        }
+        if (!snd_object_skip(obj, periodTime)) {
+          goto FinishedPlaying;
+        }
+      } else {
+        if (!snd_object_render(obj, soundBuffer)) {
+          goto FinishedPlaying;
+        }
       }
       continue;
 
