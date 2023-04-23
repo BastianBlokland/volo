@@ -1,16 +1,15 @@
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_matrix.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#include "intrinsic_internal.h"
-
 #define geo_quat_simd_enable 1
 
 #if geo_quat_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {

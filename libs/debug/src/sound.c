@@ -262,7 +262,12 @@ static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* m) {
 
   const TimeDuration renderDuration = snd_mixer_render_duration(m);
   sound_draw_table_header(c, &table, string_lit("Render time"));
+  ui_style_push(c);
+  if (renderDuration > time_millisecond) {
+    ui_style_color(c, ui_color_yellow);
+  }
   ui_label(c, fmt_write_scratch("{}", fmt_duration(renderDuration)));
+  ui_style_pop(c);
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);
@@ -283,8 +288,13 @@ static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* m) {
   }
 
   sound_draw_table_header(c, &table, string_lit("Limiter"));
+  ui_style_push(c);
   const f32 limiter = snd_mixer_limiter_get(m);
+  if (limiter < 1.0) {
+    ui_style_color(c, ui_color_lime);
+  }
   ui_label(c, fmt_write_scratch("{}", fmt_float(limiter, .minDecDigits = 2, .maxDecDigits = 2)));
+  ui_style_pop(c);
 
   ui_layout_container_pop(c);
   ui_layout_pop(c);

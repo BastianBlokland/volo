@@ -3,14 +3,13 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "geo_nav.h"
 #include "geo_sphere.h"
 #include "jobs_executor.h"
 #include "log_logger.h"
-
-#include "intrinsic_internal.h"
 
 #define geo_nav_workers_max 64
 #define geo_nav_occupants_max 4096

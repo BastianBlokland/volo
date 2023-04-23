@@ -1,16 +1,15 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "geo_vector.h"
 
-#include "intrinsic_internal.h"
-
 #define geo_vec_simd_enable 1
 
 #if geo_vec_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {

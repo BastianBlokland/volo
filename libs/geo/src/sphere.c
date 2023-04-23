@@ -1,8 +1,7 @@
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_sphere.h"
-
-#include "intrinsic_internal.h"
 
 GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {
   return (GeoSphere){.point = sphere->point, .radius = sphere->radius + radius};

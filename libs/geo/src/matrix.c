@@ -1,14 +1,13 @@
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_matrix.h"
-
-#include "intrinsic_internal.h"
 
 #define geo_matrix_simd_enable 1
 
 #if geo_matrix_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 static void assert_normalized(const GeoVector v) {

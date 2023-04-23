@@ -121,7 +121,7 @@ float SYS_DECL  roundf(float);
 /**
  * Pre-condition: mask != 0.
  */
-INLINE_HINT static u8 intrinsic_ctz_32(const u32 mask) {
+MAYBE_UNUSED INLINE_HINT static u8 intrinsic_ctz_32(const u32 mask) {
 #if defined(VOLO_MSVC)
   unsigned long res;
   _BitScanForward(&res, mask);
@@ -134,7 +134,7 @@ INLINE_HINT static u8 intrinsic_ctz_32(const u32 mask) {
 /**
  * Pre-condition: mask != 0.
  */
-INLINE_HINT static u8 intrinsic_ctz_64(const u64 mask) {
+MAYBE_UNUSED INLINE_HINT static u8 intrinsic_ctz_64(const u64 mask) {
 #if defined(VOLO_MSVC)
   unsigned long res;
   _BitScanForward64(&res, mask);
@@ -147,7 +147,7 @@ INLINE_HINT static u8 intrinsic_ctz_64(const u64 mask) {
 /**
  * Pre-condition: mask != 0.
  */
-INLINE_HINT static u8 intrinsic_clz_32(const u32 mask) {
+MAYBE_UNUSED INLINE_HINT static u8 intrinsic_clz_32(const u32 mask) {
 #if defined(VOLO_MSVC)
   unsigned long res;
   _BitScanReverse(&res, mask);
@@ -160,7 +160,7 @@ INLINE_HINT static u8 intrinsic_clz_32(const u32 mask) {
 /**
  * Pre-condition: mask != 0.
  */
-INLINE_HINT static u8 intrinsic_clz_64(const u64 mask) {
+MAYBE_UNUSED INLINE_HINT static u8 intrinsic_clz_64(const u64 mask) {
 #if defined(VOLO_MSVC)
   unsigned long result;
   _BitScanReverse64(&result, mask);

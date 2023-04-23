@@ -6,7 +6,7 @@
 #define geo_color_simd_enable 1
 
 #if geo_color_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 GeoColor geo_color_get(const u64 idx) {
