@@ -75,6 +75,8 @@ ecs_comp_define(SndMixerComp) {
   f32          limiterMult;
   TimeDuration lastRenderDuration;
 
+  TimeDuration deviceTimeHead; // Timestamp of last rendered sound.
+
   SndObject*   objects;        // SndObject[snd_mixer_objects_max]
   String*      objectNames;    // String[snd_mixer_objects_max]
   EcsEntityId* objectAssets;   // EcsEntityId[snd_mixer_objects_max]
@@ -466,21 +468,32 @@ ecs_system_define(SndMixerRenderSys) {
 
   math_towards_f32(&m->limiterMult, 1.0f, deltaSeconds / snd_mixer_limiter_release_time);
 
+  SndBufferFrame soundFrames[snd_frame_count_max] = {0};
+
   const TimeSteady renderStartTime = time_steady_clock();
   if (snd_device_begin(m->device)) {
-    const SndDevicePeriod period     = snd_device_period(m->device);
-    const TimeDuration    periodTime = period.frameCount * time_second / snd_frame_rate;
+    const SndDevicePeriod period         = snd_device_period(m->device);
+    const TimeDuration    periodDuration = period.frameCount * time_second / snd_frame_rate;
 
-    SndBufferFrame soundFrames[snd_frame_count_max] = {0};
-
+    diag_assert(period.frameCount <= snd_frame_count_max);
     const SndBuffer soundBuffer = {
         .frames     = soundFrames,
         .frameCount = period.frameCount,
         .frameRate  = snd_frame_rate,
     };
 
-    // TODO: Support skipping the cursor of objects forward based on the device period time, this
-    // is to keep the sound in-sync when the application was paused for some time.
+    // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
+    // period, can happen when there was a device buffer underrun.
+    if (period.timeBegin > m->deviceTimeHead) {
+      const TimeDuration skipDur = period.timeBegin - m->deviceTimeHead;
+      log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
+      for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+        SndObject* obj = &m->objects[i];
+        if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
+          ++obj->phase; // Object is finished playing after the skip duration.
+        }
+      }
+    }
 
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
@@ -495,7 +508,7 @@ ecs_system_define(SndMixerRenderSys) {
         if (obj->flags & SndObjectFlags_Stop) {
           goto FinishedPlaying; // Stopped and finished fading out.
         }
-        if (!snd_object_skip(obj, periodTime)) {
+        if (!snd_object_skip(obj, periodDuration)) {
           goto FinishedPlaying;
         }
       } else {
@@ -512,9 +525,10 @@ ecs_system_define(SndMixerRenderSys) {
 
     // Write the soundBuffer to the device.
     snd_mixer_write_to_device(m, period, soundBuffer);
-
     snd_device_end(m->device);
+
     m->lastRenderDuration = time_steady_duration(renderStartTime, time_steady_clock());
+    m->deviceTimeHead     = period.timeBegin + periodDuration;
   }
 }
 
