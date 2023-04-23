@@ -403,10 +403,12 @@ static bool snd_object_skip(SndObject* obj, const TimeDuration dur) {
 }
 
 static bool snd_object_is_muted(const SndObject* obj) {
-  if (obj->paramSetting[SndObjectParam_GainLeft] > f32_epsilon) {
+  const bool pitchTooLow = obj->paramSetting[SndObjectParam_Pitch] <= snd_mixer_pitch_min;
+  const f32  gainMult    = pitchTooLow ? 0.0f : 1.0f;
+  if ((obj->paramSetting[SndObjectParam_GainLeft] * gainMult) > f32_epsilon) {
     return false;
   }
-  if (obj->paramSetting[SndObjectParam_GainRight] > f32_epsilon) {
+  if ((obj->paramSetting[SndObjectParam_GainRight] * gainMult) > f32_epsilon) {
     return false;
   }
   return true;
