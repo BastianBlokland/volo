@@ -7,7 +7,7 @@
 #define geo_box_simd_enable 1
 
 #if geo_box_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 MAYBE_UNUSED static GeoVector

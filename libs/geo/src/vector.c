@@ -10,7 +10,7 @@
 #define geo_vec_simd_enable 1
 
 #if geo_vec_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {

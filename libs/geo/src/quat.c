@@ -10,7 +10,7 @@
 #define geo_quat_simd_enable 1
 
 #if geo_quat_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {

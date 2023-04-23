@@ -8,7 +8,7 @@
 #define geo_matrix_simd_enable 1
 
 #if geo_matrix_simd_enable
-#include "simd_sse_internal.h"
+#include "core_simd.h"
 #endif
 
 static void assert_normalized(const GeoVector v) {

@@ -1,5 +1,6 @@
 #pragma once
-#include "geo_vector.h"
+#include "core_annotation.h"
+#include "core_types.h"
 
 #include <immintrin.h>
 
