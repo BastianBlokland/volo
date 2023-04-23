@@ -28,6 +28,7 @@ ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
 
 #define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
+#define snd_mixer_pitch_min 0.1f
 #define snd_mixer_limiter_release_time 5.0f
 #define snd_mixer_limiter_max 0.75f
 
@@ -294,7 +295,7 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
   const f64  advancePerFrame = obj->frameRate / (f64)out.frameRate;
-  const bool paused          = obj->paramSetting[SndObjectParam_Pitch] <= f32_epsilon;
+  const bool pitchTooLow     = obj->paramSetting[SndObjectParam_Pitch] <= snd_mixer_pitch_min;
 
   ALIGNAS(16)
   static const f32 g_paramDeltaMaxValues[SndObjectParam_Count] = {
@@ -306,8 +307,8 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   ALIGNAS(16)
   const f32 paramMultValues[SndObjectParam_Count] = {
       [SndObjectParam_Pitch]     = 1.0f,
-      [SndObjectParam_GainLeft]  = paused ? 0.0f : 1.0f,
-      [SndObjectParam_GainRight] = paused ? 0.0f : 1.0f,
+      [SndObjectParam_GainLeft]  = pitchTooLow ? 0.0f : 1.0f,
+      [SndObjectParam_GainRight] = pitchTooLow ? 0.0f : 1.0f,
   };
 
   const SimdVec paramDeltaMax = simd_vec_load(g_paramDeltaMaxValues);
