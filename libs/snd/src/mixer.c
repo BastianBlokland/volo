@@ -23,6 +23,8 @@ ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power
 #define snd_mixer_objects_max 1024
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
+ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
+
 #define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
 #define snd_mixer_limiter_release_time 5.0f
@@ -355,8 +357,9 @@ ecs_system_define(SndMixerRenderSys) {
   if (snd_device_begin(m->device)) {
     const SndDevicePeriod period = snd_device_period(m->device);
 
-    SndBufferFrame  soundFrames[snd_frame_count_max] = {0};
-    const SndBuffer soundBuffer                      = {
+    SndBufferFrame soundFrames[snd_frame_count_max] = {0};
+
+    const SndBuffer soundBuffer = {
         .frames     = soundFrames,
         .frameCount = period.frameCount,
         .frameRate  = snd_frame_rate,

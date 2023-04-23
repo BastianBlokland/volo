@@ -11,6 +11,7 @@
 #include "snd_register.h"
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
+ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
 
 #define snd_source_max_distance 150.0f
 #define snd_source_event_max_time time_milliseconds(100)
