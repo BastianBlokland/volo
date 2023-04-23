@@ -6,6 +6,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "core_simd.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -44,17 +45,27 @@ typedef enum {
   SndObjectFlags_RandomCursor = 1 << 2,
 } SndObjectFlags;
 
+typedef enum {
+  SndObjectParam_Pitch,
+  SndObjectParam_GainLeft,
+  SndObjectParam_GainRight,
+  SndObjectParam_Dummy, // Unused.
+
+  SndObjectParam_Count,
+} SndObjectParam;
+
+ASSERT(SndObjectParam_Count == 4, "Unexpected paramater count");
+
 typedef struct {
   SndObjectPhase phase : 8;
   SndObjectFlags flags : 8;
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
-  const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
-  f64            cursor;  // In frames.
-  f32            pitchActual, pitchSetting;
-  f32            gainActual[SndChannel_Count];
-  f32            gainSetting[SndChannel_Count];
+  const f32*     samples;    // f32[frameCount * frameChannels], Interleaved (LRLRLR).
+  f64            cursor;     // In frames.
+  ALIGNAS(16) f32 paramActual[SndObjectParam_Count];
+  ALIGNAS(16) f32 paramSetting[SndObjectParam_Count];
 } SndObject;
 
 ecs_comp_define(SndMixerComp) {
@@ -92,9 +103,10 @@ static void ecs_destruct_mixer_comp(void* data) {
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
-  m->device      = snd_device_create(g_alloc_heap);
-  m->gainSetting = 1.0f;
-  m->limiterMult = 1.0f;
+  m->device             = snd_device_create(g_alloc_heap);
+  m->gainSetting        = 1.0f;
+  m->limiterMult        = 1.0f;
+  m->lastRenderDuration = 0;
 
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
@@ -227,9 +239,8 @@ ecs_system_define(SndMixerUpdateSys) {
 
         if (!(obj->flags & SndObjectFlags_Looping)) {
           // Start playing at the desired gain (as opposed to looping sounds which will fade-in).
-          for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-            obj->gainActual[chan] = obj->gainSetting[chan];
-          }
+          obj->paramActual[SndObjectParam_GainLeft]  = obj->paramSetting[SndObjectParam_GainLeft];
+          obj->paramActual[SndObjectParam_GainRight] = obj->paramSetting[SndObjectParam_GainRight];
         }
 
         const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
@@ -272,23 +283,53 @@ INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, 
   return math_lerp(valA, valB, (f32)(frame - edgeA));
 }
 
+INLINE_HINT static SimdVec snd_object_param_blend(
+    const SimdVec actual, const SimdVec target, const SimdVec deltaMin, const SimdVec deltaMax) {
+  const SimdVec delta        = simd_vec_sub(target, actual);
+  const SimdVec deltaClamped = simd_vec_max(simd_vec_min(delta, deltaMax), deltaMin);
+  return simd_vec_add(actual, deltaClamped);
+}
+
 static bool snd_object_render(SndObject* obj, SndBuffer out) {
   diag_assert(obj->phase == SndObjectPhase_Playing);
 
-  const f32 gainMult        = obj->pitchSetting < f32_epsilon ? 0.0f : 1.0f;
-  const f64 advancePerFrame = obj->frameRate / (f64)out.frameRate;
+  const f64  advancePerFrame = obj->frameRate / (f64)out.frameRate;
+  const bool paused          = obj->paramSetting[SndObjectParam_Pitch] <= f32_epsilon;
+
+  ALIGNAS(16)
+  static const f32 g_paramDeltaMaxValues[SndObjectParam_Count] = {
+      [SndObjectParam_Pitch]     = snd_mixer_pitch_adjust_per_frame,
+      [SndObjectParam_GainLeft]  = snd_mixer_gain_adjust_per_frame,
+      [SndObjectParam_GainRight] = snd_mixer_gain_adjust_per_frame,
+  };
+
+  ALIGNAS(16)
+  const f32 paramMultValues[SndObjectParam_Count] = {
+      [SndObjectParam_Pitch]     = 1.0f,
+      [SndObjectParam_GainLeft]  = paused ? 0.0f : 1.0f,
+      [SndObjectParam_GainRight] = paused ? 0.0f : 1.0f,
+  };
+
+  const SimdVec paramDeltaMax = simd_vec_load(g_paramDeltaMaxValues);
+  const SimdVec paramDeltaMin = simd_vec_mul(paramDeltaMax, simd_vec_broadcast(-1.0f));
+  const SimdVec paramMult     = simd_vec_load(paramMultValues);
+  const SimdVec paramTarget   = simd_vec_mul(simd_vec_load(obj->paramSetting), paramMult);
+  SimdVec       paramActual   = simd_vec_load(obj->paramActual);
 
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
-    math_towards_f32(&obj->pitchActual, obj->pitchSetting, snd_mixer_pitch_adjust_per_frame);
+    paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
 
-    for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-      const f32 gainTarget = obj->gainSetting[chan] * gainMult;
-      math_towards_f32(&obj->gainActual[chan], gainTarget, snd_mixer_gain_adjust_per_frame);
-      const f32 gain = obj->gainActual[chan];
-      out.frames[frame].samples[chan] += snd_object_sample(obj, chan, obj->cursor) * gain;
-    }
+    const f32 gainLeft = simd_vec_x(simd_vec_splat(paramActual, SndObjectParam_GainLeft));
+    out.frames[frame].samples[SndChannel_Left] +=
+        snd_object_sample(obj, SndChannel_Left, obj->cursor) * gainLeft;
 
-    obj->cursor += advancePerFrame * obj->pitchActual;
+    const f32 gainRight = simd_vec_x(simd_vec_splat(paramActual, SndObjectParam_GainRight));
+    out.frames[frame].samples[SndChannel_Right] +=
+        snd_object_sample(obj, SndChannel_Right, obj->cursor) * gainRight;
+
+    ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
+    obj->cursor += advancePerFrame * simd_vec_x(paramActual);
+
     if (UNLIKELY(obj->cursor >= obj->frameCount)) {
       if (obj->flags & SndObjectFlags_Looping) {
         obj->cursor -= obj->frameCount;
@@ -298,10 +339,12 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
     }
   }
 
+  simd_vec_store(paramActual, obj->paramActual);
+
   if (UNLIKELY(obj->flags & SndObjectFlags_Stop)) {
     f32 gainMax = 0.0f;
     for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-      gainMax = math_max(gainMax, obj->gainActual[chan]);
+      gainMax = math_max(gainMax, obj->paramActual[SndObjectParam_GainLeft + chan]);
     }
     if (gainMax <= f32_epsilon) {
       return false; // Stopped and finished fading out.
@@ -404,11 +447,12 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   if (UNLIKELY(!obj)) {
     return SndResult_FailedToAcquireObject;
   }
-  obj->phase       = SndObjectPhase_Setup;
-  obj->pitchActual = obj->pitchSetting = 1.0f;
-  for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-    obj->gainSetting[chan] = 1.0f;
-  }
+  obj->phase                                  = SndObjectPhase_Setup;
+  obj->paramActual[SndObjectParam_Pitch]      = 1.0f;
+  obj->paramSetting[SndObjectParam_Pitch]     = 1.0f;
+  obj->paramSetting[SndObjectParam_GainLeft]  = 1.0f;
+  obj->paramSetting[SndObjectParam_GainRight] = 1.0f;
+
   *outId = id;
   return SndResult_Success;
 }
@@ -419,9 +463,8 @@ SndResult snd_object_stop(SndMixerComp* m, const SndObjectId id) {
     return SndResult_InvalidObject;
   }
   obj->flags |= SndObjectFlags_Stop;
-  for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-    obj->gainSetting[chan] = 0.0f;
-  }
+  obj->paramSetting[SndObjectParam_GainLeft]  = 0.0f;
+  obj->paramSetting[SndObjectParam_GainRight] = 0.0f;
   return SndResult_Success;
 }
 
@@ -466,12 +509,13 @@ f64 snd_object_get_cursor(const SndMixerComp* m, const SndObjectId id) {
 
 f32 snd_object_get_pitch(const SndMixerComp* m, const SndObjectId id) {
   const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? obj->pitchActual : 0.0f;
+  return obj ? obj->paramActual[SndObjectParam_Pitch] : 0.0f;
 }
 
 f32 snd_object_get_gain(const SndMixerComp* m, const SndObjectId id, const SndChannel chan) {
+  diag_assert(chan < SndChannel_Count);
   const SndObject* obj = snd_object_get_readonly(m, id);
-  return obj ? obj->gainActual[chan] : 0.0f;
+  return obj ? obj->paramActual[SndObjectParam_GainLeft + chan] : 0.0f;
 }
 
 SndResult snd_object_set_asset(SndMixerComp* m, const SndObjectId id, const EcsEntityId asset) {
@@ -519,14 +563,15 @@ SndResult snd_object_set_pitch(SndMixerComp* m, const SndObjectId id, const f32 
     return SndResult_ParameterOutOfRange;
   }
   if (obj->phase == SndObjectPhase_Setup) {
-    obj->pitchActual = pitch;
+    obj->paramActual[SndObjectParam_Pitch] = pitch;
   }
-  obj->pitchSetting = pitch;
+  obj->paramSetting[SndObjectParam_Pitch] = pitch;
   return SndResult_Success;
 }
 
 SndResult
 snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan, const f32 gain) {
+  diag_assert(chan < SndChannel_Count);
   SndObject* obj = snd_object_get(m, id);
   if (UNLIKELY(!obj)) {
     return SndResult_InvalidObject;
@@ -537,7 +582,7 @@ snd_object_set_gain(SndMixerComp* m, const SndObjectId id, const SndChannel chan
   if (UNLIKELY(obj->flags & SndObjectFlags_Stop)) {
     return SndResult_ObjectStopped;
   }
-  obj->gainSetting[chan] = gain;
+  obj->paramSetting[SndObjectParam_GainLeft + chan] = gain;
   return SndResult_Success;
 }
 
