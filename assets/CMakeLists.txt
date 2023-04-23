@@ -143,7 +143,6 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
       sound/ambiance-01.wav
-      sound/blinded-by-the-light.wav
       sound/burning-01.wav
       sound/death-02.wav
       sound/death-03.wav
