@@ -63,8 +63,8 @@ typedef struct {
   u8             frameChannels;
   u16            generation; // NOTE: Expected to wrap when the object is reused often.
   u32            frameCount, frameRate;
-  const f32*     samples;    // f32[frameCount * frameChannels], Interleaved (LRLRLR).
-  f64            cursor;     // In frames.
+  const f32*     samples; // f32[frameCount * frameChannels], Interleaved (LRLRLR).
+  f64            cursor;  // In frames.
   ALIGNAS(16) f32 paramActual[SndObjectParam_Count];
   ALIGNAS(16) f32 paramSetting[SndObjectParam_Count];
 } SndObject;
@@ -356,18 +356,17 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   }
 
   simd_vec_store(paramActual, obj->paramActual);
-
-  if (UNLIKELY(obj->flags & SndObjectFlags_Stop)) {
-    f32 gainMax = 0.0f;
-    for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-      gainMax = math_max(gainMax, obj->paramActual[SndObjectParam_GainLeft + chan]);
-    }
-    if (gainMax <= f32_epsilon) {
-      return false; // Stopped and finished fading out.
-    }
-  }
-
   return true; // Still playing.
+}
+
+static bool snd_object_is_silent(const SndObject* obj) {
+  if (obj->paramActual[SndObjectParam_GainLeft] > f32_epsilon) {
+    return false;
+  }
+  if (obj->paramActual[SndObjectParam_GainRight] > f32_epsilon) {
+    return false;
+  }
+  return true;
 }
 
 static void snd_mixer_write_to_device(
@@ -430,11 +429,21 @@ ecs_system_define(SndMixerRenderSys) {
     // Render all objects into the soundBuffer.
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
-      if (obj->phase == SndObjectPhase_Playing) {
-        if (!snd_object_render(obj, soundBuffer)) {
-          ++obj->phase;
-        }
+      if (obj->phase != SndObjectPhase_Playing) {
+        continue;
       }
+      const bool stillPlaying = snd_object_render(obj, soundBuffer);
+      if (UNLIKELY(stillPlaying && obj->flags & SndObjectFlags_Stop && snd_object_is_silent(obj))) {
+        goto FinishedPlaying; // Stopped and finished fading out.
+      }
+      if (!stillPlaying) {
+        goto FinishedPlaying;
+      }
+      continue;
+
+    FinishedPlaying:
+      ++obj->phase;
+      continue;
     }
 
     // Write the soundBuffer to the device.
