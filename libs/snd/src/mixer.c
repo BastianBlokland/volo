@@ -21,7 +21,7 @@
 #define snd_mixer_history_size 2048
 ASSERT((snd_mixer_history_size & (snd_mixer_history_size - 1u)) == 0, "Non power-of-two")
 
-#define snd_mixer_objects_max 1024
+#define snd_mixer_objects_max 512
 ASSERT(snd_mixer_objects_max < u16_max, "Sound objects need to indexable with a 16 bit integer");
 
 ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
