@@ -267,21 +267,35 @@ ecs_system_define(SndMixerUpdateSys) {
   }
 }
 
-INLINE_HINT static f32 snd_object_sample(const SndObject* obj, SndChannel chan, const f64 frame) {
-  if (chan >= obj->frameChannels) {
-    chan = SndChannel_Left;
-  }
+INLINE_HINT static void snd_object_sample(
+    const SndObject* obj, const f64 frame, f32 out[PARAM_ARRAY_SIZE(SndChannel_Count)]) {
   /**
    * Naive sampling using linear interpolation between the two closest samples.
    * This works reasonably for up-sampling (even though we should consider methods that preserve the
    * curve better, like Hermite interpolation), but for down-sampling this ignores the aliasing that
    * occurs with frequencies that we cannot represent.
    */
-  const u32 edgeA = math_min(obj->frameCount - 2, (u32)frame);
-  const u32 edgeB = edgeA + 1;
-  const f32 valA  = obj->samples[edgeA * obj->frameChannels + chan];
-  const f32 valB  = obj->samples[edgeB * obj->frameChannels + chan];
-  return math_lerp(valA, valB, (f32)(frame - edgeA));
+  const u32 edgeA  = math_min(obj->frameCount - 2, (u32)frame);
+  const u32 edgeB  = edgeA + 1;
+  const f32 frac   = (f32)(frame - edgeA);
+  const u32 indexA = edgeA * obj->frameChannels;
+  const u32 indexB = edgeB * obj->frameChannels;
+
+  // Left channel.
+  {
+    const f32 valA = obj->samples[indexA + SndChannel_Left];
+    const f32 valB = obj->samples[indexB + SndChannel_Left];
+    out[0]         = math_lerp(valA, valB, frac);
+  }
+
+  // Right channel.
+  if (obj->frameChannels > 1) {
+    const f32 valA = obj->samples[indexA + SndChannel_Right];
+    const f32 valB = obj->samples[indexB + SndChannel_Right];
+    out[1]         = math_lerp(valA, valB, frac);
+  } else {
+    out[1] = out[0];
+  }
 }
 
 INLINE_HINT static SimdVec snd_object_param_blend(
@@ -320,13 +334,14 @@ static bool snd_object_render(SndObject* obj, SndBuffer out) {
   for (u32 frame = 0; frame != out.frameCount; ++frame) {
     paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
 
+    f32 samples[SndChannel_Count];
+    snd_object_sample(obj, obj->cursor, samples);
+
     const f32 gainLeft = simd_vec_x(simd_vec_splat(paramActual, SndObjectParam_GainLeft));
-    out.frames[frame].samples[SndChannel_Left] +=
-        snd_object_sample(obj, SndChannel_Left, obj->cursor) * gainLeft;
+    out.frames[frame].samples[SndChannel_Left] += samples[SndChannel_Left] * gainLeft;
 
     const f32 gainRight = simd_vec_x(simd_vec_splat(paramActual, SndObjectParam_GainRight));
-    out.frames[frame].samples[SndChannel_Right] +=
-        snd_object_sample(obj, SndChannel_Right, obj->cursor) * gainRight;
+    out.frames[frame].samples[SndChannel_Right] += samples[SndChannel_Right] * gainRight;
 
     ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
     obj->cursor += advancePerFrame * (f64)simd_vec_x(paramActual);
