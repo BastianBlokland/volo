@@ -10,7 +10,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "scene_time.h"
 #include "snd_channel.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -29,7 +28,8 @@ ASSERT(SndChannel_Count == 2, "Only stereo sound is supported at the moment");
 #define snd_mixer_gain_adjust_per_frame 0.00075f
 #define snd_mixer_pitch_adjust_per_frame 0.00025f
 #define snd_mixer_pitch_min 0.1f
-#define snd_mixer_limiter_release_time 5.0f
+#define snd_mixer_limiter_release_per_frame 0.000025f
+#define snd_mimer_limiter_closed_frames 1024
 #define snd_mixer_limiter_max 0.75f
 
 typedef enum {
@@ -73,6 +73,7 @@ ecs_comp_define(SndMixerComp) {
   SndDevice*   device;
   f32          gainActual, gainSetting;
   f32          limiterMult;
+  u32          limiterClosedFrames;
   TimeDuration lastRenderDuration;
 
   TimeDuration deviceTimeHead; // Timestamp of last rendered sound.
@@ -106,10 +107,9 @@ static void ecs_destruct_mixer_comp(void* data) {
 static SndMixerComp* snd_mixer_create(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
-  m->device             = snd_device_create(g_alloc_heap);
-  m->gainSetting        = 1.0f;
-  m->limiterMult        = 1.0f;
-  m->lastRenderDuration = 0;
+  m->device      = snd_device_create(g_alloc_heap);
+  m->gainSetting = 1.0f;
+  m->limiterMult = 1.0f;
 
   m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
   mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
@@ -196,10 +196,7 @@ ecs_view_define(AssetView) {
   ecs_access_with(AssetLoadedComp);
 }
 
-ecs_view_define(MixerView) {
-  ecs_access_write(SndMixerComp);
-  ecs_access_read(SceneTimeComp);
-}
+ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
 
 ecs_system_define(SndMixerUpdateSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SndMixerComp)) {
@@ -437,12 +434,19 @@ static void snd_mixer_write_to_device(
     const f32 gainTarget = m->gainSetting * m->limiterMult;
     math_towards_f32(&m->gainActual, gainTarget, snd_mixer_gain_adjust_per_frame);
 
+    if (m->limiterClosedFrames) {
+      --m->limiterClosedFrames;
+    } else {
+      math_towards_f32(&m->limiterMult, 1.0f, snd_mixer_limiter_release_per_frame);
+    }
+
     for (SndChannel channel = 0; channel != SndChannel_Count; ++channel) {
       const f32 val = buffer.frames[frame].samples[channel] * m->gainActual;
 
       // Engage the limiter if the value exceeds the threshold.
       if (val > limiterThreshold) {
-        m->limiterMult = math_min(m->limiterMult, limiterThreshold / val);
+        m->limiterMult         = math_min(m->limiterMult, limiterThreshold / val);
+        m->limiterClosedFrames = snd_mimer_limiter_closed_frames;
       }
 
       // Add it to the history ring-buffer for analysis / debug purposes.
@@ -462,11 +466,7 @@ ecs_system_define(SndMixerRenderSys) {
   if (!mixerItr) {
     return;
   }
-  SndMixerComp*        m            = ecs_view_write_t(mixerItr, SndMixerComp);
-  const SceneTimeComp* time         = ecs_view_read_t(mixerItr, SceneTimeComp);
-  const f32            deltaSeconds = scene_real_delta_seconds(time);
-
-  math_towards_f32(&m->limiterMult, 1.0f, deltaSeconds / snd_mixer_limiter_release_time);
+  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
   SndBufferFrame soundFrames[snd_frame_count_max] = {0};
 
