@@ -239,7 +239,8 @@ static AlsaPcmStatus alsa_pcm_query(snd_pcm_t* pcm) {
   return avail < snd_alsa_period_frames ? AlsaPcmStatus_Busy : AlsaPcmStatus_Ready;
 }
 
-static AlsaPcmWriteResult alsa_pcm_write(snd_pcm_t* pcm, i16 buf[static snd_alsa_period_samples]) {
+static AlsaPcmWriteResult
+alsa_pcm_write(snd_pcm_t* pcm, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
   const snd_pcm_sframes_t written = snd_pcm_writei(pcm, buf, snd_alsa_period_frames);
   if (written < 0 || (snd_pcm_uframes_t)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;

@@ -24,7 +24,7 @@ typedef __m128 SimdVec;
  * Load 4 (128 bit aligned) float values into a Simd vector.
  * Pre-condition: bits_aligned_ptr(values, 16)
  */
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[static 4]) {
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[PARAM_ARRAY_SIZE(4)]) {
   return _mm_load_ps(values);
 }
 
@@ -32,7 +32,8 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[static 4]
  * Store a Simd vector to 4 (128 bit aligned) float values.
  * Pre-condition: bits_aligned_ptr(values, 16)
  */
-MAYBE_UNUSED INLINE_HINT static void simd_vec_store(const SimdVec vec, f32 values[static 4]) {
+MAYBE_UNUSED INLINE_HINT static void
+simd_vec_store(const SimdVec vec, f32 values[PARAM_ARRAY_SIZE(4)]) {
   _mm_store_ps(values, vec);
 }
 
