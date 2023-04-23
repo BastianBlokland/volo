@@ -1,7 +1,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
-
-#include "intrinsic_internal.h"
+#include "core_intrinsic.h"
 
 u8 bits_popcnt_32(const u32 mask) { return intrinsic_popcnt_32(mask); }
 

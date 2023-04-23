@@ -1,7 +1,6 @@
 #include "core_complex.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
-
-#include "intrinsic_internal.h"
 
 Complex complex_add(const Complex a, const Complex b) {
   return (Complex){

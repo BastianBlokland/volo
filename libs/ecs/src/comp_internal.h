@@ -1,9 +1,8 @@
 #pragma once
 #include "core_bits.h"
 #include "core_bitset.h"
+#include "core_intrinsic.h"
 #include "ecs_comp.h"
-
-#include "intrinsic_internal.h"
 
 /**
  * Maximum supported component size.

@@ -1,9 +1,8 @@
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "geo_matrix.h"
-
-#include "intrinsic_internal.h"
 
 #define geo_matrix_simd_enable 1
 
