@@ -37,7 +37,7 @@
           "delay": 0,
           "duration": 0.75,
           "assetId": "external/sound/gun-03.wav",
-          "gainMin": 0.35, "gainMax": 0.4,
+          "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.9, "pitchMax": 1.1
         }
       ]
@@ -76,7 +76,7 @@
           "delay": 0.4,
           "duration": 0.5,
           "assetId": "external/sound/swoosh-01.wav",
-          "gainMin": 0.4, "gainMax": 0.5,
+          "gainMin": 0.2, "gainMax": 0.3,
           "pitchMin": 0.6, "pitchMax": 1.1
         }
       ]
@@ -119,7 +119,7 @@
           "delay": 0,
           "duration": 0.65,
           "assetId": "external/sound/gun-02.wav",
-          "gainMin": 0.35, "gainMax": 0.4,
+          "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.95, "pitchMax": 1.05
         }
       ]
