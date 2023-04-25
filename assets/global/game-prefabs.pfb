@@ -354,7 +354,7 @@
           }
         },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/alarm_light.vfx" },
-        { "$type": "AssetPrefabTrait_Blink", "frequency": 1.0 }
+        { "$type": "AssetPrefabTrait_Blink", "frequency": 0.5, "effectPrefab": "EffectAlarm" }
       ]
     },
     {
@@ -569,6 +569,18 @@
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.9, "pitchMax": 1.1,
           "looping": true
+        }
+      ]
+    },
+    {
+      "name": "EffectAlarm", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 3 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/alarm-01.wav",
+          "gainMin": 0.05,
+          "pitchMin": 1.0
         }
       ]
     }
