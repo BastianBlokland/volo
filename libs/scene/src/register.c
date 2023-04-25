@@ -4,6 +4,7 @@
 void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_attachment_module);
   ecs_register_module(def, scene_attack_module);
+  ecs_register_module(def, scene_blink_module);
   ecs_register_module(def, scene_bounds_module);
   ecs_register_module(def, scene_brain_module);
   ecs_register_module(def, scene_camera_module);

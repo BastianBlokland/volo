@@ -9,6 +9,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attack.h"
+#include "scene_blink.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_footstep.h"
@@ -281,7 +282,7 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
 }
 
 static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBlink* t) {
-  ecs_world_add_t(w, e, SceneRenderableBlinkComp, .blinkFrequency = t->frequency);
+  ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
