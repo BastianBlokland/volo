@@ -36,7 +36,7 @@
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 0.75,
-          "assetId": "external/sound/gun-03.wav",
+          "assetId": "external/sound/gun-05.wav",
           "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.9, "pitchMax": 1.1
         }
@@ -118,7 +118,7 @@
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 0.65,
-          "assetId": "external/sound/gun-02.wav",
+          "assetId": "external/sound/gun-04.wav",
           "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.95, "pitchMax": 1.05
         }

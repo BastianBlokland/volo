@@ -149,9 +149,8 @@ if(${EXTERNAL_ASSETS})
       sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/explosion-02.wav
-      sound/gun-01.wav
-      sound/gun-02.wav
-      sound/gun-03.wav
+      sound/gun-04.wav
+      sound/gun-05.wav
       sound/impact-01.wav
       sound/impact-02.wav
       sound/launch-01.wav
