@@ -51,6 +51,7 @@ typedef enum {
   AssetPrefabTrait_Brain,
   AssetPrefabTrait_Spawner,
   AssetPrefabTrait_Blink,
+  AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -131,6 +132,10 @@ typedef struct {
 } AssetPrefabTraitBlink;
 
 typedef struct {
+  StringHash tauntDeathPrefab; // Optional: 0 to disable.
+} AssetPrefabTraitTaunt;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -146,6 +151,7 @@ typedef struct {
     AssetPrefabTraitBrain      data_brain;
     AssetPrefabTraitSpawner    data_spawner;
     AssetPrefabTraitBlink      data_blink;
+    AssetPrefabTraitTaunt      data_taunt;
   };
 } AssetPrefabTrait;
 

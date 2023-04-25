@@ -23,6 +23,7 @@
 #include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_taunt.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_unit.h"
@@ -285,6 +286,10 @@ static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
   ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency, .effectPrefab = t->effectPrefab);
 }
 
+static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
+  ecs_world_add_t(w, e, SceneTauntComp, .tauntPrefabs[SceneTauntType_Death] = t->tauntDeathPrefab);
+}
+
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
   ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
@@ -334,6 +339,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Blink:
     setup_blink(w, e, &t->data_blink);
+    return;
+  case AssetPrefabTrait_Taunt:
+    setup_taunt(w, e, &t->data_taunt);
     return;
   case AssetPrefabTrait_Scalable:
     setup_scale(w, e, s->scale);

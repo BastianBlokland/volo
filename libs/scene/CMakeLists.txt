@@ -32,6 +32,7 @@ add_library(lib_scene STATIC
   src/spawner.c
   src/tag.c
   src/target.c
+  src/taunt.c
   src/terrain.c
   src/time.c
   src/transform.c

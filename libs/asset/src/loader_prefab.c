@@ -120,6 +120,10 @@ typedef struct {
 } AssetPrefabTraitBlinkDef;
 
 typedef struct {
+  String tauntDeathPrefab; // Optional, empty if unused.
+} AssetPrefabTraitTauntDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderableDef data_renderable;
@@ -135,6 +139,7 @@ typedef struct {
     AssetPrefabTraitBrainDef      data_brain;
     AssetPrefabTraitSpawnerDef    data_spawner;
     AssetPrefabTraitBlinkDef      data_blink;
+    AssetPrefabTraitTauntDef      data_taunt;
   };
 } AssetPrefabTraitDef;
 
@@ -255,6 +260,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitBlinkDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitBlinkDef, effectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
+    data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
@@ -269,6 +277,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Brain, data_brain, t_AssetPrefabTraitBrainDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Spawner, data_spawner, t_AssetPrefabTraitSpawnerDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Blink, data_blink, t_AssetPrefabTraitBlinkDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
@@ -491,6 +500,11 @@ static void prefab_build(
       outTrait->data_blink = (AssetPrefabTraitBlink){
           .frequency    = traitDef->data_blink.frequency,
           .effectPrefab = prefab_name_maybe_hash(traitDef->data_blink.effectPrefab),
+      };
+      break;
+    case AssetPrefabTrait_Taunt:
+      outTrait->data_taunt = (AssetPrefabTraitTaunt){
+          .tauntDeathPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
       };
       break;
     case AssetPrefabTrait_Scalable:
