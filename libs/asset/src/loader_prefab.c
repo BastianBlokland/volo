@@ -115,7 +115,8 @@ typedef struct {
 } AssetPrefabTraitSpawnerDef;
 
 typedef struct {
-  f32 frequency;
+  f32    frequency;
+  String effectPrefab; // Optional, empty if unused.
 } AssetPrefabTraitBlinkDef;
 
 typedef struct {
@@ -252,6 +253,7 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabTraitBlinkDef);
     data_reg_field_t(reg, AssetPrefabTraitBlinkDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitBlinkDef, effectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
@@ -487,7 +489,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Blink:
       outTrait->data_blink = (AssetPrefabTraitBlink){
-          .frequency = traitDef->data_blink.frequency,
+          .frequency    = traitDef->data_blink.frequency,
+          .effectPrefab = prefab_name_maybe_hash(traitDef->data_blink.effectPrefab),
       };
       break;
     case AssetPrefabTrait_Scalable:

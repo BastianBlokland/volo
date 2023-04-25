@@ -126,7 +126,8 @@ typedef struct {
 } AssetPrefabTraitSpawner;
 
 typedef struct {
-  f32 frequency;
+  f32        frequency;
+  StringHash effectPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitBlink;
 
 typedef struct {

@@ -282,7 +282,7 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
 }
 
 static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBlink* t) {
-  ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency);
+  ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency, .effectPrefab = t->effectPrefab);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
