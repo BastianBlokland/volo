@@ -1,7 +1,13 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_float.h"
+#include "core_rng.h"
 #include "ecs_world.h"
+#include "scene_attachment.h"
+#include "scene_lifetime.h"
+#include "scene_prefab.h"
+#include "scene_sound.h"
 #include "scene_taunt.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -10,16 +16,19 @@ static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
     [SceneTauntType_Death] = time_seconds(1),
 };
 
+#define scene_taunt_cooldown_min time_milliseconds(250)
+#define scene_taunt_cooldown_max time_seconds(2)
+
 typedef struct {
-  SceneTauntType type;
-  StringHash     prefab;
-  TimeDuration   expireTimestamp;
-  EcsEntityId    instigator;
-  GeoVector      position;
+  StringHash   prefab;
+  TimeDuration expireTimestamp;
+  EcsEntityId  instigator;
+  GeoVector    position;
 } SceneTauntEvent;
 
 ecs_comp_define(SceneTauntRegistryComp) {
-  DynArray events; // SceneTauntEvent[]
+  DynArray     events; // SceneTauntEvent[]
+  TimeDuration nextTauntTime;
 };
 
 ecs_comp_define_public(SceneTauntComp);
@@ -56,12 +65,49 @@ static void registry_report(
   diag_assert(g_tauntEventDuration[type]);
 
   *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
-      .type            = type,
       .prefab          = taunt->tauntPrefabs[type],
       .expireTimestamp = time->time + g_tauntEventDuration[type],
       .instigator      = instigator,
       .position        = pos,
   };
+}
+
+static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, SceneTauntEvent* out) {
+  usize bestIndex   = sentinel_usize;
+  f32   bestSqrDist = f32_max;
+  for (usize i = 0; i != reg->events.size; ++i) {
+    const SceneTauntEvent* evt      = dynarray_at_t(&reg->events, i, SceneTauntEvent);
+    const GeoVector        posDelta = geo_vector_sub(evt->position, pos);
+    const f32              distSqr  = geo_vector_mag_sqr(posDelta);
+    if (distSqr < bestSqrDist) {
+      bestIndex   = i;
+      bestSqrDist = distSqr;
+    }
+  }
+  if (!sentinel_check(bestIndex)) {
+    *out = *dynarray_at_t(&reg->events, bestIndex, SceneTauntEvent);
+    dynarray_remove_unordered(&reg->events, bestIndex, 1);
+    return true;
+  }
+  return false;
+}
+
+static void taunt_spawn(EcsWorld* world, SceneTauntEvent* tauntEvent) {
+  const EcsEntityId tauntEntity = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = tauntEvent->prefab,
+          .faction  = SceneFaction_None,
+          .position = tauntEvent->position,
+          .rotation = geo_quat_ident});
+  ecs_world_add_t(world, tauntEntity, SceneLifetimeOwnerComp, .owner = tauntEvent->instigator);
+  ecs_world_add_t(world, tauntEntity, SceneAttachmentComp, .target = tauntEvent->instigator);
+}
+
+static TimeDuration taunt_next_time(const TimeDuration timeNow) {
+  TimeDuration next = timeNow;
+  next += (TimeDuration)rng_sample_range(g_rng, scene_taunt_cooldown_min, scene_taunt_cooldown_max);
+  return next;
 }
 
 ecs_view_define(UpdateGlobalView) {
@@ -72,6 +118,17 @@ ecs_view_define(UpdateGlobalView) {
 ecs_view_define(UpdateView) {
   ecs_access_write(SceneTauntComp);
   ecs_access_maybe_read(SceneTransformComp);
+}
+
+ecs_view_define(ListenerView) {
+  ecs_access_with(SceneSoundListenerComp);
+  ecs_access_read(SceneTransformComp);
+}
+
+static GeoVector taunt_listener_position(EcsWorld* world) {
+  EcsView*     listenerView = ecs_world_view_t(world, ListenerView);
+  EcsIterator* listenerItr  = ecs_view_first(listenerView);
+  return listenerItr ? ecs_view_read_t(listenerItr, SceneTransformComp)->position : geo_vector(0);
 }
 
 ecs_system_define(SceneTauntUpdateSys) {
@@ -104,6 +161,14 @@ ecs_system_define(SceneTauntUpdateSys) {
     }
     taunt->requests = 0;
   }
+
+  // Activate taunt.
+  SceneTauntEvent tauntEvent;
+  const GeoVector listenerPos = taunt_listener_position(world);
+  if (time->time >= reg->nextTauntTime && registry_pop(reg, listenerPos, &tauntEvent)) {
+    taunt_spawn(world, &tauntEvent);
+    reg->nextTauntTime = taunt_next_time(time->time);
+  }
 }
 
 ecs_module_init(scene_taunt_module) {
@@ -111,5 +176,8 @@ ecs_module_init(scene_taunt_module) {
   ecs_register_comp(SceneTauntComp);
 
   ecs_register_system(
-      SceneTauntUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(UpdateView));
+      SceneTauntUpdateSys,
+      ecs_register_view(UpdateGlobalView),
+      ecs_register_view(UpdateView),
+      ecs_register_view(ListenerView));
 }
