@@ -553,8 +553,8 @@
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/death-03.wav",
-          "gainMin": 0.4, "gainMax": 0.5,
-          "pitchMin": 0.9, "pitchMax": 1.5
+          "gainMin": 0.8, "gainMax": 1.0,
+          "pitchMin": 0.9, "pitchMax": 1.2
         }
       ]
     },
@@ -565,8 +565,8 @@
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/death-02.wav",
-          "gainMin": 0.4, "gainMax": 0.5,
-          "pitchMin": 0.9, "pitchMax": 1.5
+          "gainMin": 0.8, "gainMax": 1.0,
+          "pitchMin": 0.9, "pitchMax": 1.2
         }
       ]
     },
