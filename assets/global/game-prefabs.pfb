@@ -21,8 +21,7 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 100,
-          "deathDestroyDelay": 2.5,
-          "deathEffectPrefab": "DeathUnitRifle"
+          "deathDestroyDelay": 2.5
         },
         {
           "$type": "AssetPrefabTrait_Attack",
@@ -41,7 +40,11 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        {
+          "$type": "AssetPrefabTrait_Taunt",
+          "tauntDeathPrefab": "TauntDeathUnitRifle"
+        }
       ]
     },
     {
@@ -84,7 +87,11 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" }
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" },
+        {
+          "$type": "AssetPrefabTrait_Taunt",
+          "tauntDeathPrefab": "TauntDeathUnitEnemy"
+        }
       ]
     },
     {
@@ -540,12 +547,24 @@
       ]
     },
     {
-      "name": "DeathUnitRifle", "isVolatile": true,
+      "name": "TauntDeathUnitRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/death-03.wav",
+          "gainMin": 0.4, "gainMax": 0.5,
+          "pitchMin": 0.9, "pitchMax": 1.5
+        }
+      ]
+    },
+    {
+      "name": "TauntDeathUnitEnemy", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/death-02.wav",
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.9, "pitchMax": 1.5
         }
