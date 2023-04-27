@@ -20,6 +20,7 @@ static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
 #define scene_taunt_cooldown_max time_seconds(2)
 
 typedef struct {
+  i32          priority;
   StringHash   prefab;
   TimeDuration expireTimestamp;
   EcsEntityId  instigator;
@@ -65,6 +66,7 @@ static void registry_report(
   diag_assert(g_tauntEventDuration[type]);
 
   *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
+      .priority        = taunt->priority,
       .prefab          = taunt->tauntPrefabs[type],
       .expireTimestamp = time->time + g_tauntEventDuration[type],
       .instigator      = instigator,
@@ -73,15 +75,17 @@ static void registry_report(
 }
 
 static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, SceneTauntEvent* out) {
-  usize bestIndex   = sentinel_usize;
-  f32   bestSqrDist = f32_max;
+  usize bestIndex = sentinel_usize;
+  i32   bestPriority;
+  f32   bestSqrDist;
   for (usize i = 0; i != reg->events.size; ++i) {
     const SceneTauntEvent* evt      = dynarray_at_t(&reg->events, i, SceneTauntEvent);
     const GeoVector        posDelta = geo_vector_sub(evt->position, pos);
     const f32              distSqr  = geo_vector_mag_sqr(posDelta);
-    if (distSqr < bestSqrDist) {
-      bestIndex   = i;
-      bestSqrDist = distSqr;
+    if (sentinel_check(bestIndex) || evt->priority > bestPriority || distSqr < bestSqrDist) {
+      bestIndex    = i;
+      bestPriority = evt->priority;
+      bestSqrDist  = distSqr;
     }
   }
   if (!sentinel_check(bestIndex)) {

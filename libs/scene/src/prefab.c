@@ -287,7 +287,12 @@ static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
 }
 
 static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
-  ecs_world_add_t(w, e, SceneTauntComp, .tauntPrefabs[SceneTauntType_Death] = t->tauntDeathPrefab);
+  ecs_world_add_t(
+      w,
+      e,
+      SceneTauntComp,
+      .priority                           = t->priority,
+      .tauntPrefabs[SceneTauntType_Death] = t->tauntDeathPrefab);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {

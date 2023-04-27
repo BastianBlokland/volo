@@ -13,5 +13,6 @@ typedef enum {
 
 ecs_comp_extern_public(SceneTauntComp) {
   SceneTauntRequests requests;
+  i32                priority;
   StringHash         tauntPrefabs[SceneTauntType_Count];
 };

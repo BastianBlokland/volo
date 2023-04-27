@@ -42,7 +42,7 @@
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
         {
-          "$type": "AssetPrefabTrait_Taunt",
+          "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathUnitRifle"
         }
       ]
@@ -89,7 +89,7 @@
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" },
         {
-          "$type": "AssetPrefabTrait_Taunt",
+          "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathUnitEnemy"
         }
       ]
