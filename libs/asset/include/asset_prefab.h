@@ -50,6 +50,8 @@ typedef enum {
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Brain,
   AssetPrefabTrait_Spawner,
+  AssetPrefabTrait_Blink,
+  AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -57,7 +59,6 @@ typedef enum {
 
 typedef struct {
   EcsEntityId graphic;
-  f32         blinkFrequency; // Optional: negative or 0 to disable.
 } AssetPrefabTraitRenderable;
 
 typedef struct {
@@ -126,6 +127,16 @@ typedef struct {
 } AssetPrefabTraitSpawner;
 
 typedef struct {
+  f32        frequency;
+  StringHash effectPrefab; // Optional: 0 to disable.
+} AssetPrefabTraitBlink;
+
+typedef struct {
+  i32        priority;
+  StringHash tauntDeathPrefab; // Optional: 0 to disable.
+} AssetPrefabTraitTaunt;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -140,6 +151,8 @@ typedef struct {
     AssetPrefabTraitCollision  data_collision;
     AssetPrefabTraitBrain      data_brain;
     AssetPrefabTraitSpawner    data_spawner;
+    AssetPrefabTraitBlink      data_blink;
+    AssetPrefabTraitTaunt      data_taunt;
   };
 } AssetPrefabTrait;
 

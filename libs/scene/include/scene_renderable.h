@@ -19,4 +19,3 @@ ecs_comp_extern_public(SceneRenderableComp) {
 };
 
 ecs_comp_extern_public(SceneRenderableFadeoutComp) { TimeDuration duration; };
-ecs_comp_extern_public(SceneRenderableBlinkComp) { f32 blinkFrequency; };

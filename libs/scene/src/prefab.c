@@ -9,6 +9,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attack.h"
+#include "scene_blink.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_footstep.h"
@@ -22,6 +23,7 @@
 #include "scene_spawner.h"
 #include "scene_tag.h"
 #include "scene_target.h"
+#include "scene_taunt.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_unit.h"
@@ -131,9 +133,6 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
   ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .alpha = 1.0f);
-  if (t->blinkFrequency > f32_epsilon) {
-    ecs_world_add_t(w, e, SceneRenderableBlinkComp, .blinkFrequency = t->blinkFrequency);
-  }
 }
 
 static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
@@ -283,6 +282,19 @@ static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTra
       .intervalMax  = t->intervalMax);
 }
 
+static void setup_blink(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBlink* t) {
+  ecs_world_add_t(w, e, SceneBlinkComp, .frequency = t->frequency, .effectPrefab = t->effectPrefab);
+}
+
+static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitTaunt* t) {
+  ecs_world_add_t(
+      w,
+      e,
+      SceneTauntComp,
+      .priority                           = t->priority,
+      .tauntPrefabs[SceneTauntType_Death] = t->tauntDeathPrefab);
+}
+
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
   ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
@@ -329,6 +341,12 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Spawner:
     setup_spawner(w, e, &t->data_spawner);
+    return;
+  case AssetPrefabTrait_Blink:
+    setup_blink(w, e, &t->data_blink);
+    return;
+  case AssetPrefabTrait_Taunt:
+    setup_taunt(w, e, &t->data_taunt);
     return;
   case AssetPrefabTrait_Scalable:
     setup_scale(w, e, s->scale);

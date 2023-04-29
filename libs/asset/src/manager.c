@@ -19,7 +19,7 @@
  * This prevents loading the same asset multiple times if different systems request and release the
  * asset in quick succession.
  */
-#define asset_max_unload_delay 200
+#define asset_max_unload_delay 500
 
 typedef struct {
   StringHash  idHash;

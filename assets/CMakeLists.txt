@@ -142,16 +142,17 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_left.tga
       skybox/teide_small_right.tga
       skybox/teide_small_up.tga
+      sound/alarm-01.wav
       sound/ambiance-01.wav
       sound/burning-01.wav
       sound/death-02.wav
       sound/death-03.wav
+      sound/death-04.wav
       sound/electric-motor-01.wav
       sound/explosion-01.wav
       sound/explosion-02.wav
-      sound/gun-01.wav
-      sound/gun-02.wav
-      sound/gun-03.wav
+      sound/gun-04.wav
+      sound/gun-05.wav
       sound/impact-01.wav
       sound/impact-02.wav
       sound/launch-01.wav

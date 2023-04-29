@@ -35,7 +35,7 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       SceneSoundComp,
       .asset   = asset_lookup(world, assets, string_lit("external/sound/ambiance-01.wav")),
       .pitch   = 1.0f,
-      .gain    = 0.6f,
+      .gain    = 0.4f,
       .looping = true);
 }
 
