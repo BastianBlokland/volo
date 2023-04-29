@@ -18,6 +18,7 @@ static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
 
 #define scene_taunt_cooldown_min time_seconds(2)
 #define scene_taunt_cooldown_max time_seconds(3)
+#define scene_taunt_distance_max 100.0f
 
 typedef struct {
   i32          priority;
@@ -82,6 +83,9 @@ static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, Scene
     const SceneTauntEvent* evt      = dynarray_at_t(&reg->events, i, SceneTauntEvent);
     const GeoVector        posDelta = geo_vector_sub(evt->position, pos);
     const f32              distSqr  = geo_vector_mag_sqr(posDelta);
+    if (distSqr > (scene_taunt_distance_max * scene_taunt_distance_max)) {
+      continue;
+    }
     if (sentinel_check(bestIndex) || evt->priority > bestPriority || distSqr < bestSqrDist) {
       bestIndex    = i;
       bestPriority = evt->priority;
