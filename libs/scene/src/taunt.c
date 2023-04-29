@@ -13,11 +13,11 @@
 #include "scene_transform.h"
 
 static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
-    [SceneTauntType_Death] = time_seconds(1),
+    [SceneTauntType_Death] = time_milliseconds(500),
 };
 
-#define scene_taunt_cooldown_min time_milliseconds(250)
-#define scene_taunt_cooldown_max time_seconds(2)
+#define scene_taunt_cooldown_min time_seconds(2)
+#define scene_taunt_cooldown_max time_seconds(3)
 
 typedef struct {
   i32          priority;

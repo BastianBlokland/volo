@@ -561,12 +561,12 @@
     {
       "name": "TauntDeathUnitEnemy", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 2 },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetId": "external/sound/death-02.wav",
-          "gainMin": 0.8, "gainMax": 1.0,
-          "pitchMin": 0.9, "pitchMax": 1.2
+          "gainMin": 0.6, "gainMax": 0.7,
+          "pitchMin": 0.75, "pitchMax": 1.6
         }
       ]
     },
