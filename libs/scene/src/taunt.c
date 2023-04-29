@@ -78,7 +78,7 @@ static void registry_report(
 static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, SceneTauntEvent* out) {
   usize bestIndex = sentinel_usize;
   i32   bestPriority;
-  f32   bestSqrDist;
+  f32   bestDistSqr;
   for (usize i = 0; i != reg->events.size; ++i) {
     const SceneTauntEvent* evt      = dynarray_at_t(&reg->events, i, SceneTauntEvent);
     const GeoVector        posDelta = geo_vector_sub(evt->position, pos);
@@ -86,10 +86,10 @@ static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, Scene
     if (distSqr > (scene_taunt_distance_max * scene_taunt_distance_max)) {
       continue;
     }
-    if (sentinel_check(bestIndex) || evt->priority > bestPriority || distSqr < bestSqrDist) {
+    if (sentinel_check(bestIndex) || evt->priority > bestPriority || distSqr < bestDistSqr) {
       bestIndex    = i;
       bestPriority = evt->priority;
-      bestSqrDist  = distSqr;
+      bestDistSqr  = distSqr;
     }
   }
   if (!sentinel_check(bestIndex)) {
