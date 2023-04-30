@@ -555,6 +555,7 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   obj->paramSetting[SndObjectParam_Pitch]     = 1.0f;
   obj->paramSetting[SndObjectParam_GainLeft]  = 1.0f;
   obj->paramSetting[SndObjectParam_GainRight] = 1.0f;
+  m->objectUserData[snd_object_id_index(id)]  = 0;
 
   *outId = id;
   return SndResult_Success;
