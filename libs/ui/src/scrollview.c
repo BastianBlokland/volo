@@ -86,7 +86,7 @@ static void ui_scrollview_update(
     scrollview->offset         = remappedFrac * status->offscreenHeight;
   }
 
-  if (status->flags & UiScrollviewStatus_HoveredBar) {
+  if (status->offscreenHeight > 0 && status->flags & UiScrollviewStatus_HoveredBar) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 
