@@ -55,7 +55,8 @@ typedef enum {
 } UiFlags;
 
 typedef enum {
-  UiPersistentFlags_Open = 1 << 0,
+  UiPersistentFlags_Open     = 1 << 0,
+  UiPersistentFlags_Dragging = 1 << 1,
 } UiPersistentFlags;
 
 typedef enum {

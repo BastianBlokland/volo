@@ -205,6 +205,15 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   const UiRect   barRect        = ui_canvas_elem_rect(canvas, barId);
   const UiVector inputPos       = ui_canvas_input_pos(canvas);
 
+  const UiPersistentFlags persistFlags = ui_canvas_persistent_flags(canvas, barId);
+  const bool              wasDragging  = (persistFlags & UiPersistentFlags_Dragging) != 0;
+  if (!wasDragging && status >= UiStatus_Pressed) {
+    ui_canvas_persistent_flags_set(canvas, barId, UiPersistentFlags_Dragging);
+  } else if (wasDragging && status < UiStatus_Pressed) {
+    ui_canvas_persistent_flags_unset(canvas, barId, UiPersistentFlags_Dragging);
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
+
   f32 normValue;
   if (status >= UiStatus_Pressed) {
     normValue = math_unlerp(
@@ -223,15 +232,6 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
-  }
-  if (status == UiStatus_Activated) {
-    /**
-     * TODO: This only catches the case where you 'release' the mouse on the element, not the case
-     * where you start dragging and release outside of the slider / handle. To implement that case
-     * we need to set a persistent flag to indicate that we're dragging and play the sound if that
-     * flag is set but we currently no longer interacting with the bar / handle.
-     */
-    ui_canvas_sound(canvas, UiSoundType_Click);
   }
 
   if (!string_is_empty(opts->tooltip)) {
