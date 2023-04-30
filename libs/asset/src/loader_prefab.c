@@ -62,6 +62,7 @@ typedef struct {
   f32    gainMin, gainMax;
   f32    pitchMin, pitchMax;
   bool   looping;
+  bool   persistent;
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
@@ -210,6 +211,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, looping, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitLifetimeDef);
     data_reg_field_t(reg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -425,12 +427,13 @@ static void prefab_build(
       const f32 gainMin    = soundDef->gainMin < f32_epsilon ? 1.0f : soundDef->gainMin;
       const f32 pitchMin   = soundDef->pitchMin < f32_epsilon ? 1.0f : soundDef->pitchMin;
       outTrait->data_sound = (AssetPrefabTraitSound){
-          .asset    = asset_lookup(ctx->world, manager, soundDef->assetId),
-          .gainMin  = gainMin,
-          .gainMax  = math_max(gainMin, soundDef->gainMax),
-          .pitchMin = pitchMin,
-          .pitchMax = math_max(pitchMin, soundDef->pitchMax),
-          .looping  = soundDef->looping,
+          .asset      = asset_lookup(ctx->world, manager, soundDef->assetId),
+          .gainMin    = gainMin,
+          .gainMax    = math_max(gainMin, soundDef->gainMax),
+          .pitchMin   = pitchMin,
+          .pitchMax   = math_max(pitchMin, soundDef->pitchMax),
+          .looping    = soundDef->looping,
+          .persistent = soundDef->persistent,
       };
       break;
     }

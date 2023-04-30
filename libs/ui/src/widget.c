@@ -111,6 +111,9 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, id, opts->tooltip);
@@ -202,6 +205,15 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   const UiRect   barRect        = ui_canvas_elem_rect(canvas, barId);
   const UiVector inputPos       = ui_canvas_input_pos(canvas);
 
+  const UiPersistentFlags persistFlags = ui_canvas_persistent_flags(canvas, barId);
+  const bool              wasDragging  = (persistFlags & UiPersistentFlags_Dragging) != 0;
+  if (!wasDragging && status >= UiStatus_Pressed) {
+    ui_canvas_persistent_flags_set(canvas, barId, UiPersistentFlags_Dragging);
+  } else if (wasDragging && status < UiStatus_Pressed) {
+    ui_canvas_persistent_flags_unset(canvas, barId, UiPersistentFlags_Dragging);
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
+
   f32 normValue;
   if (status >= UiStatus_Pressed) {
     normValue = math_unlerp(
@@ -290,6 +302,9 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
   }
 
   if (!string_is_empty(opts->tooltip)) {
@@ -456,6 +471,9 @@ bool ui_select_with_opts(
   if (headerStatus >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (headerStatus == UiStatus_Activated || selectFlags & UiSelectFlags_Changed) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   ui_style_pop(canvas);
   return (selectFlags & UiSelectFlags_Changed) != 0;
@@ -588,6 +606,9 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   ui_style_pop(canvas);
   return isOpen;
@@ -619,6 +640,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   if (!editing && status == UiStatus_Activated) {
     const UiTextFilter filter = opts->type == UiTextbox_Digits ? UiTextFilter_DigitsOnly : 0;
     ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
+    ui_canvas_sound(canvas, UiSoundType_Click);
     editing = true;
   }
 

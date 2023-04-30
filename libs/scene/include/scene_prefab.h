@@ -29,6 +29,12 @@ void scene_prefab_init(EcsWorld*, String prefabMapId);
 EcsEntityId scene_prefab_map(const ScenePrefabResourceComp*);
 
 /**
+ * Retrieve the prefab-map's version number.
+ * Version is incremented when the map is updated and can be used to invalidate cached data.
+ */
+u32 scene_prefab_map_version(const ScenePrefabResourceComp*);
+
+/**
  * Spawn an instance of the given prefab.
  * NOTE: Spawned entity can take multiple frames to initialize.
  */

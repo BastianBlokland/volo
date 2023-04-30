@@ -1,9 +1,11 @@
+#include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_prefab.h"
 #include "scene_sound.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -29,7 +31,8 @@ typedef struct {
 } SndEvent;
 
 ecs_comp_define(SndEventMapComp) {
-  DynArray events; // SndEvent[]
+  u32      prefabMapVersion; // Version of the last processed prefab-map (for preloading).
+  DynArray events;           // SndEvent[]
 };
 
 ecs_comp_define(SndSourceComp) { SndObjectId objectId; };
@@ -45,6 +48,8 @@ ecs_view_define(ListenerView) {
   ecs_access_with(SceneSoundListenerComp);
   ecs_access_read(SceneTransformComp);
 }
+
+ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 static SndEventMapComp* snd_event_map_init(EcsWorld* world) {
   return ecs_world_add_t(
@@ -134,10 +139,11 @@ static void snd_source_update_spatial(
 }
 
 ecs_view_define(UpdateGlobalView) {
-  ecs_access_write(SndMixerComp);
+  ecs_access_maybe_read(ScenePrefabResourceComp);
   ecs_access_maybe_write(SndEventMapComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneTimeSettingsComp);
+  ecs_access_write(SndMixerComp);
 }
 
 ecs_view_define(UpdateView) {
@@ -145,6 +151,23 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SndSourceComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_without(SndSourceDiscardComp);
+}
+
+/**
+ * Preload the persistent sounds in the given prefab-map.
+ */
+static void snd_source_preload_prefabs(SndMixerComp* m, const AssetPrefabMapComp* prefabMap) {
+  for (usize traitIndex = 0; traitIndex != prefabMap->traitCount; ++traitIndex) {
+    const AssetPrefabTrait* trait = &prefabMap->traits[traitIndex];
+    switch ((u32)trait->type) {
+    case AssetPrefabTrait_Sound: {
+      const AssetPrefabTraitSound* soundTrait = &trait->data_sound;
+      if (soundTrait->persistent) {
+        snd_mixer_persistent_asset(m, trait->data_sound.asset);
+      }
+    } break;
+    }
+  }
 }
 
 ecs_system_define(SndSourceUpdateSys) {
@@ -163,6 +186,20 @@ ecs_system_define(SndSourceUpdateSys) {
     snd_event_map_prune_older(eventMap, oldestEventToKeep);
   } else {
     eventMap = snd_event_map_init(world);
+  }
+
+  const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  if (prefabRes && scene_prefab_map_version(prefabRes) != eventMap->prefabMapVersion) {
+    EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
+    EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabRes));
+    if (mapItr) {
+      snd_source_preload_prefabs(m, ecs_view_read_t(mapItr, AssetPrefabMapComp));
+      eventMap->prefabMapVersion = scene_prefab_map_version(prefabRes);
+
+      log_d(
+          "Preloading prefab-map sounds",
+          log_param("version", fmt_int(eventMap->prefabMapVersion)));
+    }
   }
 
   const SndListener listener = snd_listener(world);
@@ -249,8 +286,9 @@ ecs_system_define(SndSourceCleanupSys) {
   SndMixerComp* m = ecs_view_write_t(globalItr, SndMixerComp);
   for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
     const EcsEntityId e = (EcsEntityId)snd_object_get_user_data(m, obj);
-    diag_assert(ecs_entity_valid(e));
-
+    if (!ecs_entity_valid(e)) {
+      continue; // User-data is not an entity; object was not created from this module.
+    }
     if (!ecs_world_exists(world, e) || !ecs_world_has_t(world, e, SndSourceComp)) {
       snd_object_stop(m, obj);
     }
@@ -263,10 +301,12 @@ ecs_module_init(snd_source_module) {
   ecs_register_comp_empty(SndSourceDiscardComp);
 
   ecs_register_view(ListenerView);
+  ecs_register_view(PrefabMapView);
 
   ecs_register_system(
       SndSourceUpdateSys,
       ecs_view_id(ListenerView),
+      ecs_view_id(PrefabMapView),
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView));
 

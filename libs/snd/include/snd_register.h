@@ -3,6 +3,7 @@
 
 enum {
   SndOrder_Cleanup = -100,
+  SndOrder_Update  = 900,
   SndOrder_Render  = 1000,
 };
 

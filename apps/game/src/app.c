@@ -28,10 +28,9 @@ static const GapVector g_appWindowSize = {1920, 1080};
 ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
 
 static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
-      e,
+      ecs_world_entity_create(world),
       SceneSoundComp,
       .asset   = asset_lookup(world, assets, string_lit("external/sound/ambiance-01.wav")),
       .pitch   = 1.0f,

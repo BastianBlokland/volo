@@ -26,4 +26,4 @@ add_library(lib_ui STATIC
   )
 target_include_directories(lib_ui PUBLIC include)
 target_link_libraries(lib_ui PUBLIC lib_asset lib_core lib_ecs)
-target_link_libraries(lib_ui PRIVATE lib_gap lib_log lib_rend lib_input)
+target_link_libraries(lib_ui PRIVATE lib_gap lib_log lib_rend lib_input lib_snd)

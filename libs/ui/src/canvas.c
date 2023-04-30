@@ -10,6 +10,7 @@
 #include "input.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
+#include "snd_mixer.h"
 #include "ui_register.h"
 #include "ui_settings.h"
 #include "ui_stats.h"
@@ -64,7 +65,7 @@ ecs_comp_define(UiRendererComp) {
 };
 
 ecs_comp_define(UiCanvasComp) {
-  UiCanvasFlags  flags;
+  UiCanvasFlags  flags : 8;
   i32            order;
   EcsEntityId    window;
   UiCmdBuffer*   cmdBuffer;
@@ -77,10 +78,11 @@ ecs_comp_define(UiCanvasComp) {
   UiLayer        minInteractLayer;
   UiVector       inputDelta, inputPos, inputScroll;
   UiId           activeId;
-  UiStatus       activeStatus;
+  UiStatus       activeStatus : 8;
+  UiFlags        activeElemFlags : 16;
   TimeSteady     activeStatusStart;
-  UiFlags        activeElemFlags;
-  UiInteractType interactType;
+  UiInteractType interactType : 8;
+  u8             soundRequests; // Bitset of UiSoundType's to play.
 };
 
 static void ecs_destruct_renderer(void* data) {
@@ -273,9 +275,13 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
   return ui_build(state->canvas->cmdBuffer, &buildCtx);
 }
 
-ecs_view_define(GlobalView) {
+ecs_view_define(RenderGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
   ecs_access_maybe_write(InputManagerComp);
+}
+ecs_view_define(SoundGlobalView) {
+  ecs_access_read(UiGlobalResourcesComp);
+  ecs_access_write(SndMixerComp);
 }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
@@ -380,8 +386,10 @@ static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsComp* set
   return sentinel_u64;
 }
 
-static u32 ui_canvass_query(
-    EcsWorld* world, const EcsEntityId window, UiCanvasPtr out[ui_canvas_canvasses_max]) {
+static u32 ui_canvas_query_for_window(
+    EcsWorld*         world,
+    const EcsEntityId window,
+    UiCanvasPtr       out[PARAM_ARRAY_SIZE(ui_canvas_canvasses_max)]) {
   u32 count = 0;
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, CanvasView)); ecs_view_walk(itr);) {
     UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
@@ -394,7 +402,7 @@ static u32 ui_canvass_query(
 }
 
 ecs_system_define(UiRenderSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependencies not initialized yet.
@@ -408,20 +416,20 @@ ecs_system_define(UiRenderSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const EcsEntityId entity   = ecs_view_entity(itr);
-    GapWindowComp*    window   = ecs_view_write_t(itr, GapWindowComp);
-    UiRendererComp*   renderer = ecs_view_write_t(itr, UiRendererComp);
-    UiSettingsComp*   settings = ecs_view_write_t(itr, UiSettingsComp);
-    UiStatsComp*      stats    = ecs_view_write_t(itr, UiStatsComp);
+    const EcsEntityId windowEntity = ecs_view_entity(itr);
+    GapWindowComp*    window       = ecs_view_write_t(itr, GapWindowComp);
+    UiRendererComp*   renderer     = ecs_view_write_t(itr, UiRendererComp);
+    UiSettingsComp*   settings     = ecs_view_write_t(itr, UiSettingsComp);
+    UiStatsComp*      stats        = ecs_view_write_t(itr, UiStatsComp);
     if (!renderer) {
-      ui_renderer_create(world, entity);
+      ui_renderer_create(world, windowEntity);
       continue;
     }
     const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
     if (!winSize.x || !winSize.y) {
       continue; // Window is zero sized; No need to render the Ui.
     }
-    const bool activeWindow = !input || input_active_window(input) == entity;
+    const bool activeWindow = !input || input_active_window(input) == windowEntity;
     if (input && activeWindow && input_triggered_lit(input, "DisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
@@ -453,7 +461,7 @@ ecs_system_define(UiRenderSys) {
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
-    const u32   canvasCount = ui_canvass_query(world, entity, canvasses);
+    const u32   canvasCount = ui_canvas_query_for_window(world, windowEntity, canvasses);
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
@@ -524,13 +532,52 @@ ecs_system_define(UiRenderSys) {
   }
 }
 
+ecs_system_define(UiSoundSys) {
+  EcsView*     globalView = ecs_world_view_t(world, SoundGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
+  }
+  const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
+  SndMixerComp*                mixer     = ecs_view_write_t(globalItr, SndMixerComp);
+
+  const EcsEntityId soundAssetPerType[UiSoundType_Count] = {
+      [UiSoundType_Click] = ui_resource_sound_click(globalRes),
+  };
+  const f32 soundGainPerType[UiSoundType_Count] = {
+      [UiSoundType_Click] = 0.25f,
+  };
+
+  // Collect sound requests from all canvasses.
+  u8 soundRequests = 0;
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, CanvasView)); ecs_view_walk(itr);) {
+    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+    soundRequests |= canvas->soundRequests;
+    canvas->soundRequests = 0;
+  }
+
+  // Play the requested sounds.
+  for (UiSoundType type = 0; type != UiSoundType_Count; ++type) {
+    if (soundRequests & (1 << type)) {
+      SndObjectId id;
+      if (snd_object_new(mixer, &id) == SndResult_Success) {
+        snd_object_set_asset(mixer, id, soundAssetPerType[type]);
+        for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
+          snd_object_set_gain(mixer, id, chan, soundGainPerType[type]);
+        }
+      }
+    }
+  }
+}
+
 ecs_module_init(ui_canvas_module) {
   ecs_register_comp(UiCanvasComp, .destructor = ecs_destruct_canvas);
   ecs_register_comp(UiRendererComp, .destructor = ecs_destruct_renderer);
 
   ecs_register_view(CanvasView);
   ecs_register_view(DrawView);
-  ecs_register_view(GlobalView);
+  ecs_register_view(RenderGlobalView);
+  ecs_register_view(SoundGlobalView);
   ecs_register_view(FtxView);
   ecs_register_view(WindowView);
 
@@ -538,14 +585,17 @@ ecs_module_init(ui_canvas_module) {
 
   ecs_register_system(
       UiRenderSys,
-      ecs_view_id(GlobalView),
+      ecs_view_id(RenderGlobalView),
       ecs_view_id(FtxView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
       ecs_view_id(DrawView));
 
+  ecs_register_system(UiSoundSys, ecs_view_id(SoundGlobalView), ecs_view_id(CanvasView));
+
   ecs_order(UiCanvasInputSys, GapOrder_WindowUpdate + 1);
   ecs_order(UiRenderSys, UiOrder_Render);
+  ecs_order(UiSoundSys, UiOrder_Render);
 }
 
 EcsEntityId
@@ -653,6 +703,11 @@ void ui_canvas_persistent_flags_unset(
 void ui_canvas_persistent_flags_toggle(
     UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
   ui_canvas_persistent(comp, id)->flags ^= flags;
+}
+
+void ui_canvas_sound(UiCanvasComp* comp, const UiSoundType type) {
+  diag_assert(type <= 8);
+  comp->soundRequests |= 1 << type;
 }
 
 UiId ui_canvas_draw_text(

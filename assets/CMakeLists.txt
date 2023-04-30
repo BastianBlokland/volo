@@ -145,6 +145,7 @@ if(${EXTERNAL_ASSETS})
       sound/alarm-01.wav
       sound/ambiance-01.wav
       sound/burning-01.wav
+      sound/click-02.wav
       sound/death-02.wav
       sound/death-03.wav
       sound/death-04.wav
@@ -155,6 +156,8 @@ if(${EXTERNAL_ASSETS})
       sound/gun-05.wav
       sound/impact-01.wav
       sound/impact-02.wav
+      sound/indicator-01.wav
+      sound/indicator-02.wav
       sound/launch-01.wav
       sound/projectile-loop-01.wav
       sound/swoosh-01.wav

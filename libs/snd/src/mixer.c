@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_register.h"
 #include "asset_sound.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -85,6 +86,13 @@ ecs_comp_define(SndMixerComp) {
   BitSet       objectFreeSet;  // bit[snd_mixer_objects_max]
 
   /**
+   * Persistent assets are pre-loaded and kept in memory at all times, this reduces the latency when
+   * starting to play them.
+   */
+  DynArray persistentAssets;          // EcsEntityId[], sorted on the id using 'ecs_compare_entity'.
+  DynArray persistentAssetsToAcquire; // EcsEntityId[], array of new persistent assets to acquire.
+
+  /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
    */
   SndBufferFrame* historyBuffer;
@@ -100,6 +108,9 @@ static void ecs_destruct_mixer_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, m->objectAssets, snd_mixer_objects_max);
   alloc_free_array_t(g_alloc_heap, m->objectUserData, snd_mixer_objects_max);
   alloc_free(g_alloc_heap, m->objectFreeSet);
+
+  dynarray_destroy(&m->persistentAssets);
+  dynarray_destroy(&m->persistentAssetsToAcquire);
 
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
 }
@@ -128,6 +139,9 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
 
   m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
+
+  m->persistentAssets          = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  m->persistentAssetsToAcquire = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
 
   return m;
 }
@@ -205,6 +219,17 @@ ecs_system_define(SndMixerUpdateSys) {
   }
   SndMixerComp* m = ecs_utils_write_t(world, MixerView, ecs_world_global(world), SndMixerComp);
 
+  /**
+   * Acquire new persistent sound assets.
+   * TODO: Support reloading persistent assets when they are changed.
+   */
+  dynarray_for_t(&m->persistentAssetsToAcquire, EcsEntityId, a) { asset_acquire(world, *a); }
+  dynarray_clear(&m->persistentAssetsToAcquire);
+
+  /**
+   * Update sound objects.
+   */
+
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
@@ -218,14 +243,29 @@ ecs_system_define(SndMixerUpdateSys) {
       if (m->objectAssets[i]) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
-        // NOTE: We need to wait until the frame for the acquire to be processed before playing.
       }
-      continue;
+      /**
+       * An 'asset_acquire()' takes one tick to take effect as it requires the ecs to be flushed
+       * and then the asset update to happen. Before this time the asset could be loaded at the
+       * moment but been queued for unload the next tick.
+       *
+       * To avoid introducing an additional frame of delay even if its already loaded we don't wait
+       * but we do check if the ref-count is zero when accessing the asset. If its zero then its not
+       * safe to access the asset as it might be queued for unload.
+       */
+      ASSERT((u32)SndOrder_Update > AssetOrder_Update, "Sound update has to be after asset update");
+      // Fallthrough.
     case SndObjectPhase_Acquired:
       if (obj->flags & SndObjectFlags_Stop) {
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
       } else if (ecs_view_maybe_jump(assetItr, m->objectAssets[i])) {
+        const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
+        if (asset_ref_count(asset) == 0) {
+          continue; // Our acquire has not been processed; unsafe to access (see comment above).
+        }
+        m->objectNames[i] = asset_id(asset);
+
         const AssetSoundComp* soundAsset = ecs_view_read_t(assetItr, AssetSoundComp);
         obj->frameChannels               = soundAsset->frameChannels;
         obj->frameCount                  = soundAsset->frameCount;
@@ -243,8 +283,6 @@ ecs_system_define(SndMixerUpdateSys) {
           obj->paramActual[SndObjectParam_GainRight] = obj->paramSetting[SndObjectParam_GainRight];
         }
 
-        const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
-        m->objectNames[i]      = asset_id(asset);
         continue; // Ready for playback.
       } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
         log_e("Failed to sound resource");
@@ -541,6 +579,7 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_system(SndMixerUpdateSys, ecs_view_id(MixerView), ecs_view_id(AssetView));
   ecs_register_system(SndMixerRenderSys, ecs_view_id(MixerView));
 
+  ecs_order(SndMixerUpdateSys, SndOrder_Update);
   ecs_order(SndMixerRenderSys, SndOrder_Render);
 }
 
@@ -555,6 +594,7 @@ SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
   obj->paramSetting[SndObjectParam_Pitch]     = 1.0f;
   obj->paramSetting[SndObjectParam_GainLeft]  = 1.0f;
   obj->paramSetting[SndObjectParam_GainRight] = 1.0f;
+  m->objectUserData[snd_object_id_index(id)]  = 0;
 
   *outId = id;
   return SndResult_Success;
@@ -698,6 +738,17 @@ SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId)
     }
   }
   return sentinel_u32;
+}
+
+void snd_mixer_persistent_asset(SndMixerComp* m, const EcsEntityId asset) {
+  DynArray*    arr  = &m->persistentAssets;
+  EcsEntityId* slot = dynarray_find_or_insert_sorted(arr, ecs_compare_entity, &asset);
+
+  // Check if this was the first time this asset was marked persistent.
+  if (!ecs_entity_valid(*slot)) {
+    *slot                                                        = asset;
+    *dynarray_push_t(&m->persistentAssetsToAcquire, EcsEntityId) = asset;
+  }
 }
 
 f32 snd_mixer_gain_get(const SndMixerComp* m) { return m->gainSetting; }

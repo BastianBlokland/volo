@@ -84,9 +84,14 @@ static void ui_scrollview_update(
     const f32 offscreenFrac    = 1.0f - status->viewportFrac;
     const f32 remappedFrac     = (1.0f - (inputFrac - halfViewportFrac) / offscreenFrac);
     scrollview->offset         = remappedFrac * status->offscreenHeight;
+
+    ui_canvas_persistent_flags_set(canvas, status->barId, UiPersistentFlags_Dragging);
+  } else if (ui_canvas_persistent_flags(canvas, status->barId) & UiPersistentFlags_Dragging) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+    ui_canvas_persistent_flags_unset(canvas, status->barId, UiPersistentFlags_Dragging);
   }
 
-  if (status->flags & UiScrollviewStatus_HoveredBar) {
+  if (status->offscreenHeight > 0 && status->flags & UiScrollviewStatus_HoveredBar) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 

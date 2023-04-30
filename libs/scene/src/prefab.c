@@ -38,6 +38,7 @@ ecs_comp_define(ScenePrefabResourceComp) {
   PrefabResourceFlags flags;
   String              mapId;
   EcsEntityId         mapEntity;
+  u32                 mapVersion;
 };
 
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
@@ -75,9 +76,14 @@ ecs_system_define(ScenePrefabResourceInitSys) {
   }
 
   if (!(resource->flags & (PrefabResource_MapAcquired | PrefabResource_MapUnloading))) {
-    log_i("Acquiring prefab-map", log_param("id", fmt_text(resource->mapId)));
     asset_acquire(world, resource->mapEntity);
     resource->flags |= PrefabResource_MapAcquired;
+    ++resource->mapVersion;
+
+    log_i(
+        "Acquiring prefab-map",
+        log_param("id", fmt_text(resource->mapId)),
+        log_param("version", fmt_int(resource->mapVersion)));
   }
 }
 
@@ -460,6 +466,10 @@ void scene_prefab_init(EcsWorld* world, const String prefabMapId) {
 
 EcsEntityId scene_prefab_map(const ScenePrefabResourceComp* resource) {
   return resource->mapEntity;
+}
+
+u32 scene_prefab_map_version(const ScenePrefabResourceComp* resource) {
+  return resource->mapVersion;
 }
 
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {

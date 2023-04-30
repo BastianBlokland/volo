@@ -66,6 +66,11 @@ static void ui_panel_update_drag_and_resize(
     }
     panel->position.y += yDeltaFrac * 0.5f;
     panel->size.y -= yDeltaFrac * canvasRes.height;
+
+    ui_canvas_persistent_flags_set(canvas, resizeHandleId, UiPersistentFlags_Dragging);
+  } else if (ui_canvas_persistent_flags(canvas, resizeHandleId) & UiPersistentFlags_Dragging) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+    ui_canvas_persistent_flags_unset(canvas, resizeHandleId, UiPersistentFlags_Dragging);
   }
 }
 
@@ -88,6 +93,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
 
   if (status == UiStatus_Activated) {
     panel->flags |= UiPanelFlags_Close;
+    ui_canvas_sound(canvas, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
@@ -211,6 +217,7 @@ static void ui_panel_tabs(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpt
       }
       if (status == UiStatus_Activated) {
         panel->activeTab = i;
+        ui_canvas_sound(canvas, UiSoundType_Click);
       }
       ui_tooltip(canvas, id, fmt_write_scratch("Switch to the \a.b{}\ar tab.", fmt_text(name)));
     }
