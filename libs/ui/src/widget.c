@@ -111,6 +111,9 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, id, opts->tooltip);
@@ -221,6 +224,15 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (status == UiStatus_Activated) {
+    /**
+     * TODO: This only catches the case where you 'release' the mouse on the element, not the case
+     * where you start dragging and release outside of the slider / handle. To implement that case
+     * we need to set a persistent flag to indicate that we're dragging and play the sound if that
+     * flag is set but we currently no longer interacting with the bar / handle.
+     */
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, barId, opts->tooltip);
@@ -290,6 +302,9 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
   }
 
   if (!string_is_empty(opts->tooltip)) {
@@ -456,6 +471,9 @@ bool ui_select_with_opts(
   if (headerStatus >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (headerStatus == UiStatus_Activated || selectFlags & UiSelectFlags_Changed) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
 
   ui_style_pop(canvas);
   return (selectFlags & UiSelectFlags_Changed) != 0;
@@ -587,6 +605,9 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
   }
 
   ui_style_pop(canvas);

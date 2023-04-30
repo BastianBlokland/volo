@@ -88,6 +88,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
 
   if (status == UiStatus_Activated) {
     panel->flags |= UiPanelFlags_Close;
+    ui_canvas_sound(canvas, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
@@ -211,6 +212,7 @@ static void ui_panel_tabs(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpt
       }
       if (status == UiStatus_Activated) {
         panel->activeTab = i;
+        ui_canvas_sound(canvas, UiSoundType_Click);
       }
       ui_tooltip(canvas, id, fmt_write_scratch("Switch to the \a.b{}\ar tab.", fmt_text(name)));
     }
