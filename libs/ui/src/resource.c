@@ -8,6 +8,7 @@
 static const String g_uiGlobalFont         = string_static("fonts/ui.ftx");
 static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.gra");
 static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.gra");
+static const String g_uiSoundClick         = string_static("external/sound/click-01.wav");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
@@ -18,6 +19,7 @@ ecs_comp_define(UiGlobalResourcesComp) {
   UiGlobalResFlags flags;
   EcsEntityId      font;
   EcsEntityId      graphic, graphicDebug;
+  EcsEntityId      soundClick;
 };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -50,7 +52,8 @@ ecs_system_define(UiResourceInitSys) {
         UiGlobalResourcesComp,
         .font         = asset_lookup(world, assets, g_uiGlobalFont),
         .graphic      = asset_lookup(world, assets, g_uiGlobalGraphic),
-        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug));
+        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug),
+        .soundClick   = asset_lookup(world, assets, g_uiSoundClick));
     return;
   }
 
@@ -101,3 +104,4 @@ EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp
 EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
   return comp->graphicDebug;
 }
+EcsEntityId ui_resource_sound_click(const UiGlobalResourcesComp* comp) { return comp->soundClick; }
