@@ -308,6 +308,9 @@ static bool debug_overlay_blocker(UiCanvasComp* canvas) {
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
   return status == UiStatus_Activated;
 }
 
