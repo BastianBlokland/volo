@@ -541,6 +541,7 @@ ecs_module_init(snd_mixer_module) {
   ecs_register_system(SndMixerUpdateSys, ecs_view_id(MixerView), ecs_view_id(AssetView));
   ecs_register_system(SndMixerRenderSys, ecs_view_id(MixerView));
 
+  ecs_order(SndMixerUpdateSys, SndOrder_Update);
   ecs_order(SndMixerRenderSys, SndOrder_Render);
 }
 
