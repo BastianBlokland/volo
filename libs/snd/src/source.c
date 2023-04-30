@@ -249,8 +249,9 @@ ecs_system_define(SndSourceCleanupSys) {
   SndMixerComp* m = ecs_view_write_t(globalItr, SndMixerComp);
   for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {
     const EcsEntityId e = (EcsEntityId)snd_object_get_user_data(m, obj);
-    diag_assert(ecs_entity_valid(e));
-
+    if (!ecs_entity_valid(e)) {
+      continue; // User-data is not an entity; object was not created from this module.
+    }
     if (!ecs_world_exists(world, e) || !ecs_world_has_t(world, e, SndSourceComp)) {
       snd_object_stop(m, obj);
     }
