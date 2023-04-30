@@ -8,7 +8,7 @@
 static const String g_uiGlobalFont         = string_static("fonts/ui.ftx");
 static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.gra");
 static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.gra");
-static const String g_uiSoundClick         = string_static("external/sound/click-01.wav");
+static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
