@@ -85,6 +85,13 @@ ecs_comp_define(SndMixerComp) {
   BitSet       objectFreeSet;  // bit[snd_mixer_objects_max]
 
   /**
+   * Persistent assets are pre-loaded and kept in memory at all times, this reduces the latency when
+   * starting to play them.
+   */
+  DynArray persistentAssets;          // EcsEntityId[], sorted on the id using 'ecs_compare_entity'.
+  DynArray persistentAssetsToAcquire; // EcsEntityId[], array of new persistent assets to acquire.
+
+  /**
    * Keep a history of the last N frames in a ring-buffer for analysis and debug purposes.
    */
   SndBufferFrame* historyBuffer;
@@ -100,6 +107,9 @@ static void ecs_destruct_mixer_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, m->objectAssets, snd_mixer_objects_max);
   alloc_free_array_t(g_alloc_heap, m->objectUserData, snd_mixer_objects_max);
   alloc_free(g_alloc_heap, m->objectFreeSet);
+
+  dynarray_destroy(&m->persistentAssets);
+  dynarray_destroy(&m->persistentAssetsToAcquire);
 
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
 }
@@ -128,6 +138,9 @@ static SndMixerComp* snd_mixer_create(EcsWorld* world) {
 
   m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
   bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
+
+  m->persistentAssets          = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  m->persistentAssetsToAcquire = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
 
   return m;
 }
@@ -204,6 +217,17 @@ ecs_system_define(SndMixerUpdateSys) {
     return;
   }
   SndMixerComp* m = ecs_utils_write_t(world, MixerView, ecs_world_global(world), SndMixerComp);
+
+  /**
+   * Acquire new persistent sound assets.
+   * TODO: Support reloading persistent assets when they are changed.
+   */
+  dynarray_for_t(&m->persistentAssetsToAcquire, EcsEntityId, a) { asset_acquire(world, *a); }
+  dynarray_clear(&m->persistentAssetsToAcquire);
+
+  /**
+   * Update sound objects.
+   */
 
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
@@ -700,6 +724,17 @@ SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId)
     }
   }
   return sentinel_u32;
+}
+
+void snd_mixer_persistent_asset(SndMixerComp* m, const EcsEntityId asset) {
+  DynArray*    arr  = &m->persistentAssets;
+  EcsEntityId* slot = dynarray_find_or_insert_sorted(arr, ecs_compare_entity, &asset);
+
+  // Check if this was the first time this asset was marked persistent.
+  if (!ecs_entity_valid(*slot)) {
+    *slot                                                        = asset;
+    *dynarray_push_t(&m->persistentAssetsToAcquire, EcsEntityId) = asset;
+  }
 }
 
 f32 snd_mixer_gain_get(const SndMixerComp* m) { return m->gainSetting; }

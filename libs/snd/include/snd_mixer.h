@@ -42,6 +42,11 @@ SndResult snd_object_set_gain(SndMixerComp*, SndObjectId, SndChannel, f32 gain);
 SndObjectId snd_object_next(const SndMixerComp*, SndObjectId previousId);
 
 /**
+ * Mark the given sound asset as persistent, meaning it will be pre-loaded and kept in memory.
+ */
+void snd_mixer_persistent_asset(SndMixerComp*, EcsEntityId asset);
+
+/**
  * Global controls.
  */
 f32       snd_mixer_gain_get(const SndMixerComp*);
