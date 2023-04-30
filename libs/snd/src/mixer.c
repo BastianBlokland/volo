@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_register.h"
 #include "asset_sound.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -242,14 +243,29 @@ ecs_system_define(SndMixerUpdateSys) {
       if (m->objectAssets[i]) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
-        // NOTE: We need to wait until the frame for the acquire to be processed before playing.
       }
-      continue;
+      /**
+       * An 'asset_acquire()' takes one tick to take effect as it requires the ecs to be flushed
+       * and then the asset update to happen. Before this time the asset could be loaded at the
+       * moment but been queued for unload the next tick.
+       *
+       * To avoid introducing an additional frame of delay even if its already loaded we don't wait
+       * but we do check if the ref-count is zero when accessing the asset. If its zero then its not
+       * safe to access the asset as it might be queued for unload.
+       */
+      ASSERT(SndOrder_Update > AssetOrder_Update, "Sound update has to happen after asset update");
+      // Fallthrough.
     case SndObjectPhase_Acquired:
       if (obj->flags & SndObjectFlags_Stop) {
         obj->phase = SndObjectPhase_Cleanup;
         // Fallthrough.
       } else if (ecs_view_maybe_jump(assetItr, m->objectAssets[i])) {
+        const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
+        if (asset_ref_count(asset) == 0) {
+          continue; // Our acquire has not been processed; unsafe to access (see comment above).
+        }
+        m->objectNames[i] = asset_id(asset);
+
         const AssetSoundComp* soundAsset = ecs_view_read_t(assetItr, AssetSoundComp);
         obj->frameChannels               = soundAsset->frameChannels;
         obj->frameCount                  = soundAsset->frameCount;
@@ -267,8 +283,6 @@ ecs_system_define(SndMixerUpdateSys) {
           obj->paramActual[SndObjectParam_GainRight] = obj->paramSetting[SndObjectParam_GainRight];
         }
 
-        const AssetComp* asset = ecs_view_read_t(assetItr, AssetComp);
-        m->objectNames[i]      = asset_id(asset);
         continue; // Ready for playback.
       } else if (ecs_world_has_t(world, m->objectAssets[i], AssetFailedComp)) {
         log_e("Failed to sound resource");
