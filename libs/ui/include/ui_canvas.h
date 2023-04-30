@@ -32,6 +32,12 @@ typedef enum {
 } UiInteractType;
 
 typedef enum {
+  UiSoundType_Click,
+
+  UiSoundType_Count
+} UiSoundType;
+
+typedef enum {
   UiTextFilter_Readonly   = 1 << 0,
   UiTextFilter_DigitsOnly = 1 << 1,
 } UiTextFilter;
@@ -121,6 +127,11 @@ UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp*, UiId);
 void              ui_canvas_persistent_flags_set(UiCanvasComp*, UiId, UiPersistentFlags);
 void              ui_canvas_persistent_flags_unset(UiCanvasComp*, UiId, UiPersistentFlags);
 void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersistentFlags);
+
+/**
+ * Play a sound effect.
+ */
+void ui_canvas_sound(UiCanvasComp*, UiSoundType);
 
 /**
  * Draw text in the current rectangle.
