@@ -640,6 +640,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   if (!editing && status == UiStatus_Activated) {
     const UiTextFilter filter = opts->type == UiTextbox_Digits ? UiTextFilter_DigitsOnly : 0;
     ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
+    ui_canvas_sound(canvas, UiSoundType_Click);
     editing = true;
   }
 
