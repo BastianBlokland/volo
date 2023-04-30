@@ -74,6 +74,7 @@ typedef struct {
   f32         gainMin, gainMax;
   f32         pitchMin, pitchMax;
   bool        looping;
+  bool        persistent; // Pre-load the asset and keep it in memory.
 } AssetPrefabTraitSound;
 
 typedef struct {
