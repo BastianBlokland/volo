@@ -66,6 +66,11 @@ static void ui_panel_update_drag_and_resize(
     }
     panel->position.y += yDeltaFrac * 0.5f;
     panel->size.y -= yDeltaFrac * canvasRes.height;
+
+    ui_canvas_persistent_flags_set(canvas, resizeHandleId, UiPersistentFlags_Dragging);
+  } else if (ui_canvas_persistent_flags(canvas, resizeHandleId) & UiPersistentFlags_Dragging) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+    ui_canvas_persistent_flags_unset(canvas, resizeHandleId, UiPersistentFlags_Dragging);
   }
 }
 
