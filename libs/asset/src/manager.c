@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_register.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -383,6 +384,7 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
   ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
+  ecs_order(AssetUpdateDirtySys, AssetOrder_Update);
 
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
