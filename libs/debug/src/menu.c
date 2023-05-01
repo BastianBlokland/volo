@@ -24,8 +24,6 @@
 
 // clang-format off
 
-static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
-static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
 static const String  g_tooltipPanelOpen       = string_static("Open the \a.b{}\ar panel.");
 static const String  g_tooltipPanelClose      = string_static("Close the \a.b{}\ar panel.");
 static const UiColor g_panelFrameColorNormal  = {32, 32, 32, 192};
@@ -137,7 +135,6 @@ ecs_view_define(MenuUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
-ecs_view_define(WindowUpdateView) { ecs_access_write(DebugStatsComp); }
 
 static bool debug_panel_is_open(EcsWorld* world, const EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
@@ -171,7 +168,6 @@ static void debug_action_bar_draw(
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
     DebugMenuComp*          menu,
-    DebugStatsComp*         stats,
     DebugStatsGlobalComp*   statsGlobal,
     const EcsEntityId       winEntity) {
 
@@ -179,29 +175,11 @@ static void debug_action_bar_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 45);
 
   const bool windowActive = input_active_window(input) == winEntity;
-  const u32  rows = 1 /* Icon */ + 1 /* Stats */ + array_elems(g_debugPanelConfig) /* Panels */;
+  const u32  rows         = 1 /* Icon */ + array_elems(g_debugPanelConfig) /* Panels */;
   ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
 
   ui_table_next_row(canvas, &table);
   ui_canvas_draw_glyph(canvas, UiShape_Bug, 0, UiFlags_Interactable);
-
-  // Stats toggle.
-  {
-    ui_table_next_row(canvas, &table);
-    const bool isEnabled = debug_stats_show(stats);
-
-    const bool buttonPressed = ui_button(
-        canvas,
-        .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
-        .fontSize   = 25,
-        .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
-        .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal);
-
-    const bool hotkeyPressed = windowActive && input_triggered_lit(input, "DebugPanelStats");
-    if (buttonPressed || hotkeyPressed) {
-      debug_stats_show_set(stats, !isEnabled);
-    }
-  }
 
   // Panel open / close.
   for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
@@ -240,21 +218,13 @@ ecs_system_define(DebugMenuUpdateSys) {
   const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
   DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
-  EcsIterator* windowItr  = ecs_view_itr(windowView);
-
   EcsView* menuView = ecs_world_view_t(world, MenuUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
     DebugMenuComp* menu   = ecs_view_write_t(itr, DebugMenuComp);
     UiCanvasComp*  canvas = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, menu->window)) {
-      continue;
-    }
-    DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
-
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, input, menu, stats, statsGlobal, menu->window);
+    debug_action_bar_draw(world, canvas, input, menu, statsGlobal, menu->window);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
@@ -271,14 +241,12 @@ ecs_module_init(debug_menu_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(CanvasView);
-  ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
       DebugMenuUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(MenuUpdateView),
-      ecs_view_id(CanvasView),
-      ecs_view_id(WindowUpdateView));
+      ecs_view_id(CanvasView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
