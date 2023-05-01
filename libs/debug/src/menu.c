@@ -100,11 +100,11 @@ static const struct {
         .openFunc   = debug_camera_panel_open,
         .hotkeyName = string_static("DebugPanelCamera"),
     },
-    // {
-    //     .name       = string_static("Grid"),
-    //     .iconShape  = UiShape_Grid4x4,
-    //     .openFunc   = debug_grid_panel_open,
-    // },
+    {
+        .name      = string_static("Grid"),
+        .iconShape = UiShape_Grid4x4,
+        .openFunc  = debug_grid_panel_open,
+    },
     {
         .name       = string_static("Renderer"),
         .iconShape  = UiShape_Brush,
@@ -175,10 +175,15 @@ static void debug_action_bar_draw(
     DebugStatsGlobalComp*   statsGlobal,
     const EcsEntityId       winEntity) {
 
-  UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 35);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 45);
 
   const bool windowActive = input_active_window(input) == winEntity;
+  const u32  rows = 1 /* Icon */ + 1 /* Stats */ + array_elems(g_debugPanelConfig) /* Panels */;
+  ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
+
+  ui_table_next_row(canvas, &table);
+  ui_canvas_draw_glyph(canvas, UiShape_Bug, 0, UiFlags_Interactable);
 
   // Stats toggle.
   {
@@ -188,7 +193,7 @@ static void debug_action_bar_draw(
     const bool buttonPressed = ui_button(
         canvas,
         .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
-        .fontSize   = 30,
+        .fontSize   = 25,
         .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
         .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal);
 
@@ -206,7 +211,7 @@ static void debug_action_bar_draw(
     const bool buttonPressed = ui_button(
         canvas,
         .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
-        .fontSize   = 30,
+        .fontSize   = 25,
         .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
         .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal);
 
