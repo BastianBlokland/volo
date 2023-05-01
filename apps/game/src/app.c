@@ -51,13 +51,10 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
 }
 
 static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
-  ecs_world_add_t(
-      world,
-      window,
-      AppWindowComp,
-      .uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront),
-      .debugLogViewer = debug_log_viewer_create(world, window));
+  const EcsEntityId window   = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+
+  ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
       world,
@@ -182,25 +179,20 @@ ecs_system_define(AppUpdateSys) {
       app_action_bar_draw(canvas, app, input, win);
     }
 
+    // clang-format off
     switch (app->mode) {
     case AppMode_Normal:
-      if (appWindow->debugMenu) {
-        ecs_world_entity_destroy(world, appWindow->debugMenu);
-        appWindow->debugMenu = 0;
-      }
-      if (stats) {
-        debug_stats_show_set(stats, DebugStatShow_Minimal);
-      }
+      if (appWindow->debugMenu)       { ecs_world_entity_destroy(world, appWindow->debugMenu); appWindow->debugMenu = 0; }
+      if (appWindow->debugLogViewer)  { ecs_world_entity_destroy(world, appWindow->debugLogViewer); appWindow->debugLogViewer = 0; }
+      if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Minimal); }
       break;
     case AppMode_Debug:
-      if (!appWindow->debugMenu) {
-        appWindow->debugMenu = debug_menu_create(world, windowEntity);
-      }
-      if (stats) {
-        debug_stats_show_set(stats, DebugStatShow_Full);
-      }
+      if (!appWindow->debugMenu)      { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
+      if (!appWindow->debugLogViewer) { appWindow->debugLogViewer = debug_log_viewer_create(world, windowEntity); }
+      if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Full); }
       break;
     }
+    // clang-format on
   }
 }
 
