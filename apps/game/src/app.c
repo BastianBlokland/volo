@@ -180,8 +180,10 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   app_ambiance_create(world, assets);
 
+  InputResourceComp* inputResource = input_resource_init(world);
+  input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
+
   scene_level_load(world, string_lit("levels/default.lvl"));
-  input_resource_init(world, string_lit("global/game-input.imp"));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));
   scene_terrain_init(

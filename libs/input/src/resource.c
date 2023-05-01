@@ -105,14 +105,20 @@ ecs_module_init(input_resource_module) {
   ecs_register_system(InputResourceUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
 }
 
-void input_resource_init(EcsWorld* world, const String inputMapId) {
+InputResourceComp* input_resource_init(EcsWorld* world) {
+  return ecs_world_add_t(world, ecs_world_global(world), InputResourceComp);
+}
+
+void input_resource_load_map(InputResourceComp* resource, const String inputMapId) {
   diag_assert_msg(inputMapId.size, "Invalid inputMapId");
 
-  const InputResMap map = {
+  if (UNLIKELY(resource->mapCount == input_resource_max_maps)) {
+    diag_crash_msg("Loaded input map count exceeds maximum ({})", fmt_int(input_resource_max_maps));
+  }
+
+  resource->maps[resource->mapCount++] = (InputResMap){
       .id = string_dup(g_alloc_heap, inputMapId),
   };
-
-  ecs_world_add_t(world, ecs_world_global(world), InputResourceComp, .maps[0] = map, .mapCount = 1);
 }
 
 EcsEntityId input_resource_map(const InputResourceComp* comp) { return comp->maps[0].asset; }

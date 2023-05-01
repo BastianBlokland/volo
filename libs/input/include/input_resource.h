@@ -7,7 +7,5 @@
  */
 ecs_comp_extern(InputResourceComp);
 
-/**
- * Create a new input resource from the given inputmap.
- */
-void input_resource_init(EcsWorld*, String inputMapId);
+InputResourceComp* input_resource_init(EcsWorld*);
+void               input_resource_load_map(InputResourceComp*, String inputMapId);
