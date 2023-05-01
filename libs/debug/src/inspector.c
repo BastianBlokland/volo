@@ -162,6 +162,10 @@ static void inspector_notify_tool(DebugInspectorSettingsComp* set, DebugStatsGlo
   debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
 }
 
+static void inspector_notify_destroy(DebugStatsGlobalComp* stats) {
+  debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
+}
+
 static void inspector_notify_vis(
     DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
   debug_stats_notify(
@@ -785,6 +789,12 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
     if (ecs_view_maybe_jump(subjectItr, *e)) {
+
+      if (input_triggered_lit(input, "DebugInspectorDestroy")) {
+        ecs_world_entity_destroy(world, *e);
+        inspector_notify_destroy(stats);
+      }
+
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
       SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(subjectItr, SceneScaleComp);

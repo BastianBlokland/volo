@@ -141,6 +141,13 @@
       ]
     },
     {
+      "name": "DebugInspectorDestroy",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Delete" }
+      ]
+    },
+    {
       "name": "DebugInspectorToolTranslation",
       "blockers": [ "TextInput" ],
       "bindings": [
