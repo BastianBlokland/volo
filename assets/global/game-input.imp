@@ -22,13 +22,6 @@
       ]
     },
     {
-      "name": "Destroy",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "Delete" }
-      ]
-    },
-    {
       "name": "CameraReset",
       "blockers": [ "TextInput" ],
       "bindings": [
