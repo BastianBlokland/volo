@@ -18,15 +18,12 @@ typedef struct {
   EcsEntityId      asset;
 } InputResMap;
 
-ecs_comp_define(InputResourceComp) {
-  InputResMap maps[input_resource_max_maps];
-  u32         mapCount;
-};
+ecs_comp_define(InputResourceComp) { InputResMap maps[input_resource_max_maps]; };
 
 static void ecs_destruct_input_resource(void* data) {
   InputResourceComp* comp = data;
-  for (u32 i = 0; i != comp->mapCount; ++i) {
-    string_free(g_alloc_heap, comp->maps[i].id);
+  for (u32 i = 0; i != input_resource_max_maps; ++i) {
+    string_maybe_free(g_alloc_heap, comp->maps[i].id);
   }
 }
 
@@ -51,8 +48,11 @@ ecs_system_define(InputResourceInitSys) {
   if (!assets || !resource) {
     return;
   }
-  for (u32 i = 0; i != resource->mapCount; ++i) {
+  for (u32 i = 0; i != input_resource_max_maps; ++i) {
     InputResMap* map = &resource->maps[i];
+    if (string_is_empty(map->id)) {
+      continue;
+    }
     if (!map->asset) {
       map->asset = asset_lookup(world, assets, map->id);
     }
@@ -69,7 +69,7 @@ ecs_system_define(InputResourceUnloadChangedMapSys) {
   if (!resource) {
     return;
   }
-  for (u32 i = 0; i != resource->mapCount; ++i) {
+  for (u32 i = 0; i != input_resource_max_maps; ++i) {
     InputResMap* map = &resource->maps[i];
     if (!ecs_entity_valid(map->asset)) {
       continue;
@@ -112,13 +112,17 @@ InputResourceComp* input_resource_init(EcsWorld* world) {
 void input_resource_load_map(InputResourceComp* resource, const String inputMapId) {
   diag_assert_msg(inputMapId.size, "Invalid inputMapId");
 
-  if (UNLIKELY(resource->mapCount == input_resource_max_maps)) {
-    diag_crash_msg("Loaded input map count exceeds maximum ({})", fmt_int(input_resource_max_maps));
+  for (u32 i = 0; i != input_resource_max_maps; ++i) {
+    InputResMap* map = &resource->maps[i];
+    if (!string_is_empty(map->id)) {
+      continue; // Slot already in use.
+    }
+    *map = (InputResMap){
+        .id = string_dup(g_alloc_heap, inputMapId),
+    };
+    return;
   }
-
-  resource->maps[resource->mapCount++] = (InputResMap){
-      .id = string_dup(g_alloc_heap, inputMapId),
-  };
+  diag_crash_msg("Loaded input map count exceeds maximum ({})", fmt_int(input_resource_max_maps));
 }
 
 EcsEntityId input_resource_map(const InputResourceComp* comp) { return comp->maps[0].asset; }
