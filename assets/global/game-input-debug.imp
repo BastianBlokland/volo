@@ -1,6 +1,55 @@
 {
   "actions": [
     {
+      "name": "DebugTimePauseToggle",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "P" }
+      ]
+    },
+    {
+      "name": "DebugTimeScaleUp",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Plus" }
+      ]
+    },
+    {
+      "name": "DebugTimeScaleDown",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Minus" }
+      ]
+    },
+    {
+      "name": "DebugTimeStep",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "O" }
+      ]
+    },
+    {
+      "name": "DebugGridShow",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "G" }
+      ]
+    },
+    {
+      "name": "DebugGridScaleUp",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketRight" }
+      ]
+    },
+    {
+      "name": "DebugGridScaleDown",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketLeft" }
+      ]
+    },
+    {
       "name": "DebugPrefabCreate",
       "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [

@@ -121,55 +121,6 @@
       "bindings": [
         { "type": "Pressed", "key": "F12" }
       ]
-    },
-    {
-      "name": "TimePauseToggle",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "P" }
-      ]
-    },
-    {
-      "name": "TimeScaleUp",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "Plus" }
-      ]
-    },
-    {
-      "name": "TimeScaleDown",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "Minus" }
-      ]
-    },
-    {
-      "name": "TimeStep",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "O" }
-      ]
-    },
-    {
-      "name": "GridShow",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "G" }
-      ]
-    },
-    {
-      "name": "GridScaleUp",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "BracketRight" }
-      ]
-    },
-    {
-      "name": "GridScaleDown",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "BracketLeft" }
-      ]
     }
   ]
 }

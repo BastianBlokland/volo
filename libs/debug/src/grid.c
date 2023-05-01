@@ -257,17 +257,17 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
-    if (input_triggered_lit(input, "GridShow")) {
+    if (input_triggered_lit(input, "DebugGridShow")) {
       grid->show ^= 1;
       grid->height = debug_selection_height(selection, transformView);
       grid_notify_show(stats, grid->show);
     }
-    if (input_triggered_lit(input, "GridScaleUp")) {
+    if (input_triggered_lit(input, "DebugGridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
       grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    if (input_triggered_lit(input, "GridScaleDown")) {
+    if (input_triggered_lit(input, "DebugGridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
       grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);

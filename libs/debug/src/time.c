@@ -132,7 +132,7 @@ ecs_system_define(DebugTimeUpdateSys) {
   const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
   SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
 
-  if (input_triggered_lit(input, "TimePauseToggle")) {
+  if (input_triggered_lit(input, "DebugTimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
     if (timeSettings->flags & SceneTimeFlags_Paused) {
       debug_time_notify_pause(stats, true);
@@ -140,15 +140,15 @@ ecs_system_define(DebugTimeUpdateSys) {
       debug_time_notify_pause(stats, false);
     }
   }
-  if (input_triggered_lit(input, "TimeScaleUp")) {
+  if (input_triggered_lit(input, "DebugTimeScaleUp")) {
     timeSettings->scale += 0.1f;
     debug_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_lit(input, "TimeScaleDown")) {
+  if (input_triggered_lit(input, "DebugTimeScaleDown")) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
     debug_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_lit(input, "TimeStep")) {
+  if (input_triggered_lit(input, "DebugTimeStep")) {
     timeSettings->flags |= SceneTimeFlags_Step;
   }
 
