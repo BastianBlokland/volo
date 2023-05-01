@@ -18,6 +18,7 @@
 #include "scene_transform.h"
 #include "scene_weapon.h"
 #include "snd_register.h"
+#include "ui.h"
 #include "ui_register.h"
 #include "vfx_register.h"
 
@@ -26,6 +27,7 @@
 static const GapVector g_appWindowSize = {1920, 1080};
 
 ecs_comp_define(AppWindowComp) {
+  EcsEntityId uiCanvas;
   EcsEntityId debugMenu;
   EcsEntityId debugLogViewer;
 };
@@ -47,6 +49,7 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       AppWindowComp,
+      .uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront),
       .debugMenu      = debug_menu_create(world, window),
       .debugLogViewer = debug_log_viewer_create(world, window));
 
@@ -78,12 +81,50 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
+static void
+app_action_bar_draw(UiCanvasComp* canvas, const InputManagerComp* input, GapWindowComp* win) {
+  static const u32      g_buttonCount = 2;
+  static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
+  static const f32      g_spacing     = 8.0f;
+  static const u16      g_iconSize    = 30;
+
+  const f32 xCenterOffset = (g_buttonCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
+  ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
+
+  if (ui_button(
+          canvas,
+          .label    = ui_shape_scratch(UiShape_Fullscreen),
+          .fontSize = g_iconSize,
+          .tooltip  = string_lit("Enter / exit fullscreen.")) ||
+      input_triggered_lit(input, "WindowFullscreen")) {
+
+    log_i("Toggle fullscreen");
+    app_window_fullscreen_toggle(win);
+  }
+
+  ui_layout_next(canvas, Ui_Right, g_spacing);
+
+  if (ui_button(
+          canvas,
+          .label    = ui_shape_scratch(UiShape_Logout),
+          .fontSize = g_iconSize,
+          .tooltip  = string_lit("Close the window.")) ||
+      input_triggered_lit(input, "WindowClose")) {
+
+    log_i("Close window");
+    gap_window_close(win);
+  }
+}
+
 ecs_view_define(AppUpdateGlobalView) { ecs_access_read(InputManagerComp); }
 
 ecs_view_define(WindowView) {
   ecs_access_read(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
+
+ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -99,18 +140,18 @@ ecs_system_define(AppUpdateSys) {
     app_window_create(world);
   }
 
+  EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
+
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    GapWindowComp* win = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
+    GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
 
-    if (input_triggered_lit(input, "WindowClose")) {
-      log_i("Close window");
-      gap_window_close(win);
-    }
-    if (input_triggered_lit(input, "WindowFullscreen")) {
-      log_i("Toggle fullscreen");
-      app_window_fullscreen_toggle(win);
+    if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
+      UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
+      ui_canvas_reset(canvas);
+      app_action_bar_draw(canvas, input, win);
     }
   }
 }
@@ -120,8 +161,13 @@ ecs_module_init(game_app_module) {
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(UiCanvasView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(AppUpdateGlobalView), ecs_view_id(WindowView));
+  ecs_register_system(
+      AppUpdateSys,
+      ecs_view_id(AppUpdateGlobalView),
+      ecs_view_id(WindowView),
+      ecs_view_id(UiCanvasView));
 }
 
 static CliId g_assetFlag, g_helpFlag;
