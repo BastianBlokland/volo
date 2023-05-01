@@ -32,6 +32,7 @@
   X(0xE71C, Animation)                                                                             \
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
+  X(0xE868, Bug)                                                                                   \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \
   X(0xE8B8, Settings)                                                                              \
