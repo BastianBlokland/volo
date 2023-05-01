@@ -1,0 +1,46 @@
+{
+  "actions": [
+    {
+      "name": "AppDebug",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Tilde" }
+      ]
+    },
+    {
+      "name": "AppReset",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "R" }
+      ]
+    },
+    {
+      "name": "AppWindowNew",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "N", "requiredModifiers": [ "Alt" ] }
+      ]
+    },
+    {
+      "name": "AppWindowClose",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F4", "requiredModifiers": [ "Alt" ] }
+      ]
+    },
+    {
+      "name": "AppWindowFullscreen",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Return", "requiredModifiers": [ "Alt" ] },
+        { "type": "Pressed", "key": "F11" }
+      ]
+    },
+    {
+      "name": "AppDisableUiToggle",
+      "bindings": [
+        { "type": "Pressed", "key": "F12" }
+      ]
+    }
+  ]
+}

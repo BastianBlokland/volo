@@ -430,7 +430,7 @@ ecs_system_define(UiRenderSys) {
       continue; // Window is zero sized; No need to render the Ui.
     }
     const bool activeWindow = !input || input_active_window(input) == windowEntity;
-    if (input && activeWindow && input_triggered_lit(input, "DisableUiToggle")) {
+    if (input && activeWindow && input_triggered_lit(input, "AppDisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
 

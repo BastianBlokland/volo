@@ -26,6 +26,13 @@
 
 static const GapVector g_appWindowSize = {1920, 1080};
 
+typedef enum {
+  AppMode_Normal,
+  AppMode_Debug,
+} AppMode;
+
+ecs_comp_define(AppComp) { AppMode mode; };
+
 ecs_comp_define(AppWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId debugMenu;
@@ -50,7 +57,6 @@ static void app_window_create(EcsWorld* world) {
       window,
       AppWindowComp,
       .uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront),
-      .debugMenu      = debug_menu_create(world, window),
       .debugLogViewer = debug_log_viewer_create(world, window));
 
   ecs_world_add_t(
@@ -81,12 +87,12 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
-static void
-app_action_bar_draw(UiCanvasComp* canvas, const InputManagerComp* input, GapWindowComp* win) {
-  static const u32      g_buttonCount = 2;
+static void app_action_bar_draw(
+    UiCanvasComp* canvas, AppComp* app, const InputManagerComp* input, GapWindowComp* win) {
+  static const u32      g_buttonCount = 3;
   static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
   static const f32      g_spacing     = 8.0f;
-  static const u16      g_iconSize    = 30;
+  static const u16      g_iconSize    = 35;
 
   const f32 xCenterOffset = (g_buttonCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
   ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
@@ -94,10 +100,24 @@ app_action_bar_draw(UiCanvasComp* canvas, const InputManagerComp* input, GapWind
 
   if (ui_button(
           canvas,
+          .label      = ui_shape_scratch(UiShape_Bug),
+          .fontSize   = g_iconSize,
+          .tooltip    = string_lit("Enable / disable debug mode."),
+          .frameColor = app->mode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192)) ||
+      input_triggered_lit(input, "AppDebug")) {
+
+    log_i("Toggle debug-mode");
+    app->mode ^= AppMode_Debug;
+  }
+
+  ui_layout_next(canvas, Ui_Right, g_spacing);
+
+  if (ui_button(
+          canvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
           .fontSize = g_iconSize,
           .tooltip  = string_lit("Enter / exit fullscreen.")) ||
-      input_triggered_lit(input, "WindowFullscreen")) {
+      input_triggered_lit(input, "AppWindowFullscreen")) {
 
     log_i("Toggle fullscreen");
     app_window_fullscreen_toggle(win);
@@ -110,17 +130,20 @@ app_action_bar_draw(UiCanvasComp* canvas, const InputManagerComp* input, GapWind
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = g_iconSize,
           .tooltip  = string_lit("Close the window.")) ||
-      input_triggered_lit(input, "WindowClose")) {
+      input_triggered_lit(input, "AppWindowClose")) {
 
     log_i("Close window");
     gap_window_close(win);
   }
 }
 
-ecs_view_define(AppUpdateGlobalView) { ecs_access_read(InputManagerComp); }
+ecs_view_define(AppUpdateGlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_write(AppComp);
+}
 
 ecs_view_define(WindowView) {
-  ecs_access_read(AppWindowComp);
+  ecs_access_write(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
 
@@ -132,11 +155,13 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
+  AppComp* app = ecs_view_write_t(globalItr, AppComp);
+
   const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
-  if (input_triggered_lit(input, "Reset")) {
+  if (input_triggered_lit(input, "AppReset")) {
     scene_level_load(world, string_lit("levels/default.lvl"));
   }
-  if (input_triggered_lit(input, "WindowNew")) {
+  if (input_triggered_lit(input, "AppWindowNew")) {
     app_window_create(world);
   }
 
@@ -145,18 +170,34 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
-    GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    const EcsEntityId windowEntity = ecs_view_entity(activeWindowItr);
+    AppWindowComp*    appWindow    = ecs_view_write_t(activeWindowItr, AppWindowComp);
+    GapWindowComp*    win          = ecs_view_write_t(activeWindowItr, GapWindowComp);
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      app_action_bar_draw(canvas, input, win);
+      app_action_bar_draw(canvas, app, input, win);
+    }
+
+    switch (app->mode) {
+    case AppMode_Normal:
+      if (appWindow->debugMenu) {
+        ecs_world_entity_destroy(world, appWindow->debugMenu);
+        appWindow->debugMenu = 0;
+      }
+      break;
+    case AppMode_Debug:
+      if (!appWindow->debugMenu) {
+        appWindow->debugMenu = debug_menu_create(world, windowEntity);
+      }
+      break;
     }
   }
 }
 
 ecs_module_init(game_app_module) {
+  ecs_register_comp(AppComp);
   ecs_register_comp(AppWindowComp);
 
   ecs_register_view(AppUpdateGlobalView);
@@ -214,12 +255,17 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     log_e("Asset directory not found", log_param("path", fmt_path(assetPath)));
     return;
   }
+
+  ecs_world_add_t(world, ecs_world_global(world), AppComp);
+  app_window_create(world);
+
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
   app_ambiance_create(world, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
+  input_resource_load_map(inputResource, string_lit("global/app-input.imp"));
   input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
   input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
 
@@ -230,8 +276,6 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world,
       string_lit("graphics/scene/terrain.gra"),
       string_lit("external/terrain/terrain_3_height.r16"));
-
-  app_window_create(world);
 }
 
 bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowView); }

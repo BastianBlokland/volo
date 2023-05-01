@@ -79,41 +79,6 @@
       "bindings": [
         { "type": "Pressed", "key": "F1" }
       ]
-    },
-    {
-      "name": "Reset",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "R" }
-      ]
-    },
-    {
-      "name": "WindowNew",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "N", "requiredModifiers": [ "Alt" ] }
-      ]
-    },
-    {
-      "name": "WindowClose",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "F4", "requiredModifiers": [ "Alt" ] }
-      ]
-    },
-    {
-      "name": "WindowFullscreen",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "Return", "requiredModifiers": [ "Alt" ] },
-        { "type": "Pressed", "key": "F11" }
-      ]
-    },
-    {
-      "name": "DisableUiToggle",
-      "bindings": [
-        { "type": "Pressed", "key": "F12" }
-      ]
     }
   ]
 }
