@@ -191,10 +191,6 @@ ecs_system_define(InputUpdateSys) {
   dynarray_clear(&manager->triggeredActions);
 
   const InputResourceComp* resource = ecs_view_read_t(globalItr, InputResourceComp);
-  const AssetInputMapComp* map      = input_map_asset(world, input_resource_map(resource));
-  if (!map) {
-    return; // Inputmap not loaded yet.
-  }
 
   input_refresh_active_window(world, manager);
   if (!manager->activeWindow) {
@@ -205,7 +201,15 @@ ecs_system_define(InputUpdateSys) {
   input_update_blockers(manager, win);
   input_update_modifiers(manager, win);
   input_update_cursor(manager, win);
-  input_update_triggered(manager, map, win);
+
+  EcsEntityId mapAssets[input_resource_max_maps];
+  u32         mapAssetCount = input_resource_maps(resource, mapAssets);
+  for (u32 i = 0; i != mapAssetCount; ++i) {
+    const AssetInputMapComp* map = input_map_asset(world, mapAssets[i]);
+    if (map) {
+      input_update_triggered(manager, map, win);
+    }
+  }
 }
 
 ecs_module_init(input_manager_module) {

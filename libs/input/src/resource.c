@@ -125,4 +125,14 @@ void input_resource_load_map(InputResourceComp* resource, const String inputMapI
   diag_crash_msg("Loaded input map count exceeds maximum ({})", fmt_int(input_resource_max_maps));
 }
 
-EcsEntityId input_resource_map(const InputResourceComp* comp) { return comp->maps[0].asset; }
+u32 input_resource_maps(
+    const InputResourceComp* resource, EcsEntityId out[PARAM_ARRAY_SIZE(input_resource_max_maps)]) {
+  u32 count = 0;
+  for (u32 i = 0; i != input_resource_max_maps; ++i) {
+    const InputResMap* map = &resource->maps[i];
+    if (ecs_entity_valid(map->asset)) {
+      out[count++] = map->asset;
+    }
+  }
+  return count;
+}

@@ -4,4 +4,5 @@
 
 #define input_resource_max_maps 2
 
-EcsEntityId input_resource_map(const InputResourceComp*);
+u32 input_resource_maps(
+    const InputResourceComp*, EcsEntityId out[PARAM_ARRAY_SIZE(input_resource_max_maps)]);
