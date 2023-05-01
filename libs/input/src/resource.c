@@ -3,8 +3,9 @@
 #include "core_diag.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "input_resource.h"
 #include "log_logger.h"
+
+#include "resource_internal.h"
 
 typedef enum {
   InputResMap_Acquired  = 1 << 0,
@@ -17,12 +18,16 @@ typedef struct {
   EcsEntityId      asset;
 } InputResMap;
 
-ecs_comp_define(InputResourceComp) { InputResMap map; };
+ecs_comp_define(InputResourceComp) {
+  InputResMap maps[input_resource_max_maps];
+  u32         mapCount;
+};
 
 static void ecs_destruct_input_resource(void* data) {
   InputResourceComp* comp = data;
-  InputResMap*       map  = &comp->map;
-  string_free(g_alloc_heap, map->id);
+  for (u32 i = 0; i != comp->mapCount; ++i) {
+    string_free(g_alloc_heap, comp->maps[i].id);
+  }
 }
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -46,16 +51,16 @@ ecs_system_define(InputResourceInitSys) {
   if (!assets || !resource) {
     return;
   }
-  InputResMap* map = &resource->map;
-
-  if (!map->asset) {
-    map->asset = asset_lookup(world, assets, map->id);
-  }
-
-  if (!(map->flags & (InputResMap_Acquired | InputResMap_Unloading))) {
-    log_i("Acquiring input-map", log_param("id", fmt_text(map->id)));
-    asset_acquire(world, map->asset);
-    map->flags |= InputResMap_Acquired;
+  for (u32 i = 0; i != resource->mapCount; ++i) {
+    InputResMap* map = &resource->maps[i];
+    if (!map->asset) {
+      map->asset = asset_lookup(world, assets, map->id);
+    }
+    if (!(map->flags & (InputResMap_Acquired | InputResMap_Unloading))) {
+      log_i("Acquiring input-map", log_param("id", fmt_text(map->id)));
+      asset_acquire(world, map->asset);
+      map->flags |= InputResMap_Acquired;
+    }
   }
 }
 
@@ -64,27 +69,28 @@ ecs_system_define(InputResourceUnloadChangedMapSys) {
   if (!resource) {
     return;
   }
-  InputResMap* map = &resource->map;
-  if (!ecs_entity_valid(map->asset)) {
-    return;
-  }
+  for (u32 i = 0; i != resource->mapCount; ++i) {
+    InputResMap* map = &resource->maps[i];
+    if (!ecs_entity_valid(map->asset)) {
+      continue;
+    }
+    const bool isLoaded   = ecs_world_has_t(world, map->asset, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, map->asset, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, map->asset, AssetChangedComp);
 
-  const bool isLoaded   = ecs_world_has_t(world, map->asset, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, map->asset, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, map->asset, AssetChangedComp);
+    if (map->flags & InputResMap_Acquired && (isLoaded || isFailed) && hasChanged) {
+      log_i(
+          "Unloading input-map",
+          log_param("id", fmt_text(map->id)),
+          log_param("reason", fmt_text_lit("Asset changed")));
 
-  if (map->flags & InputResMap_Acquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading input-map",
-        log_param("id", fmt_text(map->id)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
-    asset_release(world, map->asset);
-    map->flags &= ~InputResMap_Acquired;
-    map->flags |= InputResMap_Unloading;
-  }
-  if (map->flags & InputResMap_Unloading && !isLoaded) {
-    map->flags &= ~InputResMap_Unloading;
+      asset_release(world, map->asset);
+      map->flags &= ~InputResMap_Acquired;
+      map->flags |= InputResMap_Unloading;
+    }
+    if (map->flags & InputResMap_Unloading && !isLoaded) {
+      map->flags &= ~InputResMap_Unloading;
+    }
   }
 }
 
@@ -106,7 +112,7 @@ void input_resource_init(EcsWorld* world, const String inputMapId) {
       .id = string_dup(g_alloc_heap, inputMapId),
   };
 
-  ecs_world_add_t(world, ecs_world_global(world), InputResourceComp, .map = map);
+  ecs_world_add_t(world, ecs_world_global(world), InputResourceComp, .maps[0] = map, .mapCount = 1);
 }
 
-EcsEntityId input_resource_map(const InputResourceComp* comp) { return comp->map.asset; }
+EcsEntityId input_resource_map(const InputResourceComp* comp) { return comp->maps[0].asset; }
