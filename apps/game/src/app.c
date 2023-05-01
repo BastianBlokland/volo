@@ -182,7 +182,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
-  input_resource_load_map(inputResource, string_lit("global/game-input-debug.imp"));
+  input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
 
   scene_level_load(world, string_lit("levels/default.lvl"));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
