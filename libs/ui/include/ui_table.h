@@ -84,6 +84,11 @@ void ui_table_next_row(UiCanvasComp*, UiTable*);
 void ui_table_next_column(UiCanvasComp*, UiTable*);
 
 /**
+ * Draw a table background.
+ */
+void ui_table_draw_bg(UiCanvasComp*, const UiTable*, u32 rows, UiColor color);
+
+/**
  * Draw a table header.
  * NOTE: Set the current rectangle to remaining content area for the table.
  * Pre-condition: array_size(UiTableColumnName) == table->columnCount.
