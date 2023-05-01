@@ -77,7 +77,6 @@ ecs_view_define(WindowView) {
   ecs_access_read(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
-ecs_view_define(DebugMenuView) { ecs_access_read(DebugMenuComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
@@ -96,21 +95,13 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    const AppWindowComp* appWindow = ecs_view_read_t(activeWindowItr, AppWindowComp);
-    GapWindowComp*       win       = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    GapWindowComp* win = ecs_view_write_t(activeWindowItr, GapWindowComp);
 
-    const EcsEntityId debugMenu = appWindow->debugMenu;
-    DebugMenuEvents   dbgEvents = 0;
-    if (debugMenu) {
-      const DebugMenuComp* menu = ecs_utils_read_t(world, DebugMenuView, debugMenu, DebugMenuComp);
-      dbgEvents                 = debug_menu_events(menu);
-    }
-
-    if (input_triggered_lit(input, "WindowClose") || dbgEvents & DebugMenuEvents_CloseWindow) {
+    if (input_triggered_lit(input, "WindowClose")) {
       log_i("Close window");
       gap_window_close(win);
     }
-    if (input_triggered_lit(input, "WindowFullscreen") || dbgEvents & DebugMenuEvents_Fullscreen) {
+    if (input_triggered_lit(input, "WindowFullscreen")) {
       log_i("Toggle fullscreen");
       app_window_fullscreen_toggle(win);
     }
@@ -122,13 +113,8 @@ ecs_module_init(game_app_module) {
 
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
-  ecs_register_view(DebugMenuView);
 
-  ecs_register_system(
-      AppUpdateSys,
-      ecs_view_id(AppUpdateGlobalView),
-      ecs_view_id(WindowView),
-      ecs_view_id(DebugMenuView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(AppUpdateGlobalView), ecs_view_id(WindowView));
 }
 
 static CliId g_assetFlag, g_helpFlag;
