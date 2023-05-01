@@ -25,7 +25,10 @@
 
 static const GapVector g_appWindowSize = {1920, 1080};
 
-ecs_comp_define(AppWindowComp) { EcsEntityId debugMenu; };
+ecs_comp_define(AppWindowComp) {
+  EcsEntityId debugMenu;
+  EcsEntityId debugLogViewer;
+};
 
 static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
@@ -39,9 +42,13 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
 }
 
 static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window    = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
-  const EcsEntityId debugMenu = debug_menu_create(world, window);
-  ecs_world_add_t(world, window, AppWindowComp, .debugMenu = debugMenu);
+  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+  ecs_world_add_t(
+      world,
+      window,
+      AppWindowComp,
+      .debugMenu      = debug_menu_create(world, window),
+      .debugLogViewer = debug_log_viewer_create(world, window));
 
   ecs_world_add_t(
       world,

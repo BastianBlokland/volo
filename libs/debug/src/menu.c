@@ -10,7 +10,6 @@
 #include "debug_inspector.h"
 #include "debug_interface.h"
 #include "debug_level.h"
-#include "debug_log_viewer.h"
 #include "debug_menu.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
@@ -252,7 +251,5 @@ ecs_module_init(debug_menu_module) {
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
-
-  debug_log_viewer_create(world, window);
   return menuEntity;
 }
