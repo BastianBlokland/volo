@@ -143,6 +143,7 @@ ecs_view_define(AppUpdateGlobalView) {
 }
 
 ecs_view_define(WindowView) {
+  ecs_access_maybe_write(DebugStatsComp);
   ecs_access_write(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
@@ -173,6 +174,7 @@ ecs_system_define(AppUpdateSys) {
     const EcsEntityId windowEntity = ecs_view_entity(activeWindowItr);
     AppWindowComp*    appWindow    = ecs_view_write_t(activeWindowItr, AppWindowComp);
     GapWindowComp*    win          = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    DebugStatsComp*   stats        = ecs_view_write_t(activeWindowItr, DebugStatsComp);
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
@@ -186,10 +188,16 @@ ecs_system_define(AppUpdateSys) {
         ecs_world_entity_destroy(world, appWindow->debugMenu);
         appWindow->debugMenu = 0;
       }
+      if (stats) {
+        debug_stats_show_set(stats, DebugStatShow_Minimal);
+      }
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu) {
         appWindow->debugMenu = debug_menu_create(world, windowEntity);
+      }
+      if (stats) {
+        debug_stats_show_set(stats, DebugStatShow_Full);
       }
       break;
     }
