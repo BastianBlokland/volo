@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_lifetime.h"
@@ -7,7 +8,29 @@
 ecs_comp_define_public(SceneLifetimeOwnerComp);
 ecs_comp_define_public(SceneLifetimeDurationComp);
 
-static void ecs_combine_lifetime(void* dataA, void* dataB) {
+static void ecs_combine_lifetime_owner(void* dataA, void* dataB) {
+  SceneLifetimeOwnerComp* compA = dataA;
+  SceneLifetimeOwnerComp* compB = dataB;
+
+  for (u32 otherOwnerIndex = 0; otherOwnerIndex != scene_lifetime_owners_max; ++otherOwnerIndex) {
+    const EcsEntityId otherOwner = compB->owners[otherOwnerIndex];
+    if (!otherOwner) {
+      continue; // Owner unassigned.
+    }
+    for (u32 ownerIndex = 0; ownerIndex != scene_lifetime_owners_max; ++ownerIndex) {
+      if (compA->owners[ownerIndex]) {
+        continue; // Slot already full.
+      }
+      compA->owners[ownerIndex] = otherOwner;
+      goto OwnerAssigned;
+    }
+    diag_crash_msg("SceneLifetimeOwner's cannot be combined, total owner count exceeds maximum ");
+
+  OwnerAssigned:;
+  }
+}
+
+static void ecs_combine_lifetime_duration(void* dataA, void* dataB) {
   SceneLifetimeDurationComp* compA = dataA;
   SceneLifetimeDurationComp* compB = dataB;
   compA->duration                  = math_min(compA->duration, compB->duration);
@@ -54,8 +77,8 @@ ecs_system_define(SceneLifetimeDurationSys) {
 }
 
 ecs_module_init(scene_lifetime_module) {
-  ecs_register_comp(SceneLifetimeOwnerComp);
-  ecs_register_comp(SceneLifetimeDurationComp, .combinator = ecs_combine_lifetime);
+  ecs_register_comp(SceneLifetimeOwnerComp, .combinator = ecs_combine_lifetime_owner);
+  ecs_register_comp(SceneLifetimeDurationComp, .combinator = ecs_combine_lifetime_duration);
 
   ecs_register_view(GlobalView);
   ecs_register_view(LifetimeOwnerView);
