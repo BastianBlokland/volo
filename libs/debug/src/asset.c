@@ -210,7 +210,8 @@ static void
 asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld* world) {
 
   const String title = fmt_write_scratch("{} Asset Panel", fmt_ui_shape(Storage));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   asset_options_draw(canvas, panelComp);
 

@@ -58,7 +58,8 @@ static void interface_panel_draw(
     UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsComp* settings) {
 
   const String title = fmt_write_scratch("{} Interface Panel", fmt_ui_shape(FormatShapes));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);

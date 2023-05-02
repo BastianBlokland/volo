@@ -163,7 +163,8 @@ static void grid_panel_draw(
     DebugGridPanelComp*   panelComp,
     DebugGridComp*        grid) {
   const String title = fmt_write_scratch("{} Grid Panel", fmt_ui_shape(Grid4x4));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);

@@ -323,9 +323,10 @@ static void brain_panel_draw(
   ui_panel_begin(
       canvas,
       &panelComp->panel,
-      .title    = title,
-      .tabNames = g_brainTabNames,
-      .tabCount = DebugBrainTab_Count);
+      .title       = title,
+      .tabNames    = g_brainTabNames,
+      .tabCount    = DebugBrainTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
 
   if (subject) {
     switch (panelComp->panel.activeTab) {
