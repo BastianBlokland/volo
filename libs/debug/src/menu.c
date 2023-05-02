@@ -19,6 +19,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "input.h"
+#include "scene_lifetime.h"
 #include "ui.h"
 
 // clang-format off
@@ -164,6 +165,7 @@ static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* men
 
 static void debug_action_bar_draw(
     EcsWorld*               world,
+    const EcsEntityId       menuEntity,
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
     DebugMenuComp*          menu,
@@ -201,7 +203,9 @@ static void debug_action_bar_draw(
         ecs_world_entity_destroy(world, menu->panelEntities[i]);
         debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
       } else {
-        menu->panelEntities[i] = g_debugPanelConfig[i].openFunc(world, winEntity);
+        const EcsEntityId panelEntity = g_debugPanelConfig[i].openFunc(world, winEntity);
+        ecs_world_add_t(world, panelEntity, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+        menu->panelEntities[i] = panelEntity;
         debug_notify_panel_state(statsGlobal, i, string_lit("open"));
       }
     }
@@ -219,11 +223,12 @@ ecs_system_define(DebugMenuUpdateSys) {
 
   EcsView* menuView = ecs_world_view_t(world, MenuUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
-    DebugMenuComp* menu   = ecs_view_write_t(itr, DebugMenuComp);
-    UiCanvasComp*  canvas = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId menuEntity = ecs_view_entity(itr);
+    DebugMenuComp*    menu       = ecs_view_write_t(itr, DebugMenuComp);
+    UiCanvasComp*     canvas     = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, input, menu, statsGlobal, menu->window);
+    debug_action_bar_draw(world, menuEntity, canvas, input, menu, statsGlobal, menu->window);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
