@@ -360,7 +360,7 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
+  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
   const RendDrawFlags drawFlags = RendDrawFlags_Post | RendDrawFlags_NoInstanceFiltering;
   RendDrawComp*       draw      = rend_draw_create(world, drawEntity, drawFlags);
@@ -617,7 +617,7 @@ ui_canvas_create(EcsWorld* world, const EcsEntityId window, const UiCanvasCreate
     ui_canvas_to_back(canvas);
   }
 
-  ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owner = window);
+  ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owners[0] = window);
   return canvasEntity;
 }
 

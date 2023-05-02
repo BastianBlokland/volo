@@ -108,7 +108,7 @@ static void taunt_spawn(EcsWorld* world, SceneTauntEvent* tauntEvent) {
           .faction  = SceneFaction_None,
           .position = tauntEvent->position,
           .rotation = geo_quat_ident});
-  ecs_world_add_t(world, tauntEntity, SceneLifetimeOwnerComp, .owner = tauntEvent->instigator);
+  ecs_world_add_t(world, tauntEntity, SceneLifetimeOwnerComp, .owners[0] = tauntEvent->instigator);
   ecs_world_add_t(world, tauntEntity, SceneAttachmentComp, .target = tauntEvent->instigator);
 }
 
