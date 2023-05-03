@@ -39,6 +39,7 @@ typedef struct {
 } AssetInputActionDef;
 
 typedef struct {
+  String layer;
   struct {
     AssetInputActionDef* values;
     usize                count;
@@ -176,6 +177,7 @@ static void inputmap_datareg_init() {
     data_reg_field_t(reg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetInputMapDef);
+    data_reg_field_t(reg, AssetInputMapDef, layer, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
     // clang-format on
 
@@ -304,6 +306,8 @@ void asset_load_imp(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Error;
   }
 
+  const StringHash layer = string_is_empty(def.layer) ? 0 : string_hash(def.layer);
+
   InputMapError buildErr;
   asset_inputmap_build(&def, &actions, &bindings, &buildErr);
   data_destroy(g_dataReg, g_alloc_heap, g_dataInputMapDefMeta, mem_var(def));
@@ -316,6 +320,7 @@ void asset_load_imp(EcsWorld* world, const String id, const EcsEntityId entity, 
       world,
       entity,
       AssetInputMapComp,
+      .layer        = layer,
       .actions      = dynarray_copy_as_new(&actions, g_alloc_heap),
       .actionCount  = actions.size,
       .bindings     = dynarray_copy_as_new(&bindings, g_alloc_heap),

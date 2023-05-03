@@ -20,12 +20,14 @@ ecs_comp_define(InputManagerComp) {
   f32             cursorDeltaNorm[2];
   f32             cursorAspect; // Aspect ratio of the window that currently contains the cursor.
   f32             scrollDelta[2];
-  DynArray        triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
+  DynArray        triggeredActions; // StringHash[], names of the triggered actions. Not sorted.
+  DynArray        activeLayers;     // StringHash[], names of the active layers. Not sorted.
 };
 
 static void ecs_destruct_input_manager(void* data) {
   InputManagerComp* comp = data;
   dynarray_destroy(&comp->triggeredActions);
+  dynarray_destroy(&comp->activeLayers);
 }
 
 ecs_view_define(GlobalView) {
@@ -42,7 +44,8 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       InputManagerComp,
-      .triggeredActions = dynarray_create_t(g_alloc_heap, u32, 8));
+      .triggeredActions = dynarray_create_t(g_alloc_heap, StringHash, 8),
+      .activeLayers     = dynarray_create_t(g_alloc_heap, StringHash, 2));
 }
 
 static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {
@@ -170,7 +173,7 @@ static void input_update_triggered(
       continue;
     }
     if (input_action_satisfied(manager, map, action, win)) {
-      *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
+      *dynarray_push_t(&manager->triggeredActions, StringHash) = action->nameHash;
     }
   }
 }
@@ -206,7 +209,7 @@ ecs_system_define(InputUpdateSys) {
   u32         mapAssetCount = input_resource_maps(resource, mapAssets);
   for (u32 i = 0; i != mapAssetCount; ++i) {
     const AssetInputMapComp* map = input_map_asset(world, mapAssets[i]);
-    if (map) {
+    if (map && input_layer_active(manager, map->layer)) {
       input_update_triggered(manager, map, win);
     }
   }
@@ -262,11 +265,33 @@ f32 input_cursor_aspect(const InputManagerComp* manager) { return manager->curso
 f32 input_scroll_x(const InputManagerComp* manager) { return manager->scrollDelta[0]; }
 f32 input_scroll_y(const InputManagerComp* manager) { return manager->scrollDelta[1]; }
 
-bool input_triggered_hash(const InputManagerComp* manager, const u32 actionHash) {
-  dynarray_for_t(&manager->triggeredActions, u32, triggeredActionHash) {
-    if (*triggeredActionHash == actionHash) {
-      return true;
-    }
+bool input_triggered_hash(const InputManagerComp* manager, const StringHash actionHash) {
+  InputManagerComp* manMut = (InputManagerComp*)manager;
+  return dynarray_search_linear(&manMut->triggeredActions, compare_stringhash, &actionHash) != null;
+}
+
+void input_layer_enable(InputManagerComp* manager, const StringHash layerHash) {
+  diag_assert(layerHash != 0);
+
+  if (!dynarray_search_linear(&manager->activeLayers, compare_stringhash, &layerHash)) {
+    *dynarray_push_t(&manager->activeLayers, StringHash) = layerHash;
   }
-  return false;
+}
+
+void input_layer_disable(InputManagerComp* manager, const StringHash layerHash) {
+  diag_assert(layerHash != 0);
+
+  StringHash* e = dynarray_search_linear(&manager->activeLayers, compare_stringhash, &layerHash);
+  if (e) {
+    const usize index = e - dynarray_begin_t(&manager->activeLayers, StringHash);
+    dynarray_remove_unordered(&manager->activeLayers, index, 1);
+  }
+}
+
+bool input_layer_active(const InputManagerComp* manager, const StringHash layerHash) {
+  if (!layerHash) {
+    return true; // The empty layer is always considered to be active.
+  }
+  InputManagerComp* manMut = (InputManagerComp*)manager;
+  return dynarray_search_linear(&manMut->activeLayers, compare_stringhash, &layerHash) != null;
 }

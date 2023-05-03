@@ -60,3 +60,7 @@ f32             input_scroll_y(const InputManagerComp*);
   input_triggered_hash((_MANAGER_), string_hash_lit(_ACTION_LIT_))
 
 bool input_triggered_hash(const InputManagerComp*, StringHash actionHash);
+
+void input_layer_enable(InputManagerComp*, StringHash layerHash);
+void input_layer_disable(InputManagerComp*, StringHash layerHash);
+bool input_layer_active(const InputManagerComp*, StringHash layerHash);
