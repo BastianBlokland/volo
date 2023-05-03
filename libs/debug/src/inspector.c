@@ -774,6 +774,9 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
   DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
+  if (!input_layer_active(input, string_hash_lit("Debug"))) {
+    set->tool = DebugInspectorTool_None;
+  }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_toggle_tool(set, DebugInspectorTool_Translation);
     inspector_notify_tool(set, stats);
