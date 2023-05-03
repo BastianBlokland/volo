@@ -31,10 +31,6 @@ typedef enum {
   DebugBgFlags_Section = 1 << 0,
 } DebugBgFlags;
 
-typedef enum {
-  DebugStatsFlags_Show = 1 << 0,
-} DebugStatsFlags;
-
 typedef struct {
   f32 values[stats_plot_size];
   u32 cur;
@@ -48,8 +44,8 @@ typedef struct {
 } DebugStatsNotification;
 
 ecs_comp_define(DebugStatsComp) {
-  DebugStatsFlags flags;
-  EcsEntityId     canvas;
+  DebugStatShow show;
+  EcsEntityId   canvas;
 
   TimeDuration  frameDur;
   TimeDuration  frameDurAvg;
@@ -408,6 +404,10 @@ static void debug_stats_draw_interface(
   stats_draw_gpu_chart(canvas, stats, rendStats);
   stats_draw_notifications(canvas, statsGlobal);
 
+  if(stats->show != DebugStatShow_Full) {
+    return;
+  }
+
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
@@ -572,7 +572,7 @@ ecs_system_define(DebugStatsCreateSys) {
   // Create a stats component for each window.
   EcsView* createView = ecs_world_view_t(world, StatsCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
-    ecs_world_add_t(world, ecs_view_entity(itr), DebugStatsComp, .flags = DebugStatsFlags_Show);
+    ecs_world_add_t(world, ecs_view_entity(itr), DebugStatsComp);
   }
 }
 
@@ -605,9 +605,9 @@ ecs_system_define(DebugStatsUpdateSys) {
     debug_stats_update(stats, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
-    if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
+    if (stats->show != DebugStatShow_None && !stats->canvas) {
       stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToBack);
-    } else if (!(stats->flags & DebugStatsFlags_Show) && stats->canvas) {
+    } else if (stats->show == DebugStatShow_None && stats->canvas) {
       ecs_world_entity_destroy(world, stats->canvas);
       stats->canvas = 0;
     }
@@ -659,14 +659,6 @@ void debug_stats_notify(DebugStatsGlobalComp* comp, const String key, const Stri
   mem_cpy(mem_create(notif->value, notif->valueLength), string_slice(value, 0, notif->valueLength));
 }
 
-bool debug_stats_show(const DebugStatsComp* comp) {
-  return (comp->flags & DebugStatsFlags_Show) != 0;
-}
+DebugStatShow debug_stats_show(const DebugStatsComp* comp) { return comp->show; }
 
-void debug_stats_show_set(DebugStatsComp* comp, const bool show) {
-  if (show) {
-    comp->flags |= DebugStatsFlags_Show;
-  } else {
-    comp->flags &= ~DebugStatsFlags_Show;
-  }
-}
+void debug_stats_show_set(DebugStatsComp* comp, const DebugStatShow show) { comp->show = show; }

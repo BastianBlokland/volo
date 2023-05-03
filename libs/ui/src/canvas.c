@@ -360,7 +360,7 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
+  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
   const RendDrawFlags drawFlags = RendDrawFlags_Post | RendDrawFlags_NoInstanceFiltering;
   RendDrawComp*       draw      = rend_draw_create(world, drawEntity, drawFlags);
@@ -430,7 +430,7 @@ ecs_system_define(UiRenderSys) {
       continue; // Window is zero sized; No need to render the Ui.
     }
     const bool activeWindow = !input || input_active_window(input) == windowEntity;
-    if (input && activeWindow && input_triggered_lit(input, "DisableUiToggle")) {
+    if (input && activeWindow && input_triggered_lit(input, "AppDisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
 
@@ -617,7 +617,7 @@ ui_canvas_create(EcsWorld* world, const EcsEntityId window, const UiCanvasCreate
     ui_canvas_to_back(canvas);
   }
 
-  ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owner = window);
+  ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owners[0] = window);
   return canvasEntity;
 }
 

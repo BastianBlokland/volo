@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "ui_color.h"
 #include "ui_rect.h"
 
 ecs_comp_extern(UiCanvasComp);
@@ -21,6 +22,7 @@ typedef struct {
   String        title;
   const String* tabNames;
   const u32     tabCount;
+  UiColor       topBarColor;
 } UiPanelOpts;
 
 // clang-format off
@@ -41,7 +43,9 @@ typedef struct {
  * NOTE: Its important that the panel has a stable identifier in the canvas.
  */
 #define ui_panel_begin(_CANVAS_, _PANEL_, ...) ui_panel_begin_with_opts((_CANVAS_), (_PANEL_),     \
-  &((UiPanelOpts){__VA_ARGS__}))
+  &((UiPanelOpts){                                                                                 \
+    .topBarColor = ui_color(8, 8, 8, 240),                                                         \
+    __VA_ARGS__}))
 
 // clang-format on
 

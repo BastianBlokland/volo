@@ -316,7 +316,8 @@ static void prefab_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* 
 
 static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   const String title = fmt_write_scratch("{} Prefab Panel", fmt_ui_shape(Construction));
-  ui_panel_begin(canvas, &ctx->panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &ctx->panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   prefab_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);

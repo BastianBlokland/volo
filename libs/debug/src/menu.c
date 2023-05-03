@@ -10,7 +10,6 @@
 #include "debug_inspector.h"
 #include "debug_interface.h"
 #include "debug_level.h"
-#include "debug_log_viewer.h"
 #include "debug_menu.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
@@ -20,12 +19,11 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "input.h"
+#include "scene_lifetime.h"
 #include "ui.h"
 
 // clang-format off
 
-static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
-static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
 static const String  g_tooltipPanelOpen       = string_static("Open the \a.b{}\ar panel.");
 static const String  g_tooltipPanelClose      = string_static("Close the \a.b{}\ar panel.");
 static const UiColor g_panelFrameColorNormal  = {32, 32, 32, 192};
@@ -100,11 +98,11 @@ static const struct {
         .openFunc   = debug_camera_panel_open,
         .hotkeyName = string_static("DebugPanelCamera"),
     },
-    // {
-    //     .name       = string_static("Grid"),
-    //     .iconShape  = UiShape_Grid4x4,
-    //     .openFunc   = debug_grid_panel_open,
-    // },
+    {
+        .name      = string_static("Grid"),
+        .iconShape = UiShape_Grid4x4,
+        .openFunc  = debug_grid_panel_open,
+    },
     {
         .name       = string_static("Renderer"),
         .iconShape  = UiShape_Brush,
@@ -118,32 +116,14 @@ static const struct {
     },
 };
 
-static const struct {
-  DebugMenuEvents event;
-  u32             iconShape;
-  String          tooltip;
-} g_debugEventButtons[] = {
-    {
-        .event     = DebugMenuEvents_Fullscreen,
-        .iconShape = UiShape_Fullscreen,
-        .tooltip   = string_static("Enter / exit fullscreen."),
-    },
-    {
-        .event     = DebugMenuEvents_CloseWindow,
-        .iconShape = UiShape_Logout,
-        .tooltip   = string_static("Close the window."),
-    },
-};
-
 static String debug_panel_tooltip_scratch(const String panelName, const bool open) {
   return format_write_formatted_scratch(
       open ? g_tooltipPanelClose : g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
 }
 
 ecs_comp_define(DebugMenuComp) {
-  EcsEntityId     window;
-  DebugMenuEvents events;
-  EcsEntityId     panelEntities[array_elems(g_debugPanelConfig)];
+  EcsEntityId window;
+  EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
 };
 
 ecs_view_define(GlobalView) {
@@ -155,7 +135,6 @@ ecs_view_define(MenuUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
-ecs_view_define(WindowUpdateView) { ecs_access_write(DebugStatsComp); }
 
 static bool debug_panel_is_open(EcsWorld* world, const EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
@@ -186,35 +165,22 @@ static EcsEntityId debug_panel_topmost(EcsWorld* world, const DebugMenuComp* men
 
 static void debug_action_bar_draw(
     EcsWorld*               world,
+    const EcsEntityId       menuEntity,
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
     DebugMenuComp*          menu,
-    DebugStatsComp*         stats,
     DebugStatsGlobalComp*   statsGlobal,
     const EcsEntityId       winEntity) {
 
-  UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 35);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 45);
 
   const bool windowActive = input_active_window(input) == winEntity;
+  const u32  rows         = 1 /* Icon */ + array_elems(g_debugPanelConfig) /* Panels */;
+  ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
 
-  // Stats toggle.
-  {
-    ui_table_next_row(canvas, &table);
-    const bool isEnabled = debug_stats_show(stats);
-
-    const bool buttonPressed = ui_button(
-        canvas,
-        .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
-        .fontSize   = 30,
-        .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
-        .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal);
-
-    const bool hotkeyPressed = windowActive && input_triggered_lit(input, "DebugPanelStats");
-    if (buttonPressed || hotkeyPressed) {
-      debug_stats_show_set(stats, !isEnabled);
-    }
-  }
+  ui_table_next_row(canvas, &table);
+  ui_canvas_draw_glyph(canvas, UiShape_Bug, 0, UiFlags_Interactable);
 
   // Panel open / close.
   for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
@@ -224,7 +190,7 @@ static void debug_action_bar_draw(
     const bool buttonPressed = ui_button(
         canvas,
         .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
-        .fontSize   = 30,
+        .fontSize   = 25,
         .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
         .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal);
 
@@ -237,24 +203,11 @@ static void debug_action_bar_draw(
         ecs_world_entity_destroy(world, menu->panelEntities[i]);
         debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
       } else {
-        menu->panelEntities[i] = g_debugPanelConfig[i].openFunc(world, winEntity);
+        const EcsEntityId panelEntity = g_debugPanelConfig[i].openFunc(world, winEntity);
+        ecs_world_add_t(world, panelEntity, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
+        menu->panelEntities[i] = panelEntity;
         debug_notify_panel_state(statsGlobal, i, string_lit("open"));
       }
-    }
-  }
-
-  // Event buttons.
-  menu->events = 0;
-  for (u32 i = 0; i != array_elems(g_debugEventButtons); ++i) {
-    ui_table_next_row(canvas, &table);
-    const bool buttonPressed = ui_button(
-        canvas,
-        .label      = ui_shape_scratch(g_debugEventButtons[i].iconShape),
-        .fontSize   = 30,
-        .tooltip    = g_debugEventButtons[i].tooltip,
-        .frameColor = g_panelFrameColorNormal);
-    if (buttonPressed) {
-      menu->events |= g_debugEventButtons[i].event;
     }
   }
 }
@@ -268,21 +221,14 @@ ecs_system_define(DebugMenuUpdateSys) {
   const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
   DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
-  EcsIterator* windowItr  = ecs_view_itr(windowView);
-
   EcsView* menuView = ecs_world_view_t(world, MenuUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
-    DebugMenuComp* menu   = ecs_view_write_t(itr, DebugMenuComp);
-    UiCanvasComp*  canvas = ecs_view_write_t(itr, UiCanvasComp);
-
-    if (!ecs_view_maybe_jump(windowItr, menu->window)) {
-      continue;
-    }
-    DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
+    const EcsEntityId menuEntity = ecs_view_entity(itr);
+    DebugMenuComp*    menu       = ecs_view_write_t(itr, DebugMenuComp);
+    UiCanvasComp*     canvas     = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, input, menu, stats, statsGlobal, menu->window);
+    debug_action_bar_draw(world, menuEntity, canvas, input, menu, statsGlobal, menu->window);
 
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
@@ -299,22 +245,16 @@ ecs_module_init(debug_menu_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(CanvasView);
-  ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
       DebugMenuUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(MenuUpdateView),
-      ecs_view_id(CanvasView),
-      ecs_view_id(WindowUpdateView));
+      ecs_view_id(CanvasView));
 }
-
-DebugMenuEvents debug_menu_events(const DebugMenuComp* menu) { return menu->events; }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
-
-  debug_log_viewer_create(world, window);
   return menuEntity;
 }

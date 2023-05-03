@@ -817,6 +817,10 @@ static bool rend_canvas_paint(
   RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
   {
+    if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
+      // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
+      rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
+    }
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fwdPass, mainView);
     rvk_pass_stage_global_image(fwdPass, geoData0, 0);
     rvk_pass_stage_global_image(fwdPass, geoData1, 1);

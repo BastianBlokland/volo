@@ -26,6 +26,7 @@ typedef struct {
 } AssetInputAction;
 
 ecs_comp_extern_public(AssetInputMapComp) {
+  StringHash         layer;
   AssetInputAction*  actions; // Sorted on the nameHash.
   usize              actionCount;
   AssetInputBinding* bindings;

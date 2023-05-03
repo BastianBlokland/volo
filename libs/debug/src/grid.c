@@ -84,7 +84,7 @@ static AssetManagerComp* debug_grid_asset_manager(EcsWorld* world) {
 
 static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = entity);
+  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
 
   RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_None);
   rend_draw_set_graphic(draw, asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
@@ -163,7 +163,8 @@ static void grid_panel_draw(
     DebugGridPanelComp*   panelComp,
     DebugGridComp*        grid) {
   const String title = fmt_write_scratch("{} Grid Panel", fmt_ui_shape(Grid4x4));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
@@ -257,17 +258,17 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
-    if (input_triggered_lit(input, "GridShow")) {
+    if (input_triggered_lit(input, "DebugGridShow")) {
       grid->show ^= 1;
       grid->height = debug_selection_height(selection, transformView);
       grid_notify_show(stats, grid->show);
     }
-    if (input_triggered_lit(input, "GridScaleUp")) {
+    if (input_triggered_lit(input, "DebugGridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
       grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    if (input_triggered_lit(input, "GridScaleDown")) {
+    if (input_triggered_lit(input, "DebugGridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
       grid->show     = true;
       grid_notify_cell_size(stats, grid->cellSize);

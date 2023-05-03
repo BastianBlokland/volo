@@ -19,8 +19,6 @@
   X(0xE429, Tune)                                                                                  \
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE518, Light)                                                                                 \
-  X(0xE53B, Layers)                                                                                \
-  X(0xE53C, LayersClear)                                                                           \
   X(0xE574, Category)                                                                              \
   X(0xE5CA, Check)                                                                                 \
   X(0xE5CD, Close)                                                                                 \
@@ -32,6 +30,7 @@
   X(0xE71C, Animation)                                                                             \
   X(0xE80B, Globe)                                                                                 \
   X(0xE80E, Whatshot)                                                                              \
+  X(0xE868, Bug)                                                                                   \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \
   X(0xE8B8, Settings)                                                                              \

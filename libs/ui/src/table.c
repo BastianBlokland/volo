@@ -147,6 +147,42 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
   ui_layout_grow(canvas, table->align, ui_vector(-table->spacing.x, 0), UiBase_Absolute, Ui_X);
 }
 
+void ui_table_draw_bg(
+    UiCanvasComp* canvas, const UiTable* table, const u32 rows, const UiColor color) {
+  static const u32 g_outline = 4;
+
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+
+  ui_layout_move_to(canvas, table->parent, table->align, Ui_XY);
+
+  const f32 height = ui_table_height(table, rows);
+  ui_layout_resize(canvas, table->align, ui_vector(0, height), UiBase_Absolute, Ui_XY);
+
+  for (u32 column = 0; column != table->columnCount; ++column) {
+    switch (table->columns[column].type) {
+    case UiTableColumn_Fixed: {
+      const UiVector cellSize = ui_vector(table->columns[column].width + table->spacing.x, 0);
+      ui_layout_grow(canvas, table->align, cellSize, UiBase_Absolute, Ui_X);
+    } break;
+    case UiTableColumn_Flexible: {
+      const UiAlign endAlign = ui_table_align_opposite(table->align);
+      ui_layout_resize_to(canvas, table->parent, endAlign, Ui_X);
+    } break;
+    }
+  }
+
+  const UiVector inset = ui_vector(-(f32)g_outline, -(f32)g_outline);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, inset, UiBase_Absolute, Ui_XY);
+
+  ui_style_color(canvas, color);
+  ui_style_outline(canvas, g_outline);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+}
+
 static void ui_table_draw_header_names(
     UiCanvasComp* canvas, const UiTable* table, const UiTableColumnName names[]) {
   const UiDir   columnDir = ui_table_column_dir(table->align);

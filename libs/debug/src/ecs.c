@@ -689,9 +689,10 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
   ui_panel_begin(
       canvas,
       &panelComp->panel,
-      .title    = title,
-      .tabNames = g_ecsTabNames,
-      .tabCount = DebugEcsTab_Count);
+      .title       = title,
+      .tabNames    = g_ecsTabNames,
+      .tabCount    = DebugEcsTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
   case DebugEcsTab_Components:

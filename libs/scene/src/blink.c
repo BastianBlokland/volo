@@ -60,7 +60,7 @@ ecs_system_define(SceneBlinkSys) {
               .position = transComp ? transComp->position : geo_vector(0),
               .rotation = transComp ? transComp->rotation : geo_quat_ident});
 
-      ecs_world_add_t(world, effectEntity, SceneLifetimeOwnerComp, .owner = entity);
+      ecs_world_add_t(world, effectEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
     }
     blink->state = newState;
   }

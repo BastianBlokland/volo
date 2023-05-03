@@ -347,20 +347,6 @@ static void input_order_stop(
   }
 }
 
-static void input_order_destroy(
-    CmdControllerComp*        cmdController,
-    const SceneSelectionComp* sel,
-    DebugStatsGlobalComp*     debugStats) {
-
-  // Report the destroy.
-  input_report_command(debugStats, string_lit("Destroy"));
-
-  // Push the destroy commands.
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-    cmd_push_destroy(cmdController, *e);
-  }
-}
-
 static void input_order(
     EcsWorld*                    world,
     CmdControllerComp*           cmdController,
@@ -512,9 +498,6 @@ ecs_system_define(InputUpdateSys) {
 
   if (input_triggered_lit(input, "OrderStop")) {
     input_order_stop(cmdController, sel, debugStats);
-  }
-  if (input_triggered_lit(input, "Destroy")) {
-    input_order_destroy(cmdController, sel, debugStats);
   }
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);

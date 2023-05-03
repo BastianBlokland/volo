@@ -1015,9 +1015,10 @@ static void rend_panel_draw(
   ui_panel_begin(
       canvas,
       &panelComp->panel,
-      .title    = title,
-      .tabNames = g_rendTabNames,
-      .tabCount = DebugRendTab_Count);
+      .title       = title,
+      .tabNames    = g_rendTabNames,
+      .tabCount    = DebugRendTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
   case DebugRendTab_Settings:

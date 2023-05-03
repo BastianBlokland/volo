@@ -28,7 +28,8 @@ static void level_panel_draw(
     const SceneLevelManagerComp* levelManager,
     DebugLevelPanelComp*         panelComp) {
   const String title = fmt_write_scratch("{} Level Panel", fmt_ui_shape(Globe));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   const bool   isLoading    = scene_level_is_loading(levelManager);
   const String levelCurrent = scene_level_current_id(levelManager);

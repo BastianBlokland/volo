@@ -19,7 +19,6 @@ typedef enum {
   Cmd_Move,
   Cmd_Stop,
   Cmd_Attack,
-  Cmd_Destroy,
 } CmdType;
 
 typedef struct {
@@ -45,10 +44,6 @@ typedef struct {
 } CmdAttack;
 
 typedef struct {
-  EcsEntityId object;
-} CmdDestroy;
-
-typedef struct {
   CmdType type;
   union {
     CmdSelect   select;
@@ -56,7 +51,6 @@ typedef struct {
     CmdMove     move;
     CmdStop     stop;
     CmdAttack   attack;
-    CmdDestroy  destroy;
   };
 } Cmd;
 
@@ -139,13 +133,6 @@ static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cm
     break;
   case Cmd_Attack:
     cmd_execute_attack(world, &cmd->attack);
-    break;
-  case Cmd_Destroy:
-    diag_assert_msg(ecs_entity_valid(cmd->destroy.object), "Destroying invalid entity");
-    if (ecs_world_exists(world, cmd->select.object)) {
-      scene_selection_remove(selection, cmd->destroy.object);
-      ecs_world_entity_destroy(world, cmd->destroy.object);
-    }
     break;
   }
 }
@@ -230,12 +217,5 @@ void cmd_push_attack(
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
-  };
-}
-
-void cmd_push_destroy(CmdControllerComp* controller, const EcsEntityId object) {
-  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
-      .type    = Cmd_Destroy,
-      .destroy = {.object = object},
   };
 }

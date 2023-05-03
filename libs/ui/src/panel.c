@@ -128,18 +128,18 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_background(UiCanvasComp* canvas) {
+static void ui_panel_topbar_background(UiCanvasComp* canvas, const UiPanelOpts* opts) {
   ui_style_push(canvas);
 
   const UiId id = ui_canvas_id_peek(canvas);
   switch (ui_canvas_elem_status(canvas, id)) {
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color(canvas, ui_color(32, 32, 32, 240));
+    ui_style_color_with_mult(canvas, opts->topBarColor, 2);
     break;
   case UiStatus_Hovered:
   case UiStatus_Idle:
-    ui_style_color(canvas, ui_color(8, 8, 8, 240));
+    ui_style_color(canvas, opts->topBarColor);
     break;
   }
 
@@ -157,7 +157,7 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
   ui_layout_resize(
       canvas, UiAlign_BottomCenter, ui_vector(0, g_panelTopbarHeight), UiBase_Absolute, Ui_Y);
 
-  ui_panel_topbar_background(canvas);
+  ui_panel_topbar_background(canvas, opts);
   ui_panel_topbar_title(canvas, opts);
   ui_panel_topbar_close_button(canvas, panel);
 

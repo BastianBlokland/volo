@@ -128,7 +128,8 @@ static void camera_panel_draw(
     SceneCameraComp*      camera,
     SceneTransformComp*   transform) {
   const String title = fmt_write_scratch("{} Camera Panel", fmt_ui_shape(PhotoCamera));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   u32* flags = (u32*)&camera->flags;
 

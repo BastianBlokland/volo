@@ -619,7 +619,7 @@ attack_sound_inst_create(EcsWorld* world, const EcsEntityId owner, const EcsEnti
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
-  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owner = owner);
+  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = owner);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = owner);
   return e;
 }

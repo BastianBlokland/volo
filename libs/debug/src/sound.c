@@ -448,9 +448,10 @@ static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, Sn
   ui_panel_begin(
       c,
       &panelComp->panel,
-      .title    = title,
-      .tabNames = g_soundTabNames,
-      .tabCount = DebugSoundTab_Count);
+      .title       = title,
+      .tabNames    = g_soundTabNames,
+      .tabCount    = DebugSoundTab_Count,
+      .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
   case DebugSoundTab_Mixer:
