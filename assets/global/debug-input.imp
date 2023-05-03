@@ -1,4 +1,5 @@
 {
+  "layer": "Debug",
   "actions": [
     {
       "name": "DebugTimePauseToggle",
