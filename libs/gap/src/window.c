@@ -147,6 +147,7 @@ static void window_update(
   if (palFlags & GapPalWindowFlags_Resized) {
     const GapVector size = gap_pal_window_param(pal, window->id, GapParam_WindowSize);
     window->params[GapParam_WindowSize] = size;
+    window->params[GapParam_CursorPos]  = gap_pal_window_param(pal, window->id, GapParam_CursorPos);
     window->events |= GapWindowEvents_Resized;
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
