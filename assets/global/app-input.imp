@@ -15,13 +15,6 @@
       ]
     },
     {
-      "name": "AppWindowNew",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "N", "requiredModifiers": [ "Alt" ] }
-      ]
-    },
-    {
       "name": "AppWindowClose",
       "blockers": [ "TextInput" ],
       "bindings": [

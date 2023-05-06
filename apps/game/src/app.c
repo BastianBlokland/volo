@@ -159,9 +159,6 @@ ecs_system_define(AppUpdateSys) {
   if (input_triggered_lit(input, "AppReset")) {
     scene_level_load(world, string_lit("levels/default.lvl"));
   }
-  if (input_triggered_lit(input, "AppWindowNew")) {
-    app_window_create(world);
-  }
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
