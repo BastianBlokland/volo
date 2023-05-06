@@ -1,4 +1,5 @@
 {
+  "layer": "Game",
   "actions": [
     {
       "name": "Select",
