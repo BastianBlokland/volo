@@ -73,13 +73,6 @@
         { "type": "Down", "key": "Alt" },
         { "type": "Down", "key": "MouseExtra1" }
       ]
-    },
-    {
-      "name": "CameraToggleMode",
-      "blockers": [ "TextInput" ],
-      "bindings": [
-        { "type": "Pressed", "key": "F1" }
-      ]
     }
   ]
 }

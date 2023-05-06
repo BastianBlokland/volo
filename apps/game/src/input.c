@@ -48,7 +48,6 @@ ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
-  bool             freeCamera;
 
   u32 lastSelectionCount;
 
@@ -160,7 +159,7 @@ static void update_camera_movement(
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
 
-static void update_camera_movement_free(
+static void update_camera_movement_debug(
     InputManagerComp*      input,
     const SceneTimeComp*   time,
     const SceneCameraComp* camera,
@@ -435,7 +434,6 @@ static void update_camera_interact(
     input_order(world, cmdController, collisionEnv, sel, terrain, nav, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
-    state->freeCamera = false;
     state->camPosTgt  = geo_vector(0);
     state->camRotYTgt = -90.0f * math_deg_to_rad;
     state->camZoomTgt = 0.0f;
@@ -469,16 +467,6 @@ ecs_view_define(CameraView) {
   ecs_access_maybe_write(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
-}
-
-static void input_toggle_camera_mode(InputStateComp* state, DebugStatsGlobalComp* debugStats) {
-  state->freeCamera ^= true;
-  if (debugStats) {
-    debug_stats_notify(
-        debugStats,
-        string_lit("Camera Mode"),
-        state->freeCamera ? string_lit("Free") : string_lit("Normal"));
-  }
 }
 
 ecs_system_define(InputUpdateSys) {
@@ -517,11 +505,8 @@ ecs_system_define(InputUpdateSys) {
     }
 
     if (input_active_window(input) == ecs_view_entity(itr)) {
-      if (input_triggered_lit(input, "CameraToggleMode")) {
-        input_toggle_camera_mode(state, debugStats);
-      }
-      if (state->freeCamera) {
-        update_camera_movement_free(input, time, cam, camTrans);
+      if (input_layer_active(input, string_hash_lit("Debug"))) {
+        update_camera_movement_debug(input, time, cam, camTrans);
       } else {
         update_camera_movement(state, input, time, camTrans);
       }
