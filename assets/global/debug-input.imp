@@ -2,6 +2,13 @@
   "layer": "Debug",
   "actions": [
     {
+      "name": "Select",
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
+      "bindings": [
+        { "type": "Down", "key": "MouseLeft" }
+      ]
+    },
+    {
       "name": "CameraPanForward",
       "blockers": [ "TextInput" ],
       "bindings": [

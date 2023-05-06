@@ -201,6 +201,19 @@ static void update_camera_movement_debug(
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
 
+static SceneQueryFilter select_filter(InputManagerComp* input) {
+  if (input_layer_active(input, string_hash_lit("Debug"))) {
+    /**
+     * Allow selecting all objects in debug mode.
+     */
+    return (SceneQueryFilter){.layerMask = SceneLayer_All};
+  }
+  /**
+   * Only allow selecting your own units.
+   */
+  return (SceneQueryFilter){.layerMask = SceneLayer_UnitFactionA};
+}
+
 static void select_start(InputStateComp* state, InputManagerComp* input) {
   state->selectState = InputSelectState_Down;
   state->selectStart = (GeoVector){.x = input_cursor_x(input), .y = input_cursor_y(input)};
@@ -219,7 +232,7 @@ static void select_end_click(
   state->selectState = InputSelectState_None;
 
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_All};
+  const SceneQueryFilter filter  = select_filter(input);
   const f32              maxDist = 1e4f;
   const bool             hasHit  = scene_query_ray(collisionEnv, inputRay, maxDist, &filter, &hit);
 
@@ -262,8 +275,7 @@ static void select_update_drag(
   GeoVector frustumCorners[8];
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 
-  // Only allow box-selecting your own units.
-  const SceneQueryFilter filter = {.layerMask = SceneLayer_UnitFactionA};
+  const SceneQueryFilter filter = select_filter(input);
 
   EcsEntityId results[scene_query_max_hits];
   const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, &filter, results);
