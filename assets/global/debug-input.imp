@@ -2,6 +2,53 @@
   "layer": "Debug",
   "actions": [
     {
+      "name": "Select",
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
+      "bindings": [
+        { "type": "Down", "key": "MouseLeft" }
+      ]
+    },
+    {
+      "name": "CameraPanForward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowUp" },
+        { "type": "Down", "key": "W" }
+      ]
+    },
+    {
+      "name": "CameraPanBackward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowDown" },
+        { "type": "Down", "key": "S" }
+      ]
+    },
+    {
+      "name": "CameraPanRight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowRight" },
+        { "type": "Down", "key": "D" }
+      ]
+    },
+    {
+      "name": "CameraPanLeft",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowLeft" },
+        { "type": "Down", "key": "A" }
+      ]
+    },
+    {
+      "name": "CameraRotate",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "Alt" },
+        { "type": "Down", "key": "MouseExtra1" }
+      ]
+    },
+    {
       "name": "DebugTimePauseToggle",
       "blockers": [ "TextInput" ],
       "bindings": [

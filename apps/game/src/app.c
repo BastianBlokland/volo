@@ -85,7 +85,11 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
 }
 
 static void app_action_bar_draw(
-    UiCanvasComp* canvas, AppComp* app, const InputManagerComp* input, GapWindowComp* win) {
+    UiCanvasComp*           canvas,
+    AppComp*                app,
+    const InputManagerComp* input,
+    CmdControllerComp*      cmd,
+    GapWindowComp*          win) {
   static const u32      g_buttonCount = 3;
   static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
   static const f32      g_spacing     = 8.0f;
@@ -105,6 +109,7 @@ static void app_action_bar_draw(
 
     log_i("Toggle debug-mode");
     app->mode ^= AppMode_Debug;
+    cmd_push_deselect_all(cmd);
   }
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
@@ -136,6 +141,7 @@ static void app_action_bar_draw(
 
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
+  ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
 }
 
@@ -153,14 +159,12 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp* app = ecs_view_write_t(globalItr, AppComp);
+  AppComp*           app = ecs_view_write_t(globalItr, AppComp);
+  CmdControllerComp* cmd = ecs_view_write_t(globalItr, CmdControllerComp);
 
   InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
   if (input_triggered_lit(input, "AppReset")) {
     scene_level_load(world, string_lit("levels/default.lvl"));
-  }
-  if (input_triggered_lit(input, "AppWindowNew")) {
-    app_window_create(world);
   }
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
@@ -176,7 +180,7 @@ ecs_system_define(AppUpdateSys) {
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      app_action_bar_draw(canvas, app, input, win);
+      app_action_bar_draw(canvas, app, input, cmd, win);
     }
 
     // clang-format off
@@ -186,12 +190,14 @@ ecs_system_define(AppUpdateSys) {
       if (appWindow->debugLogViewer)  { ecs_world_entity_destroy(world, appWindow->debugLogViewer); appWindow->debugLogViewer = 0; }
       if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Minimal); }
       input_layer_disable(input, string_hash_lit("Debug"));
+      input_layer_enable(input, string_hash_lit("Game"));
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu)      { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
       if (!appWindow->debugLogViewer) { appWindow->debugLogViewer = debug_log_viewer_create(world, windowEntity); }
       if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Full); }
       input_layer_enable(input, string_hash_lit("Debug"));
+      input_layer_disable(input, string_hash_lit("Game"));
       break;
     }
     // clang-format on

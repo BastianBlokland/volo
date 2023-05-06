@@ -54,14 +54,9 @@ typedef enum {
   UiCanvasFlags_InputAny = 1 << 0,
 } UiCanvasFlags;
 
-typedef enum {
-  UiRendererFlags_Disabled = 1 << 0,
-} UiRendererFlags;
-
 ecs_comp_define(UiRendererComp) {
-  UiRendererFlags flags;
-  EcsEntityId     draw;
-  DynArray        overlayGlyphs; // UiGlyphData[]
+  EcsEntityId draw;
+  DynArray    overlayGlyphs; // UiGlyphData[]
 };
 
 ecs_comp_define(UiCanvasComp) {
@@ -429,18 +424,10 @@ ecs_system_define(UiRenderSys) {
     if (!winSize.x || !winSize.y) {
       continue; // Window is zero sized; No need to render the Ui.
     }
-    const bool activeWindow = !input || input_active_window(input) == windowEntity;
-    if (input && activeWindow && input_triggered_lit(input, "AppDisableUiToggle")) {
-      renderer->flags ^= UiRendererFlags_Disabled;
-    }
 
     stats->trackedElemCount = 0;
     stats->persistElemCount = 0;
     stats->commandCount     = 0;
-
-    if (UNLIKELY(renderer->flags & UiRendererFlags_Disabled)) {
-      continue;
-    }
 
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
     if (settings->flags & UiSettingFlags_DebugShading) {
@@ -509,6 +496,8 @@ ecs_system_define(UiRenderSys) {
       stats->trackedElemCount += (u32)canvas->trackedElems.size;
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
+
+    const bool activeWindow = !input || input_active_window(input) == windowEntity;
     if (input && activeWindow) {
       input_blocker_update(input, InputBlocker_TextInput, textEditActive);
       input_blocker_update(input, InputBlocker_HoveringUi, !sentinel_check(hoveredCanvasIndex));
