@@ -37,6 +37,8 @@
   X(0xE8F4, Visiblity)                                                                             \
   X(0xE92B, Delete)                                                                                \
   X(0xE9BA, Logout)                                                                                \
+  X(0xE050, VolumeUp)                                                                              \
+  X(0xE04F, VolumeOff)                                                                             \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
