@@ -389,7 +389,9 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_push(canvas);
   UiSelectFlags selectFlags = 0;
   for (u32 i = 0; i != optionCount; ++i) {
-    ui_layout_next(canvas, Ui_Down, 2);
+    const u32 optionIndex = opts->dir == Ui_Up ? (optionCount - 1 - i) : i;
+
+    ui_layout_next(canvas, opts->dir, 2);
     const UiId id     = ui_canvas_id_peek(canvas);
     UiStatus   status = ui_canvas_elem_status(canvas, id);
 
@@ -416,7 +418,7 @@ static UiSelectFlags ui_select_dropdown(
 
     ui_style_push(canvas);
     ui_interactable_text_style(canvas, status);
-    ui_canvas_draw_text(canvas, options[i], opts->fontSize, UiAlign_MiddleLeft, UiFlags_None);
+    ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
     ui_style_pop(canvas);
 
     ui_layout_pop(canvas);
@@ -425,7 +427,7 @@ static UiSelectFlags ui_select_dropdown(
       selectFlags |= UiSelectFlags_Hovered;
     }
     if (status == UiStatus_Activated) {
-      *input = i;
+      *input = optionIndex;
       selectFlags |= UiSelectFlags_Changed;
     }
 

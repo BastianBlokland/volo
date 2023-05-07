@@ -10,6 +10,7 @@
 #include "input_resource.h"
 #include "log_logger.h"
 #include "rend_register.h"
+#include "rend_settings.h"
 #include "scene_camera.h"
 #include "scene_level.h"
 #include "scene_prefab.h"
@@ -33,7 +34,28 @@ typedef enum {
   AppMode_Debug,
 } AppMode;
 
-ecs_comp_define(AppComp) { AppMode mode; };
+typedef enum {
+  AppQuality_UltraLow,
+  AppQuality_Low,
+  AppQuality_Medium,
+  AppQuality_High,
+
+  AppQuality_Count,
+} AppQuality;
+
+static const String g_qualityLabels[] = {
+    string_static("UltraLow"),
+    string_static("Low"),
+    string_static("Medium"),
+    string_static("High"),
+};
+ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of quality labels");
+
+ecs_comp_define(AppComp) {
+  AppMode    mode : 8;
+  bool       powerSaving;
+  AppQuality quality;
+};
 
 ecs_comp_define(AppWindowComp) {
   EcsEntityId uiCanvas;
@@ -86,12 +108,58 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
+static void app_quality_apply(
+    AppComp* app, RendSettingsGlobalComp* rendSetGlobal, RendSettingsComp* rendSetWin) {
+  if (app->powerSaving) {
+    rendSetGlobal->limiterFreq = 30;
+  } else {
+    rendSetGlobal->limiterFreq = 0;
+  }
+  static const RendFlags g_rendOptionalFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
+                                                  RendFlags_Distortion | RendFlags_ParticleShadows;
+  switch (app->quality) {
+  case AppQuality_UltraLow:
+    rendSetGlobal->flags &= ~RendGlobalFlags_SunShadows;
+    rendSetWin->flags &= ~g_rendOptionalFeatures;
+    rendSetWin->resolutionScale = 0.75f;
+    break;
+  case AppQuality_Low:
+    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
+    rendSetWin->flags &= ~g_rendOptionalFeatures;
+    rendSetWin->resolutionScale  = 0.75f;
+    rendSetWin->shadowResolution = 1024;
+    break;
+  case AppQuality_Medium:
+    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
+    rendSetWin->flags |= g_rendOptionalFeatures;
+    rendSetWin->resolutionScale           = 1.0f;
+    rendSetWin->aoResolutionScale         = 0.75f;
+    rendSetWin->shadowResolution          = 2048;
+    rendSetWin->bloomSteps                = 5;
+    rendSetWin->distortionResolutionScale = 0.25f;
+    break;
+  case AppQuality_High:
+    rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
+    rendSetWin->flags |= g_rendOptionalFeatures;
+    rendSetWin->resolutionScale           = 1.0f;
+    rendSetWin->aoResolutionScale         = 1.0f;
+    rendSetWin->shadowResolution          = 4096;
+    rendSetWin->bloomSteps                = 6;
+    rendSetWin->distortionResolutionScale = 1.0f;
+    break;
+  case AppQuality_Count:
+    UNREACHABLE
+  }
+}
+
 typedef struct {
   AppComp*                app;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
   CmdControllerComp*      cmd;
   GapWindowComp*          win;
+  RendSettingsGlobalComp* rendSetGlobal;
+  RendSettingsComp*       rendSetWin;
 } AppActionContext;
 
 static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
@@ -111,9 +179,9 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
 }
 
 static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  static UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
-  static f32      g_popupSpacing = 8.0f;
-  static UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
+  static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
+  static const f32      g_popupSpacing = 8.0f;
+  static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
 
   f32                     volume      = snd_mixer_gain_get(ctx->soundMixer) * 1e2f;
   const bool              muted       = volume <= f32_epsilon;
@@ -127,7 +195,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
           canvas,
           .label      = ui_shape_scratch(muted ? UiShape_VolumeOff : UiShape_VolumeUp),
           .fontSize   = 35,
-          .frameColor = popupActive ? ui_color(196, 196, 196, 192) : ui_color(32, 32, 32, 192),
+          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
           .tooltip    = string_lit("Open / Close the sound volume controls."))) {
     ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
   }
@@ -141,8 +209,8 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
     // Popup background.
     ui_style_push(canvas);
     ui_style_outline(canvas, 2);
-    ui_style_color(canvas, ui_color(32, 32, 32, 128));
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
+    ui_style_color(canvas, ui_color(128, 128, 128, 192));
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
     ui_style_pop(canvas);
 
     // Volume slider.
@@ -156,6 +224,72 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
             .tooltip  = string_lit("Sound volume."))) {
       snd_mixer_gain_set(ctx->soundMixer, volume * 1e-2f);
     }
+    ui_layout_pop(canvas);
+
+    // Close when pressing outside.
+    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_status(canvas) == UiStatus_Idle) {
+      ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
+    }
+  }
+
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
+}
+
+static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  static const UiVector g_popupSize    = {.x = 250.0f, .y = 70.0f};
+  static const f32      g_popupSpacing = 8.0f;
+
+  const UiId              popupId     = ui_canvas_id_peek(canvas);
+  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
+  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
+
+  ui_canvas_id_block_next(canvas);
+
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(UiShape_Image),
+          .fontSize   = 35,
+          .frameColor = popupActive ? ui_color(128, 128, 128, 192) : ui_color(32, 32, 32, 192),
+          .tooltip    = string_lit("Open / Close the quality controls."))) {
+    ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
+  }
+
+  if (popupActive && ctx->rendSetGlobal && ctx->rendSetWin) {
+    ui_layout_push(canvas);
+    ui_layout_move(canvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
+    ui_layout_move_dir(canvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
+    ui_layout_resize(canvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+
+    // Popup background.
+    ui_style_push(canvas);
+    ui_style_outline(canvas, 2);
+    ui_style_color(canvas, ui_color(128, 128, 128, 192));
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
+    ui_style_pop(canvas);
+
+    // Settings.
+    ui_layout_container_push(canvas, UiClip_None);
+
+    UiTable table = ui_table();
+    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 110);
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("PowerSaving"));
+    ui_table_next_column(canvas, &table);
+    if (ui_toggle(canvas, &ctx->app->powerSaving)) {
+      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_label(canvas, string_lit("Quality"));
+    ui_table_next_column(canvas, &table);
+    const u32 qualityCount = AppQuality_Count;
+    if (ui_select(canvas, (i32*)&ctx->app->quality, g_qualityLabels, qualityCount, .dir = Ui_Up)) {
+      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+    }
+
+    ui_layout_container_pop(canvas);
     ui_layout_pop(canvas);
 
     // Close when pressing outside.
@@ -194,9 +328,10 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
 }
 
 static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
-  static void (*g_actions[])(UiCanvasComp*, const AppActionContext*) = {
+  static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
       app_action_debug_draw,
       app_action_sound_draw,
+      app_action_quality_draw,
       app_action_fullscreen_draw,
       app_action_exit_draw,
   };
@@ -218,11 +353,13 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SndMixerComp);
 }
 
 ecs_view_define(WindowView) {
   ecs_access_maybe_write(DebugStatsComp);
+  ecs_access_maybe_write(RendSettingsComp);
   ecs_access_write(AppWindowComp);
   ecs_access_write(GapWindowComp);
 }
@@ -235,9 +372,10 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*           app        = ecs_view_write_t(globalItr, AppComp);
-  CmdControllerComp* cmd        = ecs_view_write_t(globalItr, CmdControllerComp);
-  SndMixerComp*      soundMixer = ecs_view_write_t(globalItr, SndMixerComp);
+  AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
+  CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
+  SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
+  RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
 
   InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
   if (input_triggered_lit(input, "AppReset")) {
@@ -249,10 +387,11 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView      = ecs_world_view_t(world, WindowView);
   EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
   if (activeWindowItr) {
-    const EcsEntityId windowEntity = ecs_view_entity(activeWindowItr);
-    AppWindowComp*    appWindow    = ecs_view_write_t(activeWindowItr, AppWindowComp);
-    GapWindowComp*    win          = ecs_view_write_t(activeWindowItr, GapWindowComp);
-    DebugStatsComp*   stats        = ecs_view_write_t(activeWindowItr, DebugStatsComp);
+    const EcsEntityId windowEntity    = ecs_view_entity(activeWindowItr);
+    AppWindowComp*    appWindow       = ecs_view_write_t(activeWindowItr, AppWindowComp);
+    GapWindowComp*    win             = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    DebugStatsComp*   stats           = ecs_view_write_t(activeWindowItr, DebugStatsComp);
+    RendSettingsComp* rendSettingsWin = ecs_view_write_t(activeWindowItr, RendSettingsComp);
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
@@ -260,11 +399,13 @@ ecs_system_define(AppUpdateSys) {
       app_action_bar_draw(
           canvas,
           &(AppActionContext){
-              .app        = app,
-              .input      = input,
-              .soundMixer = soundMixer,
-              .cmd        = cmd,
-              .win        = win,
+              .app           = app,
+              .input         = input,
+              .soundMixer    = soundMixer,
+              .cmd           = cmd,
+              .win           = win,
+              .rendSetGlobal = rendSetGlobal,
+              .rendSetWin    = rendSettingsWin,
           });
     }
 
@@ -349,7 +490,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp);
+  ecs_world_add_t(world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium);
   app_window_create(world);
 
   AssetManagerComp* assets = asset_manager_create_fs(
