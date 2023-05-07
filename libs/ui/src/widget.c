@@ -389,7 +389,7 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_push(canvas);
   UiSelectFlags selectFlags = 0;
   for (u32 i = 0; i != optionCount; ++i) {
-    ui_layout_next(canvas, Ui_Down, 2);
+    ui_layout_next(canvas, opts->dir, 2);
     const UiId id     = ui_canvas_id_peek(canvas);
     UiStatus   status = ui_canvas_elem_status(canvas, id);
 

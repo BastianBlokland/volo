@@ -56,7 +56,8 @@ typedef struct {
 } UiToggleOpts;
 
 typedef struct {
-  UiWidgetFlags flags;
+  UiWidgetFlags flags : 8;
+  UiDir         dir : 8;
   u16           fontSize;
   UiColor       frameColor, dropFrameColor;
   String        tooltip;
@@ -158,9 +159,10 @@ typedef struct {
  */
 #define ui_select(_CANVAS_, _VALUE_, _OPT_LABELS_, _OPT_COUNT_, ...)                               \
   ui_select_with_opts((_CANVAS_), (_VALUE_), (_OPT_LABELS_), (_OPT_COUNT_), &((UiSelectOpts){      \
-    .fontSize               = 16,                                                                  \
-    .frameColor             = ui_color(32, 32, 32, 192),                                           \
-    .dropFrameColor         = ui_color(64, 64, 64, 235),                                           \
+    .dir            = Ui_Down,                                                                     \
+    .fontSize       = 16,                                                                          \
+    .frameColor     = ui_color(32, 32, 32, 192),                                                   \
+    .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
     __VA_ARGS__}))
 
 /**
