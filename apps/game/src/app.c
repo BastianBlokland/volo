@@ -17,6 +17,7 @@
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
+#include "snd_mixer.h"
 #include "snd_register.h"
 #include "ui.h"
 #include "ui_register.h"
@@ -88,9 +89,10 @@ static void app_action_bar_draw(
     UiCanvasComp*           canvas,
     AppComp*                app,
     const InputManagerComp* input,
+    SndMixerComp*           soundMixer,
     CmdControllerComp*      cmd,
     GapWindowComp*          win) {
-  static const u32      g_buttonCount = 3;
+  static const u32      g_buttonCount = 4;
   static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
   static const f32      g_spacing     = 8.0f;
   static const u16      g_iconSize    = 35;
@@ -110,6 +112,13 @@ static void app_action_bar_draw(
     log_i("Toggle debug-mode");
     app->mode ^= AppMode_Debug;
     cmd_push_deselect_all(cmd);
+  }
+
+  ui_layout_next(canvas, Ui_Right, g_spacing);
+
+  f32 soundGain = snd_mixer_gain_get(soundMixer);
+  if (ui_slider(canvas, &soundGain, .vertical = true)) {
+    snd_mixer_gain_set(soundMixer, soundGain);
   }
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
@@ -143,6 +152,7 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(SndMixerComp);
 }
 
 ecs_view_define(WindowView) {
@@ -159,8 +169,9 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*           app = ecs_view_write_t(globalItr, AppComp);
-  CmdControllerComp* cmd = ecs_view_write_t(globalItr, CmdControllerComp);
+  AppComp*           app        = ecs_view_write_t(globalItr, AppComp);
+  CmdControllerComp* cmd        = ecs_view_write_t(globalItr, CmdControllerComp);
+  SndMixerComp*      soundMixer = ecs_view_write_t(globalItr, SndMixerComp);
 
   InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
   if (input_triggered_lit(input, "AppReset")) {
@@ -180,7 +191,7 @@ ecs_system_define(AppUpdateSys) {
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      app_action_bar_draw(canvas, app, input, cmd, win);
+      app_action_bar_draw(canvas, app, input, soundMixer, cmd, win);
     }
 
     // clang-format off
