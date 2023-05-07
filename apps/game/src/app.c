@@ -141,7 +141,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
     // Popup background.
     ui_style_push(canvas);
     ui_style_outline(canvas, 2);
-    ui_style_color(canvas, ui_color(32, 32, 32, 128));
+    ui_style_color(canvas, ui_color(196, 196, 196, 96));
     ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
     ui_style_pop(canvas);
 
