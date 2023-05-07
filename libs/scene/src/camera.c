@@ -42,14 +42,14 @@ f32 scene_camera_far(const SceneCameraComp* cam) {
 }
 
 GeoMatrix scene_camera_proj(const SceneCameraComp* cam, const f32 aspect) {
+  const bool useVerticalFov = aspect < 1.0f;
   if (cam->flags & SceneCameraFlags_Orthographic) {
-    if (cam->flags & SceneCameraFlags_Vertical) {
+    if (useVerticalFov) {
       return geo_matrix_proj_ortho_ver(cam->orthoSize, aspect, g_camOrthoNear, g_camOrthoFar);
     }
     return geo_matrix_proj_ortho_hor(cam->orthoSize, aspect, g_camOrthoNear, g_camOrthoFar);
   }
-
-  if (cam->flags & SceneCameraFlags_Vertical) {
+  if (useVerticalFov) {
     return geo_matrix_proj_pers_ver(cam->persFov, aspect, cam->persNear);
   }
   return geo_matrix_proj_pers_hor(cam->persFov, aspect, cam->persNear);
@@ -111,5 +111,4 @@ void scene_camera_to_default(SceneCameraComp* cam) {
   cam->persFov   = 60.0f * math_deg_to_rad;
   cam->orthoSize = 5.0f;
   cam->persNear  = 0.1f;
-  cam->flags &= ~SceneCameraFlags_Vertical;
 }
