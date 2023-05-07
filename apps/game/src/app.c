@@ -86,6 +86,63 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
+static void app_action_sound_draw(UiCanvasComp* canvas, SndMixerComp* soundMixer) {
+  static UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
+  static f32      g_popupSpacing = 8.0f;
+  static UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
+
+  f32                     volume      = snd_mixer_gain_get(soundMixer) * 1e2f;
+  const bool              muted       = volume <= f32_epsilon;
+  const UiId              popupId     = ui_canvas_id_peek(canvas);
+  const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
+  const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
+
+  ui_canvas_id_block_next(canvas);
+
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(muted ? UiShape_VolumeOff : UiShape_VolumeUp),
+          .fontSize   = 35,
+          .frameColor = popupActive ? ui_color(196, 196, 196, 192) : ui_color(32, 32, 32, 192),
+          .tooltip    = string_lit("Open / Close the sound volume controls"))) {
+    ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
+  }
+
+  if (popupActive) {
+    ui_layout_push(canvas);
+    ui_layout_move(canvas, ui_vector(0.5f, 1.0f), UiBase_Current, Ui_XY);
+    ui_layout_move_dir(canvas, Ui_Up, g_popupSpacing, UiBase_Absolute);
+    ui_layout_resize(canvas, UiAlign_BottomCenter, g_popupSize, UiBase_Absolute, Ui_XY);
+
+    // Popup background.
+    ui_style_push(canvas);
+    ui_style_outline(canvas, 2);
+    ui_style_color(canvas, ui_color(32, 32, 32, 128));
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
+    ui_style_pop(canvas);
+
+    // Volume slider.
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, g_popupInset, UiBase_Absolute, Ui_XY);
+    if (ui_slider(
+            canvas,
+            &volume,
+            .vertical = true,
+            .max      = 1e2f,
+            .step     = 1,
+            .tooltip  = string_lit("Sound volume"))) {
+      snd_mixer_gain_set(soundMixer, volume * 1e-2f);
+    }
+    ui_layout_pop(canvas);
+
+    // Close when pressing outside.
+    if (ui_canvas_input_any(canvas) && ui_canvas_group_block_status(canvas) == UiStatus_Idle) {
+      ui_canvas_persistent_flags_unset(canvas, popupId, UiPersistentFlags_Open);
+    }
+  }
+
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
+}
+
 static void app_action_bar_draw(
     UiCanvasComp*           canvas,
     AppComp*                app,
@@ -117,11 +174,7 @@ static void app_action_bar_draw(
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
 
-  const f32     soundGain  = snd_mixer_gain_get(soundMixer);
-  const Unicode soundShape = soundGain > f32_epsilon ? UiShape_VolumeUp : UiShape_VolumeOff;
-  if (ui_button(canvas, .label = ui_shape_scratch(soundShape), .fontSize = g_iconSize)) {
-    snd_mixer_gain_set(soundMixer, soundGain > f32_epsilon ? 0.0f : 1.0f);
-  }
+  app_action_sound_draw(canvas, soundMixer);
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
 
