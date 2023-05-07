@@ -660,7 +660,6 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 }
 
 UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId begin, const UiId end) {
-  diag_assert(begin <= end);
   if (comp->activeId < begin || comp->activeId > end) {
     return UiStatus_Idle;
   }
