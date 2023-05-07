@@ -660,10 +660,17 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 }
 
 UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId begin, const UiId end) {
+  diag_assert(begin <= end);
   if (comp->activeId < begin || comp->activeId > end) {
     return UiStatus_Idle;
   }
   return comp->activeStatus;
+}
+
+UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
+  const u64 blockEnd   = bits_align_64(comp->nextId + 1, u64_lit(1) << 32);
+  const u64 blockBegin = blockEnd - (u64_lit(1) << 32);
+  return ui_canvas_group_status(comp, blockBegin, blockEnd);
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }

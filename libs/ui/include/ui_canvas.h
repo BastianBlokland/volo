@@ -120,6 +120,7 @@ UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
  * NOTE: Requires cross frame consistency of identifiers.
  */
 UiStatus ui_canvas_group_status(const UiCanvasComp*, UiId begin, UiId end);
+UiStatus ui_canvas_group_block_status(const UiCanvasComp*);
 
 /**
  * Get or set persistent element state.

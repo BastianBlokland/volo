@@ -126,9 +126,15 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
-  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
-  ui_layout_resize(
-      canvas, UiAlign_MiddleLeft, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
+  if (opts->vertical) {
+    ui_layout_move_to(canvas, UiBase_Current, UiAlign_BottomCenter, Ui_X);
+    ui_layout_resize(
+        canvas, UiAlign_BottomCenter, ui_vector(opts->thickness, 0), UiBase_Absolute, Ui_X);
+  } else {
+    ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
+    ui_layout_resize(
+        canvas, UiAlign_MiddleLeft, ui_vector(0, opts->thickness), UiBase_Absolute, Ui_Y);
+  }
 
   ui_style_outline(canvas, 2);
   switch (status) {
@@ -152,10 +158,15 @@ static void ui_slider_handle(
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
-  const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-handleSize.x, 0), UiBase_Absolute, Ui_X);
-  ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_MiddleCenter, handleSize, UiBase_Absolute, Ui_XY);
+  const UiVector size = ui_vector(opts->handleSize, opts->handleSize);
+  if (opts->vertical) {
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(0, -size.y), UiBase_Absolute, Ui_Y);
+    ui_layout_move(canvas, ui_vector(0.5f, normValue), UiBase_Current, Ui_XY);
+  } else {
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-size.x, 0), UiBase_Absolute, Ui_X);
+    ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
+  }
+  ui_layout_resize(canvas, UiAlign_MiddleCenter, size, UiBase_Absolute, Ui_XY);
 
   if (opts->flags & UiWidget_Disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
@@ -216,8 +227,14 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
 
   f32 normValue;
   if (status >= UiStatus_Pressed) {
-    normValue = math_unlerp(
-        barRect.x + halfHandleSize, barRect.x + barRect.width - halfHandleSize, inputPos.x);
+    normValue = opts->vertical ? math_unlerp(
+                                     barRect.y + halfHandleSize,
+                                     barRect.y + barRect.height - halfHandleSize,
+                                     inputPos.y)
+                               : math_unlerp(
+                                     barRect.x + halfHandleSize,
+                                     barRect.x + barRect.width - halfHandleSize,
+                                     inputPos.x);
   } else {
     normValue = math_unlerp(opts->min, opts->max, *input);
   }
