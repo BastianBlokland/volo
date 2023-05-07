@@ -128,7 +128,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
   ui_layout_resize(
-      canvas, UiAlign_MiddleLeft, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
+      canvas, UiAlign_MiddleLeft, ui_vector(0, opts->thickness), UiBase_Absolute, Ui_Y);
 
   ui_style_outline(canvas, 2);
   switch (status) {

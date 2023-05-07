@@ -40,7 +40,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   f32           min, max;
-  f32           barHeight;
+  f32           thickness;
   f32           handleSize;
   f32           step;
   UiColor       barColor;
@@ -123,7 +123,7 @@ typedef struct {
 #define ui_slider(_CANVAS_, _VALUE_, ...) ui_slider_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiSliderOpts){                                                                                \
     .max        = 1,                                                                               \
-    .barHeight  = 9,                                                                               \
+    .thickness  = 9,                                                                               \
     .handleSize = 20,                                                                              \
     .barColor   = ui_color(32, 32, 32, 192),                                                       \
     __VA_ARGS__}))
