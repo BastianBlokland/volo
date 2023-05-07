@@ -86,12 +86,36 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   }
 }
 
-static void app_action_sound_draw(UiCanvasComp* canvas, SndMixerComp* soundMixer) {
+typedef struct {
+  AppComp*                app;
+  const InputManagerComp* input;
+  SndMixerComp*           soundMixer;
+  CmdControllerComp*      cmd;
+  GapWindowComp*          win;
+} AppActionContext;
+
+static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  const bool isInDebugMode = ctx->app->mode == AppMode_Debug;
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(UiShape_Bug),
+          .fontSize   = 35,
+          .tooltip    = string_lit("Enable / disable debug mode."),
+          .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192)) ||
+      input_triggered_lit(ctx->input, "AppDebug")) {
+
+    log_i("Toggle debug-mode");
+    ctx->app->mode ^= AppMode_Debug;
+    cmd_push_deselect_all(ctx->cmd);
+  }
+}
+
+static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
   static UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
   static f32      g_popupSpacing = 8.0f;
   static UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
 
-  f32                     volume      = snd_mixer_gain_get(soundMixer) * 1e2f;
+  f32                     volume      = snd_mixer_gain_get(ctx->soundMixer) * 1e2f;
   const bool              muted       = volume <= f32_epsilon;
   const UiId              popupId     = ui_canvas_id_peek(canvas);
   const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
@@ -104,7 +128,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, SndMixerComp* soundMixer
           .label      = ui_shape_scratch(muted ? UiShape_VolumeOff : UiShape_VolumeUp),
           .fontSize   = 35,
           .frameColor = popupActive ? ui_color(196, 196, 196, 192) : ui_color(32, 32, 32, 192),
-          .tooltip    = string_lit("Open / Close the sound volume controls"))) {
+          .tooltip    = string_lit("Open / Close the sound volume controls."))) {
     ui_canvas_persistent_flags_toggle(canvas, popupId, UiPersistentFlags_Open);
   }
 
@@ -129,8 +153,8 @@ static void app_action_sound_draw(UiCanvasComp* canvas, SndMixerComp* soundMixer
             .vertical = true,
             .max      = 1e2f,
             .step     = 1,
-            .tooltip  = string_lit("Sound volume"))) {
-      snd_mixer_gain_set(soundMixer, volume * 1e-2f);
+            .tooltip  = string_lit("Sound volume."))) {
+      snd_mixer_gain_set(ctx->soundMixer, volume * 1e-2f);
     }
     ui_layout_pop(canvas);
 
@@ -143,63 +167,50 @@ static void app_action_sound_draw(UiCanvasComp* canvas, SndMixerComp* soundMixer
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
-static void app_action_bar_draw(
-    UiCanvasComp*           canvas,
-    AppComp*                app,
-    const InputManagerComp* input,
-    SndMixerComp*           soundMixer,
-    CmdControllerComp*      cmd,
-    GapWindowComp*          win) {
-  static const u32      g_buttonCount = 4;
-  static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
-  static const f32      g_spacing     = 8.0f;
-  static const u16      g_iconSize    = 35;
-
-  const f32 xCenterOffset = (g_buttonCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
-  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
-  ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
-
-  if (ui_button(
-          canvas,
-          .label      = ui_shape_scratch(UiShape_Bug),
-          .fontSize   = g_iconSize,
-          .tooltip    = string_lit("Enable / disable debug mode."),
-          .frameColor = app->mode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192)) ||
-      input_triggered_lit(input, "AppDebug")) {
-
-    log_i("Toggle debug-mode");
-    app->mode ^= AppMode_Debug;
-    cmd_push_deselect_all(cmd);
-  }
-
-  ui_layout_next(canvas, Ui_Right, g_spacing);
-
-  app_action_sound_draw(canvas, soundMixer);
-
-  ui_layout_next(canvas, Ui_Right, g_spacing);
-
+static void app_action_fullscreen_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
-          .fontSize = g_iconSize,
+          .fontSize = 35,
           .tooltip  = string_lit("Enter / exit fullscreen.")) ||
-      input_triggered_lit(input, "AppWindowFullscreen")) {
+      input_triggered_lit(ctx->input, "AppWindowFullscreen")) {
 
     log_i("Toggle fullscreen");
-    app_window_fullscreen_toggle(win);
+    app_window_fullscreen_toggle(ctx->win);
   }
+}
 
-  ui_layout_next(canvas, Ui_Right, g_spacing);
-
+static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
-          .fontSize = g_iconSize,
+          .fontSize = 35,
           .tooltip  = string_lit("Close the window.")) ||
-      input_triggered_lit(input, "AppWindowClose")) {
+      input_triggered_lit(ctx->input, "AppWindowClose")) {
 
     log_i("Close window");
-    gap_window_close(win);
+    gap_window_close(ctx->win);
+  }
+}
+
+static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  static void (*g_actions[])(UiCanvasComp*, const AppActionContext*) = {
+      app_action_debug_draw,
+      app_action_sound_draw,
+      app_action_fullscreen_draw,
+      app_action_exit_draw,
+  };
+  static const u32      g_actionCount = array_elems(g_actions);
+  static const UiVector g_buttonSize  = {.x = 50.0f, .y = 50.0f};
+  static const f32      g_spacing     = 8.0f;
+
+  const f32 xCenterOffset = (g_actionCount - 1) * (g_buttonSize.x + g_spacing) * -0.5f;
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_BottomCenter, g_buttonSize, UiBase_Absolute);
+  ui_layout_move(canvas, ui_vector(xCenterOffset, g_spacing), UiBase_Absolute, Ui_XY);
+
+  for (u32 i = 0; i != g_actionCount; ++i) {
+    g_actions[i](canvas, ctx);
+    ui_layout_next(canvas, Ui_Right, g_spacing);
   }
 }
 
@@ -246,7 +257,15 @@ ecs_system_define(AppUpdateSys) {
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      app_action_bar_draw(canvas, app, input, soundMixer, cmd, win);
+      app_action_bar_draw(
+          canvas,
+          &(AppActionContext){
+              .app        = app,
+              .input      = input,
+              .soundMixer = soundMixer,
+              .cmd        = cmd,
+              .win        = win,
+          });
     }
 
     // clang-format off
