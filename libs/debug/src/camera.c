@@ -21,7 +21,6 @@
 
 static const String g_tooltipOrthoSize      = string_static("Size (in meters) of the dominant dimension of the orthographic projection.");
 static const String g_tooltipFov            = string_static("Field of view of the dominant dimension of the perspective projection.");
-static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
 static const String g_tooltipDebugFrustum   = string_static("Visualize the camera frustum.");
 static const String g_tooltipDebugInput     = string_static("Visualize the input ray.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
@@ -148,11 +147,6 @@ static void camera_panel_draw(
       camera->flags &= ~SceneCameraFlags_Orthographic;
     }
   }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Vertical aspect"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, flags, SceneCameraFlags_Vertical, .tooltip = g_tooltipVerticalAspect);
 
   if (projectionIdx == 1) {
     camera_panel_draw_ortho(canvas, &table, camera, transform);
@@ -375,7 +369,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 430)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 400)),
       .window = window);
   return panelEntity;
 }
