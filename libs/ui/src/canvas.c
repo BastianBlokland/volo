@@ -670,7 +670,7 @@ UiStatus ui_canvas_group_status(const UiCanvasComp* comp, const UiId begin, cons
 UiStatus ui_canvas_group_block_status(const UiCanvasComp* comp) {
   const u64 blockEnd   = bits_align_64(comp->nextId + 1, u64_lit(1) << 32);
   const u64 blockBegin = blockEnd - (u64_lit(1) << 32);
-  return ui_canvas_group_status(comp, blockBegin, blockEnd);
+  return ui_canvas_group_status(comp, blockBegin, blockEnd - 1);
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
