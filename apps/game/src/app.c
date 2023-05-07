@@ -1,6 +1,7 @@
 #include "app_ecs.h"
 #include "asset.h"
 #include "core_file.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "debug.h"
 #include "ecs.h"
@@ -116,9 +117,10 @@ static void app_action_bar_draw(
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
 
-  f32 soundGain = snd_mixer_gain_get(soundMixer);
-  if (ui_slider(canvas, &soundGain, .vertical = true)) {
-    snd_mixer_gain_set(soundMixer, soundGain);
+  const f32     soundGain  = snd_mixer_gain_get(soundMixer);
+  const Unicode soundShape = soundGain > f32_epsilon ? UiShape_VolumeUp : UiShape_VolumeOff;
+  if (ui_button(canvas, .label = ui_shape_scratch(soundShape), .fontSize = g_iconSize)) {
+    snd_mixer_gain_set(soundMixer, soundGain > f32_epsilon ? 0.0f : 1.0f);
   }
 
   ui_layout_next(canvas, Ui_Right, g_spacing);
