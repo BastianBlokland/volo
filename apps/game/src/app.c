@@ -17,6 +17,7 @@
 #include "scene_register.h"
 #include "scene_sound.h"
 #include "scene_terrain.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_weapon.h"
 #include "snd_mixer.h"
@@ -156,6 +157,7 @@ typedef struct {
   AppComp*                app;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
+  SceneTimeSettingsComp*  timeSet;
   CmdControllerComp*      cmd;
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
@@ -172,9 +174,23 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
           .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192)) ||
       input_triggered_lit(ctx->input, "AppDebug")) {
 
-    log_i("Toggle debug-mode");
+    log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
     ctx->app->mode ^= AppMode_Debug;
     cmd_push_deselect_all(ctx->cmd);
+  }
+}
+
+static void app_action_pause_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  const bool isPaused = (ctx->timeSet->flags & SceneTimeFlags_Paused) != 0;
+  if (ui_button(
+          canvas,
+          .label      = ui_shape_scratch(UiShape_Pause),
+          .fontSize   = 35,
+          .tooltip    = string_lit("Pause / Resume."),
+          .frameColor = isPaused ? ui_color(0, 178, 0, 192) : ui_color(32, 32, 32, 192))) {
+
+    log_i("Toggle pause", log_param("paused", fmt_bool(!isPaused)));
+    ctx->timeSet->flags ^= SceneTimeFlags_Paused;
   }
 }
 
@@ -330,6 +346,7 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
 static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
   static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
       app_action_debug_draw,
+      app_action_pause_draw,
       app_action_sound_draw,
       app_action_quality_draw,
       app_action_fullscreen_draw,
@@ -354,6 +371,7 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
+  ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SndMixerComp);
 }
 
@@ -374,8 +392,9 @@ ecs_system_define(AppUpdateSys) {
   }
   AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
   CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
-  SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
   RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
+  SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
+  SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
 
   InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
   if (input_triggered_lit(input, "AppReset")) {
@@ -402,6 +421,7 @@ ecs_system_define(AppUpdateSys) {
               .app           = app,
               .input         = input,
               .soundMixer    = soundMixer,
+              .timeSet       = timeSet,
               .cmd           = cmd,
               .win           = win,
               .rendSetGlobal = rendSetGlobal,

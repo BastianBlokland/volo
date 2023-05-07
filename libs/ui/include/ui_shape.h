@@ -4,6 +4,7 @@
 
 #define UI_SHAPES                                                                                  \
   X(0x0020, Empty)                                                                                 \
+  X(0xE034, Pause)                                                                                 \
   X(0xE04F, VolumeOff)                                                                             \
   X(0xE050, VolumeUp)                                                                              \
   X(0xE069, WebAsset)                                                                              \
@@ -15,6 +16,7 @@
   X(0xE322, Memory)                                                                                \
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE3AE, Brush)                                                                                 \
+  X(0xE3F4, Image)                                                                                 \
   X(0xE405, MusicNote)                                                                             \
   X(0xE412, PhotoCamera)                                                                           \
   X(0xE425, Timer)                                                                                 \
@@ -45,7 +47,6 @@
   X(0xEA4A, Psychology)                                                                            \
   X(0xEA5F, Calculate)                                                                             \
   X(0xEF5B, Monitor)                                                                               \
-  X(0xE3F4, Image)                                                                                 \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVerticalBar)                                                                     \
