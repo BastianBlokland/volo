@@ -44,10 +44,10 @@ typedef enum {
 } AppQuality;
 
 static const String g_qualityLabels[] = {
-    string_lit("UltraLow"),
-    string_lit("Low"),
-    string_lit("Medium"),
-    string_lit("High"),
+    string_static("UltraLow"),
+    string_static("Low"),
+    string_static("Medium"),
+    string_static("High"),
 };
 ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of quality labels");
 
