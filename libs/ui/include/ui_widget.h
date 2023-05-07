@@ -39,6 +39,7 @@ typedef struct {
 
 typedef struct {
   UiWidgetFlags flags;
+  bool          vertical;
   f32           min, max;
   f32           thickness;
   f32           handleSize;
