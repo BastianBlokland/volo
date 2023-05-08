@@ -115,37 +115,6 @@ static void ecs_destruct_mixer_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, m->historyBuffer, snd_mixer_history_size);
 }
 
-static SndMixerComp* snd_mixer_create(EcsWorld* world) {
-  SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
-
-  m->device      = snd_device_create(g_alloc_heap);
-  m->gainSetting = 1.0f;
-  m->limiterMult = 1.0f;
-
-  m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
-  mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
-
-  m->objects = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
-  mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
-
-  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
-  mem_set(mem_create(m->objectNames, sizeof(String) * snd_mixer_objects_max), 0);
-
-  m->objectAssets = alloc_array_t(g_alloc_heap, EcsEntityId, snd_mixer_objects_max);
-  mem_set(mem_create(m->objectAssets, sizeof(EcsEntityId) * snd_mixer_objects_max), 0);
-
-  m->objectUserData = alloc_array_t(g_alloc_heap, u64, snd_mixer_objects_max);
-  mem_set(mem_create(m->objectUserData, sizeof(u64) * snd_mixer_objects_max), 0xFF);
-
-  m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
-  bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
-
-  m->persistentAssets          = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
-  m->persistentAssetsToAcquire = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
-
-  return m;
-}
-
 static u16 snd_object_id_index(const SndObjectId id) { return (u16)id; }
 static u16 snd_object_id_generation(const SndObjectId id) { return (u16)(id >> 16); }
 
@@ -213,11 +182,12 @@ ecs_view_define(AssetView) {
 ecs_view_define(MixerView) { ecs_access_write(SndMixerComp); }
 
 ecs_system_define(SndMixerUpdateSys) {
-  if (!ecs_world_has_t(world, ecs_world_global(world), SndMixerComp)) {
-    snd_mixer_create(world);
+  EcsView*     mixerView = ecs_world_view_t(world, MixerView);
+  EcsIterator* mixerItr  = ecs_view_maybe_at(mixerView, ecs_world_global(world));
+  if (!mixerItr) {
     return;
   }
-  SndMixerComp* m = ecs_utils_write_t(world, MixerView, ecs_world_global(world), SndMixerComp);
+  SndMixerComp* m = ecs_view_write_t(mixerItr, SndMixerComp);
 
   /**
    * Acquire new persistent sound assets.
@@ -581,6 +551,37 @@ ecs_module_init(snd_mixer_module) {
 
   ecs_order(SndMixerUpdateSys, SndOrder_Update);
   ecs_order(SndMixerRenderSys, SndOrder_Render);
+}
+
+SndMixerComp* snd_mixer_init(EcsWorld* world) {
+  SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
+
+  m->device      = snd_device_create(g_alloc_heap);
+  m->gainSetting = 1.0f;
+  m->limiterMult = 1.0f;
+
+  m->historyBuffer = alloc_array_t(g_alloc_heap, SndBufferFrame, snd_mixer_history_size);
+  mem_set(mem_create(m->historyBuffer, sizeof(SndBufferFrame) * snd_mixer_history_size), 0);
+
+  m->objects = alloc_array_t(g_alloc_heap, SndObject, snd_mixer_objects_max);
+  mem_set(mem_create(m->objects, sizeof(SndObject) * snd_mixer_objects_max), 0);
+
+  m->objectNames = alloc_array_t(g_alloc_heap, String, snd_mixer_objects_max);
+  mem_set(mem_create(m->objectNames, sizeof(String) * snd_mixer_objects_max), 0);
+
+  m->objectAssets = alloc_array_t(g_alloc_heap, EcsEntityId, snd_mixer_objects_max);
+  mem_set(mem_create(m->objectAssets, sizeof(EcsEntityId) * snd_mixer_objects_max), 0);
+
+  m->objectUserData = alloc_array_t(g_alloc_heap, u64, snd_mixer_objects_max);
+  mem_set(mem_create(m->objectUserData, sizeof(u64) * snd_mixer_objects_max), 0xFF);
+
+  m->objectFreeSet = alloc_alloc(g_alloc_heap, bits_to_bytes(snd_mixer_objects_max), 1);
+  bitset_set_all(m->objectFreeSet, snd_mixer_objects_max);
+
+  m->persistentAssets          = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  m->persistentAssetsToAcquire = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
+
+  return m;
 }
 
 SndResult snd_object_new(SndMixerComp* m, SndObjectId* outId) {
