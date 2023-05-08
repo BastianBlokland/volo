@@ -29,6 +29,7 @@
 #include "cmd_internal.h"
 
 static const GapVector g_appWindowSize = {1920, 1080};
+static const String    g_appLevel      = string_static("levels/default.lvl");
 
 typedef enum {
   AppMode_Normal,
@@ -154,6 +155,7 @@ static void app_quality_apply(
 }
 
 typedef struct {
+  EcsWorld*               world;
   AppComp*                app;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
@@ -191,6 +193,18 @@ static void app_action_pause_draw(UiCanvasComp* canvas, const AppActionContext* 
 
     log_i("Toggle pause", log_param("paused", fmt_bool(!isPaused)));
     ctx->timeSet->flags ^= SceneTimeFlags_Paused;
+  }
+}
+
+static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  if (ui_button(
+          canvas,
+          .label    = ui_shape_scratch(UiShape_Restart),
+          .fontSize = 35,
+          .tooltip  = string_lit("Restart the level."))) {
+
+    log_i("Restart");
+    scene_level_load(ctx->world, g_appLevel);
   }
 }
 
@@ -347,6 +361,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
       app_action_debug_draw,
       app_action_pause_draw,
+      app_action_restart_draw,
       app_action_sound_draw,
       app_action_quality_draw,
       app_action_fullscreen_draw,
@@ -418,6 +433,7 @@ ecs_system_define(AppUpdateSys) {
       app_action_bar_draw(
           canvas,
           &(AppActionContext){
+              .world         = world,
               .app           = app,
               .input         = input,
               .soundMixer    = soundMixer,
@@ -523,7 +539,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
   input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
 
-  scene_level_load(world, string_lit("levels/default.lvl"));
+  scene_level_load(world, g_appLevel);
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));
   scene_terrain_init(
