@@ -82,7 +82,10 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
     goto RetDefault;
   }
 
-  // Success.
+  log_i(
+      "Preference file loaded",
+      log_param("path", fmt_path(filePath)),
+      log_param("size", fmt_size(fileData.size)));
   goto Ret;
 
 RetDefault:
