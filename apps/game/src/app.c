@@ -9,6 +9,7 @@
 #include "input.h"
 #include "input_resource.h"
 #include "log_logger.h"
+#include "prefs.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -157,6 +158,7 @@ static void app_quality_apply(
 typedef struct {
   EcsWorld*               world;
   AppComp*                app;
+  GamePrefsComp*          prefs;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
   SceneTimeSettingsComp*  timeSet;
@@ -213,8 +215,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
   static const f32      g_popupSpacing = 8.0f;
   static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
 
-  f32                     volume      = snd_mixer_gain_get(ctx->soundMixer) * 1e2f;
-  const bool              muted       = volume <= f32_epsilon;
+  const bool              muted       = ctx->prefs->volume <= f32_epsilon;
   const UiId              popupId     = ui_canvas_id_peek(canvas);
   const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
   const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
@@ -247,12 +248,13 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
     ui_layout_grow(canvas, UiAlign_MiddleCenter, g_popupInset, UiBase_Absolute, Ui_XY);
     if (ui_slider(
             canvas,
-            &volume,
+            &ctx->prefs->volume,
             .vertical = true,
             .max      = 1e2f,
             .step     = 1,
             .tooltip  = string_lit("Sound volume."))) {
-      snd_mixer_gain_set(ctx->soundMixer, volume * 1e-2f);
+      prefs_save(ctx->prefs);
+      snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
     }
     ui_layout_pop(canvas);
 
@@ -384,6 +386,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
+  ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
@@ -406,6 +409,7 @@ ecs_system_define(AppUpdateSys) {
     return;
   }
   AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
+  GamePrefsComp*          prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
   CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
   RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
   SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
@@ -435,6 +439,7 @@ ecs_system_define(AppUpdateSys) {
           &(AppActionContext){
               .world         = world,
               .app           = app,
+              .prefs         = prefs,
               .input         = input,
               .soundMixer    = soundMixer,
               .timeSet       = timeSet,
@@ -510,13 +515,14 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   input_register(def);
   rend_register(def);
   scene_register(def);
+  snd_register(def);
   ui_register(def);
   vfx_register(def);
-  snd_register(def);
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_input_module);
+  ecs_register_module(def, game_prefs_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
@@ -533,6 +539,10 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
   app_ambiance_create(world, assets);
+
+  GamePrefsComp* prefs      = prefs_init(world);
+  SndMixerComp*  soundMixer = snd_mixer_init(world);
+  snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app-input.imp"));
