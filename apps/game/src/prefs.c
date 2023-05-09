@@ -46,10 +46,42 @@ static String prefs_path_scratch() {
 
 static void prefs_to_default(GamePrefsComp* prefs) { prefs->volume = 100.0f; }
 
+static void prefs_save(const GamePrefsComp* prefs) {
+  DynString dataBuffer = dynstring_create(g_alloc_scratch, prefs_file_size_max);
+
+  // Serialize the preferences to json.
+  const DataWriteJsonOpts writeOpts = data_write_json_opts();
+  data_write_json(g_dataReg, &dataBuffer, g_dataMeta, mem_var(*prefs), &writeOpts);
+
+  // Save the data to disk.
+  const String     filePath = prefs_path_scratch();
+  const FileResult fileRes  = file_write_to_path_sync(filePath, dynstring_view(&dataBuffer));
+  if (UNLIKELY(fileRes)) {
+    log_e("Failed to write preference file", log_param("err", fmt_text(file_result_str(fileRes))));
+  }
+}
+
+ecs_view_define(PrefsView) { ecs_access_write(GamePrefsComp); }
+
+ecs_system_define(GamePrefsSaveSys) {
+  EcsView* prefsView = ecs_world_view_t(world, PrefsView);
+  for (EcsIterator* itr = ecs_view_itr(prefsView); ecs_view_walk(itr);) {
+    GamePrefsComp* prefs = ecs_view_write_t(itr, GamePrefsComp);
+    if (prefs->dirty) {
+      prefs_save(prefs);
+      prefs->dirty = false;
+    }
+  }
+}
+
 ecs_module_init(game_prefs_module) {
   prefs_datareg_init();
 
   ecs_register_comp(GamePrefsComp, .destructor = ecs_destruct_prefs_comp);
+
+  ecs_register_view(PrefsView);
+
+  ecs_register_system(GamePrefsSaveSys, ecs_view_id(PrefsView));
 }
 
 GamePrefsComp* prefs_init(EcsWorld* world) {
@@ -95,19 +127,4 @@ Ret:
     file_destroy(file);
   }
   return prefs;
-}
-
-void prefs_save(const GamePrefsComp* prefs) {
-  DynString dataBuffer = dynstring_create(g_alloc_scratch, prefs_file_size_max);
-
-  // Serialize the preferences to json.
-  const DataWriteJsonOpts writeOpts = data_write_json_opts();
-  data_write_json(g_dataReg, &dataBuffer, g_dataMeta, mem_var(*prefs), &writeOpts);
-
-  // Save the data to disk.
-  const String     filePath = prefs_path_scratch();
-  const FileResult fileRes  = file_write_to_path_sync(filePath, dynstring_view(&dataBuffer));
-  if (UNLIKELY(fileRes)) {
-    log_e("Failed to write preference file", log_param("err", fmt_text(file_result_str(fileRes))));
-  }
 }

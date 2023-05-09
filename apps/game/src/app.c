@@ -253,7 +253,7 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
             .max      = 1e2f,
             .step     = 1,
             .tooltip  = string_lit("Sound volume."))) {
-      prefs_save(ctx->prefs);
+      ctx->prefs->dirty = true;
       snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
     }
     ui_layout_pop(canvas);
