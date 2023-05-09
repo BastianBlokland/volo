@@ -21,10 +21,8 @@ static void prefs_datareg_init() {
   if (!g_dataReg) {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
-    // clang-format off
     data_reg_struct_t(reg, GamePrefsComp);
-    data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32), .flags = DataFlags_Opt);
-    // clang-format on
+    data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
 
     g_dataMeta = data_meta_t(t_GamePrefsComp);
     g_dataReg  = reg;
