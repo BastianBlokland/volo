@@ -29,8 +29,7 @@
 
 #include "cmd_internal.h"
 
-static const GapVector g_appWindowSize = {1920, 1080};
-static const String    g_appLevel      = string_static("levels/default.lvl");
+static const String g_appLevel = string_static("levels/default.lvl");
 
 typedef enum {
   AppMode_Normal,
@@ -55,9 +54,10 @@ static const String g_qualityLabels[] = {
 ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of quality labels");
 
 ecs_comp_define(AppComp) {
-  AppMode    mode : 8;
-  bool       powerSaving;
-  AppQuality quality;
+  AppMode     mode : 8;
+  bool        powerSaving;
+  AppQuality  quality;
+  EcsEntityId mainWindow;
 };
 
 ecs_comp_define(AppWindowComp) {
@@ -77,8 +77,9 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       .looping = true);
 }
 
-static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window   = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+static EcsEntityId app_window_create(EcsWorld* world, const i32 winWidth, const i32 winHeight) {
+  const GapVector   size     = {.width = winWidth, .height = winHeight};
+  const EcsEntityId window   = gap_window_create(world, GapWindowFlags_Default, size);
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
 
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
@@ -94,6 +95,8 @@ static void app_window_create(EcsWorld* world) {
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
 
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+
+  return window;
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
@@ -422,14 +425,21 @@ ecs_system_define(AppUpdateSys) {
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
-  EcsView*     windowView      = ecs_world_view_t(world, WindowView);
-  EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
-  if (activeWindowItr) {
-    const EcsEntityId windowEntity    = ecs_view_entity(activeWindowItr);
-    AppWindowComp*    appWindow       = ecs_view_write_t(activeWindowItr, AppWindowComp);
-    GapWindowComp*    win             = ecs_view_write_t(activeWindowItr, GapWindowComp);
-    DebugStatsComp*   stats           = ecs_view_write_t(activeWindowItr, DebugStatsComp);
-    RendSettingsComp* rendSettingsWin = ecs_view_write_t(activeWindowItr, RendSettingsComp);
+  EcsView*     windowView = ecs_world_view_t(world, WindowView);
+  EcsIterator* mainWinItr = ecs_view_maybe_at(windowView, app->mainWindow);
+  if (mainWinItr) {
+    const EcsEntityId windowEntity    = ecs_view_entity(mainWinItr);
+    AppWindowComp*    appWindow       = ecs_view_write_t(mainWinItr, AppWindowComp);
+    GapWindowComp*    win             = ecs_view_write_t(mainWinItr, GapWindowComp);
+    DebugStatsComp*   stats           = ecs_view_write_t(mainWinItr, DebugStatsComp);
+    RendSettingsComp* rendSettingsWin = ecs_view_write_t(mainWinItr, RendSettingsComp);
+
+    // Save last window size.
+    if (gap_window_events(win) & GapWindowEvents_Resized) {
+      prefs->windowWidth  = gap_window_param(win, GapParam_WindowSize).width;
+      prefs->windowHeight = gap_window_param(win, GapParam_WindowSize).height;
+      prefs->dirty        = true;
+    }
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
@@ -532,17 +542,23 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium);
-  app_window_create(world);
+  GamePrefsComp* prefs = prefs_init(world);
+
+  SndMixerComp* soundMixer = snd_mixer_init(world);
+  snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
+
+  const EcsEntityId mainWindow = app_window_create(world, prefs->windowWidth, prefs->windowHeight);
+  ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      AppComp,
+      .quality    = AppQuality_Medium,
+      .mainWindow = mainWindow);
 
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
   app_ambiance_create(world, assets);
-
-  GamePrefsComp* prefs      = prefs_init(world);
-  SndMixerComp*  soundMixer = snd_mixer_init(world);
-  snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app-input.imp"));

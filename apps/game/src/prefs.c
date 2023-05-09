@@ -23,6 +23,8 @@ static void prefs_datareg_init() {
 
     data_reg_struct_t(reg, GamePrefsComp);
     data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
+    data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(i32));
+    data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(i32));
 
     g_dataMeta = data_meta_t(t_GamePrefsComp);
     g_dataReg  = reg;
@@ -42,7 +44,11 @@ static String prefs_path_scratch() {
   return path_build_scratch(path_parent(g_path_executable), fileName);
 }
 
-static void prefs_to_default(GamePrefsComp* prefs) { prefs->volume = 100.0f; }
+static void prefs_to_default(GamePrefsComp* prefs) {
+  prefs->volume       = 100.0f;
+  prefs->windowWidth  = 1920;
+  prefs->windowHeight = 1080;
+}
 
 static void prefs_save(const GamePrefsComp* prefs) {
   DynString dataBuffer = dynstring_create(g_alloc_scratch, prefs_file_size_max);
