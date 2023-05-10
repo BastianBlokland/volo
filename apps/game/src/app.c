@@ -55,7 +55,6 @@ ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of qu
 
 ecs_comp_define(AppComp) {
   AppMode     mode : 8;
-  bool        powerSaving;
   AppQuality  quality;
   EcsEntityId mainWindow;
 };
@@ -118,8 +117,11 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
 }
 
 static void app_quality_apply(
-    AppComp* app, RendSettingsGlobalComp* rendSetGlobal, RendSettingsComp* rendSetWin) {
-  if (app->powerSaving) {
+    AppComp*                app,
+    const GamePrefsComp*    prefs,
+    RendSettingsGlobalComp* rendSetGlobal,
+    RendSettingsComp*       rendSetWin) {
+  if (prefs->powerSaving) {
     rendSetGlobal->limiterFreq = 30;
   } else {
     rendSetGlobal->limiterFreq = 0;
@@ -315,8 +317,9 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("PowerSaving"));
     ui_table_next_column(canvas, &table);
-    if (ui_toggle(canvas, &ctx->app->powerSaving)) {
-      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+    if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
+      ctx->prefs->dirty = true;
+      app_quality_apply(ctx->app, ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_table_next_row(canvas, &table);
@@ -324,7 +327,7 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_table_next_column(canvas, &table);
     const u32 qualityCount = AppQuality_Count;
     if (ui_select(canvas, (i32*)&ctx->app->quality, g_qualityLabels, qualityCount, .dir = Ui_Up)) {
-      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+      app_quality_apply(ctx->app, ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_layout_container_pop(canvas);
@@ -567,13 +570,18 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const u16      width      = (u16)cli_read_u64(invoc, g_widthFlag, prefs->windowWidth);
   const u16      height     = (u16)cli_read_u64(invoc, g_heightFlag, prefs->windowHeight);
 
+  RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world);
+  if (prefs->powerSaving) {
+    rendSettingsGlobal->limiterFreq = 30;
+  }
+
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   const EcsEntityId win = app_window_create(world, fullscreen, width, height);
 
-  ecs_world_add_t(
-      world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium, .mainWindow = win);
+  const EcsEntityId global = ecs_world_global(world);
+  ecs_world_add_t(world, global, AppComp, .quality = AppQuality_Medium, .mainWindow = win);
 
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
