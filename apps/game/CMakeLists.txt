@@ -30,4 +30,4 @@ add_dependencies(app_game volo_assets)
 configure_debuggable(app_game)
 
 add_custom_target(run.game COMMAND app_game
-  "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
+  "-w" "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
