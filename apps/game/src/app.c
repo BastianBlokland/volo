@@ -36,26 +36,8 @@ typedef enum {
   AppMode_Debug,
 } AppMode;
 
-typedef enum {
-  AppQuality_UltraLow,
-  AppQuality_Low,
-  AppQuality_Medium,
-  AppQuality_High,
-
-  AppQuality_Count,
-} AppQuality;
-
-static const String g_qualityLabels[] = {
-    string_static("UltraLow"),
-    string_static("Low"),
-    string_static("Medium"),
-    string_static("High"),
-};
-ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of quality labels");
-
 ecs_comp_define(AppComp) {
   AppMode     mode : 8;
-  AppQuality  quality;
   EcsEntityId mainWindow;
 };
 
@@ -82,7 +64,8 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
   const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
   const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
   const EcsEntityId    window = gap_window_create(world, mode, flags, size);
-  const EcsEntityId    uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
 
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
 
@@ -117,7 +100,6 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
 }
 
 static void app_quality_apply(
-    AppComp*                app,
     const GamePrefsComp*    prefs,
     RendSettingsGlobalComp* rendSetGlobal,
     RendSettingsComp*       rendSetWin) {
@@ -128,19 +110,19 @@ static void app_quality_apply(
   }
   static const RendFlags g_rendOptionalFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
                                                   RendFlags_Distortion | RendFlags_ParticleShadows;
-  switch (app->quality) {
-  case AppQuality_UltraLow:
+  switch (prefs->quality) {
+  case GameQuality_UltraLow:
     rendSetGlobal->flags &= ~RendGlobalFlags_SunShadows;
     rendSetWin->flags &= ~g_rendOptionalFeatures;
     rendSetWin->resolutionScale = 0.75f;
     break;
-  case AppQuality_Low:
+  case GameQuality_Low:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags &= ~g_rendOptionalFeatures;
     rendSetWin->resolutionScale  = 0.75f;
     rendSetWin->shadowResolution = 1024;
     break;
-  case AppQuality_Medium:
+  case GameQuality_Medium:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags |= g_rendOptionalFeatures;
     rendSetWin->resolutionScale           = 1.0f;
@@ -149,7 +131,7 @@ static void app_quality_apply(
     rendSetWin->bloomSteps                = 5;
     rendSetWin->distortionResolutionScale = 0.25f;
     break;
-  case AppQuality_High:
+  case GameQuality_High:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags |= g_rendOptionalFeatures;
     rendSetWin->resolutionScale           = 1.0f;
@@ -158,7 +140,7 @@ static void app_quality_apply(
     rendSetWin->bloomSteps                = 6;
     rendSetWin->distortionResolutionScale = 1.0f;
     break;
-  case AppQuality_Count:
+  case GameQuality_Count:
     UNREACHABLE
   }
 }
@@ -319,15 +301,16 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_table_next_column(canvas, &table);
     if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
       ctx->prefs->dirty = true;
-      app_quality_apply(ctx->app, ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("Quality"));
     ui_table_next_column(canvas, &table);
-    const u32 qualityCount = AppQuality_Count;
-    if (ui_select(canvas, (i32*)&ctx->app->quality, g_qualityLabels, qualityCount, .dir = Ui_Up)) {
-      app_quality_apply(ctx->app, ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
+    i32* quality = (i32*)&ctx->prefs->quality;
+    if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count, .dir = Ui_Up)) {
+      ctx->prefs->dirty = true;
+      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_layout_container_pop(canvas);
@@ -578,14 +561,12 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const EcsEntityId win             = app_window_create(world, fullscreen, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, win);
 
-  const EcsEntityId global = ecs_world_global(world);
-  AppComp*          app =
-      ecs_world_add_t(world, global, AppComp, .quality = AppQuality_Medium, .mainWindow = win);
+  app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
-  app_quality_apply(app, prefs, rendSettingsGlobal, rendSettingsWin);
+  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = win);
 
-  AssetManagerComp* assets = asset_manager_create_fs(
-      world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
+  const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
+  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
 
   app_ambiance_create(world, assets);
 

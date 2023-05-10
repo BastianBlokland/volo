@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "core_thread.h"
@@ -8,6 +9,14 @@
 #include "prefs.h"
 
 #define prefs_file_size_max (usize_kibibyte * 64)
+
+const String g_gameQualityLabels[] = {
+    string_static("UltraLow"),
+    string_static("Low"),
+    string_static("Medium"),
+    string_static("High"),
+};
+ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
 static DataReg* g_dataReg;
 static DataMeta g_dataMeta;
@@ -21,12 +30,19 @@ static void prefs_datareg_init() {
   if (!g_dataReg) {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
+    data_reg_enum_t(reg, GameQuality);
+    data_reg_const_t(reg, GameQuality, UltraLow);
+    data_reg_const_t(reg, GameQuality, Low);
+    data_reg_const_t(reg, GameQuality, Medium);
+    data_reg_const_t(reg, GameQuality, High);
+
     data_reg_struct_t(reg, GamePrefsComp);
     data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
     data_reg_field_t(reg, GamePrefsComp, powerSaving, data_prim_t(bool));
     data_reg_field_t(reg, GamePrefsComp, fullscreen, data_prim_t(bool));
     data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(u16));
     data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(u16));
+    data_reg_field_t(reg, GamePrefsComp, quality, t_GameQuality);
 
     g_dataMeta = data_meta_t(t_GamePrefsComp);
     g_dataReg  = reg;
@@ -52,6 +68,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
   prefs->fullscreen   = true;
   prefs->windowWidth  = 1920;
   prefs->windowHeight = 1080;
+  prefs->quality      = GameQuality_Medium;
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {
