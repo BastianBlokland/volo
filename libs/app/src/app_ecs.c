@@ -25,6 +25,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
   app_ecs_init(world, invoc);
 
+  ecs_world_flush(world); // Flush any entity / component additions made during the init.
+
   do {
     ecs_run_sync(runner);
   } while (!app_ecs_should_quit(world));

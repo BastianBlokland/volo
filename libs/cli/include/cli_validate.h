@@ -8,13 +8,14 @@
 typedef bool (*CliValidateFunc)(const String input);
 
 /**
- * Validate if the given input is a valid i64 integer.
+ * Validate if the given input is a valid signed integer.
  */
 bool cli_validate_i64(const String input);
 
 /**
- * Validate if the given input is a valid u64 integer.
+ * Validate if the given input is a valid unsigned integer.
  */
+bool cli_validate_u16(const String input);
 bool cli_validate_u64(const String input);
 
 /**

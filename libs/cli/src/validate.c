@@ -8,6 +8,13 @@ bool cli_validate_i64(const String input) {
   return string_is_empty(rem);
 }
 
+bool cli_validate_u16(const String input) {
+  const u8     base = 10;
+  u64          value;
+  const String rem = format_read_u64(input, &value, base);
+  return string_is_empty(rem) && value <= u16_max;
+}
+
 bool cli_validate_u64(const String input) {
   const u8     base = 10;
   const String rem  = format_read_u64(input, null, base);

@@ -9,6 +9,7 @@
 #include "input.h"
 #include "input_resource.h"
 #include "log_logger.h"
+#include "prefs.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -28,34 +29,16 @@
 
 #include "cmd_internal.h"
 
-static const GapVector g_appWindowSize = {1920, 1080};
+static const String g_appLevel = string_static("levels/default.lvl");
 
 typedef enum {
   AppMode_Normal,
   AppMode_Debug,
 } AppMode;
 
-typedef enum {
-  AppQuality_UltraLow,
-  AppQuality_Low,
-  AppQuality_Medium,
-  AppQuality_High,
-
-  AppQuality_Count,
-} AppQuality;
-
-static const String g_qualityLabels[] = {
-    string_static("UltraLow"),
-    string_static("Low"),
-    string_static("Medium"),
-    string_static("High"),
-};
-ASSERT(array_elems(g_qualityLabels) == AppQuality_Count, "Incorrect number of quality labels");
-
 ecs_comp_define(AppComp) {
-  AppMode    mode : 8;
-  bool       powerSaving;
-  AppQuality quality;
+  AppMode     mode : 8;
+  EcsEntityId mainWindow;
 };
 
 ecs_comp_define(AppWindowComp) {
@@ -75,8 +58,13 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       .looping = true);
 }
 
-static void app_window_create(EcsWorld* world) {
-  const EcsEntityId window   = gap_window_create(world, GapWindowFlags_Default, g_appWindowSize);
+static EcsEntityId
+app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const u16 height) {
+  const GapVector      size   = {.width = (i32)width, .height = (i32)height};
+  const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
+  const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
+  const EcsEntityId    window = gap_window_create(world, mode, flags, size);
+
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
 
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
@@ -92,6 +80,8 @@ static void app_window_create(EcsWorld* world) {
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
 
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+
+  return window;
 }
 
 static void app_window_fullscreen_toggle(GapWindowComp* win) {
@@ -110,27 +100,29 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
 }
 
 static void app_quality_apply(
-    AppComp* app, RendSettingsGlobalComp* rendSetGlobal, RendSettingsComp* rendSetWin) {
-  if (app->powerSaving) {
+    const GamePrefsComp*    prefs,
+    RendSettingsGlobalComp* rendSetGlobal,
+    RendSettingsComp*       rendSetWin) {
+  if (prefs->powerSaving) {
     rendSetGlobal->limiterFreq = 30;
   } else {
     rendSetGlobal->limiterFreq = 0;
   }
   static const RendFlags g_rendOptionalFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
                                                   RendFlags_Distortion | RendFlags_ParticleShadows;
-  switch (app->quality) {
-  case AppQuality_UltraLow:
+  switch (prefs->quality) {
+  case GameQuality_UltraLow:
     rendSetGlobal->flags &= ~RendGlobalFlags_SunShadows;
     rendSetWin->flags &= ~g_rendOptionalFeatures;
     rendSetWin->resolutionScale = 0.75f;
     break;
-  case AppQuality_Low:
+  case GameQuality_Low:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags &= ~g_rendOptionalFeatures;
     rendSetWin->resolutionScale  = 0.75f;
     rendSetWin->shadowResolution = 1024;
     break;
-  case AppQuality_Medium:
+  case GameQuality_Medium:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags |= g_rendOptionalFeatures;
     rendSetWin->resolutionScale           = 1.0f;
@@ -139,7 +131,7 @@ static void app_quality_apply(
     rendSetWin->bloomSteps                = 5;
     rendSetWin->distortionResolutionScale = 0.25f;
     break;
-  case AppQuality_High:
+  case GameQuality_High:
     rendSetGlobal->flags |= RendGlobalFlags_SunShadows;
     rendSetWin->flags |= g_rendOptionalFeatures;
     rendSetWin->resolutionScale           = 1.0f;
@@ -148,13 +140,15 @@ static void app_quality_apply(
     rendSetWin->bloomSteps                = 6;
     rendSetWin->distortionResolutionScale = 1.0f;
     break;
-  case AppQuality_Count:
+  case GameQuality_Count:
     UNREACHABLE
   }
 }
 
 typedef struct {
+  EcsWorld*               world;
   AppComp*                app;
+  GamePrefsComp*          prefs;
   const InputManagerComp* input;
   SndMixerComp*           soundMixer;
   SceneTimeSettingsComp*  timeSet;
@@ -194,13 +188,24 @@ static void app_action_pause_draw(UiCanvasComp* canvas, const AppActionContext* 
   }
 }
 
+static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
+  if (ui_button(
+          canvas,
+          .label    = ui_shape_scratch(UiShape_Restart),
+          .fontSize = 35,
+          .tooltip  = string_lit("Restart the level."))) {
+
+    log_i("Restart");
+    scene_level_load(ctx->world, g_appLevel);
+  }
+}
+
 static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* ctx) {
   static const UiVector g_popupSize    = {.x = 35.0f, .y = 100.0f};
   static const f32      g_popupSpacing = 8.0f;
   static const UiVector g_popupInset   = {.x = -15.0f, .y = -15.0f};
 
-  f32                     volume      = snd_mixer_gain_get(ctx->soundMixer) * 1e2f;
-  const bool              muted       = volume <= f32_epsilon;
+  const bool              muted       = ctx->prefs->volume <= f32_epsilon;
   const UiId              popupId     = ui_canvas_id_peek(canvas);
   const UiPersistentFlags popupFlags  = ui_canvas_persistent_flags(canvas, popupId);
   const bool              popupActive = (popupFlags & UiPersistentFlags_Open) != 0;
@@ -233,12 +238,13 @@ static void app_action_sound_draw(UiCanvasComp* canvas, const AppActionContext* 
     ui_layout_grow(canvas, UiAlign_MiddleCenter, g_popupInset, UiBase_Absolute, Ui_XY);
     if (ui_slider(
             canvas,
-            &volume,
+            &ctx->prefs->volume,
             .vertical = true,
             .max      = 1e2f,
             .step     = 1,
             .tooltip  = string_lit("Sound volume."))) {
-      snd_mixer_gain_set(ctx->soundMixer, volume * 1e-2f);
+      ctx->prefs->dirty = true;
+      snd_mixer_gain_set(ctx->soundMixer, ctx->prefs->volume * 1e-2f);
     }
     ui_layout_pop(canvas);
 
@@ -293,16 +299,18 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("PowerSaving"));
     ui_table_next_column(canvas, &table);
-    if (ui_toggle(canvas, &ctx->app->powerSaving)) {
-      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+    if (ui_toggle(canvas, &ctx->prefs->powerSaving)) {
+      ctx->prefs->dirty = true;
+      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("Quality"));
     ui_table_next_column(canvas, &table);
-    const u32 qualityCount = AppQuality_Count;
-    if (ui_select(canvas, (i32*)&ctx->app->quality, g_qualityLabels, qualityCount, .dir = Ui_Up)) {
-      app_quality_apply(ctx->app, ctx->rendSetGlobal, ctx->rendSetWin);
+    i32* quality = (i32*)&ctx->prefs->quality;
+    if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count, .dir = Ui_Up)) {
+      ctx->prefs->dirty = true;
+      app_quality_apply(ctx->prefs, ctx->rendSetGlobal, ctx->rendSetWin);
     }
 
     ui_layout_container_pop(canvas);
@@ -347,6 +355,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
   static void (*const g_actions[])(UiCanvasComp*, const AppActionContext*) = {
       app_action_debug_draw,
       app_action_pause_draw,
+      app_action_restart_draw,
       app_action_sound_draw,
       app_action_quality_draw,
       app_action_fullscreen_draw,
@@ -369,6 +378,7 @@ static void app_action_bar_draw(UiCanvasComp* canvas, const AppActionContext* ct
 ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
+  ecs_access_write(GamePrefsComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
@@ -391,6 +401,7 @@ ecs_system_define(AppUpdateSys) {
     return;
   }
   AppComp*                app           = ecs_view_write_t(globalItr, AppComp);
+  GamePrefsComp*          prefs         = ecs_view_write_t(globalItr, GamePrefsComp);
   CmdControllerComp*      cmd           = ecs_view_write_t(globalItr, CmdControllerComp);
   RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
   SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
@@ -403,14 +414,24 @@ ecs_system_define(AppUpdateSys) {
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
-  EcsView*     windowView      = ecs_world_view_t(world, WindowView);
-  EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
-  if (activeWindowItr) {
-    const EcsEntityId windowEntity    = ecs_view_entity(activeWindowItr);
-    AppWindowComp*    appWindow       = ecs_view_write_t(activeWindowItr, AppWindowComp);
-    GapWindowComp*    win             = ecs_view_write_t(activeWindowItr, GapWindowComp);
-    DebugStatsComp*   stats           = ecs_view_write_t(activeWindowItr, DebugStatsComp);
-    RendSettingsComp* rendSettingsWin = ecs_view_write_t(activeWindowItr, RendSettingsComp);
+  EcsView*     windowView = ecs_world_view_t(world, WindowView);
+  EcsIterator* mainWinItr = ecs_view_maybe_at(windowView, app->mainWindow);
+  if (mainWinItr) {
+    const EcsEntityId windowEntity    = ecs_view_entity(mainWinItr);
+    AppWindowComp*    appWindow       = ecs_view_write_t(mainWinItr, AppWindowComp);
+    GapWindowComp*    win             = ecs_view_write_t(mainWinItr, GapWindowComp);
+    DebugStatsComp*   stats           = ecs_view_write_t(mainWinItr, DebugStatsComp);
+    RendSettingsComp* rendSettingsWin = ecs_view_write_t(mainWinItr, RendSettingsComp);
+
+    // Save last window size.
+    if (gap_window_events(win) & GapWindowEvents_Resized) {
+      prefs->fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
+      if (!prefs->fullscreen) {
+        prefs->windowWidth  = gap_window_param(win, GapParam_WindowSize).width;
+        prefs->windowHeight = gap_window_param(win, GapParam_WindowSize).height;
+      }
+      prefs->dirty = true;
+    }
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
@@ -418,7 +439,9 @@ ecs_system_define(AppUpdateSys) {
       app_action_bar_draw(
           canvas,
           &(AppActionContext){
+              .world         = world,
               .app           = app,
+              .prefs         = prefs,
               .input         = input,
               .soundMixer    = soundMixer,
               .timeSet       = timeSet,
@@ -465,7 +488,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(UiCanvasView));
 }
 
-static CliId g_assetFlag, g_helpFlag;
+static CliId g_assetFlag, g_windowFlag, g_widthFlag, g_heightFlag, g_helpFlag;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -474,9 +497,23 @@ void app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
   cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
 
+  g_windowFlag = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
+  cli_register_desc(app, g_windowFlag, string_lit("Start the game in windowed mode."));
+
+  g_widthFlag = cli_register_flag(app, '\0', string_lit("width"), CliOptionFlags_Value);
+  cli_register_desc(app, g_widthFlag, string_lit("Game window width in pixels."));
+  cli_register_validator(app, g_widthFlag, cli_validate_u16);
+
+  g_heightFlag = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
+  cli_register_desc(app, g_heightFlag, string_lit("Game window height in pixels."));
+  cli_register_validator(app, g_heightFlag, cli_validate_u16);
+
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
   cli_register_exclusions(app, g_helpFlag, g_assetFlag);
+  cli_register_exclusions(app, g_helpFlag, g_windowFlag);
+  cli_register_exclusions(app, g_helpFlag, g_widthFlag);
+  cli_register_exclusions(app, g_helpFlag, g_heightFlag);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
@@ -494,13 +531,14 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   input_register(def);
   rend_register(def);
   scene_register(def);
+  snd_register(def);
   ui_register(def);
   vfx_register(def);
-  snd_register(def);
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);
   ecs_register_module(def, game_input_module);
+  ecs_register_module(def, game_prefs_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
@@ -510,11 +548,25 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
-  ecs_world_add_t(world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium);
-  app_window_create(world);
+  GamePrefsComp* prefs      = prefs_init(world);
+  const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_windowFlag);
+  const u16      width      = (u16)cli_read_u64(invoc, g_widthFlag, prefs->windowWidth);
+  const u16      height     = (u16)cli_read_u64(invoc, g_heightFlag, prefs->windowHeight);
 
-  AssetManagerComp* assets = asset_manager_create_fs(
-      world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
+  RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world);
+
+  SndMixerComp* soundMixer = snd_mixer_init(world);
+  snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
+
+  const EcsEntityId win             = app_window_create(world, fullscreen, width, height);
+  RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, win);
+
+  app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
+
+  ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = win);
+
+  const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
+  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
 
   app_ambiance_create(world, assets);
 
@@ -523,7 +575,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
   input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
 
-  scene_level_load(world, string_lit("levels/default.lvl"));
+  scene_level_load(world, g_appLevel);
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));
   scene_terrain_init(

@@ -25,6 +25,7 @@
     "*.lvl": "json",
     "*.pfb": "json",
     "*.pme": "json",
+    "*.prefs": "json",
     "*.ptx": "json",
     "*.vfx": "json",
     "*.wea": "json",

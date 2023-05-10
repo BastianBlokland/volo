@@ -93,6 +93,10 @@ static void window_update(
     const GapVector createdWinSize = gap_pal_window_param(pal, window->id, GapParam_WindowSize);
     window->params[GapParam_WindowSize] = createdWinSize;
 
+    if (window->mode == GapWindowMode_Fullscreen) {
+      window->params[GapParam_WindowSizePreFullscreen] = createdWinSize;
+      gap_pal_window_resize(pal, window->id, createdWinSize, true);
+    }
     if (window->flags & GapWindowFlags_DefaultTitle) {
       gap_window_title_set(window, window_default_title_scratch(window));
     }
@@ -258,7 +262,8 @@ ecs_module_init(gap_window_module) {
   ecs_order(GapWindowUpdateSys, GapOrder_WindowUpdate);
 }
 
-EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
+EcsEntityId gap_window_create(
+    EcsWorld* world, const GapWindowMode mode, const GapWindowFlags flags, const GapVector size) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   GapWindowComp*    comp         = ecs_world_add_t(
       world,
@@ -266,6 +271,7 @@ EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const
       GapWindowComp,
       .id                          = sentinel_u32,
       .events                      = GapWindowEvents_Initializing,
+      .mode                        = mode,
       .requests                    = GapWindowRequests_Create,
       .params[GapParam_WindowSize] = size,
       .inputText                   = dynstring_create(g_alloc_heap, 64));

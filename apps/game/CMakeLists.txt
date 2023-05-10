@@ -8,11 +8,13 @@ add_executable(app_game
   src/app.c
   src/cmd.c
   src/input.c
+  src/prefs.c
   )
 
 target_link_libraries(app_game PRIVATE
   lib_app_ecs
   lib_asset
+  lib_data
   lib_debug
   lib_gap
   lib_input
@@ -28,4 +30,4 @@ add_dependencies(app_game volo_assets)
 configure_debuggable(app_game)
 
 add_custom_target(run.game COMMAND app_game
-  "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
+  "-w" "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)

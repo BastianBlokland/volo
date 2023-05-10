@@ -51,6 +51,7 @@
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVerticalBar)                                                                     \
   X(0xF016, Grid4x4)                                                                               \
+  X(0xF053, Restart)                                                                               \
   X(0xF230, Default)
 
 enum {

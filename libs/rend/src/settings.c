@@ -20,6 +20,19 @@ ecs_module_init(rend_settings_module) {
   ecs_register_comp(RendSettingsGlobalComp);
 }
 
+RendSettingsGlobalComp* rend_settings_global_init(EcsWorld* world) {
+  const EcsEntityId       global   = ecs_world_global(world);
+  RendSettingsGlobalComp* settings = ecs_world_add_t(world, global, RendSettingsGlobalComp);
+  rend_settings_global_to_default(settings);
+  return settings;
+}
+
+RendSettingsComp* rend_settings_window_init(EcsWorld* world, const EcsEntityId window) {
+  RendSettingsComp* settings = ecs_world_add_t(world, window, RendSettingsComp);
+  rend_settings_to_default(settings);
+  return settings;
+}
+
 void rend_settings_to_default(RendSettingsComp* s) {
   // clang-format off
   s->flags = RendFlags_FrustumCulling       |

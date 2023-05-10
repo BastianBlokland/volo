@@ -13,6 +13,11 @@ ecs_comp_extern(SndMixerComp);
 typedef u32 SndObjectId;
 
 /**
+ * Initialize the sound mixer.
+ */
+SndMixerComp* snd_mixer_init(EcsWorld*);
+
+/**
  * Object apis.
  */
 SndResult snd_object_new(SndMixerComp*, SndObjectId* outId);
