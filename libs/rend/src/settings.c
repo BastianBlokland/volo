@@ -27,6 +27,12 @@ RendSettingsGlobalComp* rend_settings_global_init(EcsWorld* world) {
   return settings;
 }
 
+RendSettingsComp* rend_settings_window_init(EcsWorld* world, const EcsEntityId window) {
+  RendSettingsComp* settings = ecs_world_add_t(world, window, RendSettingsComp);
+  rend_settings_to_default(settings);
+  return settings;
+}
+
 void rend_settings_to_default(RendSettingsComp* s) {
   // clang-format off
   s->flags = RendFlags_FrustumCulling       |
