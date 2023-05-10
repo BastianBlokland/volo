@@ -121,6 +121,8 @@ ecs_comp_extern_public(RendSettingsGlobalComp) {
   f32      shadowFilterSize; // In world space.
 };
 
+RendSettingsGlobalComp* rend_settings_global_init(EcsWorld*);
+
 void rend_settings_to_default(RendSettingsComp*);
 void rend_settings_global_to_default(RendSettingsGlobalComp*);
 
