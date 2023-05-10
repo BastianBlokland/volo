@@ -502,7 +502,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(UiCanvasView));
 }
 
-static CliId g_assetFlag, g_helpFlag;
+static CliId g_assetFlag, g_windowFlag, g_helpFlag;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -511,9 +511,13 @@ void app_ecs_configure(CliApp* app) {
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
   cli_register_validator(app, g_assetFlag, cli_validate_file_directory);
 
+  g_windowFlag = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
+  cli_register_desc(app, g_windowFlag, string_lit("Start the game in windowed mode."));
+
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
   cli_register_exclusions(app, g_helpFlag, g_assetFlag);
+  cli_register_exclusions(app, g_helpFlag, g_windowFlag);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
@@ -548,13 +552,14 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
-  GamePrefsComp* prefs = prefs_init(world);
+  GamePrefsComp* prefs      = prefs_init(world);
+  const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_windowFlag);
 
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
   const EcsEntityId win =
-      app_window_create(world, prefs->fullscreen, prefs->windowWidth, prefs->windowHeight);
+      app_window_create(world, fullscreen, prefs->windowWidth, prefs->windowHeight);
 
   ecs_world_add_t(
       world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium, .mainWindow = win);
