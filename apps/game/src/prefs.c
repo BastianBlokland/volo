@@ -24,8 +24,8 @@ static void prefs_datareg_init() {
     data_reg_struct_t(reg, GamePrefsComp);
     data_reg_field_t(reg, GamePrefsComp, volume, data_prim_t(f32));
     data_reg_field_t(reg, GamePrefsComp, fullscreen, data_prim_t(bool));
-    data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(i32));
-    data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(i32));
+    data_reg_field_t(reg, GamePrefsComp, windowWidth, data_prim_t(u16));
+    data_reg_field_t(reg, GamePrefsComp, windowHeight, data_prim_t(u16));
 
     g_dataMeta = data_meta_t(t_GamePrefsComp);
     g_dataReg  = reg;

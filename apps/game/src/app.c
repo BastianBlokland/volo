@@ -77,9 +77,9 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       .looping = true);
 }
 
-static EcsEntityId app_window_create(
-    EcsWorld* world, const bool fullscreen, const i32 windowWidth, const i32 windowHeight) {
-  const GapVector      size   = {.width = windowWidth, .height = windowHeight};
+static EcsEntityId
+app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const u16 height) {
+  const GapVector      size   = {.width = (i32)width, .height = (i32)height};
   const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
   const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
   const EcsEntityId    window = gap_window_create(world, mode, flags, size);
@@ -502,7 +502,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(UiCanvasView));
 }
 
-static CliId g_assetFlag, g_windowFlag, g_helpFlag;
+static CliId g_assetFlag, g_windowFlag, g_widthFlag, g_heightFlag, g_helpFlag;
 
 void app_ecs_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo RTS Demo"));
@@ -514,10 +514,20 @@ void app_ecs_configure(CliApp* app) {
   g_windowFlag = cli_register_flag(app, 'w', string_lit("window"), CliOptionFlags_None);
   cli_register_desc(app, g_windowFlag, string_lit("Start the game in windowed mode."));
 
+  g_widthFlag = cli_register_flag(app, '\0', string_lit("width"), CliOptionFlags_Value);
+  cli_register_desc(app, g_widthFlag, string_lit("Game window width in pixels."));
+  cli_register_validator(app, g_widthFlag, cli_validate_u16);
+
+  g_heightFlag = cli_register_flag(app, '\0', string_lit("height"), CliOptionFlags_Value);
+  cli_register_desc(app, g_heightFlag, string_lit("Game window height in pixels."));
+  cli_register_validator(app, g_heightFlag, cli_validate_u16);
+
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
   cli_register_exclusions(app, g_helpFlag, g_assetFlag);
   cli_register_exclusions(app, g_helpFlag, g_windowFlag);
+  cli_register_exclusions(app, g_helpFlag, g_widthFlag);
+  cli_register_exclusions(app, g_helpFlag, g_heightFlag);
 }
 
 bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
@@ -554,12 +564,13 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   GamePrefsComp* prefs      = prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_windowFlag);
+  const u16      width      = (u16)cli_read_u64(invoc, g_widthFlag, prefs->windowWidth);
+  const u16      height     = (u16)cli_read_u64(invoc, g_heightFlag, prefs->windowHeight);
 
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId win =
-      app_window_create(world, fullscreen, prefs->windowWidth, prefs->windowHeight);
+  const EcsEntityId win = app_window_create(world, fullscreen, width, height);
 
   ecs_world_add_t(
       world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium, .mainWindow = win);
