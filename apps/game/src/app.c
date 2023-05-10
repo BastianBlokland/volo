@@ -77,10 +77,13 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       .looping = true);
 }
 
-static EcsEntityId app_window_create(EcsWorld* world, const i32 winWidth, const i32 winHeight) {
-  const GapVector   size     = {.width = winWidth, .height = winHeight};
-  const EcsEntityId window   = gap_window_create(world, GapWindowFlags_Default, size);
-  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+static EcsEntityId app_window_create(
+    EcsWorld* world, const bool fullscreen, const i32 windowWidth, const i32 windowHeight) {
+  const GapVector      size   = {.width = windowWidth, .height = windowHeight};
+  const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
+  const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
+  const EcsEntityId    window = gap_window_create(world, mode, flags, size);
+  const EcsEntityId    uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
 
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
 
@@ -436,9 +439,12 @@ ecs_system_define(AppUpdateSys) {
 
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
-      prefs->windowWidth  = gap_window_param(win, GapParam_WindowSize).width;
-      prefs->windowHeight = gap_window_param(win, GapParam_WindowSize).height;
-      prefs->dirty        = true;
+      prefs->fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
+      if (!prefs->fullscreen) {
+        prefs->windowWidth  = gap_window_param(win, GapParam_WindowSize).width;
+        prefs->windowHeight = gap_window_param(win, GapParam_WindowSize).height;
+      }
+      prefs->dirty = true;
     }
 
     if (ecs_view_maybe_jump(canvasItr, appWindow->uiCanvas)) {
@@ -547,13 +553,11 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId mainWindow = app_window_create(world, prefs->windowWidth, prefs->windowHeight);
+  const EcsEntityId win =
+      app_window_create(world, prefs->fullscreen, prefs->windowWidth, prefs->windowHeight);
+
   ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      AppComp,
-      .quality    = AppQuality_Medium,
-      .mainWindow = mainWindow);
+      world, ecs_world_global(world), AppComp, .quality = AppQuality_Medium, .mainWindow = win);
 
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
