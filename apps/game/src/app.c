@@ -571,17 +571,18 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   const u16      height     = (u16)cli_read_u64(invoc, g_heightFlag, prefs->windowHeight);
 
   RendSettingsGlobalComp* rendSettingsGlobal = rend_settings_global_init(world);
-  if (prefs->powerSaving) {
-    rendSettingsGlobal->limiterFreq = 30;
-  }
 
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId win = app_window_create(world, fullscreen, width, height);
+  const EcsEntityId win             = app_window_create(world, fullscreen, width, height);
+  RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, win);
 
   const EcsEntityId global = ecs_world_global(world);
-  ecs_world_add_t(world, global, AppComp, .quality = AppQuality_Medium, .mainWindow = win);
+  AppComp*          app =
+      ecs_world_add_t(world, global, AppComp, .quality = AppQuality_Medium, .mainWindow = win);
+
+  app_quality_apply(app, prefs, rendSettingsGlobal, rendSettingsWin);
 
   AssetManagerComp* assets = asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
