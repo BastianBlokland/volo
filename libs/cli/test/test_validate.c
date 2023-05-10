@@ -3,7 +3,7 @@
 
 spec(validate) {
 
-  it("supports validating i64's") {
+  it("supports validating signed integers") {
     check(cli_validate_i64(string_lit("42")));
     check(cli_validate_i64(string_lit("-42")));
 
@@ -11,8 +11,11 @@ spec(validate) {
     check(!cli_validate_i64(string_lit("--42")));
   }
 
-  it("supports validating u64's") {
+  it("supports validating unsigned integers") {
+    check(cli_validate_u16(string_lit("42")));
     check(cli_validate_u64(string_lit("42")));
+    check(!cli_validate_u16(string_lit("66000")));
+    check(cli_validate_u64(string_lit("60000")));
 
     check(!cli_validate_u64(string_lit("Hello")));
     check(!cli_validate_u64(string_lit("-42")));
