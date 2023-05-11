@@ -70,7 +70,7 @@ typedef struct {
 } AssetPrefabTraitDecal;
 
 typedef struct {
-  EcsEntityId asset;
+  EcsEntityId assets[4]; // Random asset will be selected when spawned, 0 for an empty slot.
   f32         gainMin, gainMax;
   f32         pitchMin, pitchMax;
   bool        looping;

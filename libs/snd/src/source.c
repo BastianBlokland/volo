@@ -1,5 +1,6 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -163,7 +164,11 @@ static void snd_source_preload_prefabs(SndMixerComp* m, const AssetPrefabMapComp
     case AssetPrefabTrait_Sound: {
       const AssetPrefabTraitSound* soundTrait = &trait->data_sound;
       if (soundTrait->persistent) {
-        snd_mixer_persistent_asset(m, trait->data_sound.asset);
+        array_for_t(trait->data_sound.assets, EcsEntityId, asset) {
+          if (ecs_entity_valid(*asset)) {
+            snd_mixer_persistent_asset(m, *asset);
+          }
+        }
       }
     } break;
     }
