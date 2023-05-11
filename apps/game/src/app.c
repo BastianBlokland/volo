@@ -165,8 +165,8 @@ static void app_action_debug_draw(UiCanvasComp* canvas, const AppActionContext* 
           .label      = ui_shape_scratch(UiShape_Bug),
           .fontSize   = 35,
           .tooltip    = string_lit("Enable / disable debug mode."),
-          .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192)) ||
-      input_triggered_lit(ctx->input, "AppDebug")) {
+          .frameColor = isInDebugMode ? ui_color(178, 0, 0, 192) : ui_color(32, 32, 32, 192),
+          .activate   = input_triggered_lit(ctx->input, "AppDebug"))) {
 
     log_i("Toggle debug-mode", log_param("debug", fmt_bool(!isInDebugMode)));
     ctx->app->mode ^= AppMode_Debug;
@@ -193,7 +193,8 @@ static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext
           canvas,
           .label    = ui_shape_scratch(UiShape_Restart),
           .fontSize = 35,
-          .tooltip  = string_lit("Restart the level."))) {
+          .tooltip  = string_lit("Restart the level."),
+          .activate = input_triggered_lit(ctx->input, "AppReset"))) {
 
     log_i("Restart");
     scene_level_load(ctx->world, g_appLevel);
@@ -330,8 +331,8 @@ static void app_action_fullscreen_draw(UiCanvasComp* canvas, const AppActionCont
           canvas,
           .label    = ui_shape_scratch(UiShape_Fullscreen),
           .fontSize = 35,
-          .tooltip  = string_lit("Enter / exit fullscreen.")) ||
-      input_triggered_lit(ctx->input, "AppWindowFullscreen")) {
+          .tooltip  = string_lit("Enter / exit fullscreen."),
+          .activate = input_triggered_lit(ctx->input, "AppWindowFullscreen"))) {
 
     log_i("Toggle fullscreen");
     app_window_fullscreen_toggle(ctx->win);
@@ -343,9 +344,8 @@ static void app_action_exit_draw(UiCanvasComp* canvas, const AppActionContext* c
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 35,
-          .tooltip  = string_lit("Close the window.")) ||
-      input_triggered_lit(ctx->input, "AppWindowClose")) {
-
+          .tooltip  = string_lit("Close the window."),
+          .activate = input_triggered_lit(ctx->input, "AppWindowClose"))) {
     log_i("Close window");
     gap_window_close(ctx->win);
   }
@@ -406,11 +406,7 @@ ecs_system_define(AppUpdateSys) {
   RendSettingsGlobalComp* rendSetGlobal = ecs_view_write_t(globalItr, RendSettingsGlobalComp);
   SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
   SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
-
-  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
-  if (input_triggered_lit(input, "AppReset")) {
-    scene_level_load(world, string_lit("levels/default.lvl"));
-  }
+  InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
 
