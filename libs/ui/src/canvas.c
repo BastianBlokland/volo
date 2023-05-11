@@ -531,10 +531,12 @@ ecs_system_define(UiSoundSys) {
   SndMixerComp*                mixer     = ecs_view_write_t(globalItr, SndMixerComp);
 
   const EcsEntityId soundAssetPerType[UiSoundType_Count] = {
-      [UiSoundType_Click] = ui_resource_sound_click(globalRes),
+      [UiSoundType_Click]    = ui_resource_sound_click(globalRes),
+      [UiSoundType_ClickAlt] = ui_resource_sound_click_alt(globalRes),
   };
   const f32 soundGainPerType[UiSoundType_Count] = {
-      [UiSoundType_Click] = 0.25f,
+      [UiSoundType_Click]    = 0.25f,
+      [UiSoundType_ClickAlt] = 0.35f,
   };
 
   // Collect sound requests from all canvasses.

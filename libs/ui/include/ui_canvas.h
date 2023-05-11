@@ -33,6 +33,7 @@ typedef enum {
 
 typedef enum {
   UiSoundType_Click,
+  UiSoundType_ClickAlt,
 
   UiSoundType_Count
 } UiSoundType;
