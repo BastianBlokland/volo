@@ -6,6 +6,7 @@
 #include "scene_brain.h"
 #include "scene_faction.h"
 #include "scene_selection.h"
+#include "scene_taunt.h"
 
 #include "cmd_internal.h"
 
@@ -68,6 +69,7 @@ ecs_view_define(GlobalUpdateView) { ecs_access_write(SceneSelectionComp); }
 ecs_view_define(BrainView) {
   ecs_access_read(SceneFactionComp);
   ecs_access_write(SceneBrainComp);
+  ecs_access_maybe_write(SceneTauntComp);
 }
 
 static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
@@ -84,9 +86,13 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdMove->object);
   if (brainItr && cmd_is_player_owned(brainItr)) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
-
     scene_brain_set(brain, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
     scene_brain_set_null(brain, g_brainKeyAttackTarget);
+
+    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
+    if (taunt) {
+      scene_taunt_request(taunt, SceneTauntType_Confirm);
+    }
   }
 }
 
@@ -97,6 +103,11 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
 
     scene_brain_set(brain, g_brainKeyStop, script_bool(true));
     scene_brain_set_null(brain, g_brainKeyMoveTarget);
+
+    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
+    if (taunt) {
+      scene_taunt_request(taunt, SceneTauntType_Confirm);
+    }
   }
 }
 
@@ -107,6 +118,11 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
 
     scene_brain_set(brain, g_brainKeyAttackTarget, script_entity(cmdAttack->target));
     scene_brain_set_null(brain, g_brainKeyMoveTarget);
+
+    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
+    if (taunt) {
+      scene_taunt_request(taunt, SceneTauntType_Confirm);
+    }
   }
 }
 

@@ -297,8 +297,9 @@ static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
       w,
       e,
       SceneTauntComp,
-      .priority                           = t->priority,
-      .tauntPrefabs[SceneTauntType_Death] = t->tauntDeathPrefab);
+      .priority                             = t->priority,
+      .tauntPrefabs[SceneTauntType_Death]   = t->tauntDeathPrefab,
+      .tauntPrefabs[SceneTauntType_Confirm] = t->tauntConfirmPrefab);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
