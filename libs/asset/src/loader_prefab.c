@@ -122,7 +122,8 @@ typedef struct {
 
 typedef struct {
   i32    priority;
-  String tauntDeathPrefab; // Optional, empty if unused.
+  String tauntDeathPrefab;   // Optional, empty if unused.
+  String tauntConfirmPrefab; // Optional, empty if unused.
 } AssetPrefabTraitTauntDef;
 
 typedef struct {
@@ -266,6 +267,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
@@ -509,8 +511,9 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
-          .priority         = traitDef->data_taunt.priority,
-          .tauntDeathPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .priority           = traitDef->data_taunt.priority,
+          .tauntDeathPrefab   = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .tauntConfirmPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
       };
       break;
     case AssetPrefabTrait_Scalable:

@@ -134,7 +134,8 @@ typedef struct {
 
 typedef struct {
   i32        priority;
-  StringHash tauntDeathPrefab; // Optional: 0 to disable.
+  StringHash tauntDeathPrefab;   // Optional: 0 to disable.
+  StringHash tauntConfirmPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitTaunt;
 
 typedef struct {

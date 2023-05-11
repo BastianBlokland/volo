@@ -43,7 +43,8 @@
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
-          "tauntDeathPrefab": "TauntDeathUnitRifle"
+          "tauntDeathPrefab": "TauntDeathUnitRifle",
+          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         }
       ]
     },
@@ -555,6 +556,18 @@
           "assetId": "external/sound/death-03.wav",
           "gainMin": 0.8, "gainMax": 1.0,
           "pitchMin": 0.9, "pitchMax": 1.2
+        }
+      ]
+    },
+    {
+      "name": "TauntConfirmUnitRifle", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetId": "external/sound/confirm-01.wav",
+          "gainMin": 1.2, "gainMax": 1.2,
+          "pitchMin": 1.0, "pitchMax": 1.0
         }
       ]
     },
