@@ -8,3 +8,4 @@ EcsEntityId ui_resource_font(const UiGlobalResourcesComp*);
 EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp*);
 EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp*);
 EcsEntityId ui_resource_sound_click(const UiGlobalResourcesComp*);
+EcsEntityId ui_resource_sound_click_alt(const UiGlobalResourcesComp*);

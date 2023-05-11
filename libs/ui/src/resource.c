@@ -10,6 +10,7 @@ static const String g_uiGlobalFont         = string_static("fonts/ui.ftx");
 static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.gra");
 static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.gra");
 static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
+static const String g_uiSoundClickAlt      = string_static("external/sound/click-03.wav");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
@@ -20,7 +21,7 @@ ecs_comp_define(UiGlobalResourcesComp) {
   UiGlobalResFlags flags;
   EcsEntityId      font;
   EcsEntityId      graphic, graphicDebug;
-  EcsEntityId      soundClick;
+  EcsEntityId      soundClick, soundClickAlt;
 };
 
 ecs_view_define(GlobalInitView) {
@@ -52,13 +53,15 @@ ecs_system_define(UiResourceInitSys) {
         world,
         ecs_world_global(world),
         UiGlobalResourcesComp,
-        .font         = asset_lookup(world, assets, g_uiGlobalFont),
-        .graphic      = asset_lookup(world, assets, g_uiGlobalGraphic),
-        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug),
-        .soundClick   = asset_lookup(world, assets, g_uiSoundClick));
+        .font          = asset_lookup(world, assets, g_uiGlobalFont),
+        .graphic       = asset_lookup(world, assets, g_uiGlobalGraphic),
+        .graphicDebug  = asset_lookup(world, assets, g_uiGlobalGraphicDebug),
+        .soundClick    = asset_lookup(world, assets, g_uiSoundClick),
+        .soundClickAlt = asset_lookup(world, assets, g_uiSoundClickAlt));
 
     // Initialize sound assets.
     snd_mixer_persistent_asset(soundMixer, globalResources->soundClick);
+    snd_mixer_persistent_asset(soundMixer, globalResources->soundClickAlt);
     return;
   }
 
@@ -110,3 +113,6 @@ EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
   return comp->graphicDebug;
 }
 EcsEntityId ui_resource_sound_click(const UiGlobalResourcesComp* comp) { return comp->soundClick; }
+EcsEntityId ui_resource_sound_click_alt(const UiGlobalResourcesComp* comp) {
+  return comp->soundClickAlt;
+}
