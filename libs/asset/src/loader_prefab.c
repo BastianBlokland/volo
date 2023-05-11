@@ -58,11 +58,14 @@ typedef struct {
 } AssetPrefabTraitDecalDef;
 
 typedef struct {
-  String assetId;
-  f32    gainMin, gainMax;
-  f32    pitchMin, pitchMax;
-  bool   looping;
-  bool   persistent;
+  struct {
+    String* values;
+    usize   count;
+  } assetIds;
+  f32  gainMin, gainMax;
+  f32  pitchMin, pitchMax;
+  bool looping;
+  bool persistent;
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
@@ -122,7 +125,8 @@ typedef struct {
 
 typedef struct {
   i32    priority;
-  String tauntDeathPrefab; // Optional, empty if unused.
+  String tauntDeathPrefab;   // Optional, empty if unused.
+  String tauntConfirmPrefab; // Optional, empty if unused.
 } AssetPrefabTraitTauntDef;
 
 typedef struct {
@@ -205,7 +209,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitSoundDef);
-    data_reg_field_t(reg, AssetPrefabTraitSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitSoundDef, assetIds, data_prim_t(String), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -266,6 +270,7 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitTauntDef);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
@@ -306,10 +311,11 @@ static i8 prefab_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  PrefabError_None                  = 0,
-  PrefabError_DuplicatePrefab       = 1,
-  PrefabError_DuplicateTrait        = 2,
-  PrefabError_PrefabCountExceedsMax = 3,
+  PrefabError_None                      = 0,
+  PrefabError_DuplicatePrefab           = 1,
+  PrefabError_DuplicateTrait            = 2,
+  PrefabError_PrefabCountExceedsMax     = 3,
+  PrefabError_SoundAssetCountExceedsMax = 4,
 
   PrefabError_Count,
 } PrefabError;
@@ -319,7 +325,8 @@ static String prefab_error_str(const PrefabError err) {
       string_static("None"),
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
-      string_static("Prefab count exceeds the maximum count"),
+      string_static("Prefab count exceeds the maximum"),
+      string_static("Sound asset count exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -424,10 +431,13 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Sound: {
       const AssetPrefabTraitSoundDef* soundDef = &traitDef->data_sound;
+      if (UNLIKELY(soundDef->assetIds.count > array_elems(outTrait->data_sound.assets))) {
+        *err = PrefabError_SoundAssetCountExceedsMax;
+        return;
+      }
       const f32 gainMin    = soundDef->gainMin < f32_epsilon ? 1.0f : soundDef->gainMin;
       const f32 pitchMin   = soundDef->pitchMin < f32_epsilon ? 1.0f : soundDef->pitchMin;
       outTrait->data_sound = (AssetPrefabTraitSound){
-          .asset      = asset_lookup(ctx->world, manager, soundDef->assetId),
           .gainMin    = gainMin,
           .gainMax    = math_max(gainMin, soundDef->gainMax),
           .pitchMin   = pitchMin,
@@ -435,6 +445,10 @@ static void prefab_build(
           .looping    = soundDef->looping,
           .persistent = soundDef->persistent,
       };
+      for (u32 i = 0; i != soundDef->assetIds.count; ++i) {
+        const EcsEntityId asset = asset_lookup(ctx->world, manager, soundDef->assetIds.values[i]);
+        outTrait->data_sound.assets[i] = asset;
+      }
       break;
     }
     case AssetPrefabTrait_Lifetime:
@@ -509,8 +523,9 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
-          .priority         = traitDef->data_taunt.priority,
-          .tauntDeathPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .priority           = traitDef->data_taunt.priority,
+          .tauntDeathPrefab   = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .tauntConfirmPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
       };
       break;
     case AssetPrefabTrait_Scalable:

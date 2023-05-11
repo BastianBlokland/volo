@@ -43,7 +43,8 @@
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
-          "tauntDeathPrefab": "TauntDeathUnitRifle"
+          "tauntDeathPrefab": "TauntDeathUnitRifle",
+          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         }
       ]
     },
@@ -196,7 +197,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_barrel.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/burning-01.wav",
+          "assetIds": [ "external/sound/burning-01.wav" ],
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.95, "pitchMax": 1.05,
           "looping": true
@@ -493,7 +494,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/explosion-01.wav",
+          "assetIds": [ "external/sound/explosion-01.wav" ],
           "gainMin": 1.5, "gainMax": 1.75,
           "pitchMin": 0.85, "pitchMax": 1.05
         }
@@ -513,7 +514,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/impact-02.wav",
+          "assetIds": [ "external/sound/impact-02.wav" ],
           "gainMin": 0.3, "gainMax": 0.4,
           "pitchMin": 0.75, "pitchMax": 1.25
         }
@@ -525,7 +526,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/impact-01.wav",
+          "assetIds": [ "external/sound/impact-01.wav" ],
           "gainMin": 0.2, "gainMax": 0.4,
           "pitchMin": 0.75, "pitchMax": 1
         },
@@ -540,7 +541,7 @@
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion.dcl" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/explosion-02.wav",
+          "assetIds": [ "external/sound/explosion-02.wav" ],
           "gainMin": 1.1, "gainMax": 1.5,
           "pitchMin": 1.0, "pitchMax": 1.1
         }
@@ -552,9 +553,26 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/death-03.wav",
+          "assetIds": [ "external/sound/death-03.wav" ],
           "gainMin": 0.8, "gainMax": 1.0,
           "pitchMin": 0.9, "pitchMax": 1.2
+        }
+      ]
+    },
+    {
+      "name": "TauntConfirmUnitRifle", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [
+            "external/sound/confirm-01.wav",
+            "external/sound/confirm-02.wav",
+            "external/sound/confirm-03.wav",
+            "external/sound/confirm-04.wav"
+          ],
+          "gainMin": 1.3, "gainMax": 1.3,
+          "pitchMin": 1.0, "pitchMax": 1.0
         }
       ]
     },
@@ -564,7 +582,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 2 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/death-02.wav",
+          "assetIds": [ "external/sound/death-02.wav" ],
           "gainMin": 0.6, "gainMax": 0.7,
           "pitchMin": 0.75, "pitchMax": 1.6
         }
@@ -584,7 +602,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_missile.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/projectile-loop-01.wav",
+          "assetIds": [ "external/sound/projectile-loop-01.wav" ],
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.9, "pitchMax": 1.1,
           "looping": true
@@ -597,7 +615,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 3 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetId": "external/sound/alarm-01.wav",
+          "assetIds": [ "external/sound/alarm-01.wav" ],
           "gainMin": 0.05,
           "pitchMin": 1.0
         }
@@ -610,7 +628,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/indicator_move.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
-          "assetId": "external/sound/indicator-01.wav",
+          "assetIds": [ "external/sound/indicator-01.wav" ],
           "gainMin": 0.6
         }
       ]
@@ -622,7 +640,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/indicator_attack.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
-          "assetId": "external/sound/indicator-02.wav",
+          "assetIds": [ "external/sound/indicator-02.wav" ],
           "gainMin": 0.6
         }
       ]

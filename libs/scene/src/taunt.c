@@ -13,7 +13,8 @@
 #include "scene_transform.h"
 
 static const TimeDuration g_tauntEventDuration[SceneTauntType_Count] = {
-    [SceneTauntType_Death] = time_milliseconds(500),
+    [SceneTauntType_Death]   = time_milliseconds(500),
+    [SceneTauntType_Confirm] = time_milliseconds(750),
 };
 
 #define scene_taunt_cooldown_min time_seconds(2)
@@ -164,8 +165,8 @@ ecs_system_define(SceneTauntUpdateSys) {
     const EcsEntityId         instigator = ecs_view_entity(itr);
     const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
     const GeoVector           pos        = trans ? trans->position : geo_vector(0);
-    if (taunt->requests & SceneTauntRequests_Death) {
-      registry_report(reg, instigator, SceneTauntType_Death, taunt, time, pos);
+    bitset_for(bitset_from_var(taunt->requests), tauntTypeIndex) {
+      registry_report(reg, instigator, (SceneTauntType)tauntTypeIndex, taunt, time, pos);
     }
     taunt->requests = 0;
   }
@@ -188,4 +189,8 @@ ecs_module_init(scene_taunt_module) {
       ecs_register_view(UpdateGlobalView),
       ecs_register_view(UpdateView),
       ecs_register_view(ListenerView));
+}
+
+void scene_taunt_request(SceneTauntComp* taunt, const SceneTauntType type) {
+  taunt->requests |= 1 << type;
 }
