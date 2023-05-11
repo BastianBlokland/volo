@@ -571,7 +571,7 @@
             "external/sound/confirm-03.wav",
             "external/sound/confirm-04.wav"
           ],
-          "gainMin": 1.2, "gainMax": 1.2,
+          "gainMin": 1.3, "gainMax": 1.3,
           "pitchMin": 1.0, "pitchMax": 1.0
         }
       ]
