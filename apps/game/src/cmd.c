@@ -103,11 +103,6 @@ static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
 
     scene_brain_set(brain, g_brainKeyStop, script_bool(true));
     scene_brain_set_null(brain, g_brainKeyMoveTarget);
-
-    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
-    if (taunt) {
-      scene_taunt_request(taunt, SceneTauntType_Confirm);
-    }
   }
 }
 
