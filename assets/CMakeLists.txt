@@ -146,6 +146,7 @@ if(${EXTERNAL_ASSETS})
       sound/ambiance-01.wav
       sound/burning-01.wav
       sound/click-02.wav
+      sound/click-03.wav
       sound/death-02.wav
       sound/death-03.wav
       sound/death-04.wav

@@ -187,18 +187,18 @@ static void debug_action_bar_draw(
     ui_table_next_row(canvas, &table);
     const bool isOpen = debug_panel_is_open(world, menu->panelEntities[i]);
 
-    const bool buttonPressed = ui_button(
-        canvas,
-        .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
-        .fontSize   = 25,
-        .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
-        .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal);
-
     const bool hotkeyPressed =
         windowActive && !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
         input_triggered_hash(input, string_hash(g_debugPanelConfig[i].hotkeyName));
 
-    if (buttonPressed || hotkeyPressed) {
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+            .fontSize   = 25,
+            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
+            .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal,
+            .activate   = hotkeyPressed)) {
+
       if (isOpen) {
         ecs_world_entity_destroy(world, menu->panelEntities[i]);
         debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
@@ -233,6 +233,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (input_triggered_lit(input, "DebugPanelClose")) {
       const EcsEntityId topmostPanel = debug_panel_topmost(world, menu);
       if (topmostPanel) {
+        ui_canvas_sound(canvas, UiSoundType_ClickAlt);
         ecs_world_entity_destroy(world, topmostPanel);
       }
     }

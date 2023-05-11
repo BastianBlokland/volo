@@ -31,6 +31,7 @@ typedef struct {
 
 typedef struct {
   UiWidgetFlags flags;
+  bool          activate; // Force activate the button, useful for hotkeys for example.
   String        label;
   u16           fontSize;
   UiColor       frameColor;
