@@ -119,6 +119,10 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
     ui_tooltip(canvas, id, opts->tooltip);
   }
 
+  if (opts->activate && status != UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_ClickAlt);
+    return true;
+  }
   return status == UiStatus_Activated;
 }
 
