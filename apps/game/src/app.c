@@ -9,7 +9,6 @@
 #include "input.h"
 #include "input_resource.h"
 #include "log_logger.h"
-#include "prefs.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -28,6 +27,8 @@
 #include "vfx_register.h"
 
 #include "cmd_internal.h"
+#include "hud_internal.h"
+#include "prefs_internal.h"
 
 static const String g_appLevel = string_static("levels/default.lvl");
 
@@ -66,7 +67,6 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
   const EcsEntityId    window = gap_window_create(world, mode, flags, size);
 
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
@@ -78,8 +78,8 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
       .orthoSize = 5);
 
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
-
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  hud_init(world, window);
 
   return window;
 }
@@ -564,6 +564,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);
+  ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
   ecs_register_module(def, game_prefs_module);
 }

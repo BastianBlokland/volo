@@ -1,0 +1,153 @@
+#include "core_float.h"
+#include "core_math.h"
+#include "ecs_world.h"
+#include "scene_camera.h"
+#include "scene_collision.h"
+#include "scene_health.h"
+#include "scene_transform.h"
+#include "ui.h"
+
+#include "hud_internal.h"
+
+static const f32      g_hudHealthBarOffsetY = 10.0f;
+static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
+
+ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
+
+ecs_view_define(HudView) {
+  ecs_access_read(HudComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_read(SceneTransformComp);
+}
+
+ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+
+ecs_view_define(HealthView) {
+  ecs_access_maybe_read(SceneCollisionComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_read(SceneHealthComp);
+  ecs_access_read(SceneTransformComp);
+}
+
+static GeoMatrix hud_ui_view_proj(
+    const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* canvas) {
+  const UiVector res    = ui_canvas_resolution(canvas);
+  const f32      aspect = (f32)res.width / (f32)res.height;
+  return scene_camera_view_proj(cam, camTrans, aspect);
+}
+
+static GeoVector hud_world_to_ui_pos(const GeoMatrix* viewProj, const GeoVector pos) {
+  const GeoVector ndcPos = geo_matrix_transform(viewProj, geo_vector(pos.x, pos.y, pos.z, 1));
+  if (UNLIKELY(ndcPos.w == 0)) {
+    return geo_vector(-1, -1, -1, -1); // Not a valid position on screen.
+  }
+  const GeoVector persDivPos = geo_vector_perspective_div(ndcPos);
+  const GeoVector normPos    = geo_vector_mul(geo_vector_add(persDivPos, geo_vector(1, 1)), 0.5f);
+  return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);
+}
+
+static GeoVector hud_health_world_pos(
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const SceneCollisionComp* collision) {
+  if (collision) {
+    const GeoBox worldBounds = scene_collision_world_bounds(collision, trans, scale);
+    return geo_vector(
+        (worldBounds.min.x + worldBounds.max.x) * 0.5f,
+        worldBounds.max.y,
+        (worldBounds.min.z + worldBounds.max.z) * 0.5f);
+  }
+  return trans->position;
+}
+
+static UiColor hud_health_color(const f32 norm) {
+  static const UiColor g_colorFull = {8, 255, 8, 192};
+  static const UiColor g_colorWarn = {255, 255, 8, 192};
+  static const UiColor g_colorDead = {255, 8, 8, 192};
+  if (norm < 0.5f) {
+    return ui_color_lerp(g_colorDead, g_colorWarn, norm * 0.5f);
+  }
+  return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
+}
+
+static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsView* healthView) {
+  for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
+    const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
+
+    if (health->norm <= f32_epsilon || health->norm > 0.999f) {
+      continue; // Hide health-bars if entity is death or at full health.
+    }
+
+    const GeoVector worldPos  = hud_health_world_pos(trans, scale, collision);
+    const GeoVector canvasPos = hud_world_to_ui_pos(viewProj, worldPos);
+    if (UNLIKELY(canvasPos.z <= 0)) {
+      continue; // Position is behind the camera.
+    }
+
+    // Compute the health-bar ui rectangle.
+    ui_layout_set_pos(canvas, UiBase_Canvas, ui_vector(canvasPos.x, canvasPos.y), UiBase_Canvas);
+    ui_layout_move_dir(canvas, Ui_Up, g_hudHealthBarOffsetY, UiBase_Absolute);
+    ui_layout_resize(canvas, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
+
+    // Draw the health-bar background.
+    ui_style_color(canvas, ui_color(8, 8, 8, 192));
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
+
+    // Draw the health-bar foreground.
+    ui_style_color(canvas, hud_health_color(health->norm));
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(health->norm, 0), UiBase_Current, Ui_X);
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
+  }
+}
+
+ecs_system_define(HudDrawUiSys) {
+  EcsView* hudView    = ecs_world_view_t(world, HudView);
+  EcsView* canvasView = ecs_world_view_t(world, UiCanvasView);
+  EcsView* healthView = ecs_world_view_t(world, HealthView);
+
+  EcsIterator* canvasItr = ecs_view_itr(canvasView);
+
+  for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
+    const HudComp*            state    = ecs_view_read_t(itr, HudComp);
+    const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
+    if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
+      continue;
+    }
+    UiCanvasComp*   canvas   = ecs_view_write_t(canvasItr, UiCanvasComp);
+    const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, canvas);
+
+    ui_canvas_reset(canvas);
+    ui_canvas_to_back(canvas);
+
+    hud_health_draw(canvas, &viewProj, healthView);
+  }
+}
+
+ecs_module_init(game_hud_module) {
+  ecs_register_comp(HudComp);
+
+  ecs_register_view(HudView);
+  ecs_register_view(UiCanvasView);
+  ecs_register_view(HealthView);
+
+  ecs_register_system(
+      HudDrawUiSys, ecs_view_id(HudView), ecs_view_id(UiCanvasView), ecs_view_id(HealthView));
+
+  enum {
+    Order_Normal    = 0,
+    Order_HudDrawUi = 1,
+  };
+  ecs_order(HudDrawUiSys, Order_HudDrawUi);
+}
+
+void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {
+  ecs_world_add_t(
+      world,
+      cameraEntity,
+      HudComp,
+      .uiCanvas = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None));
+}

@@ -6,7 +6,8 @@
 #include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "prefs.h"
+
+#include "prefs_internal.h"
 
 #define prefs_file_size_max (usize_kibibyte * 64)
 

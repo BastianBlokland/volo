@@ -52,9 +52,10 @@ static const struct {
         .hotkeyName = string_static("DebugPanelPrefab"),
     },
     {
-        .name      = string_static("Level"),
-        .iconShape = UiShape_Globe,
-        .openFunc  = debug_level_panel_open,
+        .name       = string_static("Level"),
+        .iconShape  = UiShape_Globe,
+        .openFunc   = debug_level_panel_open,
+        .hotkeyName = string_static("DebugPanelLevel"),
     },
     {
         .name       = string_static("Sound"),
@@ -102,6 +103,7 @@ static const struct {
         .name      = string_static("Grid"),
         .iconShape = UiShape_Grid4x4,
         .openFunc  = debug_grid_panel_open,
+        .hotkeyName = string_static("DebugPanelGrid"),
     },
     {
         .name       = string_static("Renderer"),

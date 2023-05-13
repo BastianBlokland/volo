@@ -215,6 +215,12 @@ void ui_layout_set(UiCanvasComp* canvas, const UiRect rect, const UiBase base) {
   ui_cmd_push_rect_size(cmdBuffer, rect.size, base, Ui_XY);
 }
 
+void ui_layout_set_pos(
+    UiCanvasComp* canvas, const UiBase parent, const UiVector pos, const UiBase units) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_rect_pos(cmdBuffer, parent, pos, units, Ui_XY);
+}
+
 void ui_layout_inner(
     UiCanvasComp*  canvas,
     const UiBase   parent,
