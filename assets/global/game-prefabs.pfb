@@ -3,7 +3,7 @@
     {
       "name": "UnitRifle", "isUnit": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_swat.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
