@@ -1,4 +1,5 @@
 #include "core_float.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -10,8 +11,6 @@
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
 static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
-static const UiColor  g_hudHealthBarColorBg = {.r = 8, .g = 8, .b = 8, .a = 192};
-static const UiColor  g_hudHealthBarColorFg = {.r = 8, .g = 255, .b = 8, .a = 192};
 
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
 
@@ -61,6 +60,16 @@ static GeoVector hud_health_world_pos(
   return trans->position;
 }
 
+static UiColor hud_health_color(const f32 norm) {
+  static const UiColor g_colorFull = {8, 255, 8, 192};
+  static const UiColor g_colorWarn = {255, 255, 8, 192};
+  static const UiColor g_colorDead = {255, 8, 8, 192};
+  if (norm < 0.5f) {
+    return ui_color_lerp(g_colorDead, g_colorWarn, norm * 0.5f);
+  }
+  return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
+}
+
 static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsView* healthView) {
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
@@ -84,11 +93,11 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     ui_layout_resize(canvas, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
     // Draw the health-bar background.
-    ui_style_color(canvas, g_hudHealthBarColorBg);
+    ui_style_color(canvas, ui_color(8, 8, 8, 192));
     ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
 
     // Draw the health-bar foreground.
-    ui_style_color(canvas, g_hudHealthBarColorFg);
+    ui_style_color(canvas, hud_health_color(health->norm));
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(health->norm, 0), UiBase_Current, Ui_X);
     ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
   }
