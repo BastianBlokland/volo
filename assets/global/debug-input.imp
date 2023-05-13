@@ -115,11 +115,18 @@
       "name": "DebugPanelInspector",
       "blockers": [ "TextInput" ],
       "bindings": [
-        { "type": "Pressed", "key": "F2" }
+        { "type": "Pressed", "key": "F1" }
       ]
     },
     {
       "name": "DebugPanelPrefab",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F2" }
+      ]
+    },
+    {
+      "name": "DebugPanelLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F3" }
@@ -147,31 +154,45 @@
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelBrain",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F7" }
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
       ]
     },
     {
-      "name": "DebugPanelRenderer",
+      "name": "DebugPanelCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }
+      ]
+    },
+    {
+      "name": "DebugPanelGrid",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F11" }
+      ]
+    },
+    {
+      "name": "DebugPanelRenderer",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F12" }
       ]
     },
     {
