@@ -67,7 +67,6 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
   const EcsEntityId    window = gap_window_create(world, mode, flags, size);
 
   const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-
   ecs_world_add_t(world, window, AppWindowComp, .uiCanvas = uiCanvas);
 
   ecs_world_add_t(
@@ -79,8 +78,8 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
       .orthoSize = 5);
 
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
-
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  hud_init(world, window);
 
   return window;
 }
