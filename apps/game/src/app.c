@@ -9,7 +9,6 @@
 #include "input.h"
 #include "input_resource.h"
 #include "log_logger.h"
-#include "prefs.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -28,6 +27,8 @@
 #include "vfx_register.h"
 
 #include "cmd_internal.h"
+#include "hud_internal.h"
+#include "prefs_internal.h"
 
 static const String g_appLevel = string_static("levels/default.lvl");
 
@@ -564,6 +565,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 
   ecs_register_module(def, game_app_module);
   ecs_register_module(def, game_cmd_module);
+  ecs_register_module(def, game_hud_module);
   ecs_register_module(def, game_input_module);
   ecs_register_module(def, game_prefs_module);
 }

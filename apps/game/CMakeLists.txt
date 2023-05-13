@@ -7,6 +7,7 @@ message(STATUS "> application: game")
 add_executable(app_game
   src/app.c
   src/cmd.c
+  src/hud.c
   src/input.c
   src/prefs.c
   )
