@@ -25,7 +25,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "AssaultRifle",
+          "weaponId": "Rifle",
           "targetDistanceMax": 35,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
@@ -562,7 +562,7 @@
       ]
     },
     {
-      "name": "ImpactAssaultRifle", "isVolatile": true,
+      "name": "ImpactRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 }

@@ -1,7 +1,7 @@
 {
   "weapons": [
     {
-      "name": "AssaultRifle",
+      "name": "Rifle",
       "intervalMin": 0.15, "intervalMax": 0.35,
       "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
       "predictiveAim": true,
@@ -16,7 +16,7 @@
           "damage": 15,
           "destroyDelay": 0.05,
           "projectilePrefab": "ProjectileBullet",
-          "impactPrefab": "ImpactAssaultRifle"
+          "impactPrefab": "ImpactRifle"
         },
         {
           "$type": "AssetWeaponEffect_Animation",
