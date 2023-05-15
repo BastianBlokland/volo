@@ -164,12 +164,17 @@ if(${EXTERNAL_ASSETS})
       sound/indicator-01.wav
       sound/indicator-02.wav
       sound/launch-01.wav
+      sound/launch-02.wav
       sound/projectile-loop-01.wav
       sound/swoosh-01.wav
       swat/swat_2_color_rough.tga
       swat/swat_2_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
+      swat/swat_rocket_1_color_rough.tga
+      swat/swat_rocket_1_nrm.tga
+      swat/swat_rocket_1.bin
+      swat/swat_rocket_1.gltf
       tent/tent_color_rough.tga
       tent/tent_normal.tga
       tent/tent.bin
