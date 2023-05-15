@@ -43,6 +43,49 @@
       ]
     },
     {
+      "name": "RocketLauncher",
+      "intervalMin": 3.5, "intervalMax": 4.0,
+      "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
+      "predictiveAim": true,
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Projectile",
+          "originJoint": "muzzle",
+          "launchTowardsTarget": true,
+          "delay": 0.035,
+          "spreadAngle": 1.0,
+          "speed": 22.5,
+          "damage": 100,
+          "damageRadius": 2,
+          "destroyDelay": 0.75,
+          "projectilePrefab": "ProjectileRocket",
+          "impactPrefab": "ImpactRocket"
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "layer": "fire",
+          "delay": 0.05,
+          "speed": 0.5
+        },
+        {
+          "$type": "AssetWeaponEffect_Vfx",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 1.0,
+          "assetId": "vfx/game/launch_rocket.vfx"
+        },
+        {
+          "$type": "AssetWeaponEffect_Sound",
+          "originJoint": "muzzle",
+          "delay": 0,
+          "duration": 1.75,
+          "assetId": "external/sound/launch-02.wav",
+          "gainMin": 0.4, "gainMax": 0.5,
+          "pitchMin": 0.6, "pitchMax": 0.8
+        }
+      ]
+    },
+    {
       "name": "Melee",
       "intervalMin": 0, "intervalMax": 0,
       "readySpeed": 1000, "readyMinTime": 0,
@@ -154,7 +197,7 @@
           "scale": 1,
           "delay": 0,
           "duration": 2,
-          "assetId": "vfx/game/launch.vfx"
+          "assetId": "vfx/game/launch_missile.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",

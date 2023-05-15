@@ -1,0 +1,121 @@
+{
+  "ignoreTransformRotation": true,
+  "emitters": [
+    {
+      "space": "World",
+      "cone": {
+        "angle": 60,
+        "radius": 0.2,
+        "rotation": { "x": -90 }
+      },
+      "force": { "y": 1 },
+      "sprite": {
+        "atlasEntry": "fire_0",
+        "color": { "r": 1, "g": 0.2, "b": 0.05, "a": 75
+        },
+        "blend": "Additive",
+        "facing": "BillboardSphere",
+        "flipbookCount": 16,
+        "flipbookTime": 1.5,
+        "size": { "x": 1.4, "y": 1.4 },
+        "fadeInTime": 0.15,
+        "fadeOutTime": 0.3,
+        "scaleInTime": 0.15,
+        "scaleOutTime": 0.3
+      },
+      "speed": { "min": 2, "max": 3.5 },
+      "scale": { "min": 0, "max": 1.5 },
+      "count": 30,
+      "lifetime": { "min": 0, "max": 0.75 },
+      "rotation": { "random": { "z": 360 }
+      }
+    },
+    {
+      "cone": {
+        "position": { "y": 0.75 }
+      },
+      "sprite": {
+        "atlasEntry": "glow",
+        "color": { "r": 1, "g": 0.2, "b": 0.05, "a": 50 },
+        "blend": "Additive",
+        "facing": "BillboardSphere",
+        "size": { "x": 3.5, "y": 3.5 },
+        "fadeOutTime": 0.2,
+        "fadeInTime": 0.05,
+        "scaleInTime": 0.25,
+        "geometryFade": true
+      },
+      "light": {
+        "radiance": { "r": 1, "g": 0.5, "b": 0.2, "a": 50 },
+        "radius": 10,
+        "fadeInTime": 0.1,
+        "fadeOutTime": 0.45
+      },
+      "lifetime": { "min": 0.55 }
+    },
+    {
+      "cone": {
+        "position": { "y": 0.75 }
+      },
+      "sprite": {
+        "atlasEntry": "ring_distortion",
+        "color": { "r": 1, "g": 1, "b": 1, "a": 0.5 },
+        "facing": "BillboardSphere",
+        "size": { "x": 8, "y": 8 },
+        "fadeOutTime": 0.5,
+        "fadeInTime": 0.05,
+        "scaleInTime": 0.5,
+        "distortion": true
+      },
+      "lifetime": { "min": 0.5 }
+    },
+    {
+      "space": "World",
+      "cone": {
+        "angle": 70,
+        "radius": 0.4,
+        "rotation": { "x": -90 }
+      },
+      "force": { "y": -0.8 },
+      "sprite": {
+        "atlasEntry": "smoke",
+        "color": { "r": 0.125, "g": 0.125, "b": 0.125, "a": 2 },
+        "blend": "Alpha",
+        "facing": "BillboardSphere",
+        "size": { "x": 4, "y": 4 },
+        "fadeInTime": 0.05,
+        "fadeOutTime": 1.5,
+        "scaleInTime": 1.5,
+        "geometryFade": true,
+        "shadowCaster": true
+      },
+      "speed": { "min": 3.0, "max": 4.0 },
+      "count": 30,
+      "scale": { "min": 0.75, "max": 1.75 },
+      "lifetime": { "min": 0.5, "max": 1.5 },
+      "rotation": { "random": { "z": 360 } }
+    },
+    {
+      "cone": {
+        "angle": 50,
+        "radius": 0.1,
+        "rotation": { "x": -90 }
+      },
+      "force": { "y": -10 },
+      "sprite": {
+        "atlasEntry": "rock",
+        "blend": "Alpha",
+        "facing": "BillboardSphere",
+        "size": { "x": 0.1, "y": 0.15 },
+        "fadeInTime": 0.05,
+        "fadeOutTime": 0.15,
+        "shadowCaster": true
+      },
+      "speed": { "min": 7, "max": 8 },
+      "scale": { "min": 0.75, "max": 1.25 },
+      "count": 15,
+      "lifetime": { "min": 1.5 },
+      "rotation": { "random": { "z": 360 } }
+    }
+  ]
+}
