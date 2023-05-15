@@ -171,6 +171,10 @@ if(${EXTERNAL_ASSETS})
       swat/swat_2_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
+      swat/swat_rocket_1_color_rough.tga
+      swat/swat_rocket_1_nrm.tga
+      swat/swat_rocket_1.bin
+      swat/swat_rocket_1.gltf
       tent/tent_color_rough.tga
       tent/tent_normal.tga
       tent/tent.bin
