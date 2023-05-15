@@ -80,7 +80,7 @@
           "delay": 0,
           "duration": 1.75,
           "assetId": "external/sound/launch-02.wav",
-          "gainMin": 0.4, "gainMax": 0.5,
+          "gainMin": 0.25, "gainMax": 0.3,
           "pitchMin": 0.6, "pitchMax": 0.8
         }
       ]
