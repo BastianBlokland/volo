@@ -265,6 +265,11 @@
             "radius": 0.35,
             "height": 0.6
           }
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 5,
+          "deathDestroyDelay": 0.1
         }
       ]
     },
