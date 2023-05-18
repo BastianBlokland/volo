@@ -9,6 +9,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_location.h"
 #include "scene_nav.h"
 #include "scene_target.h"
 #include "scene_time.h"
@@ -44,6 +45,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(TargetFinderView) {
   ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_write(SceneTargetTraceComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneTargetFinderComp);
@@ -51,6 +53,7 @@ ecs_view_define(TargetFinderView) {
 
 ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneNavBlockerComp);
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
@@ -78,9 +81,12 @@ static void target_trace_add(SceneTargetTraceComp* trace, const EcsEntityId e, c
   };
 }
 
-static GeoVector target_position_center(const SceneTransformComp* trans) {
-  // TODO: Target position should either be based on target collision bounds or be configurable.
-  return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
+static GeoVector target_aim_pos(const SceneTransformComp* trans, const SceneLocationComp* loc) {
+  if (loc) {
+    // TODO: Take scale into account.
+    return geo_vector_add(trans->position, loc->offsets[SceneLocationType_AimTarget]);
+  }
+  return trans->position;
 }
 
 typedef struct {
@@ -91,11 +97,13 @@ typedef struct {
 static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
     const SceneTransformComp*    finderTrans,
+    const SceneLocationComp*     finderLoc,
     const f32                    radius,
     EcsIterator*                 targetItr) {
-  const GeoVector           sourcePos   = target_position_center(finderTrans);
+  const GeoVector           sourcePos   = target_aim_pos(finderTrans, finderLoc);
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  const GeoVector           targetPos   = target_position_center(targetTrans);
+  const SceneLocationComp*  targetLoc   = ecs_view_read_t(targetItr, SceneLocationComp);
+  const GeoVector           targetPos   = target_aim_pos(targetTrans, targetLoc);
   const GeoVector           toTarget    = geo_vector_sub(targetPos, sourcePos);
   const f32                 dist        = geo_vector_mag(toTarget);
   if (dist <= target_los_dist_min || radius <= f32_epsilon) {
@@ -158,7 +166,8 @@ static f32 target_score(
     EcsIterator*                 targetItr) {
 
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
-  const GeoVector           targetPosCenter = target_position_center(targetTrans);
+  const SceneLocationComp*  targetLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
+  const GeoVector           targetPosCenter = target_aim_pos(targetTrans, targetLoc);
   const GeoVector           toTarget        = geo_vector_sub(targetPosCenter, finderPosCenter);
   const f32                 distSqr         = geo_vector_mag_sqr(toTarget);
   if (distSqr < (finder->distanceMin * finder->distanceMin)) {
@@ -231,6 +240,7 @@ ecs_system_define(SceneTargetUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId         entity    = ecs_view_entity(itr);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLocationComp*  loc       = ecs_view_read_t(itr, SceneLocationComp);
     const SceneAttackAimComp* attackAim = ecs_view_read_t(itr, SceneAttackAimComp);
     const SceneFactionComp*   faction   = ecs_view_read_t(itr, SceneFactionComp);
     SceneTargetFinderComp*    finder    = ecs_view_write_t(itr, SceneTargetFinderComp);
@@ -258,7 +268,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
-      const GeoVector   pos       = target_position_center(trans);
+      const GeoVector   pos       = target_aim_pos(trans, loc);
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = scene_target_primary(finder);
 
@@ -299,7 +309,8 @@ ecs_system_define(SceneTargetUpdateSys) {
       ecs_view_jump(targetItr, primaryTarget);
 
       const f32                   losRadius = finder->lineOfSightRadius;
-      const TargetLineOfSightInfo losInfo   = target_los_query(colEnv, trans, losRadius, targetItr);
+      const TargetLineOfSightInfo losInfo =
+          target_los_query(colEnv, trans, loc, losRadius, targetItr);
 
       if (losInfo.hasLos) {
         finder->flags |= SceneTarget_LineOfSight;
