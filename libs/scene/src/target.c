@@ -59,7 +59,6 @@ ecs_view_define(TargetView) {
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
-  ecs_access_with(SceneUnitComp);
 }
 
 static void target_trace_start(EcsWorld* world, const EcsEntityId entity) {
@@ -283,6 +282,9 @@ ecs_system_define(SceneTargetUpdateSys) {
         }
         if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
+        }
+        if (!ecs_world_has_t(world, targetEntity, SceneUnitComp)) {
+          continue; // Only auto-target units.
         }
         const f32 score = target_score(colEnv, navEnv, finder, pos, aimDir, targetOld, targetItr);
 
