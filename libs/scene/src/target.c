@@ -14,6 +14,7 @@
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_unit.h"
 
 #define target_max_refresh_per_task 10
 #define target_refresh_time_min time_seconds(1)
@@ -58,6 +59,7 @@ ecs_view_define(TargetView) {
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
+  ecs_access_with(SceneUnitComp);
 }
 
 static void target_trace_start(EcsWorld* world, const EcsEntityId entity) {
