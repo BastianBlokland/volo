@@ -27,8 +27,9 @@ typedef enum {
   SceneLayer_UnitFactionNone = 1 << 6,
   SceneLayer_Unit = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB | SceneLayer_UnitFactionC |
                     SceneLayer_UnitFactionD | SceneLayer_UnitFactionNone,
+  SceneLayer_Destructible = 1 << 7,
 
-  SceneLayer_Count = 7,
+  SceneLayer_Count = 8,
   SceneLayer_None  = 0,
   SceneLayer_All   = ~0,
 } SceneLayer;

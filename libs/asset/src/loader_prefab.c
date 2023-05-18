@@ -489,6 +489,7 @@ static void prefab_build(
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
           .deathEffectPrefab = prefab_name_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
+      outPrefab->flags |= AssetPrefabFlags_Destructible;
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){

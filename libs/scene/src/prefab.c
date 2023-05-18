@@ -136,6 +136,9 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
       diag_crash_msg("Unsupported faction");
     }
   }
+  if (flags & AssetPrefabFlags_Destructible) {
+    return SceneLayer_Destructible;
+  }
   return SceneLayer_Environment;
 }
 

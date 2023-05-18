@@ -165,8 +165,9 @@ typedef struct {
 } AssetPrefabTrait;
 
 typedef enum {
-  AssetPrefabFlags_Unit     = 1 << 0,
-  AssetPrefabFlags_Volatile = 1 << 1, // Prefab should not be persisted.
+  AssetPrefabFlags_Unit         = 1 << 0,
+  AssetPrefabFlags_Volatile     = 1 << 1, // Prefab should not be persisted.
+  AssetPrefabFlags_Destructible = 1 << 2,
 } AssetPrefabFlags;
 
 typedef struct {
