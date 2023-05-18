@@ -52,6 +52,7 @@ typedef enum {
   AssetPrefabTrait_Spawner,
   AssetPrefabTrait_Blink,
   AssetPrefabTrait_Taunt,
+  AssetPrefabTrait_Location,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -139,6 +140,10 @@ typedef struct {
 } AssetPrefabTraitTaunt;
 
 typedef struct {
+  GeoVector aimTarget;
+} AssetPrefabTraitLocation;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -155,6 +160,7 @@ typedef struct {
     AssetPrefabTraitSpawner    data_spawner;
     AssetPrefabTraitBlink      data_blink;
     AssetPrefabTraitTaunt      data_taunt;
+    AssetPrefabTraitLocation   data_location;
   };
 } AssetPrefabTrait;
 

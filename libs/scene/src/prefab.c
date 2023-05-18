@@ -16,6 +16,7 @@
 #include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
+#include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -315,6 +316,10 @@ static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
       .tauntPrefabs[SceneTauntType_Confirm] = t->tauntConfirmPrefab);
 }
 
+static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLocation* t) {
+  ecs_world_add_t(w, e, SceneLocationComp, .offsets[SceneLocationType_AimTarget] = t->aimTarget);
+}
+
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
   ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
@@ -367,6 +372,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Taunt:
     setup_taunt(w, e, &t->data_taunt);
+    return;
+  case AssetPrefabTrait_Location:
+    setup_location(w, e, &t->data_location);
     return;
   case AssetPrefabTrait_Scalable:
     setup_scale(w, e, s->scale);
