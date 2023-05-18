@@ -89,7 +89,7 @@ static SceneLayer projectile_faction_ignore_layer(const SceneFaction faction) {
 }
 
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
-  SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit;
+  SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit | SceneLayer_Destructible;
   if (faction) {
     layer &= ~projectile_faction_ignore_layer(faction->id);
   }
