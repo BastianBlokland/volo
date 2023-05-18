@@ -143,7 +143,7 @@
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathUnitEnemy"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } }
       ]
     },
     {
