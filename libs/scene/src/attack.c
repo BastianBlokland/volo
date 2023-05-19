@@ -11,6 +11,7 @@
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
+#include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_prefab.h"
 #include "scene_projectile.h"
@@ -24,7 +25,6 @@
 
 #define attack_in_sight_threshold 0.9995f
 #define attack_in_sight_min_dist 1.0f
-#define attack_target_aim_offset geo_vector(0, 1.25f, 0)
 
 ecs_comp_define_public(SceneAttackComp);
 ecs_comp_define_public(SceneAttackAimComp);
@@ -93,9 +93,13 @@ static void aim_idle(SceneAttackAimComp* attackAim) {
 static GeoVector aim_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
   const SceneVelocityComp*  velo  = ecs_view_read_t(entityItr, SceneVelocityComp);
+  const SceneLocationComp*  loc   = ecs_view_read_t(entityItr, SceneLocationComp);
 
   const GeoVector predictedPos = scene_position_predict(trans, velo, timeInFuture);
-  return geo_vector_add(predictedPos, attack_target_aim_offset);
+  if (loc) {
+    return geo_vector_add(predictedPos, loc->offsets[SceneLocationType_AimTarget]);
+  }
+  return predictedPos;
 }
 
 static f32 aim_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
@@ -107,9 +111,11 @@ static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* 
   const SceneTransformComp* hitTransform = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     hitScale     = ecs_view_read_t(itr, SceneScaleComp);
   const SceneCollisionComp* hitCollision = ecs_view_read_t(itr, SceneCollisionComp);
+  const SceneLocationComp*  hitLoc       = ecs_view_read_t(itr, SceneLocationComp);
 
-  const GeoVector targetPos    = geo_vector_add(hitTransform->position, attack_target_aim_offset);
-  const GeoVector toTarget     = geo_vector_sub(targetPos, origin);
+  const GeoVector targetOff = hitLoc ? hitLoc->offsets[SceneLocationType_AimTarget] : geo_vector(0);
+  const GeoVector targetPos = geo_vector_add(hitTransform->position, targetOff);
+  const GeoVector toTarget  = geo_vector_sub(targetPos, origin);
   const f32       toTargetDist = geo_vector_mag(toTarget);
   if (toTargetDist <= f32_epsilon) {
     return origin;
@@ -478,6 +484,7 @@ ecs_view_define(AttackView) {
 }
 
 ecs_view_define(TargetView) {
+  ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_read(SceneCollisionComp);

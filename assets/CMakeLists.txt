@@ -66,6 +66,10 @@ if(${EXTERNAL_ASSETS})
       alarm/alarm_normal_emissive.tga
       alarm/alarm.bin
       alarm/alarm.gltf
+      barrel_explosive/barrel_explosive_color_rough.tga
+      barrel_explosive/barrel_explosive_normal.tga
+      barrel_explosive/barrel_explosive.bin
+      barrel_explosive/barrel_explosive.gltf
       barrel/barrel_color_rough.tga
       barrel/barrel_normal.tga
       barrel/barrel.bin

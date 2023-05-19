@@ -368,12 +368,14 @@ static void input_order(
     DebugStatsGlobalComp*        debugStats,
     const GeoRay*                inputRay) {
   /**
-   * Order an attack when clicking an opponent unit.
+   * Order an attack when clicking an opponent unit or a destructible.
    */
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = ~SceneLayer_UnitFactionA & SceneLayer_Unit};
-  const f32              radius  = 0.5f;
-  const f32              maxDist = g_inputMaxInteractDist;
+  const SceneQueryFilter filter = {
+      .layerMask = (~SceneLayer_UnitFactionA & SceneLayer_Unit) | SceneLayer_Destructible,
+  };
+  const f32 radius  = 0.5f;
+  const f32 maxDist = g_inputMaxInteractDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
     input_order_attack(world, cmdController, sel, debugStats, hit.entity);
     return;

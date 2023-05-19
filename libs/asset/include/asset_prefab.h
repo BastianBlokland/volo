@@ -52,6 +52,8 @@ typedef enum {
   AssetPrefabTrait_Spawner,
   AssetPrefabTrait_Blink,
   AssetPrefabTrait_Taunt,
+  AssetPrefabTrait_Location,
+  AssetPrefabTrait_Explosive,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -139,6 +141,15 @@ typedef struct {
 } AssetPrefabTraitTaunt;
 
 typedef struct {
+  GeoVector aimTarget;
+} AssetPrefabTraitLocation;
+
+typedef struct {
+  TimeDuration delay;
+  f32          radius, damage;
+} AssetPrefabTraitExplosive;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -155,12 +166,15 @@ typedef struct {
     AssetPrefabTraitSpawner    data_spawner;
     AssetPrefabTraitBlink      data_blink;
     AssetPrefabTraitTaunt      data_taunt;
+    AssetPrefabTraitLocation   data_location;
+    AssetPrefabTraitExplosive  data_explosive;
   };
 } AssetPrefabTrait;
 
 typedef enum {
-  AssetPrefabFlags_Unit     = 1 << 0,
-  AssetPrefabFlags_Volatile = 1 << 1, // Prefab should not be persisted.
+  AssetPrefabFlags_Unit         = 1 << 0,
+  AssetPrefabFlags_Volatile     = 1 << 1, // Prefab should not be persisted.
+  AssetPrefabFlags_Destructible = 1 << 2,
 } AssetPrefabFlags;
 
 typedef struct {

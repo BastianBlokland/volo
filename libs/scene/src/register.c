@@ -10,11 +10,13 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_camera_module);
   ecs_register_module(def, scene_collision_module);
   ecs_register_module(def, scene_controller_module);
+  ecs_register_module(def, scene_explosive_module);
   ecs_register_module(def, scene_faction_module);
   ecs_register_module(def, scene_footstep_module);
   ecs_register_module(def, scene_health_module);
   ecs_register_module(def, scene_level_module);
   ecs_register_module(def, scene_lifetime_module);
+  ecs_register_module(def, scene_location_module);
   ecs_register_module(def, scene_locomotion_module);
   ecs_register_module(def, scene_name_module);
   ecs_register_module(def, scene_nav_module);

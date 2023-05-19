@@ -178,8 +178,7 @@ ecs_system_define(SceneHealthUpdateSys) {
       health_clear_damaged(world, entity, tag);
     }
 
-    const bool isDead = (health->flags & SceneHealthFlags_Dead) != 0;
-    if (isDead) {
+    if (health->flags & SceneHealthFlags_Dead) {
       continue;
     }
 
