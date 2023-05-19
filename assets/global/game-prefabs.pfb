@@ -274,7 +274,8 @@
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 5,
-          "deathDestroyDelay": 0.1
+          "deathDestroyDelay": 0.5,
+          "deathEffectPrefab": "ExplosionMedium"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 0.8 } }
       ]
@@ -558,6 +559,26 @@
           "maxInstances": 350,
           "intervalMin": 20,
           "intervalMax": 60
+        }
+      ]
+    },
+    {
+      "name": "ExplosionMedium", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Explosive",
+          "delay": 0.1,
+          "radius": 4,
+          "damage": 75
+        },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-01.wav" ],
+          "gainMin": 1.5, "gainMax": 1.75,
+          "pitchMin": 0.85, "pitchMax": 1.05
         }
       ]
     },
