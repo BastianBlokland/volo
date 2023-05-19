@@ -13,6 +13,7 @@ add_library(lib_scene STATIC
   src/camera.c
   src/collision.c
   src/controller.c
+  src/explosive.c
   src/faction.c
   src/footstep.c
   src/health.c

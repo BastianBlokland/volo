@@ -13,6 +13,7 @@
 #include "scene_blink.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
+#include "scene_explosive.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_lifetime.h"
@@ -324,9 +325,8 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 }
 
 static void setup_explosive(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitExplosive* t) {
-  (void)w;
-  (void)e;
-  (void)t;
+  ecs_world_add_t(
+      w, e, SceneExplosiveComp, .delay = t->delay, .radius = t->radius, .damage = t->damage);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
