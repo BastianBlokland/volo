@@ -53,6 +53,7 @@ typedef enum {
   AssetPrefabTrait_Blink,
   AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Location,
+  AssetPrefabTrait_Explosive,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -144,6 +145,11 @@ typedef struct {
 } AssetPrefabTraitLocation;
 
 typedef struct {
+  TimeDuration delay;
+  f32          radius, damage;
+} AssetPrefabTraitExplosive;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -161,6 +167,7 @@ typedef struct {
     AssetPrefabTraitBlink      data_blink;
     AssetPrefabTraitTaunt      data_taunt;
     AssetPrefabTraitLocation   data_location;
+    AssetPrefabTraitExplosive  data_explosive;
   };
 } AssetPrefabTrait;
 
