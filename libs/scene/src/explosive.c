@@ -55,13 +55,11 @@ ecs_system_define(SceneExplosiveSys) {
 
   EcsView* explosiveView = ecs_world_view_t(world, ExplosiveView);
   for (EcsIterator* itr = ecs_view_itr(explosiveView); ecs_view_walk(itr);) {
-    const EcsEntityId         entity    = ecs_view_entity(itr);
     SceneExplosiveComp*       explosive = ecs_view_write_t(itr, SceneExplosiveComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
 
-    if ((explosive->delay -= time->delta) < 0) {
+    if (explosive->delay >= 0 && (explosive->delay -= time->delta) < 0) {
       scene_explode(world, colEnv, explosive, trans->position);
-      ecs_world_remove_t(world, entity, SceneExplosiveComp);
     }
   }
 }
