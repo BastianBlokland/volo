@@ -13,6 +13,7 @@
 #include "rend_instance.h"
 #include "rend_light.h"
 #include "scene_lifetime.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -44,7 +45,7 @@ typedef struct {
 } VfxEmitterState;
 
 ecs_comp_define(VfxSystemStateComp) {
-  TimeDuration    age;
+  TimeDuration    age, emitAge;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxSystemInstance[].
 };
@@ -159,6 +160,7 @@ ecs_view_define(UpdateGlobalView) {
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
@@ -303,19 +305,23 @@ static void vfx_system_simulate(
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time,
+    const SceneTags       tags,
     const VfxTrans*       sysTrans) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
   // Update shared state.
   state->age += time->delta;
+  if (tags & SceneTags_Emit) {
+    state->emitAge += time->delta;
+  }
 
   // Update emitters.
   for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
     VfxEmitterState*       emitterState = &state->emitters[emitter];
     const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-    const u32 count = vfx_emitter_count(emitterAsset, state->age);
+    const u32 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
       vfx_system_spawn(state, asset, atlas, emitter, sysTrans);
     }
@@ -490,9 +496,11 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        vfxSys    = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
 
-    const f32 sysAlpha = vfxSys->alpha;
+    const SceneTags tags     = tagComp ? tagComp->tags : SceneTags_Default;
+    const f32       sysAlpha = vfxSys->alpha;
     if (sysAlpha <= f32_epsilon) {
       continue;
     }
@@ -517,7 +525,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, &sysTrans);
+    vfx_system_simulate(state, asset, particleAtlas, time, tags, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
       vfx_instance_output_sprite(instance, draws, asset, &sysTrans, sysTimeRem, sysAlpha);
