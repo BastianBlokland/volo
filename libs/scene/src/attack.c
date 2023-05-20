@@ -18,6 +18,7 @@
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_sound.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -39,6 +40,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
 ecs_view_define(SoundInstanceView) { ecs_access_write(SceneSoundComp); }
+ecs_view_define(AttachmentInstanceView) { ecs_access_write(SceneTagComp); }
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
@@ -615,7 +617,7 @@ ecs_system_define(SceneAttackSys) {
   }
 }
 
-ecs_view_define(AttackSoundUpdateView) {
+ecs_view_define(SoundUpdateView) {
   ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_read(SceneAttackComp);
   ecs_access_write(SceneAttackSoundComp);
@@ -635,7 +637,7 @@ ecs_system_define(SceneAttackSoundSys) {
   EcsView*     soundInstanceView = ecs_world_view_t(world, SoundInstanceView);
   EcsIterator* soundInstanceItr  = ecs_view_itr(soundInstanceView);
 
-  EcsView* updateView = ecs_world_view_t(world, AttackSoundUpdateView);
+  EcsView* updateView = ecs_world_view_t(world, SoundUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const EcsEntityId         entity    = ecs_view_entity(itr);
     const SceneAttackComp*    attack    = ecs_view_read_t(itr, SceneAttackComp);
@@ -656,7 +658,7 @@ ecs_system_define(SceneAttackSoundSys) {
   }
 }
 
-ecs_view_define(AttackAttachmentUpdateView) { ecs_access_write(SceneAttackComp); }
+ecs_view_define(AttachmentUpdateView) { ecs_access_write(SceneAttackComp); }
 
 static EcsEntityId
 attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
@@ -675,6 +677,7 @@ attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWe
       .target     = owner,
       .jointIndex = sentinel_u32,
       .jointName  = weapon->attachmentJoint);
+  ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
   return result;
 }
 
@@ -691,7 +694,10 @@ ecs_system_define(SceneAttackAttachmentSys) {
     return; // Weapon-map not loaded yet.
   }
 
-  EcsView* updateView = ecs_world_view_t(world, AttackAttachmentUpdateView);
+  EcsView*     instanceView = ecs_world_view_t(world, AttachmentInstanceView);
+  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
+
+  EcsView* updateView = ecs_world_view_t(world, AttachmentUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     SceneAttackComp*  attack = ecs_view_write_t(itr, SceneAttackComp);
@@ -709,6 +715,15 @@ ecs_system_define(SceneAttackAttachmentSys) {
     if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
       attack->attachedInstance = attack_attachment_create(world, entity, weapon);
     }
+
+    if (ecs_view_maybe_jump(instanceItr, attack->attachedInstance)) {
+      SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
+      if (attack->flags & SceneAttackFlags_Firing) {
+        tagComp->tags |= SceneTags_Emit;
+      } else {
+        tagComp->tags &= ~SceneTags_Emit;
+      }
+    }
   }
 }
 
@@ -721,10 +736,11 @@ ecs_module_init(scene_attack_module) {
   ecs_register_view(WeaponMapView);
   ecs_register_view(GraphicView);
   ecs_register_view(SoundInstanceView);
+  ecs_register_view(AttachmentInstanceView);
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
-  ecs_register_view(AttackSoundUpdateView);
-  ecs_register_view(AttackAttachmentUpdateView);
+  ecs_register_view(SoundUpdateView);
+  ecs_register_view(AttachmentUpdateView);
 
   ecs_register_system(
       SceneAttackSys,
@@ -736,13 +752,14 @@ ecs_module_init(scene_attack_module) {
   ecs_parallel(SceneAttackSys, 4);
 
   ecs_register_system(
-      SceneAttackSoundSys, ecs_view_id(AttackSoundUpdateView), ecs_view_id(SoundInstanceView));
+      SceneAttackSoundSys, ecs_view_id(SoundUpdateView), ecs_view_id(SoundInstanceView));
 
   ecs_register_system(
       SceneAttackAttachmentSys,
       ecs_view_id(GlobalView),
       ecs_view_id(WeaponMapView),
-      ecs_view_id(AttackAttachmentUpdateView));
+      ecs_view_id(AttachmentUpdateView),
+      ecs_view_id(AttachmentInstanceView));
 }
 
 GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
