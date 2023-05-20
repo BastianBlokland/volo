@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "asset_vfx.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -46,11 +47,15 @@ typedef struct {
 
 ecs_comp_define(VfxSystemStateComp) {
   TimeDuration    age, emitAge;
+  u32             assetVersion;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxSystemInstance[].
 };
 
-ecs_comp_define(VfxSystemAssetComp) { VfxLoadFlags loadFlags; };
+ecs_comp_define(VfxSystemAssetComp) {
+  VfxLoadFlags loadFlags;
+  u32          version;
+};
 
 static void ecs_destruct_system_state_comp(void* data) {
   VfxSystemStateComp* comp = data;
@@ -78,7 +83,7 @@ ecs_view_define(ParticleDrawView) {
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
 ecs_view_define(AssetView) {
-  ecs_access_with(VfxSystemAssetComp);
+  ecs_access_read(VfxSystemAssetComp);
   ecs_access_read(AssetVfxComp);
 }
 
@@ -146,6 +151,7 @@ ecs_system_define(VfxSystemAssetLoadSys) {
     if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
       asset_acquire(world, entity);
       request->loadFlags |= VfxLoad_Acquired;
+      ++request->version;
     }
   }
 }
@@ -298,6 +304,11 @@ static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDura
     return math_min((u32)(age / emitterAsset->interval), maxCount);
   }
   return math_max(1, emitterAsset->count);
+}
+
+static void vfx_system_reset(VfxSystemStateComp* state) {
+  state->emitAge = 0;
+  array_for_t(state->emitters, VfxEmitterState, emitter) { emitter->spawnCount = 0; }
 }
 
 static void vfx_system_simulate(
@@ -508,7 +519,15 @@ ecs_system_define(VfxSystemUpdateSys) {
       }
       continue;
     }
-    const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
+    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
+    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+
+    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
+      if (state->assetVersion) {
+        vfx_system_reset(state); // Reset the state after hot-loading the asset.
+      }
+      state->assetVersion = assetRequest->version;
+    }
 
     VfxTrans sysTrans = {
         .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
