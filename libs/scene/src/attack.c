@@ -47,26 +47,6 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
-static EcsEntityId
-attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
-  const EcsEntityId result = scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .prefabId = weapon->attachmentPrefab,
-          .faction  = SceneFaction_None,
-          .rotation = geo_quat_ident,
-      });
-  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(
-      world,
-      result,
-      SceneAttachmentComp,
-      .target     = owner,
-      .jointIndex = sentinel_u32,
-      .jointName  = weapon->attachmentJoint);
-  return result;
-}
-
 static void aim_face(
     SceneAttackAimComp*           attackAim,
     SceneSkeletonComp*            skel,
@@ -559,10 +539,6 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
-      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
-    }
-
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     if (hasTarget) {
       attack->lastHasTargetTime = time->time;
@@ -646,7 +622,7 @@ ecs_view_define(AttackSoundUpdateView) {
 }
 
 static EcsEntityId
-attack_sound_inst_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
+attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
@@ -675,7 +651,63 @@ ecs_system_define(SceneAttackSoundSys) {
       sound->gain           = (readying || isAiming) ? 1.0f : 0.0f;
     } else {
       diag_assert_msg(attackSnd->aimSoundAsset, "Attack aim sound missing");
-      attackSnd->aimSoundInst = attack_sound_inst_create(world, entity, attackSnd->aimSoundAsset);
+      attackSnd->aimSoundInst = attack_sound_create(world, entity, attackSnd->aimSoundAsset);
+    }
+  }
+}
+
+ecs_view_define(AttackAttachmentUpdateView) { ecs_access_write(SceneAttackComp); }
+
+static EcsEntityId
+attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
+  const EcsEntityId result = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = weapon->attachmentPrefab,
+          .faction  = SceneFaction_None,
+          .rotation = geo_quat_ident,
+      });
+  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
+  ecs_world_add_t(
+      world,
+      result,
+      SceneAttachmentComp,
+      .target     = owner,
+      .jointIndex = sentinel_u32,
+      .jointName  = weapon->attachmentJoint);
+  return result;
+}
+
+ecs_system_define(SceneAttackAttachmentSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+
+  EcsView*                  weaponMapView = ecs_world_view_t(world, WeaponMapView);
+  const AssetWeaponMapComp* weaponMap     = attack_weapon_map_get(globalItr, weaponMapView);
+  if (!weaponMap) {
+    return; // Weapon-map not loaded yet.
+  }
+
+  EcsView* updateView = ecs_world_view_t(world, AttackAttachmentUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    SceneAttackComp*  attack = ecs_view_write_t(itr, SceneAttackComp);
+
+    if (UNLIKELY(!attack->weaponName)) {
+      continue; // Entity has no weapon equipped.
+    }
+
+    const AssetWeapon* weapon = asset_weapon_get(weaponMap, attack->weaponName);
+    if (UNLIKELY(!weapon)) {
+      log_e("Weapon not found", log_param("entity", fmt_int(entity, .base = 16)));
+      continue;
+    }
+
+    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
+      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
     }
   }
 }
@@ -692,6 +724,7 @@ ecs_module_init(scene_attack_module) {
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
   ecs_register_view(AttackSoundUpdateView);
+  ecs_register_view(AttackAttachmentUpdateView);
 
   ecs_register_system(
       SceneAttackSys,
@@ -704,6 +737,12 @@ ecs_module_init(scene_attack_module) {
 
   ecs_register_system(
       SceneAttackSoundSys, ecs_view_id(AttackSoundUpdateView), ecs_view_id(SoundInstanceView));
+
+  ecs_register_system(
+      SceneAttackAttachmentSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(WeaponMapView),
+      ecs_view_id(AttackAttachmentUpdateView));
 }
 
 GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {
