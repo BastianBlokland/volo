@@ -47,6 +47,26 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
+static EcsEntityId
+attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
+  const EcsEntityId result = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = weapon->attachmentPrefab,
+          .faction  = SceneFaction_None,
+          .rotation = geo_quat_ident,
+      });
+  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
+  ecs_world_add_t(
+      world,
+      result,
+      SceneAttachmentComp,
+      .target     = owner,
+      .jointIndex = sentinel_u32,
+      .jointName  = weapon->attachmentJoint);
+  return result;
+}
+
 static void aim_face(
     SceneAttackAimComp*           attackAim,
     SceneSkeletonComp*            skel,
@@ -537,6 +557,10 @@ ecs_system_define(SceneAttackSys) {
     if (UNLIKELY(!weapon)) {
       log_e("Weapon not found", log_param("entity", fmt_int(entity, .base = 16)));
       continue;
+    }
+
+    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
+      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
     }
 
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
