@@ -35,23 +35,23 @@
         "angle": 7.5,
         "rotation": { "x": -90 }
       },
-      "force": { "y": 0.25 },
+      "force": { "y": 0.5 },
       "sprite": {
         "atlasEntry": "smoke",
-        "color": { "r": 0.05, "g": 0.05, "b": 0.05, "a": 1.35 },
+        "color": { "r": 0.05, "g": 0.05, "b": 0.05, "a": 0.8 },
         "blend": "Alpha",
         "facing": "BillboardSphere",
-        "size": { "x": 1, "y": 1 },
+        "size": { "x": 0.75, "y": 0.75 },
         "fadeInTime": 1.5,
-        "fadeOutTime": 2,
-        "scaleInTime": 1.75,
+        "fadeOutTime": 1,
+        "scaleInTime": 0.5,
         "geometryFade": true
       },
-      "expandForce": 1.5,
-      "speed": { "min": 8, "max": 10 },
+      "expandForce": 2,
+      "speed": { "min": 9, "max": 10 },
       "interval": 0.06,
       "scale": { "min": 0.8, "max": 1.2 },
-      "lifetime": { "min": 2, "max": 3 },
+      "lifetime": { "min": 2, "max": 2.75 },
       "rotation": { "random": { "z": 360 } }
     }
   ]
