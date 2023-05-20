@@ -49,6 +49,27 @@ static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, E
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
 }
 
+static EcsEntityId
+attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
+  const EcsEntityId result = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = weapon->attachmentPrefab,
+          .faction  = SceneFaction_None,
+          .rotation = geo_quat_ident,
+      });
+  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
+  ecs_world_add_t(
+      world,
+      result,
+      SceneAttachmentComp,
+      .target     = owner,
+      .jointIndex = sentinel_u32,
+      .jointName  = weapon->attachmentJoint);
+  ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
+  return result;
+}
+
 static void aim_face(
     SceneAttackAimComp*           attackAim,
     SceneSkeletonComp*            skel,
@@ -541,6 +562,10 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
+    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
+      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
+    }
+
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     if (hasTarget) {
       attack->lastHasTargetTime = time->time;
@@ -658,63 +683,15 @@ ecs_system_define(SceneAttackSoundSys) {
   }
 }
 
-ecs_view_define(AttachmentUpdateView) { ecs_access_write(SceneAttackComp); }
-
-static EcsEntityId
-attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
-  const EcsEntityId result = scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .prefabId = weapon->attachmentPrefab,
-          .faction  = SceneFaction_None,
-          .rotation = geo_quat_ident,
-      });
-  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
-  ecs_world_add_t(
-      world,
-      result,
-      SceneAttachmentComp,
-      .target     = owner,
-      .jointIndex = sentinel_u32,
-      .jointName  = weapon->attachmentJoint);
-  ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
-  return result;
-}
+ecs_view_define(AttachmentUpdateView) { ecs_access_read(SceneAttackComp); }
 
 ecs_system_define(SceneAttackAttachmentSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-
-  EcsView*                  weaponMapView = ecs_world_view_t(world, WeaponMapView);
-  const AssetWeaponMapComp* weaponMap     = attack_weapon_map_get(globalItr, weaponMapView);
-  if (!weaponMap) {
-    return; // Weapon-map not loaded yet.
-  }
-
   EcsView*     instanceView = ecs_world_view_t(world, AttachmentInstanceView);
   EcsIterator* instanceItr  = ecs_view_itr(instanceView);
 
   EcsView* updateView = ecs_world_view_t(world, AttachmentUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    SceneAttackComp*  attack = ecs_view_write_t(itr, SceneAttackComp);
-
-    if (UNLIKELY(!attack->weaponName)) {
-      continue; // Entity has no weapon equipped.
-    }
-
-    const AssetWeapon* weapon = asset_weapon_get(weaponMap, attack->weaponName);
-    if (UNLIKELY(!weapon)) {
-      log_e("Weapon not found", log_param("entity", fmt_int(entity, .base = 16)));
-      continue;
-    }
-
-    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
-      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
-    }
+    const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
 
     if (ecs_view_maybe_jump(instanceItr, attack->attachedInstance)) {
       SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
@@ -756,8 +733,6 @@ ecs_module_init(scene_attack_module) {
 
   ecs_register_system(
       SceneAttackAttachmentSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(WeaponMapView),
       ecs_view_id(AttachmentUpdateView),
       ecs_view_id(AttachmentInstanceView));
 }
