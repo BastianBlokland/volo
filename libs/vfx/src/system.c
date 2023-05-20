@@ -293,7 +293,7 @@ static void vfx_system_spawn(
 static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
   if (emitterAsset->interval) {
     const u32 maxCount = emitterAsset->count ? emitterAsset->count : u32_max;
-    return math_min(1 + (u32)(age / emitterAsset->interval), maxCount);
+    return math_min((u32)(age / emitterAsset->interval), maxCount);
   }
   return math_max(1, emitterAsset->count);
 }
