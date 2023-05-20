@@ -359,7 +359,7 @@ static void vfx_instance_output_sprite(
     const AssetVfxComp*      asset,
     const VfxTrans*          sysTrans,
     const TimeDuration       sysTimeRem,
-    const f32                alpha) {
+    const f32                sysAlpha) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
@@ -382,13 +382,12 @@ static void vfx_instance_output_sprite(
     rot = geo_quat_mul(sysTrans->rot, rot);
   }
 
-  GeoVector pos = instance->pos;
+  GeoVector pos   = instance->pos;
+  GeoColor  color = sprite->color;
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
+    color.a *= sysAlpha;
   }
-
-  GeoColor color = sprite->color;
-  color.a *= alpha;
   color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
 
@@ -430,7 +429,7 @@ static void vfx_instance_output_light(
     const AssetVfxComp*      asset,
     const VfxTrans*          sysTrans,
     const TimeDuration       sysTimeRem,
-    const f32                alpha) {
+    const f32                sysAlpha) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -448,8 +447,8 @@ static void vfx_instance_output_light(
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
     scale *= sysTrans->scale;
+    radiance.a *= sysAlpha;
   }
-  radiance.a *= alpha;
   radiance.a *= scale;
   radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
   radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
@@ -501,9 +500,6 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const SceneTags tags     = tagComp ? tagComp->tags : SceneTags_Default;
     const f32       sysAlpha = vfxSys->alpha;
-    if (sysAlpha <= f32_epsilon) {
-      continue;
-    }
 
     diag_assert_msg(ecs_entity_valid(vfxSys->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfxSys->asset)) {
