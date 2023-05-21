@@ -47,7 +47,7 @@
           "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -97,7 +97,7 @@
           "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -146,7 +146,7 @@
           "tauntDeathPrefab": "TauntDeathUnitEnemy"
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -180,7 +180,7 @@
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
@@ -213,7 +213,7 @@
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
-        { "$type": "AssetPrefabTrait_Status", "burnable": true }
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
@@ -772,6 +772,12 @@
           "assetIds": [ "external/sound/indicator-02.wav" ],
           "gainMin": 0.6
         }
+      ]
+    },
+    {
+      "name": "EffectBurning", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_status.vfx" }
       ]
     }
   ]
