@@ -139,6 +139,10 @@ typedef struct {
 } AssetPrefabTraitExplosiveDef;
 
 typedef struct {
+  bool burnable;
+} AssetPrefabTraitStatusDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderableDef data_renderable;
@@ -157,6 +161,7 @@ typedef struct {
     AssetPrefabTraitTauntDef      data_taunt;
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitExplosiveDef  data_explosive;
+    AssetPrefabTraitStatusDef     data_status;
   };
 } AssetPrefabTraitDef;
 
@@ -291,6 +296,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
@@ -308,6 +316,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
@@ -560,6 +569,11 @@ static void prefab_build(
           .delay  = (TimeDuration)time_seconds(traitDef->data_explosive.delay),
           .radius = traitDef->data_explosive.radius,
           .damage = traitDef->data_explosive.damage,
+      };
+      break;
+    case AssetPrefabTrait_Status:
+      outTrait->data_status = (AssetPrefabTraitStatus){
+          .burnable = traitDef->data_status.burnable,
       };
       break;
     case AssetPrefabTrait_Scalable:

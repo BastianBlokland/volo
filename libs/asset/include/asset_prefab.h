@@ -54,6 +54,7 @@ typedef enum {
   AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Location,
   AssetPrefabTrait_Explosive,
+  AssetPrefabTrait_Status,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -150,6 +151,10 @@ typedef struct {
 } AssetPrefabTraitExplosive;
 
 typedef struct {
+  bool burnable;
+} AssetPrefabTraitStatus;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -168,6 +173,7 @@ typedef struct {
     AssetPrefabTraitTaunt      data_taunt;
     AssetPrefabTraitLocation   data_location;
     AssetPrefabTraitExplosive  data_explosive;
+    AssetPrefabTraitStatus     data_status;
   };
 } AssetPrefabTrait;
 
