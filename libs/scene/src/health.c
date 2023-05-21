@@ -170,7 +170,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     const f32 damageNorm = health_normalize(health, damage->amount);
     damage->amount       = 0;
 
-    if (damageNorm > 0.0f) {
+    if (damageNorm > 0.0f && !(health->flags & SceneHealthFlags_Dead)) {
       damage->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
       if (anim && healthAnim && damageNorm > g_healthMinNormDamageForAnim) {
