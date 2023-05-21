@@ -89,39 +89,45 @@ ecs_system_define(SceneStatusUpdateSys) {
     const SceneHealthComp*  health  = ecs_view_read_t(itr, SceneHealthComp);
     SceneDamageComp*        damage  = ecs_view_write_t(itr, SceneDamageComp);
 
-    const bool isDead = health && (health->flags & SceneHealthFlags_Dead) != 0;
-
     // Apply the requests.
-    status->active |= (request->add & status->supported);
-    status->active &= ~request->remove;
-    bitset_for(bitset_from_var(request->add), typeIndex) {
-      status->lastRefreshTime[typeIndex] = time->time;
-    }
-    request->add = request->remove = 0;
-
-    // Process effects.
-    for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-      bool active = (status->active & (1 << type)) != 0;
-
-      const TimeDuration timeSinceRefresh = time->time - status->lastRefreshTime[type];
-      if (active && g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
-        status->active &= ~(1 << type);
-        active = false;
+    bool effectsDirty = false;
+    if (request->add || request->remove) {
+      status->active |= (request->add & status->supported);
+      status->active &= ~request->remove;
+      bitset_for(bitset_from_var(request->add), typeIndex) {
+        status->lastRefreshTime[typeIndex] = time->time;
       }
+      request->add = request->remove = 0;
+      effectsDirty                   = true;
+    }
 
-      if (active && damage) {
+    // Process active types.
+    bitset_for(bitset_from_var(status->active), typeIndex) {
+      const SceneStatusType type             = (SceneStatusType)typeIndex;
+      const TimeDuration    timeSinceRefresh = time->time - status->lastRefreshTime[type];
+      if (g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
+        status->active &= ~(1 << type);
+        effectsDirty = true;
+      }
+      if (damage) {
         damage->amount += g_sceneStatusDamagePerSec[type] * deltaSec;
       }
-
-      if (active && !status->effectEntities[type]) {
+      if (!status->effectEntities[type]) {
         status->effectEntities[type] = status_effect_create(world, entity, status, type);
       }
-      if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
-        SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
-        if (active && !isDead) {
-          tagComp->tags |= SceneTags_Emit;
-        } else {
-          tagComp->tags &= ~SceneTags_Emit;
+    }
+
+    // Enable / disable effects.
+    const bool isDead = health && (health->flags & SceneHealthFlags_Dead) != 0;
+    if (effectsDirty || isDead) {
+      for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+        if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
+          SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
+          if ((status->active & (1 << type)) && !isDead) {
+            tagComp->tags |= SceneTags_Emit;
+          } else {
+            tagComp->tags &= ~SceneTags_Emit;
+          }
         }
       }
     }
