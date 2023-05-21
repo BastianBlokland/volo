@@ -297,7 +297,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
-    data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
