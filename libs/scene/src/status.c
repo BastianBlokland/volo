@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_bits.h"
 #include "ecs_world.h"
 #include "scene_status.h"
@@ -43,6 +44,14 @@ ecs_module_init(scene_status_module) {
 
 bool scene_status_active(const SceneStatusComp* status, const SceneStatusType type) {
   return (status->active & (1 << type)) != 0;
+}
+
+String scene_status_name(const SceneStatusType type) {
+  static const String g_names[] = {
+      string_static("Burning"),
+  };
+  ASSERT(array_elems(g_names) == SceneStatusType_Count, "Incorrect number of names");
+  return g_names[type];
 }
 
 void scene_status_add(EcsWorld* world, const EcsEntityId target, const SceneStatusType type) {

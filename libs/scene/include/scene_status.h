@@ -20,7 +20,8 @@ ecs_comp_extern_public(SceneStatusRequestComp) {
   SceneStatusMask remove;
 };
 
-bool scene_status_active(const SceneStatusComp*, SceneStatusType);
+bool   scene_status_active(const SceneStatusComp*, SceneStatusType);
+String scene_status_name(SceneStatusType);
 
 void scene_status_add(EcsWorld*, EcsEntityId, SceneStatusType);
 void scene_status_remove(EcsWorld*, EcsEntityId, SceneStatusType);
