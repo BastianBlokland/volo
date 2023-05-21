@@ -11,13 +11,13 @@
 #include "scene_time.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = 10,
+    [SceneStatusType_Burning] = 25,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = string_static("EffectBurning"),
 };
 static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = time_seconds(5),
+    [SceneStatusType_Burning] = time_seconds(4),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
