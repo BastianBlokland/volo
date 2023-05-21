@@ -151,7 +151,8 @@ typedef struct {
 } AssetPrefabTraitExplosive;
 
 typedef struct {
-  bool burnable;
+  StringHash effectJoint;
+  bool       burnable;
 } AssetPrefabTraitStatus;
 
 typedef struct {

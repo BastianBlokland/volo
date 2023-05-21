@@ -1,13 +1,19 @@
 #include "core_array.h"
 #include "core_bits.h"
-#include "core_bitset.h"
 #include "ecs_world.h"
+#include "scene_attachment.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
+#include "scene_prefab.h"
 #include "scene_status.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = 10,
+};
+static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
+    [SceneStatusType_Burning] = string_static("EffectBurning"),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
@@ -22,13 +28,42 @@ static void ecs_combine_status_request(void* dataA, void* dataB) {
   reqA->remove |= reqB->remove;
 }
 
+static EcsEntityId status_effect_create(
+    EcsWorld*              world,
+    const EcsEntityId      owner,
+    const SceneStatusComp* status,
+    const SceneStatusType  type) {
+  if (string_is_empty(g_sceneStatusEffectPrefabs[type])) {
+    return 0;
+  }
+  const EcsEntityId result = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = string_hash(g_sceneStatusEffectPrefabs[type]), // TODO: Cache hashed name.
+          .faction  = SceneFaction_None,
+          .rotation = geo_quat_ident,
+      });
+  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
+  ecs_world_add_t(
+      world,
+      result,
+      SceneAttachmentComp,
+      .target     = owner,
+      .jointIndex = sentinel_u32,
+      .jointName  = status->effectJoint);
+  return result;
+}
+
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(StatusView) {
-  ecs_access_write(SceneStatusRequestComp);
-  ecs_access_write(SceneStatusComp);
+  ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_write(SceneDamageComp);
+  ecs_access_write(SceneStatusComp);
+  ecs_access_write(SceneStatusRequestComp);
 }
+
+ecs_view_define(EffectInstanceView) { ecs_access_write(SceneTagComp); }
 
 ecs_system_define(SceneStatusUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
@@ -39,11 +74,18 @@ ecs_system_define(SceneStatusUpdateSys) {
   const SceneTimeComp* time     = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSec = scene_delta_seconds(time);
 
+  EcsView*     instanceView = ecs_world_view_t(world, EffectInstanceView);
+  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
+
   EcsView* statusView = ecs_world_view_t(world, StatusView);
   for (EcsIterator* itr = ecs_view_itr(statusView); ecs_view_walk(itr);) {
+    const EcsEntityId       entity  = ecs_view_entity(itr);
     SceneStatusRequestComp* request = ecs_view_write_t(itr, SceneStatusRequestComp);
     SceneStatusComp*        status  = ecs_view_write_t(itr, SceneStatusComp);
+    const SceneHealthComp*  health  = ecs_view_read_t(itr, SceneHealthComp);
     SceneDamageComp*        damage  = ecs_view_write_t(itr, SceneDamageComp);
+
+    const bool isDead = health && (health->flags & SceneHealthFlags_Dead) != 0;
 
     // Apply the requests.
     status->active |= (request->add & status->supported);
@@ -52,10 +94,28 @@ ecs_system_define(SceneStatusUpdateSys) {
     // Clear the requests.
     request->add = request->remove = 0;
 
-    // Apply damage.
-    bitset_for(bitset_from_var(status->active), typeIndex) {
-      if (damage) {
-        damage->amount += g_sceneStatusDamagePerSec[typeIndex] * deltaSec;
+    // Process effects.
+    for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+      const bool active = (status->active & (1 << type)) != 0;
+
+      // Apply damage.
+      if (active && damage) {
+        damage->amount += g_sceneStatusDamagePerSec[type] * deltaSec;
+      }
+
+      // Create effect if its not created yet.
+      if (active && !status->effectEntities[type]) {
+        status->effectEntities[type] = status_effect_create(world, entity, status, type);
+      }
+
+      // Update effect emit tag.
+      if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
+        SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
+        if (active && !isDead) {
+          tagComp->tags |= SceneTags_Emit;
+        } else {
+          tagComp->tags &= ~SceneTags_Emit;
+        }
       }
     }
   }
@@ -67,8 +127,13 @@ ecs_module_init(scene_status_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(StatusView);
+  ecs_register_view(EffectInstanceView);
 
-  ecs_register_system(SceneStatusUpdateSys, ecs_view_id(GlobalView), ecs_view_id(StatusView));
+  ecs_register_system(
+      SceneStatusUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(StatusView),
+      ecs_view_id(EffectInstanceView));
 }
 
 bool scene_status_active(const SceneStatusComp* status, const SceneStatusType type) {

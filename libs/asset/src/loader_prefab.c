@@ -139,7 +139,8 @@ typedef struct {
 } AssetPrefabTraitExplosiveDef;
 
 typedef struct {
-  bool burnable;
+  String effectJoint;
+  bool   burnable;
 } AssetPrefabTraitStatusDef;
 
 typedef struct {
@@ -297,6 +298,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
@@ -573,7 +575,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Status:
       outTrait->data_status = (AssetPrefabTraitStatus){
-          .burnable = traitDef->data_status.burnable,
+          .effectJoint = prefab_name_maybe_hash(traitDef->data_status.effectJoint),
+          .burnable    = traitDef->data_status.burnable,
       };
       break;
     case AssetPrefabTrait_Scalable:

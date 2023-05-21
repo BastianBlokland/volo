@@ -331,10 +331,10 @@ static void setup_explosive(EcsWorld* w, const EcsEntityId e, const AssetPrefabT
 }
 
 static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
-  SceneStatusMask supportedTypes = 0;
-  supportedTypes |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
+  SceneStatusMask supported = 0;
+  supported |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
 
-  ecs_world_add_t(w, e, SceneStatusComp, .supported = supportedTypes);
+  ecs_world_add_t(w, e, SceneStatusComp, .supported = supported, .effectJoint = t->effectJoint);
   ecs_world_add_t(w, e, SceneStatusRequestComp);
 }
 

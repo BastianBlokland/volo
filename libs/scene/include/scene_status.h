@@ -13,6 +13,8 @@ typedef u8 SceneStatusMask;
 ecs_comp_extern_public(SceneStatusComp) {
   SceneStatusMask supported;
   SceneStatusMask active;
+  StringHash      effectJoint;
+  EcsEntityId     effectEntities[SceneStatusType_Count];
 };
 
 ecs_comp_extern_public(SceneStatusRequestComp) {
