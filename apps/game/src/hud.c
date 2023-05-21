@@ -93,8 +93,8 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneStatusComp*    status    = ecs_view_read_t(itr, SceneStatusComp);
 
-    if (health->norm <= f32_epsilon || health->norm > 0.999f) {
-      continue; // Hide health-bars if entity is death or at full health.
+    if (health->norm <= f32_epsilon || (health->norm > 0.999f && !(status && status->active))) {
+      continue; // Hide health-bars if entity is death or at full health without any status-effects.
     }
 
     const GeoVector worldPos  = hud_health_world_pos(trans, scale, collision);
