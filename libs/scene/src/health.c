@@ -14,6 +14,8 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
+static const f32 g_healthMinNormDamageForAnim = 0.05f;
+
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
@@ -171,7 +173,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     if (damageNorm > 0.0f) {
       damage->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
-      if (anim && healthAnim) {
+      if (anim && healthAnim && damageNorm > g_healthMinNormDamageForAnim) {
         health_anim_play_hit(anim, healthAnim);
       }
     } else if ((time->time - damage->lastDamagedTime) > time_milliseconds(100)) {
