@@ -777,7 +777,14 @@
     {
       "name": "EffectBurning", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_status.vfx" }
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_status.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/burning-03.wav" ],
+          "gainMin": 1.8, "gainMax": 1.9,
+          "pitchMin": 1.5, "pitchMax": 1.6,
+          "looping": true
+        }
       ]
     }
   ]
