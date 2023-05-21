@@ -26,7 +26,7 @@ ecs_system_define(SceneStatusUpdateSys) {
     SceneStatusComp*        status  = ecs_view_write_t(itr, SceneStatusComp);
 
     // Apply the requests.
-    status->active |= request->add;
+    status->active |= (request->add & status->supported);
     status->active &= ~request->remove;
 
     // Clear the requests.

@@ -10,7 +10,10 @@ typedef enum {
 
 typedef u8 SceneStatusMask;
 
-ecs_comp_extern_public(SceneStatusComp) { SceneStatusMask active; };
+ecs_comp_extern_public(SceneStatusComp) {
+  SceneStatusMask supported;
+  SceneStatusMask active;
+};
 
 ecs_comp_extern_public(SceneStatusRequestComp) {
   SceneStatusMask add;
