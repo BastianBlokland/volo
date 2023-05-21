@@ -6,7 +6,7 @@
 #include "scene_status.h"
 #include "scene_time.h"
 
-static const f32 g_sceneStatusDamagePerSec[] = {
+static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = 10,
 };
 
