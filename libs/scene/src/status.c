@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_bitset.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_health.h"
@@ -14,6 +15,9 @@ static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = string_static("EffectBurning"),
+};
+static const TimeDuration g_sceneStatusTimeout[SceneStatusType_Count] = {
+    [SceneStatusType_Burning] = time_seconds(5),
 };
 
 ASSERT(SceneStatusType_Count <= bytes_to_bits(sizeof(SceneStatusMask)), "Status mask too small");
@@ -90,25 +94,28 @@ ecs_system_define(SceneStatusUpdateSys) {
     // Apply the requests.
     status->active |= (request->add & status->supported);
     status->active &= ~request->remove;
-
-    // Clear the requests.
+    bitset_for(bitset_from_var(request->add), typeIndex) {
+      status->lastRefreshTime[typeIndex] = time->time;
+    }
     request->add = request->remove = 0;
 
     // Process effects.
     for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-      const bool active = (status->active & (1 << type)) != 0;
+      bool active = (status->active & (1 << type)) != 0;
 
-      // Apply damage.
+      const TimeDuration timeSinceRefresh = time->time - status->lastRefreshTime[type];
+      if (active && g_sceneStatusTimeout[type] && timeSinceRefresh > g_sceneStatusTimeout[type]) {
+        status->active &= ~(1 << type);
+        active = false;
+      }
+
       if (active && damage) {
         damage->amount += g_sceneStatusDamagePerSec[type] * deltaSec;
       }
 
-      // Create effect if its not created yet.
       if (active && !status->effectEntities[type]) {
         status->effectEntities[type] = status_effect_create(world, entity, status, type);
       }
-
-      // Update effect emit tag.
       if (ecs_view_maybe_jump(instanceItr, status->effectEntities[type])) {
         SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
         if (active && !isDead) {
