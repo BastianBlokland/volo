@@ -22,6 +22,7 @@
 #include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_selection.h"
+#include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_time.h"
@@ -142,6 +143,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_write(SceneBoundsComp);
@@ -351,6 +353,34 @@ static void inspector_panel_draw_health(
       ui_label(canvas, string_lit("Max"));
       ui_table_next_column(canvas, table);
       debug_widget_editor_f32(canvas, &health->max, UiWidget_Default);
+    }
+  }
+}
+
+static void inspector_panel_draw_status(
+    EcsWorld*                world,
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  const SceneStatusComp* status = subject ? ecs_view_read_t(subject, SceneStatusComp) : null;
+  if (status) {
+    inspector_panel_next(canvas, panelComp, table);
+    const u32 activeCount = bits_popcnt((u32)status->active);
+    if (inspector_panel_section(canvas, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
+      for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, scene_status_name(type));
+        ui_table_next_column(canvas, table);
+        bool active = scene_status_active(status, type);
+        if (ui_toggle(canvas, &active)) {
+          if (active) {
+            scene_status_add(world, ecs_view_entity(subject), type);
+          } else {
+            scene_status_remove(world, ecs_view_entity(subject), type);
+          }
+        }
+      }
     }
   }
 }
@@ -681,6 +711,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_health(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_status(world, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_faction(canvas, panelComp, &table, subject);
