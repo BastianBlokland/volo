@@ -18,6 +18,7 @@
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_sound.h"
+#include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -350,6 +351,11 @@ static EffectResult effect_update_dmg(
 
     // Apply damage.
     scene_health_damage(ctx->world, hits[i], def->damage);
+
+    // Apply status.
+    if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning);
+    }
 
     // Spawn impact.
     if (def->impactPrefab) {

@@ -30,6 +30,7 @@ typedef struct {
   StringHash   originJoint;
   f32          radius;
   f32          damage;
+  bool         applyBurning;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectDmg;
