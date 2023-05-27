@@ -350,7 +350,9 @@ static EffectResult effect_update_dmg(
     const GeoVector impactPoint = aim_estimate_impact_point(orgSphere.point, hitItr);
 
     // Apply damage.
-    scene_health_damage(ctx->world, hits[i], def->damage);
+    if (def->damage > f32_epsilon) {
+      scene_health_damage(ctx->world, hits[i], def->damage);
+    }
 
     // Apply status.
     if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
