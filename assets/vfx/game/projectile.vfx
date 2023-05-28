@@ -11,7 +11,7 @@
         "size": { "x": 3.5, "y": 0.1 },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
-        "scaleInTime": 0.05
+        "scaleInTime": 0.1
       },
       "rotation": { "base": { "y": -90 } }
     },
@@ -26,7 +26,7 @@
         "size": { "x": 3.5, "y": 0.1 },
         "fadeInTime": 0.1,
         "fadeOutTime": 0.05,
-        "scaleInTime": 0.05
+        "scaleInTime": 0.1
       },
       "rotation": { "base": { "x": 90, "y": -90 } }
     }
