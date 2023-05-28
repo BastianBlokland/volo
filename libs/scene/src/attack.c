@@ -168,8 +168,8 @@ static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
 }
 
 static SceneLayer damage_query_layer_mask(const SceneFaction factionId) {
-  SceneLayer layer = SceneLayer_Unit;
-  if (factionId) {
+  SceneLayer layer = SceneLayer_Unit | SceneLayer_Destructible;
+  if (factionId != SceneFaction_None) {
     layer &= ~damage_ignore_layer(factionId);
   }
   return layer;
