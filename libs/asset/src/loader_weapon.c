@@ -210,10 +210,6 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static StringHash weapon_string_maybe_hash(const String name) {
-  return string_is_empty(name) ? 0 : string_hash(name);
-}
-
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -230,8 +226,8 @@ static void weapon_effect_proj_build(
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
-      .projectilePrefab    = weapon_string_maybe_hash(def->projectilePrefab),
-      .impactPrefab        = weapon_string_maybe_hash(def->impactPrefab),
+      .projectilePrefab    = string_maybe_hash(def->projectilePrefab),
+      .impactPrefab        = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -249,7 +245,7 @@ static void weapon_effect_dmg_build(
       .damage       = def->damage,
       .radius       = def->radius,
       .applyBurning = def->applyBurning,
-      .impactPrefab = weapon_string_maybe_hash(def->impactPrefab),
+      .impactPrefab = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -328,8 +324,8 @@ static void weapon_build(
   *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
       .nameHash         = stringtable_add(g_stringtable, def->name),
-      .attachmentPrefab = weapon_string_maybe_hash(def->attachmentPrefab),
-      .attachmentJoint  = weapon_string_maybe_hash(def->attachmentJoint),
+      .attachmentPrefab = string_maybe_hash(def->attachmentPrefab),
+      .attachmentJoint  = string_maybe_hash(def->attachmentJoint),
       .flags            = flags,
       .intervalMin      = (TimeDuration)time_seconds(def->intervalMin),
       .intervalMax      = (TimeDuration)time_seconds(def->intervalMax),

@@ -373,10 +373,6 @@ static EcsEntityId prefab_asset_maybe_lookup(BuildCtx* ctx, const String id) {
   return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
 }
 
-static StringHash prefab_name_maybe_hash(const String name) {
-  return string_is_empty(name) ? 0 : string_hash(name);
-}
-
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
@@ -510,14 +506,14 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathEffectPrefab = prefab_name_maybe_hash(traitDef->data_health.deathEffectPrefab),
+          .deathEffectPrefab = string_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
       outPrefab->flags |= AssetPrefabFlags_Destructible;
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
           .weapon            = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint          = prefab_name_maybe_hash(traitDef->data_attack.aimJoint),
+          .aimJoint          = string_maybe_hash(traitDef->data_attack.aimJoint),
           .aimSpeedRad       = traitDef->data_attack.aimSpeed * math_deg_to_rad,
           .aimSoundAsset     = prefab_asset_maybe_lookup(ctx, traitDef->data_attack.aimSoundId),
           .targetDistanceMin = traitDef->data_attack.targetDistanceMin,
@@ -551,14 +547,14 @@ static void prefab_build(
     case AssetPrefabTrait_Blink:
       outTrait->data_blink = (AssetPrefabTraitBlink){
           .frequency    = traitDef->data_blink.frequency,
-          .effectPrefab = prefab_name_maybe_hash(traitDef->data_blink.effectPrefab),
+          .effectPrefab = string_maybe_hash(traitDef->data_blink.effectPrefab),
       };
       break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
           .priority           = traitDef->data_taunt.priority,
-          .tauntDeathPrefab   = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
-          .tauntConfirmPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
+          .tauntDeathPrefab   = string_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .tauntConfirmPrefab = string_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
       };
       break;
     case AssetPrefabTrait_Location:
@@ -575,7 +571,7 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Status:
       outTrait->data_status = (AssetPrefabTraitStatus){
-          .effectJoint = prefab_name_maybe_hash(traitDef->data_status.effectJoint),
+          .effectJoint = string_maybe_hash(traitDef->data_status.effectJoint),
           .burnable    = traitDef->data_status.burnable,
       };
       break;
