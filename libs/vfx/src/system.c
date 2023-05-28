@@ -401,6 +401,7 @@ static void vfx_instance_output_sprite(
   }
   color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
+  color.a = math_max(color.a, 0); // TODO: This is a bit sketchy, reason is timeRem can be 0.
 
   const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
