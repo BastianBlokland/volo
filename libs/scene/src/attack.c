@@ -727,11 +727,13 @@ ecs_system_define(SceneAttackAttachmentSys) {
 
   EcsView* updateView = ecs_world_view_t(world, AttachmentUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const EcsEntityId      entity = ecs_view_entity(itr);
     const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
+    const bool             isDead = ecs_world_has_t(world, entity, SceneDeadComp);
 
     if (ecs_view_maybe_jump(instanceItr, attack->attachedInstance)) {
       SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
-      if (attack->flags & SceneAttackFlags_Firing) {
+      if (!isDead && attack->flags & SceneAttackFlags_Firing) {
         tagComp->tags |= SceneTags_Emit;
       } else {
         tagComp->tags &= ~SceneTags_Emit;
