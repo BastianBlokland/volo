@@ -20,6 +20,7 @@ static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
 ecs_comp_define_public(SceneDamageComp);
+ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
 static void ecs_combine_damage(void* dataA, void* dataB) {
@@ -127,6 +128,7 @@ ecs_comp_extern(SceneNavPathComp);
 ecs_comp_extern(SceneTargetFinderComp);
 
 static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_add_empty_t(world, entity, SceneDeadComp);
   ecs_utils_maybe_remove_t(world, entity, SceneAttackComp);
   ecs_utils_maybe_remove_t(world, entity, SceneBrainComp);
   ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
@@ -219,6 +221,7 @@ ecs_module_init(scene_health_module) {
 
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(SceneDamageComp, .combinator = ecs_combine_damage);
+  ecs_register_comp_empty(SceneDeadComp);
   ecs_register_comp(SceneHealthAnimComp);
 
   ecs_register_view(GlobalView);

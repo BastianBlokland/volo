@@ -21,6 +21,8 @@ ecs_comp_extern_public(SceneDamageComp) {
   TimeDuration lastDamagedTime;
 };
 
+ecs_comp_extern_public(SceneDeadComp);
+
 f32 scene_health_points(const SceneHealthComp*);
 
 void scene_health_damage(EcsWorld*, EcsEntityId, f32 amount);
