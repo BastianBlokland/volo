@@ -18,7 +18,7 @@ static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = UiShape_Whatshot,
 };
 static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = ui_color(255, 128, 0, 255),
+    [SceneStatusType_Burning] = {.r = 255, .g = 128, .b = 0, .a = 255},
 };
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = 2,
