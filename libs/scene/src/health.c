@@ -119,7 +119,6 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
  * Remove various components on death.
  * TODO: Find another way to handle this, health should't know about all these components.
  */
-ecs_comp_extern(SceneAttackComp);
 ecs_comp_extern(SceneBrainComp);
 ecs_comp_extern(SceneCollisionComp);
 ecs_comp_extern(SceneLocomotionComp);
@@ -129,7 +128,6 @@ ecs_comp_extern(SceneTargetFinderComp);
 
 static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_empty_t(world, entity, SceneDeadComp);
-  ecs_utils_maybe_remove_t(world, entity, SceneAttackComp);
   ecs_utils_maybe_remove_t(world, entity, SceneBrainComp);
   ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
   ecs_utils_maybe_remove_t(world, entity, SceneLocomotionComp);

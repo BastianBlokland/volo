@@ -529,6 +529,7 @@ ecs_view_define(AttackView) {
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_without(SceneDeadComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
   ecs_access_write(SceneSkeletonComp);
