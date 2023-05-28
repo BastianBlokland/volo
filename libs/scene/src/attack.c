@@ -620,6 +620,7 @@ ecs_system_define(SceneAttackSys) {
     }
 
     // Potentially start a new attack.
+    bool interruptFiring = false;
     if (hasTarget) {
       const f32    distEst       = aim_estimate_distance(trans->position, targetItr);
       TimeDuration impactTimeEst = 0;
@@ -633,15 +634,19 @@ ecs_system_define(SceneAttackSys) {
       const bool      isCoolingDown = time->time < attack->nextFireTime;
       const GeoVector pos           = trans->position;
       const GeoQuat   aimRot        = scene_attack_aim_rot(trans, attackAim);
+      const bool canFire = weaponReady && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos);
 
-      if (weaponReady && !isFiring && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos)) {
+      if (!isFiring && canFire) {
         // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;
         attack->executedEffects = 0;
         attack->targetPos       = targetPos;
+      } else {
+        interruptFiring = !canFire;
       }
     } else {
+      interruptFiring = true;
       aim_idle(attackAim);
     }
 
@@ -664,8 +669,7 @@ ecs_system_define(SceneAttackSys) {
           .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
-      const bool         interrupt  = !weaponReady;
-      if (effect_update(&ctx, effectTime, interrupt) == EffectResult_Done) {
+      if (effect_update(&ctx, effectTime, interruptFiring) == EffectResult_Done) {
         // Finish the attack.
         attack->flags &= ~SceneAttackFlags_Firing;
         attack->nextFireTime = attack_next_fire_time(weapon, time->time);
