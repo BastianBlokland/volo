@@ -1,4 +1,5 @@
 #include "asset_weapon.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -220,6 +221,36 @@ static TimeDuration weapon_estimate_impact_time(
   return result;
 }
 
+static void weapon_damage_frustum(
+    const GeoVector pos,
+    const GeoVector direction,
+    const f32       length,
+    const f32       radiusBegin,
+    const f32       radiusEnd,
+    GeoVector       outPoints[PARAM_ARRAY_SIZE(8)]) {
+  const GeoVector right  = geo_vector_norm(geo_vector_cross3(direction, geo_up));
+  const GeoVector up     = geo_vector_cross3(direction, right);
+  const GeoVector endPos = geo_vector_add(pos, geo_vector_mul(direction, length));
+
+  static const f32 g_pointsLocal[][2] = {
+      {-1.0f, -1.0f},
+      {1.0f, -1.0f},
+      {1.0f, 1.0f},
+      {-1.0f, 1.0f},
+  };
+
+  for (u32 i = 0; i != array_elems(g_pointsLocal); ++i) {
+    outPoints[i] = geo_vector_add(
+        geo_vector_add(pos, geo_vector_mul(right, g_pointsLocal[i][0] * radiusBegin)),
+        geo_vector_mul(up, g_pointsLocal[i][1] * radiusBegin));
+  }
+  for (u32 i = 0; i != array_elems(g_pointsLocal); ++i) {
+    outPoints[4 + i] = geo_vector_add(
+        geo_vector_add(endPos, geo_vector_mul(right, g_pointsLocal[i][0] * radiusEnd)),
+        geo_vector_mul(up, g_pointsLocal[i][1] * radiusEnd));
+  }
+}
+
 typedef struct {
   EcsWorld*                     world;
   EcsView*                      targetView;
@@ -331,17 +362,28 @@ static EffectResult effect_update_dmg(
     log_e("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
     return EffectResult_Done;
   }
-  const GeoMatrix orgMat    = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
-  const GeoVector orgPoint  = geo_matrix_to_translation(&orgMat);
-  const GeoSphere orgSphere = {
-      .point  = orgPoint,
-      .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
-  };
+  const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
+  const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
+  EcsEntityId     hits[scene_query_max_hits];
+  u32             hitCount;
+
   const SceneQueryFilter filter = {
       .layerMask = damage_query_layer_mask(ctx->factionId),
   };
-  EcsEntityId hits[scene_query_max_hits];
-  const u32   hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+
+  if (def->length > f32_epsilon) {
+    // HACK: Using up instead of forward because the joints created by blender use that orientation.
+    const GeoVector dir = geo_vector_norm(geo_matrix_transform3(&orgMat, geo_up));
+    GeoVector       frustum[8];
+    weapon_damage_frustum(orgPos, dir, def->length, def->radius, def->radiusEnd, frustum);
+    hitCount = scene_query_frustum_all(ctx->collisionEnv, frustum, &filter, hits);
+  } else {
+    const GeoSphere orgSphere = {
+        .point  = orgPos,
+        .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
+    };
+    hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+  }
 
   EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
   for (u32 i = 0; i != hitCount; ++i) {
@@ -365,13 +407,13 @@ static EffectResult effect_update_dmg(
 
     // Spawn impact.
     if (firstExecution && def->impactPrefab) {
-      const GeoVector impactPoint = aim_estimate_impact_point(orgPoint, hitItr);
+      const GeoVector impactPoint = aim_estimate_impact_point(orgPos, hitItr);
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
               .prefabId = def->impactPrefab,
               .faction  = SceneFaction_None,
-              .position = geo_vector_lerp(impactPoint, orgPoint, 0.5f),
+              .position = geo_vector_lerp(impactPoint, orgPos, 0.5f),
               .rotation = geo_quat_ident,
           });
     }
