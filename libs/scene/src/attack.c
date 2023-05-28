@@ -315,6 +315,7 @@ static EffectResult effect_update_dmg(
     const AttackCtx*            ctx,
     const TimeDuration          effectTime,
     const u32                   effectIndex,
+    const bool                  interrupt,
     const AssetWeaponEffectDmg* def) {
 
   if (effectTime < def->delay) {
@@ -374,13 +375,17 @@ static EffectResult effect_update_dmg(
           });
     }
   }
-  return def->continuous ? EffectResult_Running : EffectResult_Done;
+  if (!def->continuous || interrupt) {
+    return EffectResult_Done;
+  }
+  return EffectResult_Running;
 }
 
 static EffectResult effect_update_anim(
     const AttackCtx*             ctx,
     const TimeDuration           effectTime,
     const u32                    effectIndex,
+    const bool                   interrupt,
     const AssetWeaponEffectAnim* def) {
 
   if (effectTime < def->delay) {
@@ -411,7 +416,10 @@ static EffectResult effect_update_anim(
     return EffectResult_Running;
   }
 
-  if (def->continuous) {
+  if (interrupt) {
+    animLayer->flags &= ~SceneAnimFlags_Loop; // Disable animation looping.
+  }
+  if (def->continuous && !interrupt) {
     return EffectResult_Running;
   }
   // If not continuous keep running until the animation reaches the end.
@@ -485,7 +493,8 @@ static EffectResult effect_update_sound(
   return EffectResult_Done;
 }
 
-static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effectTime) {
+static EffectResult
+effect_update(const AttackCtx* ctx, const TimeDuration effectTime, const bool interrupt) {
   diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->executedEffects) * 8);
 
   EffectResult result = EffectResult_Done;
@@ -496,10 +505,10 @@ static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effec
       result |= effect_update_proj(ctx, effectTime, i, &effect->data_proj);
       break;
     case AssetWeaponEffect_Damage:
-      result |= effect_update_dmg(ctx, effectTime, i, &effect->data_dmg);
+      result |= effect_update_dmg(ctx, effectTime, i, interrupt, &effect->data_dmg);
       break;
     case AssetWeaponEffect_Animation:
-      result |= effect_update_anim(ctx, effectTime, i, &effect->data_anim);
+      result |= effect_update_anim(ctx, effectTime, i, interrupt, &effect->data_anim);
       break;
     case AssetWeaponEffect_Vfx:
       result |= effect_update_vfx(ctx, effectTime, i, &effect->data_vfx);
@@ -652,7 +661,8 @@ ecs_system_define(SceneAttackSys) {
           .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
-      if (effect_update(&ctx, effectTime) == EffectResult_Done) {
+      const bool         interrupt  = !weaponReady;
+      if (effect_update(&ctx, effectTime, interrupt) == EffectResult_Done) {
         // Finish the attack.
         attack->flags &= ~SceneAttackFlags_Firing;
         attack->nextFireTime = attack_next_fire_time(weapon, time->time);
