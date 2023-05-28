@@ -160,7 +160,7 @@ u32 scene_query_sphere_all(
  */
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp*,
-    const GeoVector frustum[8],
+    const GeoVector frustum[PARAM_ARRAY_SIZE(8)],
     const SceneQueryFilter*,
     EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 

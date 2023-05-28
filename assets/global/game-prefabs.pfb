@@ -46,7 +46,8 @@
           "tauntDeathPrefab": "TauntDeathUnitRifle",
           "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -95,7 +96,8 @@
           "tauntDeathPrefab": "TauntDeathUnitRifle",
           "tauntConfirmPrefab": "TauntConfirmUnitRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -143,7 +145,8 @@
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathUnitEnemy"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
@@ -176,7 +179,8 @@
           }
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
@@ -208,7 +212,8 @@
           }
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
@@ -277,7 +282,8 @@
           "deathDestroyDelay": 0.5,
           "deathEffectPrefab": "ExplosionMedium"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 0.8 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 0.8 } },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
     {
@@ -765,6 +771,32 @@
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
           "assetIds": [ "external/sound/indicator-02.wav" ],
           "gainMin": 0.6
+        }
+      ]
+    },
+    {
+      "name": "EffectBurning", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_status.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/burning-03.wav" ],
+          "gainMin": 1.8, "gainMax": 1.9,
+          "pitchMin": 1.5, "pitchMax": 1.6,
+          "looping": true
+        }
+      ]
+    },
+    {
+      "name": "EffectFlameThrower", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_force.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/burning-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.2,
+          "pitchMin": 0.9, "pitchMax": 1.1,
+          "looping": true
         }
       ]
     }

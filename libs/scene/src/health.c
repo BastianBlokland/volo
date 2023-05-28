@@ -14,10 +14,13 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
+static const f32 g_healthMinNormDamageForAnim = 0.05f;
+
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
 ecs_comp_define_public(SceneDamageComp);
+ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
 static void ecs_combine_damage(void* dataA, void* dataB) {
@@ -116,7 +119,6 @@ static void health_anim_play_death(SceneAnimationComp* anim) {
  * Remove various components on death.
  * TODO: Find another way to handle this, health should't know about all these components.
  */
-ecs_comp_extern(SceneAttackComp);
 ecs_comp_extern(SceneBrainComp);
 ecs_comp_extern(SceneCollisionComp);
 ecs_comp_extern(SceneLocomotionComp);
@@ -125,7 +127,7 @@ ecs_comp_extern(SceneNavPathComp);
 ecs_comp_extern(SceneTargetFinderComp);
 
 static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
-  ecs_utils_maybe_remove_t(world, entity, SceneAttackComp);
+  ecs_world_add_empty_t(world, entity, SceneDeadComp);
   ecs_utils_maybe_remove_t(world, entity, SceneBrainComp);
   ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
   ecs_utils_maybe_remove_t(world, entity, SceneLocomotionComp);
@@ -168,10 +170,10 @@ ecs_system_define(SceneHealthUpdateSys) {
     const f32 damageNorm = health_normalize(health, damage->amount);
     damage->amount       = 0;
 
-    if (damageNorm > 0.0f) {
+    if (damageNorm > 0.0f && !(health->flags & SceneHealthFlags_Dead)) {
       damage->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
-      if (anim && healthAnim) {
+      if (anim && healthAnim && damageNorm > g_healthMinNormDamageForAnim) {
         health_anim_play_hit(anim, healthAnim);
       }
     } else if ((time->time - damage->lastDamagedTime) > time_milliseconds(100)) {
@@ -217,6 +219,7 @@ ecs_module_init(scene_health_module) {
 
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(SceneDamageComp, .combinator = ecs_combine_damage);
+  ecs_register_comp_empty(SceneDeadComp);
   ecs_register_comp(SceneHealthAnimComp);
 
   ecs_register_view(GlobalView);

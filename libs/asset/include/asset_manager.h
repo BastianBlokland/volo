@@ -53,6 +53,7 @@ AssetManagerComp* asset_manager_create_mem(
  * Pre-condition: !string_is_empty(id).
  */
 EcsEntityId asset_lookup(EcsWorld*, AssetManagerComp*, String id);
+EcsEntityId asset_maybe_lookup(EcsWorld*, AssetManagerComp*, String id);
 
 /**
  * Acquire the asset, this tells the manager that the asset should be loaded.

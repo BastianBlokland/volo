@@ -594,7 +594,28 @@ void debug_plane(
   debug_arrow(comp, pos, arrowEnd, arrowRadius, color);
 }
 
-void debug_frustum(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
+void debug_frustum_points(
+    DebugShapeComp* comp, const GeoVector points[PARAM_ARRAY_SIZE(8)], const GeoColor color) {
+  // Near plane.
+  debug_line(comp, points[0], points[1], color);
+  debug_line(comp, points[1], points[2], color);
+  debug_line(comp, points[2], points[3], color);
+  debug_line(comp, points[3], points[0], color);
+
+  // Far plane.
+  debug_line(comp, points[4], points[5], color);
+  debug_line(comp, points[5], points[6], color);
+  debug_line(comp, points[6], points[7], color);
+  debug_line(comp, points[7], points[4], color);
+
+  // Connecting lines.
+  debug_line(comp, points[0], points[4], color);
+  debug_line(comp, points[1], points[5], color);
+  debug_line(comp, points[2], points[6], color);
+  debug_line(comp, points[3], points[7], color);
+}
+
+void debug_frustum_matrix(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
   const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
   const f32       nearNdc     = 1.0f;
   const f32       farNdc      = 1e-8f; // NOTE: Using reverse-z with infinite far-plane.
@@ -613,21 +634,5 @@ void debug_frustum(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoCol
     *v = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, *v));
   }
 
-  // Near plane.
-  debug_line(comp, points[0], points[1], color);
-  debug_line(comp, points[1], points[2], color);
-  debug_line(comp, points[2], points[3], color);
-  debug_line(comp, points[3], points[0], color);
-
-  // Far plane.
-  debug_line(comp, points[4], points[5], color);
-  debug_line(comp, points[5], points[6], color);
-  debug_line(comp, points[6], points[7], color);
-  debug_line(comp, points[7], points[4], color);
-
-  // Connecting lines.
-  debug_line(comp, points[0], points[4], color);
-  debug_line(comp, points[1], points[5], color);
-  debug_line(comp, points[2], points[6], color);
-  debug_line(comp, points[3], points[7], color);
+  debug_frustum_points(comp, points, color);
 }

@@ -30,14 +30,18 @@ typedef struct {
 } AssetWeaponEffectProjDef;
 
 typedef struct {
+  bool   continuous;
   String originJoint;
   f32    delay;
-  f32    radius;
+  f32    radius, radiusEnd;
+  f32    length;
   f32    damage;
+  bool   applyBurning;
   String impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
+  bool   continuous;
   String layer;
   f32    delay;
   f32    speed;
@@ -73,6 +77,8 @@ typedef struct {
 
 typedef struct {
   String name;
+  String attachmentPrefab;
+  String attachmentJoint;
   f32    intervalMin, intervalMax;
   f32    readySpeed;
   f32    readyMinTime;
@@ -115,13 +121,18 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectDmgDef);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyBurning, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
+    data_reg_field_t(reg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -154,6 +165,8 @@ static void weapon_datareg_init() {
 
     data_reg_struct_t(reg, AssetWeaponDef);
     data_reg_field_t(reg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponDef, attachmentPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponDef, attachmentJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponDef, intervalMin, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, intervalMax, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponDef, readySpeed, data_prim_t(f32));
@@ -200,10 +213,6 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static StringHash weapon_string_maybe_hash(const String name) {
-  return string_is_empty(name) ? 0 : string_hash(name);
-}
-
 static void weapon_effect_proj_build(
     BuildCtx*                       ctx,
     const AssetWeaponEffectProjDef* def,
@@ -220,8 +229,8 @@ static void weapon_effect_proj_build(
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
       .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
-      .projectilePrefab    = weapon_string_maybe_hash(def->projectilePrefab),
-      .impactPrefab        = weapon_string_maybe_hash(def->impactPrefab),
+      .projectilePrefab    = string_maybe_hash(def->projectilePrefab),
+      .impactPrefab        = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -233,11 +242,15 @@ static void weapon_effect_dmg_build(
     WeaponError*                   err) {
   (void)ctx;
   *out = (AssetWeaponEffectDmg){
+      .continuous   = def->continuous,
       .originJoint  = string_hash(def->originJoint),
       .delay        = (TimeDuration)time_seconds(def->delay),
       .damage       = def->damage,
       .radius       = def->radius,
-      .impactPrefab = weapon_string_maybe_hash(def->impactPrefab),
+      .radiusEnd    = def->radiusEnd,
+      .length       = def->length,
+      .applyBurning = def->applyBurning,
+      .impactPrefab = string_maybe_hash(def->impactPrefab),
   };
   *err = WeaponError_None;
 }
@@ -254,9 +267,10 @@ static void weapon_effect_anim_build(
     return;
   }
   *out = (AssetWeaponEffectAnim){
-      .layer = string_hash(def->layer),
-      .delay = (TimeDuration)time_seconds(def->delay),
-      .speed = def->speed,
+      .continuous = def->continuous,
+      .layer      = string_hash(def->layer),
+      .delay      = (TimeDuration)time_seconds(def->delay),
+      .speed      = def->speed,
       .durationMax =
           def->durationMax <= 0 ? time_hour : (TimeDuration)time_seconds(def->durationMax),
   };
@@ -314,15 +328,17 @@ static void weapon_build(
 
   *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
-      .nameHash     = stringtable_add(g_stringtable, def->name),
-      .flags        = flags,
-      .intervalMin  = (TimeDuration)time_seconds(def->intervalMin),
-      .intervalMax  = (TimeDuration)time_seconds(def->intervalMax),
-      .readySpeed   = def->readySpeed,
-      .readyMinTime = (TimeDuration)time_seconds(def->readyMinTime),
-      .readyAnim    = string_is_empty(def->readyAnim) ? 0 : string_hash(def->readyAnim),
-      .effectIndex  = (u16)outEffects->size,
-      .effectCount  = (u16)def->effects.count,
+      .nameHash         = stringtable_add(g_stringtable, def->name),
+      .attachmentPrefab = string_maybe_hash(def->attachmentPrefab),
+      .attachmentJoint  = string_maybe_hash(def->attachmentJoint),
+      .flags            = flags,
+      .intervalMin      = (TimeDuration)time_seconds(def->intervalMin),
+      .intervalMax      = (TimeDuration)time_seconds(def->intervalMax),
+      .readySpeed       = def->readySpeed,
+      .readyMinTime     = (TimeDuration)time_seconds(def->readyMinTime),
+      .readyAnim        = string_is_empty(def->readyAnim) ? 0 : string_hash(def->readyAnim),
+      .effectIndex      = (u16)outEffects->size,
+      .effectCount      = (u16)def->effects.count,
   };
 
   array_ptr_for_t(def->effects, AssetWeaponEffectDef, effectDef) {

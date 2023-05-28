@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "asset_vfx.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -13,6 +14,7 @@
 #include "rend_instance.h"
 #include "rend_light.h"
 #include "scene_lifetime.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -44,12 +46,16 @@ typedef struct {
 } VfxEmitterState;
 
 ecs_comp_define(VfxSystemStateComp) {
-  TimeDuration    age;
+  TimeDuration    age, emitAge;
+  u32             assetVersion;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxSystemInstance[].
 };
 
-ecs_comp_define(VfxSystemAssetComp) { VfxLoadFlags loadFlags; };
+ecs_comp_define(VfxSystemAssetComp) {
+  VfxLoadFlags loadFlags;
+  u32          version;
+};
 
 static void ecs_destruct_system_state_comp(void* data) {
   VfxSystemStateComp* comp = data;
@@ -77,7 +83,7 @@ ecs_view_define(ParticleDrawView) {
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 
 ecs_view_define(AssetView) {
-  ecs_access_with(VfxSystemAssetComp);
+  ecs_access_read(VfxSystemAssetComp);
   ecs_access_read(AssetVfxComp);
 }
 
@@ -145,6 +151,7 @@ ecs_system_define(VfxSystemAssetLoadSys) {
     if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
       asset_acquire(world, entity);
       request->loadFlags |= VfxLoad_Acquired;
+      ++request->version;
     }
   }
 }
@@ -159,6 +166,7 @@ ecs_view_define(UpdateGlobalView) {
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
@@ -293,9 +301,14 @@ static void vfx_system_spawn(
 static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDuration age) {
   if (emitterAsset->interval) {
     const u32 maxCount = emitterAsset->count ? emitterAsset->count : u32_max;
-    return math_min(1 + (u32)(age / emitterAsset->interval), maxCount);
+    return math_min((u32)(age / emitterAsset->interval), maxCount);
   }
   return math_max(1, emitterAsset->count);
+}
+
+static void vfx_system_reset(VfxSystemStateComp* state) {
+  state->emitAge = 0;
+  array_for_t(state->emitters, VfxEmitterState, emitter) { emitter->spawnCount = 0; }
 }
 
 static void vfx_system_simulate(
@@ -303,19 +316,23 @@ static void vfx_system_simulate(
     const AssetVfxComp*   asset,
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time,
+    const SceneTags       tags,
     const VfxTrans*       sysTrans) {
 
   const f32 deltaSec = scene_delta_seconds(time);
 
   // Update shared state.
   state->age += time->delta;
+  if (tags & SceneTags_Emit) {
+    state->emitAge += time->delta;
+  }
 
   // Update emitters.
   for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
     VfxEmitterState*       emitterState = &state->emitters[emitter];
     const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-    const u32 count = vfx_emitter_count(emitterAsset, state->age);
+    const u32 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
       vfx_system_spawn(state, asset, atlas, emitter, sysTrans);
     }
@@ -353,7 +370,7 @@ static void vfx_instance_output_sprite(
     const AssetVfxComp*      asset,
     const VfxTrans*          sysTrans,
     const TimeDuration       sysTimeRem,
-    const f32                alpha) {
+    const f32                sysAlpha) {
 
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
@@ -376,15 +393,15 @@ static void vfx_instance_output_sprite(
     rot = geo_quat_mul(sysTrans->rot, rot);
   }
 
-  GeoVector pos = instance->pos;
+  GeoVector pos   = instance->pos;
+  GeoColor  color = sprite->color;
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
+    color.a *= sysAlpha;
   }
-
-  GeoColor color = sprite->color;
-  color.a *= alpha;
   color.a *= sprite->fadeInTime ? math_min(instanceAge / (f32)sprite->fadeInTime, 1.0f) : 1.0f;
   color.a *= sprite->fadeOutTime ? math_min(timeRem / (f32)sprite->fadeOutTime, 1.0f) : 1.0f;
+  color.a = math_max(color.a, 0); // TODO: This is a bit sketchy, reason is timeRem can be 0.
 
   const f32 flipbookFrac  = math_mod_f32(instanceAge / (f32)sprite->flipbookTime, 1.0f);
   const u32 flipbookIndex = (u32)(flipbookFrac * (f32)sprite->flipbookCount);
@@ -424,7 +441,7 @@ static void vfx_instance_output_light(
     const AssetVfxComp*      asset,
     const VfxTrans*          sysTrans,
     const TimeDuration       sysTimeRem,
-    const f32                alpha) {
+    const f32                sysAlpha) {
 
   const u32            seed     = ecs_entity_id_index(entity);
   const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
@@ -442,8 +459,8 @@ static void vfx_instance_output_light(
   if (space == AssetVfxSpace_Local) {
     pos = vfx_world_pos(sysTrans, pos);
     scale *= sysTrans->scale;
+    radiance.a *= sysAlpha;
   }
-  radiance.a *= alpha;
   radiance.a *= scale;
   radiance.a *= light->fadeInTime ? math_min(instanceAge / (f32)light->fadeInTime, 1.0f) : 1.0f;
   radiance.a *= light->fadeOutTime ? math_min(timeRem / (f32)light->fadeOutTime, 1.0f) : 1.0f;
@@ -490,12 +507,11 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        vfxSys    = ecs_view_read_t(itr, SceneVfxSystemComp);
+    const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*              state     = ecs_view_write_t(itr, VfxSystemStateComp);
 
-    const f32 sysAlpha = vfxSys->alpha;
-    if (sysAlpha <= f32_epsilon) {
-      continue;
-    }
+    const SceneTags tags     = tagComp ? tagComp->tags : SceneTags_Default;
+    const f32       sysAlpha = vfxSys->alpha;
 
     diag_assert_msg(ecs_entity_valid(vfxSys->asset), "Vfx system is missing an asset");
     if (!ecs_view_maybe_jump(assetItr, vfxSys->asset)) {
@@ -504,7 +520,15 @@ ecs_system_define(VfxSystemUpdateSys) {
       }
       continue;
     }
-    const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
+    const VfxSystemAssetComp* assetRequest = ecs_view_read_t(assetItr, VfxSystemAssetComp);
+    const AssetVfxComp*       asset        = ecs_view_read_t(assetItr, AssetVfxComp);
+
+    if (UNLIKELY(state->assetVersion != assetRequest->version)) {
+      if (state->assetVersion) {
+        vfx_system_reset(state); // Reset the state after hot-loading the asset.
+      }
+      state->assetVersion = assetRequest->version;
+    }
 
     VfxTrans sysTrans = {
         .pos   = LIKELY(trans) ? trans->position : geo_vector(0),
@@ -517,7 +541,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 
     const TimeDuration sysTimeRem = lifetime ? lifetime->duration : i64_max;
 
-    vfx_system_simulate(state, asset, particleAtlas, time, &sysTrans);
+    vfx_system_simulate(state, asset, particleAtlas, time, tags, &sysTrans);
 
     dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
       vfx_instance_output_sprite(instance, draws, asset, &sysTrans, sysTimeRem, sysAlpha);

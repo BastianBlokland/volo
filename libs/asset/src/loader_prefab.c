@@ -139,6 +139,11 @@ typedef struct {
 } AssetPrefabTraitExplosiveDef;
 
 typedef struct {
+  String effectJoint;
+  bool   burnable;
+} AssetPrefabTraitStatusDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderableDef data_renderable;
@@ -157,6 +162,7 @@ typedef struct {
     AssetPrefabTraitTauntDef      data_taunt;
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitExplosiveDef  data_explosive;
+    AssetPrefabTraitStatusDef     data_status;
   };
 } AssetPrefabTraitDef;
 
@@ -291,6 +297,10 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitStatusDef);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
+
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
@@ -308,6 +318,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Taunt, data_taunt, t_AssetPrefabTraitTauntDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
@@ -357,14 +368,6 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
-
-static EcsEntityId prefab_asset_maybe_lookup(BuildCtx* ctx, const String id) {
-  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
-}
-
-static StringHash prefab_name_maybe_hash(const String name) {
-  return string_is_empty(name) ? 0 : string_hash(name);
-}
 
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
@@ -499,18 +502,19 @@ static void prefab_build(
       outTrait->data_health = (AssetPrefabTraitHealth){
           .amount            = traitDef->data_health.amount,
           .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathEffectPrefab = prefab_name_maybe_hash(traitDef->data_health.deathEffectPrefab),
+          .deathEffectPrefab = string_maybe_hash(traitDef->data_health.deathEffectPrefab),
       };
       outPrefab->flags |= AssetPrefabFlags_Destructible;
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon            = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint          = prefab_name_maybe_hash(traitDef->data_attack.aimJoint),
-          .aimSpeedRad       = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .aimSoundAsset     = prefab_asset_maybe_lookup(ctx, traitDef->data_attack.aimSoundId),
-          .targetDistanceMin = traitDef->data_attack.targetDistanceMin,
-          .targetDistanceMax = traitDef->data_attack.targetDistanceMax,
+          .weapon      = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint    = string_maybe_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad = traitDef->data_attack.aimSpeed * math_deg_to_rad,
+          .aimSoundAsset =
+              asset_maybe_lookup(ctx->world, ctx->assetManager, traitDef->data_attack.aimSoundId),
+          .targetDistanceMin        = traitDef->data_attack.targetDistanceMin,
+          .targetDistanceMax        = traitDef->data_attack.targetDistanceMax,
           .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,
@@ -540,14 +544,14 @@ static void prefab_build(
     case AssetPrefabTrait_Blink:
       outTrait->data_blink = (AssetPrefabTraitBlink){
           .frequency    = traitDef->data_blink.frequency,
-          .effectPrefab = prefab_name_maybe_hash(traitDef->data_blink.effectPrefab),
+          .effectPrefab = string_maybe_hash(traitDef->data_blink.effectPrefab),
       };
       break;
     case AssetPrefabTrait_Taunt:
       outTrait->data_taunt = (AssetPrefabTraitTaunt){
           .priority           = traitDef->data_taunt.priority,
-          .tauntDeathPrefab   = prefab_name_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
-          .tauntConfirmPrefab = prefab_name_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
+          .tauntDeathPrefab   = string_maybe_hash(traitDef->data_taunt.tauntDeathPrefab),
+          .tauntConfirmPrefab = string_maybe_hash(traitDef->data_taunt.tauntConfirmPrefab),
       };
       break;
     case AssetPrefabTrait_Location:
@@ -560,6 +564,12 @@ static void prefab_build(
           .delay  = (TimeDuration)time_seconds(traitDef->data_explosive.delay),
           .radius = traitDef->data_explosive.radius,
           .damage = traitDef->data_explosive.damage,
+      };
+      break;
+    case AssetPrefabTrait_Status:
+      outTrait->data_status = (AssetPrefabTraitStatus){
+          .effectJoint = string_maybe_hash(traitDef->data_status.effectJoint),
+          .burnable    = traitDef->data_status.burnable,
       };
       break;
     case AssetPrefabTrait_Scalable:

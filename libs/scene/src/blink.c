@@ -2,7 +2,6 @@
 #include "scene_blink.h"
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
-#include "scene_renderable.h"
 #include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -16,7 +15,6 @@ ecs_view_define(BlinkView) {
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneVfxDecalComp);
   ecs_access_maybe_write(SceneVfxSystemComp);
-  ecs_access_with(SceneRenderableComp);
   ecs_access_write(SceneBlinkComp);
   ecs_access_write(SceneTagComp);
 }

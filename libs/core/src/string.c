@@ -19,6 +19,8 @@
 
 StringHash string_hash(const String str) { return bits_hash_32(str); }
 
+StringHash string_maybe_hash(const String str) { return str.size ? bits_hash_32(str) : 0; }
+
 String string_from_null_term(const char* ptr) {
   return (String){
       .ptr  = (void*)ptr,

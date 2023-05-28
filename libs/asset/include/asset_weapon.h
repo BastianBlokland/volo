@@ -27,14 +27,18 @@ typedef struct {
 } AssetWeaponEffectProj;
 
 typedef struct {
+  bool         continuous;
   StringHash   originJoint;
-  f32          radius;
+  f32          radius, radiusEnd;
+  f32          length;
   f32          damage;
+  bool         applyBurning;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.
 } AssetWeaponEffectDmg;
 
 typedef struct {
+  bool         continuous;
   StringHash   layer;
   f32          speed;
   TimeDuration delay;
@@ -75,6 +79,8 @@ typedef enum {
 typedef struct {
   StringHash       nameHash;
   AssetWeaponFlags flags;
+  StringHash       attachmentPrefab;
+  StringHash       attachmentJoint;
   u16              effectIndex, effectCount; // Stored in the effects array.
   f32              readySpeed; // Speed to increase the ready amount, when reaches 1.0 we can fire.
   StringHash       readyAnim;

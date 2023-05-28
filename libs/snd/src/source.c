@@ -8,6 +8,7 @@
 #include "log_logger.h"
 #include "scene_prefab.h"
 #include "scene_sound.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "snd_mixer.h"
@@ -107,11 +108,14 @@ static SndListener snd_listener(EcsWorld* world) {
 }
 
 static void snd_source_update_constant(
-    SndMixerComp* m, const SceneSoundComp* soundComp, const SndSourceComp* sourceComp) {
+    SndMixerComp*         m,
+    const SceneSoundComp* soundComp,
+    const SndSourceComp*  srcComp,
+    const f32             srcGain) {
 
-  snd_object_set_pitch(m, sourceComp->objectId, soundComp->pitch);
+  snd_object_set_pitch(m, srcComp->objectId, soundComp->pitch);
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-    snd_object_set_gain(m, sourceComp->objectId, chan, soundComp->gain);
+    snd_object_set_gain(m, srcComp->objectId, chan, srcGain);
   }
 }
 
@@ -119,10 +123,11 @@ static void snd_source_update_spatial(
     SndMixerComp*         m,
     const SceneSoundComp* sndComp,
     const SndSourceComp*  srcComp,
-    const GeoVector       sourcePos,
+    const GeoVector       srcPos,
+    const f32             srcGain,
     const SndListener*    listener,
     const f32             timeScale) {
-  const GeoVector toSource = geo_vector_sub(sourcePos, listener->position);
+  const GeoVector toSource = geo_vector_sub(srcPos, listener->position);
 
   const f32 dist            = geo_vector_mag(toSource);
   const f32 distAttenuation = 1.0f - math_min(1, dist / snd_source_max_distance);
@@ -133,10 +138,10 @@ static void snd_source_update_spatial(
   snd_object_set_pitch(m, srcComp->objectId, sndComp->pitch * timeScale);
 
   const f32 leftAttenuation = math_clamp_f32(distAttenuation * (-pan + 1.0f) * 0.5f, 0.0f, 1.0f);
-  snd_object_set_gain(m, srcComp->objectId, SndChannel_Left, sndComp->gain * leftAttenuation);
+  snd_object_set_gain(m, srcComp->objectId, SndChannel_Left, srcGain * leftAttenuation);
 
   const f32 rightAttenuation = math_clamp_f32(distAttenuation * (pan + 1.0f) * 0.5f, 0.0f, 1.0f);
-  snd_object_set_gain(m, srcComp->objectId, SndChannel_Right, sndComp->gain * rightAttenuation);
+  snd_object_set_gain(m, srcComp->objectId, SndChannel_Right, srcGain * rightAttenuation);
 }
 
 ecs_view_define(UpdateGlobalView) {
@@ -150,6 +155,7 @@ ecs_view_define(UpdateGlobalView) {
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneSoundComp);
   ecs_access_maybe_read(SndSourceComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_without(SndSourceDiscardComp);
 }
@@ -213,19 +219,22 @@ ecs_system_define(SndSourceUpdateSys) {
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneSoundComp*     soundComp     = ecs_view_read_t(itr, SceneSoundComp);
-    const SndSourceComp*      sourceComp    = ecs_view_read_t(itr, SndSourceComp);
+    const SndSourceComp*      srcComp       = ecs_view_read_t(itr, SndSourceComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneTagComp*       tagComp       = ecs_view_read_t(itr, SceneTagComp);
     const bool                spatial       = transformComp != null;
-    const GeoVector           sourcePos     = spatial ? transformComp->position : geo_vector(0);
+    const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
+    const GeoVector           srcPos        = spatial ? transformComp->position : geo_vector(0);
+    const f32                 srcGain       = tags & SceneTags_Emit ? soundComp->gain : 0.0f;
 
-    if (!sourceComp) {
+    if (!srcComp) {
       if (!ecs_entity_valid(soundComp->asset)) {
         log_e("SceneSoundComp is missing an asset");
         ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
         continue;
       }
       // Skip duplicate (same sound in a close proximity) sounds.
-      if (!soundComp->looping && snd_event_map_has(eventMap, soundComp->asset, sourcePos)) {
+      if (!soundComp->looping && snd_event_map_has(eventMap, soundComp->asset, srcPos)) {
         ecs_world_add_empty_t(world, ecs_view_entity(itr), SndSourceDiscardComp);
         continue;
       }
@@ -239,30 +248,30 @@ ecs_system_define(SndSourceUpdateSys) {
             snd_object_set_random_cursor(m, id);
           }
         }
-        sourceComp = ecs_world_add_t(world, ecs_view_entity(itr), SndSourceComp, .objectId = id);
+        srcComp = ecs_world_add_t(world, ecs_view_entity(itr), SndSourceComp, .objectId = id);
         if (!soundComp->looping) {
-          snd_event_map_add(eventMap, time->realTime, soundComp->asset, sourcePos);
+          snd_event_map_add(eventMap, time->realTime, soundComp->asset, srcPos);
         }
       } else {
         continue; // Failed to create a sound-object; retry next tick.
       }
     }
 
-    if (!snd_object_is_active(m, sourceComp->objectId)) {
+    if (!snd_object_is_active(m, srcComp->objectId)) {
       continue; // Already finished playing on the mixer.
     }
-    if (soundComp->gain < f32_epsilon) {
+    if (srcGain < f32_epsilon) {
       // Fast-path for muted sounds.
       for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
-        snd_object_set_gain(m, sourceComp->objectId, chan, 0);
+        snd_object_set_gain(m, srcComp->objectId, chan, 0);
       }
       continue;
     }
 
     if (spatial) {
-      snd_source_update_spatial(m, soundComp, sourceComp, sourcePos, &listener, timeScale);
+      snd_source_update_spatial(m, soundComp, srcComp, srcPos, srcGain, &listener, timeScale);
     } else {
-      snd_source_update_constant(m, soundComp, sourceComp);
+      snd_source_update_constant(m, soundComp, srcComp, srcGain);
     }
   }
 }

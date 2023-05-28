@@ -20,6 +20,7 @@ ecs_comp_extern_public(SceneAttackComp) {
   TimeDuration     lastHasTargetTime;
   TimeDuration     lastFireTime, nextFireTime;
   EcsEntityId      targetEntity;
+  EcsEntityId      attachedInstance;
   GeoVector        targetPos;
 };
 

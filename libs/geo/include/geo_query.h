@@ -99,7 +99,7 @@ u32 geo_query_sphere_all(
  */
 u32 geo_query_frustum_all(
     const GeoQueryEnv*,
-    const GeoVector frustum[8],
+    const GeoVector frustum[PARAM_ARRAY_SIZE(8)],
     const GeoQueryFilter*,
     u64 out[PARAM_ARRAY_SIZE(geo_query_max_hits)]);
 

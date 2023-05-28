@@ -1,4 +1,5 @@
 #include "asset_weapon.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -18,6 +19,8 @@
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_sound.h"
+#include "scene_status.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
@@ -39,12 +42,34 @@ ecs_view_define(GlobalView) {
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 ecs_view_define(GraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
 ecs_view_define(SoundInstanceView) { ecs_access_write(SceneSoundComp); }
+ecs_view_define(AttachmentInstanceView) { ecs_access_write(SceneTagComp); }
 
 static const AssetWeaponMapComp* attack_weapon_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneWeaponResourceComp* resource = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const EcsEntityId              mapAsset = scene_weapon_map(resource);
   EcsIterator*                   itr      = ecs_view_maybe_at(mapView, mapAsset);
   return itr ? ecs_view_read_t(itr, AssetWeaponMapComp) : null;
+}
+
+static EcsEntityId
+attack_attachment_create(EcsWorld* world, const EcsEntityId owner, const AssetWeapon* weapon) {
+  const EcsEntityId result = scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .prefabId = weapon->attachmentPrefab,
+          .faction  = SceneFaction_None,
+          .rotation = geo_quat_ident,
+      });
+  ecs_world_add_t(world, result, SceneLifetimeOwnerComp, .owners[0] = owner);
+  ecs_world_add_t(
+      world,
+      result,
+      SceneAttachmentComp,
+      .target     = owner,
+      .jointIndex = sentinel_u32,
+      .jointName  = weapon->attachmentJoint);
+  ecs_world_add_t(world, result, SceneTagComp, .tags = SceneTags_Default & ~SceneTags_Emit);
+  return result;
 }
 
 static void aim_face(
@@ -144,8 +169,8 @@ static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
 }
 
 static SceneLayer damage_query_layer_mask(const SceneFaction factionId) {
-  SceneLayer layer = SceneLayer_Unit;
-  if (factionId) {
+  SceneLayer layer = SceneLayer_Unit | SceneLayer_Destructible;
+  if (factionId != SceneFaction_None) {
     layer &= ~damage_ignore_layer(factionId);
   }
   return layer;
@@ -196,6 +221,36 @@ static TimeDuration weapon_estimate_impact_time(
   return result;
 }
 
+static void weapon_damage_frustum(
+    const GeoVector pos,
+    const GeoVector direction,
+    const f32       length,
+    const f32       radiusBegin,
+    const f32       radiusEnd,
+    GeoVector       outPoints[PARAM_ARRAY_SIZE(8)]) {
+  const GeoVector right  = geo_vector_norm(geo_vector_cross3(direction, geo_up));
+  const GeoVector up     = geo_vector_cross3(direction, right);
+  const GeoVector endPos = geo_vector_add(pos, geo_vector_mul(direction, length));
+
+  static const f32 g_pointsLocal[][2] = {
+      {-1.0f, -1.0f},
+      {1.0f, -1.0f},
+      {1.0f, 1.0f},
+      {-1.0f, 1.0f},
+  };
+
+  for (u32 i = 0; i != array_elems(g_pointsLocal); ++i) {
+    outPoints[i] = geo_vector_add(
+        geo_vector_add(pos, geo_vector_mul(right, g_pointsLocal[i][0] * radiusBegin)),
+        geo_vector_mul(up, g_pointsLocal[i][1] * radiusBegin));
+  }
+  for (u32 i = 0; i != array_elems(g_pointsLocal); ++i) {
+    outPoints[4 + i] = geo_vector_add(
+        geo_vector_add(endPos, geo_vector_mul(right, g_pointsLocal[i][0] * radiusEnd)),
+        geo_vector_mul(up, g_pointsLocal[i][1] * radiusEnd));
+  }
+}
+
 typedef struct {
   EcsWorld*                     world;
   EcsView*                      targetView;
@@ -210,6 +265,7 @@ typedef struct {
   SceneAttackComp*              attack;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
+  f32                           deltaSeconds;
 } AttackCtx;
 
 static bool effect_execute_once(const AttackCtx* ctx, const u32 effectIndex) {
@@ -290,12 +346,14 @@ static EffectResult effect_update_dmg(
     const AttackCtx*            ctx,
     const TimeDuration          effectTime,
     const u32                   effectIndex,
+    const bool                  interrupt,
     const AssetWeaponEffectDmg* def) {
 
   if (effectTime < def->delay) {
     return EffectResult_Running; // Waiting to execute.
   }
-  if (!effect_execute_once(ctx, effectIndex)) {
+  const bool firstExecution = effect_execute_once(ctx, effectIndex);
+  if (!def->continuous && !firstExecution) {
     return EffectResult_Done; // Already executed.
   }
 
@@ -304,16 +362,28 @@ static EffectResult effect_update_dmg(
     log_e("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
     return EffectResult_Done;
   }
-  const GeoMatrix orgMat    = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
-  const GeoSphere orgSphere = {
-      .point  = geo_matrix_to_translation(&orgMat),
-      .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
-  };
+  const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
+  const GeoVector orgPos = geo_matrix_to_translation(&orgMat);
+  EcsEntityId     hits[scene_query_max_hits];
+  u32             hitCount;
+
   const SceneQueryFilter filter = {
       .layerMask = damage_query_layer_mask(ctx->factionId),
   };
-  EcsEntityId hits[scene_query_max_hits];
-  const u32   hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+
+  if (def->length > f32_epsilon) {
+    // HACK: Using up instead of forward because the joints created by blender use that orientation.
+    const GeoVector dir = geo_vector_norm(geo_matrix_transform3(&orgMat, geo_up));
+    GeoVector       frustum[8];
+    weapon_damage_frustum(orgPos, dir, def->length, def->radius, def->radiusEnd, frustum);
+    hitCount = scene_query_frustum_all(ctx->collisionEnv, frustum, &filter, hits);
+  } else {
+    const GeoSphere orgSphere = {
+        .point  = orgPos,
+        .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
+    };
+    hitCount = scene_query_sphere_all(ctx->collisionEnv, &orgSphere, &filter, hits);
+  }
 
   EcsIterator* hitItr = ecs_view_itr(ctx->targetView);
   for (u32 i = 0; i != hitCount; ++i) {
@@ -323,30 +393,42 @@ static EffectResult effect_update_dmg(
     if (!ecs_view_maybe_jump(hitItr, hits[i])) {
       continue; // Hit entity is no longer alive or is missing components.
     }
-    const GeoVector impactPoint = aim_estimate_impact_point(orgSphere.point, hitItr);
 
     // Apply damage.
-    scene_health_damage(ctx->world, hits[i], def->damage);
+    if (def->damage > f32_epsilon) {
+      const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
+      scene_health_damage(ctx->world, hits[i], damageThisTick);
+    }
+
+    // Apply status.
+    if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning);
+    }
 
     // Spawn impact.
-    if (def->impactPrefab) {
+    if (firstExecution && def->impactPrefab) {
+      const GeoVector impactPoint = aim_estimate_impact_point(orgPos, hitItr);
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
               .prefabId = def->impactPrefab,
               .faction  = SceneFaction_None,
-              .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
+              .position = geo_vector_lerp(impactPoint, orgPos, 0.5f),
               .rotation = geo_quat_ident,
           });
     }
   }
-  return EffectResult_Done;
+  if (!def->continuous || interrupt) {
+    return EffectResult_Done;
+  }
+  return EffectResult_Running;
 }
 
 static EffectResult effect_update_anim(
     const AttackCtx*             ctx,
     const TimeDuration           effectTime,
     const u32                    effectIndex,
+    const bool                   interrupt,
     const AssetWeaponEffectAnim* def) {
 
   if (effectTime < def->delay) {
@@ -360,7 +442,11 @@ static EffectResult effect_update_anim(
   }
 
   if (effect_execute_once(ctx, effectIndex)) {
-    animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
+    if (def->continuous) {
+      animLayer->flags |= SceneAnimFlags_Loop; // Loop animation.
+    } else {
+      animLayer->flags &= ~SceneAnimFlags_Loop; // Don't loop animation.
+    }
     animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
     animLayer->time   = 0.0f;                    // Restart the animation.
     animLayer->weight = 1.0f;
@@ -373,7 +459,13 @@ static EffectResult effect_update_anim(
     return EffectResult_Running;
   }
 
-  // Keep running until the animation reaches the end.
+  if (interrupt) {
+    animLayer->flags &= ~SceneAnimFlags_Loop; // Disable animation looping.
+  }
+  if (def->continuous && !interrupt) {
+    return EffectResult_Running;
+  }
+  // If not continuous keep running until the animation reaches the end.
   return animLayer->time >= animLayer->duration ? EffectResult_Done : EffectResult_Running;
 }
 
@@ -444,7 +536,8 @@ static EffectResult effect_update_sound(
   return EffectResult_Done;
 }
 
-static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effectTime) {
+static EffectResult
+effect_update(const AttackCtx* ctx, const TimeDuration effectTime, const bool interrupt) {
   diag_assert(ctx->weapon->effectCount <= sizeof(ctx->attack->executedEffects) * 8);
 
   EffectResult result = EffectResult_Done;
@@ -455,10 +548,10 @@ static EffectResult effect_update(const AttackCtx* ctx, const TimeDuration effec
       result |= effect_update_proj(ctx, effectTime, i, &effect->data_proj);
       break;
     case AssetWeaponEffect_Damage:
-      result |= effect_update_dmg(ctx, effectTime, i, &effect->data_dmg);
+      result |= effect_update_dmg(ctx, effectTime, i, interrupt, &effect->data_dmg);
       break;
     case AssetWeaponEffect_Animation:
-      result |= effect_update_anim(ctx, effectTime, i, &effect->data_anim);
+      result |= effect_update_anim(ctx, effectTime, i, interrupt, &effect->data_anim);
       break;
     case AssetWeaponEffect_Vfx:
       result |= effect_update_vfx(ctx, effectTime, i, &effect->data_vfx);
@@ -478,6 +571,7 @@ ecs_view_define(AttackView) {
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_without(SceneDeadComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
   ecs_access_write(SceneSkeletonComp);
@@ -490,6 +584,7 @@ ecs_view_define(TargetView) {
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
+  ecs_access_without(SceneDeadComp);
 }
 
 ecs_system_define(SceneAttackSys) {
@@ -539,6 +634,10 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
+    if (UNLIKELY(weapon->attachmentPrefab && !attack->attachedInstance)) {
+      attack->attachedInstance = attack_attachment_create(world, entity, weapon);
+    }
+
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     if (hasTarget) {
       attack->lastHasTargetTime = time->time;
@@ -563,6 +662,7 @@ ecs_system_define(SceneAttackSys) {
     }
 
     // Potentially start a new attack.
+    bool interruptFiring = false;
     if (hasTarget) {
       const f32    distEst       = aim_estimate_distance(trans->position, targetItr);
       TimeDuration impactTimeEst = 0;
@@ -576,15 +676,19 @@ ecs_system_define(SceneAttackSys) {
       const bool      isCoolingDown = time->time < attack->nextFireTime;
       const GeoVector pos           = trans->position;
       const GeoQuat   aimRot        = scene_attack_aim_rot(trans, attackAim);
+      const bool canFire = weaponReady && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos);
 
-      if (weaponReady && !isFiring && !isCoolingDown && attack_in_sight(pos, aimRot, targetPos)) {
+      if (!isFiring && canFire) {
         // Start the attack.
         attack->lastFireTime = time->time;
         attack->flags |= SceneAttackFlags_Firing;
         attack->executedEffects = 0;
         attack->targetPos       = targetPos;
+      } else {
+        interruptFiring = !canFire;
       }
     } else {
+      interruptFiring = true;
       aim_idle(attackAim);
     }
 
@@ -604,9 +708,10 @@ ecs_system_define(SceneAttackSys) {
           .attack       = attack,
           .anim         = anim,
           .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
-      if (effect_update(&ctx, effectTime) == EffectResult_Done) {
+      if (effect_update(&ctx, effectTime, interruptFiring) == EffectResult_Done) {
         // Finish the attack.
         attack->flags &= ~SceneAttackFlags_Firing;
         attack->nextFireTime = attack_next_fire_time(weapon, time->time);
@@ -615,14 +720,14 @@ ecs_system_define(SceneAttackSys) {
   }
 }
 
-ecs_view_define(AttackSoundUpdateView) {
+ecs_view_define(SoundUpdateView) {
   ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_read(SceneAttackComp);
   ecs_access_write(SceneAttackSoundComp);
 }
 
 static EcsEntityId
-attack_sound_inst_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
+attack_sound_create(EcsWorld* world, const EcsEntityId owner, const EcsEntityId asset) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .pitch = 1.0f, .looping = true);
@@ -635,7 +740,7 @@ ecs_system_define(SceneAttackSoundSys) {
   EcsView*     soundInstanceView = ecs_world_view_t(world, SoundInstanceView);
   EcsIterator* soundInstanceItr  = ecs_view_itr(soundInstanceView);
 
-  EcsView* updateView = ecs_world_view_t(world, AttackSoundUpdateView);
+  EcsView* updateView = ecs_world_view_t(world, SoundUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const EcsEntityId         entity    = ecs_view_entity(itr);
     const SceneAttackComp*    attack    = ecs_view_read_t(itr, SceneAttackComp);
@@ -651,7 +756,30 @@ ecs_system_define(SceneAttackSoundSys) {
       sound->gain           = (readying || isAiming) ? 1.0f : 0.0f;
     } else {
       diag_assert_msg(attackSnd->aimSoundAsset, "Attack aim sound missing");
-      attackSnd->aimSoundInst = attack_sound_inst_create(world, entity, attackSnd->aimSoundAsset);
+      attackSnd->aimSoundInst = attack_sound_create(world, entity, attackSnd->aimSoundAsset);
+    }
+  }
+}
+
+ecs_view_define(AttachmentUpdateView) { ecs_access_read(SceneAttackComp); }
+
+ecs_system_define(SceneAttackAttachmentSys) {
+  EcsView*     instanceView = ecs_world_view_t(world, AttachmentInstanceView);
+  EcsIterator* instanceItr  = ecs_view_itr(instanceView);
+
+  EcsView* updateView = ecs_world_view_t(world, AttachmentUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const EcsEntityId      entity = ecs_view_entity(itr);
+    const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
+    const bool             isDead = ecs_world_has_t(world, entity, SceneDeadComp);
+
+    if (ecs_view_maybe_jump(instanceItr, attack->attachedInstance)) {
+      SceneTagComp* tagComp = ecs_view_write_t(instanceItr, SceneTagComp);
+      if (!isDead && attack->flags & SceneAttackFlags_Firing) {
+        tagComp->tags |= SceneTags_Emit;
+      } else {
+        tagComp->tags &= ~SceneTags_Emit;
+      }
     }
   }
 }
@@ -665,9 +793,11 @@ ecs_module_init(scene_attack_module) {
   ecs_register_view(WeaponMapView);
   ecs_register_view(GraphicView);
   ecs_register_view(SoundInstanceView);
+  ecs_register_view(AttachmentInstanceView);
   ecs_register_view(AttackView);
   ecs_register_view(TargetView);
-  ecs_register_view(AttackSoundUpdateView);
+  ecs_register_view(SoundUpdateView);
+  ecs_register_view(AttachmentUpdateView);
 
   ecs_register_system(
       SceneAttackSys,
@@ -679,7 +809,12 @@ ecs_module_init(scene_attack_module) {
   ecs_parallel(SceneAttackSys, 4);
 
   ecs_register_system(
-      SceneAttackSoundSys, ecs_view_id(AttackSoundUpdateView), ecs_view_id(SoundInstanceView));
+      SceneAttackSoundSys, ecs_view_id(SoundUpdateView), ecs_view_id(SoundInstanceView));
+
+  ecs_register_system(
+      SceneAttackAttachmentSys,
+      ecs_view_id(AttachmentUpdateView),
+      ecs_view_id(AttachmentInstanceView));
 }
 
 GeoQuat scene_attack_aim_rot(const SceneTransformComp* trans, const SceneAttackAimComp* aimComp) {

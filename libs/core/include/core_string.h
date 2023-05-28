@@ -92,6 +92,7 @@ typedef enum {
  * Create a 32 bit hash of the given string.
  */
 StringHash string_hash(String);
+StringHash string_maybe_hash(String);
 
 /**
  * Create a string from a null-terminated character pointer.

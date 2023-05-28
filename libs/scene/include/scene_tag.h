@@ -17,7 +17,7 @@ typedef enum {
   SceneTags_Emit         = 1 << 10,
 
   SceneTags_Count   = 11,
-  SceneTags_Default = SceneTags_Geometry | SceneTags_ShadowCaster,
+  SceneTags_Default = SceneTags_Geometry | SceneTags_ShadowCaster | SceneTags_Emit,
 } SceneTags;
 
 typedef struct {

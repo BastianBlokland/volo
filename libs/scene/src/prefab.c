@@ -24,6 +24,7 @@
 #include "scene_renderable.h"
 #include "scene_sound.h"
 #include "scene_spawner.h"
+#include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
 #include "scene_taunt.h"
@@ -329,6 +330,14 @@ static void setup_explosive(EcsWorld* w, const EcsEntityId e, const AssetPrefabT
       w, e, SceneExplosiveComp, .delay = t->delay, .radius = t->radius, .damage = t->damage);
 }
 
+static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
+  SceneStatusMask supported = 0;
+  supported |= t->burnable ? (1 << SceneStatusType_Burning) : 0;
+
+  ecs_world_add_t(w, e, SceneStatusComp, .supported = supported, .effectJoint = t->effectJoint);
+  ecs_world_add_t(w, e, SceneStatusRequestComp);
+}
+
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
   ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
@@ -387,6 +396,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Explosive:
     setup_explosive(w, e, &t->data_explosive);
+    return;
+  case AssetPrefabTrait_Status:
+    setup_status(w, e, &t->data_status);
     return;
   case AssetPrefabTrait_Scalable:
     setup_scale(w, e, s->scale);

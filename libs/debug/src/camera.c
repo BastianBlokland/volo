@@ -238,7 +238,7 @@ static void debug_camera_draw_frustum(
   const GeoVector camPos   = trans ? trans->position : geo_vector(0);
   const GeoVector camFwd   = trans ? geo_quat_rotate(trans->rotation, geo_forward) : geo_forward;
 
-  debug_frustum(shape, &viewProj, geo_color_white);
+  debug_frustum_matrix(shape, &viewProj, geo_color_white);
 
   GeoPlane frustumPlanes[4];
   geo_matrix_frustum4(&viewProj, frustumPlanes);

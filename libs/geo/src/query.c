@@ -185,8 +185,8 @@ geo_prim_overlap_sphere(const GeoQueryPrim* prim, const u32 entryIdx, const GeoS
   UNREACHABLE
 }
 
-static bool
-geo_prim_overlap_frustum(const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[8]) {
+static bool geo_prim_overlap_frustum(
+    const GeoQueryPrim* prim, const u32 entryIdx, const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
   switch (prim->type) {
   case GeoQueryPrim_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
@@ -474,7 +474,7 @@ MaxCountReached:
 
 u32 geo_query_frustum_all(
     const GeoQueryEnv*    env,
-    const GeoVector       frustum[8],
+    const GeoVector       frustum[PARAM_ARRAY_SIZE(8)],
     const GeoQueryFilter* filter,
     u64                   out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
 

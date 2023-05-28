@@ -1,9 +1,11 @@
+#include "core_bitset.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_health.h"
+#include "scene_status.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -11,6 +13,18 @@
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
 static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
+
+static const Unicode g_hudStatusIcons[SceneStatusType_Count] = {
+    [SceneStatusType_Burning] = UiShape_Whatshot,
+};
+static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
+    [SceneStatusType_Burning] = {.r = 255, .g = 128, .b = 0, .a = 255},
+};
+static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
+    [SceneStatusType_Burning] = 2,
+};
+static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
+static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
 
@@ -25,6 +39,7 @@ ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneStatusComp);
   ecs_access_read(SceneHealthComp);
   ecs_access_read(SceneTransformComp);
 }
@@ -76,9 +91,10 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneStatusComp*    status    = ecs_view_read_t(itr, SceneStatusComp);
 
-    if (health->norm <= f32_epsilon || health->norm > 0.999f) {
-      continue; // Hide health-bars if entity is death or at full health.
+    if (health->norm <= f32_epsilon || (health->norm > 0.999f && !(status && status->active))) {
+      continue; // Hide health-bars if entity is death or at full health without any status-effects.
     }
 
     const GeoVector worldPos  = hud_health_world_pos(trans, scale, collision);
@@ -100,6 +116,17 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     ui_style_color(canvas, hud_health_color(health->norm));
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(health->norm, 0), UiBase_Current, Ui_X);
     ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
+
+    if (status && status->active) {
+      ui_layout_next(canvas, Ui_Up, g_hudStatusSpacing.y);
+      ui_layout_resize(canvas, UiAlign_BottomLeft, g_hudStatusIconSize, UiBase_Absolute, Ui_XY);
+      bitset_for(bitset_from_var(status->active), typeIndex) {
+        ui_style_color(canvas, g_hudStatusIconColors[typeIndex]);
+        ui_style_outline(canvas, g_hudStatusIconOutline[typeIndex]);
+        ui_canvas_draw_glyph(canvas, g_hudStatusIcons[typeIndex], 0, UiFlags_None);
+        ui_layout_next(canvas, Ui_Right, g_hudStatusSpacing.x);
+      }
+    }
   }
 }
 
