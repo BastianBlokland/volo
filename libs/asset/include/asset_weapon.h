@@ -29,7 +29,8 @@ typedef struct {
 typedef struct {
   bool         continuous;
   StringHash   originJoint;
-  f32          radius;
+  f32          radius, radiusEnd;
+  f32          length;
   f32          damage;
   bool         applyBurning;
   TimeDuration delay;

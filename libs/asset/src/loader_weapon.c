@@ -33,7 +33,8 @@ typedef struct {
   bool   continuous;
   String originJoint;
   f32    delay;
-  f32    radius;
+  f32    radius, radiusEnd;
+  f32    length;
   f32    damage;
   bool   applyBurning;
   String impactPrefab; // Optional, empty if unused.
@@ -124,7 +125,9 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, applyBurning, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
@@ -244,6 +247,8 @@ static void weapon_effect_dmg_build(
       .delay        = (TimeDuration)time_seconds(def->delay),
       .damage       = def->damage,
       .radius       = def->radius,
+      .radiusEnd    = def->radiusEnd,
+      .length       = def->length,
       .applyBurning = def->applyBurning,
       .impactPrefab = string_maybe_hash(def->impactPrefab),
   };
