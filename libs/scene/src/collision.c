@@ -309,7 +309,7 @@ u32 scene_query_sphere_all(
 
 u32 scene_query_frustum_all(
     const SceneCollisionEnvComp* env,
-    const GeoVector              frustum[8],
+    const GeoVector              frustum[PARAM_ARRAY_SIZE(8)],
     const SceneQueryFilter*      filter,
     EcsEntityId                  out[PARAM_ARRAY_SIZE(geo_query_max_hits)]) {
   diag_assert(filter);
@@ -326,7 +326,6 @@ GeoSphere scene_collision_world_sphere(
     const SceneCollisionSphere* sphere,
     const SceneTransformComp*   trans,
     const SceneScaleComp*       scale) {
-
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
@@ -341,7 +340,6 @@ GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule* capsule,
     const SceneTransformComp*    trans,
     const SceneScaleComp*        scale) {
-
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
@@ -359,7 +357,6 @@ GeoCapsule scene_collision_world_capsule(
 
 GeoBoxRotated scene_collision_world_box(
     const SceneCollisionBox* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;

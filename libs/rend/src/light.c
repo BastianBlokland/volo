@@ -172,7 +172,7 @@ ecs_system_define(RendLightSunSys) {
   }
 }
 
-static void rend_clip_frustum_far_dist(GeoVector frustum[8], const f32 maxDist) {
+static void rend_clip_frustum_far_dist(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const f32 maxDist) {
   for (u32 i = 0; i != 4; ++i) {
     const u32       idxNear = i;
     const u32       idxFar  = 4 + i;
@@ -185,7 +185,8 @@ static void rend_clip_frustum_far_dist(GeoVector frustum[8], const f32 maxDist) 
   }
 }
 
-static void rend_clip_frustum_far_to_plane(GeoVector frustum[8], const GeoPlane* clipPlane) {
+static void
+rend_clip_frustum_far_to_plane(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoPlane* clipPlane) {
   for (u32 i = 0; i != 4; ++i) {
     const u32       idxNear    = i;
     const u32       idxFar     = 4 + i;
@@ -198,7 +199,8 @@ static void rend_clip_frustum_far_to_plane(GeoVector frustum[8], const GeoPlane*
   }
 }
 
-static void rend_clip_frustum_far_to_bounds(GeoVector frustum[8], const GeoBox* clipBounds) {
+static void
+rend_clip_frustum_far_to_bounds(GeoVector frustum[PARAM_ARRAY_SIZE(8)], const GeoBox* clipBounds) {
   rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_up, clipBounds->max.y});
   rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_down, -clipBounds->min.y});
   rend_clip_frustum_far_to_plane(frustum, &(GeoPlane){geo_right, clipBounds->max.x});

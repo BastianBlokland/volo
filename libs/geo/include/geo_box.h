@@ -109,7 +109,7 @@ GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotatio
  * Calculate the bounding box of the frustum formed by the given 8 corners.
  * NOTE: Defines the frustum by its corner points.
  */
-GeoBox geo_box_from_frustum(const GeoVector frustum[8]);
+GeoBox geo_box_from_frustum(const GeoVector[PARAM_ARRAY_SIZE(8)]);
 
 /**
  * Compute the intersection of the box with the given ray.

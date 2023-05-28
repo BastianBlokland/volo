@@ -37,4 +37,4 @@ f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);
 bool geo_box_rotated_overlap_sphere(const GeoBoxRotated*, const GeoSphere*);
-bool geo_box_rotated_overlap_frustum(const GeoBoxRotated*, const GeoVector frustum[8]);
+bool geo_box_rotated_overlap_frustum(const GeoBoxRotated*, const GeoVector[PARAM_ARRAY_SIZE(8)]);

@@ -185,7 +185,8 @@ bool geo_box_rotated_overlap_sphere(const GeoBoxRotated* boxRotated, const GeoSp
   return distSqr <= (sphere->radius * sphere->radius);
 }
 
-bool geo_box_rotated_overlap_frustum(const GeoBoxRotated* box, const GeoVector frustum[8]) {
+bool geo_box_rotated_overlap_frustum(
+    const GeoBoxRotated* box, const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
   GeoVector boxPoints[8];
   geo_box_rotated_corners(box, boxPoints);
 
