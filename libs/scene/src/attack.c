@@ -234,6 +234,7 @@ typedef struct {
   SceneAttackComp*              attack;
   SceneAnimationComp*           anim;
   SceneFaction                  factionId;
+  f32                           deltaSeconds;
 } AttackCtx;
 
 static bool effect_execute_once(const AttackCtx* ctx, const u32 effectIndex) {
@@ -319,7 +320,8 @@ static EffectResult effect_update_dmg(
   if (effectTime < def->delay) {
     return EffectResult_Running; // Waiting to execute.
   }
-  if (!effect_execute_once(ctx, effectIndex)) {
+  const bool firstExecution = effect_execute_once(ctx, effectIndex);
+  if (!def->continuous && !firstExecution) {
     return EffectResult_Done; // Already executed.
   }
 
@@ -351,7 +353,8 @@ static EffectResult effect_update_dmg(
 
     // Apply damage.
     if (def->damage > f32_epsilon) {
-      scene_health_damage(ctx->world, hits[i], def->damage);
+      const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
+      scene_health_damage(ctx->world, hits[i], damageThisTick);
     }
 
     // Apply status.
@@ -360,7 +363,7 @@ static EffectResult effect_update_dmg(
     }
 
     // Spawn impact.
-    if (def->impactPrefab) {
+    if (firstExecution && def->impactPrefab) {
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
@@ -371,7 +374,7 @@ static EffectResult effect_update_dmg(
           });
     }
   }
-  return EffectResult_Done;
+  return def->continuous ? EffectResult_Running : EffectResult_Done;
 }
 
 static EffectResult effect_update_anim(
@@ -639,6 +642,7 @@ ecs_system_define(SceneAttackSys) {
           .attack       = attack,
           .anim         = anim,
           .factionId    = LIKELY(faction) ? faction->id : SceneFaction_None,
+          .deltaSeconds = deltaSec,
       };
       const TimeDuration effectTime = time->time - attack->lastFireTime;
       if (effect_update(&ctx, effectTime) == EffectResult_Done) {

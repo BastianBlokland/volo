@@ -27,6 +27,7 @@ typedef struct {
 } AssetWeaponEffectProj;
 
 typedef struct {
+  bool         continuous;
   StringHash   originJoint;
   f32          radius;
   f32          damage;
