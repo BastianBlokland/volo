@@ -786,6 +786,19 @@
           "looping": true
         }
       ]
+    },
+    {
+      "name": "EffectFlameThrower", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_force.vfx" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/burning-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.2,
+          "pitchMin": 0.9, "pitchMax": 1.1,
+          "looping": true
+        }
+      ]
     }
   ]
 }

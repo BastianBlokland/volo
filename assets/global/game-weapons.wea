@@ -43,6 +43,32 @@
       ]
     },
     {
+      "name": "FlameThrower",
+      "attachmentPrefab": "EffectFlameThrower",
+      "attachmentJoint": "muzzle",
+      "intervalMin": 0.25, "intervalMax": 0.25,
+      "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
+      "effects": [
+        {
+          "$type": "AssetWeaponEffect_Damage",
+          "continuous": true,
+          "originJoint": "muzzle",
+          "delay": 0.5,
+          "radius": 0.1,
+          "radiusEnd": 1,
+          "length": 15,
+          "applyBurning": true
+        },
+        {
+          "$type": "AssetWeaponEffect_Animation",
+          "continuous": true,
+          "layer": "fire",
+          "delay": 0.05,
+          "speed": 1
+        }
+      ]
+    },
+    {
       "name": "RocketLauncher",
       "intervalMin": 3.5, "intervalMax": 4.0,
       "readySpeed": 2.5, "readyMinTime": 3, "readyAnim": "aim",
