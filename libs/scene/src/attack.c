@@ -542,6 +542,7 @@ ecs_view_define(TargetView) {
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
+  ecs_access_without(SceneDeadComp);
 }
 
 ecs_system_define(SceneAttackSys) {
