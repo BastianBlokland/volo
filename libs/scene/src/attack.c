@@ -332,8 +332,9 @@ static EffectResult effect_update_dmg(
     return EffectResult_Done;
   }
   const GeoMatrix orgMat    = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
+  const GeoVector orgPoint  = geo_matrix_to_translation(&orgMat);
   const GeoSphere orgSphere = {
-      .point  = geo_matrix_to_translation(&orgMat),
+      .point  = orgPoint,
       .radius = def->radius * (ctx->scale ? ctx->scale->scale : 1.0f),
   };
   const SceneQueryFilter filter = {
@@ -350,7 +351,6 @@ static EffectResult effect_update_dmg(
     if (!ecs_view_maybe_jump(hitItr, hits[i])) {
       continue; // Hit entity is no longer alive or is missing components.
     }
-    const GeoVector impactPoint = aim_estimate_impact_point(orgSphere.point, hitItr);
 
     // Apply damage.
     if (def->damage > f32_epsilon) {
@@ -365,12 +365,13 @@ static EffectResult effect_update_dmg(
 
     // Spawn impact.
     if (firstExecution && def->impactPrefab) {
+      const GeoVector impactPoint = aim_estimate_impact_point(orgPoint, hitItr);
       scene_prefab_spawn(
           ctx->world,
           &(ScenePrefabSpec){
               .prefabId = def->impactPrefab,
               .faction  = SceneFaction_None,
-              .position = geo_vector_lerp(impactPoint, orgSphere.point, 0.5f),
+              .position = geo_vector_lerp(impactPoint, orgPoint, 0.5f),
               .rotation = geo_quat_ident,
           });
     }
