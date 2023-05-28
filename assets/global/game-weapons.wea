@@ -54,7 +54,7 @@
           "continuous": true,
           "originJoint": "muzzle",
           "delay": 0.5,
-          "radius": 0.1,
+          "radius": 0.3,
           "radiusEnd": 1,
           "length": 15,
           "applyBurning": true
