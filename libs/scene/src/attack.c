@@ -394,7 +394,11 @@ static EffectResult effect_update_anim(
   }
 
   if (effect_execute_once(ctx, effectIndex)) {
-    animLayer->flags &= ~SceneAnimFlags_Loop;    // Don't loop animation.
+    if (def->continuous) {
+      animLayer->flags |= SceneAnimFlags_Loop; // Loop animation.
+    } else {
+      animLayer->flags &= ~SceneAnimFlags_Loop; // Don't loop animation.
+    }
     animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
     animLayer->time   = 0.0f;                    // Restart the animation.
     animLayer->weight = 1.0f;
@@ -407,7 +411,10 @@ static EffectResult effect_update_anim(
     return EffectResult_Running;
   }
 
-  // Keep running until the animation reaches the end.
+  if (def->continuous) {
+    return EffectResult_Running;
+  }
+  // If not continuous keep running until the animation reaches the end.
   return animLayer->time >= animLayer->duration ? EffectResult_Done : EffectResult_Running;
 }
 

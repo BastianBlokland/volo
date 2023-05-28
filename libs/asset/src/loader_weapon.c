@@ -40,6 +40,7 @@ typedef struct {
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
+  bool   continuous;
   String layer;
   f32    delay;
   f32    speed;
@@ -128,6 +129,7 @@ static void weapon_datareg_init() {
     data_reg_field_t(reg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetWeaponEffectAnimDef);
+    data_reg_field_t(reg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
     data_reg_field_t(reg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -264,9 +266,10 @@ static void weapon_effect_anim_build(
     return;
   }
   *out = (AssetWeaponEffectAnim){
-      .layer = string_hash(def->layer),
-      .delay = (TimeDuration)time_seconds(def->delay),
-      .speed = def->speed,
+      .continuous = def->continuous,
+      .layer      = string_hash(def->layer),
+      .delay      = (TimeDuration)time_seconds(def->delay),
+      .speed      = def->speed,
       .durationMax =
           def->durationMax <= 0 ? time_hour : (TimeDuration)time_seconds(def->durationMax),
   };

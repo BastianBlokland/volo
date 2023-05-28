@@ -37,6 +37,7 @@ typedef struct {
 } AssetWeaponEffectDmg;
 
 typedef struct {
+  bool         continuous;
   StringHash   layer;
   f32          speed;
   TimeDuration delay;
