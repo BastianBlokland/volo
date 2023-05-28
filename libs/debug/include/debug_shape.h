@@ -33,6 +33,7 @@ void debug_circle(DebugShapeComp*, GeoVector pos, GeoQuat, f32 radius, GeoColor)
 void debug_arrow(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
 void debug_orientation(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
 void debug_plane(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
-void debug_frustum(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
+void debug_frustum_points(DebugShapeComp*, const GeoVector points[PARAM_ARRAY_SIZE(8)], GeoColor);
+void debug_frustum_matrix(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
 
 // clang-format on
