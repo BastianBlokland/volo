@@ -369,10 +369,6 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static EcsEntityId prefab_asset_maybe_lookup(BuildCtx* ctx, const String id) {
-  return string_is_empty(id) ? 0 : asset_lookup(ctx->world, ctx->assetManager, id);
-}
-
 static GeoVector prefab_build_vec3(const AssetPrefabVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
@@ -512,12 +508,13 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon            = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint          = string_maybe_hash(traitDef->data_attack.aimJoint),
-          .aimSpeedRad       = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .aimSoundAsset     = prefab_asset_maybe_lookup(ctx, traitDef->data_attack.aimSoundId),
-          .targetDistanceMin = traitDef->data_attack.targetDistanceMin,
-          .targetDistanceMax = traitDef->data_attack.targetDistanceMax,
+          .weapon      = string_hash(traitDef->data_attack.weaponId),
+          .aimJoint    = string_maybe_hash(traitDef->data_attack.aimJoint),
+          .aimSpeedRad = traitDef->data_attack.aimSpeed * math_deg_to_rad,
+          .aimSoundAsset =
+              asset_maybe_lookup(ctx->world, ctx->assetManager, traitDef->data_attack.aimSoundId),
+          .targetDistanceMin        = traitDef->data_attack.targetDistanceMin,
+          .targetDistanceMax        = traitDef->data_attack.targetDistanceMax,
           .targetLineOfSightRadius  = traitDef->data_attack.targetLineOfSightRadius,
           .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
           .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,

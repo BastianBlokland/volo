@@ -418,6 +418,10 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
   return entry->asset;
 }
 
+EcsEntityId asset_maybe_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
+  return string_is_empty(id) ? 0 : asset_lookup(world, manager, id);
+}
+
 void asset_acquire(EcsWorld* world, const EcsEntityId asset) {
   ecs_world_add_t(world, asset, AssetDirtyComp, .numAcquire = 1);
 }
