@@ -177,6 +177,10 @@ if(${EXTERNAL_ASSETS})
       swat/swat_2_nrm.tga
       swat/swat_4.bin
       swat/swat_4.gltf
+      swat/swat_flame_1_color_rough.tga
+      swat/swat_flame_1_nrm.tga
+      swat/swat_flame_1.bin
+      swat/swat_flame_1.gltf
       swat/swat_rocket_1_color_rough.tga
       swat/swat_rocket_1_nrm.tga
       swat/swat_rocket_1.bin
