@@ -20,6 +20,7 @@ static StringHash g_brainKeyTime,
                   g_brainKeyFaction,
                   g_brainKeyNavArrived,
                   g_brainKeyAttacking,
+                  g_brainKeyTargetRangeMax,
                   g_brainKeyTargetEntity,
                   g_brainKeyTargetPos,
                   g_brainKeyTargetDist,
@@ -93,6 +94,7 @@ ecs_system_define(SceneSensorUpdateSys) {
     if (target) {
       const bool los = (targetFinder->flags & SceneTarget_LineOfSight) != 0;
 
+      scene_brain_set(brain, g_brainKeyTargetRangeMax, script_number(targetFinder->distanceMax));
       scene_brain_set(brain, g_brainKeyTargetEntity, script_entity(target));
       scene_brain_set(brain, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
       scene_brain_set(brain, g_brainKeyTargetDist, script_number(targetFinder->targetDistance));
@@ -107,17 +109,18 @@ ecs_system_define(SceneSensorUpdateSys) {
 }
 
 ecs_module_init(scene_sensor_module) {
-  g_brainKeyTime         = stringtable_add(g_stringtable, string_lit("global_time"));
-  g_brainKeyEntity       = stringtable_add(g_stringtable, string_lit("self_entity"));
-  g_brainKeyPosition     = stringtable_add(g_stringtable, string_lit("self_position"));
-  g_brainKeyHealth       = stringtable_add(g_stringtable, string_lit("self_health"));
-  g_brainKeyFaction      = stringtable_add(g_stringtable, string_lit("self_faction"));
-  g_brainKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self_nav_arrived"));
-  g_brainKeyAttacking    = stringtable_add(g_stringtable, string_lit("self_attacking"));
-  g_brainKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target_entity"));
-  g_brainKeyTargetPos    = stringtable_add(g_stringtable, string_lit("target_position"));
-  g_brainKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target_distance"));
-  g_brainKeyTargetLos    = stringtable_add(g_stringtable, string_lit("target_los"));
+  g_brainKeyTime           = stringtable_add(g_stringtable, string_lit("global_time"));
+  g_brainKeyEntity         = stringtable_add(g_stringtable, string_lit("self_entity"));
+  g_brainKeyPosition       = stringtable_add(g_stringtable, string_lit("self_position"));
+  g_brainKeyHealth         = stringtable_add(g_stringtable, string_lit("self_health"));
+  g_brainKeyFaction        = stringtable_add(g_stringtable, string_lit("self_faction"));
+  g_brainKeyNavArrived     = stringtable_add(g_stringtable, string_lit("self_nav_arrived"));
+  g_brainKeyAttacking      = stringtable_add(g_stringtable, string_lit("self_attacking"));
+  g_brainKeyTargetRangeMax = stringtable_add(g_stringtable, string_lit("target_range_max"));
+  g_brainKeyTargetEntity   = stringtable_add(g_stringtable, string_lit("target_entity"));
+  g_brainKeyTargetPos      = stringtable_add(g_stringtable, string_lit("target_position"));
+  g_brainKeyTargetDist     = stringtable_add(g_stringtable, string_lit("target_distance"));
+  g_brainKeyTargetLos      = stringtable_add(g_stringtable, string_lit("target_los"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);
