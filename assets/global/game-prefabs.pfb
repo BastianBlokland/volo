@@ -101,6 +101,56 @@
       ]
     },
     {
+      "name": "UnitFlame", "isUnit": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 3.5,
+          "rotationSpeed": 310,
+          "radius": 0.3,
+          "moveAnimation": "run"
+        },
+        {
+          "$type": "AssetPrefabTrait_Footstep",
+          "jointA": "LeftToeBase",
+          "jointB": "RightToeBase",
+          "decalIdA": "vfx/game/footstep_left.dcl",
+          "decalIdB": "vfx/game/footstep_right.dcl"
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 100,
+          "deathDestroyDelay": 2.5
+        },
+        {
+          "$type": "AssetPrefabTrait_Attack",
+          "weaponId": "FlameThrower",
+          "targetDistanceMax": 20,
+          "targetLineOfSightRadius": 0.5,
+          "targetExcludeObscured": true
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Capsule",
+            "offset": { "y": 0.3 },
+            "radius": 0.3,
+            "height": 1.2
+          }
+        },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        {
+          "$type": "AssetPrefabTrait_Taunt", "priority": 2,
+          "tauntDeathPrefab": "TauntDeathUnitRifle",
+          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
+        },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+      ]
+    },
+    {
       "name": "UnitEnemy", "isUnit": true, "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_maynard.gra" },
