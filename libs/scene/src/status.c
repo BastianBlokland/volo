@@ -11,7 +11,7 @@
 #include "scene_time.h"
 
 static const f32 g_sceneStatusDamagePerSec[SceneStatusType_Count] = {
-    [SceneStatusType_Burning] = 25,
+    [SceneStatusType_Burning] = 30,
 };
 static const String g_sceneStatusEffectPrefabs[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = string_static("EffectBurning"),
