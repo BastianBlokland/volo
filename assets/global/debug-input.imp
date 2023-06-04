@@ -271,6 +271,13 @@
       "bindings": [
         { "type": "Pressed", "key": "Alpha9" }
       ]
+    },
+    {
+      "name": "DebugInspectorVisVision",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha0" }
+      ]
     }
   ]
 }
