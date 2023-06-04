@@ -338,6 +338,12 @@ static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   ecs_world_add_t(w, e, SceneStatusRequestComp);
 }
 
+static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVision* t) {
+  (void)w;
+  (void)e;
+  (void)t;
+}
+
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
   ecs_world_add_t(w, e, SceneScaleComp, .scale = UNLIKELY(scale < f32_epsilon) ? 1.0 : scale);
 }
@@ -399,6 +405,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Status:
     setup_status(w, e, &t->data_status);
+    return;
+  case AssetPrefabTrait_Vision:
+    setup_vision(w, e, &t->data_vision);
     return;
   case AssetPrefabTrait_Scalable:
     setup_scale(w, e, s->scale);

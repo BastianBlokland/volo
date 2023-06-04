@@ -144,6 +144,10 @@ typedef struct {
 } AssetPrefabTraitStatusDef;
 
 typedef struct {
+  f32 radius;
+} AssetPrefabTraitVisionDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderableDef data_renderable;
@@ -163,6 +167,7 @@ typedef struct {
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitExplosiveDef  data_explosive;
     AssetPrefabTraitStatusDef     data_status;
+    AssetPrefabTraitVisionDef     data_vision;
   };
 } AssetPrefabTraitDef;
 
@@ -301,6 +306,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetPrefabTraitStatusDef, burnable, data_prim_t(bool), .flags = DataFlags_Opt);
 
+    data_reg_struct_t(reg, AssetPrefabTraitVisionDef);
+    data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
@@ -319,6 +327,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
@@ -570,6 +579,11 @@ static void prefab_build(
       outTrait->data_status = (AssetPrefabTraitStatus){
           .effectJoint = string_maybe_hash(traitDef->data_status.effectJoint),
           .burnable    = traitDef->data_status.burnable,
+      };
+      break;
+    case AssetPrefabTrait_Vision:
+      outTrait->data_vision = (AssetPrefabTraitVision){
+          .radius = traitDef->data_vision.radius,
       };
       break;
     case AssetPrefabTrait_Scalable:
