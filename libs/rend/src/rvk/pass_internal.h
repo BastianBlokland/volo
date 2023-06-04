@@ -104,6 +104,7 @@ void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
 void rvk_pass_stage_global_data(RvkPass*, Mem, u16 dataIndex);
 void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
+void rvk_pass_stage_dyn_image(RvkPass*, RvkImage*);
 
 void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);

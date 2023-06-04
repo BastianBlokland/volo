@@ -273,6 +273,9 @@ static void painter_stage_global_data(
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
+  if (draw.dynImage) {
+    rvk_pass_stage_dyn_image(ctx->pass, draw.dynImage);
+  }
   *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
 
