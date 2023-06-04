@@ -4,6 +4,7 @@
       "name": "UnitRifle", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
@@ -54,6 +55,7 @@
       "name": "UnitRocket", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rocket.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -104,6 +106,7 @@
       "name": "UnitFlame", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -203,6 +206,7 @@
       "name": "TurretGun", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 50 },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,
@@ -237,6 +241,7 @@
       "name": "TurretMissile", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 50 },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
