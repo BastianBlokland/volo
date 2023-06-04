@@ -4,7 +4,7 @@
       "name": "UnitRifle", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
@@ -27,7 +27,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Rifle",
-          "targetDistanceMax": 35,
+          "targetDistanceMax": 25,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -55,7 +55,7 @@
       "name": "UnitRocket", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rocket.gra" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -78,7 +78,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "RocketLauncher",
-          "targetDistanceMax": 40,
+          "targetDistanceMax": 30,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -106,7 +106,7 @@
       "name": "UnitFlame", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -206,7 +206,7 @@
       "name": "TurretGun", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 50 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 1000,
@@ -219,7 +219,7 @@
           "aimJoint": "turret",
           "aimSpeed": 120,
           "aimSoundId": "external/sound/electric-motor-01.wav",
-          "targetDistanceMax": 40,
+          "targetDistanceMax": 35,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -241,7 +241,7 @@
       "name": "TurretMissile", "isUnit": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 50 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 500,
@@ -254,8 +254,8 @@
           "aimJoint": "turret",
           "aimSpeed": 90,
           "aimSoundId": "external/sound/electric-motor-01.wav",
-          "targetDistanceMin": 30,
-          "targetDistanceMax": 75
+          "targetDistanceMin": 20,
+          "targetDistanceMax": 60
         },
         {
           "$type": "AssetPrefabTrait_Collision",
