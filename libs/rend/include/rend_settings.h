@@ -92,7 +92,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32             exposure;
   RendTonemapper  tonemapper;
   f32             resolutionScale;
-  u16             shadowResolution;
+  u16             shadowResolution, fogResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
   GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
   f32             bloomIntensity;

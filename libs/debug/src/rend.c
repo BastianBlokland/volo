@@ -1002,6 +1002,17 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_label(canvas, string_lit("Decals"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Decals);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog resolution"));
+  ui_table_next_column(canvas, &table);
+  if (debug_widget_editor_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
+    if (settings->fogResolution == 0) {
+      settings->fogResolution = 128;
+    } else if (settings->fogResolution > 16384) {
+      settings->fogResolution = 16384;
+    }
+  }
 }
 
 static void rend_panel_draw(

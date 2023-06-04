@@ -781,7 +781,7 @@ static bool rend_canvas_paint(
 
   // Fog pass.
   RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
-  const RvkSize fogSize   = (RvkSize){512, 512};
+  const RvkSize fogSize   = (RvkSize){set->fogResolution, set->fogResolution};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
   {
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, mainView);
