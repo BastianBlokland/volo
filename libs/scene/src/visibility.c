@@ -141,7 +141,7 @@ ecs_module_init(scene_visibility_module) {
       ecs_register_view(VisibilityUpdateGlobalView),
       ecs_register_view(VisibilityEntityView));
 
-  ecs_parallel(SceneVisibilityUpdateSys, 2);
+  ecs_parallel(SceneVisibilityUpdateSys, 4);
 }
 
 bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction faction) {
