@@ -180,6 +180,11 @@ static void inspector_notify_vis(
       (set->visFlags & (1 << vis)) ? string_lit("enabled") : string_lit("disabled"));
 }
 
+static void
+inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
+  debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
+}
+
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   bool open;
   ui_layout_push(canvas);
@@ -1147,6 +1152,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       set->visFlags ^= (1 << vis);
       inspector_notify_vis(set, stats, vis);
     }
+  }
+
+  if (input_triggered_hash(input, string_hash_lit("DebugInspectorVisMode"))) {
+    set->visMode = ++set->visMode % DebugInspectorVisMode_Count;
+    inspector_notify_vis_mode(stats, set->visMode);
   }
 
   if (!set->visFlags) {
