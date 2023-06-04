@@ -32,6 +32,7 @@
 #include "scene_transform.h"
 #include "scene_unit.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,
@@ -339,9 +340,7 @@ static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 }
 
 static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVision* t) {
-  (void)w;
-  (void)e;
-  (void)t;
+  ecs_world_add_t(w, e, SceneVisionComp, .radius = t->radius);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
