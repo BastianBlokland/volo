@@ -58,6 +58,13 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachColorLoad[1]   = RvkPassLoad_Preserve,
         },
 
+    [RendPass_Fog] =
+        {
+            // Attachment color 0: vision (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
+        },
+
     [RendPass_Shadow] =
         {
             // Attachment depth.
@@ -772,6 +779,17 @@ static bool rend_canvas_paint(
     rvk_canvas_attach_release(painter->canvas, geoData1Cpy);
   }
 
+  // Fog pass.
+  RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
+  const RvkSize fogSize   = (RvkSize){512, 512};
+  RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
+  {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, mainView);
+    rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
+    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_flush(&ctx);
+  }
+
   // Shadow pass.
   const RvkSize shadowSize = rend_light_has_shadow(light)
                                  ? (RvkSize){set->shadowResolution, set->shadowResolution}
@@ -855,6 +873,7 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
   rvk_canvas_attach_release(painter->canvas, geoDepthRead);
+  rvk_canvas_attach_release(painter->canvas, fogBuffer);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
 
   // Distortion.
