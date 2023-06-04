@@ -741,7 +741,7 @@ static void rend_resource_actions_draw(
       ui_button(
           canvas,
           .flags      = previewActive ? UiWidget_Disabled : 0,
-          .label      = ui_shape_scratch(UiShape_Visiblity),
+          .label      = ui_shape_scratch(UiShape_Visibility),
           .fontSize   = 18,
           .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
