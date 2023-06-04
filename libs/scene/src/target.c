@@ -198,7 +198,7 @@ static f32 target_score(
     }
   }
 
-  if (!scene_visible(visibilityEnv, finderFaction, targetPosCenter)) {
+  if (!scene_visible_pos(visibilityEnv, finderFaction, targetPosCenter)) {
     return 0.0f; // Target not visible.
   }
 

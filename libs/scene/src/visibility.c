@@ -93,7 +93,7 @@ ecs_module_init(scene_visibility_module) {
       SceneVisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(VisionEntityView));
 }
 
-bool scene_visible(
+bool scene_visible_pos(
     const SceneVisibilityEnvComp* env, const SceneFaction faction, const GeoVector pos) {
   if (faction != SceneFaction_A) {
     // TODO: Track visiblity for other factions.

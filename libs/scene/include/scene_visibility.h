@@ -3,11 +3,11 @@
 #include "geo_vector.h"
 #include "scene_faction.h"
 
-ecs_comp_extern_public(SceneVisibilityEnvComp);
+ecs_comp_extern(SceneVisibilityEnvComp);
 
 ecs_comp_extern_public(SceneVisionComp) { f32 radius; };
 
 /**
  * Check if the specified position is visible for this faction.
  */
-bool scene_visible(const SceneVisibilityEnvComp*, SceneFaction, GeoVector pos);
+bool scene_visible_pos(const SceneVisibilityEnvComp*, SceneFaction, GeoVector pos);
