@@ -8,6 +8,7 @@
 #include "scene_skeleton.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 
 #define rend_instance_max_draw_create_per_task 4
 
@@ -66,9 +67,10 @@ ecs_view_define(RenderableView) {
   ecs_access_read(SceneBoundsComp);
   ecs_access_read(SceneSkeletonComp);
 
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
 }
 
 ecs_view_define(DrawView) {
@@ -88,6 +90,10 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (renderable->alpha <= f32_epsilon) {
       continue;
+    }
+    const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
     const SceneTagComp*       tagComp       = ecs_view_read_t(itr, SceneTagComp);
