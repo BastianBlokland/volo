@@ -882,7 +882,6 @@ static bool rend_canvas_paint(
   rvk_canvas_attach_release(painter->canvas, geoData0);
   rvk_canvas_attach_release(painter->canvas, geoData1);
   rvk_canvas_attach_release(painter->canvas, geoDepthRead);
-  rvk_canvas_attach_release(painter->canvas, fogBuffer);
   rvk_canvas_attach_release(painter->canvas, aoBuffer);
 
   // Distortion.
@@ -973,7 +972,10 @@ static bool rend_canvas_paint(
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_post(&ctx, drawView, graphicView);
-    if (set->flags & RendFlags_DebugShadow) {
+    if (set->flags & RendFlags_DebugFog) {
+      const f32 exposure = 1.0f;
+      painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
+    } else if (set->flags & RendFlags_DebugShadow) {
       const f32 exposure = 0.5f;
       painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
@@ -985,6 +987,7 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
   }
 
+  rvk_canvas_attach_release(painter->canvas, fogBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, bloomOutput);

@@ -994,7 +994,7 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_slider(canvas, &settings->distortionResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Distortion Debug"));
+  ui_label(canvas, string_lit("Distortion debug"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugDistortion);
 
@@ -1002,6 +1002,11 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_label(canvas, string_lit("Decals"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Decals);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog debug"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog resolution"));

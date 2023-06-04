@@ -17,10 +17,11 @@ typedef enum {
   RendFlags_DebugWireframe       = 1 << 7,
   RendFlags_DebugCamera          = 1 << 8,
   RendFlags_DebugSkinning        = 1 << 9,
-  RendFlags_DebugShadow          = 1 << 10,
-  RendFlags_DebugDistortion      = 1 << 11,
+  RendFlags_DebugFog             = 1 << 10,
+  RendFlags_DebugShadow          = 1 << 11,
+  RendFlags_DebugDistortion      = 1 << 12,
 
-  RendFlags_DebugOverlay = RendFlags_DebugShadow | RendFlags_DebugDistortion,
+  RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
 
 typedef enum {
