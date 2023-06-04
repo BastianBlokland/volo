@@ -214,6 +214,7 @@ static RendPaintContext painter_context(
 typedef enum {
   RendViewType_Main,
   RendViewType_Shadow,
+  RendViewType_Fog,
 } RendViewType;
 
 static void painter_stage_global_data(
@@ -784,9 +785,14 @@ static bool rend_canvas_paint(
   const RvkSize fogSize   = (RvkSize){set->fogResolution, set->fogResolution};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
   {
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, mainView);
+    const GeoMatrix      fogTrans  = geo_matrix_ident();
+    const GeoMatrix      fogProj   = geo_matrix_proj_ortho(100, 100, -10.0f, 10.0f);
+    const SceneTagFilter fogFilter = {0};
+    const RendView       fogView   = painter_view_create(&fogTrans, &fogProj, camEntity, fogFilter);
+
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_stage_global_data(&ctx, &fogTrans, &fogProj, fogSize, time, RendViewType_Fog);
     painter_flush(&ctx);
   }
 
