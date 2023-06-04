@@ -42,7 +42,6 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
-  ecs_access_read(SceneVisibilityEnvComp);
 }
 
 ecs_view_define(TargetFinderView) {
@@ -58,6 +57,7 @@ ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneNavBlockerComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneHealthComp);
@@ -160,15 +160,19 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
 }
 
 static f32 target_score(
-    const SceneCollisionEnvComp*  collisionEnv,
-    const SceneVisibilityEnvComp* visibilityEnv,
-    const SceneNavEnvComp*        nav,
-    const SceneTargetFinderComp*  finder,
-    const GeoVector               finderPosCenter,
-    const GeoVector               finderAimDir,
-    const SceneFaction            finderFaction,
-    const EcsEntityId             targetOld,
-    EcsIterator*                  targetItr) {
+    const SceneCollisionEnvComp* collisionEnv,
+    const SceneNavEnvComp*       nav,
+    const SceneTargetFinderComp* finder,
+    const GeoVector              finderPosCenter,
+    const GeoVector              finderAimDir,
+    const SceneFaction           finderFaction,
+    const EcsEntityId            targetOld,
+    EcsIterator*                 targetItr) {
+
+  const SceneVisibilityComp* targetVisibility = ecs_view_read_t(targetItr, SceneVisibilityComp);
+  if (targetVisibility && !scene_visible(targetVisibility, finderFaction)) {
+    return 0.0f; // Target not visible.
+  }
 
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneLocationComp*  targetLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
@@ -196,10 +200,6 @@ static f32 target_score(
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit)) {
       return 0.0f; // Target obscured.
     }
-  }
-
-  if (!scene_visible_pos(visibilityEnv, finderFaction, targetPosCenter)) {
-    return 0.0f; // Target not visible.
   }
 
   f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
@@ -234,10 +234,9 @@ ecs_system_define(SceneTargetUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneCollisionEnvComp*  colEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneNavEnvComp*        navEnv = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneTimeComp*          time   = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneNavEnvComp*       navEnv = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTimeComp*         time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* finderView = ecs_world_view_t(world, TargetFinderView);
   EcsView* targetView = ecs_world_view_t(world, TargetView);
@@ -296,8 +295,8 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (!ecs_world_has_t(world, targetEntity, SceneUnitComp)) {
           continue; // Only auto-target units.
         }
-        const f32 score = target_score(
-            colEnv, visEnv, navEnv, finder, pos, aimDir, faction, targetOld, targetItr);
+        const f32 score =
+            target_score(colEnv, navEnv, finder, pos, aimDir, faction, targetOld, targetItr);
 
         // Insert into the target queue.
         for (u32 i = 0; i != scene_target_queue_size; ++i) {

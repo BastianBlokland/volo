@@ -444,6 +444,7 @@ static void setup_prefab(
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
   if (prefab->flags & AssetPrefabFlags_Unit) {
     ecs_world_add_empty_t(w, e, SceneUnitComp);
+    ecs_world_add_t(w, e, SceneVisibilityComp);
     tagComp->tags |= SceneTags_Unit;
   }
 

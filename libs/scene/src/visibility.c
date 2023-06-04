@@ -20,6 +20,7 @@ static void ecs_destruct_visibility_env_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, env->visionSquaredRadii, scene_vision_areas_max);
 }
 
+ecs_comp_define_public(SceneVisibilityComp);
 ecs_comp_define_public(SceneVisionComp);
 
 static void visibility_env_create(EcsWorld* world) {
@@ -44,7 +45,18 @@ visibility_env_insert(SceneVisibilityEnvComp* env, const GeoVector pos, const f3
   env->visionSquaredRadii[index] = radius * radius;
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneVisibilityEnvComp); }
+static bool visiblity_env_visible(const SceneVisibilityEnvComp* env, const GeoVector pos) {
+  // TODO: This could use some kind of acceleration structure.
+  for (u32 i = 0; i != env->visionCount; ++i) {
+    const GeoVector delta = geo_vector_sub(pos, env->visionPositions[i]);
+    if (geo_vector_mag_sqr(delta) <= env->visionSquaredRadii[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+ecs_view_define(VisionUpdateGlobalView) { ecs_access_write(SceneVisibilityEnvComp); }
 
 ecs_view_define(VisionEntityView) {
   ecs_access_read(SceneFactionComp);
@@ -58,7 +70,7 @@ ecs_system_define(SceneVisionUpdateSys) {
     return;
   }
 
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, VisionUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -82,15 +94,58 @@ ecs_system_define(SceneVisionUpdateSys) {
   }
 }
 
+ecs_view_define(VisibilityUpdateGlobalView) { ecs_access_read(SceneVisibilityEnvComp); }
+
+ecs_view_define(VisibilityEntityView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneVisibilityComp);
+}
+
+ecs_system_define(SceneVisibilityUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, VisibilityUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+
+  const SceneVisibilityEnvComp* env = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+
+  EcsView* view = ecs_world_view_t(world, VisibilityEntityView);
+  for (EcsIterator* itr = ecs_view_itr_step(view, parCount, parIndex); ecs_view_walk(itr);) {
+    const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
+    SceneVisibilityComp*      visibility = ecs_view_write_t(itr, SceneVisibilityComp);
+
+    /**
+     * NOTE: Only visiblity for faction A is tracked at the moment, the other factions are
+     * considered to have full vision.
+     */
+    visibility->visibleToFactionsMask = ~0;
+    if (!visiblity_env_visible(env, trans->position)) {
+      visibility->visibleToFactionsMask ^= 1 << SceneFaction_A;
+    }
+  }
+}
+
 ecs_module_init(scene_visibility_module) {
   ecs_register_comp(SceneVisibilityEnvComp, .destructor = ecs_destruct_visibility_env_comp);
+  ecs_register_comp(SceneVisibilityComp);
   ecs_register_comp(SceneVisionComp);
 
-  ecs_register_view(UpdateGlobalView);
-  ecs_register_view(VisionEntityView);
+  ecs_register_system(
+      SceneVisionUpdateSys,
+      ecs_register_view(VisionUpdateGlobalView),
+      ecs_register_view(VisionEntityView));
 
   ecs_register_system(
-      SceneVisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(VisionEntityView));
+      SceneVisibilityUpdateSys,
+      ecs_register_view(VisibilityUpdateGlobalView),
+      ecs_register_view(VisibilityEntityView));
+
+  ecs_parallel(SceneVisibilityUpdateSys, 2);
+}
+
+bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction faction) {
+  return (visibility->visibleToFactionsMask & (1 << faction)) != 0;
 }
 
 bool scene_visible_pos(
@@ -99,12 +154,5 @@ bool scene_visible_pos(
     // TODO: Track visiblity for other factions.
     return true;
   }
-  // TODO: This could use some kind of acceleration structure.
-  for (u32 i = 0; i != env->visionCount; ++i) {
-    const GeoVector delta = geo_vector_sub(pos, env->visionPositions[i]);
-    if (geo_vector_mag_sqr(delta) <= env->visionSquaredRadii[i]) {
-      return true;
-    }
-  }
-  return false;
+  return visiblity_env_visible(env, pos);
 }
