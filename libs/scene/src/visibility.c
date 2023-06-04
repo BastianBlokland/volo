@@ -94,7 +94,7 @@ ecs_module_init(scene_visibility_module) {
 }
 
 bool scene_visible(
-    const SceneVisibilityEnvComp* env, const GeoVector pos, const SceneFaction faction) {
+    const SceneVisibilityEnvComp* env, const SceneFaction faction, const GeoVector pos) {
   if (faction != SceneFaction_A) {
     // TODO: Track visiblity for other factions.
     return true;

@@ -15,6 +15,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_unit.h"
+#include "scene_visibility.h"
 
 #define target_max_refresh_per_task 10
 #define target_refresh_time_min time_seconds(1)
@@ -41,6 +42,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
 }
 
 ecs_view_define(TargetFinderView) {
@@ -158,13 +160,15 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
 }
 
 static f32 target_score(
-    const SceneCollisionEnvComp* collisionEnv,
-    const SceneNavEnvComp*       nav,
-    const SceneTargetFinderComp* finder,
-    const GeoVector              finderPosCenter,
-    const GeoVector              finderAimDir,
-    const EcsEntityId            targetOld,
-    EcsIterator*                 targetItr) {
+    const SceneCollisionEnvComp*  collisionEnv,
+    const SceneVisibilityEnvComp* visibilityEnv,
+    const SceneNavEnvComp*        nav,
+    const SceneTargetFinderComp*  finder,
+    const GeoVector               finderPosCenter,
+    const GeoVector               finderAimDir,
+    const SceneFaction            finderFaction,
+    const EcsEntityId             targetOld,
+    EcsIterator*                  targetItr) {
 
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneLocationComp*  targetLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
@@ -192,6 +196,10 @@ static f32 target_score(
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit)) {
       return 0.0f; // Target obscured.
     }
+  }
+
+  if (!scene_visible(visibilityEnv, finderFaction, targetPosCenter)) {
+    return 0.0f; // Target not visible.
   }
 
   f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
@@ -226,9 +234,10 @@ ecs_system_define(SceneTargetUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneNavEnvComp*       navEnv = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneTimeComp*         time   = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneCollisionEnvComp*  colEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneNavEnvComp*        navEnv = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTimeComp*          time   = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* finderView = ecs_world_view_t(world, TargetFinderView);
   EcsView* targetView = ecs_world_view_t(world, TargetView);
@@ -239,13 +248,14 @@ ecs_system_define(SceneTargetUpdateSys) {
 
   EcsIterator* targetItr = ecs_view_itr(targetView);
   for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId         entity    = ecs_view_entity(itr);
-    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneLocationComp*  loc       = ecs_view_read_t(itr, SceneLocationComp);
-    const SceneAttackAimComp* attackAim = ecs_view_read_t(itr, SceneAttackAimComp);
-    const SceneFactionComp*   faction   = ecs_view_read_t(itr, SceneFactionComp);
-    SceneTargetFinderComp*    finder    = ecs_view_write_t(itr, SceneTargetFinderComp);
-    SceneTargetTraceComp*     trace     = ecs_view_write_t(itr, SceneTargetTraceComp);
+    const EcsEntityId         entity      = ecs_view_entity(itr);
+    const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLocationComp*  loc         = ecs_view_read_t(itr, SceneLocationComp);
+    const SceneAttackAimComp* attackAim   = ecs_view_read_t(itr, SceneAttackAimComp);
+    const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    SceneTargetFinderComp*    finder      = ecs_view_write_t(itr, SceneTargetFinderComp);
+    SceneTargetTraceComp*     trace       = ecs_view_write_t(itr, SceneTargetTraceComp);
+    const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_None;
 
     if ((finder->flags & SceneTarget_ConfigTrace) && !trace) {
       target_trace_start(world, entity);
@@ -280,13 +290,14 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (entity == targetEntity) {
           continue; // Do not target ourselves.
         }
-        if (scene_is_friendly(faction, ecs_view_read_t(targetItr, SceneFactionComp))) {
+        if (scene_is_friendly(factionComp, ecs_view_read_t(targetItr, SceneFactionComp))) {
           continue; // Do not target friendlies.
         }
         if (!ecs_world_has_t(world, targetEntity, SceneUnitComp)) {
           continue; // Only auto-target units.
         }
-        const f32 score = target_score(colEnv, navEnv, finder, pos, aimDir, targetOld, targetItr);
+        const f32 score = target_score(
+            colEnv, visEnv, navEnv, finder, pos, aimDir, faction, targetOld, targetItr);
 
         // Insert into the target queue.
         for (u32 i = 0; i != scene_target_queue_size; ++i) {

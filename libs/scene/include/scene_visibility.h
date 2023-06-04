@@ -10,4 +10,4 @@ ecs_comp_extern_public(SceneVisionComp) { f32 radius; };
 /**
  * Check if the specified position is visible for this faction.
  */
-bool scene_visible(const SceneVisibilityEnvComp*, GeoVector pos, SceneFaction);
+bool scene_visible(const SceneVisibilityEnvComp*, SceneFaction, GeoVector pos);
