@@ -9,6 +9,7 @@
 #include "scene_skeleton.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 
 #define scene_footstep_lift_threshold 0.05f
 #define scene_footstep_decal_lifetime time_seconds(2)
@@ -32,6 +33,7 @@ ecs_view_define(InitView) {
 
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneFootstepComp);
   ecs_access_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
@@ -93,6 +95,7 @@ static void footstep_decal_spawn(
   ecs_world_add_t(world, e, SceneTransformComp, .position = footPos, .rotation = trans->rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = scene_footstep_decal_lifetime);
   ecs_world_add_t(world, e, SceneVfxDecalComp, .asset = decalAsset, .alpha = 1.0f);
+  ecs_world_add_t(world, e, SceneVisibilityComp); // Seeing footsteps requires visibility.
 }
 
 ecs_system_define(SceneFootstepUpdateSys) {

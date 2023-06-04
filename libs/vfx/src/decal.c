@@ -16,6 +16,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "vfx_register.h"
 
 #include "atlas_internal.h"
@@ -297,6 +298,7 @@ ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_read(VfxDecalInstanceComp);
 }
@@ -376,6 +378,11 @@ ecs_system_define(VfxDecalUpdateSys) {
     const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
     const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+
+    const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
 
     const GeoVector transPos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
     const GeoQuat   transRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
