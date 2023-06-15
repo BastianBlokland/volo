@@ -9,7 +9,7 @@
 
 #include "fog_internal.h"
 
-static const String g_fogVisionGraphic = string_static("graphics/fog/fog_vision.gra");
+static const String g_fogVisionGraphic = string_static("graphics/fog_vision.gra");
 static const GeoBox g_fogBounds        = {
     .min = {.x = -250.0f, .y = -100.0f, .z = -250.0f},
     .max = {.x = 250.0f, .y = 100.0f, .z = 250.0f},

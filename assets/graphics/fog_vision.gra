@@ -1,0 +1,16 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fog_vision.vert.spv"
+    },
+    {
+      "shaderId": "shaders/fog_vision.frag.spv"
+    }
+  ],
+  "meshId": "meshes/sphere.pme",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Always",
+  "cull": "Back"
+}

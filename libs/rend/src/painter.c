@@ -434,6 +434,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Decal;      // Ignore decals (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_FogVision;  // Ignore fog-vision (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
   ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
