@@ -14,6 +14,7 @@
 #include "scene_transform.h"
 
 #include "draw_internal.h"
+#include "fog_internal.h"
 #include "light_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
@@ -125,6 +126,7 @@ static void ecs_destruct_painter(void* data) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(RendFogComp);
   ecs_access_read(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneTimeComp);
@@ -717,6 +719,7 @@ static bool rend_canvas_paint(
     const RendSettingsGlobalComp* setGlobal,
     const SceneTimeComp*          time,
     const RendLightRendererComp*  light,
+    const RendFogComp*            fog,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
@@ -788,14 +791,14 @@ static bool rend_canvas_paint(
   const RvkSize fogSize   = (RvkSize){set->fogResolution, set->fogResolution};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
   {
-    const GeoMatrix      fogTrans  = geo_matrix_ident();
-    const GeoMatrix      fogProj   = geo_matrix_proj_ortho(100, 100, -10.0f, 10.0f);
+    const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
+    const GeoMatrix*     fogProj   = rend_fog_proj(fog);
     const SceneTagFilter fogFilter = {0};
-    const RendView       fogView   = painter_view_create(&fogTrans, &fogProj, camEntity, fogFilter);
+    const RendView       fogView   = painter_view_create(fogTrans, fogProj, camEntity, fogFilter);
 
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
-    painter_stage_global_data(&ctx, &fogTrans, &fogProj, fogSize, time, RendViewType_Fog);
+    painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_flush(&ctx);
   }
 
@@ -1037,6 +1040,7 @@ ecs_system_define(RendPainterDrawSys) {
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
+  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
 
   EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView     = ecs_world_view_t(world, DrawView);
@@ -1058,6 +1062,7 @@ ecs_system_define(RendPainterDrawSys) {
         settingsGlobal,
         time,
         light,
+        fog,
         win,
         entity,
         camera,
