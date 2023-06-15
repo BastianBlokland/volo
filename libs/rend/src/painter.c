@@ -752,6 +752,8 @@ static bool rend_canvas_paint(
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
+    painter_push_draws_simple(
+        &ctx, drawView, graphicView, RendDrawFlags_FogVision, RendDrawFlags_None);
     painter_flush(&ctx);
   }
 
