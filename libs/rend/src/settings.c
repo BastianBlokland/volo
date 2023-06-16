@@ -39,6 +39,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
              RendFlags_AmbientOcclusion     |
              RendFlags_AmbientOcclusionBlur |
              RendFlags_Bloom                |
+             RendFlags_Fog                  |
              RendFlags_Distortion           |
              RendFlags_Decals               |
              RendFlags_ParticleShadows;
