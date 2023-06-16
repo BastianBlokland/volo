@@ -747,9 +747,11 @@ static bool rend_canvas_paint(
 
   // Fog pass.
   RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
-  const RvkSize fogSize   = (RvkSize){set->fogResolution, set->fogResolution};
+  const RvkSize fogSize   = set->flags & RendFlags_Fog
+                                ? (RvkSize){set->fogResolution, set->fogResolution}
+                                : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
-  {
+  if (set->flags & RendFlags_Fog) {
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
     const GeoMatrix*     fogProj   = rend_fog_proj(fog);
     const SceneTagFilter fogFilter = {0};
@@ -834,7 +836,9 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
-    painter_push_fog(&ctx, fog, fogBuffer);
+    if (set->flags & RendFlags_Fog) {
+      painter_push_fog(&ctx, fog, fogBuffer);
+    }
     if (set->flags & RendFlags_DebugWireframe) {
       painter_push_debug_wireframe(&ctx, drawView, graphicView);
     }
