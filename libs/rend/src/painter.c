@@ -380,6 +380,31 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
   }
 }
 
+static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      GeoMatrix fogViewProj;
+    } FogData;
+
+    FogData* data = alloc_alloc_t(g_alloc_scratch, FogData);
+
+    const GeoMatrix fogViewMat = geo_matrix_inverse(rend_fog_trans(fog));
+    data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
+
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynImage  = fogMap,
+        .instCount = 1,
+        .drawData  = mem_create(data, sizeof(FogData)),
+    };
+    painter_push(ctx, draw);
+  }
+}
+
 static void painter_push_ambient(RendPaintContext* ctx) {
   typedef enum {
     AmbientFlags_AmbientOcclusion     = 1 << 0,
@@ -809,6 +834,7 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
+    painter_push_fog(&ctx, fog, fogBuffer);
     if (set->flags & RendFlags_DebugWireframe) {
       painter_push_debug_wireframe(&ctx, drawView, graphicView);
     }

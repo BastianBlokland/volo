@@ -20,7 +20,7 @@ void main() {
   const f32v3 instancePos    = u_instances[in_instanceIndex].data1.xyz;
   const f32   instanceRadius = u_instances[in_instanceIndex].data1.w;
 
-  const f32v3 worldPos = vert.position * instanceRadius + instancePos;
+  const f32v3 worldPos = vert.position * (instanceRadius * 2) + instancePos;
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
 }

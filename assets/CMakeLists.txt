@@ -28,6 +28,7 @@ configure_shaders(volo_shaders
     shaders/dyn_depth.frag
     shaders/fog_vision.frag
     shaders/fog_vision.vert
+    shaders/fog.frag
     shaders/fullscreen.vert
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
