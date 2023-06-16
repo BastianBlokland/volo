@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "rend_draw.h"
@@ -11,8 +12,8 @@
 
 static const String g_fogVisionGraphic = string_static("graphics/fog_vision.gra");
 static const GeoBox g_fogBounds        = {
-    .min = {.x = -250.0f, .y = -100.0f, .z = -250.0f},
-    .max = {.x = 250.0f, .y = 100.0f, .z = 250.0f},
+    .min = {.x = -225.0f, .y = -100.0f, .z = -225.0f},
+    .max = {.x = 225.0f, .y = 100.0f, .z = 225.0f},
 };
 
 ecs_comp_define(RendFogComp) {
@@ -47,14 +48,14 @@ static void rend_fog_create(EcsWorld* world, AssetManagerComp* assets) {
       global,
       RendFogComp,
       .drawEntity  = rend_fog_draw_create(world, assets),
-      .transMatrix = geo_matrix_ident(),
+      .transMatrix = geo_matrix_rotate_x(math_pi_f32 * 0.5f),
       .projMatrix  = geo_matrix_proj_ortho_box(
           g_fogBounds.min.x,
           g_fogBounds.max.x,
-          g_fogBounds.min.y,
-          g_fogBounds.max.y,
           g_fogBounds.min.z,
-          g_fogBounds.max.z));
+          g_fogBounds.max.z,
+          g_fogBounds.min.y,
+          g_fogBounds.max.y));
 }
 
 ecs_system_define(RendFogRenderSys) {
