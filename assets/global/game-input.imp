@@ -73,6 +73,15 @@
         { "type": "Down", "key": "Alt" },
         { "type": "Down", "key": "MouseExtra1" }
       ]
-    }
+    },
+    { "name": "CommandGroup1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha1" } ] },
+    { "name": "CommandGroup2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha2" } ] },
+    { "name": "CommandGroup3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha3" } ] },
+    { "name": "CommandGroup4", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha4" } ] },
+    { "name": "CommandGroup5", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha5" } ] },
+    { "name": "CommandGroup6", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha6" } ] },
+    { "name": "CommandGroup7", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha7" } ] },
+    { "name": "CommandGroup8", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha8" } ] },
+    { "name": "CommandGroup9", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha9" } ] }
   ]
 }

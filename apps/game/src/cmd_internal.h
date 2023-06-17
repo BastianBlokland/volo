@@ -3,7 +3,7 @@
 #include "ecs_module.h"
 #include "geo_vector.h"
 
-#define cmd_group_count 10
+#define cmd_group_count 9
 
 enum {
   AppOrder_CommandUpdate = 50,
