@@ -118,18 +118,15 @@ static void ecs_destruct_controller(void* data) {
   array_for_t(comp->groups, CmdGroup, group) { cmd_group_destroy(group); }
 }
 
-ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
-ecs_view_define(GlobalUpdateView) { ecs_access_write(SceneSelectionComp); }
+ecs_view_define(GlobalUpdateView) {
+  ecs_access_maybe_write(CmdControllerComp);
+  ecs_access_write(SceneSelectionComp);
+}
+
 ecs_view_define(BrainView) {
   ecs_access_read(SceneFactionComp);
   ecs_access_write(SceneBrainComp);
   ecs_access_maybe_write(SceneTauntComp);
-}
-
-static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, ControllerWriteView);
-  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
-  return itr ? ecs_view_write_t(itr, CmdControllerComp) : null;
 }
 
 static bool cmd_is_player_owned(EcsIterator* itr) {
@@ -217,7 +214,7 @@ ecs_system_define(CmdControllerUpdateSys) {
     return;
   }
   SceneSelectionComp* selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
-  CmdControllerComp*  controller = cmd_controller_get(world);
+  CmdControllerComp*  controller = ecs_view_write_t(globalItr, CmdControllerComp);
   if (!controller) {
     controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
     controller->commands = dynarray_create_t(g_alloc_heap, Cmd, 512);
@@ -243,15 +240,11 @@ ecs_module_init(game_cmd_module) {
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
-  ecs_register_view(ControllerWriteView);
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(BrainView);
 
   ecs_register_system(
-      CmdControllerUpdateSys,
-      ecs_view_id(GlobalUpdateView),
-      ecs_view_id(ControllerWriteView),
-      ecs_view_id(BrainView));
+      CmdControllerUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(BrainView));
 
   ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);
 }
