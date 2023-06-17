@@ -50,6 +50,9 @@ ecs_comp_define(InputStateComp) {
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
+  StringHash   lastGroupAction;
+  TimeDuration lastGroupTime;
+
   u32 lastSelectionCount;
 
   GeoVector camPos, camPosTgt;
@@ -93,21 +96,35 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
 }
 
 static void update_group_input(
-    CmdControllerComp* cmdController, InputManagerComp* input, const SceneSelectionComp* sel) {
+    InputStateComp*           state,
+    CmdControllerComp*        cmdController,
+    InputManagerComp*         input,
+    const SceneSelectionComp* sel,
+    const SceneTimeComp*      time) {
   for (u32 i = 0; i != cmd_group_count; ++i) {
     if (!input_triggered_hash(input, g_inputGroupActions[i])) {
       continue;
     }
+    const bool doublePress =
+        state->lastGroupAction == g_inputGroupActions[i] &&
+        (time->realTime - state->lastGroupTime) < input_doubleclick_interval(input);
+
+    state->lastGroupAction = g_inputGroupActions[i];
+    state->lastGroupTime   = time->realTime;
+
     if (input_modifiers(input) & InputModifier_Control) {
       // Assign the current selection to this group.
       cmd_group_clear(cmdController, i);
       for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
         cmd_group_add(cmdController, i, *e);
       }
-      continue;
+    } else {
+      cmd_push_select_group(cmdController, i);
     }
 
-    cmd_push_select_group(cmdController, i);
+    if (doublePress && cmd_group_size(cmdController, i)) {
+      state->camPosTgt = cmd_group_position(cmdController, i);
+    }
   }
 }
 
@@ -522,8 +539,6 @@ ecs_system_define(InputUpdateSys) {
     input_order_stop(cmdController, sel, debugStats);
   }
 
-  update_group_input(cmdController, input, sel);
-
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
     EcsIterator*           camItr   = ecs_view_at(cameraView, ecs_view_entity(itr));
@@ -541,6 +556,7 @@ ecs_system_define(InputUpdateSys) {
     }
 
     if (input_active_window(input) == ecs_view_entity(itr)) {
+      update_group_input(state, cmdController, input, sel, time);
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
       } else {
