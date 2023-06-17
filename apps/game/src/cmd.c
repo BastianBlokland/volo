@@ -16,6 +16,7 @@ static StringHash         g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttack
 
 typedef enum {
   Cmd_Select,
+  Cmd_SelectGroup,
   Cmd_Deselect,
   Cmd_DeselectAll,
   Cmd_Move,
@@ -26,6 +27,10 @@ typedef enum {
 typedef struct {
   EcsEntityId object;
 } CmdSelect;
+
+typedef struct {
+  u8 groupIndex;
+} CmdSelectGroup;
 
 typedef struct {
   EcsEntityId object;
@@ -48,11 +53,12 @@ typedef struct {
 typedef struct {
   CmdType type;
   union {
-    CmdSelect   select;
-    CmdDeselect deselect;
-    CmdMove     move;
-    CmdStop     stop;
-    CmdAttack   attack;
+    CmdSelect      select;
+    CmdSelectGroup selectGroup;
+    CmdDeselect    deselect;
+    CmdMove        move;
+    CmdStop        stop;
+    CmdAttack      attack;
   };
 } Cmd;
 
@@ -134,16 +140,26 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   }
 }
 
-static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cmd* cmd) {
+static void cmd_execute(
+    EcsWorld*                world,
+    const CmdControllerComp* controller,
+    SceneSelectionComp*      selection,
+    const Cmd*               cmd) {
   switch (cmd->type) {
   case Cmd_Select:
-    diag_assert_msg(ecs_entity_valid(cmd->select.object), "Selecting invalid entity");
     if (ecs_world_exists(world, cmd->select.object)) {
       scene_selection_add(selection, cmd->select.object);
     }
     break;
+  case Cmd_SelectGroup:
+    scene_selection_clear(selection);
+    dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
+      if (ecs_world_exists(world, *entity)) {
+        scene_selection_add(selection, *entity);
+      }
+    }
+    break;
   case Cmd_Deselect:
-    diag_assert_msg(ecs_entity_valid(cmd->deselect.object), "Deselecting invalid entity");
     scene_selection_remove(selection, cmd->deselect.object);
     break;
   case Cmd_DeselectAll:
@@ -175,7 +191,9 @@ ecs_system_define(CmdControllerUpdateSys) {
     array_for_t(controller->groups, CmdGroup, group) { cmd_group_init(group); }
   }
 
-  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, selection, cmd); }
+  dynarray_for_t(&controller->commands, Cmd, cmd) {
+    cmd_execute(world, controller, selection, cmd);
+  }
   dynarray_clear(&controller->commands);
 }
 
@@ -200,13 +218,26 @@ ecs_module_init(game_cmd_module) {
 }
 
 void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Select,
       .select = {.object = object},
   };
 }
 
+void cmd_push_select_group(CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type        = Cmd_SelectGroup,
+      .selectGroup = {.groupIndex = groupIndex},
+  };
+}
+
 void cmd_push_deselect(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type     = Cmd_Deselect,
       .deselect = {.object = object},
@@ -221,6 +252,8 @@ void cmd_push_deselect_all(CmdControllerComp* controller) {
 
 void cmd_push_move(
     CmdControllerComp* controller, const EcsEntityId object, const GeoVector position) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Move,
       .move = {.object = object, .position = position},
@@ -228,6 +261,8 @@ void cmd_push_move(
 }
 
 void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Stop,
       .stop = {.object = object},
@@ -236,6 +271,9 @@ void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
 
 void cmd_push_attack(
     CmdControllerComp* controller, const EcsEntityId object, const EcsEntityId target) {
+  diag_assert(ecs_entity_valid(object));
+  diag_assert(ecs_entity_valid(target));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
@@ -244,11 +282,14 @@ void cmd_push_attack(
 
 void cmd_group_clear(CmdControllerComp* controller, const u8 groupIndex) {
   diag_assert(groupIndex < cmd_group_count);
+
   dynarray_clear(&controller->groups[groupIndex].entities);
 }
 
 void cmd_group_add(CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
   diag_assert(groupIndex < cmd_group_count);
+  diag_assert(ecs_entity_valid(object));
+
   DynArray* entities = &controller->groups[groupIndex].entities;
   *(EcsEntityId*)dynarray_find_or_insert_sorted(entities, ecs_compare_entity, &object) = object;
 }
@@ -256,6 +297,8 @@ void cmd_group_add(CmdControllerComp* controller, const u8 groupIndex, const Ecs
 void cmd_group_remove(
     CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
   diag_assert(groupIndex < cmd_group_count);
+  diag_assert(ecs_entity_valid(object));
+
   DynArray*    entities = &controller->groups[groupIndex].entities;
   EcsEntityId* entry    = dynarray_search_binary(entities, ecs_compare_entity, &object);
   if (entry) {
