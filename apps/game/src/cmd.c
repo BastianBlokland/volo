@@ -86,6 +86,8 @@ static void cmd_group_remove_internal(CmdGroup* group, const EcsEntityId object)
   }
 }
 
+static u32 cmd_group_size_internal(CmdGroup* group) { return (u32)dynarray_size(&group->entities); }
+
 static void cmd_group_prune_destroyed_entities(CmdGroup* group, EcsWorld* world) {
   DynArray* entities = &group->entities;
   for (usize i = dynarray_size(entities); i-- != 0;) {
@@ -326,4 +328,10 @@ void cmd_group_remove(
   diag_assert(ecs_entity_valid(object));
 
   cmd_group_remove_internal(&controller->groups[groupIndex], object);
+}
+
+u32 cmd_group_size(CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_size_internal(&controller->groups[groupIndex]);
 }
