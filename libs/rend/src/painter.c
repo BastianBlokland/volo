@@ -14,6 +14,7 @@
 #include "scene_transform.h"
 
 #include "draw_internal.h"
+#include "fog_internal.h"
 #include "light_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
@@ -56,6 +57,20 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             // Attachment color 1: normal (rg), roughness (b) and tags (a).
             .attachColorFormat[1] = RvkPassFormat_Color4Linear,
             .attachColorLoad[1]   = RvkPassLoad_Preserve,
+        },
+
+    [RendPass_Fog] =
+        {
+            // Attachment color 0: vision (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_Clear,
+        },
+
+    [RendPass_FogBlur] =
+        {
+            // Attachment color 0: vision (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
         },
 
     [RendPass_Shadow] =
@@ -118,6 +133,7 @@ static void ecs_destruct_painter(void* data) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(RendFogComp);
   ecs_access_read(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneTimeComp);
@@ -207,6 +223,7 @@ static RendPaintContext painter_context(
 typedef enum {
   RendViewType_Main,
   RendViewType_Shadow,
+  RendViewType_Fog,
 } RendViewType;
 
 static void painter_stage_global_data(
@@ -265,6 +282,9 @@ static void painter_stage_global_data(
 }
 
 static void painter_push(RendPaintContext* ctx, const RvkPassDraw draw) {
+  if (draw.dynImage) {
+    rvk_pass_stage_dyn_image(ctx->pass, draw.dynImage);
+  }
   *dynarray_push_t(&ctx->painter->drawBuffer, RvkPassDraw) = draw;
 }
 
@@ -276,14 +296,22 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
   }
 }
 
-static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
+static SceneTags painter_push_draws_simple(
+    RendPaintContext*   ctx,
+    EcsView*            drawView,
+    EcsView*            graView,
+    const RendDrawFlags includeFlags /* included if the draw has any of these flags */,
+    const RendDrawFlags ignoreFlags) {
   SceneTags tagMask = 0;
 
   EcsIterator* graphicItr = ecs_view_itr(graView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_Geometry)) {
-      continue; // Shouldn't be included in the geometry pass.
+    if (includeFlags && !(rend_draw_flags(draw) & includeFlags)) {
+      continue; // Draw misses a include flag.
+    }
+    if (rend_draw_flags(draw) & ignoreFlags) {
+      continue; // Draw has an ignore flag.
     }
     if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
       continue; // Draw culled.
@@ -299,26 +327,6 @@ static SceneTags painter_push_geometry(RendPaintContext* ctx, EcsView* drawView,
   }
 
   return tagMask;
-}
-
-static void painter_push_decal(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
-  EcsIterator* graphicItr = ecs_view_itr(graView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_Decal)) {
-      continue; // Shouldn't be included in the decal pass.
-    }
-    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
-      continue; // Draw culled.
-    }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
-      continue; // Graphic not loaded.
-    }
-    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-    }
-  }
 }
 
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
@@ -379,6 +387,31 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
   }
 }
 
+static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      GeoMatrix fogViewProj;
+    } FogData;
+
+    FogData* data = alloc_alloc_t(g_alloc_scratch, FogData);
+
+    const GeoMatrix fogViewMat = geo_matrix_inverse(rend_fog_trans(fog));
+    data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
+
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynImage  = fogMap,
+        .instCount = 1,
+        .drawData  = mem_create(data, sizeof(FogData)),
+    };
+    painter_push(ctx, draw);
+  }
+}
+
 static void painter_push_ambient(RendPaintContext* ctx) {
   typedef enum {
     AmbientFlags_AmbientOcclusion     = 1 << 0,
@@ -433,6 +466,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
   RendDrawFlags ignoreFlags = 0;
   ignoreFlags |= RendDrawFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Decal;      // Ignore decals (drawn in a separate pass).
+  ignoreFlags |= RendDrawFlags_FogVision;  // Ignore fog-vision (drawn in a separate pass).
   ignoreFlags |= RendDrawFlags_Distortion; // Ignore distortion (drawn in a separate pass)
   ignoreFlags |= RendDrawFlags_Post;       // Ignore post (drawn in a separate pass).
 
@@ -441,43 +475,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
     ignoreFlags |= RendDrawFlags_Light;
   }
 
-  EcsIterator* graphicItr = ecs_view_itr(graphicView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (rend_draw_flags(draw) & ignoreFlags) {
-      continue;
-    }
-    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
-      continue; // Draw culled.
-    }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
-      continue; // Graphic not loaded.
-    }
-    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-    }
-  }
-}
-
-static void painter_push_distortion(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
-  EcsIterator* graphicItr = ecs_view_itr(graView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_Distortion)) {
-      continue; // Shouldn't be included in the distortion pass.
-    }
-    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
-      continue; // Draw culled.
-    }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
-      continue; // Graphic not loaded.
-    }
-    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-    }
-  }
+  painter_push_draws_simple(ctx, drawView, graphicView, RendDrawFlags_None, ignoreFlags);
 }
 
 static void painter_push_tonemapping(RendPaintContext* ctx) {
@@ -495,26 +493,6 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
 
   painter_push_simple(
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
-}
-
-static void painter_push_post(RendPaintContext* ctx, EcsView* drawView, EcsView* graView) {
-  EcsIterator* graphicItr = ecs_view_itr(graView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendDrawFlags_Post)) {
-      continue; // Shouldn't be included in the post pass.
-    }
-    if (!rend_draw_gather(draw, &ctx->view, ctx->settings)) {
-      continue; // Draw culled.
-    }
-    if (!ecs_view_maybe_jump(graphicItr, rend_draw_graphic(draw))) {
-      continue; // Graphic not loaded.
-    }
-    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
-    if (rvk_pass_prepare(ctx->pass, graphic)) {
-      painter_push(ctx, rend_draw_output(draw, graphic));
-    }
-  }
 }
 
 static void
@@ -706,6 +684,7 @@ static bool rend_canvas_paint(
     const RendSettingsGlobalComp* setGlobal,
     const SceneTimeComp*          time,
     const RendLightRendererComp*  light,
+    const RendFogComp*            fog,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
@@ -745,7 +724,8 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    geoTagMask = painter_push_geometry(&ctx, drawView, graphicView);
+    geoTagMask = painter_push_draws_simple(
+        &ctx, drawView, graphicView, RendDrawFlags_Geometry, RendDrawFlags_None);
     painter_flush(&ctx);
   }
 
@@ -766,10 +746,57 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(decalPass, geoData1, 1);
     rvk_pass_stage_attach_depth(decalPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    painter_push_decal(&ctx, drawView, graphicView);
+    painter_push_draws_simple(&ctx, drawView, graphicView, RendDrawFlags_Decal, RendDrawFlags_None);
     painter_flush(&ctx);
 
     rvk_canvas_attach_release(painter->canvas, geoData1Cpy);
+  }
+
+  // Fog pass.
+  RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
+  const RvkSize fogSize   = set->flags & RendFlags_Fog
+                                ? (RvkSize){set->fogResolution, set->fogResolution}
+                                : (RvkSize){1, 1};
+  RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
+  if (set->flags & RendFlags_Fog) {
+    const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
+    const GeoMatrix*     fogProj   = rend_fog_proj(fog);
+    const SceneTagFilter fogFilter = {0};
+    const RendView       fogView   = painter_view_create(fogTrans, fogProj, camEntity, fogFilter);
+
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogPass, fogView);
+    rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
+    painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
+    painter_push_draws_simple(
+        &ctx, drawView, graphicView, RendDrawFlags_FogVision, RendDrawFlags_None);
+    painter_flush(&ctx);
+  }
+
+  // Fog-blur pass.
+  RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
+  if (set->flags & RendFlags_Fog && set->fogBlurSteps) {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
+
+    struct {
+      ALIGNAS(16)
+      f32 sampleScale;
+    } blurData = {.sampleScale = set->fogBlurScale};
+
+    RvkImage* tmp = rvk_canvas_attach_acquire_copy_uninit(painter->canvas, fogBuffer);
+    for (u32 i = 0; i != set->fogBlurSteps; ++i) {
+      // Horizontal pass.
+      rvk_pass_stage_global_image(fogBlurPass, fogBuffer, 0);
+      rvk_pass_stage_attach_color(fogBlurPass, tmp, 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BlurHorGraphic, mem_var(blurData));
+      painter_flush(&ctx);
+
+      // Vertical pass.
+      rvk_pass_stage_global_image(fogBlurPass, tmp, 0);
+      rvk_pass_stage_attach_color(fogBlurPass, fogBuffer, 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BlurVerGraphic, mem_var(blurData));
+      painter_flush(&ctx);
+    }
+    rvk_canvas_attach_release(painter->canvas, tmp);
   }
 
   // Shadow pass.
@@ -843,6 +870,9 @@ static bool rend_canvas_paint(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, graphicView);
+    if (set->flags & RendFlags_Fog) {
+      painter_push_fog(&ctx, fog, fogBuffer);
+    }
     if (set->flags & RendFlags_DebugWireframe) {
       painter_push_debug_wireframe(&ctx, drawView, graphicView);
     }
@@ -877,7 +907,8 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
-    painter_push_distortion(&ctx, drawView, graphicView);
+    painter_push_draws_simple(
+        &ctx, drawView, graphicView, RendDrawFlags_Distortion, RendDrawFlags_None);
     painter_flush(&ctx);
 
     if (distSize.data != geoSize.data) {
@@ -944,8 +975,12 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
-    painter_push_post(&ctx, drawView, graphicView);
-    if (set->flags & RendFlags_DebugShadow) {
+    painter_push_draws_simple(&ctx, drawView, graphicView, RendDrawFlags_Post, RendDrawFlags_None);
+
+    if (set->flags & RendFlags_DebugFog) {
+      const f32 exposure = 1.0f;
+      painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
+    } else if (set->flags & RendFlags_DebugShadow) {
       const f32 exposure = 0.5f;
       painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
@@ -957,6 +992,7 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
   }
 
+  rvk_canvas_attach_release(painter->canvas, fogBuffer);
   rvk_canvas_attach_release(painter->canvas, fwdColor);
   rvk_canvas_attach_release(painter->canvas, shadowDepth);
   rvk_canvas_attach_release(painter->canvas, bloomOutput);
@@ -1006,6 +1042,7 @@ ecs_system_define(RendPainterDrawSys) {
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
+  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
 
   EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
   EcsView* drawView     = ecs_world_view_t(world, DrawView);
@@ -1027,6 +1064,7 @@ ecs_system_define(RendPainterDrawSys) {
         settingsGlobal,
         time,
         light,
+        fog,
         win,
         entity,
         camera,

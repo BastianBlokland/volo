@@ -741,7 +741,7 @@ static void rend_resource_actions_draw(
       ui_button(
           canvas,
           .flags      = previewActive ? UiWidget_Disabled : 0,
-          .label      = ui_shape_scratch(UiShape_Visiblity),
+          .label      = ui_shape_scratch(UiShape_Visibility),
           .fontSize   = 18,
           .frameColor = previewActive ? ui_color(64, 64, 64, 192) : ui_color(0, 16, 255, 192),
           .tooltip    = g_tooltipResourcePreview)) {
@@ -937,7 +937,8 @@ static void rend_light_tab_draw(
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
 
-static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings) {
+static void rend_post_tab_draw(
+    UiCanvasComp* canvas, RendSettingsComp* settings, RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
@@ -994,7 +995,7 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_slider(canvas, &settings->distortionResolutionScale, .min = 0.1f, .max = 1.0f, .step = 0.05f);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Distortion Debug"));
+  ui_label(canvas, string_lit("Distortion debug"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugDistortion);
 
@@ -1002,6 +1003,45 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_label(canvas, string_lit("Decals"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Decals);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Fog);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog blur steps"));
+  ui_table_next_column(canvas, &table);
+  f32 fogBlurSteps = (f32)settings->fogBlurSteps;
+  if (ui_slider(canvas, &fogBlurSteps, .min = 0, .max = 4, .step = 1)) {
+    settings->fogBlurSteps = (u32)fogBlurSteps;
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog blur scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->fogBlurScale, .min = 0.1f, .max = 2.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog dilation"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settingsGlobal->fogDilation, .min = -10.0f, .max = 10.0f);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog debug"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog resolution"));
+  ui_table_next_column(canvas, &table);
+  if (debug_widget_editor_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
+    if (settings->fogResolution == 0) {
+      settings->fogResolution = 128;
+    } else if (settings->fogResolution > 16384) {
+      settings->fogResolution = 16384;
+    }
+  }
 }
 
 static void rend_panel_draw(
@@ -1036,7 +1076,7 @@ static void rend_panel_draw(
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
     break;
   case DebugRendTab_Post:
-    rend_post_tab_draw(canvas, settings);
+    rend_post_tab_draw(canvas, settings, settingsGlobal);
     break;
   }
 

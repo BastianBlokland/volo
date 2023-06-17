@@ -20,9 +20,9 @@
 
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
-#define pass_dependencies_max 8
 #define pass_global_data_max 2
 #define pass_global_image_max 5
+#define pass_dyn_image_max 5
 
 typedef RvkGraphic* RvkGraphicPtr;
 
@@ -56,6 +56,9 @@ typedef struct {
   u16        globalBoundMask; // Bitset of the bound global resources.
   u32        globalDataOffsets[pass_global_data_max];
   RvkImage*  globalImages[pass_global_image_max];
+
+  // Dynamic resources.
+  RvkImage* dynImages[pass_dyn_image_max];
 } RvkPassStage;
 
 /**
@@ -199,6 +202,15 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
           fmt_int(i));
     }
   }
+}
+
+static void rvk_pass_assert_dyn_image_staged(const RvkPassStage* stage, const RvkImage* img) {
+  for (u32 i = 0; i != pass_dyn_image_max; ++i) {
+    if (stage->dynImages[i] == img) {
+      return; // Image was staged.
+    }
+  }
+  diag_assert_fail("Dynamic image was used but not staged");
 }
 #endif // !VOLO_FAST
 
@@ -425,7 +437,12 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
   return res;
 }
 
-static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh, RvkImage* img) {
+static void rvk_pass_bind_dyn(
+    RvkPass*           pass,
+    MAYBE_UNUSED const RvkPassStage* stage,
+    RvkGraphic*                      graphic,
+    RvkMesh*                         mesh,
+    RvkImage*                        img) {
   if (!mesh && !img) {
     return; // No dynamic resources to bind.
   }
@@ -438,13 +455,13 @@ static void rvk_pass_bind_dyn(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh,
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
   if (img) {
+#ifndef VOLO_FAST
+    rvk_pass_assert_dyn_image_staged(stage, img);
+#endif
     if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
       log_e("Cube images cannot be bound dynamically");
       const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
       img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
-    }
-    if (img->phase != RvkImagePhase_ShaderRead) {
-      rvk_image_transition(img, RvkImagePhase_ShaderRead, pass->vkCmdBuf);
     }
     const RvkSamplerSpec samplerSpec = {
         .flags  = RvkSamplerFlags_None,
@@ -808,6 +825,23 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
       });
 }
 
+void rvk_pass_stage_dyn_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
+  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+  diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
+
+  RvkPassStage* stage = rvk_pass_stage();
+  for (u32 i = 0; i != pass_dyn_image_max; ++i) {
+    if (stage->dynImages[i] == image) {
+      return; // Image was already staged.
+    }
+    if (!stage->dynImages[i]) {
+      stage->dynImages[i] = image;
+      return; // Image is staged in a empty slot.
+    }
+  }
+  diag_assert_fail("Amount of staged dynamic images exceeds the maximum");
+}
+
 void rvk_pass_begin(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
@@ -831,6 +865,7 @@ void rvk_pass_begin(RvkPass* pass) {
    * Execute image transitions:
    * - Attachment images to color/depth-attachment-optimal.
    * - Global images to ShaderRead.
+   * - Dynamic images to ShaderRead.
    */
   {
     RvkImageTransition transitions[16];
@@ -851,6 +886,14 @@ void rvk_pass_begin(RvkPass* pass) {
       if (stage->globalImages[i]) {
         transitions[transitionCount++] = (RvkImageTransition){
             .img   = stage->globalImages[i],
+            .phase = RvkImagePhase_ShaderRead,
+        };
+      }
+    }
+    for (u32 i = 0; i != pass_dyn_image_max; ++i) {
+      if (stage->dynImages[i]) {
+        transitions[transitionCount++] = (RvkImageTransition){
+            .img   = stage->dynImages[i],
             .phase = RvkImagePhase_ShaderRead,
         };
       }
@@ -926,7 +969,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  rvk_pass_bind_dyn(pass, graphic, draw->dynMesh, draw->dynImage);
+  rvk_pass_bind_dyn(pass, stage, graphic, draw->dynMesh, draw->dynImage);
 
   if (draw->drawData.size) {
     rvk_uniform_bind(

@@ -39,6 +39,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
              RendFlags_AmbientOcclusion     |
              RendFlags_AmbientOcclusionBlur |
              RendFlags_Bloom                |
+             RendFlags_Fog                  |
              RendFlags_Distortion           |
              RendFlags_Decals               |
              RendFlags_ParticleShadows;
@@ -55,6 +56,9 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->aoPower                   = 3.5f;
   s->aoResolutionScale         = 0.75f;
   s->shadowResolution          = 2048;
+  s->fogResolution             = 512;
+  s->fogBlurSteps              = 2;
+  s->fogBlurScale              = 0.85f;
   s->bloomIntensity            = 0.04f;
   s->bloomSteps                = 5;
   s->bloomRadius               = 0.003f;
@@ -76,6 +80,7 @@ void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
   s->lightSunRotation = geo_quat_from_euler(geo_vector_mul(geo_vector(55, 15, 0), math_deg_to_rad));
   s->lightAmbient     = 0.9f;
   s->shadowFilterSize = 0.125f;
+  s->fogDilation      = -3.0f;
 }
 
 void rend_settings_generate_ao_kernel(RendSettingsComp* s) {

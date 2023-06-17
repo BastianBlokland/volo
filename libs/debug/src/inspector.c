@@ -28,6 +28,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
+#include "scene_visibility.h"
 #include "ui.h"
 
 #include "widget_internal.h"
@@ -53,6 +54,7 @@ typedef enum {
   DebugInspectorVis_NavigationGrid,
   DebugInspectorVis_Health,
   DebugInspectorVis_Target,
+  DebugInspectorVis_Vision,
 
   DebugInspectorVis_Count,
 } DebugInspectorVis;
@@ -84,6 +86,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
     [DebugInspectorVis_Health]          = string_static("Health"),
     [DebugInspectorVis_Target]          = string_static("Target"),
+    [DebugInspectorVis_Vision]          = string_static("Vision"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
 
@@ -146,6 +149,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
+  ecs_access_maybe_read(SceneVisionComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
@@ -174,6 +178,11 @@ static void inspector_notify_vis(
       stats,
       fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])),
       (set->visFlags & (1 << vis)) ? string_lit("enabled") : string_lit("disabled"));
+}
+
+static void
+inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
+  debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -1009,6 +1018,16 @@ static void inspector_vis_draw_target(
   }
 }
 
+static void inspector_vis_draw_vision(
+    DebugShapeComp* shape, const SceneVisionComp* vision, const SceneTransformComp* transform) {
+  debug_circle(
+      shape,
+      transform->position,
+      geo_quat_forward_to_up,
+      vision->radius,
+      geo_color_soothing_purple);
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
@@ -1025,6 +1044,7 @@ static void inspector_vis_draw_subject(
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   const SceneTransformComp*  transformComp = ecs_view_read_t(subject, SceneTransformComp);
   const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
+  const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1062,6 +1082,9 @@ static void inspector_vis_draw_subject(
   }
   if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
+  }
+  if (visionComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Vision)) {
+    inspector_vis_draw_vision(shape, visionComp, transformComp);
   }
 }
 
@@ -1121,6 +1144,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
       [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
       [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
+      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
     const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
@@ -1128,6 +1152,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       set->visFlags ^= (1 << vis);
       inspector_notify_vis(set, stats, vis);
     }
+  }
+
+  if (input_triggered_hash(input, string_hash_lit("DebugInspectorVisMode"))) {
+    set->visMode = (set->visMode + 1) % DebugInspectorVisMode_Count;
+    inspector_notify_vis_mode(stats, set->visMode);
   }
 
   if (!set->visFlags) {

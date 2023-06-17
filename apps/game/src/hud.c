@@ -7,6 +7,7 @@
 #include "scene_health.h"
 #include "scene_status.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 #include "ui.h"
 
 #include "hud_internal.h"
@@ -40,6 +41,7 @@ ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneStatusComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneHealthComp);
   ecs_access_read(SceneTransformComp);
 }
@@ -95,6 +97,11 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
 
     if (health->norm <= f32_epsilon || (health->norm > 0.999f && !(status && status->active))) {
       continue; // Hide health-bars if entity is death or at full health without any status-effects.
+    }
+
+    const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
     const GeoVector worldPos  = hud_health_world_pos(trans, scale, collision);

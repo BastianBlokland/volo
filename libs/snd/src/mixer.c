@@ -492,7 +492,7 @@ ecs_system_define(SndMixerRenderSys) {
 
     // Skip sounds forward if there's a gap between the end of the last rendered sound and the new
     // period, can happen when there was a device buffer underrun.
-    if (period.timeBegin > m->deviceTimeHead) {
+    if (m->deviceTimeHead && period.timeBegin > m->deviceTimeHead) {
       const TimeDuration skipDur = period.timeBegin - m->deviceTimeHead;
       log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
       for (u32 i = 0; i != snd_mixer_objects_max; ++i) {

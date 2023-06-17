@@ -37,5 +37,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_transform_module);
   ecs_register_module(def, scene_unit_module);
   ecs_register_module(def, scene_vfx_module);
+  ecs_register_module(def, scene_visibility_module);
   ecs_register_module(def, scene_weapon_module);
 }

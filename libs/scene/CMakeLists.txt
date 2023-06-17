@@ -41,6 +41,7 @@ add_library(lib_scene STATIC
   src/transform.c
   src/unit.c
   src/vfx.c
+  src/visibility.c
   src/weapon.c
   )
 target_include_directories(lib_scene PUBLIC include)

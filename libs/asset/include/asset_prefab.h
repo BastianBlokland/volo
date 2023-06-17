@@ -55,6 +55,7 @@ typedef enum {
   AssetPrefabTrait_Location,
   AssetPrefabTrait_Explosive,
   AssetPrefabTrait_Status,
+  AssetPrefabTrait_Vision,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -156,6 +157,10 @@ typedef struct {
 } AssetPrefabTraitStatus;
 
 typedef struct {
+  f32 radius;
+} AssetPrefabTraitVision;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitRenderable data_renderable;
@@ -175,6 +180,7 @@ typedef struct {
     AssetPrefabTraitLocation   data_location;
     AssetPrefabTraitExplosive  data_explosive;
     AssetPrefabTraitStatus     data_status;
+    AssetPrefabTraitVision     data_vision;
   };
 } AssetPrefabTrait;
 

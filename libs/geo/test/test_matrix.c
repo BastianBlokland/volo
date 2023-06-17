@@ -273,9 +273,15 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&m, geo_vector(-20, 15, 0, 1)), geo_vector(-2, 2, .5, 1));
     check_eq_vector(geo_matrix_transform(&m, geo_vector(0, 15, 0, 1)), geo_vector(2, 2, .5, 1));
 
-    // // Reversed-z so near is at depth 1 and far is at depth 0.
+    // Reversed-z so near is at depth 1 and far is at depth 0.
     check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 25, -2, 1)), geo_vector(-1, 0, 1, 1));
     check_eq_vector(geo_matrix_transform(&m, geo_vector(-15, 25, +2, 1)), geo_vector(-1, 0, 0, 1));
+  }
+
+  it("produces the same matrix for ortho and ortho_box") {
+    const GeoMatrix m1 = geo_matrix_proj_ortho(10, 8, -2, 2);
+    const GeoMatrix m2 = geo_matrix_proj_ortho_box(-5, 5, -4, 4, -2, 2);
+    check_eq_matrix(m1, m2);
   }
 
   it("scales vectors to clip-space when transforming by an perspective projection matrix") {
