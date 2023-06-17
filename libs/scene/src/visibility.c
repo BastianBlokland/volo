@@ -119,7 +119,7 @@ ecs_system_define(SceneVisibilityUpdateSys) {
      * NOTE: Only visiblity for faction A is tracked at the moment, the other factions are
      * considered to have full vision.
      */
-    visibility->visibleToFactionsMask = ~u8_lit(0);
+    visibility->visibleToFactionsMask = (u8)~0;
     if (!visiblity_env_visible(env, trans->position)) {
       visibility->visibleToFactionsMask ^= 1 << SceneFaction_A;
     }
