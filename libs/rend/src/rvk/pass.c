@@ -438,7 +438,11 @@ static RvkDescSet rvk_pass_alloc_desc(RvkPass* pass, const RvkDescMeta* meta) {
 }
 
 static void rvk_pass_bind_dyn(
-    RvkPass* pass, const RvkPassStage* stage, RvkGraphic* graphic, RvkMesh* mesh, RvkImage* img) {
+    RvkPass*           pass,
+    MAYBE_UNUSED const RvkPassStage* stage,
+    RvkGraphic*                      graphic,
+    RvkMesh*                         mesh,
+    RvkImage*                        img) {
   if (!mesh && !img) {
     return; // No dynamic resources to bind.
   }
@@ -451,7 +455,9 @@ static void rvk_pass_bind_dyn(
     rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
   }
   if (img) {
+#ifndef VOLO_FAST
     rvk_pass_assert_dyn_image_staged(stage, img);
+#endif
     if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
       log_e("Cube images cannot be bound dynamically");
       const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
