@@ -25,110 +25,35 @@ typedef struct {
   bool            ignoreAssetChanges;
 } RendResGlobalDef;
 
+// clang-format off
 static const RendResGlobalDef g_rendResGlobal[] = {
-    {
-        .repoId             = RvkRepositoryId_MissingTexture,
-        .assetId            = string_static("textures/missing.ptx"),
-        .ignoreAssetChanges = true,
-    },
-    {
-        .repoId             = RvkRepositoryId_MissingTextureCube,
-        .assetId            = string_static("textures/missing_cube.atx"),
-        .ignoreAssetChanges = true,
-    },
-    {
-        .repoId  = RvkRepositoryId_ShadowGraphic,
-        .assetId = string_static("graphics/shadow.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_ShadowSkinnedGraphic,
-        .assetId = string_static("graphics/shadow_skinned.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_ShadowClipGraphic,
-        .assetId = string_static("graphics/shadow_clip.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_ShadowParticleGraphic,
-        .assetId = string_static("graphics/shadow_particle.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_TonemapperGraphic,
-        .assetId = string_static("graphics/tonemapper.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_FogGraphic,
-        .assetId = string_static("graphics/fog.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_OutlineGraphic,
-        .assetId = string_static("graphics/outline.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_AmbientGraphic,
-        .assetId = string_static("graphics/ambient.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_AmbientDebugGraphic,
-        .assetId = string_static("graphics/ambient_debug.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_AmbientOcclusionGraphic,
-        .assetId = string_static("graphics/ambient_occlusion.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_SkyGradientGraphic,
-        .assetId = string_static("graphics/scene/sky_gradient.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_SkyCubeMapGraphic,
-        .assetId = string_static("graphics/scene/sky_cubemap.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_BloomDownGraphic,
-        .assetId = string_static("graphics/bloom_down.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_BloomUpGraphic,
-        .assetId = string_static("graphics/bloom_up.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_BlurHorGraphic,
-        .assetId = string_static("graphics/blur_hor.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_BlurVerGraphic,
-        .assetId = string_static("graphics/blur_ver.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugImageViewerGraphic,
-        .assetId = string_static("graphics/debug/image_viewer.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugMeshViewerGraphic,
-        .assetId = string_static("graphics/debug/mesh_viewer.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugMeshViewerSkinnedGraphic,
-        .assetId = string_static("graphics/debug/mesh_viewer_skinned.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugWireframeGraphic,
-        .assetId = string_static("graphics/debug/wireframe.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugWireframeSkinnedGraphic,
-        .assetId = string_static("graphics/debug/wireframe_skinned.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugWireframeTerrainGraphic,
-        .assetId = string_static("graphics/debug/wireframe_terrain.gra"),
-    },
-    {
-        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
-        .assetId = string_static("graphics/debug/skinning.gra"),
-    },
+    { .repoId = RvkRepositoryId_MissingTexture,                 .assetId = string_static("textures/missing.ptx"), .ignoreAssetChanges = true },
+    { .repoId = RvkRepositoryId_MissingTextureCube,             .assetId = string_static("textures/missing_cube.atx"), .ignoreAssetChanges = true },
+    { .repoId  = RvkRepositoryId_ShadowGraphic,                 .assetId = string_static("graphics/shadow.gra") },
+    { .repoId  = RvkRepositoryId_ShadowSkinnedGraphic,          .assetId = string_static("graphics/shadow_skinned.gra") },
+    { .repoId  = RvkRepositoryId_ShadowClipGraphic,             .assetId = string_static("graphics/shadow_clip.gra") },
+    { .repoId  = RvkRepositoryId_ShadowParticleGraphic,         .assetId = string_static("graphics/shadow_particle.gra") },
+    { .repoId  = RvkRepositoryId_TonemapperGraphic,             .assetId = string_static("graphics/tonemapper.gra") },
+    { .repoId  = RvkRepositoryId_FogGraphic,                    .assetId = string_static("graphics/fog.gra") },
+    { .repoId  = RvkRepositoryId_OutlineGraphic,                .assetId = string_static("graphics/outline.gra") },
+    { .repoId  = RvkRepositoryId_AmbientGraphic,                .assetId = string_static("graphics/ambient.gra") },
+    { .repoId  = RvkRepositoryId_AmbientDebugGraphic,           .assetId = string_static("graphics/ambient_debug.gra") },
+    { .repoId  = RvkRepositoryId_AmbientOcclusionGraphic,       .assetId = string_static("graphics/ambient_occlusion.gra") },
+    { .repoId  = RvkRepositoryId_SkyGradientGraphic,            .assetId = string_static("graphics/scene/sky_gradient.gra") },
+    { .repoId  = RvkRepositoryId_SkyCubeMapGraphic,             .assetId = string_static("graphics/scene/sky_cubemap.gra") },
+    { .repoId  = RvkRepositoryId_BloomDownGraphic,              .assetId = string_static("graphics/bloom_down.gra") },
+    { .repoId  = RvkRepositoryId_BloomUpGraphic,                .assetId = string_static("graphics/bloom_up.gra") },
+    { .repoId  = RvkRepositoryId_BlurHorGraphic,                .assetId = string_static("graphics/blur_hor.gra") },
+    { .repoId  = RvkRepositoryId_BlurVerGraphic,                .assetId = string_static("graphics/blur_ver.gra") },
+    { .repoId  = RvkRepositoryId_DebugImageViewerGraphic,       .assetId = string_static("graphics/debug/image_viewer.gra") },
+    { .repoId  = RvkRepositoryId_DebugMeshViewerGraphic,        .assetId = string_static("graphics/debug/mesh_viewer.gra") },
+    { .repoId  = RvkRepositoryId_DebugMeshViewerSkinnedGraphic, .assetId = string_static("graphics/debug/mesh_viewer_skinned.gra") },
+    { .repoId  = RvkRepositoryId_DebugWireframeGraphic,         .assetId = string_static("graphics/debug/wireframe.gra") },
+    { .repoId  = RvkRepositoryId_DebugWireframeSkinnedGraphic,  .assetId = string_static("graphics/debug/wireframe_skinned.gra") },
+    { .repoId  = RvkRepositoryId_DebugWireframeTerrainGraphic,  .assetId = string_static("graphics/debug/wireframe_terrain.gra") },
+    { .repoId  = RvkRepositoryId_DebugSkinningGraphic,          .assetId = string_static("graphics/debug/skinning.gra") },
 };
+// clang-format on
 
 ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
