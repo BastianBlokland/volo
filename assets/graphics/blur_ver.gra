@@ -1,0 +1,23 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/blur.frag.spv",
+      "overrides": [
+        {
+          "name": "horizontal",
+          "binding": 0,
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "vertexCount": 3,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

@@ -40,6 +40,8 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("SkyCubeMapGraphic"),
       string_static("BloomDownGraphic"),
       string_static("BloomUpGraphic"),
+      string_static("BlurHorGraphic"),
+      string_static("BlurVerGraphic"),
       string_static("DebugImageViewerGraphic"),
       string_static("DebugMeshViewerGraphic"),
       string_static("DebugMeshViewerSkinnedGraphic"),
