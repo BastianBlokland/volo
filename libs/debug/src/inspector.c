@@ -1155,7 +1155,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
 
   if (input_triggered_hash(input, string_hash_lit("DebugInspectorVisMode"))) {
-    set->visMode = ++set->visMode % DebugInspectorVisMode_Count;
+    set->visMode = (set->visMode + 1) % DebugInspectorVisMode_Count;
     inspector_notify_vis_mode(stats, set->visMode);
   }
 
