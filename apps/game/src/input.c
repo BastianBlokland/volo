@@ -74,6 +74,20 @@ static void input_report_selection_count(DebugStatsGlobalComp* debugStats, const
   }
 }
 
+static void input_report_group_assign(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+  if (debugStats) {
+    const String label = string_lit("Group assign");
+    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+  }
+}
+
+static void input_report_group_select(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+  if (debugStats) {
+    const String label = string_lit("Group select");
+    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+  }
+}
+
 static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
   scene_prefab_spawn(
       world,
@@ -100,7 +114,8 @@ static void update_group_input(
     CmdControllerComp*        cmdController,
     InputManagerComp*         input,
     const SceneSelectionComp* sel,
-    const SceneTimeComp*      time) {
+    const SceneTimeComp*      time,
+    DebugStatsGlobalComp*     debugStats) {
   for (u32 i = 0; i != cmd_group_count; ++i) {
     if (!input_triggered_hash(input, g_inputGroupActions[i])) {
       continue;
@@ -118,8 +133,10 @@ static void update_group_input(
       for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
         cmd_group_add(cmdController, i, *e);
       }
+      input_report_group_assign(debugStats, i);
     } else {
       cmd_push_select_group(cmdController, i);
+      input_report_group_select(debugStats, i);
     }
 
     if (doublePress && cmd_group_size(cmdController, i)) {
@@ -556,7 +573,7 @@ ecs_system_define(InputUpdateSys) {
     }
 
     if (input_active_window(input) == ecs_view_entity(itr)) {
-      update_group_input(state, cmdController, input, sel, time);
+      update_group_input(state, cmdController, input, sel, time, debugStats);
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
       } else {
