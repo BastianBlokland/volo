@@ -36,6 +36,7 @@ static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
 static const f32    g_inputCamCursorPanThreshold = 0.0025f;
 static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
 static const f32    g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
+static StringHash   g_inputGroupActions[cmd_group_count];
 
 typedef enum {
   InputSelectState_None,
@@ -89,6 +90,25 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
           .rotation = geo_quat_ident});
 
   ecs_world_add_t(world, effectEntity, SceneAttachmentComp, .target = target);
+}
+
+static void update_group_input(
+    CmdControllerComp* cmdController, InputManagerComp* input, const SceneSelectionComp* sel) {
+  for (u32 i = 0; i != cmd_group_count; ++i) {
+    if (!input_triggered_hash(input, g_inputGroupActions[i])) {
+      continue;
+    }
+    if (input_modifiers(input) & InputModifier_Control) {
+      // Assign the current selection to this group.
+      cmd_group_clear(cmdController, i);
+      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+        cmd_group_add(cmdController, i, *e);
+      }
+      continue;
+    }
+
+    cmd_push_select_group(cmdController, i);
+  }
 }
 
 static void update_camera_movement(
@@ -502,6 +522,8 @@ ecs_system_define(InputUpdateSys) {
     input_order_stop(cmdController, sel, debugStats);
   }
 
+  update_group_input(cmdController, input, sel);
+
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
     EcsIterator*           camItr   = ecs_view_at(cameraView, ecs_view_entity(itr));
@@ -574,4 +596,9 @@ ecs_module_init(game_input_module) {
     Order_InputDrawUi = 1,
   };
   ecs_order(InputDrawUiSys, Order_InputDrawUi);
+
+  // Initialize group action hashes.
+  for (u32 i = 0; i != cmd_group_count; ++i) {
+    g_inputGroupActions[i] = string_hash(fmt_write_scratch("CommandGroup{}", fmt_int(i + 1)));
+  }
 }
