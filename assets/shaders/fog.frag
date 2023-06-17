@@ -9,7 +9,7 @@ struct FogData {
   f32m4 fogViewProj;
 };
 
-const f32v4 c_fogColor = f32v4(0, 0, 0, 0.95);
+const f32v4 c_fogColor = f32v4(0.005, 0.005, 0.0075, 0.95);
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
