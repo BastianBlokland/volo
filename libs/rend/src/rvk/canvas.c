@@ -149,6 +149,15 @@ RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas* canvas, RvkPass* pass, cons
 }
 
 RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas* canvas, RvkImage* src) {
+  RvkImage* res = rvk_canvas_attach_acquire_copy_uninit(canvas, src);
+
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_img_copy(job, src, res);
+
+  return res;
+}
+
+RvkImage* rvk_canvas_attach_acquire_copy_uninit(RvkCanvas* canvas, RvkImage* src) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
   const RvkAttachSpec spec = {
@@ -161,9 +170,6 @@ RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas* canvas, RvkImage* src) {
   } else {
     res = rvk_attach_acquire_color(canvas->attachPool, spec, src->size);
   }
-
-  RvkJob* job = canvas->jobs[canvas->jobIdx];
-  rvk_job_img_copy(job, src, res);
 
   return res;
 }
