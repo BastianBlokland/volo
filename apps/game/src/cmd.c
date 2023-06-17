@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_stringtable.h"
@@ -55,13 +56,25 @@ typedef struct {
   };
 } Cmd;
 
+typedef struct {
+  DynArray entities; // EcsEntityId[], sorted.
+} CmdGroup;
+
+static void cmd_group_init(CmdGroup* group) {
+  group->entities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+}
+
+static void cmd_group_destroy(CmdGroup* group) { dynarray_destroy(&group->entities); }
+
 ecs_comp_define(CmdControllerComp) {
   DynArray commands; // Cmd[];
+  CmdGroup groups[cmd_group_count];
 };
 
 static void ecs_destruct_controller(void* data) {
   CmdControllerComp* comp = data;
   dynarray_destroy(&comp->commands);
+  array_for_t(comp->groups, CmdGroup, group) { cmd_group_destroy(group); }
 }
 
 ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
@@ -157,11 +170,9 @@ ecs_system_define(CmdControllerUpdateSys) {
   SceneSelectionComp* selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
   CmdControllerComp*  controller = cmd_controller_get(world);
   if (!controller) {
-    controller = ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        CmdControllerComp,
-        .commands = dynarray_create_t(g_alloc_heap, Cmd, 2));
+    controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
+    controller->commands = dynarray_create_t(g_alloc_heap, Cmd, 512);
+    array_for_t(controller->groups, CmdGroup, group) { cmd_group_init(group); }
   }
 
   dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, selection, cmd); }
@@ -229,4 +240,26 @@ void cmd_push_attack(
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
   };
+}
+
+void cmd_group_clear(CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+  dynarray_clear(&controller->groups[groupIndex].entities);
+}
+
+void cmd_group_add(CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < cmd_group_count);
+  DynArray* entities = &controller->groups[groupIndex].entities;
+  *(EcsEntityId*)dynarray_find_or_insert_sorted(entities, ecs_compare_entity, &object) = object;
+}
+
+void cmd_group_remove(
+    CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < cmd_group_count);
+  DynArray*    entities = &controller->groups[groupIndex].entities;
+  EcsEntityId* entry    = dynarray_search_binary(entities, ecs_compare_entity, &object);
+  if (entry) {
+    const usize index = entry - dynarray_begin_t(entities, EcsEntityId);
+    dynarray_remove(entities, index, 1);
+  }
 }
