@@ -937,7 +937,8 @@ static void rend_light_tab_draw(
   ui_canvas_id_block_next(canvas); // Resume on a stable canvas id.
 }
 
-static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings) {
+static void rend_post_tab_draw(
+    UiCanvasComp* canvas, RendSettingsComp* settings, RendSettingsGlobalComp* settingsGlobal) {
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
@@ -1022,6 +1023,11 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_slider(canvas, &settings->fogBlurScale, .min = 0.1f, .max = 2.0f);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog dilation"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settingsGlobal->fogDilation, .min = -10.0f, .max = 10.0f);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog debug"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog);
@@ -1070,7 +1076,7 @@ static void rend_panel_draw(
     rend_light_tab_draw(canvas, panelComp, settings, settingsGlobal);
     break;
   case DebugRendTab_Post:
-    rend_post_tab_draw(canvas, settings);
+    rend_post_tab_draw(canvas, settings, settingsGlobal);
     break;
   }
 

@@ -4,6 +4,7 @@
 #include "geo_matrix.h"
 #include "rend_draw.h"
 #include "rend_register.h"
+#include "rend_settings.h"
 #include "scene_faction.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
@@ -22,8 +23,9 @@ ecs_comp_define(RendFogComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_read(RendFogComp);
+  ecs_access_read(RendSettingsGlobalComp);
+  ecs_access_write(AssetManagerComp);
 }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
@@ -65,8 +67,9 @@ ecs_system_define(RendFogRenderSys) {
     return; // Global dependencies not yet available.
   }
 
-  AssetManagerComp*  assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  const RendFogComp* fog    = ecs_view_read_t(globalItr, RendFogComp);
+  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  AssetManagerComp*             assets         = ecs_view_write_t(globalItr, AssetManagerComp);
+  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
   if (!fog) {
     rend_fog_create(world, assets);
     return;
@@ -97,7 +100,7 @@ ecs_system_define(RendFogRenderSys) {
         .data1.x = trans->position.x,
         .data1.y = trans->position.y,
         .data1.z = trans->position.z,
-        .data1.w = vision->radius,
+        .data1.w = vision->radius + settingsGlobal->fogDilation,
     };
   }
 }
