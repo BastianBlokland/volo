@@ -21,4 +21,7 @@ void cmd_push_attack(CmdControllerComp*, EcsEntityId object, EcsEntityId target)
 void cmd_group_clear(CmdControllerComp*, u8 groupIndex);
 void cmd_group_add(CmdControllerComp*, u8 groupIndex, EcsEntityId object);
 void cmd_group_remove(CmdControllerComp*, u8 groupIndex, EcsEntityId object);
-u32  cmd_group_size(CmdControllerComp*, u8 groupIndex);
+
+u32                cmd_group_size(const CmdControllerComp*, u8 groupIndex);
+const EcsEntityId* cmd_group_begin(const CmdControllerComp*, u8 groupIndex);
+const EcsEntityId* cmd_group_end(const CmdControllerComp*, u8 groupIndex);

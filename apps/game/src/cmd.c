@@ -86,7 +86,17 @@ static void cmd_group_remove_internal(CmdGroup* group, const EcsEntityId object)
   }
 }
 
-static u32 cmd_group_size_internal(CmdGroup* group) { return (u32)dynarray_size(&group->entities); }
+static u32 cmd_group_size_internal(const CmdGroup* group) {
+  return (u32)dynarray_size(&group->entities);
+}
+
+const EcsEntityId* cmd_group_begin_internal(const CmdGroup* group) {
+  return dynarray_begin_t(&group->entities, EcsEntityId);
+}
+
+const EcsEntityId* cmd_group_end_internal(const CmdGroup* group) {
+  return dynarray_end_t(&group->entities, EcsEntityId);
+}
 
 static void cmd_group_prune_destroyed_entities(CmdGroup* group, EcsWorld* world) {
   DynArray* entities = &group->entities;
@@ -330,8 +340,20 @@ void cmd_group_remove(
   cmd_group_remove_internal(&controller->groups[groupIndex], object);
 }
 
-u32 cmd_group_size(CmdControllerComp* controller, const u8 groupIndex) {
+u32 cmd_group_size(const CmdControllerComp* controller, const u8 groupIndex) {
   diag_assert(groupIndex < cmd_group_count);
 
   return cmd_group_size_internal(&controller->groups[groupIndex]);
+}
+
+const EcsEntityId* cmd_group_begin(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_begin_internal(&controller->groups[groupIndex]);
+}
+
+const EcsEntityId* cmd_group_end(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_end_internal(&controller->groups[groupIndex]);
 }
