@@ -819,7 +819,7 @@ void rvk_pass_stage_global_shadow(RvkPass* pass, RvkImage* image, const u16 imag
       });
 }
 
-void rvk_pass_stage_dyn_image(RvkPass* pass, RvkImage* image) {
+void rvk_pass_stage_dyn_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
