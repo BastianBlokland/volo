@@ -11,6 +11,7 @@ configure_shaders(volo_shaders
     shaders/ambient.frag
     shaders/bloom_down.frag
     shaders/bloom_up.frag
+    shaders/blur.frag
     shaders/debug/dyn_image_viewer.frag
     shaders/debug/dyn_image_viewer.vert
     shaders/debug/dyn_mesh_viewer_skinned.vert
