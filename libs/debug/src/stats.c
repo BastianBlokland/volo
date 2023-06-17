@@ -314,6 +314,7 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       {st->gpuPassFrac[RendPass_Geometry], ui_color(0, 128, 128, 178)},
       {st->gpuPassFrac[RendPass_Decal], ui_color(0, 0, 128, 178)},
       {st->gpuPassFrac[RendPass_Fog], ui_color(128, 128, 0, 178)},
+      {st->gpuPassFrac[RendPass_FogBlur], ui_color(128, 0, 0, 178)},
       {st->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
       {st->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
       {st->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
@@ -327,6 +328,7 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       "\a~teal\a.bGeometry\ar:         {>7}\n"
       "\a~navy\a.bDecal\ar:            {>7}\n"
       "\a~olive\a.bFog\ar:              {>7}\n"
+      "\a~maroon\a.bFogBlur\ar:          {>7}\n"
       "\a~purple\a.bShadow\ar:           {>7}\n"
       "\a~orange\a.bAmbientOcclusion\ar: {>7}\n"
       "\a~green\a.bForward\ar:          {>7}\n"
@@ -337,6 +339,7 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       fmt_duration(rendSt->passes[RendPass_Geometry].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Decal].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Fog].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendSt->passes[RendPass_FogBlur].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Shadow].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_AmbientOcclusion].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Forward].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),

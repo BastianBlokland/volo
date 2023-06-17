@@ -66,6 +66,13 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
             .attachColorLoad[0]   = RvkPassLoad_Clear,
         },
 
+    [RendPass_FogBlur] =
+        {
+            // Attachment color 0: vision (r).
+            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+            .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
+        },
+
     [RendPass_Shadow] =
         {
             // Attachment depth.
