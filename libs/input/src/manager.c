@@ -13,13 +13,14 @@
 
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
-  InputBlocker    blockers;
-  InputModifier   modifiers;
-  InputCursorMode cursorMode;
+  InputBlocker    blockers : 16;
+  InputModifier   modifiers : 8;
+  InputCursorMode cursorMode : 8;
   f32             cursorPosNorm[2];
   f32             cursorDeltaNorm[2];
   f32             cursorAspect; // Aspect ratio of the window that currently contains the cursor.
   f32             scrollDelta[2];
+  TimeDuration    doubleclickInterval;
   DynArray        triggeredActions; // StringHash[], names of the triggered actions. Not sorted.
   DynArray        activeLayers;     // StringHash[], names of the active layers. Not sorted.
 };
@@ -204,6 +205,7 @@ ecs_system_define(InputUpdateSys) {
   input_update_blockers(manager, win);
   input_update_modifiers(manager, win);
   input_update_cursor(manager, win);
+  manager->doubleclickInterval = gap_window_doubleclick_interval(win);
 
   EcsEntityId mapAssets[input_resource_max_maps];
   u32         mapAssetCount = input_resource_maps(resource, mapAssets);
@@ -264,6 +266,10 @@ f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->curs
 f32 input_cursor_aspect(const InputManagerComp* manager) { return manager->cursorAspect; }
 f32 input_scroll_x(const InputManagerComp* manager) { return manager->scrollDelta[0]; }
 f32 input_scroll_y(const InputManagerComp* manager) { return manager->scrollDelta[1]; }
+
+TimeDuration input_doubleclick_interval(const InputManagerComp* manager) {
+  return manager->doubleclickInterval;
+}
 
 bool input_triggered_hash(const InputManagerComp* manager, const StringHash actionHash) {
   InputManagerComp* manMut = (InputManagerComp*)manager;

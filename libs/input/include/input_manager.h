@@ -2,6 +2,9 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 /**
  * Controls the cursor behaviour:
  * - Normal:  Cursor is visible and can be moved freely.
@@ -52,6 +55,7 @@ f32             input_cursor_delta_y(const InputManagerComp*); // Normalized.
 f32             input_cursor_aspect(const InputManagerComp*);  // Aspect ratio of cursor window.
 f32             input_scroll_x(const InputManagerComp*);
 f32             input_scroll_y(const InputManagerComp*);
+TimeDuration    input_doubleclick_interval(const InputManagerComp*);
 
 /**
  * Check if an input action was triggered this tick.

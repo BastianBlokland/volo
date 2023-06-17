@@ -1,5 +1,6 @@
 #include "core_bitset.h"
 #include "core_float.h"
+#include "core_format.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
@@ -10,6 +11,7 @@
 #include "scene_visibility.h"
 #include "ui.h"
 
+#include "cmd_internal.h"
 #include "hud_internal.h"
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
@@ -28,6 +30,8 @@ static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
+
+ecs_view_define(GlobalView) { ecs_access_write(CmdControllerComp); }
 
 ecs_view_define(HudView) {
   ecs_access_read(HudComp);
@@ -88,6 +92,7 @@ static UiColor hud_health_color(const f32 norm) {
 }
 
 static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsView* healthView) {
+  ui_style_push(canvas);
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
@@ -135,9 +140,43 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
       }
     }
   }
+  ui_style_pop(canvas);
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
+}
+
+static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
+  static const UiVector g_size    = {50, 25};
+  static const f32      g_spacing = 8.0f;
+
+  ui_layout_move_to(canvas, UiBase_Container, UiAlign_BottomLeft, Ui_XY);
+  ui_layout_move(canvas, ui_vector(g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_BottomLeft, g_size, UiBase_Absolute, Ui_XY);
+
+  for (u32 i = cmd_group_count; i-- != 0;) {
+    const u32 size = cmd_group_size(cmd, i);
+    if (!size) {
+      continue;
+    }
+    if (ui_button(
+            canvas,
+            .label      = fmt_write_scratch("\a|02{}\ar {}", fmt_int(i + 1), fmt_ui_shape(Group)),
+            .fontSize   = 20,
+            .frameColor = ui_color(32, 32, 32, 192),
+            .tooltip    = fmt_write_scratch("Size: {}", fmt_int(size)))) {
+      cmd_push_select_group(cmd, i);
+    }
+    ui_layout_next(canvas, Ui_Up, g_spacing);
+  }
 }
 
 ecs_system_define(HudDrawUiSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  CmdControllerComp* cmd = ecs_view_write_t(globalItr, CmdControllerComp);
+
   EcsView* hudView    = ecs_world_view_t(world, HudView);
   EcsView* canvasView = ecs_world_view_t(world, UiCanvasView);
   EcsView* healthView = ecs_world_view_t(world, HealthView);
@@ -158,18 +197,24 @@ ecs_system_define(HudDrawUiSys) {
     ui_canvas_to_back(canvas);
 
     hud_health_draw(canvas, &viewProj, healthView);
+    hud_groups_draw(canvas, cmd);
   }
 }
 
 ecs_module_init(game_hud_module) {
   ecs_register_comp(HudComp);
 
+  ecs_register_view(GlobalView);
   ecs_register_view(HudView);
   ecs_register_view(UiCanvasView);
   ecs_register_view(HealthView);
 
   ecs_register_system(
-      HudDrawUiSys, ecs_view_id(HudView), ecs_view_id(UiCanvasView), ecs_view_id(HealthView));
+      HudDrawUiSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(HudView),
+      ecs_view_id(UiCanvasView),
+      ecs_view_id(HealthView));
 
   enum {
     Order_Normal    = 0,

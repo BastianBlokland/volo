@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_stringtable.h"
@@ -7,6 +8,7 @@
 #include "scene_faction.h"
 #include "scene_selection.h"
 #include "scene_taunt.h"
+#include "scene_transform.h"
 
 #include "cmd_internal.h"
 
@@ -15,6 +17,7 @@ static StringHash         g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttack
 
 typedef enum {
   Cmd_Select,
+  Cmd_SelectGroup,
   Cmd_Deselect,
   Cmd_DeselectAll,
   Cmd_Move,
@@ -25,6 +28,10 @@ typedef enum {
 typedef struct {
   EcsEntityId object;
 } CmdSelect;
+
+typedef struct {
+  u8 groupIndex;
+} CmdSelectGroup;
 
 typedef struct {
   EcsEntityId object;
@@ -47,35 +54,100 @@ typedef struct {
 typedef struct {
   CmdType type;
   union {
-    CmdSelect   select;
-    CmdDeselect deselect;
-    CmdMove     move;
-    CmdStop     stop;
-    CmdAttack   attack;
+    CmdSelect      select;
+    CmdSelectGroup selectGroup;
+    CmdDeselect    deselect;
+    CmdMove        move;
+    CmdStop        stop;
+    CmdAttack      attack;
   };
 } Cmd;
 
+typedef struct {
+  GeoVector position;
+  DynArray  entities; // EcsEntityId[], sorted.
+} CmdGroup;
+
+static void cmd_group_init(CmdGroup* group) {
+  group->entities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+}
+
+static void cmd_group_destroy(CmdGroup* group) { dynarray_destroy(&group->entities); }
+
 ecs_comp_define(CmdControllerComp) {
   DynArray commands; // Cmd[];
+  CmdGroup groups[cmd_group_count];
 };
 
 static void ecs_destruct_controller(void* data) {
   CmdControllerComp* comp = data;
   dynarray_destroy(&comp->commands);
+  array_for_t(comp->groups, CmdGroup, group) { cmd_group_destroy(group); }
 }
 
-ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
-ecs_view_define(GlobalUpdateView) { ecs_access_write(SceneSelectionComp); }
+ecs_view_define(GlobalUpdateView) {
+  ecs_access_maybe_write(CmdControllerComp);
+  ecs_access_write(SceneSelectionComp);
+}
+
 ecs_view_define(BrainView) {
   ecs_access_read(SceneFactionComp);
   ecs_access_write(SceneBrainComp);
   ecs_access_maybe_write(SceneTauntComp);
 }
 
-static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, ControllerWriteView);
-  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
-  return itr ? ecs_view_write_t(itr, CmdControllerComp) : null;
+ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
+
+static void cmd_group_add_internal(CmdGroup* group, const EcsEntityId object) {
+  DynArray* entities = &group->entities;
+  *(EcsEntityId*)dynarray_find_or_insert_sorted(entities, ecs_compare_entity, &object) = object;
+}
+
+static void cmd_group_remove_internal(CmdGroup* group, const EcsEntityId object) {
+  DynArray*    entities = &group->entities;
+  EcsEntityId* entry    = dynarray_search_binary(entities, ecs_compare_entity, &object);
+  if (entry) {
+    const usize index = entry - dynarray_begin_t(entities, EcsEntityId);
+    dynarray_remove(entities, index, 1);
+  }
+}
+
+static u32 cmd_group_size_internal(const CmdGroup* group) {
+  return (u32)dynarray_size(&group->entities);
+}
+
+static const EcsEntityId* cmd_group_begin_internal(const CmdGroup* group) {
+  return dynarray_begin_t(&group->entities, EcsEntityId);
+}
+
+static const EcsEntityId* cmd_group_end_internal(const CmdGroup* group) {
+  return dynarray_end_t(&group->entities, EcsEntityId);
+}
+
+static void cmd_group_prune_destroyed_entities(CmdGroup* group, EcsWorld* world) {
+  DynArray* entities = &group->entities;
+  for (usize i = dynarray_size(entities); i-- != 0;) {
+    if (!ecs_world_exists(world, *dynarray_at_t(entities, i, EcsEntityId))) {
+      dynarray_remove(entities, i, 1);
+    }
+  }
+}
+
+static void cmd_group_update_position(CmdGroup* group, EcsWorld* world) {
+  EcsView*     transformView = ecs_world_view_t(world, TransformView);
+  EcsIterator* transformItr  = ecs_view_itr(transformView);
+  DynArray*    entities      = &group->entities;
+
+  group->position = geo_vector(0);
+  dynarray_for_t(entities, EcsEntityId, object) {
+    if (ecs_view_maybe_jump(transformItr, *object)) {
+      const GeoVector pos = ecs_view_read_t(transformItr, SceneTransformComp)->position;
+      group->position     = geo_vector_add(group->position, pos);
+    }
+  }
+  if (dynarray_size(entities)) {
+    group->position = geo_vector_div(group->position, dynarray_size(entities));
+  }
 }
 
 static bool cmd_is_player_owned(EcsIterator* itr) {
@@ -121,16 +193,24 @@ static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   }
 }
 
-static void cmd_execute(EcsWorld* world, SceneSelectionComp* selection, const Cmd* cmd) {
+static void cmd_execute(
+    EcsWorld*                world,
+    const CmdControllerComp* controller,
+    SceneSelectionComp*      selection,
+    const Cmd*               cmd) {
   switch (cmd->type) {
   case Cmd_Select:
-    diag_assert_msg(ecs_entity_valid(cmd->select.object), "Selecting invalid entity");
     if (ecs_world_exists(world, cmd->select.object)) {
       scene_selection_add(selection, cmd->select.object);
     }
     break;
+  case Cmd_SelectGroup:
+    scene_selection_clear(selection);
+    dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
+      scene_selection_add(selection, *entity);
+    }
+    break;
   case Cmd_Deselect:
-    diag_assert_msg(ecs_entity_valid(cmd->deselect.object), "Deselecting invalid entity");
     scene_selection_remove(selection, cmd->deselect.object);
     break;
   case Cmd_DeselectAll:
@@ -155,16 +235,23 @@ ecs_system_define(CmdControllerUpdateSys) {
     return;
   }
   SceneSelectionComp* selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
-  CmdControllerComp*  controller = cmd_controller_get(world);
+  CmdControllerComp*  controller = ecs_view_write_t(globalItr, CmdControllerComp);
   if (!controller) {
-    controller = ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        CmdControllerComp,
-        .commands = dynarray_create_t(g_alloc_heap, Cmd, 2));
+    controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
+    controller->commands = dynarray_create_t(g_alloc_heap, Cmd, 512);
+    array_for_t(controller->groups, CmdGroup, group) { cmd_group_init(group); }
   }
 
-  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, selection, cmd); }
+  // Update all groups.
+  array_for_t(controller->groups, CmdGroup, group) {
+    cmd_group_prune_destroyed_entities(group, world);
+    cmd_group_update_position(group, world);
+  }
+
+  // Execute all commands.
+  dynarray_for_t(&controller->commands, Cmd, cmd) {
+    cmd_execute(world, controller, selection, cmd);
+  }
   dynarray_clear(&controller->commands);
 }
 
@@ -175,27 +262,40 @@ ecs_module_init(game_cmd_module) {
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
-  ecs_register_view(ControllerWriteView);
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(BrainView);
+  ecs_register_view(TransformView);
 
   ecs_register_system(
       CmdControllerUpdateSys,
       ecs_view_id(GlobalUpdateView),
-      ecs_view_id(ControllerWriteView),
-      ecs_view_id(BrainView));
+      ecs_view_id(BrainView),
+      ecs_view_id(TransformView));
 
   ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);
 }
 
 void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Select,
       .select = {.object = object},
   };
 }
 
+void cmd_push_select_group(CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type        = Cmd_SelectGroup,
+      .selectGroup = {.groupIndex = groupIndex},
+  };
+}
+
 void cmd_push_deselect(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type     = Cmd_Deselect,
       .deselect = {.object = object},
@@ -210,6 +310,8 @@ void cmd_push_deselect_all(CmdControllerComp* controller) {
 
 void cmd_push_move(
     CmdControllerComp* controller, const EcsEntityId object, const GeoVector position) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Move,
       .move = {.object = object, .position = position},
@@ -217,6 +319,8 @@ void cmd_push_move(
 }
 
 void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
+  diag_assert(ecs_entity_valid(object));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Stop,
       .stop = {.object = object},
@@ -225,8 +329,56 @@ void cmd_push_stop(CmdControllerComp* controller, const EcsEntityId object) {
 
 void cmd_push_attack(
     CmdControllerComp* controller, const EcsEntityId object, const EcsEntityId target) {
+  diag_assert(ecs_entity_valid(object));
+  diag_assert(ecs_entity_valid(target));
+
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Attack,
       .attack = {.object = object, .target = target},
   };
+}
+
+void cmd_group_clear(CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  dynarray_clear(&controller->groups[groupIndex].entities);
+}
+
+void cmd_group_add(CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < cmd_group_count);
+  diag_assert(ecs_entity_valid(object));
+
+  cmd_group_add_internal(&controller->groups[groupIndex], object);
+}
+
+void cmd_group_remove(
+    CmdControllerComp* controller, const u8 groupIndex, const EcsEntityId object) {
+  diag_assert(groupIndex < cmd_group_count);
+  diag_assert(ecs_entity_valid(object));
+
+  cmd_group_remove_internal(&controller->groups[groupIndex], object);
+}
+
+u32 cmd_group_size(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_size_internal(&controller->groups[groupIndex]);
+}
+
+GeoVector cmd_group_position(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return controller->groups[groupIndex].position;
+}
+
+const EcsEntityId* cmd_group_begin(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_begin_internal(&controller->groups[groupIndex]);
+}
+
+const EcsEntityId* cmd_group_end(const CmdControllerComp* controller, const u8 groupIndex) {
+  diag_assert(groupIndex < cmd_group_count);
+
+  return cmd_group_end_internal(&controller->groups[groupIndex]);
 }

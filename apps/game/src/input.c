@@ -36,6 +36,7 @@ static const f32    g_inputCamZoomEaseSpeed      = 15.0f;
 static const f32    g_inputCamCursorPanThreshold = 0.0025f;
 static const GeoBox g_inputCamArea               = {.min = {-100, 0, -100}, .max = {100, 0, 100}};
 static const f32    g_inputDragThreshold         = 0.005f; // In normalized screen-space coords.
+static StringHash   g_inputGroupActions[cmd_group_count];
 
 typedef enum {
   InputSelectState_None,
@@ -48,6 +49,9 @@ ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
+
+  StringHash   lastGroupAction;
+  TimeDuration lastGroupTime;
 
   u32 lastSelectionCount;
 
@@ -70,6 +74,20 @@ static void input_report_selection_count(DebugStatsGlobalComp* debugStats, const
   }
 }
 
+static void input_report_group_assign(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+  if (debugStats) {
+    const String label = string_lit("Group assign");
+    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+  }
+}
+
+static void input_report_group_select(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+  if (debugStats) {
+    const String label = string_lit("Group select");
+    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+  }
+}
+
 static void input_indicator_move(EcsWorld* world, const GeoVector pos) {
   scene_prefab_spawn(
       world,
@@ -89,6 +107,42 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
           .rotation = geo_quat_ident});
 
   ecs_world_add_t(world, effectEntity, SceneAttachmentComp, .target = target);
+}
+
+static void update_group_input(
+    InputStateComp*           state,
+    CmdControllerComp*        cmdController,
+    InputManagerComp*         input,
+    const SceneSelectionComp* sel,
+    const SceneTimeComp*      time,
+    DebugStatsGlobalComp*     debugStats) {
+  for (u32 i = 0; i != cmd_group_count; ++i) {
+    if (!input_triggered_hash(input, g_inputGroupActions[i])) {
+      continue;
+    }
+    const bool doublePress =
+        state->lastGroupAction == g_inputGroupActions[i] &&
+        (time->realTime - state->lastGroupTime) < input_doubleclick_interval(input);
+
+    state->lastGroupAction = g_inputGroupActions[i];
+    state->lastGroupTime   = time->realTime;
+
+    if (input_modifiers(input) & InputModifier_Control) {
+      // Assign the current selection to this group.
+      cmd_group_clear(cmdController, i);
+      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+        cmd_group_add(cmdController, i, *e);
+      }
+      input_report_group_assign(debugStats, i);
+    } else {
+      cmd_push_select_group(cmdController, i);
+      input_report_group_select(debugStats, i);
+    }
+
+    if (doublePress && cmd_group_size(cmdController, i)) {
+      state->camPosTgt = cmd_group_position(cmdController, i);
+    }
+  }
 }
 
 static void update_camera_movement(
@@ -519,6 +573,7 @@ ecs_system_define(InputUpdateSys) {
     }
 
     if (input_active_window(input) == ecs_view_entity(itr)) {
+      update_group_input(state, cmdController, input, sel, time, debugStats);
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
       } else {
@@ -574,4 +629,9 @@ ecs_module_init(game_input_module) {
     Order_InputDrawUi = 1,
   };
   ecs_order(InputDrawUiSys, Order_InputDrawUi);
+
+  // Initialize group action hashes.
+  for (u32 i = 0; i != cmd_group_count; ++i) {
+    g_inputGroupActions[i] = string_hash(fmt_write_scratch("CommandGroup{}", fmt_int(i + 1)));
+  }
 }
