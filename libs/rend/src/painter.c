@@ -772,6 +772,33 @@ static bool rend_canvas_paint(
     painter_flush(&ctx);
   }
 
+  // Fog-blur pass.
+  RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
+  if (set->flags & RendFlags_Fog && set->fogBlurSteps) {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
+
+    struct {
+      ALIGNAS(16)
+      f32 sampleScale;
+    } blurData = {.sampleScale = set->fogBlurScale};
+
+    RvkImage* tmp = rvk_canvas_attach_acquire_copy_uninit(painter->canvas, fogBuffer);
+    for (u32 i = 0; i != set->fogBlurSteps; ++i) {
+      // Horizontal pass.
+      rvk_pass_stage_global_image(fogBlurPass, fogBuffer, 0);
+      rvk_pass_stage_attach_color(fogBlurPass, tmp, 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BlurHorGraphic, mem_var(blurData));
+      painter_flush(&ctx);
+
+      // Vertical pass.
+      rvk_pass_stage_global_image(fogBlurPass, tmp, 0);
+      rvk_pass_stage_attach_color(fogBlurPass, fogBuffer, 0);
+      painter_push_simple(&ctx, RvkRepositoryId_BlurVerGraphic, mem_var(blurData));
+      painter_flush(&ctx);
+    }
+    rvk_canvas_attach_release(painter->canvas, tmp);
+  }
+
   // Shadow pass.
   const RvkSize shadowSize = rend_light_has_shadow(light)
                                  ? (RvkSize){set->shadowResolution, set->shadowResolution}

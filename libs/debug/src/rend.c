@@ -1009,6 +1009,19 @@ static void rend_post_tab_draw(UiCanvasComp* canvas, RendSettingsComp* settings)
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Fog);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog blur steps"));
+  ui_table_next_column(canvas, &table);
+  f32 fogBlurSteps = (f32)settings->fogBlurSteps;
+  if (ui_slider(canvas, &fogBlurSteps, .min = 0, .max = 4, .step = 1)) {
+    settings->fogBlurSteps = (u32)fogBlurSteps;
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Fog blur scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &settings->fogBlurScale, .min = 0.1f, .max = 2.0f);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog debug"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog);

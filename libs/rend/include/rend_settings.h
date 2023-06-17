@@ -97,6 +97,8 @@ ecs_comp_extern_public(RendSettingsComp) {
   u16             shadowResolution, fogResolution;
   f32             aoAngle, aoRadius, aoRadiusPower, aoPower, aoResolutionScale;
   GeoVector*      aoKernel; // GeoVector[rend_ao_kernel_size];
+  u32             fogBlurSteps;
+  f32             fogBlurScale;
   f32             bloomIntensity;
   u32             bloomSteps;
   f32             bloomRadius;

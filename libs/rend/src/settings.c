@@ -56,7 +56,9 @@ void rend_settings_to_default(RendSettingsComp* s) {
   s->aoPower                   = 3.5f;
   s->aoResolutionScale         = 0.75f;
   s->shadowResolution          = 2048;
-  s->fogResolution             = 512;
+  s->fogResolution             = 256;
+  s->fogBlurSteps              = 2;
+  s->fogBlurScale              = 0.75f;
   s->bloomIntensity            = 0.04f;
   s->bloomSteps                = 5;
   s->bloomRadius               = 0.003f;
