@@ -181,7 +181,7 @@ static void update_camera_movement(
     }
   }
   panDeltaRel = geo_vector_mul(panDeltaRel, math_lerp(1, g_inputCamPanMaxZoomMult, state->camZoom));
-  const f32 camPosEaseDelta = deltaSeconds * g_inputCamPosEaseSpeed;
+  const f32 camPosEaseDelta = math_min(deltaSeconds * g_inputCamPosEaseSpeed, 1.0f);
   state->camPosTgt = geo_vector_add(state->camPosTgt, geo_quat_rotate(camRotYOld, panDeltaRel));
   state->camPosTgt = geo_box_closest_point(&g_inputCamArea, state->camPosTgt);
   state->camPos    = geo_vector_lerp(state->camPos, state->camPosTgt, camPosEaseDelta);
