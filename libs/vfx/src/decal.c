@@ -79,6 +79,7 @@ static void ecs_combine_decal_asset(void* dataA, void* dataB) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_read(VfxAtlasManagerComp);
   ecs_access_read(VfxDrawManagerComp);
 }
@@ -362,6 +363,9 @@ ecs_system_define(VfxDecalUpdateSys) {
     return; // Atlas hasn't loaded yet.
   }
 
+  const SceneVisibilityEnvComp*  visibilityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const SceneVisibilitySettings* visibilitySettings = scene_visibility_settings(visibilityEnv);
+
   const VfxDrawManagerComp* drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
   RendDrawComp* drawNormal = vfx_draw_get(world, drawManager, VfxDrawType_Decal);
@@ -380,7 +384,7 @@ ecs_system_define(VfxDecalUpdateSys) {
     const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
 
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+    if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 

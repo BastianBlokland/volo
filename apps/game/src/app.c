@@ -19,6 +19,7 @@
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 #include "scene_weapon.h"
 #include "snd_mixer.h"
 #include "snd_register.h"
@@ -411,6 +412,7 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(RendSettingsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SndMixerComp);
+  ecs_access_write(SceneVisibilityEnvComp);
   ecs_access_maybe_write(DebugStatsGlobalComp);
 }
 
@@ -436,6 +438,7 @@ ecs_system_define(AppUpdateSys) {
   SndMixerComp*           soundMixer    = ecs_view_write_t(globalItr, SndMixerComp);
   SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
   InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
+  SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   DebugStatsGlobalComp*   debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
@@ -443,11 +446,11 @@ ecs_system_define(AppUpdateSys) {
   EcsView*     windowView = ecs_world_view_t(world, WindowView);
   EcsIterator* mainWinItr = ecs_view_maybe_at(windowView, app->mainWindow);
   if (mainWinItr) {
-    const EcsEntityId windowEntity    = ecs_view_entity(mainWinItr);
-    AppWindowComp*    appWindow       = ecs_view_write_t(mainWinItr, AppWindowComp);
-    GapWindowComp*    win             = ecs_view_write_t(mainWinItr, GapWindowComp);
-    DebugStatsComp*   stats           = ecs_view_write_t(mainWinItr, DebugStatsComp);
-    RendSettingsComp* rendSettingsWin = ecs_view_write_t(mainWinItr, RendSettingsComp);
+    const EcsEntityId windowEntity = ecs_view_entity(mainWinItr);
+    AppWindowComp*    appWindow    = ecs_view_write_t(mainWinItr, AppWindowComp);
+    GapWindowComp*    win          = ecs_view_write_t(mainWinItr, GapWindowComp);
+    DebugStatsComp*   stats        = ecs_view_write_t(mainWinItr, DebugStatsComp);
+    RendSettingsComp* rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
     // Save last window size.
     if (gap_window_events(win) & GapWindowEvents_Resized) {
@@ -474,7 +477,7 @@ ecs_system_define(AppUpdateSys) {
               .cmd           = cmd,
               .win           = win,
               .rendSetGlobal = rendSetGlobal,
-              .rendSetWin    = rendSettingsWin,
+              .rendSetWin    = rendSetWin,
               .debugStats    = debugStats,
           });
     }
@@ -487,6 +490,8 @@ ecs_system_define(AppUpdateSys) {
       if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Minimal); }
       input_layer_disable(input, string_hash_lit("Debug"));
       input_layer_enable(input, string_hash_lit("Game"));
+      rendSetWin->flags |= RendFlags_Fog;
+      scene_visibility_settings_mut(visibilityEnv)->renderAll = false;
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu)      { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
@@ -494,6 +499,8 @@ ecs_system_define(AppUpdateSys) {
       if (stats)                      { debug_stats_show_set(stats, DebugStatShow_Full); }
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));
+      rendSetWin->flags &= ~RendFlags_Fog;
+      scene_visibility_settings_mut(visibilityEnv)->renderAll = true;
       break;
     }
     // clang-format on
