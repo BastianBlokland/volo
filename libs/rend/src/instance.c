@@ -62,6 +62,8 @@ static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
 
 ecs_comp_define(RendInstanceDrawComp);
 
+ecs_view_define(GlobalView) { ecs_access_read(SceneVisibilityEnvComp); }
+
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneBoundsComp);
@@ -80,6 +82,14 @@ ecs_view_define(DrawView) {
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not yet available.
+  }
+  const SceneVisibilityEnvComp*  visibilityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const SceneVisibilitySettings* visibilitySettings = scene_visibility_settings(visibilityEnv);
+
   EcsView* renderables = ecs_world_view_t(world, RenderableView);
   EcsView* drawView    = ecs_world_view_t(world, DrawView);
 
@@ -92,7 +102,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       continue;
     }
     const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
-    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+    if (visComp && !scene_visible(visComp, SceneFaction_A) && !visibilitySettings->renderAll) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
@@ -153,10 +163,15 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 ecs_module_init(rend_instance_module) {
   ecs_register_comp_empty(RendInstanceDrawComp);
 
+  ecs_register_view(GlobalView);
   ecs_register_view(RenderableView);
   ecs_register_view(DrawView);
 
-  ecs_register_system(RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(DrawView));
+  ecs_register_system(
+      RendInstanceFillDrawsSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(RenderableView),
+      ecs_view_id(DrawView));
 
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
 }

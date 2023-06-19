@@ -9,9 +9,10 @@
 #define scene_vision_areas_max 2048
 
 ecs_comp_define(SceneVisibilityEnvComp) {
-  GeoVector* visionPositions;    // GeoVector[scene_vision_areas_max]
-  f32*       visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
-  u32        visionCount;
+  SceneVisibilitySettings settings;
+  GeoVector*              visionPositions;    // GeoVector[scene_vision_areas_max]
+  f32*                    visionSquaredRadii; // (radius * radius)[scene_vision_areas_max]
+  u32                     visionCount;
 };
 
 static void ecs_destruct_visibility_env_comp(void* data) {
@@ -142,6 +143,14 @@ ecs_module_init(scene_visibility_module) {
       ecs_register_view(VisibilityEntityView));
 
   ecs_parallel(SceneVisibilityUpdateSys, 4);
+}
+
+const SceneVisibilitySettings* scene_visibility_settings(const SceneVisibilityEnvComp* env) {
+  return &env->settings;
+}
+
+SceneVisibilitySettings* scene_visibility_settings_mut(SceneVisibilityEnvComp* env) {
+  return &env->settings;
 }
 
 bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction faction) {
