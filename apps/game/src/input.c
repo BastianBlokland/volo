@@ -479,8 +479,7 @@ static void update_camera_interact(
     break;
   case InputSelectState_Down:
     if (selectActive) {
-      const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
-      if (geo_vector_mag(geo_vector_sub(cur, state->selectStart)) > g_inputDragThreshold) {
+      if (geo_vector_mag(geo_vector_sub(inputNormPos, state->selectStart)) > g_inputDragThreshold) {
         select_start_drag(state);
       }
     } else {
