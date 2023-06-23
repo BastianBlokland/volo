@@ -19,6 +19,7 @@
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
+#include "scene_name.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
@@ -143,6 +144,10 @@ static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const Scen
     return SceneLayer_Destructible;
   }
   return SceneLayer_Environment;
+}
+
+static void setup_name(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitName* t) {
+  ecs_world_add_t(w, e, SceneNameComp, .name = t->name);
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
@@ -354,6 +359,9 @@ static void setup_trait(
     const AssetPrefab*      p,
     const AssetPrefabTrait* t) {
   switch (t->type) {
+  case AssetPrefabTrait_Name:
+    setup_name(w, e, &t->data_name);
+    return;
   case AssetPrefabTrait_Renderable:
     setup_renderable(w, e, &t->data_renderable);
     return;

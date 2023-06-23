@@ -46,6 +46,10 @@ typedef struct {
 } AssetPrefabShapeDef;
 
 typedef struct {
+  String name;
+} AssetPrefabTraitNameDef;
+
+typedef struct {
   String graphicId;
 } AssetPrefabTraitRenderableDef;
 
@@ -150,6 +154,7 @@ typedef struct {
 typedef struct {
   AssetPrefabTraitType type;
   union {
+    AssetPrefabTraitNameDef       data_name;
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
@@ -220,6 +225,9 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
     data_reg_choice_t(reg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
+
+    data_reg_struct_t(reg, AssetPrefabTraitNameDef);
+    data_reg_field_t(reg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitRenderableDef);
     data_reg_field_t(reg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -310,6 +318,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
@@ -447,6 +456,11 @@ static void prefab_build(
     outTrait->type             = traitDef->type;
 
     switch (traitDef->type) {
+    case AssetPrefabTrait_Name:
+      outTrait->data_name = (AssetPrefabTraitName){
+          .name = stringtable_add(g_stringtable, traitDef->data_name.name),
+      };
+      break;
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = (AssetPrefabTraitRenderable){
           .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
