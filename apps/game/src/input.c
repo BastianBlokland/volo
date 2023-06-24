@@ -454,7 +454,7 @@ static void input_order(
 static EcsEntityId
 input_query_hovered_entity(const SceneCollisionEnvComp* collisionEnv, const GeoRay* inputRay) {
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_UnitFactionA};
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_Unit};
   const f32              radius  = 0.5f;
   const f32              maxDist = g_inputMaxInteractDist;
   if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
