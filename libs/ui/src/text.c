@@ -184,6 +184,8 @@ static String ui_text_line(
         cursorConsumed.pixel += ui_text_to_stop(
             font, esc.escPadUntil.stop, cursorConsumed.pixel, fontSize, fontVariation);
         break;
+      default:
+        break;
       }
       break;
     }
@@ -342,12 +344,13 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
     state->fontOutline = state->fontOutlineDefault;
     state->fontWeight  = state->fontWeightDefault;
     break;
+  case UiEscape_PadUntil:
+    break; // NOTE: Has specific handling in char layout phase.
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
     break;
   case UiEscape_Background:
-    // NOTE: Handled in the line collecting phase.
-    break;
+    break; // NOTE: Handled in the line collecting phase.
   case UiEscape_Outline:
     state->fontOutline = esc->escOutline.value;
     break;
@@ -389,7 +392,6 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
       nextCharIndex = ui_text_byte_index(state, remainingText);
-      ui_text_build_escape(state, line, &esc);
       if (esc.type == UiEscape_PadUntil) {
         const f32 advance = ui_text_to_stop(
             state->font,
@@ -399,6 +401,8 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
             state->fontVariation);
         ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
         state->cursor += advance;
+      } else {
+        ui_text_build_escape(state, line, &esc);
       }
       break;
     default:
