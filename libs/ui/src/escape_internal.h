@@ -5,12 +5,17 @@
 typedef enum {
   UiEscape_Invalid,
   UiEscape_Reset,
+  UiEscape_PadUntil,
   UiEscape_Color,
   UiEscape_Background,
   UiEscape_Outline,
   UiEscape_Weight,
   UiEscape_Cursor,
 } UiEscapeType;
+
+typedef struct {
+  u8 stop;
+} UiEscapePadUntil;
 
 typedef struct {
   UiColor value;
@@ -35,6 +40,7 @@ typedef struct {
 typedef struct {
   UiEscapeType type;
   union {
+    UiEscapePadUntil   escPadUntil;
     UiEscapeColor      escColor;
     UiEscapeBackground escBackground;
     UiEscapeOutline    escOutline;

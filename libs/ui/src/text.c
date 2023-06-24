@@ -80,7 +80,17 @@ static f32 ui_text_to_tabstop(
   return tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
 }
 
-static bool ui_text_is_seperator(const Unicode cp) {
+static f32 ui_text_to_stop(
+    const AssetFtxComp* font,
+    const u8            stop,
+    const f32           cursor,
+    const f32           fontSize,
+    const u8            fontVariation) {
+  const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
+  return math_max(spaceAdvance * stop - cursor, 0);
+}
+
+static bool ui_text_is_separator(const Unicode cp) {
   switch (cp) {
   case Unicode_CarriageReturn:
   case Unicode_HorizontalTab:
@@ -120,7 +130,7 @@ static String ui_text_line(
 
   CursorPos cursorAccepted = {0}, cursorConsumed = {0};
   String    remainingText = text;
-  bool      wasSeperator  = false;
+  bool      wasSeparator  = false;
   bool      firstWord     = true;
 
   while (true) {
@@ -133,17 +143,17 @@ static String ui_text_line(
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
 
-    const bool isSeperator    = ui_text_is_seperator(cp);
+    const bool isSeparator    = ui_text_is_separator(cp);
     const bool allowWordBreak = firstWord || flags & UiFlags_AllowWordBreak;
-    if ((isSeperator && !wasSeperator) || allowWordBreak) {
+    if ((isSeparator && !wasSeparator) || allowWordBreak) {
       cursorConsumed.charIndex = text.size - remainingText.size - utf8_cp_bytes(cp);
       cursorAccepted           = cursorConsumed;
     }
-    if (isSeperator) {
+    if (isSeparator) {
       cursorConsumed.charIndex = text.size - remainingText.size;
       firstWord                = false;
     }
-    wasSeperator = isSeperator;
+    wasSeparator = isSeparator;
 
     switch (cp) {
     case Unicode_Newline:
@@ -166,8 +176,16 @@ static String ui_text_line(
       if (esc.type == UiEscape_Background || esc.type == UiEscape_Reset) {
         ui_text_background_end(bgCollector, cursorAccepted.pixel);
       }
-      if (esc.type == UiEscape_Background) {
+      switch (esc.type) {
+      case UiEscape_Background:
         ui_text_background_start(bgCollector, out, esc.escBackground.value, cursorAccepted.pixel);
+        break;
+      case UiEscape_PadUntil:
+        cursorConsumed.pixel += ui_text_to_stop(
+            font, esc.escPadUntil.stop, cursorConsumed.pixel, fontSize, fontVariation);
+        break;
+      default:
+        break;
       }
       break;
     }
@@ -326,12 +344,13 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
     state->fontOutline = state->fontOutlineDefault;
     state->fontWeight  = state->fontWeightDefault;
     break;
+  case UiEscape_PadUntil:
+    break; // NOTE: Has specific handling in char layout phase.
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
     break;
   case UiEscape_Background:
-    // NOTE: Handled in the line collecting phase.
-    break;
+    break; // NOTE: Handled in the line collecting phase.
   case UiEscape_Outline:
     state->fontOutline = esc->escOutline.value;
     break;
@@ -373,7 +392,18 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
       nextCharIndex = ui_text_byte_index(state, remainingText);
-      ui_text_build_escape(state, line, &esc);
+      if (esc.type == UiEscape_PadUntil) {
+        const f32 advance = ui_text_to_stop(
+            state->font,
+            esc.escPadUntil.stop,
+            state->cursor,
+            state->fontSize,
+            state->fontVariation);
+        ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
+        state->cursor += advance;
+      } else {
+        ui_text_build_escape(state, line, &esc);
+      }
       break;
     default:
       ui_text_build_char(state, pos, cp, charIndex, nextCharIndex);
@@ -388,8 +418,8 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
   const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
-      .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
-      .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
+                  .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
+                  .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
   };
   state->buildBackground(
       state->userCtx,

@@ -276,11 +276,11 @@ stats_draw_cpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       {st->rendLimiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~red\a.bWait for gpu\ar:    {>8}\n"
-      "\a~purple\a.bPresent acquire\ar: {>8}\n"
-      "\a~blue\a.bPresent enqueue\ar: {>8}\n"
-      "\a~teal\a.bPresent wait\ar:    {>8}\n"
-      "\a.bLimiter\ar:         {>8}",
+      "\a~red\a.bWait for gpu\ar:\a>12{>8}\n"
+      "\a~purple\a.bPresent acquire\ar:\a>12{>8}\n"
+      "\a~blue\a.bPresent enqueue\ar:\a>12{>8}\n"
+      "\a~teal\a.bPresent wait\ar:\a>12{>8}\n"
+      "\a.bLimiter\ar:\a>12{>8}",
       fmt_duration(rendSt->waitForGpuDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->presentAcquireDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->presentEnqueueDur, .minDecDigits = 1, .maxDecDigits = 1),
@@ -325,17 +325,17 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
   };
   // clang-format off
   const String tooltip = fmt_write_scratch(
-      "\a~teal\a.bGeometry\ar:         {>7}\n"
-      "\a~navy\a.bDecal\ar:            {>7}\n"
-      "\a~olive\a.bFog\ar:              {>7}\n"
-      "\a~maroon\a.bFogBlur\ar:          {>7}\n"
-      "\a~purple\a.bShadow\ar:           {>7}\n"
-      "\a~orange\a.bAmbientOcclusion\ar: {>7}\n"
-      "\a~green\a.bForward\ar:          {>7}\n"
-      "\a~fuchsia\a.bDistortion\ar:       {>7}\n"
-      "\a~blue\a.bBloom\ar:            {>7}\n"
-      "\a~maroon\a.bPost\ar:             {>7}\n"
-      "\a.bTotal\ar:            {>7}",
+      "\a~teal\a.bGeometry\ar:\a>13{>7}\n"
+      "\a~navy\a.bDecal\ar:\a>13{>7}\n"
+      "\a~olive\a.bFog\ar:\a>13{>7}\n"
+      "\a~maroon\a.bFogBlur\ar:\a>13{>7}\n"
+      "\a~purple\a.bShadow\ar:\a>13{>7}\n"
+      "\a~orange\a.bAmbientOcclusion\ar:\a>13{>7}\n"
+      "\a~green\a.bForward\ar:\a>13{>7}\n"
+      "\a~fuchsia\a.bDistortion\ar:\a>13{>7}\n"
+      "\a~blue\a.bBloom\ar:\a>13{>7}\n"
+      "\a~maroon\a.bPost\ar:\a>13{>7}\n"
+      "\a.bTotal\ar:\a>13{>7}",
       fmt_duration(rendSt->passes[RendPass_Geometry].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Decal].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Fog].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),

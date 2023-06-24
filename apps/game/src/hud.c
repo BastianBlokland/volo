@@ -211,18 +211,18 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  fmt_write(&buffer, "\a.bName\ar: {}\n", fmt_text(entityName));
+  fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(entityName));
   if (factionComp) {
     const String factionName = hud_info_faction_name(factionComp->id);
-    fmt_write(&buffer, "\a.bFaction\ar: {}\n", fmt_text(factionName));
+    fmt_write(&buffer, "\a.bFaction\ar:\a>10{}\n", fmt_text(factionName));
   }
   if (healthComp) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
     const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
-    fmt_write(&buffer, "\a.bHealth\ar: {} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+    fmt_write(&buffer, "\a.bHealth\ar:\a>10{} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
   }
   if (statusComp && statusComp->active) {
-    fmt_write(&buffer, "\a.bStatus\ar: ");
+    fmt_write(&buffer, "\a.bStatus\ar:\a>10");
     bool first = true;
     bitset_for(bitset_from_var(statusComp->active), typeIndex) {
       if (!first) {
@@ -239,7 +239,7 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
     dynstring_append_char(&buffer, '\n');
   }
   if (locoComp) {
-    fmt_write(&buffer, "\a.bSpeed\ar: {}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+    fmt_write(&buffer, "\a.bSpeed\ar:\a>10{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
 
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
