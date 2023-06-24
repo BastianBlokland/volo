@@ -236,7 +236,8 @@ ecs_module_init(scene_health_module) {
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
 
-void scene_health_damage(EcsWorld* world, const EcsEntityId target, const f32 amount) {
-  diag_assert(amount >= 0.0f);
-  ecs_world_add_t(world, target, SceneDamageComp, .amount = amount);
+void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneDamageInfo* info) {
+  diag_assert(info->instigator);
+  diag_assert(info->amount >= 0.0f);
+  ecs_world_add_t(world, target, SceneDamageComp, .amount = info->amount);
 }

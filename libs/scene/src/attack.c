@@ -397,7 +397,13 @@ static EffectResult effect_update_dmg(
     // Apply damage.
     if (def->damage > f32_epsilon) {
       const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
-      scene_health_damage(ctx->world, hits[i], damageThisTick);
+      scene_health_damage(
+          ctx->world,
+          hits[i],
+          &(SceneDamageInfo){
+              .instigator = ctx->instigator,
+              .amount     = damageThisTick,
+          });
     }
 
     // Apply status.
