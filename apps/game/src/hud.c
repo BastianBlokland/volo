@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_bitset.h"
 #include "core_float.h"
 #include "core_format.h"
@@ -187,7 +188,12 @@ static void hud_info_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsIt
   const SceneNameComp* nameComp = ecs_view_read_t(infoItr, SceneNameComp);
   const String         nameStr  = stringtable_lookup(g_stringtable, nameComp->name);
 
-  ui_tooltip(canvas, sentinel_u64, nameStr);
+  Mem       tooltipBuffer = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  DynString tooltipDynStr = dynstring_create_over(tooltipBuffer);
+
+  fmt_write(&tooltipDynStr, "\a.bName\ar: {}", fmt_text(nameStr));
+
+  ui_tooltip(canvas, sentinel_u64, dynstring_view(&tooltipDynStr));
 }
 
 ecs_system_define(HudDrawUiSys) {
