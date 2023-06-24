@@ -55,11 +55,8 @@ ecs_view_define(HealthView) {
 }
 
 ecs_view_define(InfoView) {
-  ecs_access_maybe_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
-  ecs_access_read(SceneTransformComp);
 }
 
 static GeoMatrix hud_ui_view_proj(
@@ -79,7 +76,7 @@ static GeoVector hud_world_to_ui_pos(const GeoMatrix* viewProj, const GeoVector 
   return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);
 }
 
-static GeoVector hud_world_pos_top(
+static GeoVector hud_entity_world_pos_top(
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale,
     const SceneCollisionComp* collision) {
@@ -89,17 +86,6 @@ static GeoVector hud_world_pos_top(
         (worldBounds.min.x + worldBounds.max.x) * 0.5f,
         worldBounds.max.y,
         (worldBounds.min.z + worldBounds.max.z) * 0.5f);
-  }
-  return trans->position;
-}
-
-static GeoVector hud_world_pos_center(
-    const SceneTransformComp* trans,
-    const SceneScaleComp*     scale,
-    const SceneCollisionComp* collision) {
-  if (collision) {
-    const GeoBox worldBounds = scene_collision_world_bounds(collision, trans, scale);
-    return geo_box_center(&worldBounds);
   }
   return trans->position;
 }
@@ -132,7 +118,7 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const GeoVector worldPos  = hud_world_pos_top(trans, scale, collision);
+    const GeoVector worldPos  = hud_entity_world_pos_top(trans, scale, collision);
     const GeoVector canvasPos = hud_world_to_ui_pos(viewProj, worldPos);
     if (UNLIKELY(canvasPos.z <= 0)) {
       continue; // Position is behind the camera.
@@ -193,28 +179,15 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
 }
 
 static void hud_info_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsIterator* infoItr) {
-  const SceneTransformComp* trans     = ecs_view_read_t(infoItr, SceneTransformComp);
-  const SceneScaleComp*     scale     = ecs_view_read_t(infoItr, SceneScaleComp);
-  const SceneCollisionComp* collision = ecs_view_read_t(infoItr, SceneCollisionComp);
-  const SceneNameComp*      nameComp  = ecs_view_read_t(infoItr, SceneNameComp);
-
   const SceneVisibilityComp* visComp = ecs_view_read_t(infoItr, SceneVisibilityComp);
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
 
-  const GeoVector worldPos  = hud_world_pos_center(trans, scale, collision);
-  const GeoVector canvasPos = hud_world_to_ui_pos(viewProj, worldPos);
-  if (UNLIKELY(canvasPos.z <= 0)) {
-    return; // Position is behind the camera.
-  }
+  const SceneNameComp* nameComp = ecs_view_read_t(infoItr, SceneNameComp);
+  const String         nameStr  = stringtable_lookup(g_stringtable, nameComp->name);
 
-  ui_layout_set_pos(canvas, UiBase_Canvas, ui_vector(canvasPos.x, canvasPos.y), UiBase_Canvas);
-  ui_layout_move_dir(canvas, Ui_Right, 15, UiBase_Absolute);
-  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(200, 200), UiBase_Absolute, Ui_XY);
-
-  const String nameStr = stringtable_lookup(g_stringtable, nameComp->name);
-  ui_canvas_draw_text(canvas, nameStr, 15, UiAlign_MiddleLeft, UiFlags_None);
+  ui_tooltip(canvas, sentinel_u64, nameStr);
 }
 
 ecs_system_define(HudDrawUiSys) {
