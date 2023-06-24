@@ -61,6 +61,7 @@ ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneLocomotionComp);
+  ecs_access_maybe_read(SceneStatusComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
 }
@@ -198,6 +199,7 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
   const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
   const SceneLocomotionComp* locoComp    = ecs_view_read_t(infoItr, SceneLocomotionComp);
   const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneStatusComp*     statusComp  = ecs_view_read_t(infoItr, SceneStatusComp);
   const SceneVisibilityComp* visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
 
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
@@ -218,6 +220,23 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
     const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
     fmt_write(&buffer, "\a.bHealth\ar: {} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+  }
+  if (statusComp && statusComp->active) {
+    fmt_write(&buffer, "\a.bStatus\ar: ");
+    bool first = true;
+    bitset_for(bitset_from_var(statusComp->active), typeIndex) {
+      if (!first) {
+        dynstring_append(&buffer, string_lit(", "));
+      }
+      first = false;
+      fmt_write(
+          &buffer,
+          "\a|02{}{}\ar {}",
+          fmt_ui_color(g_hudStatusIconColors[typeIndex]),
+          fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
+          fmt_text(scene_status_name((SceneStatusType)typeIndex)));
+    }
+    dynstring_append_char(&buffer, '\n');
   }
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar: {}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
