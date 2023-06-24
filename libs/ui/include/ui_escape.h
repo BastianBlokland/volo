@@ -8,6 +8,7 @@
  *
  * Supported sequences:
  * - Reset the style to default:  [ESC]r           example: \ar
+ * - Pad until specified stop:    [ESC]>FF         example: \a>10
  * - Switch to a specific color:  [ESC]#RRGGBBAA   example: \a#FF0000FF
  * - Switch to a named color:     [ESC]~NAME       example: \a~red
  * - Start a text background:     [ESC]@RRGGBBAA   example: \a@FF0000FF (NOTE: End with reset).

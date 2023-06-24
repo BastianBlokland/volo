@@ -32,6 +32,20 @@ static String ui_escape_read_reset(String input, UiEscape* out) {
   return input;
 }
 
+static String ui_escape_read_pad_until(String input, UiEscape* out) {
+  if (!ui_escape_check_min_chars(input, 2, out)) {
+    return input;
+  }
+  if (!out) {
+    return string_consume(input, 2); // Fast path in case the output is not needed.
+  }
+  u8 stop;
+  input = ui_escape_read_byte_hex(input, &stop);
+
+  *out = (UiEscape){.type = UiEscape_PadUntil, .escPadUntil = {.stop = stop}};
+  return input;
+}
+
 static String ui_escape_read_color(String input, UiEscape* out) {
   if (!ui_escape_check_min_chars(input, 8, out)) {
     return input;
@@ -168,6 +182,8 @@ String ui_escape_read(String input, UiEscape* out) {
   switch (ch) {
   case 'r':
     return ui_escape_read_reset(input, out);
+  case '>':
+    return ui_escape_read_pad_until(input, out);
   case '#':
     return ui_escape_read_color(input, out);
   case '~':
