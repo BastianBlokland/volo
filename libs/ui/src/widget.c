@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "core_sentinel.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
@@ -547,13 +548,23 @@ static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
   return ui_canvas_input_pos(canvas).x > halfCanvas ? Ui_Left : Ui_Right;
 }
 
+static bool ui_tooltip_show(UiCanvasComp* canvas, const UiId id, const UiTooltipOpts* opts) {
+  if (opts->flags & UiWidget_Disabled) {
+    return false;
+  }
+  if (sentinel_check(id)) {
+    return true; // Always show the tooltip if no id was provided.
+  }
+  if (ui_canvas_elem_status(canvas, id) != UiStatus_Hovered) {
+    return false;
+  }
+  return ui_canvas_elem_status_duration(canvas, id) >= time_second;
+}
+
 bool ui_tooltip_with_opts(
     UiCanvasComp* canvas, const UiId id, const String text, const UiTooltipOpts* opts) {
 
-  const bool showTooltip = (opts->flags & UiWidget_Disabled) == 0 &&
-                           ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
-                           ui_canvas_elem_status_duration(canvas, id) >= time_second;
-  if (!showTooltip) {
+  if (!ui_tooltip_show(canvas, id, opts)) {
     ui_canvas_id_skip(canvas, 2);
     return false;
   }
