@@ -513,7 +513,8 @@ static void update_camera_interact(
     break;
   }
 
-  if (!selectActive && input_layer_active(input, string_hash_lit("Game"))) {
+  const bool hoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+  if (!selectActive && input_layer_active(input, string_hash_lit("Game")) && !hoveringUi) {
     const EcsEntityId newHoveredUnit = input_query_hovered_entity(collisionEnv, &inputRay);
     if (newHoveredUnit == state->hoveredEntity) {
       state->hoveredTime += time->realDelta;
