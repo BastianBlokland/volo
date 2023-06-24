@@ -511,7 +511,7 @@ static void ui_tooltip_background(
   ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
 
   ui_style_color(canvas, ui_color_white);
-  ui_style_outline(canvas, 4);
+  ui_style_outline(canvas, 3);
 
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
 }
