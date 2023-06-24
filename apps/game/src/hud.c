@@ -9,6 +9,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_status.h"
 #include "scene_transform.h"
@@ -59,6 +60,7 @@ ecs_view_define(HealthView) {
 ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
 }
@@ -192,9 +194,10 @@ static String hud_info_faction_name(const SceneFaction faction) {
 }
 
 static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
-  const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
-  const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
   const SceneFactionComp*    factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneLocomotionComp* locoComp    = ecs_view_read_t(infoItr, SceneLocomotionComp);
+  const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
   const SceneVisibilityComp* visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
 
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
@@ -215,6 +218,9 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
     const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
     fmt_write(&buffer, "\a.bHealth\ar: {} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+  }
+  if (locoComp) {
+    fmt_write(&buffer, "\a.bSpeed\ar: {}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
 
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
