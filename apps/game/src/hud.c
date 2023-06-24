@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_name.h"
 #include "scene_status.h"
@@ -56,6 +57,8 @@ ecs_view_define(HealthView) {
 }
 
 ecs_view_define(InfoView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
 }
@@ -179,21 +182,42 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
   }
 }
 
-static void hud_info_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsIterator* infoItr) {
-  const SceneVisibilityComp* visComp = ecs_view_read_t(infoItr, SceneVisibilityComp);
+static String hud_info_faction_name(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return string_lit("Player");
+  default:
+    return string_lit("Enemy");
+  }
+}
+
+static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
+  const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneFactionComp*    factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneVisibilityComp* visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
+
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
   }
 
-  const SceneNameComp* nameComp = ecs_view_read_t(infoItr, SceneNameComp);
-  const String         nameStr  = stringtable_lookup(g_stringtable, nameComp->name);
+  const String entityName = stringtable_lookup(g_stringtable, nameComp->name);
 
-  Mem       tooltipBuffer = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
-  DynString tooltipDynStr = dynstring_create_over(tooltipBuffer);
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
 
-  fmt_write(&tooltipDynStr, "\a.bName\ar: {}", fmt_text(nameStr));
+  fmt_write(&buffer, "\a.bName\ar: {}\n", fmt_text(entityName));
+  if (factionComp) {
+    const String factionName = hud_info_faction_name(factionComp->id);
+    fmt_write(&buffer, "\a.bFaction\ar: {}\n", fmt_text(factionName));
+  }
+  if (healthComp) {
+    const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
+    const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
+    fmt_write(&buffer, "\a.bHealth\ar: {} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+  }
 
-  ui_tooltip(canvas, sentinel_u64, dynstring_view(&tooltipDynStr));
+  ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
 }
 
 ecs_system_define(HudDrawUiSys) {
@@ -232,7 +256,7 @@ ecs_system_define(HudDrawUiSys) {
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
     if (hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
-      hud_info_draw(canvas, &viewProj, infoItr);
+      hud_info_draw(canvas, infoItr);
     }
     ui_canvas_id_block_next(canvas); // End on an consistent id.
   }
