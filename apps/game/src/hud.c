@@ -1,11 +1,16 @@
+#include "core_alloc.h"
 #include "core_bitset.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_locomotion.h"
+#include "scene_name.h"
 #include "scene_status.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
@@ -13,6 +18,7 @@
 
 #include "cmd_internal.h"
 #include "hud_internal.h"
+#include "input_internal.h"
 
 static const f32      g_hudHealthBarOffsetY = 10.0f;
 static const UiVector g_hudHealthBarSize    = {.x = 50.0f, .y = 7.5f};
@@ -35,6 +41,7 @@ ecs_view_define(GlobalView) { ecs_access_write(CmdControllerComp); }
 
 ecs_view_define(HudView) {
   ecs_access_read(HudComp);
+  ecs_access_read(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
 }
@@ -48,6 +55,15 @@ ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneHealthComp);
   ecs_access_read(SceneTransformComp);
+}
+
+ecs_view_define(InfoView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_read(SceneLocomotionComp);
+  ecs_access_maybe_read(SceneStatusComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneNameComp);
 }
 
 static GeoMatrix hud_ui_view_proj(
@@ -67,7 +83,7 @@ static GeoVector hud_world_to_ui_pos(const GeoMatrix* viewProj, const GeoVector 
   return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);
 }
 
-static GeoVector hud_health_world_pos(
+static GeoVector hud_entity_world_pos_top(
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale,
     const SceneCollisionComp* collision) {
@@ -109,7 +125,7 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const GeoVector worldPos  = hud_health_world_pos(trans, scale, collision);
+    const GeoVector worldPos  = hud_entity_world_pos_top(trans, scale, collision);
     const GeoVector canvasPos = hud_world_to_ui_pos(viewProj, worldPos);
     if (UNLIKELY(canvasPos.z <= 0)) {
       continue; // Position is behind the camera.
@@ -169,6 +185,66 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
   }
 }
 
+static String hud_info_faction_name(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return string_lit("Player");
+  default:
+    return string_lit("Enemy");
+  }
+}
+
+static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
+  const SceneFactionComp*    factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneLocomotionComp* locoComp    = ecs_view_read_t(infoItr, SceneLocomotionComp);
+  const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneStatusComp*     statusComp  = ecs_view_read_t(infoItr, SceneStatusComp);
+  const SceneVisibilityComp* visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
+
+  if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+    return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+  }
+
+  const String entityName = stringtable_lookup(g_stringtable, nameComp->name);
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  fmt_write(&buffer, "\a.bName\ar: {}\n", fmt_text(entityName));
+  if (factionComp) {
+    const String factionName = hud_info_faction_name(factionComp->id);
+    fmt_write(&buffer, "\a.bFaction\ar: {}\n", fmt_text(factionName));
+  }
+  if (healthComp) {
+    const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
+    const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
+    fmt_write(&buffer, "\a.bHealth\ar: {} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+  }
+  if (statusComp && statusComp->active) {
+    fmt_write(&buffer, "\a.bStatus\ar: ");
+    bool first = true;
+    bitset_for(bitset_from_var(statusComp->active), typeIndex) {
+      if (!first) {
+        dynstring_append(&buffer, string_lit(", "));
+      }
+      first = false;
+      fmt_write(
+          &buffer,
+          "\a|02{}{}\ar {}",
+          fmt_ui_color(g_hudStatusIconColors[typeIndex]),
+          fmt_text(ui_shape_scratch(g_hudStatusIcons[typeIndex])),
+          fmt_text(scene_status_name((SceneStatusType)typeIndex)));
+    }
+    dynstring_append_char(&buffer, '\n');
+  }
+  if (locoComp) {
+    fmt_write(&buffer, "\a.bSpeed\ar: {}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+  }
+
+  ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
+}
+
 ecs_system_define(HudDrawUiSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -180,13 +256,16 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* hudView    = ecs_world_view_t(world, HudView);
   EcsView* canvasView = ecs_world_view_t(world, UiCanvasView);
   EcsView* healthView = ecs_world_view_t(world, HealthView);
+  EcsView* infoView   = ecs_world_view_t(world, InfoView);
 
   EcsIterator* canvasItr = ecs_view_itr(canvasView);
+  EcsIterator* infoItr   = ecs_view_itr(infoView);
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    const HudComp*            state    = ecs_view_read_t(itr, HudComp);
-    const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
+    const HudComp*            state      = ecs_view_read_t(itr, HudComp);
+    const InputStateComp*     inputState = ecs_view_read_t(itr, InputStateComp);
+    const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
     if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
       continue;
     }
@@ -198,6 +277,13 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_health_draw(canvas, &viewProj, healthView);
     hud_groups_draw(canvas, cmd);
+
+    const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
+    const TimeDuration hoveredTime   = input_hovered_time(inputState);
+    if (hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
+      hud_info_draw(canvas, infoItr);
+    }
+    ui_canvas_id_block_next(canvas); // End on an consistent id.
   }
 }
 
@@ -208,13 +294,15 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(HudView);
   ecs_register_view(UiCanvasView);
   ecs_register_view(HealthView);
+  ecs_register_view(InfoView);
 
   ecs_register_system(
       HudDrawUiSys,
       ecs_view_id(GlobalView),
       ecs_view_id(HudView),
       ecs_view_id(UiCanvasView),
-      ecs_view_id(HealthView));
+      ecs_view_id(HealthView),
+      ecs_view_id(InfoView));
 
   enum {
     Order_Normal    = 0,

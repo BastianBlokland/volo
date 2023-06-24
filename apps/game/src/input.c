@@ -19,6 +19,7 @@
 #include "ui.h"
 
 #include "cmd_internal.h"
+#include "input_internal.h"
 
 static const f32    g_inputMinInteractDist       = 1.0f;
 static const f32    g_inputMaxInteractDist       = 250.0f;
@@ -54,6 +55,9 @@ ecs_comp_define(InputStateComp) {
   TimeDuration lastGroupTime;
 
   u32 lastSelectionCount;
+
+  EcsEntityId  hoveredEntity;
+  TimeDuration hoveredTime;
 
   GeoVector camPos, camPosTgt;
   f32       camRotY, camRotYTgt;
@@ -447,6 +451,18 @@ static void input_order(
   }
 }
 
+static EcsEntityId
+input_query_hovered_entity(const SceneCollisionEnvComp* collisionEnv, const GeoRay* inputRay) {
+  SceneRayHit            hit;
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_Unit};
+  const f32              radius  = 0.5f;
+  const f32              maxDist = g_inputMaxInteractDist;
+  if (scene_query_ray_fat(collisionEnv, inputRay, radius, maxDist, &filter, &hit)) {
+    return hit.entity;
+  }
+  return 0;
+}
+
 static void update_camera_interact(
     EcsWorld*                    world,
     InputStateComp*              state,
@@ -454,6 +470,7 @@ static void update_camera_interact(
     InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    sel,
+    const SceneTimeComp*         time,
     const SceneTerrainComp*      terrain,
     const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
@@ -479,8 +496,7 @@ static void update_camera_interact(
     break;
   case InputSelectState_Down:
     if (selectActive) {
-      const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
-      if (geo_vector_mag(geo_vector_sub(cur, state->selectStart)) > g_inputDragThreshold) {
+      if (geo_vector_mag(geo_vector_sub(inputNormPos, state->selectStart)) > g_inputDragThreshold) {
         select_start_drag(state);
       }
     } else {
@@ -495,6 +511,19 @@ static void update_camera_interact(
       select_end_drag(state);
     }
     break;
+  }
+
+  const bool hoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+  if (!selectActive && input_layer_active(input, string_hash_lit("Game")) && !hoveringUi) {
+    const EcsEntityId newHoveredUnit = input_query_hovered_entity(collisionEnv, &inputRay);
+    if (newHoveredUnit == state->hoveredEntity) {
+      state->hoveredTime += time->realDelta;
+    } else {
+      state->hoveredTime = 0;
+    }
+    state->hoveredEntity = newHoveredUnit;
+  } else {
+    state->hoveredEntity = 0;
   }
 
   const bool hasSelection = !scene_selection_empty(sel);
@@ -580,7 +609,18 @@ ecs_system_define(InputUpdateSys) {
         update_camera_movement(state, input, time, camTrans);
       }
       update_camera_interact(
-          world, state, cmdController, input, colEnv, sel, terrain, nav, cam, camTrans, debugStats);
+          world,
+          state,
+          cmdController,
+          input,
+          colEnv,
+          sel,
+          time,
+          terrain,
+          nav,
+          cam,
+          camTrans,
+          debugStats);
     } else {
       state->selectState = InputSelectState_None;
     }
@@ -634,4 +674,9 @@ ecs_module_init(game_input_module) {
   for (u32 i = 0; i != cmd_group_count; ++i) {
     g_inputGroupActions[i] = string_hash(fmt_write_scratch("CommandGroup{}", fmt_int(i + 1)));
   }
+}
+
+EcsEntityId  input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }
+TimeDuration input_hovered_time(const InputStateComp* state) {
+  return state->hoveredEntity ? state->hoveredTime : 0;
 }

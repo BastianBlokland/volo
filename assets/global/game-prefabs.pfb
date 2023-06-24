@@ -3,6 +3,7 @@
     {
       "name": "UnitRifle", "isUnit": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -54,6 +55,7 @@
     {
       "name": "UnitRocket", "isUnit": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rocket.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -105,6 +107,7 @@
     {
       "name": "UnitFlame", "isUnit": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
@@ -156,6 +159,7 @@
     {
       "name": "UnitEnemy", "isUnit": true, "isVolatile": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_maynard.gra" },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -205,6 +209,7 @@
     {
       "name": "TurretGun", "isUnit": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
@@ -240,6 +245,7 @@
     {
       "name": "TurretMissile", "isUnit": true,
       "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {

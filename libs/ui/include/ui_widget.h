@@ -168,6 +168,7 @@ typedef struct {
 
 /**
  * Draw a tooltip if the given element is being hovered.
+ * NOTE: Provide sentinel_u64 as the id to force the tooltip to be displayed.
  */
 #define ui_tooltip(_CANVAS_, _ID_, _TEXT_, ...) ui_tooltip_with_opts((_CANVAS_), (_ID_), (_TEXT_), \
   &((UiTooltipOpts){                                                                               \
