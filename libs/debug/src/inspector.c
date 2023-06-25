@@ -384,7 +384,8 @@ static void inspector_panel_draw_status(
         bool active = scene_status_active(status, type);
         if (ui_toggle(canvas, &active)) {
           if (active) {
-            scene_status_add(world, ecs_view_entity(subject), type);
+            const EcsEntityId instigator = 0;
+            scene_status_add(world, ecs_view_entity(subject), type, instigator);
           } else {
             scene_status_remove(world, ecs_view_entity(subject), type);
           }

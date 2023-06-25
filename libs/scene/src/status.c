@@ -29,8 +29,14 @@ ecs_comp_define_public(SceneStatusRequestComp);
 static void ecs_combine_status_request(void* dataA, void* dataB) {
   SceneStatusRequestComp* reqA = dataA;
   SceneStatusRequestComp* reqB = dataB;
+
   reqA->add |= reqB->add;
   reqA->remove |= reqB->remove;
+  for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+    if (!reqA->instigators[type]) {
+      reqA->instigators[type] = reqB->instigators[type];
+    }
+  }
 }
 
 static EcsEntityId status_effect_create(
@@ -97,9 +103,11 @@ ecs_system_define(SceneStatusUpdateSys) {
       status->active &= ~request->remove;
       bitset_for(bitset_from_var(request->add), typeIndex) {
         status->lastRefreshTime[typeIndex] = time->time;
+        status->instigators[typeIndex]     = request->instigators[typeIndex];
       }
       request->add = request->remove = 0;
-      effectsDirty                   = true;
+      mem_set(array_mem(request->instigators), 0);
+      effectsDirty = true;
     }
 
     // Process active types.
@@ -114,7 +122,7 @@ ecs_system_define(SceneStatusUpdateSys) {
         scene_health_damage_add(
             damage,
             &(SceneDamageInfo){
-                .instigator = 0, // NOTE: Status-effect instigators are not tracked at the moment.
+                .instigator = status->instigators[type],
                 .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
             });
       }
@@ -167,8 +175,14 @@ String scene_status_name(const SceneStatusType type) {
   return g_names[type];
 }
 
-void scene_status_add(EcsWorld* world, const EcsEntityId target, const SceneStatusType type) {
-  ecs_world_add_t(world, target, SceneStatusRequestComp, .add = 1 << type);
+void scene_status_add(
+    EcsWorld*             world,
+    const EcsEntityId     target,
+    const SceneStatusType type,
+    const EcsEntityId     instigator) {
+  SceneStatusRequestComp* req =
+      ecs_world_add_t(world, target, SceneStatusRequestComp, .add = 1 << type);
+  req->instigators[type] = instigator;
 }
 
 void scene_status_remove(EcsWorld* world, const EcsEntityId target, const SceneStatusType type) {
