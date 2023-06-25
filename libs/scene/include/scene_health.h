@@ -12,14 +12,12 @@ ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
   f32              norm;
   f32              max;
+  TimeDuration     lastDamagedTime;
   TimeDuration     deathDestroyDelay;
   StringHash       deathEffectPrefab;
 };
 
-ecs_comp_extern_public(SceneDamageComp) {
-  f32          amount;
-  TimeDuration lastDamagedTime;
-};
+ecs_comp_extern_public(SceneDamageComp) { f32 amount; };
 
 ecs_comp_extern_public(SceneDeadComp);
 

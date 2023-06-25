@@ -171,12 +171,12 @@ ecs_system_define(SceneHealthUpdateSys) {
     damage->amount       = 0;
 
     if (damageNorm > 0.0f && !(health->flags & SceneHealthFlags_Dead)) {
-      damage->lastDamagedTime = time->time;
+      health->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
       if (anim && healthAnim && damageNorm > g_healthMinNormDamageForAnim) {
         health_anim_play_hit(anim, healthAnim);
       }
-    } else if ((time->time - damage->lastDamagedTime) > time_milliseconds(100)) {
+    } else if ((time->time - health->lastDamagedTime) > time_milliseconds(100)) {
       health_clear_damaged(world, entity, tag);
     }
 
