@@ -28,7 +28,7 @@ ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
 static SceneDamageInfo* damage_storage_push(SceneDamageStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
-    const u32        newCapacity = storage->capacity ? bits_nextpow2(storage->capacity) : 4;
+    const u32        newCapacity = storage->capacity ? bits_nextpow2(storage->capacity + 1) : 4;
     SceneDamageInfo* newValues   = alloc_array_t(g_alloc_heap, SceneDamageInfo, newCapacity);
     if (UNLIKELY(!newValues)) {
       diag_crash_msg("damage_storage_push(): Allocation failed");
