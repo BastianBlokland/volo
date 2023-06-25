@@ -1,5 +1,6 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -526,6 +527,24 @@ f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon
     }
   }
   return damage;
+}
+
+bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
+  for (u16 i = 0; i != weapon->effectCount; ++i) {
+    const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
+    switch (effect->type) {
+    case AssetWeaponEffect_Damage:
+      if (effect->data_dmg.applyBurning) {
+        return true;
+      }
+    case AssetWeaponEffect_Projectile:
+    case AssetWeaponEffect_Animation:
+    case AssetWeaponEffect_Vfx:
+    case AssetWeaponEffect_Sound:
+      break;
+    }
+  }
+  return false;
 }
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {

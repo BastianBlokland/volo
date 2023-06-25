@@ -258,6 +258,14 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
       if (damage > f32_epsilon) {
         fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
       }
+      if (asset_weapon_apply_burning(weaponMap, weapon)) {
+        fmt_write(
+            &buffer,
+            "\a.bApply\ar:\a>15\a|02{}{}\ar {}\n",
+            fmt_ui_color(g_hudStatusIconColors[SceneStatusType_Burning]),
+            fmt_text(ui_shape_scratch(g_hudStatusIcons[SceneStatusType_Burning])),
+            fmt_text(scene_status_name((SceneStatusType)SceneStatusType_Burning)));
+      }
     }
   }
   if (locoComp) {

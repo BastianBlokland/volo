@@ -98,7 +98,8 @@ ecs_comp_extern_public(AssetWeaponMapComp) {
 /**
  * Lookup weapon statistics.
  */
-f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon*);
+f32  asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon*);
+bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon*);
 
 /**
  * Lookup a weapon by the hash of its name.
