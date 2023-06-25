@@ -397,12 +397,18 @@ static EffectResult effect_update_dmg(
     // Apply damage.
     if (def->damage > f32_epsilon) {
       const f32 damageThisTick = def->continuous ? (def->damage * ctx->deltaSeconds) : def->damage;
-      scene_health_damage(ctx->world, hits[i], damageThisTick);
+      scene_health_damage(
+          ctx->world,
+          hits[i],
+          &(SceneDamageInfo){
+              .instigator = ctx->instigator,
+              .amount     = damageThisTick,
+          });
     }
 
     // Apply status.
     if (def->applyBurning && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
-      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning);
+      scene_status_add(ctx->world, hits[i], SceneStatusType_Burning, ctx->instigator);
     }
 
     // Spawn impact.

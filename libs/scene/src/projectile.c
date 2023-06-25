@@ -151,7 +151,13 @@ static void projectile_hit(
   for (u32 i = 0; i != hitCount; ++i) {
     const bool exists = ecs_world_exists(world, hits[i]);
     if (exists && ecs_world_has_t(world, hits[i], SceneHealthComp)) {
-      scene_health_damage(world, hits[i], proj->damage);
+      scene_health_damage(
+          world,
+          hits[i],
+          &(SceneDamageInfo){
+              .instigator = proj->instigator,
+              .amount     = proj->damage,
+          });
     }
   }
 }
@@ -198,9 +204,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

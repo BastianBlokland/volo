@@ -22,6 +22,7 @@ static void scene_explode(
     EcsWorld*                    world,
     const SceneCollisionEnvComp* colEnv,
     const SceneExplosiveComp*    explosive,
+    const EcsEntityId            instigator,
     const GeoVector              position) {
 
   const SceneQueryFilter filter = {
@@ -39,7 +40,13 @@ static void scene_explode(
   // Damage all the found entities.
   for (u32 i = 0; i != hitCount; ++i) {
     if (ecs_world_exists(world, hits[i]) && ecs_world_has_t(world, hits[i], SceneHealthComp)) {
-      scene_health_damage(world, hits[i], explosive->damage);
+      scene_health_damage(
+          world,
+          hits[i],
+          &(SceneDamageInfo){
+              .instigator = instigator,
+              .amount     = explosive->damage,
+          });
     }
   }
 }
@@ -55,11 +62,12 @@ ecs_system_define(SceneExplosiveSys) {
 
   EcsView* explosiveView = ecs_world_view_t(world, ExplosiveView);
   for (EcsIterator* itr = ecs_view_itr(explosiveView); ecs_view_walk(itr);) {
+    const EcsEntityId         entity    = ecs_view_entity(itr);
     SceneExplosiveComp*       explosive = ecs_view_write_t(itr, SceneExplosiveComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
 
     if (explosive->delay >= 0 && (explosive->delay -= time->delta) < 0) {
-      scene_explode(world, colEnv, explosive, trans->position);
+      scene_explode(world, colEnv, explosive, entity, trans->position);
     }
   }
 }
