@@ -1,3 +1,4 @@
+#include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_bitset.h"
 #include "core_float.h"
@@ -5,6 +6,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
@@ -14,6 +16,7 @@
 #include "scene_status.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
+#include "scene_weapon.h"
 #include "ui.h"
 
 #include "cmd_internal.h"
@@ -37,7 +40,10 @@ static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
 
-ecs_view_define(GlobalView) { ecs_access_write(CmdControllerComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneWeaponResourceComp);
+  ecs_access_write(CmdControllerComp);
+}
 
 ecs_view_define(HudView) {
   ecs_access_read(HudComp);
@@ -58,6 +64,7 @@ ecs_view_define(HealthView) {
 }
 
 ecs_view_define(InfoView) {
+  ecs_access_maybe_read(SceneAttackComp);
   ecs_access_maybe_read(SceneDamageStatsComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
@@ -66,6 +73,8 @@ ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
 }
+
+ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
 static GeoMatrix hud_ui_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* canvas) {
@@ -195,7 +204,8 @@ static String hud_info_faction_name(const SceneFaction faction) {
   }
 }
 
-static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
+static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
+  const SceneAttackComp*      attackComp  = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneDamageStatsComp* damageStats = ecs_view_read_t(infoItr, SceneDamageStatsComp);
   const SceneFactionComp*     factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
   const SceneHealthComp*      healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
@@ -240,6 +250,16 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
     }
     dynstring_append_char(&buffer, '\n');
   }
+  if (attackComp && weaponMapItr) {
+    const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
+    const AssetWeapon*        weapon    = asset_weapon_get(weaponMap, attackComp->weaponName);
+    if (weapon) {
+      const f32 damage = asset_weapon_damage(weaponMap, weapon);
+      if (damage > f32_epsilon) {
+        fmt_write(&buffer, "\a.bDamage\ar:\a>15{}\n", fmt_float(damage, .maxDecDigits = 1));
+      }
+    }
+  }
   if (locoComp) {
     fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
   }
@@ -257,15 +277,18 @@ ecs_system_define(HudDrawUiSys) {
   if (!globalItr) {
     return;
   }
-  CmdControllerComp* cmd = ecs_view_write_t(globalItr, CmdControllerComp);
+  CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
+  const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
-  EcsView* hudView    = ecs_world_view_t(world, HudView);
-  EcsView* canvasView = ecs_world_view_t(world, UiCanvasView);
-  EcsView* healthView = ecs_world_view_t(world, HealthView);
-  EcsView* infoView   = ecs_world_view_t(world, InfoView);
+  EcsView* hudView       = ecs_world_view_t(world, HudView);
+  EcsView* canvasView    = ecs_world_view_t(world, UiCanvasView);
+  EcsView* healthView    = ecs_world_view_t(world, HealthView);
+  EcsView* infoView      = ecs_world_view_t(world, InfoView);
+  EcsView* weaponMapView = ecs_world_view_t(world, WeaponMapView);
 
-  EcsIterator* canvasItr = ecs_view_itr(canvasView);
-  EcsIterator* infoItr   = ecs_view_itr(infoView);
+  EcsIterator* canvasItr    = ecs_view_itr(canvasView);
+  EcsIterator* infoItr      = ecs_view_itr(infoView);
+  EcsIterator* weaponMapItr = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
     const HudComp*            state      = ecs_view_read_t(itr, HudComp);
@@ -287,7 +310,7 @@ ecs_system_define(HudDrawUiSys) {
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
     if (hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
-      hud_info_draw(canvas, infoItr);
+      hud_info_draw(canvas, infoItr, weaponMapItr);
     }
     ui_canvas_id_block_next(canvas); // End on an consistent id.
   }
@@ -301,6 +324,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(UiCanvasView);
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
+  ecs_register_view(WeaponMapView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -308,7 +332,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(HudView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(HealthView),
-      ecs_view_id(InfoView));
+      ecs_view_id(InfoView),
+      ecs_view_id(WeaponMapView));
 
   enum {
     Order_Normal    = 0,

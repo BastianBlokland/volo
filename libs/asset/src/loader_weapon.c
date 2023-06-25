@@ -508,6 +508,26 @@ void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, 
   ecs_world_add_t(world, entity, AssetWeaponLoadComp, .src = src);
 }
 
+f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
+  f32 damage = 0;
+  for (u16 i = 0; i != weapon->effectCount; ++i) {
+    const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
+    switch (effect->type) {
+    case AssetWeaponEffect_Projectile:
+      damage += effect->data_proj.damage;
+      break;
+    case AssetWeaponEffect_Damage:
+      damage += effect->data_dmg.damage;
+      break;
+    case AssetWeaponEffect_Animation:
+    case AssetWeaponEffect_Vfx:
+    case AssetWeaponEffect_Sound:
+      break;
+    }
+  }
+  return damage;
+}
+
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {
   return search_binary_t(
       map->weapons,
