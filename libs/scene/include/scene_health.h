@@ -8,6 +8,11 @@ typedef enum {
   SceneHealthFlags_Dead = 1 << 0,
 } SceneHealthFlags;
 
+typedef struct {
+  EcsEntityId instigator;
+  f32         amount;
+} SceneDamageInfo;
+
 ecs_comp_extern_public(SceneHealthComp) {
   SceneHealthFlags flags;
   f32              norm;
@@ -17,15 +22,21 @@ ecs_comp_extern_public(SceneHealthComp) {
   StringHash       deathEffectPrefab;
 };
 
-ecs_comp_extern_public(SceneDamageComp) { f32 amount; };
+typedef struct {
+  SceneDamageInfo* values;
+  u32              count, capacity;
+} SceneDamageStorage;
+
+ecs_comp_extern_public(SceneDamageComp) {
+  union {
+    SceneDamageInfo    request;
+    SceneDamageStorage storage;
+  };
+  bool singleRequest;
+};
 
 ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
-
-typedef struct {
-  EcsEntityId instigator;
-  f32         amount;
-} SceneDamageInfo;
 
 void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneDamageInfo*);
