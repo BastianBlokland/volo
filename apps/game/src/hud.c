@@ -58,6 +58,7 @@ ecs_view_define(HealthView) {
 }
 
 ecs_view_define(InfoView) {
+  ecs_access_maybe_read(SceneDamageStatsComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneLocomotionComp);
@@ -195,12 +196,13 @@ static String hud_info_faction_name(const SceneFaction faction) {
 }
 
 static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
-  const SceneFactionComp*    factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
-  const SceneHealthComp*     healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
-  const SceneLocomotionComp* locoComp    = ecs_view_read_t(infoItr, SceneLocomotionComp);
-  const SceneNameComp*       nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
-  const SceneStatusComp*     statusComp  = ecs_view_read_t(infoItr, SceneStatusComp);
-  const SceneVisibilityComp* visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
+  const SceneDamageStatsComp* damageStats = ecs_view_read_t(infoItr, SceneDamageStatsComp);
+  const SceneFactionComp*     factionComp = ecs_view_read_t(infoItr, SceneFactionComp);
+  const SceneHealthComp*      healthComp  = ecs_view_read_t(infoItr, SceneHealthComp);
+  const SceneLocomotionComp*  locoComp    = ecs_view_read_t(infoItr, SceneLocomotionComp);
+  const SceneNameComp*        nameComp    = ecs_view_read_t(infoItr, SceneNameComp);
+  const SceneStatusComp*      statusComp  = ecs_view_read_t(infoItr, SceneStatusComp);
+  const SceneVisibilityComp*  visComp     = ecs_view_read_t(infoItr, SceneVisibilityComp);
 
   if (visComp && !scene_visible(visComp, SceneFaction_A)) {
     return; // TODO: Make the local faction configurable instead of hardcoding 'A'.
@@ -211,18 +213,18 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(entityName));
+  fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
   if (factionComp) {
     const String factionName = hud_info_faction_name(factionComp->id);
-    fmt_write(&buffer, "\a.bFaction\ar:\a>10{}\n", fmt_text(factionName));
+    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}\n", fmt_text(factionName));
   }
   if (healthComp) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
     const u32 healthMaxVal = (u32)math_round_up_f32(healthComp->max);
-    fmt_write(&buffer, "\a.bHealth\ar:\a>10{} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
+    fmt_write(&buffer, "\a.bHealth\ar:\a>15{} / {}\n", fmt_int(healthVal), fmt_int(healthMaxVal));
   }
   if (statusComp && statusComp->active) {
-    fmt_write(&buffer, "\a.bStatus\ar:\a>10");
+    fmt_write(&buffer, "\a.bStatus\ar:\a>15");
     bool first = true;
     bitset_for(bitset_from_var(statusComp->active), typeIndex) {
       if (!first) {
@@ -239,7 +241,11 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr) {
     dynstring_append_char(&buffer, '\n');
   }
   if (locoComp) {
-    fmt_write(&buffer, "\a.bSpeed\ar:\a>10{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+    fmt_write(&buffer, "\a.bSpeed\ar:\a>15{}\n", fmt_float(locoComp->maxSpeed, .maxDecDigits = 1));
+  }
+  if (damageStats) {
+    fmt_write(&buffer, "\a.bDealt Dmg\ar:\a>15{}\n", fmt_int((u64)damageStats->dealtDamage));
+    fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(damageStats->kills));
   }
 
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
