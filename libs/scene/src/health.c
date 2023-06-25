@@ -23,6 +23,7 @@ static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
 ecs_comp_define_public(SceneDamageComp);
+ecs_comp_define_public(SceneDamageStatsComp);
 ecs_comp_define_public(SceneDeadComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
@@ -190,6 +191,8 @@ ecs_view_define(HealthView) {
   ecs_access_write(SceneHealthComp);
 }
 
+ecs_view_define(DamageStatsView) { ecs_access_write(SceneDamageStatsComp); }
+
 ecs_system_define(SceneHealthUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -198,8 +201,12 @@ ecs_system_define(SceneHealthUpdateSys) {
   }
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  EcsView* healthView = ecs_world_view_t(world, HealthView);
-  for (EcsIterator* itr = ecs_view_itr_step(healthView, parCount, parIndex); ecs_view_walk(itr);) {
+  EcsView* healthView      = ecs_world_view_t(world, HealthView);
+  EcsView* damageStatsView = ecs_world_view_t(world, DamageStatsView);
+
+  EcsIterator* statsItr = ecs_view_itr(damageStatsView);
+
+  for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const EcsEntityId          entity     = ecs_view_entity(itr);
     const SceneHealthAnimComp* healthAnim = ecs_view_read_t(itr, SceneHealthAnimComp);
     const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
@@ -219,6 +226,15 @@ ecs_system_define(SceneHealthUpdateSys) {
       const f32 amountNorm = math_min(health_normalize(health, damageInfo->amount), health->norm);
       health->norm -= amountNorm;
       totalDamageAmount += amountNorm;
+
+      // Track damage stats for the instigator.
+      if (amountNorm > f32_epsilon && ecs_view_maybe_jump(statsItr, damageInfo->instigator)) {
+        SceneDamageStatsComp* statsComp = ecs_view_write_t(statsItr, SceneDamageStatsComp);
+        statsComp->dealtDamage += amountNorm * health->max;
+        if (health->norm < f32_epsilon && !isDead) {
+          ++statsComp->kills;
+        }
+      }
     }
     damage_storage_clear(&damage->storage);
 
@@ -269,6 +285,7 @@ ecs_module_init(scene_health_module) {
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(
       SceneDamageComp, .combinator = ecs_combine_damage, .destructor = ecs_destruct_damage);
+  ecs_register_comp(SceneDamageStatsComp);
   ecs_register_comp_empty(SceneDeadComp);
   ecs_register_comp(SceneHealthAnimComp);
 
@@ -279,9 +296,11 @@ ecs_module_init(scene_health_module) {
       ecs_register_view(HealthAnimInitView),
       ecs_register_view(HealthGraphicView));
 
-  ecs_register_system(SceneHealthUpdateSys, ecs_view_id(GlobalView), ecs_register_view(HealthView));
-
-  ecs_parallel(SceneHealthUpdateSys, 2);
+  ecs_register_system(
+      SceneHealthUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_register_view(HealthView),
+      ecs_register_view(DamageStatsView));
 }
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }

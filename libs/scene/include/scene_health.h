@@ -35,6 +35,11 @@ ecs_comp_extern_public(SceneDamageComp) {
   bool singleRequest;
 };
 
+ecs_comp_extern_public(SceneDamageStatsComp) {
+  f32 dealtDamage;
+  u32 kills;
+};
+
 ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
