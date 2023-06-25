@@ -286,6 +286,12 @@ ecs_module_init(scene_health_module) {
 
 f32 scene_health_points(const SceneHealthComp* health) { return health->max * health->norm; }
 
+void scene_health_damage_add(SceneDamageComp* damage, const SceneDamageInfo* info) {
+  diag_assert(info->amount >= 0.0f);
+  diag_assert_msg(!damage->singleRequest, "SceneDamageComp needs a storage");
+  *damage_storage_push(&damage->storage) = *info;
+}
+
 void scene_health_damage(EcsWorld* world, const EcsEntityId target, const SceneDamageInfo* info) {
   diag_assert(info->amount >= 0.0f);
   ecs_world_add_t(world, target, SceneDamageComp, .request = *info, .singleRequest = true);

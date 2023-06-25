@@ -63,6 +63,7 @@ ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(StatusView) {
   ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_write(SceneDamageComp);
   ecs_access_write(SceneStatusComp);
   ecs_access_write(SceneStatusRequestComp);
 }
@@ -87,6 +88,7 @@ ecs_system_define(SceneStatusUpdateSys) {
     SceneStatusRequestComp* request = ecs_view_write_t(itr, SceneStatusRequestComp);
     SceneStatusComp*        status  = ecs_view_write_t(itr, SceneStatusComp);
     const SceneHealthComp*  health  = ecs_view_read_t(itr, SceneHealthComp);
+    SceneDamageComp*        damage  = ecs_view_write_t(itr, SceneDamageComp);
 
     // Apply the requests.
     bool effectsDirty = false;
@@ -101,7 +103,6 @@ ecs_system_define(SceneStatusUpdateSys) {
     }
 
     // Process active types.
-    f32 damageAmount = 0;
     bitset_for(bitset_from_var(status->active), typeIndex) {
       const SceneStatusType type             = (SceneStatusType)typeIndex;
       const TimeDuration    timeSinceRefresh = time->time - status->lastRefreshTime[type];
@@ -109,20 +110,17 @@ ecs_system_define(SceneStatusUpdateSys) {
         status->active &= ~(1 << type);
         effectsDirty = true;
       }
-      damageAmount += g_sceneStatusDamagePerSec[type] * deltaSec;
+      if (damage && g_sceneStatusDamagePerSec[type] > 0) {
+        scene_health_damage_add(
+            damage,
+            &(SceneDamageInfo){
+                .instigator = 0, // NOTE: Status-effect instigators are not tracked at the moment.
+                .amount     = g_sceneStatusDamagePerSec[type] * deltaSec,
+            });
+      }
       if (!status->effectEntities[type]) {
         status->effectEntities[type] = status_effect_create(world, entity, status, type);
       }
-    }
-
-    if (health && damageAmount > f32_epsilon) {
-      scene_health_damage(
-          world,
-          entity,
-          &(SceneDamageInfo){
-              .instigator = 0, // NOTE: Status-effect instigators are not tracked at the moment.
-              .amount     = damageAmount,
-          });
     }
 
     // Enable / disable effects.

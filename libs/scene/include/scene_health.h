@@ -39,4 +39,5 @@ ecs_comp_extern_public(SceneDeadComp);
 
 f32 scene_health_points(const SceneHealthComp*);
 
+void scene_health_damage_add(SceneDamageComp*, const SceneDamageInfo*);
 void scene_health_damage(EcsWorld*, EcsEntityId target, const SceneDamageInfo*);
