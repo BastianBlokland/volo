@@ -132,11 +132,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->canvas->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->canvas->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -396,6 +396,15 @@ static u32 ui_canvas_query_for_window(
   return count;
 }
 
+static void ui_canvas_clear_all_interactions(EcsWorld* world, const EcsEntityId window) {
+  UiCanvasPtr canvasses[ui_canvas_canvasses_max];
+  const u32   canvasCount = ui_canvas_query_for_window(world, window, canvasses);
+  for (u32 i = 0; i != canvasCount; ++i) {
+    const UiId activeElement = sentinel_u64;
+    ui_canvas_set_active(canvasses[i], activeElement, UiStatus_Idle);
+  }
+}
+
 ecs_system_define(UiRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -422,6 +431,7 @@ ecs_system_define(UiRenderSys) {
     }
     const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
     if (!winSize.x || !winSize.y) {
+      ui_canvas_clear_all_interactions(world, windowEntity);
       continue; // Window is zero sized; No need to render the Ui.
     }
 
@@ -439,12 +449,12 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .font          = font,
+         .renderer      = renderer,
+         .draw          = draw,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
