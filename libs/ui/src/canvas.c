@@ -429,15 +429,16 @@ ecs_system_define(UiRenderSys) {
       ui_renderer_create(world, windowEntity);
       continue;
     }
+
+    stats->trackedElemCount = 0;
+    stats->persistElemCount = 0;
+    stats->commandCount     = 0;
+
     const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
     if (!winSize.x || !winSize.y) {
       ui_canvas_clear_all_interactions(world, windowEntity);
       continue; // Window is zero sized; No need to render the Ui.
     }
-
-    stats->trackedElemCount = 0;
-    stats->persistElemCount = 0;
-    stats->commandCount     = 0;
 
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
     if (settings->flags & UiSettingFlags_DebugShading) {
