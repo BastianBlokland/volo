@@ -27,7 +27,8 @@ typedef struct {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("*.btschema"), .source = asset_behavior_datareg, .writer = data_treeschema_write},
+    {.pattern = string_static("ai.btschema"),      .source = asset_behavior_datareg, .writer = data_treeschema_write},
+    {.pattern = string_static("ai.schema.json"),  .source = asset_behavior_datareg, .writer = data_jsonschema_write},
 };
 // clang-format on
 
