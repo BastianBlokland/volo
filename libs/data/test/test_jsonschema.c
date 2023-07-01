@@ -203,5 +203,54 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports structures") {
+    typedef struct {
+      bool   valA;
+      String valB;
+      f64    valC;
+    } TestStruct;
+
+    data_reg_struct_t(reg, TestStruct);
+    data_reg_field_t(reg, TestStruct, valA, data_prim_t(bool));
+    data_reg_field_t(reg, TestStruct, valB, data_prim_t(String));
+    data_reg_field_t(reg, TestStruct, valC, data_prim_t(f64));
+
+    const DataMeta meta = data_meta_t(t_TestStruct);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"TestStruct\",\n"
+                   "  \"$ref\": \"#/$defs/TestStruct\",\n"
+                   "  \"$defs\": {\n"
+                   "    \"TestStruct\": {\n"
+                   "      \"type\": \"object\",\n"
+                   "      \"additionalProperties\": false,\n"
+                   "      \"properties\": {\n"
+                   "        \"valA\": {\n"
+                   "          \"title\": \"bool\",\n"
+                   "          \"type\": \"boolean\"\n"
+                   "        },\n"
+                   "        \"valB\": {\n"
+                   "          \"title\": \"String\",\n"
+                   "          \"type\": \"string\"\n"
+                   "        },\n"
+                   "        \"valC\": {\n"
+                   "          \"title\": \"f64\",\n"
+                   "          \"type\": \"number\"\n"
+                   "        }\n"
+                   "      },\n"
+                   "      \"required\": [\n"
+                   "        \"valA\",\n"
+                   "        \"valB\",\n"
+                   "        \"valC\"\n"
+                   "      ]\n"
+                   "    }\n"
+                   "  }\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
