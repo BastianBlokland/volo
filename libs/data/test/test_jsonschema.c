@@ -31,7 +31,32 @@ spec(jsonschema) {
                    "}"));
   }
 
-  it("supports a float type") {
+  it("supports integer type") {
+#define X(_T_, _MIN_, _MAX_)                                                                       \
+  const DataType type_##_T_ = data_prim_t(_T_);                                                    \
+  test_jsonschema_write(                                                                           \
+      _testCtx,                                                                                    \
+      reg,                                                                                         \
+      type_##_T_,                                                                                  \
+      string_lit("{\n"                                                                             \
+                 "  \"title\": \"" #_T_ "\",\n"                                                    \
+                 "  \"type\": \"integer\",\n"                                                      \
+                 "  \"minimum\": " #_MIN_ ",\n"                                                    \
+                 "  \"maximum\": " #_MAX_ "\n"                                                     \
+                 "}"));
+
+    X(i8, -128, 127)
+    X(i16, -32768, 32767)
+    X(i32, -2147483648, 2147483647)
+    X(i64, -9.2233720369e18, 9.2233720369e18)
+    X(u8, 0, 255)
+    X(u16, 0, 65535)
+    X(u32, 0, 4294967295)
+    X(u64, 0, 1.8446744074e19)
+#undef X
+  }
+
+  it("supports float types") {
 #define X(_T_)                                                                                     \
   const DataType type_##_T_ = data_prim_t(_T_);                                                    \
   test_jsonschema_write(                                                                           \
