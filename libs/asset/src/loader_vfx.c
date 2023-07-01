@@ -109,28 +109,33 @@ static void vfx_datareg_init() {
     data_reg_struct_t(reg, VfxVec2Def);
     data_reg_field_t(reg, VfxVec2Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxVec2Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxVec2Def, "2D Vector (components default to 0)");
 
     data_reg_struct_t(reg, VfxVec3Def);
     data_reg_field_t(reg, VfxVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxVec3Def, "3D Vector (components default to 0)");
 
     data_reg_struct_t(reg, VfxRotDef);
     data_reg_field_t(reg, VfxRotDef, x, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxRotDef, y, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxRotDef, z, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxRotDef, "3D Rotation (components default to 0)");
 
     data_reg_struct_t(reg, VfxColorDef);
     data_reg_field_t(reg, VfxColorDef, r, data_prim_t(f32));
     data_reg_field_t(reg, VfxColorDef, g, data_prim_t(f32));
     data_reg_field_t(reg, VfxColorDef, b, data_prim_t(f32));
     data_reg_field_t(reg, VfxColorDef, a, data_prim_t(f32));
+    data_reg_comment_t(reg, VfxColorDef, "HDR Color definition (components default to 0)");
 
     data_reg_struct_t(reg, VfxConeDef);
     data_reg_field_t(reg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxConeDef, "3D Cone shape");
 
     data_reg_struct_t(reg, VfxRangeScalarDef);
     data_reg_field_t(reg, VfxRangeScalarDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -147,16 +152,25 @@ static void vfx_datareg_init() {
     data_reg_enum_t(reg, AssetVfxSpace);
     data_reg_const_t(reg, AssetVfxSpace, Local);
     data_reg_const_t(reg, AssetVfxSpace, World);
+    data_reg_comment_t(reg, AssetVfxSpace, "* Local: Particles are simulated relative to the entity transform.\n"
+                                           "* World: Particles are simulated in world-space.");
 
     data_reg_enum_t(reg, AssetVfxBlend);
     data_reg_const_t(reg, AssetVfxBlend, None);
     data_reg_const_t(reg, AssetVfxBlend, Alpha);
     data_reg_const_t(reg, AssetVfxBlend, Additive);
+    data_reg_comment_t(reg, AssetVfxBlend, "* None: Sprites are not blended.\n"
+                                           "* Alpha: Sprites are interpolated based on the alpha.\n"
+                                           "* World: Sprites are additively blended.");
 
     data_reg_enum_t(reg, AssetVfxFacing);
     data_reg_const_t(reg, AssetVfxFacing, Local);
     data_reg_const_t(reg, AssetVfxFacing, BillboardSphere);
     data_reg_const_t(reg, AssetVfxFacing, BillboardCylinder);
+    data_reg_comment_t(reg, AssetVfxFacing, "* Local: Sprites are facing in the particle orientation.\n"
+                                            "* BillboardSphere: Sprites are camera facing.\n"
+                                            "* BillboardCylinder: Sprites are camera facing on the Y axis.");
+
 
     data_reg_struct_t(reg, VfxSpriteDef);
     data_reg_field_t(reg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -173,6 +187,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(reg, VfxSpriteDef, geometryFade, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxSpriteDef, shadowCaster, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxSpriteDef, distortion, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxSpriteDef, "Optional sprite to render for each particle.");
 
     data_reg_struct_t(reg, VfxLightDef);
     data_reg_field_t(reg, VfxLightDef, radiance, t_VfxColorDef, .flags = DataFlags_Opt);
@@ -180,6 +195,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(reg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxLightDef, turbulenceFrequency, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxLightDef, "Optional point light to render for each particle.");
 
     data_reg_struct_t(reg, VfxEmitterDef);
     data_reg_field_t(reg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
@@ -194,6 +210,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(reg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
+    data_reg_comment_t(reg, VfxEmitterDef, "Particle emitter settings.");
 
     data_reg_struct_t(reg, VfxDef);
     data_reg_field_t(reg, VfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
