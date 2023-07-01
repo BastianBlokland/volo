@@ -1,0 +1,248 @@
+{
+  "title": "AssetAiNodeDef",
+  "$ref": "#/$defs/AssetAiNodeDef",
+  "$defs": {
+    "AssetAiNodeDef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Running"
+            },
+            "$name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Success"
+            },
+            "$name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Failure"
+            },
+            "$name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Invert"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "child": {
+              "anyOf": [
+                {
+                  "title": "AssetAiNodeDef",
+                  "$ref": "#/$defs/AssetAiNodeDef"
+                },
+                {
+                  "const": null,
+                  "title": "AssetAiNodeDef"
+                }
+              ]
+            }
+          },
+          "required": [
+            "$type",
+            "child"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Try"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "child": {
+              "anyOf": [
+                {
+                  "title": "AssetAiNodeDef",
+                  "$ref": "#/$defs/AssetAiNodeDef"
+                },
+                {
+                  "const": null,
+                  "title": "AssetAiNodeDef"
+                }
+              ]
+            }
+          },
+          "required": [
+            "$type",
+            "child"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Repeat"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "child": {
+              "anyOf": [
+                {
+                  "title": "AssetAiNodeDef",
+                  "$ref": "#/$defs/AssetAiNodeDef"
+                },
+                {
+                  "const": null,
+                  "title": "AssetAiNodeDef"
+                }
+              ]
+            }
+          },
+          "required": [
+            "$type",
+            "child"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Parallel"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "title": "AssetAiNodeDef",
+                "$ref": "#/$defs/AssetAiNodeDef"
+              }
+            }
+          },
+          "required": [
+            "$type",
+            "children"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Selector"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "title": "AssetAiNodeDef",
+                "$ref": "#/$defs/AssetAiNodeDef"
+              }
+            }
+          },
+          "required": [
+            "$type",
+            "children"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Sequence"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "title": "AssetAiNodeDef",
+                "$ref": "#/$defs/AssetAiNodeDef"
+              }
+            }
+          },
+          "required": [
+            "$type",
+            "children"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Condition"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "script": {
+              "title": "String",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type",
+            "script"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetAiNode_Execute"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "script": {
+              "title": "String",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type",
+            "script"
+          ]
+        }
+      ]
+    }
+  }
+}

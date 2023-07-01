@@ -1,0 +1,81 @@
+{
+  "title": "PtxDef",
+  "$ref": "#/$defs/PtxDef",
+  "$defs": {
+    "PtxDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "title": "PtxType",
+          "$ref": "#/$defs/PtxType"
+        },
+        "pixelType": {
+          "title": "AssetTextureType",
+          "$ref": "#/$defs/AssetTextureType"
+        },
+        "channels": {
+          "title": "AssetTextureChannels",
+          "$ref": "#/$defs/AssetTextureChannels"
+        },
+        "mipmaps": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "size": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        },
+        "frequency": {
+          "title": "f32",
+          "type": "number"
+        },
+        "power": {
+          "title": "f32",
+          "type": "number"
+        },
+        "seed": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "type",
+        "channels",
+        "size",
+        "frequency",
+        "power",
+        "seed"
+      ]
+    },
+    "PtxType": {
+      "enum": [
+        "One",
+        "Zero",
+        "Checker",
+        "Circle",
+        "NoisePerlin",
+        "NoiseWhite",
+        "NoiseWhiteGauss",
+        "BrdfIntegration"
+      ]
+    },
+    "AssetTextureType": {
+      "enum": [
+        "U8",
+        "U16",
+        "F32"
+      ]
+    },
+    "AssetTextureChannels": {
+      "enum": [
+        "One",
+        "Four"
+      ]
+    }
+  }
+}

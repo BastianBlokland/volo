@@ -1,0 +1,724 @@
+{
+  "title": "AssetPrefabMapDef",
+  "$ref": "#/$defs/AssetPrefabMapDef",
+  "$defs": {
+    "AssetPrefabMapDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prefabs": {
+          "type": "array",
+          "items": {
+            "title": "AssetPrefabDef",
+            "$ref": "#/$defs/AssetPrefabDef"
+          }
+        }
+      },
+      "required": [
+        "prefabs"
+      ]
+    },
+    "AssetPrefabDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "isUnit": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "isVolatile": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "title": "AssetPrefabTraitDef",
+            "$ref": "#/$defs/AssetPrefabTraitDef"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "traits"
+      ]
+    },
+    "AssetPrefabTraitDef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Name"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "name": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "name"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Renderable"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "graphicId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "graphicId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Vfx"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "assetId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "assetId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Decal"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "assetId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "assetId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Sound"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "assetIds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "title": "String",
+                "type": "string"
+              }
+            },
+            "gainMin": {
+              "title": "f32",
+              "type": "number"
+            },
+            "gainMax": {
+              "title": "f32",
+              "type": "number"
+            },
+            "pitchMin": {
+              "title": "f32",
+              "type": "number"
+            },
+            "pitchMax": {
+              "title": "f32",
+              "type": "number"
+            },
+            "looping": {
+              "title": "bool",
+              "type": "boolean"
+            },
+            "persistent": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "assetIds"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Lifetime"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "duration": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "duration"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Movement"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "speed": {
+              "title": "f32",
+              "type": "number"
+            },
+            "rotationSpeed": {
+              "title": "f32",
+              "type": "number"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            },
+            "moveAnimation": {
+              "title": "String",
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type",
+            "speed",
+            "rotationSpeed",
+            "radius",
+            "moveAnimation"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Footstep"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "jointA": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "jointB": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "decalIdA": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "decalIdB": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "jointA",
+            "jointB",
+            "decalIdA",
+            "decalIdB"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Health"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "amount": {
+              "title": "f32",
+              "type": "number"
+            },
+            "deathDestroyDelay": {
+              "title": "f32",
+              "type": "number"
+            },
+            "deathEffectPrefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "amount",
+            "deathDestroyDelay"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Attack"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "weaponId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "aimJoint": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "aimSpeed": {
+              "title": "f32",
+              "type": "number"
+            },
+            "aimSoundId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "targetDistanceMin": {
+              "title": "f32",
+              "type": "number"
+            },
+            "targetDistanceMax": {
+              "title": "f32",
+              "type": "number"
+            },
+            "targetLineOfSightRadius": {
+              "title": "f32",
+              "type": "number"
+            },
+            "targetExcludeUnreachable": {
+              "title": "bool",
+              "type": "boolean"
+            },
+            "targetExcludeObscured": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type",
+            "weaponId",
+            "targetDistanceMax"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Collision"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "navBlocker": {
+              "title": "bool",
+              "type": "boolean"
+            },
+            "shape": {
+              "title": "AssetPrefabShapeDef",
+              "$ref": "#/$defs/AssetPrefabShapeDef"
+            }
+          },
+          "required": [
+            "$type",
+            "navBlocker",
+            "shape"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Brain"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "behaviorId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "behaviorId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Spawner"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "prefabId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            },
+            "count": {
+              "title": "u32",
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 4294967295
+            },
+            "maxInstances": {
+              "title": "u32",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "intervalMin": {
+              "title": "f32",
+              "type": "number"
+            },
+            "intervalMax": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "prefabId",
+            "count"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Blink"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "frequency": {
+              "title": "f32",
+              "type": "number"
+            },
+            "effectPrefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "frequency"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Taunt"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "priority": {
+              "title": "i32",
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            },
+            "tauntDeathPrefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "tauntConfirmPrefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Location"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "aimTarget": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Explosive"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "delay": {
+              "title": "f32",
+              "type": "number"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            },
+            "damage": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "radius",
+            "damage"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Status"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "effectJoint": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "burnable": {
+              "title": "bool",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Vision"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "radius"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabTrait_Scalable"
+            },
+            "$name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "$type"
+          ]
+        }
+      ]
+    },
+    "AssetPrefabShapeDef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabShape_Sphere"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "offset": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "radius"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabShape_Capsule"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "offset": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "radius": {
+              "title": "f32",
+              "type": "number"
+            },
+            "height": {
+              "title": "f32",
+              "type": "number"
+            }
+          },
+          "required": [
+            "$type",
+            "radius",
+            "height"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetPrefabShape_Box"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "min": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "max": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            }
+          },
+          "required": [
+            "$type",
+            "min",
+            "max"
+          ]
+        }
+      ]
+    },
+    "AssetPrefabVec3Def": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        },
+        "z": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    }
+  }
+}

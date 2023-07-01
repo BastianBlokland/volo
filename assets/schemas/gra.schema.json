@@ -1,0 +1,241 @@
+{
+  "title": "AssetGraphicComp",
+  "$ref": "#/$defs/AssetGraphicComp",
+  "$defs": {
+    "AssetGraphicComp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shaders": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "title": "AssetGraphicShader",
+            "$ref": "#/$defs/AssetGraphicShader"
+          }
+        },
+        "samplers": {
+          "type": "array",
+          "items": {
+            "title": "AssetGraphicSampler",
+            "$ref": "#/$defs/AssetGraphicSampler"
+          }
+        },
+        "meshId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "vertexCount": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        },
+        "renderOrder": {
+          "title": "i32",
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "topology": {
+          "title": "AssetGraphicTopology",
+          "$ref": "#/$defs/AssetGraphicTopology"
+        },
+        "rasterizer": {
+          "title": "AssetGraphicRasterizer",
+          "$ref": "#/$defs/AssetGraphicRasterizer"
+        },
+        "lineWidth": {
+          "title": "u16",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 65535
+        },
+        "depthClamp": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "depthBiasConstant": {
+          "title": "f32",
+          "type": "number"
+        },
+        "depthBiasSlope": {
+          "title": "f32",
+          "type": "number"
+        },
+        "blend": {
+          "title": "AssetGraphicBlend",
+          "$ref": "#/$defs/AssetGraphicBlend"
+        },
+        "blendAux": {
+          "title": "AssetGraphicBlend",
+          "$ref": "#/$defs/AssetGraphicBlend"
+        },
+        "blendConstant": {
+          "title": "f32",
+          "type": "number"
+        },
+        "depth": {
+          "title": "AssetGraphicDepth",
+          "$ref": "#/$defs/AssetGraphicDepth"
+        },
+        "cull": {
+          "title": "AssetGraphicCull",
+          "$ref": "#/$defs/AssetGraphicCull"
+        }
+      },
+      "required": [
+        "shaders"
+      ]
+    },
+    "AssetGraphicShader": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shaderId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "title": "AssetGraphicOverride",
+            "$ref": "#/$defs/AssetGraphicOverride"
+          }
+        }
+      },
+      "required": [
+        "shaderId"
+      ]
+    },
+    "AssetGraphicOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "binding": {
+          "title": "u8",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "value": {
+          "title": "f64",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "binding",
+        "value"
+      ]
+    },
+    "AssetGraphicSampler": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "textureId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "wrap": {
+          "title": "AssetGraphicWrap",
+          "$ref": "#/$defs/AssetGraphicWrap"
+        },
+        "filter": {
+          "title": "AssetGraphicFilter",
+          "$ref": "#/$defs/AssetGraphicFilter"
+        },
+        "anisotropy": {
+          "title": "AssetGraphicAniso",
+          "$ref": "#/$defs/AssetGraphicAniso"
+        },
+        "mipBlending": {
+          "title": "bool",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "textureId"
+      ]
+    },
+    "AssetGraphicWrap": {
+      "enum": [
+        "Repeat",
+        "Clamp",
+        "Zero"
+      ]
+    },
+    "AssetGraphicFilter": {
+      "enum": [
+        "Nearest",
+        "Linear"
+      ]
+    },
+    "AssetGraphicAniso": {
+      "enum": [
+        "None",
+        "x2",
+        "x4",
+        "x8",
+        "x16"
+      ]
+    },
+    "AssetGraphicTopology": {
+      "enum": [
+        "Triangles",
+        "TriangleStrip",
+        "TriangleFan",
+        "Lines",
+        "LineStrip",
+        "Points"
+      ]
+    },
+    "AssetGraphicRasterizer": {
+      "enum": [
+        "Fill",
+        "Lines",
+        "Points"
+      ]
+    },
+    "AssetGraphicBlend": {
+      "enum": [
+        "None",
+        "Alpha",
+        "AlphaConstant",
+        "Additive",
+        "PreMultiplied"
+      ]
+    },
+    "AssetGraphicDepth": {
+      "enum": [
+        "Less",
+        "LessOrEqual",
+        "Equal",
+        "Greater",
+        "GreaterOrEqual",
+        "Always",
+        "LessNoWrite",
+        "LessOrEqualNoWrite",
+        "EqualNoWrite",
+        "GreaterNoWrite",
+        "GreaterOrEqualNoWrite",
+        "AlwaysNoWrite"
+      ]
+    },
+    "AssetGraphicCull": {
+      "enum": [
+        "None",
+        "Back",
+        "Front"
+      ]
+    }
+  }
+}

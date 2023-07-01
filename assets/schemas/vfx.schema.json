@@ -1,0 +1,356 @@
+{
+  "title": "VfxDef",
+  "$ref": "#/$defs/VfxDef",
+  "$defs": {
+    "VfxDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ignoreTransformRotation": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "emitters": {
+          "type": "array",
+          "items": {
+            "title": "VfxEmitterDef",
+            "$ref": "#/$defs/VfxEmitterDef"
+          }
+        }
+      },
+      "required": [
+        "emitters"
+      ]
+    },
+    "VfxEmitterDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cone": {
+          "title": "VfxConeDef",
+          "$ref": "#/$defs/VfxConeDef"
+        },
+        "force": {
+          "title": "VfxVec3Def",
+          "$ref": "#/$defs/VfxVec3Def"
+        },
+        "space": {
+          "title": "AssetVfxSpace",
+          "$ref": "#/$defs/AssetVfxSpace"
+        },
+        "sprite": {
+          "title": "VfxSpriteDef",
+          "$ref": "#/$defs/VfxSpriteDef"
+        },
+        "light": {
+          "title": "VfxLightDef",
+          "$ref": "#/$defs/VfxLightDef"
+        },
+        "speed": {
+          "title": "VfxRangeScalarDef",
+          "$ref": "#/$defs/VfxRangeScalarDef"
+        },
+        "expandForce": {
+          "title": "f32",
+          "type": "number"
+        },
+        "count": {
+          "title": "u32",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "interval": {
+          "title": "f32",
+          "type": "number"
+        },
+        "scale": {
+          "title": "VfxRangeScalarDef",
+          "$ref": "#/$defs/VfxRangeScalarDef"
+        },
+        "lifetime": {
+          "title": "VfxRangeDurationDef",
+          "$ref": "#/$defs/VfxRangeDurationDef"
+        },
+        "rotation": {
+          "title": "VfxRangeRotationDef",
+          "$ref": "#/$defs/VfxRangeRotationDef"
+        }
+      },
+      "required": []
+    },
+    "VfxConeDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "angle": {
+          "title": "f32",
+          "type": "number"
+        },
+        "radius": {
+          "title": "f32",
+          "type": "number"
+        },
+        "position": {
+          "title": "VfxVec3Def",
+          "$ref": "#/$defs/VfxVec3Def"
+        },
+        "rotation": {
+          "title": "VfxRotDef",
+          "$ref": "#/$defs/VfxRotDef"
+        }
+      },
+      "required": []
+    },
+    "VfxVec3Def": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        },
+        "z": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "VfxRotDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        },
+        "z": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "AssetVfxSpace": {
+      "enum": [
+        "Local",
+        "World"
+      ]
+    },
+    "VfxSpriteDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "atlasEntry": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "color": {
+          "anyOf": [
+            {
+              "title": "VfxColorDef",
+              "$ref": "#/$defs/VfxColorDef"
+            },
+            {
+              "const": null,
+              "title": "VfxColorDef"
+            }
+          ]
+        },
+        "blend": {
+          "title": "AssetVfxBlend",
+          "$ref": "#/$defs/AssetVfxBlend"
+        },
+        "facing": {
+          "title": "AssetVfxFacing",
+          "$ref": "#/$defs/AssetVfxFacing"
+        },
+        "flipbookCount": {
+          "title": "u16",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "flipbookTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "size": {
+          "title": "VfxVec2Def",
+          "$ref": "#/$defs/VfxVec2Def"
+        },
+        "fadeInTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "fadeOutTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "scaleInTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "scaleOutTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "geometryFade": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "shadowCaster": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "distortion": {
+          "title": "bool",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "atlasEntry",
+        "size"
+      ]
+    },
+    "VfxColorDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "r": {
+          "title": "f32",
+          "type": "number"
+        },
+        "g": {
+          "title": "f32",
+          "type": "number"
+        },
+        "b": {
+          "title": "f32",
+          "type": "number"
+        },
+        "a": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ]
+    },
+    "AssetVfxBlend": {
+      "enum": [
+        "None",
+        "Alpha",
+        "Additive"
+      ]
+    },
+    "AssetVfxFacing": {
+      "enum": [
+        "Local",
+        "BillboardSphere",
+        "BillboardCylinder"
+      ]
+    },
+    "VfxVec2Def": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "VfxLightDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "radiance": {
+          "title": "VfxColorDef",
+          "$ref": "#/$defs/VfxColorDef"
+        },
+        "fadeInTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "fadeOutTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "radius": {
+          "title": "f32",
+          "type": "number"
+        },
+        "turbulenceFrequency": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "VfxRangeScalarDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "title": "f32",
+          "type": "number"
+        },
+        "max": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "VfxRangeDurationDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "title": "f32",
+          "type": "number"
+        },
+        "max": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    },
+    "VfxRangeRotationDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "title": "VfxRotDef",
+          "$ref": "#/$defs/VfxRotDef"
+        },
+        "random": {
+          "title": "VfxRotDef",
+          "$ref": "#/$defs/VfxRotDef"
+        }
+      },
+      "required": []
+    }
+  }
+}

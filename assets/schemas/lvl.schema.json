@@ -1,0 +1,89 @@
+{
+  "title": "AssetLevel",
+  "$ref": "#/$defs/AssetLevel",
+  "$defs": {
+    "AssetLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "title": "AssetLevelObject",
+            "$ref": "#/$defs/AssetLevelObject"
+          }
+        }
+      },
+      "required": [
+        "objects"
+      ]
+    },
+    "AssetLevelObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        },
+        "prefab": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "faction": {
+          "title": "AssetLevelFaction",
+          "$ref": "#/$defs/AssetLevelFaction"
+        },
+        "position": {
+          "title": "GeoVector",
+          "$ref": "#/$defs/GeoVector"
+        },
+        "rotation": {
+          "title": "GeoVector",
+          "$ref": "#/$defs/GeoVector"
+        },
+        "scale": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "prefab",
+        "faction",
+        "position",
+        "rotation"
+      ]
+    },
+    "AssetLevelFaction": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "None"
+      ]
+    },
+    "GeoVector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        },
+        "z": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": []
+    }
+  }
+}
