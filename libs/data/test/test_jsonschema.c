@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "data_registry.h"
 #include "data_schema.h"
 
 static void test_jsonschema_write(
@@ -83,6 +84,20 @@ spec(jsonschema) {
         string_lit("{\n"
                    "  \"title\": \"String\",\n"
                    "  \"type\": \"string\"\n"
+                   "}"));
+  }
+
+  it("supports a non-empty string") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"String\",\n"
+                   "  \"type\": \"string\",\n"
+                   "  \"minLength\": 1\n"
                    "}"));
   }
 
