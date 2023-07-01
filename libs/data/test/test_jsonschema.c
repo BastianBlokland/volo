@@ -170,5 +170,38 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports enums") {
+    enum TestEnum {
+      TestEnum_A = -42,
+      TestEnum_B = 42,
+      TestEnum_C = 1337,
+    };
+
+    data_reg_enum_t(reg, TestEnum);
+    data_reg_const_t(reg, TestEnum, A);
+    data_reg_const_t(reg, TestEnum, B);
+    data_reg_const_t(reg, TestEnum, C);
+
+    const DataMeta meta = data_meta_t(t_TestEnum);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"TestEnum\",\n"
+                   "  \"$ref\": \"#/$defs/TestEnum\",\n"
+                   "  \"$defs\": {\n"
+                   "    \"TestEnum\": {\n"
+                   "      \"enum\": [\n"
+                   "        \"A\",\n"
+                   "        \"B\",\n"
+                   "        \"C\"\n"
+                   "      ]\n"
+                   "    }\n"
+                   "  }\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
