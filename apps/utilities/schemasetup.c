@@ -90,8 +90,8 @@ static CliId g_outFlag, g_helpFlag;
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate schema files."));
 
-  g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_Required);
-  cli_register_desc(app, g_outFlag, string_lit("Output path."));
+  g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_RequiredMultiValue);
+  cli_register_desc(app, g_outFlag, string_lit("Output paths."));
   cli_register_validator(app, g_outFlag, scheme_validate_path);
 
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
@@ -108,16 +108,23 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
-  const String outPathRaw = cli_read_string(invoc, g_outFlag, string_empty);
-  const String outPath    = path_build_scratch(outPathRaw);
+  const CliParseValues outPathsRaw = cli_parse_values(invoc, g_outFlag);
+  for (u32 i = 0; i != outPathsRaw.count; ++i) {
+    const String outPathRaw = outPathsRaw.values[i];
+    const String outPath    = path_build_scratch(outPathRaw);
 
-  const SchemaConfig* config = scheme_for_path(outPath);
-  if (!config) {
-    log_e("Unable to determine schema type", log_param("path", fmt_path(outPath)));
-    return 1;
+    const SchemaConfig* config = scheme_for_path(outPath);
+    if (!config) {
+      log_e("Unable to determine schema type", log_param("path", fmt_path(outPath)));
+      return 1;
+    }
+
+    log_i("Generating schema file", log_param("path", fmt_path(outPath)));
+
+    if (!schema_write(config, outPath)) {
+      return 1;
+    }
   }
 
-  log_i("Generating schema file", log_param("path", fmt_path(outPath)));
-
-  return schema_write(config, outPath) ? 0 : 1;
+  return 0;
 }
