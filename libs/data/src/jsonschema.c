@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "data_jsonschema.h"
@@ -7,10 +8,13 @@
 
 #include "registry_internal.h"
 
+#define jsonschema_max_types 512
+
 typedef struct {
   const DataReg* reg;
   JsonDoc*       doc;
-  JsonVal        rootObj;
+  BitSet         addedDefs;
+  JsonVal        rootObj, defsObj;
 } JsonSchemaCtx;
 
 static void schema_add_type(const JsonSchemaCtx*, JsonVal, DataMeta);
@@ -150,6 +154,34 @@ static void schema_add_array(const JsonSchemaCtx* ctx, const JsonVal obj, const 
   schema_add_type(ctx, itemsObj, data_meta_base(meta));
 }
 
+static void schema_add_ref(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+
+  const String defPath = fmt_write_scratch("#/$defs/{}", fmt_text(decl->id.name));
+  json_add_field_lit(ctx->doc, obj, "$ref", json_add_string(ctx->doc, defPath));
+
+  if (!bitset_test(ctx->addedDefs, meta.type)) {
+    bitset_set(ctx->addedDefs, meta.type);
+
+    const JsonVal defObj = json_add_object(ctx->doc);
+    json_add_field_str(ctx->doc, ctx->defsObj, decl->id.name, defObj);
+
+    switch (decl->kind) {
+    case DataKind_Struct:
+      schema_add_struct(ctx, defObj, meta);
+      break;
+    case DataKind_Union:
+      schema_add_union(ctx, defObj, meta);
+      break;
+    case DataKind_Enum:
+      schema_add_enum(ctx, defObj, meta);
+      break;
+    default:
+      diag_crash_msg("Unsupported json-scheme $ref type");
+    }
+  }
+}
+
 static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   switch (meta.container) {
   case DataContainer_None: {
@@ -182,14 +214,10 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
       schema_add_string(ctx, obj, meta);
       break;
     case DataKind_Struct:
-      schema_add_struct(ctx, obj, meta);
-      break; // TODO: Add a def and insert a reference.
     case DataKind_Union:
-      schema_add_union(ctx, obj, meta);
-      break; // TODO: Add a def and insert a reference.
     case DataKind_Enum:
-      schema_add_enum(ctx, obj, meta);
-      break; // TODO: Add a def and insert a reference.
+      schema_add_ref(ctx, obj, meta);
+      break;
     case DataKind_Invalid:
     case DataKind_Count:
       UNREACHABLE
@@ -208,10 +236,18 @@ void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType ro
   JsonDoc*      doc     = json_create(g_alloc_scratch, 512);
   const JsonVal rootObj = json_add_object(doc);
 
+  const JsonVal defsObj = json_add_object(doc);
+  json_add_field_lit(doc, rootObj, "$defs", defsObj);
+
+  diag_assert(data_type_count(reg) <= jsonschema_max_types);
+  u8 addedDefsBits[bits_to_bytes(jsonschema_max_types) + 1] = {0};
+
   const JsonSchemaCtx ctx = {
-      .reg     = reg,
-      .doc     = doc,
-      .rootObj = rootObj,
+      .reg       = reg,
+      .doc       = doc,
+      .addedDefs = bitset_from_var(addedDefsBits),
+      .rootObj   = rootObj,
+      .defsObj   = defsObj,
   };
   schema_add_type(&ctx, rootObj, (DataMeta){.type = rootType});
 
