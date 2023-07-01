@@ -101,12 +101,30 @@ static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const
 }
 
 static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
-  (void)ctx;
-  (void)obj;
-  (void)meta;
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Union);
 
-  // TODO: Implement union support.
-  diag_crash_msg("Union types are not supported in jsonschema");
+  json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "object"));
+  json_add_field_lit(ctx->doc, obj, "additionalProperties", json_add_bool(ctx->doc, false));
+
+  const JsonVal propObj = json_add_object(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "properties", propObj);
+
+  const JsonVal reqArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "required", reqArr);
+
+  // Type property (required).
+  const JsonVal typeObj = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, propObj, "$type", typeObj);
+  json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
+    json_add_elem(ctx->doc, typeObj, json_add_string(ctx->doc, choiceDecl->id.name));
+  }
+
+  // Name property (optional).
+  const JsonVal nameObj = json_add_object(ctx->doc);
+  json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
+  json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
 }
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
