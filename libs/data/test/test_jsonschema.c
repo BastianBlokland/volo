@@ -101,5 +101,40 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports optional pointer") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_Pointer);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"anyOf\": [\n"
+                   "    {\n"
+                   "      \"title\": \"String\",\n"
+                   "      \"type\": \"string\"\n"
+                   "    },\n"
+                   "    {\n"
+                   "      \"const\": null,\n"
+                   "      \"title\": \"String\"\n"
+                   "    }\n"
+                   "  ]\n"
+                   "}"));
+  }
+
+  it("supports required pointer") {
+    const DataMeta meta = data_meta_t(
+        data_prim_t(String), .container = DataContainer_Pointer, .flags = DataFlags_NotEmpty);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"String\",\n"
+                   "  \"type\": \"string\"\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
