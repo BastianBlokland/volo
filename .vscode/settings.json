@@ -34,6 +34,21 @@
     ".cache": true,
     "assets/**/*.spv": true
   },
+  "json.schemas": [
+    { "fileMatch": [ "*.atl" ], "url": "./assets/schemas/atl.schema.json" },
+    { "fileMatch": [ "*.atx" ], "url": "./assets/schemas/atx.schema.json" },
+    { "fileMatch": [ "*.bt" ], "url": "./assets/schemas/bt.schema.json" },
+    { "fileMatch": [ "*.dcl" ], "url": "./assets/schemas/dcl.schema.json" },
+    { "fileMatch": [ "*.ftx" ], "url": "./assets/schemas/ftx.schema.json" },
+    { "fileMatch": [ "*.gra" ], "url": "./assets/schemas/gra.schema.json" },
+    { "fileMatch": [ "*.imp" ], "url": "./assets/schemas/imp.schema.json" },
+    { "fileMatch": [ "*.lvl" ], "url": "./assets/schemas/lvl.schema.json" },
+    { "fileMatch": [ "*.pfb" ], "url": "./assets/schemas/pfb.schema.json" },
+    { "fileMatch": [ "*.pme" ], "url": "./assets/schemas/pme.schema.json" },
+    { "fileMatch": [ "*.ptx" ], "url": "./assets/schemas/ptx.schema.json" },
+    { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
+    { "fileMatch": [ "*.wea" ], "url": "./assets/schemas/wea.schema.json" }
+  ],
   "json.format.keepLines": true,
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
   "glsllint.linkShader": false,
