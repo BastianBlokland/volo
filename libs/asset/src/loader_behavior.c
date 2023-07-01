@@ -4,7 +4,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "data.h"
-#include "data_treeschema.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_read.h"

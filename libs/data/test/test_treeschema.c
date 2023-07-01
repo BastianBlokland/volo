@@ -1,6 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "data_treeschema.h"
+#include "data_schema.h"
 
 spec(treeschema) {
 

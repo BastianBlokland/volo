@@ -2,7 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
-#include "data_jsonschema.h"
+#include "data_schema.h"
 #include "json_doc.h"
 #include "json_write.h"
 

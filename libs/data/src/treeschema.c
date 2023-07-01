@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "data_treeschema.h"
+#include "data_schema.h"
 #include "json_doc.h"
 #include "json_write.h"
 
