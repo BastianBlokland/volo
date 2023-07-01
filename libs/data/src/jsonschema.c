@@ -104,27 +104,43 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Union);
 
-  json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "object"));
-  json_add_field_lit(ctx->doc, obj, "additionalProperties", json_add_bool(ctx->doc, false));
+  const JsonVal anyOfArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "anyOf", anyOfArr);
 
-  const JsonVal propObj = json_add_object(ctx->doc);
-  json_add_field_lit(ctx->doc, obj, "properties", propObj);
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+    const JsonVal choiceObj = json_add_object(ctx->doc);
+    json_add_elem(ctx->doc, anyOfArr, choiceObj);
 
-  const JsonVal reqArr = json_add_array(ctx->doc);
-  json_add_field_lit(ctx->doc, obj, "required", reqArr);
+    json_add_field_lit(ctx->doc, choiceObj, "type", json_add_string_lit(ctx->doc, "object"));
+    json_add_field_lit(ctx->doc, choiceObj, "additionalProperties", json_add_bool(ctx->doc, false));
 
-  // Type property (required).
-  const JsonVal typeObj = json_add_array(ctx->doc);
-  json_add_field_lit(ctx->doc, propObj, "$type", typeObj);
-  json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
-  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
-    json_add_elem(ctx->doc, typeObj, json_add_string(ctx->doc, choiceDecl->id.name));
+    const JsonVal propObj = json_add_object(ctx->doc);
+    json_add_field_lit(ctx->doc, choiceObj, "properties", propObj);
+
+    const JsonVal reqArr = json_add_array(ctx->doc);
+    json_add_field_lit(ctx->doc, choiceObj, "required", reqArr);
+
+    // Type property.
+    const JsonVal typeObj = json_add_object(ctx->doc);
+    json_add_field_lit(ctx->doc, propObj, "$type", typeObj);
+    json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
+    json_add_field_lit(ctx->doc, typeObj, "const", json_add_string(ctx->doc, choice->id.name));
+
+    // Name property.
+    const JsonVal nameObj = json_add_object(ctx->doc);
+    json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
+    json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
+
+    // Data property.
+    const bool emptyChoice = choice->meta.type == 0;
+    if (!emptyChoice) {
+      const JsonVal dataObj = json_add_object(ctx->doc);
+      json_add_field_lit(ctx->doc, choiceObj, "$data", dataObj);
+      json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$data"));
+
+      schema_add_type(ctx, dataObj, choice->meta);
+    }
   }
-
-  // Name property (optional).
-  const JsonVal nameObj = json_add_object(ctx->doc);
-  json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
-  json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
 }
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
