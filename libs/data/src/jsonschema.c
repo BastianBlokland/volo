@@ -10,7 +10,7 @@
 typedef struct {
   const DataReg* reg;
   JsonDoc*       doc;
-  JsonVal        schemaObj;
+  JsonVal        rootObj;
 } JsonSchemaCtx;
 
 static void schema_add_type(const JsonSchemaCtx*, JsonVal, DataMeta);
@@ -205,16 +205,16 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
 }
 
 void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType rootType) {
-  JsonDoc*      doc       = json_create(g_alloc_scratch, 512);
-  const JsonVal schemaObj = json_add_object(doc);
+  JsonDoc*      doc     = json_create(g_alloc_scratch, 512);
+  const JsonVal rootObj = json_add_object(doc);
 
   const JsonSchemaCtx ctx = {
-      .reg       = reg,
-      .doc       = doc,
-      .schemaObj = schemaObj,
+      .reg     = reg,
+      .doc     = doc,
+      .rootObj = rootObj,
   };
-  schema_add_type(&ctx, schemaObj, (DataMeta){.type = rootType});
+  schema_add_type(&ctx, rootObj, (DataMeta){.type = rootType});
 
-  json_write(str, doc, schemaObj, &json_write_opts());
+  json_write(str, doc, rootObj, &json_write_opts());
   json_destroy(doc);
 }
