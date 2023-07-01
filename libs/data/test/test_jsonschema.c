@@ -31,5 +31,22 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports a float type") {
+#define X(_T_)                                                                                     \
+  const DataType type_##_T_ = data_prim_t(_T_);                                                    \
+  test_jsonschema_write(                                                                           \
+      _testCtx,                                                                                    \
+      reg,                                                                                         \
+      type_##_T_,                                                                                  \
+      string_lit("{\n"                                                                             \
+                 "  \"title\": \"" #_T_ "\",\n"                                                    \
+                 "  \"type\": \"number\"\n"                                                        \
+                 "}"));
+
+    X(f32)
+    X(f64)
+#undef X
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
