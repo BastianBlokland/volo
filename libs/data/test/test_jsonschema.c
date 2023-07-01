@@ -3,11 +3,11 @@
 #include "data_schema.h"
 
 static void test_jsonschema_write(
-    CheckTestContext* _testCtx, const DataReg* reg, const DataType type, const String expected) {
+    CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const String expected) {
 
   Mem       buffer    = mem_stack(1024);
   DynString dynString = dynstring_create_over(buffer);
-  data_jsonschema_write(reg, &dynString, type);
+  data_jsonschema_write(reg, &dynString, meta);
 
   check_eq_string(dynstring_view(&dynString), expected);
 }
@@ -19,12 +19,12 @@ spec(jsonschema) {
   setup() { reg = data_reg_create(g_alloc_heap); }
 
   it("supports a boolean type") {
-    const DataType type = data_prim_t(bool);
+    const DataMeta meta = data_meta_t(data_prim_t(bool));
 
     test_jsonschema_write(
         _testCtx,
         reg,
-        type,
+        meta,
         string_lit("{\n"
                    "  \"title\": \"bool\",\n"
                    "  \"type\": \"boolean\"\n"
@@ -33,11 +33,11 @@ spec(jsonschema) {
 
   it("supports integer type") {
 #define X(_T_, _MIN_, _MAX_)                                                                       \
-  const DataType type_##_T_ = data_prim_t(_T_);                                                    \
+  const DataMeta meta_##_T_ = data_meta_t(data_prim_t(_T_));                                       \
   test_jsonschema_write(                                                                           \
       _testCtx,                                                                                    \
       reg,                                                                                         \
-      type_##_T_,                                                                                  \
+      meta_##_T_,                                                                                  \
       string_lit("{\n"                                                                             \
                  "  \"title\": \"" #_T_ "\",\n"                                                    \
                  "  \"type\": \"integer\",\n"                                                      \
@@ -58,11 +58,11 @@ spec(jsonschema) {
 
   it("supports float types") {
 #define X(_T_)                                                                                     \
-  const DataType type_##_T_ = data_prim_t(_T_);                                                    \
+  const DataMeta meta_##_T_ = data_meta_t(data_prim_t(_T_));                                       \
   test_jsonschema_write(                                                                           \
       _testCtx,                                                                                    \
       reg,                                                                                         \
-      type_##_T_,                                                                                  \
+      meta_##_T_,                                                                                  \
       string_lit("{\n"                                                                             \
                  "  \"title\": \"" #_T_ "\",\n"                                                    \
                  "  \"type\": \"number\"\n"                                                        \
@@ -74,12 +74,12 @@ spec(jsonschema) {
   }
 
   it("supports a string") {
-    const DataType type = data_prim_t(String);
+    const DataMeta meta = data_meta_t(data_prim_t(String));
 
     test_jsonschema_write(
         _testCtx,
         reg,
-        type,
+        meta,
         string_lit("{\n"
                    "  \"title\": \"String\",\n"
                    "  \"type\": \"string\"\n"

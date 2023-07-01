@@ -8,7 +8,7 @@
  *
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_jsonschema_write(const DataReg*, DynString*, DataType rootType);
+void data_jsonschema_write(const DataReg*, DynString*, DataMeta);
 
 /**
  * Write a treeschema file for the given data-type.

@@ -285,7 +285,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   }
 }
 
-void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType rootType) {
+void data_jsonschema_write(const DataReg* reg, DynString* str, const DataMeta meta) {
   JsonDoc*      doc     = json_create(g_alloc_scratch, 512);
   const JsonVal rootObj = json_add_object(doc);
 
@@ -301,7 +301,7 @@ void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType ro
       .rootObj   = rootObj,
       .defsObj   = defsObj,
   };
-  schema_add_type(&ctx, rootObj, (DataMeta){.type = rootType});
+  schema_add_type(&ctx, rootObj, meta);
 
   if (bitset_any(ctx.addedDefs)) {
     json_add_field_lit(doc, rootObj, "$defs", defsObj);
