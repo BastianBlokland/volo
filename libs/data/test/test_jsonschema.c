@@ -73,5 +73,18 @@ spec(jsonschema) {
 #undef X
   }
 
+  it("supports a string") {
+    const DataType type = data_prim_t(String);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        type,
+        string_lit("{\n"
+                   "  \"title\": \"String\",\n"
+                   "  \"type\": \"string\"\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
