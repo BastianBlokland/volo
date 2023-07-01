@@ -290,7 +290,6 @@ void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType ro
   const JsonVal rootObj = json_add_object(doc);
 
   const JsonVal defsObj = json_add_object(doc);
-  json_add_field_lit(doc, rootObj, "$defs", defsObj);
 
   diag_assert(data_type_count(reg) <= jsonschema_max_types);
   u8 addedDefsBits[bits_to_bytes(jsonschema_max_types) + 1] = {0};
@@ -303,6 +302,10 @@ void data_jsonschema_write(const DataReg* reg, DynString* str, const DataType ro
       .defsObj   = defsObj,
   };
   schema_add_type(&ctx, rootObj, (DataMeta){.type = rootType});
+
+  if (bitset_any(ctx.addedDefs)) {
+    json_add_field_lit(doc, rootObj, "$defs", defsObj);
+  }
 
   json_write(str, doc, rootObj, &json_write_opts());
   json_destroy(doc);
