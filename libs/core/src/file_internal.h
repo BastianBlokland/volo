@@ -16,7 +16,7 @@ struct sFile {
   Allocator*      alloc;
 };
 
-void file_pal_init();
+void file_pal_init(void);
 
 /**
  * Synchonously create a single directory.

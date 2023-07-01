@@ -67,12 +67,12 @@ struct sFormatArg {
 /**
  * Create a No-Op formatting argument, will not output any characters.
  */
-#define fmt_nop() ((FormatArg){ .type = FormatArgType_Nop })
+#define fmt_nop(void) ((FormatArg){ .type = FormatArgType_Nop })
 
 /**
  * Create a tag argument to indicate the end of an argument list.
  */
-#define fmt_end() ((FormatArg){0})
+#define fmt_end(void) ((FormatArg){0})
 
 /**
  * Create a list formatting argument, takes a pointer to a FormatArg array that ends with with a

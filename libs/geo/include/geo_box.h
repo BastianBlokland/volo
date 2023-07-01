@@ -38,8 +38,8 @@ GeoBox geo_box_from_center(GeoVector center, GeoVector size);
  * Construct an 'Inside out' (infinitely small) box.
  * Useful as a starting point for encapsulating points.
  */
-GeoBox geo_box_inverted2();
-GeoBox geo_box_inverted3();
+GeoBox geo_box_inverted2(void);
+GeoBox geo_box_inverted3(void);
 
 /**
  * Check if the given box is inverted.

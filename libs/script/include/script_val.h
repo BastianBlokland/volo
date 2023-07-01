@@ -38,7 +38,7 @@ ScriptType script_type(ScriptVal);
 /**
  * Type-erase a value into a ScriptVal.
  */
-ScriptVal script_null();
+ScriptVal script_null(void);
 ScriptVal script_number(f64);
 ScriptVal script_bool(bool);
 ScriptVal script_vector3(GeoVector);

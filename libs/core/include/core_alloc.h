@@ -145,4 +145,4 @@ typedef struct {
   u64   persistCounter; // Incremented on every persistent allocation.
 } AllocStats;
 
-AllocStats alloc_stats_query();
+AllocStats alloc_stats_query(void);

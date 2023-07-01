@@ -22,13 +22,13 @@
  * translation unit.
  */
 #if defined(VOLO_CLANG)
-#define OPTIMIZE_OFF() _Pragma("clang optimize off")
+#define OPTIMIZE_OFF(void) _Pragma("clang optimize off")
 #elif defined(VOLO_GCC)
-#define OPTIMIZE_OFF() _Pragma("GCC optimize(\"-O0\")")
+#define OPTIMIZE_OFF(void) _Pragma("GCC optimize(\"-O0\")")
 #elif defined(VOLO_MSVC)
-#define OPTIMIZE_OFF() _Pragma("optimize(\"\", off)")
+#define OPTIMIZE_OFF(void) _Pragma("optimize(\"\", off)")
 #else
-#define OPTIMIZE_OFF()
+#define OPTIMIZE_OFF(void)
 #endif
 
 /**

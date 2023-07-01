@@ -5,11 +5,11 @@
  * Should be called once at application startup.
  * Pre-condition: Should only be called from the main-thread.
  */
-void log_init();
+void log_init(void);
 
 /**
  * Teardown the log subsystem.
  * Should be called once at application shutdown.
  * Pre-condition: Should only be called from the main-thread.
  */
-void log_teardown();
+void log_teardown(void);

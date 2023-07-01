@@ -37,7 +37,7 @@ simd_vec_store(const SimdVec vec, f32 values[PARAM_ARRAY_SIZE(4)]) {
   _mm_store_ps(values, vec);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero() { return _mm_setzero_ps(); }
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero(void) { return _mm_setzero_ps(); }
 
 MAYBE_UNUSED INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 

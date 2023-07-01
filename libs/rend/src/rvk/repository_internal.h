@@ -36,7 +36,7 @@ typedef enum {
 
 typedef struct sRvkRepository RvkRepository;
 
-RvkRepository* rvk_repository_create();
+RvkRepository* rvk_repository_create(void);
 void           rvk_repository_destroy(RvkRepository*);
 
 void rvk_repository_texture_set(RvkRepository*, RvkRepositoryId, RvkTexture*);

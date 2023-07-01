@@ -1,10 +1,10 @@
 #pragma once
 #include "core_time.h"
 
-void       time_pal_init();
-TimeSteady time_pal_steady_clock();
-TimeReal   time_pal_real_clock();
-TimeZone   time_pal_zone_current();
+void       time_pal_init(void);
+TimeSteady time_pal_steady_clock(void);
+TimeReal   time_pal_real_clock(void);
+TimeZone   time_pal_zone_current(void);
 
 #if defined(VOLO_LINUX)
 struct timespec;
