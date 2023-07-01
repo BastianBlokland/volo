@@ -234,3 +234,11 @@ void asset_load_gra(EcsWorld* world, const String id, const EcsEntityId entity, 
   (void)id;
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }
+
+AssetDataReg asset_graphic_datareg() {
+  graphic_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataMeta,
+  };
+}

@@ -1,7 +1,7 @@
 #pragma once
 #include "core_signal.h"
 
-void signal_pal_setup_handlers();
+void signal_pal_setup_handlers(void);
 
 bool signal_pal_is_received(Signal);
 void signal_pal_reset(Signal);

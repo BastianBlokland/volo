@@ -31,7 +31,7 @@ ASSERT(alignof(GeoMatrix) == 16, "GeoMatrix has to be aligned to 128 bits");
  * Identity matrix.
  * Represents no scaling, no rotation and no translation.
  */
-GeoMatrix geo_matrix_ident();
+GeoMatrix geo_matrix_ident(void);
 
 /**
  * Retrieve a row from the matrix.

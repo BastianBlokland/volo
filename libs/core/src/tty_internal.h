@@ -1,8 +1,8 @@
 #pragma once
 #include "core_tty.h"
 
-void tty_pal_init();
-void tty_pal_teardown();
+void tty_pal_init(void);
+void tty_pal_teardown(void);
 
 bool tty_pal_isatty(File*);
 u16  tty_pal_width(File*);

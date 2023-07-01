@@ -348,3 +348,11 @@ asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash)
       asset_inputmap_compare_action,
       mem_struct(AssetInputAction, .nameHash = nameHash).ptr);
 }
+
+AssetDataReg asset_inputmap_datareg() {
+  inputmap_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataInputMapDefMeta,
+  };
+}

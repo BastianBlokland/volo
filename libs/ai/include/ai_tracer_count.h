@@ -12,4 +12,4 @@ typedef struct {
   u32      count;
 } AiTracerCount;
 
-AiTracerCount ai_tracer_count();
+AiTracerCount ai_tracer_count(void);

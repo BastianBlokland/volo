@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "ecs_module.h"
 
 /**
@@ -22,3 +23,5 @@ ecs_comp_extern_public(AssetAtlasComp) {
  * NOTE: Returns null if no entry was found with the given name.
  */
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp*, StringHash name);
+
+AssetDataReg asset_atlas_datareg(void);

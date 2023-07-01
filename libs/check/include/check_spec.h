@@ -49,12 +49,12 @@ typedef struct {
 /**
  * Define a setup block.
  */
-#define setup() if(check_visit_setup(_specCtx))
+#define setup(void) if(check_visit_setup(_specCtx))
 
 /**
  * Define a teardown block.
  */
-#define teardown() if(check_visit_teardown(_specCtx))
+#define teardown(void) if(check_visit_teardown(_specCtx))
 
 /**
  * Define a test block.
@@ -75,7 +75,7 @@ typedef struct {
  * Early-out the current test run. Only valid inside test blocks.
  * If no error has occurred the test is considered passed otherwise its considered failed.
  */
-#define check_early_out() check_finish(_testCtx)
+#define check_early_out(void) check_finish(_testCtx)
 
 /**
  * Report an error for the current test. Only valid inside test blocks.

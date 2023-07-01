@@ -76,12 +76,12 @@ void diag_assert_report_fail(String msg, SourceLoc);
 /**
  * Halt the program when running with a debugger attached.
  */
-void diag_break();
+void diag_break(void);
 
 /**
  * Crash the program.
  */
-NORETURN void diag_crash();
+NORETURN void diag_crash(void);
 
 /**
  * Crash the program.

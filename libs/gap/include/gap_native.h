@@ -20,7 +20,7 @@ typedef enum {
 /**
  * Check the window-manager connection type.
  */
-GapNativeWm gap_native_wm();
+GapNativeWm gap_native_wm(void);
 
 /**
  * Retrieve the native handle to the given window.

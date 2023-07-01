@@ -555,3 +555,11 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
       asset_weapon_compare,
       mem_struct(AssetWeapon, .nameHash = nameHash).ptr);
 }
+
+AssetDataReg asset_weapon_datareg() {
+  weapon_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataMapDefMeta,
+  };
+}

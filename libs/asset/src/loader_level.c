@@ -132,3 +132,11 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   dynstring_destroy(&dataBuffer);
   return res;
 }
+
+AssetDataReg asset_level_datareg() {
+  level_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataLevelMeta,
+  };
+}

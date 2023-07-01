@@ -132,7 +132,7 @@ void thread_join(ThreadHandle);
 /**
  * Stop executing the current thread and move it to the bottom of the run queue.
  */
-void thread_yield();
+void thread_yield(void);
 
 /**
  * Sleep the current thread.

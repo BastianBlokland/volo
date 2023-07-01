@@ -100,7 +100,7 @@ typedef struct {
  * Observe the current steady clock.
  * The steady clock is guaranteed to only go forward and is meant for precise time measurements.
  */
-TimeSteady time_steady_clock();
+TimeSteady time_steady_clock(void);
 
 /**
  * Return the time duration between two steady measurements.
@@ -110,7 +110,7 @@ TimeDuration time_steady_duration(TimeSteady from, TimeSteady to);
 /**
  * Observe the system clock.
  */
-TimeReal time_real_clock();
+TimeReal time_real_clock(void);
 
 /**
  * Return the duration between two real times.
@@ -140,7 +140,7 @@ TimeReal time_date_to_real(TimeDate);
 /**
  * Retrieve the current system timezone.
  */
-TimeZone time_zone_current();
+TimeZone time_zone_current(void);
 
 /**
  * Convert a timezone-offset to a duration.

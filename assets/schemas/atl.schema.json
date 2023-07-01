@@ -1,0 +1,118 @@
+{
+  "title": "AtlasDef",
+  "$ref": "#/$defs/AtlasDef",
+  "$defs": {
+    "AtlasDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        },
+        "entrySize": {
+          "title": "u32",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 4294967295
+        },
+        "entryPadding": {
+          "title": "u32",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mipmaps": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "srgb": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "paddingColor": {
+          "anyOf": [
+            {
+              "title": "AtlasColor",
+              "$ref": "#/$defs/AtlasColor"
+            },
+            {
+              "const": null,
+              "title": "AtlasColor"
+            }
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "title": "AtlasEntryDef",
+            "$ref": "#/$defs/AtlasEntryDef"
+          }
+        }
+      },
+      "required": [
+        "size",
+        "entrySize",
+        "entryPadding",
+        "entries"
+      ]
+    },
+    "AtlasColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "r": {
+          "title": "u8",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "g": {
+          "title": "u8",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "b": {
+          "title": "u8",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "a": {
+          "title": "u8",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "r",
+        "g",
+        "b",
+        "a"
+      ]
+    },
+    "AtlasEntryDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "String",
+          "type": "string"
+        },
+        "texture": {
+          "title": "String",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "texture"
+      ]
+    }
+  }
+}

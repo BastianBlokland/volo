@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "ecs_module.h"
 
 /**
@@ -37,3 +38,5 @@ ecs_comp_extern_public(AssetInputMapComp) {
  * Lookup an input action by the hash of its name.
  */
 const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, StringHash nameHash);
+
+AssetDataReg asset_inputmap_datareg(void);

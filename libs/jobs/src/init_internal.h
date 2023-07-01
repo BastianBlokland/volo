@@ -5,12 +5,12 @@
  * Global initialization routines.
  * Fired once when the job library is initialized.
  */
-void scheduler_init();
-void executor_init();
+void scheduler_init(void);
+void executor_init(void);
 
 /**
  * Global teardown routines.
  * Fired once when the job library is torn down.
  */
-void scheduler_teardown();
-void executor_teardown();
+void scheduler_teardown(void);
+void executor_teardown(void);

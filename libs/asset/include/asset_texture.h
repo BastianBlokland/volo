@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 
@@ -86,3 +87,6 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
  * NOTE: Always samples mip-level 0.
  */
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
+
+AssetDataReg asset_texture_ptx_datareg(void);
+AssetDataReg asset_texture_atx_datareg(void);

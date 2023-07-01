@@ -3,8 +3,8 @@
 
 #define log_params_max 10
 
-void log_global_logger_init();
-void log_global_logger_teardown();
+void log_global_logger_init(void);
+void log_global_logger_teardown(void);
 
 String log_level_str(LogLevel);
 

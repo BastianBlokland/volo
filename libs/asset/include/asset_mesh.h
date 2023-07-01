@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "ecs_module.h"
 #include "geo_box.h"
 #include "geo_matrix.h"
@@ -65,3 +66,5 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   u32                  animCount;
   Mem                  animData;
 };
+
+AssetDataReg asset_mesh_pme_datareg(void);

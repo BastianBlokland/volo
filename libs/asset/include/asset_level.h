@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_sentinel.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
@@ -37,3 +38,5 @@ typedef struct {
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
 bool asset_level_save(AssetManagerComp*, String id, AssetLevel);
+
+AssetDataReg asset_level_datareg(void);

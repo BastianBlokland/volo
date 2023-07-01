@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_unicode.h"
 #include "ecs_module.h"
 
@@ -35,3 +36,5 @@ ecs_comp_extern_public(AssetFtxComp) {
  * Get a character based on a unicode codepoint.
  */
 const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode, u8 variation);
+
+AssetDataReg asset_ftx_datareg(void);

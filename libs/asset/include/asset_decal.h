@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_module.h"
 
@@ -40,3 +41,5 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              scaleMin, scaleMax;
   TimeDuration     fadeInTime, fadeOutTime;
 };
+
+AssetDataReg asset_decal_datareg(void);

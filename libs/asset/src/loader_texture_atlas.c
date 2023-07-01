@@ -433,3 +433,11 @@ const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const Str
       atlas_compare_entry,
       &target);
 }
+
+AssetDataReg asset_atlas_datareg() {
+  atlas_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataAtlasDefMeta,
+  };
+}

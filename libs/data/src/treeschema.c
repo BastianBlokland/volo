@@ -1,34 +1,34 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "data_treescheme.h"
+#include "data_schema.h"
 #include "json_doc.h"
 #include "json_write.h"
 
 #include "registry_internal.h"
 
-#define treescheme_max_types 512
+#define treeschema_max_types 512
 
 typedef enum {
-  TreeSchemeType_Boolean,
-  TreeSchemeType_Number,
-  TreeSchemeType_String,
-  TreeSchemeType_Alias,
-  TreeSchemeType_Enum,
-} TreeSchemeType;
+  TreeSchemaType_Boolean,
+  TreeSchemaType_Number,
+  TreeSchemaType_String,
+  TreeSchemaType_Alias,
+  TreeSchemaType_Enum,
+} TreeSchemaType;
 
 typedef struct {
   const DataReg* reg;
   JsonDoc*       doc;
   BitSet         addedTypes;
-  JsonVal        schemeObj;
-  JsonVal        schemeAliasesArr, schemeEnumsArr, schemeNodesArr;
-} TreeSchemeCtx;
+  JsonVal        schemaObj;
+  JsonVal        schemaAliasesArr, schemaEnumsArr, schemaNodesArr;
+} TreeSchemaCtx;
 
-static TreeSchemeType treescheme_classify(const TreeSchemeCtx* ctx, const DataType type) {
+static TreeSchemaType treeschema_classify(const TreeSchemaCtx* ctx, const DataType type) {
   switch (data_decl(ctx->reg, type)->kind) {
   case DataKind_bool:
-    return TreeSchemeType_Boolean;
+    return TreeSchemaType_Boolean;
   case DataKind_i8:
   case DataKind_i16:
   case DataKind_i32:
@@ -39,40 +39,40 @@ static TreeSchemeType treescheme_classify(const TreeSchemeCtx* ctx, const DataTy
   case DataKind_u64:
   case DataKind_f32:
   case DataKind_f64:
-    return TreeSchemeType_Number;
+    return TreeSchemaType_Number;
   case DataKind_String:
-    return TreeSchemeType_String;
+    return TreeSchemaType_String;
   case DataKind_Struct:
   case DataKind_Union:
-    return TreeSchemeType_Alias;
+    return TreeSchemaType_Alias;
   case DataKind_Enum:
-    return TreeSchemeType_Enum;
+    return TreeSchemaType_Enum;
   case DataKind_Invalid:
   case DataKind_Count:
     break;
   }
-  diag_crash_msg("Unsupported treescheme type");
+  diag_crash_msg("Unsupported treeschema type");
 }
 
-static void treescheme_mark_added(const TreeSchemeCtx* ctx, const DataType type) {
+static void treeschema_mark_added(const TreeSchemaCtx* ctx, const DataType type) {
   bitset_set(ctx->addedTypes, type);
 }
 
-static bool treescheme_check_added(const TreeSchemeCtx* ctx, const DataType type) {
+static bool treeschema_check_added(const TreeSchemaCtx* ctx, const DataType type) {
   return bitset_test(ctx->addedTypes, type);
 }
 
-static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
-  if (treescheme_check_added(ctx, type)) {
+static void treeschema_add_enum(const TreeSchemaCtx* ctx, const DataType type) {
+  if (treeschema_check_added(ctx, type)) {
     return;
   }
-  treescheme_mark_added(ctx, type);
+  treeschema_mark_added(ctx, type);
 
   const DataDecl* decl = data_decl(ctx->reg, type);
   diag_assert(decl->kind == DataKind_Enum);
 
   const JsonVal enumObj = json_add_object(ctx->doc);
-  json_add_elem(ctx->doc, ctx->schemeEnumsArr, enumObj);
+  json_add_elem(ctx->doc, ctx->schemaEnumsArr, enumObj);
 
   json_add_field_lit(ctx->doc, enumObj, "identifier", json_add_string(ctx->doc, decl->id.name));
 
@@ -88,20 +88,20 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   }
 }
 
-static void treescheme_add_alias(const TreeSchemeCtx* ctx, DataType);
+static void treeschema_add_alias(const TreeSchemaCtx* ctx, DataType);
 
 static void
-treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String typeName) {
-  if (treescheme_check_added(ctx, type)) {
+treeschema_add_node(const TreeSchemaCtx* ctx, const DataType type, const String typeName) {
+  if (treeschema_check_added(ctx, type)) {
     return;
   }
-  treescheme_mark_added(ctx, type);
+  treeschema_mark_added(ctx, type);
 
   const DataDecl* decl = data_decl(ctx->reg, type);
   diag_assert(decl->kind == DataKind_Struct);
 
   const JsonVal nodeObj = json_add_object(ctx->doc);
-  json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
+  json_add_elem(ctx->doc, ctx->schemaNodesArr, nodeObj);
 
   json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, typeName));
 
@@ -128,40 +128,40 @@ treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String 
 
     const DataDecl* fieldTypeDecl = data_decl(ctx->reg, fieldDecl->meta.type);
     JsonVal         valueType;
-    switch (treescheme_classify(ctx, fieldDecl->meta.type)) {
-    case TreeSchemeType_Boolean:
+    switch (treeschema_classify(ctx, fieldDecl->meta.type)) {
+    case TreeSchemaType_Boolean:
       valueType = json_add_string_lit(ctx->doc, "boolean");
       break;
-    case TreeSchemeType_Number:
+    case TreeSchemaType_Number:
       valueType = json_add_string_lit(ctx->doc, "number");
       break;
-    case TreeSchemeType_String:
+    case TreeSchemaType_String:
       valueType = json_add_string_lit(ctx->doc, "string");
       break;
-    case TreeSchemeType_Alias:
+    case TreeSchemaType_Alias:
       valueType = json_add_string(ctx->doc, fieldTypeDecl->id.name);
-      treescheme_add_alias(ctx, fieldDecl->meta.type);
+      treeschema_add_alias(ctx, fieldDecl->meta.type);
       break;
-    case TreeSchemeType_Enum:
+    case TreeSchemaType_Enum:
       valueType = json_add_string(ctx->doc, fieldTypeDecl->id.name);
-      treescheme_add_enum(ctx, fieldDecl->meta.type);
+      treeschema_add_enum(ctx, fieldDecl->meta.type);
       break;
     }
     json_add_field_lit(ctx->doc, fieldObj, "valueType", valueType);
   }
 }
 
-static void treescheme_add_node_empty(const TreeSchemeCtx* ctx, const DataId id) {
+static void treeschema_add_node_empty(const TreeSchemaCtx* ctx, const DataId id) {
   // TODO: Verify that there are no other nodes with the same id.
   const JsonVal nodeObj = json_add_object(ctx->doc);
-  json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
+  json_add_elem(ctx->doc, ctx->schemaNodesArr, nodeObj);
 
   json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, id.name));
   json_add_field_lit(ctx->doc, nodeObj, "fields", json_add_array(ctx->doc));
 }
 
-static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) {
-  if (treescheme_check_added(ctx, type)) {
+static void treeschema_add_alias(const TreeSchemaCtx* ctx, const DataType type) {
+  if (treeschema_check_added(ctx, type)) {
     return;
   }
   const DataDecl* decl = data_decl(ctx->reg, type);
@@ -170,11 +170,11 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
      * Structs are added as aliases which redirect to a single node implementation. Because we use
      * the same data-type for both the alias and the node we only mark it after adding the node.
      */
-    treescheme_mark_added(ctx, type);
+    treeschema_mark_added(ctx, type);
   }
 
   const JsonVal aliasObj = json_add_object(ctx->doc);
-  json_add_elem(ctx->doc, ctx->schemeAliasesArr, aliasObj);
+  json_add_elem(ctx->doc, ctx->schemaAliasesArr, aliasObj);
 
   json_add_field_lit(ctx->doc, aliasObj, "identifier", json_add_string(ctx->doc, decl->id.name));
 
@@ -184,7 +184,7 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
   switch (decl->kind) {
   case DataKind_Struct: {
     // A struct only has a single implementation, so add it as the only value of the alias.
-    treescheme_add_node(ctx, type, decl->id.name);
+    treeschema_add_node(ctx, type, decl->id.name);
     json_add_elem(ctx->doc, aliasValues, json_add_string(ctx->doc, decl->id.name));
   } break;
   case DataKind_Union: {
@@ -193,48 +193,48 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
       diag_assert(choice->meta.container != DataContainer_Array);
       const bool emptyChoice = choice->meta.type == 0;
       if (emptyChoice) {
-        treescheme_add_node_empty(ctx, choice->id);
+        treeschema_add_node_empty(ctx, choice->id);
       } else {
-        treescheme_add_node(ctx, choice->meta.type, choice->id.name);
+        treeschema_add_node(ctx, choice->meta.type, choice->id.name);
       }
       json_add_elem(ctx->doc, aliasValues, json_add_string(ctx->doc, choice->id.name));
     }
   } break;
   default:
-    diag_crash_msg("Unsupported treescheme alias type");
+    diag_crash_msg("Unsupported treeschema alias type");
   }
 }
 
-void data_treescheme_write(const DataReg* reg, DynString* str, const DataType rootType) {
+void data_treeschema_write(const DataReg* reg, DynString* str, const DataMeta rootMeta) {
   JsonDoc*      doc              = json_create(g_alloc_scratch, 512);
-  const JsonVal schemeAliasesArr = json_add_array(doc);
-  const JsonVal schemeEnumsArr   = json_add_array(doc);
-  const JsonVal schemeNodesArr   = json_add_array(doc);
+  const JsonVal schemaAliasesArr = json_add_array(doc);
+  const JsonVal schemaEnumsArr   = json_add_array(doc);
+  const JsonVal schemaNodesArr   = json_add_array(doc);
 
-  const JsonVal schemeObj = json_add_object(doc);
-  json_add_field_lit(doc, schemeObj, "aliases", schemeAliasesArr);
-  json_add_field_lit(doc, schemeObj, "enums", schemeEnumsArr);
-  json_add_field_lit(doc, schemeObj, "nodes", schemeNodesArr);
+  const JsonVal schemaObj = json_add_object(doc);
+  json_add_field_lit(doc, schemaObj, "aliases", schemaAliasesArr);
+  json_add_field_lit(doc, schemaObj, "enums", schemaEnumsArr);
+  json_add_field_lit(doc, schemaObj, "nodes", schemaNodesArr);
 
-  diag_assert(data_type_count(reg) <= treescheme_max_types);
-  u8 addedTypesBits[bits_to_bytes(treescheme_max_types) + 1] = {0};
+  diag_assert(data_type_count(reg) <= treeschema_max_types);
+  u8 addedTypesBits[bits_to_bytes(treeschema_max_types) + 1] = {0};
 
-  const TreeSchemeCtx ctx = {
+  const TreeSchemaCtx ctx = {
       .reg              = reg,
       .doc              = doc,
       .addedTypes       = bitset_from_var(addedTypesBits),
-      .schemeObj        = schemeObj,
-      .schemeAliasesArr = schemeAliasesArr,
-      .schemeEnumsArr   = schemeEnumsArr,
-      .schemeNodesArr   = schemeNodesArr,
+      .schemaObj        = schemaObj,
+      .schemaAliasesArr = schemaAliasesArr,
+      .schemaEnumsArr   = schemaEnumsArr,
+      .schemaNodesArr   = schemaNodesArr,
   };
-  treescheme_add_alias(&ctx, rootType);
+  treeschema_add_alias(&ctx, rootMeta.type);
 
   json_add_field_lit(
-      doc, schemeObj, "rootAlias", json_add_string(doc, data_decl(reg, rootType)->id.name));
+      doc, schemaObj, "rootAlias", json_add_string(doc, data_decl(reg, rootMeta.type)->id.name));
 
-  json_add_field_lit(doc, schemeObj, "featureNodeNames", json_add_bool(doc, true));
+  json_add_field_lit(doc, schemaObj, "featureNodeNames", json_add_bool(doc, true));
 
-  json_write(str, doc, schemeObj, &json_write_opts());
+  json_write(str, doc, schemaObj, &json_write_opts());
   json_destroy(doc);
 }

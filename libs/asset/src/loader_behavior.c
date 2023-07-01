@@ -4,7 +4,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "data.h"
-#include "data_treescheme.h"
+#include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_read.h"
@@ -385,7 +385,10 @@ String asset_behavior_type_str(const AssetAiNodeType type) {
   return g_names[type];
 }
 
-void asset_behavior_scheme_write(DynString* str) {
+AssetDataReg asset_behavior_datareg() {
   behavior_datareg_init();
-  data_treescheme_write(g_dataReg, str, g_dataNodeMeta.type);
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataNodeMeta,
+  };
 }

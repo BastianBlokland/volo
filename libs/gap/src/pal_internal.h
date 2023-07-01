@@ -60,7 +60,7 @@ void              gap_pal_window_clip_paste(GapPal*, GapWindowId);
 String            gap_pal_window_clip_paste_result(GapPal*, GapWindowId);
 u16               gap_pal_window_dpi(GapPal*, GapWindowId);
 
-TimeDuration gap_pal_doubleclick_interval();
+TimeDuration gap_pal_doubleclick_interval(void);
 
-GapNativeWm gap_pal_native_wm();
+GapNativeWm gap_pal_native_wm(void);
 uptr        gap_pal_native_app_handle(const GapPal*);
