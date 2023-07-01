@@ -120,20 +120,39 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
     const JsonVal reqArr = json_add_array(ctx->doc);
     json_add_field_lit(ctx->doc, choiceObj, "required", reqArr);
 
-    // Type property.
     const JsonVal typeObj = json_add_object(ctx->doc);
     json_add_field_lit(ctx->doc, propObj, "$type", typeObj);
     json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
     json_add_field_lit(ctx->doc, typeObj, "const", json_add_string(ctx->doc, choice->id.name));
 
-    // Name property.
     const JsonVal nameObj = json_add_object(ctx->doc);
     json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
     json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));
 
-    // Data property.
-    const bool emptyChoice = choice->meta.type == 0;
-    if (!emptyChoice) {
+    if (!choice->meta.type) {
+      continue; // Empty choice doesn't have any data.
+    }
+    const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
+    if (choiceDecl->kind == DataKind_Struct) {
+      /**
+       * Struct fields are inlined into the current json object.
+       */
+      diag_assert(choice->meta.container == DataContainer_None);
+
+      dynarray_for_t(&choiceDecl->val_struct.fields, DataDeclField, fieldDecl) {
+        const JsonVal fieldObj = json_add_object(ctx->doc);
+        json_add_field(ctx->doc, propObj, json_add_string(ctx->doc, fieldDecl->id.name), fieldObj);
+
+        if (!(fieldDecl->meta.flags & DataFlags_Opt)) {
+          json_add_elem(ctx->doc, reqArr, json_add_string(ctx->doc, fieldDecl->id.name));
+        }
+
+        schema_add_type(ctx, fieldObj, fieldDecl->meta);
+      }
+    } else {
+      /**
+       * For other data-kinds the data is stored on a $data property.
+       */
       const JsonVal dataObj = json_add_object(ctx->doc);
       json_add_field_lit(ctx->doc, choiceObj, "$data", dataObj);
       json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$data"));
