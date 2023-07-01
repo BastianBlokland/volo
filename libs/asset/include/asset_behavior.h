@@ -1,5 +1,5 @@
 #pragma once
-#include "core_dynstring.h"
+#include "asset_data.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
 
@@ -91,9 +91,4 @@ ecs_comp_extern_public(AssetBehaviorComp) {
  */
 String asset_behavior_type_str(AssetAiNodeType);
 
-/**
- * Write a schema file for the behavior file format.
- * The treeschema format is used by the 'https://www.bastian.tech/tree/' tree editor.
- * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
- */
-void asset_behavior_schema_write(DynString*);
+AssetDataReg asset_behavior_datareg();

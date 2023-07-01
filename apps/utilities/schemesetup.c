@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "data_schema.h"
 #include "log.h"
 
 /**
@@ -18,7 +19,8 @@
 static bool btschema_write(const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
-  asset_behavior_schema_write(&dynString);
+  const AssetDataReg behaviorReg = asset_behavior_datareg();
+  data_treeschema_write(behaviorReg.registry, &dynString, behaviorReg.typeMeta.type);
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {
