@@ -6,9 +6,13 @@
 #include "log.h"
 
 /**
- * BtSchema - Utility to generate a treeschema for the behavior file format.
- * The treeschema format is used by the 'https://www.bastian.tech/tree/' tree editor.
- * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
+ * SchemeSetup - Utility to generate schema's for various asset formats used in Volo.
+ *
+ * Types of schemes:
+ * - JsonSchema: Validation scheme supported for all of the json asset types.
+ *               https://json-schema.org/specification.html
+ * - TreeSchema: Used by the 'https://www.bastian.tech/tree/' tree editor.
+ *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
 #define btschema_default_path "ai.btschema"
@@ -33,7 +37,7 @@ static bool btschema_write(const String path) {
 static CliId g_outFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Utility to generate a behavior-tree schema file."));
+  cli_app_register_desc(app, string_lit("Utility to generate schema files."));
 
   g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_Value);
   cli_register_desc(
@@ -56,7 +60,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const String outPathRaw = cli_read_string(invoc, g_outFlag, string_lit(btschema_default_path));
   const String outPath    = path_build_scratch(outPathRaw);
 
-  log_i("Generating behavior-tree schema file", log_param("path", fmt_path(outPath)));
+  log_i("Generating schema file", log_param("path", fmt_path(outPath)));
 
   return btschema_write(outPath) ? 0 : 1;
 }
