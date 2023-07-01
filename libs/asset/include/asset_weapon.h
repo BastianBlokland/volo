@@ -107,4 +107,4 @@ bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon
  */
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp*, StringHash nameHash);
 
-AssetDataReg asset_weapon_datareg();
+AssetDataReg asset_weapon_datareg(void);

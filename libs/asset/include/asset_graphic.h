@@ -133,4 +133,4 @@ ecs_comp_extern_public(AssetGraphicComp) {
   f32 blendConstant;
 };
 
-AssetDataReg asset_graphic_datareg();
+AssetDataReg asset_graphic_datareg(void);

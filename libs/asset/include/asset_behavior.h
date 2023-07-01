@@ -91,4 +91,4 @@ ecs_comp_extern_public(AssetBehaviorComp) {
  */
 String asset_behavior_type_str(AssetAiNodeType);
 
-AssetDataReg asset_behavior_datareg();
+AssetDataReg asset_behavior_datareg(void);

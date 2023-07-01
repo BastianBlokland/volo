@@ -27,7 +27,7 @@
  *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
-typedef AssetDataReg (*SchemaDataRegLookup)();
+typedef AssetDataReg (*SchemaDataRegLookup)(void);
 typedef void (*SchemaWriter)(const DataReg*, DynString*, DataMeta);
 
 typedef struct {

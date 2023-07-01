@@ -42,4 +42,4 @@ ecs_comp_extern_public(AssetDecalComp) {
   TimeDuration     fadeInTime, fadeOutTime;
 };
 
-AssetDataReg asset_decal_datareg();
+AssetDataReg asset_decal_datareg(void);

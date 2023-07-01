@@ -24,4 +24,4 @@ ecs_comp_extern_public(AssetAtlasComp) {
  */
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp*, StringHash name);
 
-AssetDataReg asset_atlas_datareg();
+AssetDataReg asset_atlas_datareg(void);

@@ -37,4 +37,4 @@ ecs_comp_extern_public(AssetFtxComp) {
  */
 const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode, u8 variation);
 
-AssetDataReg asset_ftx_datareg();
+AssetDataReg asset_ftx_datareg(void);

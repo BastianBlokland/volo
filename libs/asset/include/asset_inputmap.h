@@ -39,4 +39,4 @@ ecs_comp_extern_public(AssetInputMapComp) {
  */
 const AssetInputAction* asset_inputmap_get(const AssetInputMapComp*, StringHash nameHash);
 
-AssetDataReg asset_inputmap_datareg();
+AssetDataReg asset_inputmap_datareg(void);

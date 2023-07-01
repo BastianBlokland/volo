@@ -92,4 +92,4 @@ ecs_comp_extern_public(AssetVfxComp) {
   AssetVfxEmitter* emitters;
 };
 
-AssetDataReg asset_vfx_datareg();
+AssetDataReg asset_vfx_datareg(void);

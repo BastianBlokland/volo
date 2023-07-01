@@ -218,4 +218,4 @@ const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHa
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
 
-AssetDataReg asset_prefab_datareg();
+AssetDataReg asset_prefab_datareg(void);

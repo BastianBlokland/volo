@@ -67,4 +67,4 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   Mem                  animData;
 };
 
-AssetDataReg asset_mesh_pme_datareg();
+AssetDataReg asset_mesh_pme_datareg(void);

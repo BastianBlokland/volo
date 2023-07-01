@@ -39,4 +39,4 @@ ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
 bool asset_level_save(AssetManagerComp*, String id, AssetLevel);
 
-AssetDataReg asset_level_datareg();
+AssetDataReg asset_level_datareg(void);
