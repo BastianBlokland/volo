@@ -230,7 +230,7 @@ static void schema_add_ref(const JsonSchemaCtx* ctx, const JsonVal obj, const Da
       schema_add_enum(ctx, defObj, meta);
       break;
     default:
-      diag_crash_msg("Unsupported json-scheme $ref type");
+      diag_crash_msg("Unsupported json-schema $ref type");
     }
   }
 }

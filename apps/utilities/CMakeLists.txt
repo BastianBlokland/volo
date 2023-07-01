@@ -2,13 +2,13 @@
 # Utility applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> application: schemesetup")
+message(STATUS "> application: schemasetup")
 
-add_executable(app_schemesetup schemesetup.c)
-target_link_libraries(app_schemesetup PRIVATE lib_app_cli lib_asset lib_log)
-configure_debuggable(app_schemesetup)
+add_executable(app_schemasetup schemasetup.c)
+target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
+configure_debuggable(app_schemasetup)
 
-add_custom_target(schemesetup COMMAND app_schemesetup
+add_custom_target(schemasetup COMMAND app_schemasetup
  "--out" "$<TARGET_PROPERTY:volo_assets,path>/behaviors/ai.btschema" VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")

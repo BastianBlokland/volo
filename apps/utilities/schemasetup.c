@@ -7,10 +7,10 @@
 #include "log.h"
 
 /**
- * SchemeSetup - Utility to generate schema's for various asset formats used in Volo.
+ * SchemaSetup - Utility to generate schema's for various asset formats used in Volo.
  *
- * Types of schemes:
- * - JsonSchema: Validation scheme supported for all of the json asset types.
+ * Types of schemas:
+ * - JsonSchema: Validation schema supported for all of the json asset types.
  *               https://json-schema.org/specification.html
  * - TreeSchema: Used by the 'https://www.bastian.tech/tree/' tree editor.
  *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
