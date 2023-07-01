@@ -20,7 +20,7 @@ static bool btschema_write(const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
   const AssetDataReg behaviorReg = asset_behavior_datareg();
-  data_treeschema_write(behaviorReg.registry, &dynString, behaviorReg.typeMeta.type);
+  data_treeschema_write(behaviorReg.registry, &dynString, behaviorReg.typeMeta);
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {

@@ -91,7 +91,7 @@ spec(treeschema) {
   it("can write a treeschema file") {
     Mem       buffer    = mem_stack(2 * usize_kibibyte);
     DynString dynString = dynstring_create_over(buffer);
-    data_treeschema_write(reg, &dynString, nodeType);
+    data_treeschema_write(reg, &dynString, data_meta_t(nodeType));
 
     check_eq_string(
         dynstring_view(&dynString),

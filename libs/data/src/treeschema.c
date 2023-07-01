@@ -205,7 +205,7 @@ static void treeschema_add_alias(const TreeSchemaCtx* ctx, const DataType type) 
   }
 }
 
-void data_treeschema_write(const DataReg* reg, DynString* str, const DataType rootType) {
+void data_treeschema_write(const DataReg* reg, DynString* str, const DataMeta rootMeta) {
   JsonDoc*      doc              = json_create(g_alloc_scratch, 512);
   const JsonVal schemaAliasesArr = json_add_array(doc);
   const JsonVal schemaEnumsArr   = json_add_array(doc);
@@ -228,10 +228,10 @@ void data_treeschema_write(const DataReg* reg, DynString* str, const DataType ro
       .schemaEnumsArr   = schemaEnumsArr,
       .schemaNodesArr   = schemaNodesArr,
   };
-  treeschema_add_alias(&ctx, rootType);
+  treeschema_add_alias(&ctx, rootMeta.type);
 
   json_add_field_lit(
-      doc, schemaObj, "rootAlias", json_add_string(doc, data_decl(reg, rootType)->id.name));
+      doc, schemaObj, "rootAlias", json_add_string(doc, data_decl(reg, rootMeta.type)->id.name));
 
   json_add_field_lit(doc, schemaObj, "featureNodeNames", json_add_bool(doc, true));
 
