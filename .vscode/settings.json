@@ -17,7 +17,7 @@
     "*.atl": "json",
     "*.atx": "json",
     "*.bt": "json",
-    "*.btscheme": "json",
+    "*.btschema": "json",
     "*.dcl": "json",
     "*.ftx": "json",
     "*.gra": "json",

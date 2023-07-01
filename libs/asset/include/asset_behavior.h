@@ -92,8 +92,8 @@ ecs_comp_extern_public(AssetBehaviorComp) {
 String asset_behavior_type_str(AssetAiNodeType);
 
 /**
- * Write a scheme file for the behavior file format.
- * The treescheme format is used by the 'https://www.bastian.tech/tree/' tree editor.
+ * Write a schema file for the behavior file format.
+ * The treeschema format is used by the 'https://www.bastian.tech/tree/' tree editor.
  * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
-void asset_behavior_scheme_write(DynString*);
+void asset_behavior_schema_write(DynString*);

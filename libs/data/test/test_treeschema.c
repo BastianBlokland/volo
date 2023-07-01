@@ -1,8 +1,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "data_treescheme.h"
+#include "data_treeschema.h"
 
-spec(treescheme) {
+spec(treeschema) {
 
   typedef struct sTreeNode TreeNode;
 
@@ -88,10 +88,10 @@ spec(treescheme) {
     data_reg_choice_empty(reg, TreeNode, TreeNodeType_D);
   }
 
-  it("can write a treescheme file") {
+  it("can write a treeschema file") {
     Mem       buffer    = mem_stack(2 * usize_kibibyte);
     DynString dynString = dynstring_create_over(buffer);
-    data_treescheme_write(reg, &dynString, nodeType);
+    data_treeschema_write(reg, &dynString, nodeType);
 
     check_eq_string(
         dynstring_view(&dynString),
