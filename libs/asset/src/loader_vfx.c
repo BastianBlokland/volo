@@ -405,3 +405,11 @@ Cleanup:
   data_destroy(g_dataReg, g_alloc_heap, g_dataVfxDefMeta, mem_var(vfxDef));
   asset_repo_source_close(src);
 }
+
+AssetDataReg asset_vfx_datareg() {
+  vfx_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataVfxDefMeta,
+  };
+}

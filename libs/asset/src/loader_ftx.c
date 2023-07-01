@@ -510,3 +510,11 @@ asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp, const u8 variation)
   // Return the 'missing' character, is guaranteed to exist.
   return &comp->characters[0];
 }
+
+AssetDataReg asset_ftx_datareg() {
+  ftx_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataFtxDefMeta,
+  };
+}

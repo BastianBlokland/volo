@@ -366,3 +366,11 @@ Error:
   data_destroy(g_dataReg, g_alloc_heap, g_dataPtxDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
+
+AssetDataReg asset_texture_ptx_datareg() {
+  ptx_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataPtxDefMeta,
+  };
+}

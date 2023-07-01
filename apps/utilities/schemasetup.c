@@ -1,5 +1,16 @@
 #include "app_cli.h"
+#include "asset_atlas.h"
 #include "asset_behavior.h"
+#include "asset_decal.h"
+#include "asset_ftx.h"
+#include "asset_graphic.h"
+#include "asset_inputmap.h"
+#include "asset_level.h"
+#include "asset_mesh.h"
+#include "asset_prefab.h"
+#include "asset_texture.h"
+#include "asset_vfx.h"
+#include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -27,8 +38,20 @@ typedef struct {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("ai.btschema"),      .source = asset_behavior_datareg, .writer = data_treeschema_write},
-    {.pattern = string_static("ai.schema.json"),  .source = asset_behavior_datareg, .writer = data_jsonschema_write},
+    {.pattern = string_static("atl.schema.json"), .source = asset_atlas_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("atx.schema.json"), .source = asset_texture_atx_datareg, .writer = data_jsonschema_write},
+    {.pattern = string_static("bt.btschema"),     .source = asset_behavior_datareg,    .writer = data_treeschema_write},
+    {.pattern = string_static("bt.schema.json"),  .source = asset_behavior_datareg,    .writer = data_jsonschema_write},
+    {.pattern = string_static("dcl.schema.json"), .source = asset_decal_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("ftx.schema.json"), .source = asset_ftx_datareg,         .writer = data_jsonschema_write},
+    {.pattern = string_static("gra.schema.json"), .source = asset_graphic_datareg,     .writer = data_jsonschema_write},
+    {.pattern = string_static("imp.schema.json"), .source = asset_inputmap_datareg,    .writer = data_jsonschema_write},
+    {.pattern = string_static("lvl.schema.json"), .source = asset_level_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("pfb.schema.json"), .source = asset_prefab_datareg,      .writer = data_jsonschema_write},
+    {.pattern = string_static("pme.schema.json"), .source = asset_mesh_pme_datareg,    .writer = data_jsonschema_write},
+    {.pattern = string_static("ptx.schema.json"), .source = asset_texture_ptx_datareg, .writer = data_jsonschema_write},
+    {.pattern = string_static("vfx.schema.json"), .source = asset_vfx_datareg,         .writer = data_jsonschema_write},
+    {.pattern = string_static("wea.schema.json"), .source = asset_weapon_datareg,      .writer = data_jsonschema_write},
 };
 // clang-format on
 

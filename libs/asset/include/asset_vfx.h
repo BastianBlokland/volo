@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_module.h"
 #include "geo_color.h"
@@ -90,3 +91,5 @@ ecs_comp_extern_public(AssetVfxComp) {
   u32              emitterCount;
   AssetVfxEmitter* emitters;
 };
+
+AssetDataReg asset_vfx_datareg();

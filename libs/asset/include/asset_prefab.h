@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
@@ -216,3 +217,5 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
+
+AssetDataReg asset_prefab_datareg();

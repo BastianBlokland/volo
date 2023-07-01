@@ -710,3 +710,11 @@ Error:
   data_destroy(g_dataReg, g_alloc_heap, g_dataAtxDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
+
+AssetDataReg asset_texture_atx_datareg() {
+  atx_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataAtxDefMeta,
+  };
+}

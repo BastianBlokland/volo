@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
@@ -131,3 +132,5 @@ ecs_comp_extern_public(AssetGraphicComp) {
    */
   f32 blendConstant;
 };
+
+AssetDataReg asset_graphic_datareg();

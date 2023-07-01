@@ -177,3 +177,11 @@ Cleanup:
   data_destroy(g_dataReg, g_alloc_heap, g_dataDecalDefMeta, mem_var(decalDef));
   asset_repo_source_close(src);
 }
+
+AssetDataReg asset_decal_datareg() {
+  decal_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataDecalDefMeta,
+  };
+}

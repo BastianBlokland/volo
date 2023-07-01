@@ -800,3 +800,11 @@ u16 asset_prefab_get_index_from_user(const AssetPrefabMapComp* map, const u16 us
   diag_assert(userIndex < map->prefabCount);
   return map->userIndexLookup[userIndex];
 }
+
+AssetDataReg asset_prefab_datareg() {
+  prefab_datareg_init();
+  return (AssetDataReg){
+      .registry = g_dataReg,
+      .typeMeta = g_dataMapDefMeta,
+  };
+}

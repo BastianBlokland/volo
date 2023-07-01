@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_data.h"
 #include "core_time.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
@@ -105,3 +106,5 @@ bool asset_weapon_apply_burning(const AssetWeaponMapComp* map, const AssetWeapon
  * Lookup a weapon by the hash of its name.
  */
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp*, StringHash nameHash);
+
+AssetDataReg asset_weapon_datareg();
