@@ -16,11 +16,38 @@
  *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
-static bool btschema_write(const String path) {
+typedef AssetDataReg (*SchemaDataRegLookup)();
+typedef void (*SchemaWriter)(const DataReg*, DynString*, DataMeta);
+
+typedef struct {
+  String              pattern;
+  SchemaDataRegLookup source;
+  SchemaWriter        writer;
+} SchemaConfig;
+
+// clang-format off
+static const SchemaConfig g_schemaConfigs[] = {
+    {.pattern = string_static("*.btschema"), .source = asset_behavior_datareg, .writer = data_treeschema_write},
+};
+// clang-format on
+
+static const SchemaConfig* scheme_for_path(const String path) {
+  const String fileName = path_filename(path);
+  array_for_t(g_schemaConfigs, SchemaConfig, config) {
+    if (string_match_glob(fileName, config->pattern, StringMatchFlags_IgnoreCase)) {
+      return config;
+    }
+  }
+  return null;
+}
+
+bool scheme_validate_path(const String input) { return scheme_for_path(input) != null; }
+
+static bool schema_write(const SchemaConfig* config, const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
-  const AssetDataReg behaviorReg = asset_behavior_datareg();
-  data_treeschema_write(behaviorReg.registry, &dynString, behaviorReg.typeMeta);
+  const AssetDataReg dataReg = config->source();
+  config->writer(dataReg.registry, &dynString, dataReg.typeMeta);
 
   FileResult res;
   if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {
@@ -41,6 +68,7 @@ void app_cli_configure(CliApp* app) {
 
   g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_Required);
   cli_register_desc(app, g_outFlag, string_lit("Output path."));
+  cli_register_validator(app, g_outFlag, scheme_validate_path);
 
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
@@ -59,7 +87,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const String outPathRaw = cli_read_string(invoc, g_outFlag, string_empty);
   const String outPath    = path_build_scratch(outPathRaw);
 
+  const SchemaConfig* config = scheme_for_path(outPath);
+  if (!config) {
+    log_e("Unable to determine schema type", log_param("path", fmt_path(outPath)));
+    return 1;
+  }
+
   log_i("Generating schema file", log_param("path", fmt_path(outPath)));
 
-  return btschema_write(outPath) ? 0 : 1;
+  return schema_write(config, outPath) ? 0 : 1;
 }
