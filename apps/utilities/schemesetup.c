@@ -15,8 +15,6 @@
  *               https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
-#define btschema_default_path "ai.btschema"
-
 static bool btschema_write(const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);
 
@@ -39,9 +37,8 @@ static CliId g_outFlag, g_helpFlag;
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Utility to generate schema files."));
 
-  g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_Value);
-  cli_register_desc(
-      app, g_outFlag, string_lit("Output path (Default: '" btschema_default_path "')."));
+  g_outFlag = cli_register_flag(app, 'o', string_lit("out"), CliOptionFlags_Required);
+  cli_register_desc(app, g_outFlag, string_lit("Output path."));
 
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
@@ -57,7 +54,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
-  const String outPathRaw = cli_read_string(invoc, g_outFlag, string_lit(btschema_default_path));
+  const String outPathRaw = cli_read_string(invoc, g_outFlag, string_empty);
   const String outPath    = path_build_scratch(outPathRaw);
 
   log_i("Generating schema file", log_param("path", fmt_path(outPath)));
