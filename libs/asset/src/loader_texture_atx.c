@@ -217,8 +217,8 @@ static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
     res.coordX = dir.x < 0.0 ? dir.z : -dir.z;
     res.coordY = dir.y;
   }
-  res.coordX = res.coordX * scale + 0.5f;
-  res.coordY = res.coordY * scale + 0.5f;
+  res.coordX = math_max(0, res.coordX * scale + 0.5f);
+  res.coordY = math_max(0, res.coordY * scale + 0.5f);
   return res;
 }
 

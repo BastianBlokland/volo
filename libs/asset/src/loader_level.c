@@ -26,6 +26,12 @@ static void level_datareg_init() {
     data_reg_field_t(reg, GeoVector, y, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
+    data_reg_struct_t(reg, GeoQuat);
+    data_reg_field_t(reg, GeoQuat, x, data_prim_t(f32));
+    data_reg_field_t(reg, GeoQuat, y, data_prim_t(f32));
+    data_reg_field_t(reg, GeoQuat, z, data_prim_t(f32));
+    data_reg_field_t(reg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+
     data_reg_enum_t(reg, AssetLevelFaction);
     data_reg_const_t(reg, AssetLevelFaction, A);
     data_reg_const_t(reg, AssetLevelFaction, B);
@@ -38,7 +44,7 @@ static void level_datareg_init() {
     data_reg_field_t(reg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetLevelObject, faction, t_AssetLevelFaction);
     data_reg_field_t(reg, AssetLevelObject, position, t_GeoVector);
-    data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoVector);
+    data_reg_field_t(reg, AssetLevelObject, rotation, t_GeoQuat);
     data_reg_field_t(reg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetLevel);

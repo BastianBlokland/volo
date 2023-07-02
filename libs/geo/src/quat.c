@@ -140,6 +140,22 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 #endif
 }
 
+GeoQuat geo_quat_norm_or_ident(const GeoQuat q) {
+  const f32 magSqr = geo_quat_dot(q, q);
+  if (magSqr < f32_epsilon) {
+    return geo_quat_ident;
+  }
+#if geo_quat_simd_enable
+  const SimdVec mag = simd_vec_sqrt(simd_vec_broadcast(magSqr));
+  GeoQuat       res;
+  simd_vec_store(simd_vec_div(simd_vec_load(q.comps), mag), res.comps);
+  return res;
+#else
+  const f32 mag = intrinsic_sqrt_f32(magSqr);
+  return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+#endif
+}
+
 f32 geo_quat_dot(const GeoQuat a, const GeoQuat b) {
 #if geo_quat_simd_enable
   return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));

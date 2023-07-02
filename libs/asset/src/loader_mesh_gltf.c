@@ -1168,7 +1168,7 @@ static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChan
    */
 
   for (u32 i = 0; i != ch->frameCount; ++i) {
-    rotPoses[i] = geo_quat_norm(rotPoses[i]);
+    rotPoses[i] = geo_quat_norm_or_ident(rotPoses[i]);
     if (i && geo_quat_dot(rotPoses[i], rotPoses[i - 1]) < 0) {
       // Compensate for quaternion double-cover (two quaternions representing the same rotation).
       rotPoses[i] = geo_quat_flip(rotPoses[i]);

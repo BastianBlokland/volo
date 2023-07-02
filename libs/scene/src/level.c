@@ -72,16 +72,14 @@ static void scene_level_process_unload(EcsWorld* world, EcsView* instView) {
 
 static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
-    const StringHash prefabId    = string_hash(obj->prefab);
-    const GeoVector  rotAngleRad = geo_vector_mul(obj->rotation, math_deg_to_rad);
-    const GeoQuat    rot         = geo_quat_from_euler(rotAngleRad);
+    const StringHash prefabId = string_hash(obj->prefab);
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
             .id       = obj->id,
             .prefabId = prefabId,
             .position = obj->position,
-            .rotation = rot,
+            .rotation = geo_quat_norm_or_ident(obj->rotation),
             .scale    = obj->scale,
             .faction  = (SceneFaction)obj->faction,
         });
@@ -188,14 +186,11 @@ static void scene_level_object_push(
     return;
   }
 
-  const GeoQuat   rot         = maybeTrans ? maybeTrans->rotation : geo_quat_ident;
-  const GeoVector rotEulerDeg = geo_vector_mul(geo_quat_to_euler(rot), math_rad_to_deg);
-
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
       .prefab   = prefabName,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
-      .rotation = rotEulerDeg,
+      .rotation = geo_quat_norm(maybeTrans ? maybeTrans->rotation : geo_quat_ident),
       .scale    = maybeScale ? maybeScale->scale : 1.0f,
       .faction  = (AssetLevelFaction)(maybeFaction ? maybeFaction->id : SceneFaction_None),
   };

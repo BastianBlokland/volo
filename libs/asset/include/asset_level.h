@@ -2,7 +2,7 @@
 #include "asset_data.h"
 #include "core_sentinel.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
+#include "geo_quat.h"
 
 // Forward declare from 'asset_manager.h'.
 ecs_comp_extern(AssetManagerComp);
@@ -23,7 +23,7 @@ typedef struct {
   AssetLevelFaction faction;
   f32               scale;
   GeoVector         position;
-  GeoVector         rotation; // xyz: Euler angles in degrees.
+  GeoQuat           rotation;
 } AssetLevelObject;
 
 typedef struct {
