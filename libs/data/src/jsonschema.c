@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_unicode.h"
 #include "data_schema.h"
 #include "json_doc.h"
 #include "json_write.h"
@@ -9,6 +10,7 @@
 #include "registry_internal.h"
 
 #define jsonschema_max_types 512
+#define jsonschema_snippet_len_max (8 * usize_kibibyte)
 
 typedef struct {
   const DataReg* reg;
@@ -16,6 +18,188 @@ typedef struct {
   BitSet         addedDefs;
   JsonVal        rootObj, defsObj;
 } JsonSchemaCtx;
+
+static JsonVal schema_default_type(const JsonSchemaCtx*, DataMeta);
+
+static JsonVal schema_default_number(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  return json_add_number(ctx->doc, meta.flags & DataFlags_NotEmpty ? 1.0 : 0.0);
+}
+
+static JsonVal schema_default_string(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const String str = meta.flags & DataFlags_NotEmpty ? string_lit("placeholder") : string_empty;
+  return json_add_string(ctx->doc, str);
+}
+
+static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Struct);
+
+  const JsonVal obj = json_add_object(ctx->doc);
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
+    if (fieldDecl->meta.flags & DataFlags_Opt) {
+      continue;
+    }
+    const JsonVal fieldVal = schema_default_type(ctx, fieldDecl->meta);
+    json_add_field_str(ctx->doc, obj, fieldDecl->id.name, fieldVal);
+  }
+  return obj;
+}
+
+static JsonVal schema_default_union_choice(const JsonSchemaCtx* ctx, const DataDeclChoice* choice) {
+  const JsonVal obj = json_add_object(ctx->doc);
+
+  const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
+  json_add_field_lit(ctx->doc, obj, "$type", typeStr);
+
+  if (choice->meta.type) {
+    const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
+    if (choiceDecl->kind == DataKind_Struct) {
+      /**
+       * Struct fields are inlined into the current json object.
+       */
+      dynarray_for_t(&choiceDecl->val_struct.fields, DataDeclField, fieldDecl) {
+        if (fieldDecl->meta.flags & DataFlags_Opt) {
+          continue;
+        }
+        const JsonVal fieldVal = schema_default_type(ctx, fieldDecl->meta);
+        json_add_field_str(ctx->doc, obj, fieldDecl->id.name, fieldVal);
+      }
+    } else {
+      /**
+       * For other data-kinds the data is stored on a $data property.
+       */
+      const JsonVal dataVal = schema_default_type(ctx, choice->meta);
+      json_add_field_lit(ctx->doc, obj, "$data", dataVal);
+    }
+  }
+
+  return obj;
+}
+
+static JsonVal schema_default_union(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Union);
+
+  const DynArray* choices = &decl->val_union.choices;
+  if (!dynarray_size(choices)) {
+    return json_add_null(ctx->doc);
+  }
+  return schema_default_union_choice(ctx, dynarray_at_t(choices, 0, DataDeclChoice));
+}
+
+static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Enum);
+
+  const DynArray* consts = &decl->val_enum.consts;
+  if (!dynarray_size(consts)) {
+    return json_add_null(ctx->doc);
+  }
+  return json_add_string(ctx->doc, dynarray_at_t(consts, 0, DataDeclConst)->id.name);
+}
+
+static JsonVal schema_default_array(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const JsonVal arr = json_add_array(ctx->doc);
+  if (meta.flags & DataFlags_NotEmpty) {
+    json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
+  }
+  return arr;
+}
+
+static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+  case DataContainer_Pointer: {
+    const DataDecl* decl = data_decl(ctx->reg, meta.type);
+    switch (decl->kind) {
+    case DataKind_bool:
+      return json_add_bool(ctx->doc, false);
+      break;
+    case DataKind_i8:
+    case DataKind_i16:
+    case DataKind_i32:
+    case DataKind_i64:
+    case DataKind_u8:
+    case DataKind_u16:
+    case DataKind_u32:
+    case DataKind_u64:
+    case DataKind_f32:
+    case DataKind_f64:
+      return schema_default_number(ctx, meta);
+    case DataKind_String:
+      return schema_default_string(ctx, meta);
+    case DataKind_Struct:
+      return schema_default_struct(ctx, meta);
+    case DataKind_Union:
+      return schema_default_union(ctx, meta);
+    case DataKind_Enum:
+      return schema_default_enum(ctx, meta);
+    case DataKind_Invalid:
+    case DataKind_Count:
+      UNREACHABLE
+    }
+  } break;
+  case DataContainer_Array:
+    return schema_default_array(ctx, meta);
+  }
+  UNREACHABLE
+}
+
+static String schema_snippet_stringify_scratch(const JsonSchemaCtx* ctx, const JsonVal val) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, jsonschema_snippet_len_max, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  /**
+   * Prefix with a caret '^' to prevent the VSCode json language server from stringifying it again.
+   * https://code.visualstudio.com/Docs/languages/json#_define-snippets-in-json-schemas
+   */
+  dynstring_append_char(&str, '^');
+
+  /**
+   * Escape dollar-signs as those are used for variable replacement in the VSCode snippet syntax.
+   * https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables
+   */
+  const JsonWriteFlags jsonWriteFlags = JsonWriteFlags_Pretty | JsonWriteFlags_EscapeDollarSign;
+
+  json_write(&str, ctx->doc, val, &json_write_opts(.flags = jsonWriteFlags));
+
+  return dynstring_view(&str);
+}
+
+static void
+schema_snippet_add_default(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const JsonVal snippetsArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "defaultSnippets", snippetsArr);
+
+  const JsonVal defaultSnippetObj = json_add_object(ctx->doc);
+  json_add_elem(ctx->doc, snippetsArr, defaultSnippetObj);
+  json_add_field_lit(ctx->doc, defaultSnippetObj, "label", json_add_string_lit(ctx->doc, "New"));
+
+  const JsonVal defaultVal = schema_default_type(ctx, meta);
+  const String  snippetStr = schema_snippet_stringify_scratch(ctx, defaultVal);
+  json_add_field_lit(ctx->doc, defaultSnippetObj, "body", json_add_string(ctx->doc, snippetStr));
+}
+
+static void
+scheme_snippet_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Union);
+
+  const JsonVal snippetsArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "defaultSnippets", snippetsArr);
+
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+
+    const JsonVal choiceSnippetObj = json_add_object(ctx->doc);
+    json_add_elem(ctx->doc, snippetsArr, choiceSnippetObj);
+    const String labelStr = fmt_write_scratch("New {}", fmt_text(choice->id.name));
+    json_add_field_lit(ctx->doc, choiceSnippetObj, "label", json_add_string(ctx->doc, labelStr));
+
+    const JsonVal defaultVal = schema_default_union_choice(ctx, choice);
+    const String  snippetStr = schema_snippet_stringify_scratch(ctx, defaultVal);
+    json_add_field_lit(ctx->doc, choiceSnippetObj, "body", json_add_string(ctx->doc, snippetStr));
+  }
+}
 
 static void schema_add_type(const JsonSchemaCtx*, JsonVal, DataMeta);
 
@@ -98,6 +282,8 @@ static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const
 
     schema_add_type(ctx, fieldObj, fieldDecl->meta);
   }
+
+  schema_snippet_add_default(ctx, obj, meta);
 }
 
 static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
@@ -160,10 +346,13 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
       schema_add_type(ctx, dataObj, choice->meta);
     }
   }
+
+  scheme_snippet_add_union(ctx, obj, meta);
 }
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Enum);
 
   const JsonVal enumKeysArr = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, obj, "enum", enumKeysArr);

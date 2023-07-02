@@ -21,6 +21,12 @@
       },
       "required": [
         "actions"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"actions\": []\n}"
+        }
       ]
     },
     "AssetInputActionDef": {
@@ -51,6 +57,12 @@
       "required": [
         "name",
         "bindings"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"bindings\": [\n    {\n      \"type\": \"Pressed\",\n      \"key\": \"MouseLeft\"\n    }\n  ]\n}"
+        }
       ]
     },
     "AssetInputBlocker": {
@@ -92,6 +104,12 @@
       "required": [
         "type",
         "key"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"type\": \"Pressed\",\n  \"key\": \"MouseLeft\"\n}"
+        }
       ]
     },
     "AssetInputType": {

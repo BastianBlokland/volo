@@ -50,6 +50,12 @@
         "frequency",
         "power",
         "seed"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"type\": \"One\",\n  \"channels\": \"One\",\n  \"size\": 1,\n  \"frequency\": 1,\n  \"power\": 1,\n  \"seed\": 1\n}"
+        }
       ]
     },
     "PtxType": {

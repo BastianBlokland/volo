@@ -58,6 +58,12 @@
         "entrySize",
         "entryPadding",
         "entries"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"size\": 1,\n  \"entrySize\": 1,\n  \"entryPadding\": 0,\n  \"entries\": [\n    {\n      \"name\": \"placeholder\",\n      \"texture\": \"placeholder\"\n    }\n  ]\n}"
+        }
       ]
     },
     "AtlasColor": {
@@ -94,6 +100,12 @@
         "g",
         "b",
         "a"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
+        }
       ]
     },
     "AtlasEntryDef": {
@@ -102,16 +114,24 @@
       "properties": {
         "name": {
           "title": "String",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "texture": {
           "title": "String",
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
         "name",
         "texture"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"texture\": \"placeholder\"\n}"
+        }
       ]
     }
   }

@@ -242,6 +242,52 @@
             "script"
           ]
         }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetAiNode_Running",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Running\"\n}"
+        },
+        {
+          "label": "New AssetAiNode_Success",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Success\"\n}"
+        },
+        {
+          "label": "New AssetAiNode_Failure",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Failure\"\n}"
+        },
+        {
+          "label": "New AssetAiNode_Invert",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Invert\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
+        },
+        {
+          "label": "New AssetAiNode_Try",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Try\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
+        },
+        {
+          "label": "New AssetAiNode_Repeat",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Repeat\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
+        },
+        {
+          "label": "New AssetAiNode_Parallel",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Parallel\",\n  \"children\": []\n}"
+        },
+        {
+          "label": "New AssetAiNode_Selector",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Selector\",\n  \"children\": []\n}"
+        },
+        {
+          "label": "New AssetAiNode_Sequence",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Sequence\",\n  \"children\": []\n}"
+        },
+        {
+          "label": "New AssetAiNode_Condition",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Condition\",\n  \"script\": \"\"\n}"
+        },
+        {
+          "label": "New AssetAiNode_Execute",
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Execute\",\n  \"script\": \"\"\n}"
+        }
       ]
     }
   }
