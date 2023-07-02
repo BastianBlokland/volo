@@ -658,8 +658,6 @@ ecs_system_define(DebugGizmoUpdateSys) {
     // Determine the gizmo size based on the distance from the camera to the gizmo center.
     const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));
     gizmo->size    = math_clamp_f32(dist * g_gizmoSizePerDistance, g_gizmoSizeMin, g_gizmoSizeMax);
-  } else {
-    gizmo->size = 1.0f;
   }
 
   // Update input blockers.
