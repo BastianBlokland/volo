@@ -634,6 +634,160 @@
             "$type"
           ]
         }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetPrefabTrait_Name",
+          "body": {
+            "$type": "AssetPrefabTrait_Name",
+            "name": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Renderable",
+          "body": {
+            "$type": "AssetPrefabTrait_Renderable",
+            "graphicId": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Vfx",
+          "body": {
+            "$type": "AssetPrefabTrait_Vfx",
+            "assetId": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Decal",
+          "body": {
+            "$type": "AssetPrefabTrait_Decal",
+            "assetId": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Sound",
+          "body": {
+            "$type": "AssetPrefabTrait_Sound",
+            "assetIds": [
+              ""
+            ]
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Lifetime",
+          "body": {
+            "$type": "AssetPrefabTrait_Lifetime",
+            "duration": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Movement",
+          "body": {
+            "$type": "AssetPrefabTrait_Movement",
+            "speed": 1,
+            "rotationSpeed": 1,
+            "radius": 1,
+            "moveAnimation": ""
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Footstep",
+          "body": {
+            "$type": "AssetPrefabTrait_Footstep",
+            "jointA": "placeholder",
+            "jointB": "placeholder",
+            "decalIdA": "placeholder",
+            "decalIdB": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Health",
+          "body": {
+            "$type": "AssetPrefabTrait_Health",
+            "amount": 1,
+            "deathDestroyDelay": 0
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Attack",
+          "body": {
+            "$type": "AssetPrefabTrait_Attack",
+            "weaponId": "placeholder",
+            "targetDistanceMax": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Collision",
+          "body": {
+            "$type": "AssetPrefabTrait_Collision",
+            "navBlocker": false,
+            "shape": {
+              "$type": "AssetPrefabShape_Sphere",
+              "radius": 1
+            }
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Brain",
+          "body": {
+            "$type": "AssetPrefabTrait_Brain",
+            "behaviorId": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Spawner",
+          "body": {
+            "$type": "AssetPrefabTrait_Spawner",
+            "prefabId": "placeholder",
+            "count": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Blink",
+          "body": {
+            "$type": "AssetPrefabTrait_Blink",
+            "frequency": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Taunt",
+          "body": {
+            "$type": "AssetPrefabTrait_Taunt"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Location",
+          "body": {
+            "$type": "AssetPrefabTrait_Location"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Explosive",
+          "body": {
+            "$type": "AssetPrefabTrait_Explosive",
+            "radius": 1,
+            "damage": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Status",
+          "body": {
+            "$type": "AssetPrefabTrait_Status"
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Vision",
+          "body": {
+            "$type": "AssetPrefabTrait_Vision",
+            "radius": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabTrait_Scalable",
+          "body": {
+            "$type": "AssetPrefabTrait_Scalable"
+          }
+        }
       ]
     },
     "AssetPrefabShapeDef": {
@@ -715,6 +869,31 @@
             "min",
             "max"
           ]
+        }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetPrefabShape_Sphere",
+          "body": {
+            "$type": "AssetPrefabShape_Sphere",
+            "radius": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabShape_Capsule",
+          "body": {
+            "$type": "AssetPrefabShape_Capsule",
+            "radius": 1,
+            "height": 1
+          }
+        },
+        {
+          "label": "New AssetPrefabShape_Box",
+          "body": {
+            "$type": "AssetPrefabShape_Box",
+            "min": {},
+            "max": {}
+          }
         }
       ]
     },

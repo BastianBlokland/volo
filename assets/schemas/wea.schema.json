@@ -363,6 +363,58 @@
             "originJoint"
           ]
         }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetWeaponEffect_Projectile",
+          "body": {
+            "$type": "AssetWeaponEffect_Projectile",
+            "originJoint": "placeholder",
+            "delay": 0,
+            "spreadAngle": 0,
+            "speed": 1,
+            "damage": 1,
+            "projectilePrefab": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetWeaponEffect_Damage",
+          "body": {
+            "$type": "AssetWeaponEffect_Damage",
+            "originJoint": "placeholder",
+            "delay": 0,
+            "radius": 1
+          }
+        },
+        {
+          "label": "New AssetWeaponEffect_Animation",
+          "body": {
+            "$type": "AssetWeaponEffect_Animation",
+            "layer": "placeholder",
+            "delay": 0,
+            "speed": 1
+          }
+        },
+        {
+          "label": "New AssetWeaponEffect_Vfx",
+          "body": {
+            "$type": "AssetWeaponEffect_Vfx",
+            "assetId": "placeholder",
+            "delay": 0,
+            "duration": 0,
+            "originJoint": "placeholder"
+          }
+        },
+        {
+          "label": "New AssetWeaponEffect_Sound",
+          "body": {
+            "$type": "AssetWeaponEffect_Sound",
+            "assetId": "placeholder",
+            "delay": 0,
+            "duration": 0,
+            "originJoint": "placeholder"
+          }
+        }
       ]
     }
   }

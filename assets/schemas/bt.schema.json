@@ -242,6 +242,88 @@
             "script"
           ]
         }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetAiNode_Running",
+          "body": {
+            "$type": "AssetAiNode_Running"
+          }
+        },
+        {
+          "label": "New AssetAiNode_Success",
+          "body": {
+            "$type": "AssetAiNode_Success"
+          }
+        },
+        {
+          "label": "New AssetAiNode_Failure",
+          "body": {
+            "$type": "AssetAiNode_Failure"
+          }
+        },
+        {
+          "label": "New AssetAiNode_Invert",
+          "body": {
+            "$type": "AssetAiNode_Invert",
+            "child": {
+              "$type": "AssetAiNode_Running"
+            }
+          }
+        },
+        {
+          "label": "New AssetAiNode_Try",
+          "body": {
+            "$type": "AssetAiNode_Try",
+            "child": {
+              "$type": "AssetAiNode_Running"
+            }
+          }
+        },
+        {
+          "label": "New AssetAiNode_Repeat",
+          "body": {
+            "$type": "AssetAiNode_Repeat",
+            "child": {
+              "$type": "AssetAiNode_Running"
+            }
+          }
+        },
+        {
+          "label": "New AssetAiNode_Parallel",
+          "body": {
+            "$type": "AssetAiNode_Parallel",
+            "children": []
+          }
+        },
+        {
+          "label": "New AssetAiNode_Selector",
+          "body": {
+            "$type": "AssetAiNode_Selector",
+            "children": []
+          }
+        },
+        {
+          "label": "New AssetAiNode_Sequence",
+          "body": {
+            "$type": "AssetAiNode_Sequence",
+            "children": []
+          }
+        },
+        {
+          "label": "New AssetAiNode_Condition",
+          "body": {
+            "$type": "AssetAiNode_Condition",
+            "script": ""
+          }
+        },
+        {
+          "label": "New AssetAiNode_Execute",
+          "body": {
+            "$type": "AssetAiNode_Execute",
+            "script": ""
+          }
+        }
       ]
     }
   }

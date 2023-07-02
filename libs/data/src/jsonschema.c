@@ -154,6 +154,25 @@ schema_add_default_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   json_add_field_lit(ctx->doc, defaultSnippetObj, "body", schema_default_type(ctx, meta));
 }
 
+static void
+scheme_add_union_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Union);
+
+  const JsonVal snippetsArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "defaultSnippets", snippetsArr);
+
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+
+    const JsonVal choiceSnippetObj = json_add_object(ctx->doc);
+    json_add_elem(ctx->doc, snippetsArr, choiceSnippetObj);
+    const String labelStr = fmt_write_scratch("New {}", fmt_text(choice->id.name));
+    json_add_field_lit(ctx->doc, choiceSnippetObj, "label", json_add_string(ctx->doc, labelStr));
+    json_add_field_lit(
+        ctx->doc, choiceSnippetObj, "body", schema_default_union_choice(ctx, choice));
+  }
+}
+
 static void schema_add_type(const JsonSchemaCtx*, JsonVal, DataMeta);
 
 static f64 schema_integer_min(const DataKind kind) {
@@ -299,6 +318,8 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
       schema_add_type(ctx, dataObj, choice->meta);
     }
   }
+
+  scheme_add_union_snippets(ctx, obj, meta);
 }
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
