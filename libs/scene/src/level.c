@@ -79,7 +79,7 @@ static void scene_level_process_load(EcsWorld* world, const AssetLevel* level) {
             .id       = obj->id,
             .prefabId = prefabId,
             .position = obj->position,
-            .rotation = geo_quat_norm(obj->rotation),
+            .rotation = geo_quat_norm_or_ident(obj->rotation),
             .scale    = obj->scale,
             .faction  = (SceneFaction)obj->faction,
         });
