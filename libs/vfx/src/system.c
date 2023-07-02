@@ -307,8 +307,24 @@ static u32 vfx_emitter_count(const AssetVfxEmitter* emitterAsset, const TimeDura
 }
 
 static void vfx_system_reset(VfxSystemStateComp* state) {
+  /**
+   * Reset the spawn-state so that instances will be re-spawned.
+   */
   state->emitAge = 0;
   array_for_t(state->emitters, VfxEmitterState, emitter) { emitter->spawnCount = 0; }
+
+  /**
+   * Delete instances with very long (possibly infinite) lifetimes.
+   * NOTE: Alternatively we could simply delete all instances, however when working on a particle
+   * system with fast dying particles (for example fire) its less intrusive to simply let those old
+   * instances die on their own.
+   */
+  for (u32 i = (u32)state->instances.size; i-- != 0;) {
+    const VfxSystemInstance* instance = dynarray_at_t(&state->instances, i, VfxSystemInstance);
+    if (instance->lifetimeSec > 60.0f) {
+      dynarray_remove_unordered(&state->instances, i, 1);
+    }
+  }
 }
 
 static void vfx_system_simulate(

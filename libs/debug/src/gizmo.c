@@ -655,11 +655,11 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
     gizmo_update_interaction(gizmo, stats, grid, input, terrain, window, camera, cameraTrans);
 
-    // Determine the gizmo size based on the distance from the camera to the gizmo center.
-    const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));
-    gizmo->size    = math_clamp_f32(dist * g_gizmoSizePerDistance, g_gizmoSizeMin, g_gizmoSizeMax);
-  } else {
-    gizmo->size = 1.0f;
+    if (gizmo->entries.size) {
+      // Determine the gizmo size based on the distance from the camera to the gizmo center.
+      const f32 dist = geo_vector_mag(geo_vector_sub(center, cameraTrans->position));
+      gizmo->size = math_clamp_f32(dist * g_gizmoSizePerDistance, g_gizmoSizeMin, g_gizmoSizeMax);
+    }
   }
 
   // Update input blockers.
