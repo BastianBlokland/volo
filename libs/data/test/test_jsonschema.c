@@ -217,6 +217,7 @@ spec(jsonschema) {
 
     const DataMeta meta = data_meta_t(t_TestStruct);
 
+    // clang-format off
     test_jsonschema_write(
         _testCtx,
         reg,
@@ -250,16 +251,13 @@ spec(jsonschema) {
                    "      \"defaultSnippets\": [\n"
                    "        {\n"
                    "          \"label\": \"New\",\n"
-                   "          \"body\": {\n"
-                   "            \"valA\": false,\n"
-                   "            \"valB\": \"\",\n"
-                   "            \"valC\": 0\n"
-                   "          }\n"
+                   "          \"body\": \"^{\\n  \\\"valA\\\": false,\\n  \\\"valB\\\": \\\"\\\",\\n  \\\"valC\\\": 0\\n}\"\n"
                    "        }\n"
                    "      ]\n"
                    "    }\n"
                    "  }\n"
                    "}"));
+    // clang-format on
   }
 
   teardown() { data_reg_destroy(reg); }

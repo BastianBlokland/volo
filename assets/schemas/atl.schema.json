@@ -62,17 +62,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "size": 1,
-            "entrySize": 1,
-            "entryPadding": 0,
-            "entries": [
-              {
-                "name": "placeholder",
-                "texture": "placeholder"
-              }
-            ]
-          }
+          "body": "^{\n  \"size\": 1,\n  \"entrySize\": 1,\n  \"entryPadding\": 0,\n  \"entries\": [\n    {\n      \"name\": \"placeholder\",\n      \"texture\": \"placeholder\"\n    }\n  ]\n}"
         }
       ]
     },
@@ -114,12 +104,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "r": 0,
-            "g": 0,
-            "b": 0,
-            "a": 0
-          }
+          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
         }
       ]
     },
@@ -145,10 +130,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "name": "placeholder",
-            "texture": "placeholder"
-          }
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"texture\": \"placeholder\"\n}"
         }
       ]
     }

@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_unicode.h"
 #include "data_schema.h"
 #include "json_doc.h"
 #include "json_write.h"
@@ -9,6 +10,7 @@
 #include "registry_internal.h"
 
 #define jsonschema_max_types 512
+#define jsonschema_snippet_len_max (8 * usize_kibibyte)
 
 typedef struct {
   const DataReg* reg;
@@ -143,19 +145,37 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
   UNREACHABLE
 }
 
+static String schema_snippet_stringify_scratch(const JsonSchemaCtx* ctx, const JsonVal val) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, jsonschema_snippet_len_max, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  /**
+   * Prefix with a caret '^' to prevent the VSCode json language server from stringifying it again.
+   * https://code.visualstudio.com/Docs/languages/json#_define-snippets-in-json-schemas
+   */
+  dynstring_append_char(&str, '^');
+
+  json_write(&str, ctx->doc, val, &json_write_opts());
+
+  return dynstring_view(&str);
+}
+
 static void
-schema_add_default_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+schema_snippet_add_default(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   const JsonVal snippetsArr = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, obj, "defaultSnippets", snippetsArr);
 
   const JsonVal defaultSnippetObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, snippetsArr, defaultSnippetObj);
   json_add_field_lit(ctx->doc, defaultSnippetObj, "label", json_add_string_lit(ctx->doc, "New"));
-  json_add_field_lit(ctx->doc, defaultSnippetObj, "body", schema_default_type(ctx, meta));
+
+  const JsonVal defaultVal = schema_default_type(ctx, meta);
+  const String  snippetStr = schema_snippet_stringify_scratch(ctx, defaultVal);
+  json_add_field_lit(ctx->doc, defaultSnippetObj, "body", json_add_string(ctx->doc, snippetStr));
 }
 
 static void
-scheme_add_union_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+scheme_snippet_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Union);
 
@@ -168,8 +188,10 @@ scheme_add_union_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const Dat
     json_add_elem(ctx->doc, snippetsArr, choiceSnippetObj);
     const String labelStr = fmt_write_scratch("New {}", fmt_text(choice->id.name));
     json_add_field_lit(ctx->doc, choiceSnippetObj, "label", json_add_string(ctx->doc, labelStr));
-    json_add_field_lit(
-        ctx->doc, choiceSnippetObj, "body", schema_default_union_choice(ctx, choice));
+
+    const JsonVal defaultVal = schema_default_union_choice(ctx, choice);
+    const String  snippetStr = schema_snippet_stringify_scratch(ctx, defaultVal);
+    json_add_field_lit(ctx->doc, choiceSnippetObj, "body", json_add_string(ctx->doc, snippetStr));
   }
 }
 
@@ -255,7 +277,7 @@ static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const
     schema_add_type(ctx, fieldObj, fieldDecl->meta);
   }
 
-  schema_add_default_snippets(ctx, obj, meta);
+  schema_snippet_add_default(ctx, obj, meta);
 }
 
 static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
@@ -319,7 +341,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
     }
   }
 
-  scheme_add_union_snippets(ctx, obj, meta);
+  scheme_snippet_add_union(ctx, obj, meta);
 }
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {

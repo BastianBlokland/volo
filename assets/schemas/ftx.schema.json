@@ -51,18 +51,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "size": 1,
-            "glyphSize": 1,
-            "border": 0,
-            "baseline": 0,
-            "fonts": [
-              {
-                "id": "placeholder",
-                "characters": "placeholder"
-              }
-            ]
-          }
+          "body": "^{\n  \"size\": 1,\n  \"glyphSize\": 1,\n  \"border\": 0,\n  \"baseline\": 0,\n  \"fonts\": [\n    {\n      \"id\": \"placeholder\",\n      \"characters\": \"placeholder\"\n    }\n  ]\n}"
         }
       ]
     },
@@ -102,10 +91,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "id": "placeholder",
-            "characters": "placeholder"
-          }
+          "body": "^{\n  \"id\": \"placeholder\",\n  \"characters\": \"placeholder\"\n}"
         }
       ]
     }

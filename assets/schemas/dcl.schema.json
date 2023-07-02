@@ -94,13 +94,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "projectionAxis": "LocalY",
-            "colorAtlasEntry": "placeholder",
-            "roughness": 0,
-            "width": 1,
-            "height": 1
-          }
+          "body": "^{\n  \"projectionAxis\": \"LocalY\",\n  \"colorAtlasEntry\": \"placeholder\",\n  \"roughness\": 0,\n  \"width\": 1,\n  \"height\": 1\n}"
         }
       ]
     },

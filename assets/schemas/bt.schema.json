@@ -246,83 +246,47 @@
       "defaultSnippets": [
         {
           "label": "New AssetAiNode_Running",
-          "body": {
-            "$type": "AssetAiNode_Running"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Running\"\n}"
         },
         {
           "label": "New AssetAiNode_Success",
-          "body": {
-            "$type": "AssetAiNode_Success"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Success\"\n}"
         },
         {
           "label": "New AssetAiNode_Failure",
-          "body": {
-            "$type": "AssetAiNode_Failure"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Failure\"\n}"
         },
         {
           "label": "New AssetAiNode_Invert",
-          "body": {
-            "$type": "AssetAiNode_Invert",
-            "child": {
-              "$type": "AssetAiNode_Running"
-            }
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Invert\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
         },
         {
           "label": "New AssetAiNode_Try",
-          "body": {
-            "$type": "AssetAiNode_Try",
-            "child": {
-              "$type": "AssetAiNode_Running"
-            }
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Try\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
         },
         {
           "label": "New AssetAiNode_Repeat",
-          "body": {
-            "$type": "AssetAiNode_Repeat",
-            "child": {
-              "$type": "AssetAiNode_Running"
-            }
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Repeat\",\n  \"child\": {\n    \"\\$type\": \"AssetAiNode_Running\"\n  }\n}"
         },
         {
           "label": "New AssetAiNode_Parallel",
-          "body": {
-            "$type": "AssetAiNode_Parallel",
-            "children": []
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Parallel\",\n  \"children\": []\n}"
         },
         {
           "label": "New AssetAiNode_Selector",
-          "body": {
-            "$type": "AssetAiNode_Selector",
-            "children": []
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Selector\",\n  \"children\": []\n}"
         },
         {
           "label": "New AssetAiNode_Sequence",
-          "body": {
-            "$type": "AssetAiNode_Sequence",
-            "children": []
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Sequence\",\n  \"children\": []\n}"
         },
         {
           "label": "New AssetAiNode_Condition",
-          "body": {
-            "$type": "AssetAiNode_Condition",
-            "script": ""
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Condition\",\n  \"script\": \"\"\n}"
         },
         {
           "label": "New AssetAiNode_Execute",
-          "body": {
-            "$type": "AssetAiNode_Execute",
-            "script": ""
-          }
+          "body": "^{\n  \"\\$type\": \"AssetAiNode_Execute\",\n  \"script\": \"\"\n}"
         }
       ]
     }

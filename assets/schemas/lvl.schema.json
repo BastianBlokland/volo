@@ -20,9 +20,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "objects": []
-          }
+          "body": "^{\n  \"objects\": []\n}"
         }
       ]
     },
@@ -67,12 +65,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "prefab": "placeholder",
-            "faction": "A",
-            "position": {},
-            "rotation": {}
-          }
+          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {}\n}"
         }
       ]
     },
@@ -106,7 +99,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     }

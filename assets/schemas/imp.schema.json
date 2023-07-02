@@ -25,9 +25,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "actions": []
-          }
+          "body": "^{\n  \"actions\": []\n}"
         }
       ]
     },
@@ -63,15 +61,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "name": "placeholder",
-            "bindings": [
-              {
-                "type": "Pressed",
-                "key": "MouseLeft"
-              }
-            ]
-          }
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"bindings\": [\n    {\n      \"type\": \"Pressed\",\n      \"key\": \"MouseLeft\"\n    }\n  ]\n}"
         }
       ]
     },
@@ -118,10 +108,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "type": "Pressed",
-            "key": "MouseLeft"
-          }
+          "body": "^{\n  \"type\": \"Pressed\",\n  \"key\": \"MouseLeft\"\n}"
         }
       ]
     },

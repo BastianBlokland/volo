@@ -42,12 +42,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "type": "Array",
-            "textures": [
-              ""
-            ]
-          }
+          "body": "^{\n  \"type\": \"Array\",\n  \"textures\": [\n    \"\"\n  ]\n}"
         }
       ]
     },

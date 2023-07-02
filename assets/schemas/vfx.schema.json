@@ -25,9 +25,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "emitters": []
-          }
+          "body": "^{\n  \"emitters\": []\n}"
         }
       ]
     },
@@ -95,7 +93,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -126,7 +124,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -151,7 +149,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -176,7 +174,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -269,10 +267,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "atlasEntry": "placeholder",
-            "size": {}
-          }
+          "body": "^{\n  \"atlasEntry\": \"placeholder\",\n  \"size\": {}\n}"
         }
       ]
     },
@@ -306,12 +301,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "r": 0,
-            "g": 0,
-            "b": 0,
-            "a": 0
-          }
+          "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0,\n  \"a\": 0\n}"
         }
       ]
     },
@@ -346,7 +336,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -380,7 +370,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -401,7 +391,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -422,7 +412,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     },
@@ -445,7 +435,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {}
+          "body": "^{}"
         }
       ]
     }

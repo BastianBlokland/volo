@@ -91,13 +91,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "shaders": [
-              {
-                "shaderId": "placeholder"
-              }
-            ]
-          }
+          "body": "^{\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}"
         }
       ]
     },
@@ -124,9 +118,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "shaderId": "placeholder"
-          }
+          "body": "^{\n  \"shaderId\": \"placeholder\"\n}"
         }
       ]
     },
@@ -158,11 +150,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "name": "placeholder",
-            "binding": 0,
-            "value": 0
-          }
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"binding\": 0,\n  \"value\": 0\n}"
         }
       ]
     },
@@ -198,9 +186,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "textureId": "placeholder"
-          }
+          "body": "^{\n  \"textureId\": \"placeholder\"\n}"
         }
       ]
     },

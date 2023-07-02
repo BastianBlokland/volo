@@ -20,9 +20,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "weapons": []
-          }
+          "body": "^{\n  \"weapons\": []\n}"
         }
       ]
     },
@@ -89,14 +87,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "name": "placeholder",
-            "intervalMin": 0,
-            "intervalMax": 0,
-            "readySpeed": 0,
-            "readyMinTime": 0,
-            "effects": []
-          }
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"intervalMin\": 0,\n  \"intervalMax\": 0,\n  \"readySpeed\": 0,\n  \"readyMinTime\": 0,\n  \"effects\": []\n}"
         }
       ]
     },
@@ -367,53 +358,23 @@
       "defaultSnippets": [
         {
           "label": "New AssetWeaponEffect_Projectile",
-          "body": {
-            "$type": "AssetWeaponEffect_Projectile",
-            "originJoint": "placeholder",
-            "delay": 0,
-            "spreadAngle": 0,
-            "speed": 1,
-            "damage": 1,
-            "projectilePrefab": "placeholder"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Projectile\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"spreadAngle\": 0,\n  \"speed\": 1,\n  \"damage\": 1,\n  \"projectilePrefab\": \"placeholder\"\n}"
         },
         {
           "label": "New AssetWeaponEffect_Damage",
-          "body": {
-            "$type": "AssetWeaponEffect_Damage",
-            "originJoint": "placeholder",
-            "delay": 0,
-            "radius": 1
-          }
+          "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Damage\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"radius\": 1\n}"
         },
         {
           "label": "New AssetWeaponEffect_Animation",
-          "body": {
-            "$type": "AssetWeaponEffect_Animation",
-            "layer": "placeholder",
-            "delay": 0,
-            "speed": 1
-          }
+          "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Animation\",\n  \"layer\": \"placeholder\",\n  \"delay\": 0,\n  \"speed\": 1\n}"
         },
         {
           "label": "New AssetWeaponEffect_Vfx",
-          "body": {
-            "$type": "AssetWeaponEffect_Vfx",
-            "assetId": "placeholder",
-            "delay": 0,
-            "duration": 0,
-            "originJoint": "placeholder"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}"
         },
         {
           "label": "New AssetWeaponEffect_Sound",
-          "body": {
-            "$type": "AssetWeaponEffect_Sound",
-            "assetId": "placeholder",
-            "delay": 0,
-            "duration": 0,
-            "originJoint": "placeholder"
-          }
+          "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}"
         }
       ]
     }

@@ -72,10 +72,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "type": "Triangle",
-            "axis": "Up"
-          }
+          "body": "^{\n  \"type\": \"Triangle\",\n  \"axis\": \"Up\"\n}"
         }
       ]
     },
@@ -140,14 +137,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "minX": 0,
-            "minY": 0,
-            "minZ": 0,
-            "maxX": 0,
-            "maxY": 0,
-            "maxZ": 0
-          }
+          "body": "^{\n  \"minX\": 0,\n  \"minY\": 0,\n  \"minZ\": 0,\n  \"maxX\": 0,\n  \"maxY\": 0,\n  \"maxZ\": 0\n}"
         }
       ]
     }

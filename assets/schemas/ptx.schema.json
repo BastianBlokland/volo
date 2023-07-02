@@ -54,14 +54,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": {
-            "type": "One",
-            "channels": "One",
-            "size": 1,
-            "frequency": 1,
-            "power": 1,
-            "seed": 1
-          }
+          "body": "^{\n  \"type\": \"One\",\n  \"channels\": \"One\",\n  \"size\": 1,\n  \"frequency\": 1,\n  \"power\": 1,\n  \"seed\": 1\n}"
         }
       ]
     },
