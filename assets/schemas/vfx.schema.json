@@ -21,6 +21,14 @@
       },
       "required": [
         "emitters"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "emitters": []
+          }
+        }
       ]
     },
     "VfxEmitterDef": {
@@ -83,7 +91,13 @@
           "$ref": "#/$defs/VfxRangeRotationDef"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxConeDef": {
       "type": "object",
@@ -108,7 +122,13 @@
           "$ref": "#/$defs/VfxRotDef"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxVec3Def": {
       "type": "object",
@@ -127,7 +147,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxRotDef": {
       "type": "object",
@@ -146,7 +172,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "AssetVfxSpace": {
       "enum": [
@@ -233,6 +265,15 @@
       "required": [
         "atlasEntry",
         "size"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "atlasEntry": "placeholder",
+            "size": {}
+          }
+        }
       ]
     },
     "VfxColorDef": {
@@ -261,6 +302,17 @@
         "g",
         "b",
         "a"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "r": 0,
+            "g": 0,
+            "b": 0,
+            "a": 0
+          }
+        }
       ]
     },
     "AssetVfxBlend": {
@@ -290,7 +342,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxLightDef": {
       "type": "object",
@@ -318,7 +376,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxRangeScalarDef": {
       "type": "object",
@@ -333,7 +397,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxRangeDurationDef": {
       "type": "object",
@@ -348,7 +418,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     },
     "VfxRangeRotationDef": {
       "type": "object",
@@ -365,7 +441,13 @@
           "$ref": "#/$defs/VfxRotDef"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     }
   }
 }

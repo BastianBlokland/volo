@@ -68,6 +68,15 @@
       "required": [
         "type",
         "axis"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "type": "Triangle",
+            "axis": "Up"
+          }
+        }
       ]
     },
     "PmeType": {
@@ -127,6 +136,19 @@
         "maxX",
         "maxY",
         "maxZ"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "minX": 0,
+            "minY": 0,
+            "minZ": 0,
+            "maxX": 0,
+            "maxY": 0,
+            "maxZ": 0
+          }
+        }
       ]
     }
   }

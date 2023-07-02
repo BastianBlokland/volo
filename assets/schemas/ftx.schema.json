@@ -47,6 +47,23 @@
         "border",
         "baseline",
         "fonts"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "size": 1,
+            "glyphSize": 1,
+            "border": 0,
+            "baseline": 0,
+            "fonts": [
+              {
+                "id": "placeholder",
+                "characters": "placeholder"
+              }
+            ]
+          }
+        }
       ]
     },
     "FtxDefFont": {
@@ -81,6 +98,15 @@
       "required": [
         "id",
         "characters"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "id": "placeholder",
+            "characters": "placeholder"
+          }
+        }
       ]
     }
   }

@@ -90,6 +90,18 @@
         "roughness",
         "width",
         "height"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "projectionAxis": "LocalY",
+            "colorAtlasEntry": "placeholder",
+            "roughness": 0,
+            "width": 1,
+            "height": 1
+          }
+        }
       ]
     },
     "AssetDecalAxis": {

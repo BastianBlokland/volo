@@ -38,6 +38,17 @@
       "required": [
         "type",
         "textures"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "type": "Array",
+            "textures": [
+              ""
+            ]
+          }
+        }
       ]
     },
     "AtxType": {

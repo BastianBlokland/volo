@@ -16,6 +16,14 @@
       },
       "required": [
         "weapons"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "weapons": []
+          }
+        }
       ]
     },
     "AssetWeaponDef": {
@@ -77,6 +85,19 @@
         "readySpeed",
         "readyMinTime",
         "effects"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "name": "placeholder",
+            "intervalMin": 0,
+            "intervalMax": 0,
+            "readySpeed": 0,
+            "readyMinTime": 0,
+            "effects": []
+          }
+        }
       ]
     },
     "AssetWeaponEffectDef": {

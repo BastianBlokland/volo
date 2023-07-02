@@ -16,6 +16,14 @@
       },
       "required": [
         "objects"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "objects": []
+          }
+        }
       ]
     },
     "AssetLevelObject": {
@@ -55,6 +63,17 @@
         "faction",
         "position",
         "rotation"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "prefab": "placeholder",
+            "faction": "A",
+            "position": {},
+            "rotation": {}
+          }
+        }
       ]
     },
     "AssetLevelFaction": {
@@ -83,7 +102,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     }
   }
 }

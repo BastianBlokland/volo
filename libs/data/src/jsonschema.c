@@ -17,6 +17,101 @@ typedef struct {
   JsonVal        rootObj, defsObj;
 } JsonSchemaCtx;
 
+static JsonVal schema_default_type(const JsonSchemaCtx*, DataMeta);
+
+static JsonVal schema_default_number(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  return json_add_number(ctx->doc, meta.flags & DataFlags_NotEmpty ? 1.0 : 0.0);
+}
+
+static JsonVal schema_default_string(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const String str = meta.flags & DataFlags_NotEmpty ? string_lit("placeholder") : string_empty;
+  return json_add_string(ctx->doc, str);
+}
+
+static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Struct);
+
+  const JsonVal obj = json_add_object(ctx->doc);
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
+    if (fieldDecl->meta.flags & DataFlags_Opt) {
+      continue;
+    }
+    const JsonVal fieldVal = schema_default_type(ctx, fieldDecl->meta);
+    json_add_field_str(ctx->doc, obj, fieldDecl->id.name, fieldVal);
+  }
+  return obj;
+}
+
+static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Enum);
+
+  const DynArray* consts = &decl->val_enum.consts;
+  if (!dynarray_size(consts)) {
+    return json_add_null(ctx->doc);
+  }
+  return json_add_string(ctx->doc, dynarray_at_t(consts, 0, DataDeclConst)->id.name);
+}
+
+static JsonVal schema_default_array(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const JsonVal arr = json_add_array(ctx->doc);
+  if (meta.flags & DataFlags_NotEmpty) {
+    json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
+  }
+  return arr;
+}
+
+static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+  case DataContainer_Pointer: {
+    const DataDecl* decl = data_decl(ctx->reg, meta.type);
+    switch (decl->kind) {
+    case DataKind_bool:
+      return json_add_bool(ctx->doc, false);
+      break;
+    case DataKind_i8:
+    case DataKind_i16:
+    case DataKind_i32:
+    case DataKind_i64:
+    case DataKind_u8:
+    case DataKind_u16:
+    case DataKind_u32:
+    case DataKind_u64:
+    case DataKind_f32:
+    case DataKind_f64:
+      return schema_default_number(ctx, meta);
+    case DataKind_String:
+      return schema_default_string(ctx, meta);
+    case DataKind_Struct:
+      return schema_default_struct(ctx, meta);
+    case DataKind_Union:
+      return json_add_null(ctx->doc);
+    case DataKind_Enum:
+      return schema_default_enum(ctx, meta);
+    case DataKind_Invalid:
+    case DataKind_Count:
+      UNREACHABLE
+    }
+  } break;
+  case DataContainer_Array:
+    return schema_default_array(ctx, meta);
+  }
+  UNREACHABLE
+}
+
+static void
+schema_add_default_snippets(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const JsonVal snippetsArr = json_add_array(ctx->doc);
+  json_add_field_lit(ctx->doc, obj, "defaultSnippets", snippetsArr);
+
+  const JsonVal defaultSnippetObj = json_add_object(ctx->doc);
+  json_add_elem(ctx->doc, snippetsArr, defaultSnippetObj);
+  json_add_field_lit(ctx->doc, defaultSnippetObj, "label", json_add_string_lit(ctx->doc, "New"));
+  json_add_field_lit(ctx->doc, defaultSnippetObj, "body", schema_default_type(ctx, meta));
+}
+
 static void schema_add_type(const JsonSchemaCtx*, JsonVal, DataMeta);
 
 static f64 schema_integer_min(const DataKind kind) {
@@ -98,6 +193,8 @@ static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const
 
     schema_add_type(ctx, fieldObj, fieldDecl->meta);
   }
+
+  schema_add_default_snippets(ctx, obj, meta);
 }
 
 static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
@@ -164,6 +261,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
 
 static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Enum);
 
   const JsonVal enumKeysArr = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, obj, "enum", enumKeysArr);

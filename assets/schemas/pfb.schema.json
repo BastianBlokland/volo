@@ -16,6 +16,14 @@
       },
       "required": [
         "prefabs"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "prefabs": []
+          }
+        }
       ]
     },
     "AssetPrefabDef": {
@@ -46,6 +54,15 @@
       "required": [
         "name",
         "traits"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "name": "placeholder",
+            "traits": []
+          }
+        }
       ]
     },
     "AssetPrefabTraitDef": {
@@ -718,7 +735,13 @@
           "type": "number"
         }
       },
-      "required": []
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {}
+        }
+      ]
     }
   }
 }

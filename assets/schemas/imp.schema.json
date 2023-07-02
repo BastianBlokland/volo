@@ -21,6 +21,14 @@
       },
       "required": [
         "actions"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "actions": []
+          }
+        }
       ]
     },
     "AssetInputActionDef": {
@@ -51,6 +59,20 @@
       "required": [
         "name",
         "bindings"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "name": "placeholder",
+            "bindings": [
+              {
+                "type": "Pressed",
+                "key": "MouseLeft"
+              }
+            ]
+          }
+        }
       ]
     },
     "AssetInputBlocker": {
@@ -92,6 +114,15 @@
       "required": [
         "type",
         "key"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": {
+            "type": "Pressed",
+            "key": "MouseLeft"
+          }
+        }
       ]
     },
     "AssetInputType": {
