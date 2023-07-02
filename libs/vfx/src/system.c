@@ -544,6 +544,7 @@ ecs_system_define(VfxSystemUpdateSys) {
         vfx_system_reset(state); // Reset the state after hot-loading the asset.
       }
       state->assetVersion = assetRequest->version;
+      continue; // Skip the system this frame; This gives time for the old asset to be unloaded.
     }
 
     VfxTrans sysTrans = {
