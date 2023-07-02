@@ -48,8 +48,8 @@
           "$ref": "#/$defs/GeoVector"
         },
         "rotation": {
-          "title": "GeoVector",
-          "$ref": "#/$defs/GeoVector"
+          "title": "GeoQuat",
+          "$ref": "#/$defs/GeoQuat"
         },
         "scale": {
           "title": "f32",
@@ -65,7 +65,7 @@
       "defaultSnippets": [
         {
           "label": "New",
-          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {}\n}"
+          "body": "^{\n  \"prefab\": \"placeholder\",\n  \"faction\": \"A\",\n  \"position\": {},\n  \"rotation\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0,\n    \"w\": 1\n  }\n}"
         }
       ]
     },
@@ -100,6 +100,40 @@
         {
           "label": "New",
           "body": "^{}"
+        }
+      ]
+    },
+    "GeoQuat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "title": "f32",
+          "type": "number"
+        },
+        "y": {
+          "title": "f32",
+          "type": "number"
+        },
+        "z": {
+          "title": "f32",
+          "type": "number"
+        },
+        "w": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z",
+        "w"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"x\": 0,\n  \"y\": 0,\n  \"z\": 0,\n  \"w\": 1\n}"
         }
       ]
     }
