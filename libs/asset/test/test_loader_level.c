@@ -24,7 +24,7 @@ static const struct {
                               "      \"prefab\": \"Unit\","
                               "      \"faction\": \"A\","
                               "      \"position\": { \"x\": 42 },"
-                              "      \"rotation\": {}"
+                              "      \"rotation\": { \"x\": 0, \"y\": 0, \"z\": 0, \"w\": 1 }"
                               "  }"
                               "]}"),
         .objects =
