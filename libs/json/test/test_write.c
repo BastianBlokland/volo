@@ -88,6 +88,13 @@ spec(write) {
     check_eq_string(dynstring_view(&buffer), string_lit("\"\\$Hello\""));
   }
 
+  it("can optionally escape dollar signs") {
+    const JsonVal val = json_add_string_lit(doc, "$Hello");
+
+    json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_EscapeDollarSign));
+    check_eq_string(dynstring_view(&buffer), string_lit("\"\\$Hello\""));
+  }
+
   it("can write numbers") {
     const JsonVal val = json_add_number(doc, 42.1337);
 

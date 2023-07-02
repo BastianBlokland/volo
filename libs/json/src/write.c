@@ -115,6 +115,13 @@ static void json_state_write_string(JsonWriteState* state, DynString* str, const
     case '\t':
       dynstring_append(str, string_lit("\\t"));
       break;
+    case '$':
+      if (state->opts->flags & JsonWriteFlags_EscapeDollarSign) {
+        dynstring_append(str, string_lit("\\$"));
+      } else {
+        dynstring_append_char(str, '$');
+      }
+      break;
     default:
       dynstring_append_char(str, *itr);
       break;

@@ -3,8 +3,9 @@
 #include "json_doc.h"
 
 typedef enum {
-  JsonWriteFlags_None   = 0,
-  JsonWriteFlags_Pretty = 1 << 0,
+  JsonWriteFlags_None             = 0,
+  JsonWriteFlags_Pretty           = 1 << 0,
+  JsonWriteFlags_EscapeDollarSign = 1 << 1,
 } JsonWriteFlags;
 
 /**
