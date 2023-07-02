@@ -43,6 +43,48 @@ static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta me
   return obj;
 }
 
+static JsonVal schema_default_union_choice(const JsonSchemaCtx* ctx, const DataDeclChoice* choice) {
+  const JsonVal obj = json_add_object(ctx->doc);
+
+  const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
+  json_add_field_lit(ctx->doc, obj, "$type", typeStr);
+
+  if (choice->meta.type) {
+    const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
+    if (choiceDecl->kind == DataKind_Struct) {
+      /**
+       * Struct fields are inlined into the current json object.
+       */
+      dynarray_for_t(&choiceDecl->val_struct.fields, DataDeclField, fieldDecl) {
+        if (fieldDecl->meta.flags & DataFlags_Opt) {
+          continue;
+        }
+        const JsonVal fieldVal = schema_default_type(ctx, fieldDecl->meta);
+        json_add_field_str(ctx->doc, obj, fieldDecl->id.name, fieldVal);
+      }
+    } else {
+      /**
+       * For other data-kinds the data is stored on a $data property.
+       */
+      const JsonVal dataVal = schema_default_type(ctx, choice->meta);
+      json_add_field_lit(ctx->doc, obj, "$data", dataVal);
+    }
+  }
+
+  return obj;
+}
+
+static JsonVal schema_default_union(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Union);
+
+  const DynArray* choices = &decl->val_union.choices;
+  if (!dynarray_size(choices)) {
+    return json_add_null(ctx->doc);
+  }
+  return schema_default_union_choice(ctx, dynarray_at_t(choices, 0, DataDeclChoice));
+}
+
 static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Enum);
@@ -87,7 +129,7 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
     case DataKind_Struct:
       return schema_default_struct(ctx, meta);
     case DataKind_Union:
-      return json_add_null(ctx->doc);
+      return schema_default_union(ctx, meta);
     case DataKind_Enum:
       return schema_default_enum(ctx, meta);
     case DataKind_Invalid:
