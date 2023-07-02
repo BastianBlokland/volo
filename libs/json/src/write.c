@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_unicode.h"
 #include "json_write.h"
 
 typedef struct {
@@ -90,6 +91,9 @@ static void json_state_write_string(JsonWriteState* state, DynString* str, const
   dynstring_append_char(str, '"');
   mem_for_u8(val, itr) {
     switch (*itr) {
+    case Unicode_Escape:
+      dynstring_append(str, string_lit("\\"));
+      break;
     case '"':
       dynstring_append(str, string_lit("\\\""));
       break;

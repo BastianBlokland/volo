@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynstring.h"
+#include "core_unicode.h"
 #include "json_write.h"
 
 spec(write) {
@@ -78,6 +79,13 @@ spec(write) {
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
     check_eq_string(dynstring_view(&buffer), string_lit("\"\\bHello\\tWorld\\n\""));
+  }
+
+  it("can write escape characters into a string") {
+    const JsonVal val = json_add_string_lit(doc, uni_esc "$Hello");
+
+    json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
+    check_eq_string(dynstring_view(&buffer), string_lit("\"\\$Hello\""));
   }
 
   it("can write numbers") {
