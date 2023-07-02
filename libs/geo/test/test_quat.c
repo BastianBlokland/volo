@@ -106,6 +106,22 @@ spec(quat) {
     check_eq_float(geo_vector_mag(geo_vector(qn.x, qn.y, qn.z, qn.w)), 1, 1e-6);
   }
 
+  it("can normalize a quaternion (even if zero length)") {
+    {
+      const GeoQuat q  = {0};
+      const GeoQuat qn = geo_quat_norm_or_ident(q);
+
+      check_eq_quat(qn, geo_quat_ident);
+      check_eq_float(geo_vector_mag(geo_vector(qn.x, qn.y, qn.z, qn.w)), 1, 1e-6);
+    }
+    {
+      const GeoQuat q  = {1337, 42, -42, 5};
+      const GeoQuat qn = geo_quat_norm_or_ident(q);
+
+      check_eq_float(geo_vector_mag(geo_vector(qn.x, qn.y, qn.z, qn.w)), 1, 1e-6);
+    }
+  }
+
   it("can create a quaternion to rotate to the given axis system") {
     {
       const GeoVector newForward = geo_vector_norm(geo_vector(.42f, 13.37f, -42));
