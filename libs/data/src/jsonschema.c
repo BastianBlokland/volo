@@ -155,7 +155,13 @@ static String schema_snippet_stringify_scratch(const JsonSchemaCtx* ctx, const J
    */
   dynstring_append_char(&str, '^');
 
-  json_write(&str, ctx->doc, val, &json_write_opts());
+  /**
+   * Escape dollar-signs as those are used for variable replacement in the VSCode snippet syntax.
+   * https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables
+   */
+  const JsonWriteFlags jsonWriteFlags = JsonWriteFlags_Pretty | JsonWriteFlags_EscapeDollarSign;
+
+  json_write(&str, ctx->doc, val, &json_write_opts(.flags = jsonWriteFlags));
 
   return dynstring_view(&str);
 }
