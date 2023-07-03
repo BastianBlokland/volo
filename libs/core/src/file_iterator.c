@@ -3,9 +3,12 @@
 #include "core_file_iterator.h"
 
 static const String g_fileIteratorResultStrs[] = {
-    string_static("FileIteratorResultFound"),
-    string_static("FileIteratorResultEnd"),
-    string_static("FileIteratorResultUnknownError"),
+    string_static("FileIteratorFound"),
+    string_static("FileIteratorEnd"),
+    string_static("FileIteratorNoAccess"),
+    string_static("FileIteratorDirectoryDoesNotExist"),
+    string_static("FileIteratorPathIsNotADirectory"),
+    string_static("FileIteratorUnknownError"),
 };
 
 ASSERT(

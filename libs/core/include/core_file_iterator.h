@@ -23,6 +23,9 @@ typedef struct {
 typedef enum {
   FileIteratorResult_Found = 0,
   FileIteratorResult_End,
+  FileIteratorResult_NoAccess,
+  FileIteratorResult_DirectoryDoesNotExist,
+  FileIteratorResult_PathIsNotADirectory,
   FileIteratorResult_UnknownError,
 
   FileIteratorResult_Count,
@@ -37,7 +40,7 @@ String file_iterator_result_str(FileIteratorResult);
  * Create a new file-iterator.
  * Destroy using 'file_iterator_destroy()'.
  */
-FileIterator* file_iterator_create(Allocator*, String directoryPath);
+FileIterator* file_iterator_create(Allocator*, String path);
 
 /**
  * Destroy a file-iterator.
