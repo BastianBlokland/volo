@@ -8,6 +8,7 @@ static const String g_fileIteratorResultStrs[] = {
     string_static("FileIteratorNoAccess"),
     string_static("FileIteratorDirectoryDoesNotExist"),
     string_static("FileIteratorPathIsNotADirectory"),
+    string_static("FileIteratorTooManyOpenFiles"),
     string_static("FileIteratorUnknownError"),
 };
 

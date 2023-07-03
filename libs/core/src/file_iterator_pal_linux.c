@@ -25,10 +25,24 @@ static FileIteratorResult result_from_errno(const int err) {
     return FileIteratorResult_NoAccess;
   case ENOENT:
     return FileIteratorResult_DirectoryDoesNotExist;
+  case EMFILE:
+  case ENFILE:
+    return FileIteratorResult_TooManyOpenFiles;
   case ENOTDIR:
     return FileIteratorResult_PathIsNotADirectory;
   }
   return FileIteratorResult_UnknownError;
+}
+
+static FileType file_type_from_dtype(const u8 dtype) {
+  switch (dtype) {
+  case DT_REG:
+    return FileType_Regular;
+  case DT_DIR:
+    return FileType_Directory;
+  default:
+    return FileType_Unknown;
+  }
 }
 
 FileIterator* file_iterator_create(Allocator* alloc, const String path) {
@@ -64,7 +78,14 @@ FileIteratorResult file_iterator_next(FileIterator* itr, FileIteratorEntry* out)
   if (UNLIKELY(!itr->dirStream)) {
     return result_from_errno(itr->dirStreamErr);
   }
-  (void)itr;
-  (void)out;
-  return FileIteratorResult_UnknownError;
+  errno                 = 0;
+  struct dirent* dirEnt = readdir(itr->dirStream);
+  if (!dirEnt) {
+    return errno ? result_from_errno(errno) : FileIteratorResult_End;
+  }
+  *out = (FileIteratorEntry){
+      .type = file_type_from_dtype(dirEnt->d_type),
+      .name = string_from_null_term(dirEnt->d_name),
+  };
+  return FileIteratorResult_Found;
 }

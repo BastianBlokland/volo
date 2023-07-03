@@ -26,6 +26,7 @@ typedef enum {
   FileIteratorResult_NoAccess,
   FileIteratorResult_DirectoryDoesNotExist,
   FileIteratorResult_PathIsNotADirectory,
+  FileIteratorResult_TooManyOpenFiles,
   FileIteratorResult_UnknownError,
 
   FileIteratorResult_Count,
