@@ -78,14 +78,20 @@ FileIteratorResult file_iterator_next(FileIterator* itr, FileIteratorEntry* out)
   if (UNLIKELY(!itr->dirStream)) {
     return result_from_errno(itr->dirStreamErr);
   }
-  errno                 = 0;
-  struct dirent* dirEnt = readdir(itr->dirStream);
-  if (!dirEnt) {
-    return errno ? result_from_errno(errno) : FileIteratorResult_End;
+  for (;;) {
+    errno                 = 0;
+    struct dirent* dirEnt = readdir(itr->dirStream);
+    if (!dirEnt) {
+      return errno ? result_from_errno(errno) : FileIteratorResult_End;
+    }
+    const String name = string_from_null_term(dirEnt->d_name);
+    if (string_eq(name, string_lit(".")) || string_eq(name, string_lit(".."))) {
+      continue; // Skip '.' and '..' entries.
+    }
+    *out = (FileIteratorEntry){
+        .type = file_type_from_dtype(dirEnt->d_type),
+        .name = name,
+    };
+    return FileIteratorResult_Found;
   }
-  *out = (FileIteratorEntry){
-      .type = file_type_from_dtype(dirEnt->d_type),
-      .name = string_from_null_term(dirEnt->d_name),
-  };
-  return FileIteratorResult_Found;
 }
