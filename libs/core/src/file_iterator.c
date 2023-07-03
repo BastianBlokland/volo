@@ -1,0 +1,18 @@
+#include "core_array.h"
+#include "core_diag.h"
+#include "core_file_iterator.h"
+
+static const String g_fileIteratorResultStrs[] = {
+    string_static("FileIteratorResultFound"),
+    string_static("FileIteratorResultEnd"),
+    string_static("FileIteratorResultUnknownError"),
+};
+
+ASSERT(
+    array_elems(g_fileIteratorResultStrs) == FileIteratorResult_Count,
+    "Incorrect number of FileIteratorResult strings");
+
+String file_iterator_result_str(const FileIteratorResult result) {
+  diag_assert(result < FileIteratorResult_Count);
+  return g_fileIteratorResultStrs[result];
+}
