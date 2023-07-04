@@ -16,7 +16,7 @@ typedef struct sFile File;
 /**
  * File result-code.
  */
-typedef enum {
+typedef enum eFileResult {
   FileResult_Success = 0,
   FileResult_AlreadyExists,
   FileResult_DiskFull,
@@ -46,7 +46,7 @@ typedef enum {
  * - Create: Open an existing file or create a new file.
  *    > Head is at the start.
  */
-typedef enum {
+typedef enum eFileMode {
   FileMode_Open,
   FileMode_Append,
   FileMode_Create,
@@ -55,7 +55,7 @@ typedef enum {
 /**
  * Access to request when opening a file.
  */
-typedef enum {
+typedef enum eFileAccessFlags {
   FileAccess_None  = 0,
   FileAccess_Read  = 1 << 0,
   FileAccess_Write = 1 << 1,
@@ -64,7 +64,7 @@ typedef enum {
 /**
  * File Type code.
  */
-typedef enum {
+typedef enum eFileType {
   FileType_None,
   FileType_Regular,
   FileType_Directory,

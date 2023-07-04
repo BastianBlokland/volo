@@ -68,6 +68,19 @@ static FileResult fileresult_from_lasterror() {
   return FileResult_UnknownError;
 }
 
+static FileType file_type_from_attributes(const DWORD attributes) {
+  if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+    return FileType_Directory;
+  }
+  if (attributes & FILE_ATTRIBUTE_DEVICE) {
+    return FileType_Unknown; // TODO: Should we have a unique type for devices?
+  }
+  if (attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+    return FileType_Unknown; // TODO: Should we have a unique type for symlinks?
+  }
+  return FileType_Regular;
+}
+
 FileResult
 file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
   // Convert the path to a null-terminated wide-char string.
@@ -237,15 +250,12 @@ FileInfo file_stat_sync(File* file) {
     diag_crash_msg("GetFileInformationByHandle() failed");
   }
 
-  const FileType fileType =
-      (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? FileType_Directory : FileType_Regular;
-
   LARGE_INTEGER fileSize;
   fileSize.LowPart  = info.nFileSizeLow;
   fileSize.HighPart = info.nFileSizeHigh;
   return (FileInfo){
       .size       = (usize)fileSize.QuadPart,
-      .type       = fileType,
+      .type       = file_type_from_attributes(info.dwFileAttributes),
       .accessTime = time_pal_native_to_real(&info.ftLastAccessTime),
       .modTime    = time_pal_native_to_real(&info.ftLastWriteTime),
   };

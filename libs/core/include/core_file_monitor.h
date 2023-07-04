@@ -42,7 +42,7 @@ String file_monitor_result_str(FileMonitorResult);
 
 /**
  * Create a new file-monitor.
- * Destroy using 'file_monitor_destroy()'..
+ * Destroy using 'file_monitor_destroy()'.
  */
 FileMonitor* file_monitor_create(Allocator*, String rootPath);
 
