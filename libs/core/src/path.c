@@ -14,22 +14,22 @@
 
 static String g_path_seperators = string_static("/\\");
 
-static bool path_ends_with_seperator(String str) {
+static bool path_ends_with_seperator(const String str) {
   return mem_contains(g_path_seperators, *string_last(str));
 }
 
-static bool path_starts_with_posix_root(String path) {
+static bool path_starts_with_posix_root(const String path) {
   return !string_is_empty(path) && *string_begin(path) == '/';
 }
 
-static bool path_starts_with_win32_root(String path) {
+static bool path_starts_with_win32_root(const String path) {
   if (path.size < 3) {
     return false;
   }
   if (!ascii_is_letter(*string_begin(path))) {
     return false;
   }
-  String postDriveLetter = string_slice(path, 1, 2);
+  const String postDriveLetter = string_slice(path, 1, 2);
   return string_eq(postDriveLetter, string_lit(":/")) ||
          string_eq(postDriveLetter, string_lit(":\\"));
 }
@@ -49,44 +49,44 @@ void path_init() {
   g_path_tempdir    = path_pal_tempdir(array_mem(g_path_tempdir_buffer));
 }
 
-bool path_is_absolute(String path) {
+bool path_is_absolute(const String path) {
   return path_starts_with_posix_root(path) || path_starts_with_win32_root(path);
 }
 
-bool path_is_root(String path) {
+bool path_is_root(const String path) {
   return (path.size == 1 && path_starts_with_posix_root(path)) ||
          (path.size == 3 && path_starts_with_win32_root(path));
 }
 
-String path_filename(String path) {
+String path_filename(const String path) {
   const usize lastSegStart = string_find_last_any(path, g_path_seperators);
   return sentinel_check(lastSegStart)
              ? path
              : string_slice(path, lastSegStart + 1, path.size - lastSegStart - 1);
 }
 
-String path_extension(String path) {
-  String      fileName       = path_filename(path);
-  const usize extensionStart = string_find_last_any(fileName, string_lit("."));
+String path_extension(const String path) {
+  const String fileName       = path_filename(path);
+  const usize  extensionStart = string_find_last_any(fileName, string_lit("."));
   return sentinel_check(extensionStart)
              ? string_empty
              : string_slice(fileName, extensionStart + 1, fileName.size - extensionStart - 1);
 }
 
-String path_stem(String path) {
-  String      fileName       = path_filename(path);
-  const usize extensionStart = string_find_first_any(fileName, string_lit("."));
+String path_stem(const String path) {
+  const String fileName       = path_filename(path);
+  const usize  extensionStart = string_find_first_any(fileName, string_lit("."));
   return sentinel_check(extensionStart) ? fileName : string_slice(fileName, 0, extensionStart);
 }
 
-String path_parent(String path) {
+String path_parent(const String path) {
   const usize lastSegStart = string_find_last_any(path, g_path_seperators);
   if (sentinel_check(lastSegStart)) {
     return string_empty;
   }
 
-  // For the root directory we preserve the seperator, for any other directory we do not.
-  String parentWithSep = string_slice(path, 0, lastSegStart + 1);
+  // For the root directory we preserve the separator, for any other directory we do not.
+  const String parentWithSep = string_slice(path, 0, lastSegStart + 1);
   return path_is_root(parentWithSep) ? parentWithSep : string_slice(path, 0, lastSegStart);
 }
 
@@ -153,7 +153,7 @@ bool path_canonize(DynString* str, String path) {
   return success;
 }
 
-void path_append(DynString* str, String path) {
+void path_append(DynString* str, const String path) {
   if (str->size && !path_ends_with_seperator(dynstring_view(str))) {
     dynstring_append_char(str, '/');
   }
@@ -186,7 +186,7 @@ String path_build_scratch_raw(const String* segments) {
   return res;
 }
 
-void path_name_random(DynString* str, Rng* rng, String prefix, String extension) {
+void path_name_random(DynString* str, Rng* rng, const String prefix, const String extension) {
   static const u8 g_chars[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
                                'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
                                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
@@ -213,7 +213,7 @@ void path_name_random(DynString* str, Rng* rng, String prefix, String extension)
   }
 }
 
-String path_name_random_scratch(Rng* rng, String prefix, String extension) {
+String path_name_random_scratch(Rng* rng, const String prefix, const String extension) {
   Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 32 + extension.size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
@@ -224,7 +224,7 @@ String path_name_random_scratch(Rng* rng, String prefix, String extension) {
   return res;
 }
 
-void path_name_timestamp(DynString* str, String prefix, String extension) {
+void path_name_timestamp(DynString* str, const String prefix, const String extension) {
   if (!string_is_empty(prefix)) {
     dynstring_append(str, prefix);
     dynstring_append_char(str, '_');
@@ -242,7 +242,7 @@ void path_name_timestamp(DynString* str, String prefix, String extension) {
   }
 }
 
-String path_name_timestamp_scratch(String prefix, String extension) {
+String path_name_timestamp_scratch(const String prefix, const String extension) {
   Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 32 + extension.size, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
