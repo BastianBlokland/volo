@@ -6,6 +6,8 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
+typedef void (*AssetRepoQueryHandler)(void* context, String assetId);
+
 /**
  * Asset repository.
  * NOTE: Api is thread-safe.
@@ -16,6 +18,7 @@ struct sAssetRepo {
   void (*destroy)(AssetRepo*);
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
+  void (*query)(AssetRepo*, String filterPattern, void* context, AssetRepoQueryHandler);
 };
 
 struct sAssetSource {
@@ -34,3 +37,4 @@ void         asset_repo_source_close(AssetSource*);
 
 void asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool asset_repo_changes_poll(AssetRepo*, u64* outUserData);
+void asset_repo_query(AssetRepo*, String filterPattern, void* context, AssetRepoQueryHandler);

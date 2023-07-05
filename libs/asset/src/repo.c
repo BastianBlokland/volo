@@ -30,3 +30,13 @@ bool asset_repo_changes_poll(AssetRepo* repo, u64* outUserData) {
   }
   return false;
 }
+
+void asset_repo_query(
+    AssetRepo*                  repo,
+    const String                filterPattern,
+    void*                       context,
+    const AssetRepoQueryHandler handler) {
+  if (repo->query) {
+    return repo->query(repo, filterPattern, context, handler);
+  }
+}
