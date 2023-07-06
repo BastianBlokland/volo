@@ -6,7 +6,15 @@
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
 
-typedef void (*AssetRepoQueryHandler)(void* context, String assetId);
+typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
+
+typedef enum {
+  AssetRepoQueryResult_Success,
+  AssetRepoQueryResult_ErrorNotSupported,
+  AssetRepoQueryResult_ErrorPatternNotSupported,
+
+  AssetRepoQueryResult_Count,
+} AssetRepoQueryResult;
 
 /**
  * Asset repository.
@@ -18,7 +26,7 @@ struct sAssetRepo {
   void (*destroy)(AssetRepo*);
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
-  void (*query)(AssetRepo*, String filterPattern, void* context, AssetRepoQueryHandler);
+  AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
 };
 
 struct sAssetSource {
@@ -26,6 +34,8 @@ struct sAssetSource {
   AssetFormat format;
   void (*close)(AssetSource*);
 };
+
+String asset_repo_query_result_str(AssetRepoQueryResult);
 
 AssetRepo* asset_repo_create_fs(String rootPath);
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
@@ -35,6 +45,6 @@ AssetSource* asset_repo_source_open(AssetRepo*, String id);
 bool         asset_repo_save(AssetRepo*, String id, String data);
 void         asset_repo_source_close(AssetSource*);
 
-void asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
-bool asset_repo_changes_poll(AssetRepo*, u64* outUserData);
-void asset_repo_query(AssetRepo*, String filterPattern, void* context, AssetRepoQueryHandler);
+void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
+bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
+AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);

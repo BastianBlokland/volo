@@ -38,18 +38,17 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
   return src;
 }
 
-static void asset_repo_mem_query(
-    AssetRepo*                  repo,
-    const String                filterPattern,
-    void*                       context,
-    const AssetRepoQueryHandler handler) {
+static AssetRepoQueryResult asset_repo_mem_query(
+    AssetRepo* repo, const String pattern, void* ctx, const AssetRepoQueryHandler handler) {
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
   dynarray_for_t(&repoMem->entries, RepoEntry, entry) {
-    if (string_match_glob(entry->id, filterPattern, StringMatchFlags_None)) {
-      handler(context, entry->id);
+    if (string_match_glob(entry->id, pattern, StringMatchFlags_None)) {
+      handler(ctx, entry->id);
     }
   }
+
+  return AssetRepoQueryResult_Success;
 }
 
 static void asset_repo_mem_destroy(AssetRepo* repo) {
