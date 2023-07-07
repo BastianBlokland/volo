@@ -3,6 +3,8 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+#define asset_query_max_hits 512
+
 typedef struct {
   String id, data;
 } AssetMemRecord;
@@ -82,6 +84,21 @@ void asset_reload_request(EcsWorld*, EcsEntityId assetEntity);
  * Pre-condition: path_extension(id).size != 0.
  */
 bool asset_save(AssetManagerComp*, String id, String data);
+
+/**
+ * Query for assets that match the given id pattern.
+ *
+ * Supported pattern syntax:
+ * '?' matches any single character.
+ * '*' matches any number of any characters including none.
+ *
+ * NOTE: Returns the number of found assets.
+ */
+u32 asset_query(
+    EcsWorld*,
+    AssetManagerComp*,
+    String      pattern,
+    EcsEntityId out[PARAM_ARRAY_SIZE(asset_query_max_hits)]);
 
 /**
  * Debug apis.

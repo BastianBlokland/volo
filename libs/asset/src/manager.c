@@ -454,6 +454,30 @@ bool asset_save(AssetManagerComp* manager, const String id, const String data) {
   return asset_repo_save(manager->repo, id, data);
 }
 
+typedef struct {
+  EcsWorld*         world;
+  AssetManagerComp* manager;
+  u32               count;
+  EcsEntityId*      out;
+} AssetQueryContext;
+
+static void asset_query_output(void* ctxRaw, const String id) {
+  AssetQueryContext* ctx = ctxRaw;
+  if (LIKELY(ctx->count != asset_query_max_hits)) {
+    ctx->out[ctx->count++] = asset_lookup(ctx->world, ctx->manager, id);
+  }
+}
+
+u32 asset_query(
+    EcsWorld*         world,
+    AssetManagerComp* manager,
+    const String      pattern,
+    EcsEntityId       out[PARAM_ARRAY_SIZE(asset_query_max_hits)]) {
+  AssetQueryContext ctx = {.world = world, .manager = manager, .out = out};
+  asset_repo_query(manager->repo, pattern, &ctx, asset_query_output);
+  return ctx.count;
+}
+
 void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId dependency) {
   diag_assert(asset);
   diag_assert(dependency);
