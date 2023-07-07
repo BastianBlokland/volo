@@ -234,6 +234,25 @@ spec(manager) {
     check(results[1] == entityA || results[0] == entityB);
   }
 
+  it("fails to find any assets with an empty pattern") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    EcsEntityId results[asset_query_max_results];
+    const u32   resultCount = asset_query(world, manager, string_lit(""), results);
+
+    check_eq_int(resultCount, 0);
+  }
+
+  it("finds one assets when searching for a specific asset") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    EcsEntityId results[asset_query_max_results];
+    const u32   resultCount = asset_query(world, manager, string_lit("a.raw"), results);
+
+    check_eq_int(resultCount, 1);
+    check_eq_int(results[0], asset_lookup(world, manager, string_lit("a.raw")));
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
