@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_file.h"
+#include "core_file_iterator.h"
 #include "core_file_monitor.h"
 #include "core_path.h"
 #include "log_logger.h"
@@ -94,6 +95,96 @@ static bool asset_repo_fs_changes_poll(AssetRepo* repo, u64* outUserData) {
   return false;
 }
 
+typedef enum {
+  AssetRepoFsQuery_Recursive = 1 << 0,
+} AssetRepoFsQueryFlags;
+
+static AssetRepoQueryResult asset_repo_fs_query_iteration(
+    AssetRepoFs*                repoFs,
+    const String                directory,
+    const String                pattern,
+    const AssetRepoFsQueryFlags flags,
+    void*                       context,
+    const AssetRepoQueryHandler handler) {
+
+  if (UNLIKELY(directory.size) > 256) {
+    // Sanity check the maximum directory length (relative to the repo root-path).
+    return AssetRepoQueryResult_ErrorWhileQuerying;
+  }
+
+  Allocator* alloc     = alloc_bump_create_stack(768);
+  DynString  dirBuffer = dynstring_create(alloc, 512);
+
+  // Open a file iterator for the absolute path starting from the repo root-path.
+  path_append(&dirBuffer, repoFs->rootPath);
+  path_append(&dirBuffer, directory);
+  FileIterator* itr = file_iterator_create(alloc, dynstring_view(&dirBuffer));
+
+  FileIteratorEntry  entry;
+  FileIteratorResult itrResult;
+  while ((itrResult = file_iterator_next(itr, &entry)) == FileIteratorResult_Found) {
+    // Construct a file path relative to the repo root-path.
+    dynstring_clear(&dirBuffer);
+    path_append(&dirBuffer, directory);
+    path_append(&dirBuffer, entry.name);
+    const String path = dynstring_view(&dirBuffer);
+
+    switch (entry.type) {
+    case FileType_Regular:
+      if (string_match_glob(path, pattern, StringMatchFlags_None)) {
+        handler(context, path);
+      }
+      break;
+    case FileType_Directory:
+      if (flags & AssetRepoFsQuery_Recursive) {
+        asset_repo_fs_query_iteration(repoFs, path, pattern, flags, context, handler);
+      }
+      break;
+    case FileType_None:
+    case FileType_Unknown:
+      break;
+    }
+  }
+  file_iterator_destroy(itr);
+
+  return itrResult == FileIteratorResult_End ? AssetRepoQueryResult_Success
+                                             : AssetRepoQueryResult_ErrorWhileQuerying;
+}
+
+static AssetRepoQueryResult asset_repo_fs_query(
+    AssetRepo* repo, const String pattern, void* context, const AssetRepoQueryHandler handler) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  // Find a root directory for the query.
+  const String directory = path_parent(pattern);
+
+  static const String g_globChars = string_static("*?");
+  if (UNLIKELY(!sentinel_check(string_find_first_any(directory, g_globChars)))) {
+    /**
+     * Filtering in the directory part part is not supported at the moment.
+     * Supporting this would require recursing from the first non-filtered directory.
+     */
+    return AssetRepoQueryResult_ErrorPatternNotSupported;
+  }
+
+  AssetRepoFsQueryFlags flags = 0;
+
+  /**
+   * Recursive queries are defined by a file-name starting with a wildcard.
+   *
+   * For example a query of `dir/ *.txt` will match both 'dir/hello.txt' and 'dir/sub/hello.txt',
+   * '*.txt' will match any 'txt' files regardless how deeply its nested. This means there's no
+   * way to search for direct children starting with a wildcard at the moment, in the future we
+   * can consider supporting more exotic syntax like 'dir/ ** / *.txt' for recursive queries.
+   */
+  const String fileFilter = path_filename(pattern);
+  if (string_starts_with(fileFilter, string_lit("*"))) {
+    flags |= AssetRepoFsQuery_Recursive;
+  }
+
+  return asset_repo_fs_query_iteration(repoFs, directory, pattern, flags, context, handler);
+}
+
 static void asset_repo_fs_destroy(AssetRepo* repo) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
@@ -113,6 +204,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
               .destroy      = asset_repo_fs_destroy,
               .changesWatch = asset_repo_fs_changes_watch,
               .changesPoll  = asset_repo_fs_changes_poll,
+              .query        = asset_repo_fs_query,
           },
       .rootPath = string_dup(g_alloc_heap, rootPath),
       .monitor  = file_monitor_create(g_alloc_heap, rootPath),

@@ -8,6 +8,7 @@ static const String g_assetRepoQueryResultStrs[] = {
     string_static("RepoQuerySuccess"),
     string_static("RepoQueryErrorNotSupported"),
     string_static("RepoQueryErrorPatternNotSupported"),
+    string_static("RepoQueryErrorWhileQuerying"),
 };
 
 ASSERT(

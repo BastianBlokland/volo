@@ -12,6 +12,7 @@ typedef enum {
   AssetRepoQueryResult_Success,
   AssetRepoQueryResult_ErrorNotSupported,
   AssetRepoQueryResult_ErrorPatternNotSupported,
+  AssetRepoQueryResult_ErrorWhileQuerying,
 
   AssetRepoQueryResult_Count,
 } AssetRepoQueryResult;
