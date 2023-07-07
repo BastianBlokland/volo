@@ -463,7 +463,7 @@ typedef struct {
 
 static void asset_query_output(void* ctxRaw, const String id) {
   AssetQueryContext* ctx = ctxRaw;
-  if (LIKELY(ctx->count != asset_query_max_hits)) {
+  if (LIKELY(ctx->count != asset_query_max_results)) {
     ctx->out[ctx->count++] = asset_lookup(ctx->world, ctx->manager, id);
   }
 }
@@ -472,7 +472,7 @@ u32 asset_query(
     EcsWorld*         world,
     AssetManagerComp* manager,
     const String      pattern,
-    EcsEntityId       out[PARAM_ARRAY_SIZE(asset_query_max_hits)]) {
+    EcsEntityId       out[PARAM_ARRAY_SIZE(asset_query_max_results)]) {
   AssetQueryContext ctx = {.world = world, .manager = manager, .out = out};
   asset_repo_query(manager->repo, pattern, &ctx, asset_query_output);
   return ctx.count;

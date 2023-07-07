@@ -3,7 +3,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-#define asset_query_max_hits 512
+#define asset_query_max_results 512
 
 typedef struct {
   String id, data;
@@ -98,7 +98,7 @@ u32 asset_query(
     EcsWorld*,
     AssetManagerComp*,
     String      pattern,
-    EcsEntityId out[PARAM_ARRAY_SIZE(asset_query_max_hits)]);
+    EcsEntityId out[PARAM_ARRAY_SIZE(asset_query_max_results)]);
 
 /**
  * Debug apis.
