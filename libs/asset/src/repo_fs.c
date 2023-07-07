@@ -109,6 +109,7 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
 
   if (UNLIKELY(directory.size) > 256) {
     // Sanity check the maximum directory length (relative to the repo root-path).
+    log_w("AssetRepository: Directory path length exceeds maximum");
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
 
@@ -137,6 +138,7 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
       break;
     case FileType_Directory:
       if (flags & AssetRepoFsQuery_Recursive) {
+        // TODO: Handle errors for sub-directory iteration failure.
         asset_repo_fs_query_iteration(repoFs, path, pattern, flags, context, handler);
       }
       break;
@@ -147,8 +149,13 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
   }
   file_iterator_destroy(itr);
 
-  return itrResult == FileIteratorResult_End ? AssetRepoQueryResult_Success
-                                             : AssetRepoQueryResult_ErrorWhileQuerying;
+  if (UNLIKELY(itrResult != FileIteratorResult_End)) {
+    log_w(
+        "AssetRepository: Error while performing file query",
+        log_param("result", fmt_text(file_iterator_result_str(itrResult))));
+    return AssetRepoQueryResult_ErrorWhileQuerying;
+  }
+  return AssetRepoQueryResult_Success;
 }
 
 static AssetRepoQueryResult asset_repo_fs_query(
@@ -164,6 +171,7 @@ static AssetRepoQueryResult asset_repo_fs_query(
      * Filtering in the directory part part is not supported at the moment.
      * Supporting this would require recursing from the first non-filtered directory.
      */
+    log_w("AssetRepository: Unsupported file query pattern");
     return AssetRepoQueryResult_ErrorPatternNotSupported;
   }
 
