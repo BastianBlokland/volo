@@ -218,6 +218,22 @@ spec(manager) {
     check(!ecs_world_has_t(world, entity, AssetDirtyComp));
   }
 
+  it("supports querying all assets with a wildcard") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    EcsEntityId results[asset_query_max_results];
+    const u32   resultCount = asset_query(world, manager, string_lit("*"), results);
+
+    check_eq_int(resultCount, 2);
+
+    const EcsEntityId entityA = asset_lookup(world, manager, string_lit("a.raw"));
+    const EcsEntityId entityB = asset_lookup(world, manager, string_lit("b.raw"));
+
+    check(results[0] != results[1]);
+    check(results[0] == entityA || results[0] == entityB);
+    check(results[1] == entityA || results[0] == entityB);
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
