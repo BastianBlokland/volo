@@ -79,6 +79,7 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelPanelComp* 
 }
 
 static void level_panel_draw(
+    EcsWorld*                    world,
     UiCanvasComp*                canvas,
     const SceneLevelManagerComp* levelManager,
     DebugLevelPanelComp*         panelComp,
@@ -133,6 +134,11 @@ static void level_panel_draw(
 
     ui_label(canvas, id, .selectable = true);
     ui_table_next_column(canvas, &table);
+
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(60, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(canvas, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Load"))) {
+      scene_level_load(world, *levelAsset);
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -174,7 +180,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     }
 
     ui_canvas_reset(canvas);
-    level_panel_draw(canvas, levelManager, panelComp, assetView);
+    level_panel_draw(world, canvas, levelManager, panelComp, assetView);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
