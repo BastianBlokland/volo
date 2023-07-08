@@ -32,8 +32,11 @@ static void level_panel_draw(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   const bool   isLoading    = scene_level_is_loading(levelManager);
-  const String levelCurrent = scene_level_current_id(levelManager);
+  const String levelCurrent = string_empty; // scene_level_current_id(levelManager);
   const String levelInput   = dynstring_view(&panelComp->levelIdInput);
+
+  (void)world;
+  (void)levelInput;
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -61,11 +64,11 @@ static void level_panel_draw(
   {
     ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(75, 0), UiBase_Absolute, Ui_X);
     if (ui_button(canvas, .label = string_lit("Load"), .tooltip = g_tooltipLoad)) {
-      scene_level_load(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
+      // scene_level_load(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(canvas, .label = string_lit("Save"), .tooltip = g_tooltipSave)) {
-      scene_level_save(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
+      // scene_level_save(world, string_is_empty(levelInput) ? g_defaultLevel : levelInput);
     }
   }
   ui_layout_pop(canvas);
