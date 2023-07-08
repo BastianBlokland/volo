@@ -13,10 +13,12 @@ static const String g_levelQueryPattern = string_static("levels/*.lvl");
 // clang-format on
 
 typedef enum {
-  DebugLevelFlags_RefreshRequired = 1 << 0,
+  DebugLevelFlags_RefreshAssets = 1 << 0,
+  DebugLevelFlags_Reload        = 1 << 1,
+  DebugLevelFlags_Save          = 1 << 2,
 
   DebugLevelFlags_None    = 0,
-  DebugLevelFlags_Default = DebugLevelFlags_RefreshRequired,
+  DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
 } DebugLevelFlags;
 
 ecs_comp_define(DebugLevelPanelComp) {
@@ -61,13 +63,18 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelPanelComp* 
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
 
   if (ui_button(canvas, .label = string_lit("\uE5D5"))) {
-    panelComp->flags |= DebugLevelFlags_RefreshRequired;
+    panelComp->flags |= DebugLevelFlags_Reload;
+  }
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("\uE161"))) {
+    panelComp->flags |= DebugLevelFlags_Save;
   }
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -174,9 +181,19 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (panelComp->flags & DebugLevelFlags_RefreshRequired) {
+    if (panelComp->flags & DebugLevelFlags_RefreshAssets) {
       level_assets_refresh(world, assets, panelComp);
-      panelComp->flags &= ~DebugLevelFlags_RefreshRequired;
+      panelComp->flags &= ~DebugLevelFlags_RefreshAssets;
+    }
+    if (panelComp->flags & DebugLevelFlags_Reload) {
+      scene_level_reload(world);
+      panelComp->flags &= ~DebugLevelFlags_Reload;
+    }
+    if (panelComp->flags & DebugLevelFlags_Save) {
+      if (scene_level_current(levelManager)) {
+        scene_level_save(world, scene_level_current(levelManager));
+      }
+      panelComp->flags &= ~DebugLevelFlags_Save;
     }
 
     ui_canvas_reset(canvas);
