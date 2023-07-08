@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "input_manager.h"
 #include "scene_level.h"
 #include "ui.h"
 
@@ -169,6 +170,7 @@ static void level_panel_draw(UiCanvasComp* canvas, DebugLevelContext* ctx, EcsVi
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_read(InputManagerComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_write(AssetManagerComp);
 }
@@ -185,10 +187,18 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     return;
   }
   AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
 
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+
+  if (input_triggered_lit(input, "SaveLevel")) {
+    const EcsEntityId currentLevelAsset = scene_level_current(levelManager);
+    if (currentLevelAsset) {
+      scene_level_save(world, currentLevelAsset);
+    }
+  }
 
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);

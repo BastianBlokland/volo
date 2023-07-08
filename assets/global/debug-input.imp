@@ -13,7 +13,7 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Down", "key": "ArrowUp" },
-        { "type": "Down", "key": "W" }
+        { "type": "Down", "key": "W", "illegalModifiers": [ "Control" ] }
       ]
     },
     {
@@ -21,7 +21,7 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Down", "key": "ArrowDown" },
-        { "type": "Down", "key": "S" }
+        { "type": "Down", "key": "S", "illegalModifiers": [ "Control" ] }
       ]
     },
     {
@@ -29,7 +29,7 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Down", "key": "ArrowRight" },
-        { "type": "Down", "key": "D" }
+        { "type": "Down", "key": "D", "illegalModifiers": [ "Control" ] }
       ]
     },
     {
@@ -37,7 +37,7 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Down", "key": "ArrowLeft" },
-        { "type": "Down", "key": "A" }
+        { "type": "Down", "key": "A", "illegalModifiers": [ "Control" ] }
       ]
     },
     {
@@ -46,6 +46,13 @@
       "bindings": [
         { "type": "Down", "key": "Alt" },
         { "type": "Down", "key": "MouseExtra1" }
+      ]
+    },
+    {
+      "name": "SaveLevel",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "S", "requiredModifiers": [ "Control" ] }
       ]
     },
     {
