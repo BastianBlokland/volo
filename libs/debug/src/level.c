@@ -77,15 +77,18 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
 
   ui_table_next_row(canvas, &table);
 
-  if (ui_button(canvas, .label = string_lit("\uE5D5"))) {
+  const bool          levelIsLoaded    = scene_level_current(ctx->levelManager);
+  const UiWidgetFlags levelButtonFlags = levelIsLoaded ? 0 : UiWidget_Disabled;
+
+  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE5D5"))) {
     ctx->panelComp->flags |= DebugLevelFlags_Reload;
   }
   ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .label = string_lit("\uE161"))) {
+  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE161"))) {
     ctx->panelComp->flags |= DebugLevelFlags_Save;
   }
   ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .label = string_lit("\uE9BA"))) {
+  if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE9BA"))) {
     ctx->panelComp->flags |= DebugLevelFlags_Unload;
   }
   ui_table_next_column(canvas, &table);
