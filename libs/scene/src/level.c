@@ -140,7 +140,8 @@ ecs_system_define(SceneLevelLoadSys) {
         goto Done;
       }
       scene_level_process_load(world, &levelComp->level);
-      manager->isLoading = false;
+      manager->isLoading        = false;
+      manager->loadedLevelAsset = req->levelAsset;
       goto Done;
     }
     diag_crash_msg("Unexpected load state");
