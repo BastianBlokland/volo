@@ -60,10 +60,16 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelPanelComp* 
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
+
+  if (ui_button(canvas, .label = string_lit("\uE5D5"))) {
+    panelComp->flags |= DebugLevelFlags_RefreshRequired;
+  }
+  ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
   ui_textbox(
