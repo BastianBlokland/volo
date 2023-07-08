@@ -83,7 +83,7 @@ String path_parent(String);
 bool path_canonize(DynString*, String path);
 
 /**
- * Append a new segment to a path. Will insert a '/' seperator if required.
+ * Append a new segment to a path. Will insert a '/' separator if required.
  */
 void path_append(DynString*, String path);
 

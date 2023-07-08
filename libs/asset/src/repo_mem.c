@@ -7,6 +7,7 @@
 
 typedef struct {
   StringHash idHash;
+  String     id;
   String     data;
 } RepoEntry;
 
@@ -37,10 +38,26 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
   return src;
 }
 
+static AssetRepoQueryResult asset_repo_mem_query(
+    AssetRepo* repo, const String pattern, void* ctx, const AssetRepoQueryHandler handler) {
+  AssetRepoMem* repoMem = (AssetRepoMem*)repo;
+
+  dynarray_for_t(&repoMem->entries, RepoEntry, entry) {
+    if (string_match_glob(entry->id, pattern, StringMatchFlags_None)) {
+      handler(ctx, entry->id);
+    }
+  }
+
+  return AssetRepoQueryResult_Success;
+}
+
 static void asset_repo_mem_destroy(AssetRepo* repo) {
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
-  dynarray_for_t(&repoMem->entries, RepoEntry, entry) { string_free(g_alloc_heap, entry->data); };
+  dynarray_for_t(&repoMem->entries, RepoEntry, entry) {
+    string_free(g_alloc_heap, entry->id);
+    string_free(g_alloc_heap, entry->data);
+  };
   dynarray_destroy(&repoMem->entries);
 
   alloc_free_t(g_alloc_heap, repoMem);
@@ -56,6 +73,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
               .destroy      = asset_repo_mem_destroy,
               .changesWatch = null,
               .changesPoll  = null,
+              .query        = asset_repo_mem_query,
           },
       .entries = dynarray_create_t(g_alloc_heap, RepoEntry, recordCount),
   };
@@ -63,6 +81,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
   for (usize i = 0; i != recordCount; ++i) {
     RepoEntry entry = {
         .idHash = string_hash(records[i].id),
+        .id     = string_dup(g_alloc_heap, records[i].id),
         .data   = string_dup(g_alloc_heap, records[i].data),
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;

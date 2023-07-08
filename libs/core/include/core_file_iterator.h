@@ -14,7 +14,7 @@ typedef struct sFileIterator FileIterator;
  */
 typedef struct {
   FileType type;
-  String   name; // Allocation remains valid until the iterator is advanced.
+  String   name; // NOTE: String is allocated in scratch memory, should NOT be stored.
 } FileIteratorEntry;
 
 /**

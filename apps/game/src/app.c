@@ -211,7 +211,7 @@ static void app_action_restart_draw(UiCanvasComp* canvas, const AppActionContext
     app_action_notify(ctx, string_lit("Restart"));
     log_i("Restart");
 
-    scene_level_load(ctx->world, g_appLevel);
+    scene_level_reload(ctx->world);
   }
 }
 
@@ -610,7 +610,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
   input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
 
-  scene_level_load(world, g_appLevel);
+  scene_level_load(world, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));
   scene_terrain_init(
