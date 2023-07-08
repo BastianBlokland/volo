@@ -15,7 +15,8 @@ static const String g_levelQueryPattern = string_static("levels/*.lvl");
 typedef enum {
   DebugLevelFlags_RefreshAssets = 1 << 0,
   DebugLevelFlags_Reload        = 1 << 1,
-  DebugLevelFlags_Save          = 1 << 2,
+  DebugLevelFlags_Unload        = 1 << 2,
+  DebugLevelFlags_Save          = 1 << 3,
 
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
@@ -64,6 +65,7 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelPanelComp* 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -75,6 +77,10 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelPanelComp* 
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .label = string_lit("\uE161"))) {
     panelComp->flags |= DebugLevelFlags_Save;
+  }
+  ui_table_next_column(canvas, &table);
+  if (ui_button(canvas, .label = string_lit("\uE9BA"))) {
+    panelComp->flags |= DebugLevelFlags_Unload;
   }
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -188,6 +194,10 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     if (panelComp->flags & DebugLevelFlags_Reload) {
       scene_level_reload(world);
       panelComp->flags &= ~DebugLevelFlags_Reload;
+    }
+    if (panelComp->flags & DebugLevelFlags_Unload) {
+      scene_level_unload(world);
+      panelComp->flags &= ~DebugLevelFlags_Unload;
     }
     if (panelComp->flags & DebugLevelFlags_Save) {
       if (scene_level_current(levelManager)) {
