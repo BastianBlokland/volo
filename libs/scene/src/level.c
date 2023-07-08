@@ -110,7 +110,7 @@ ecs_system_define(SceneLevelLoadSys) {
       if (!req->levelAsset) {
         // levelAsset of 0 indicates that the currently loaded level should be reloaded.
         if (!manager->loadedLevelAsset) {
-          log_e("Failed to reload level: No level is currently loaded");
+          log_w("Failed to reload level: No level is currently loaded");
           goto Done;
         }
         req->levelAsset = manager->loadedLevelAsset;
