@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -909,7 +910,7 @@ static void ttf_read_glyph(
   outGlyph->offsetX = header.offsetX;
   outGlyph->offsetY = header.offsetY;
 
-  if (UNLIKELY(header.numContours == 0)) {
+  if (UNLIKELY(header.numContours == 0 || header.size < f32_epsilon)) {
     return;
   }
   if (UNLIKELY(header.numContours < 0)) {
