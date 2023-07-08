@@ -16,7 +16,7 @@ typedef enum {
   DebugLevelFlags_RefreshAssets = 1 << 0,
   DebugLevelFlags_Reload        = 1 << 1,
   DebugLevelFlags_Unload        = 1 << 2,
-  DebugLevelFlags_Save          = 1 << 3,
+  DebugLevelFlags_SaveCurrent   = 1 << 3,
 
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
@@ -85,7 +85,7 @@ static void level_panel_options_draw(UiCanvasComp* canvas, DebugLevelContext* ct
   }
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE161"))) {
-    ctx->panelComp->flags |= DebugLevelFlags_Save;
+    ctx->panelComp->flags |= DebugLevelFlags_SaveCurrent;
   }
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .flags = levelButtonFlags, .label = string_lit("\uE9BA"))) {
@@ -213,11 +213,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       scene_level_unload(world);
       panelComp->flags &= ~DebugLevelFlags_Unload;
     }
-    if (panelComp->flags & DebugLevelFlags_Save) {
-      if (scene_level_current(levelManager)) {
-        scene_level_save(world, scene_level_current(levelManager));
-      }
-      panelComp->flags &= ~DebugLevelFlags_Save;
+    if (panelComp->flags & DebugLevelFlags_SaveCurrent) {
+      scene_level_save(world, scene_level_current(levelManager));
+      panelComp->flags &= ~DebugLevelFlags_SaveCurrent;
     }
 
     ui_canvas_reset(canvas);
