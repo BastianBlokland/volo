@@ -113,14 +113,17 @@ static void level_panel_draw(
     if (!ecs_view_maybe_jump(assetItr, *levelAsset)) {
       continue;
     }
-    const String id = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    const String id     = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    const bool   loaded = scene_level_current(levelManager) == *levelAsset;
+
     if (!level_id_filter(panelComp, id)) {
       continue;
     }
     ++panelComp->totalRows;
 
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+    ui_table_draw_row_bg(
+        canvas, &table, loaded ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192));
 
     ui_label(canvas, id, .selectable = true);
     ui_table_next_column(canvas, &table);
