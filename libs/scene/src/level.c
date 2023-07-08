@@ -29,7 +29,7 @@ ecs_comp_define(SceneLevelManagerComp) {
 };
 
 ecs_comp_define(SceneLevelRequestLoadComp) {
-  EcsEntityId    levelAsset;
+  EcsEntityId    levelAsset; // 0 indicates reloading the current level.
   LevelLoadState state;
 };
 
@@ -106,6 +106,14 @@ ecs_system_define(SceneLevelLoadSys) {
         log_w("Level load already in progress");
         goto Done;
       }
+      if (!req->levelAsset) {
+        // levelAsset of 0 indicates that the currently loaded level should be reloaded.
+        if (!manager->loadedLevelAsset) {
+          log_e("Failed to reload level: No level is currently loaded");
+          goto Done;
+        }
+        req->levelAsset = manager->loadedLevelAsset;
+      }
       manager->isLoading = true;
       ++req->state;
       // Fallthrough.
@@ -148,7 +156,9 @@ ecs_system_define(SceneLevelLoadSys) {
   Wait:
     continue;
   Done:
-    asset_release(world, req->levelAsset);
+    if (req->levelAsset) {
+      asset_release(world, req->levelAsset);
+    }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
 }
@@ -269,6 +279,11 @@ void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
 
   const EcsEntityId reqEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, reqEntity, SceneLevelRequestLoadComp, .levelAsset = levelAsset);
+}
+
+void scene_level_reload(EcsWorld* world) {
+  const EcsEntityId reqEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(world, reqEntity, SceneLevelRequestLoadComp, .levelAsset = 0);
 }
 
 void scene_level_save(EcsWorld* world, const EcsEntityId levelAsset) {
