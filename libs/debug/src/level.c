@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "ecs_world.h"
@@ -9,17 +10,39 @@
 static const String g_tooltipLoad  = string_static("Load a level asset into the scene.");
 static const String g_tooltipSave  = string_static("Save the current scene as a level asset.");
 static const String g_defaultLevel = string_static("levels/default.lvl");
+static const String g_levelQueryPattern = string_static("levels/*.lvl");
 
 // clang-format on
 
+typedef enum {
+  DebugLevelFlags_RefreshRequired = 1 << 0,
+
+  DebugLevelFlags_None    = 0,
+  DebugLevelFlags_Default = DebugLevelFlags_RefreshRequired,
+} DebugLevelFlags;
+
 ecs_comp_define(DebugLevelPanelComp) {
-  DynString levelIdInput;
-  UiPanel   panel;
+  DebugLevelFlags flags;
+  DynString       levelIdInput;
+  DynArray        levelAssets; // EcsEntityId[]
+  UiPanel         panel;
 };
 
 static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->levelIdInput);
+  dynarray_destroy(&comp->levelAssets);
+}
+
+static void
+level_assets_refresh(EcsWorld* world, AssetManagerComp* assets, DebugLevelPanelComp* panelComp) {
+  EcsEntityId assetEntities[asset_query_max_results];
+  const u32   assetCount = asset_query(world, assets, g_levelQueryPattern, assetEntities);
+
+  dynarray_clear(&panelComp->levelAssets);
+  for (u32 i = 0; i != assetCount; ++i) {
+    *dynarray_push_t(&panelComp->levelAssets, EcsEntityId) = assetEntities[i];
+  }
 }
 
 static void level_panel_draw(
@@ -75,7 +98,10 @@ static void level_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneLevelManagerComp); }
+ecs_view_define(PanelUpdateGlobalView) {
+  ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(AssetManagerComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugLevelPanelComp);
@@ -88,12 +114,18 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
+  AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
     UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
+
+    if (panelComp->flags & DebugLevelFlags_RefreshRequired) {
+      level_assets_refresh(world, assets, panelComp);
+      panelComp->flags &= ~DebugLevelFlags_RefreshRequired;
+    }
 
     ui_canvas_reset(canvas);
     level_panel_draw(world, canvas, levelManager, panelComp);
@@ -119,11 +151,14 @@ ecs_module_init(debug_level_module) {
 
 EcsEntityId debug_level_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+
   ecs_world_add_t(
       world,
       panelEntity,
       DebugLevelPanelComp,
+      .flags        = DebugLevelFlags_Default,
       .levelIdInput = dynstring_create(g_alloc_heap, 32),
+      .levelAssets  = dynarray_create_t(g_alloc_heap, EcsEntityId, 8),
       .panel        = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
   return panelEntity;
 }
