@@ -231,6 +231,10 @@
               "title": "bool",
               "type": "boolean"
             },
+            "allowEarlyInterrupt": {
+              "title": "bool",
+              "type": "boolean"
+            },
             "layer": {
               "title": "String",
               "type": "string",

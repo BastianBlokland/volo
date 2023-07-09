@@ -467,12 +467,14 @@ static EffectResult effect_update_anim(
 
   if (interrupt) {
     animLayer->flags &= ~SceneAnimFlags_Loop; // Disable animation looping.
-  }
-  if (def->continuous && !interrupt) {
+    if (def->allowEarlyInterrupt) {
+      return EffectResult_Done;
+    }
+  } else if (def->continuous) {
     return EffectResult_Running;
   }
-  // If not continuous keep running until the animation reaches the end.
-  return animLayer->time >= animLayer->duration ? EffectResult_Done : EffectResult_Running;
+  const bool isAtEnd = animLayer->time >= animLayer->duration;
+  return isAtEnd ? EffectResult_Done : EffectResult_Running;
 }
 
 static EffectResult effect_update_vfx(
