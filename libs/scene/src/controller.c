@@ -54,9 +54,9 @@ ecs_system_define(SceneControllerUpdateSys) {
       target->targetOverride         = script_get_entity(targetOverride, 0);
     }
 
-    // Set attack target.
+    // Set attack target if we are not currently in the middle of firing.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
-    if (attack) {
+    if (attack && !(attack->flags & SceneAttackFlags_Firing)) {
       const ScriptVal attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
       attack->targetEntity         = script_get_entity(attackTarget, 0);
       scene_brain_set_null(brain, g_brainKeyAttackTarget);
