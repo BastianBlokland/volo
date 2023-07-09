@@ -832,12 +832,21 @@ static void ttf_glyph_build(
       return;
     }
 
-    *dynarray_push_t(outPoints, AssetFontPoint) = points[start];
+    AssetFontPoint startPoint;
+    if (pointFlags[start] & TtfGlyphFlags_OnCurvePoint) {
+      startPoint = points[start];
+    } else {
+      startPoint = (AssetFontPoint){
+          .x = (points[start].x + points[start + 1].x) * 0.5f,
+          .y = (points[start].y + points[start + 1].y) * 0.5f,
+      };
+    }
+    *dynarray_push_t(outPoints, AssetFontPoint) = startPoint;
 
     for (usize cur = start; cur != end; ++cur) {
       const bool  isLast      = (cur + 1) == end;
       const usize next        = isLast ? start : cur + 1; // Wraps around for the last entry.
-      const bool  curOnCurve  = cur == start || (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
+      const bool  curOnCurve  = (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
       const bool  nextOnCurve = (pointFlags[next] & TtfGlyphFlags_OnCurvePoint) != 0;
 
       if (nextOnCurve) {
@@ -877,7 +886,7 @@ static void ttf_glyph_build(
         }
       }
 
-      *dynarray_push_t(outPoints, AssetFontPoint) = points[next];
+      *dynarray_push_t(outPoints, AssetFontPoint) = isLast ? startPoint : points[next];
     }
   }
   *err = TtfError_None;
