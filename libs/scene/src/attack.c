@@ -350,7 +350,7 @@ static EffectResult effect_update_dmg(
     const AssetWeaponEffectDmg* def) {
 
   if (effectTime < def->delay) {
-    return EffectResult_Running; // Waiting to execute.
+    return interrupt ? EffectResult_Done : EffectResult_Running; // Waiting to execute.
   }
   const bool firstExecution = effect_execute_once(ctx, effectIndex);
   if (!def->continuous && !firstExecution) {
@@ -438,7 +438,7 @@ static EffectResult effect_update_anim(
     const AssetWeaponEffectAnim* def) {
 
   if (effectTime < def->delay) {
-    return EffectResult_Running; // Waiting to execute.
+    return interrupt ? EffectResult_Done : EffectResult_Running; // Waiting to execute.
   }
 
   SceneAnimLayer* animLayer = scene_animation_layer(ctx->anim, def->layer);
@@ -467,12 +467,14 @@ static EffectResult effect_update_anim(
 
   if (interrupt) {
     animLayer->flags &= ~SceneAnimFlags_Loop; // Disable animation looping.
-  }
-  if (def->continuous && !interrupt) {
+    if (def->allowEarlyInterrupt) {
+      return EffectResult_Done;
+    }
+  } else if (def->continuous) {
     return EffectResult_Running;
   }
-  // If not continuous keep running until the animation reaches the end.
-  return animLayer->time >= animLayer->duration ? EffectResult_Done : EffectResult_Running;
+  const bool isAtEnd = animLayer->time >= animLayer->duration;
+  return isAtEnd ? EffectResult_Done : EffectResult_Running;
 }
 
 static EffectResult effect_update_vfx(

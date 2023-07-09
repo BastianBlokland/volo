@@ -114,7 +114,6 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
     switch (decl->kind) {
     case DataKind_bool:
       return json_add_bool(ctx->doc, false);
-      break;
     case DataKind_i8:
     case DataKind_i16:
     case DataKind_i32:
