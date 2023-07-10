@@ -89,9 +89,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
        * time-scale). Consider changing this to use forces and apply the separation over-time, this
        * will mean that we have to accept units temporary overlapping each other.
        */
-      const bool moving    = (loco->flags & SceneLocomotion_Moving) != 0;
-      loco->lastSeparation = scene_nav_separate(navEnv, entity, pos, loco->radius * scale, moving);
-      posDelta             = geo_vector_add(posDelta, loco->lastSeparation);
+      const bool      moving    = (loco->flags & SceneLocomotion_Moving) != 0;
+      const GeoVector sepPos    = geo_vector_add(pos, posDelta);
+      const f32       sepRadius = loco->radius * scale;
+      loco->lastSeparation      = scene_nav_separate(navEnv, entity, sepPos, sepRadius, moving);
+      posDelta                  = geo_vector_add(posDelta, loco->lastSeparation);
     }
 
     const f32 posDeltaMag = geo_vector_mag(posDelta);
