@@ -24,7 +24,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_max_queries_per_task 25
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
-#define path_refresh_max_dist 2.0f
+#define path_refresh_max_dist 0.5f
 
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
@@ -331,8 +331,14 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    if (!geo_nav_line_blocked(env->navGrid, fromCell, toCell)) {
-      // No obstacles between us and the target; move straight to the target
+    /**
+     * TODO: We can potentially avoid pathing if there's a straight line to the target. Care must
+     * be taken however to avoid oscillating between the straight line and the path, which can
+     * easily happen when moving on the border of a nav cell.
+     */
+
+    if (fromCell.data == toCell.data) {
+      // In the same cell as the target; move in a straight line.
       scene_locomotion_move(loco, toPos);
       goto Done;
     }
