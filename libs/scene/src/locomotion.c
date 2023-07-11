@@ -81,19 +81,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
     if (dt > 0) {
       /**
-       * Move this entity out of other navigation agents and blockers.
-       * This is not an 'over time' effect as it moves far enough to fully separate, however with
-       * groups of navigation agents it can take multiple frames to settle.
-       *
-       * TODO: This means that it ends up being quite frame-rate dependent (and doesn't respect
-       * time-scale). Consider changing this to use forces and apply the separation over-time, this
-       * will mean that we have to accept units temporary overlapping each other.
+       * Push this entity away from other navigation agents and blockers.
        */
       const bool      moving    = (loco->flags & SceneLocomotion_Moving) != 0;
       const GeoVector sepPos    = geo_vector_add(pos, posDelta);
       const f32       sepRadius = loco->radius * scale;
-      loco->lastSeparation      = scene_nav_separate(navEnv, entity, sepPos, sepRadius, moving);
-      posDelta                  = geo_vector_add(posDelta, loco->lastSeparation);
+      const GeoVector force     = scene_nav_separate(navEnv, entity, sepPos, sepRadius, moving);
+      posDelta                  = geo_vector_add(posDelta, geo_vector_mul(force, dt));
+      loco->lastSeparation      = force;
     }
 
     const f32 posDeltaMag = geo_vector_mag(posDelta);

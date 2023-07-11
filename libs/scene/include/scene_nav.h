@@ -81,7 +81,7 @@ bool scene_nav_reachable(const SceneNavEnvComp*, GeoNavCell from, GeoNavCell to)
 bool scene_nav_reachable_blocker(const SceneNavEnvComp*, GeoNavCell, const SceneNavBlockerComp*);
 
 /**
- * Compute a vector to separate the given position from blockers and other agents.
+ * Compute a separation force from blockers and other agents.
  * NOTE: EcsEntityId can be used to ignore an existing agent (for example itself).
  */
 GeoVector scene_nav_separate(

@@ -654,7 +654,7 @@ INLINE_HINT static f32 nav_separate_weight(const GeoNavOccupantFlags flags) {
 }
 
 /**
- * Compute a vector to move an occupant to be at least radius away from any blockers in the region.
+ * Compute a force to move an occupant to be at least radius away from any blockers in the region.
  * NOTE: Behaviour is undefined if the position is fully inside a blocked cell.
  */
 static GeoVector nav_separate_from_blockers(
@@ -664,6 +664,8 @@ static GeoVector nav_separate_from_blockers(
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
   (void)flags;
+  static const f32 g_strength = 25.0f;
+
   GeoVector result = {0};
   for (u32 y = reg.min.y; y != reg.max.y; ++y) {
     for (u32 x = reg.min.x; x != reg.max.x; ++x) {
@@ -680,7 +682,7 @@ static GeoVector nav_separate_from_blockers(
       const f32       overlap    = radius - distToEdge;
       const GeoVector cellPos    = nav_cell_pos_no_y(grid, cell);
       const GeoVector sepDir     = geo_vector_norm(geo_vector_xz(geo_vector_sub(pos, cellPos)));
-      result                     = geo_vector_add(result, geo_vector_mul(sepDir, overlap));
+      result = geo_vector_add(result, geo_vector_mul(sepDir, overlap * g_strength));
     }
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
@@ -688,7 +690,7 @@ static GeoVector nav_separate_from_blockers(
 }
 
 /**
- * Compute a vector to move an occupant to be at least radius away any other occupant.
+ * Compute a force to move an occupant to be at least radius away any other occupant.
  * NOTE: id can be used to ignore an existing occupant (for example itself).
  * Pre-condition: nav_region_size(region) <= 9.
  */
@@ -701,6 +703,8 @@ static GeoVector nav_separate_from_occupied(
     const GeoNavOccupantFlags flags) {
   const GeoNavOccupant* occupants[(3 * 3) * geo_nav_occupants_per_cell];
   diag_assert((nav_region_size(region) * geo_nav_occupants_per_cell) <= array_elems(occupants));
+
+  static const f32 g_strength = 10.0f;
 
   const u32 occupantCount = nav_region_occupants(grid, region, occupants);
   const f32 sepWeight     = nav_separate_weight(flags);
@@ -729,7 +733,8 @@ static GeoVector nav_separate_from_occupied(
     const f32 relWeight   = otherWeight / (sepWeight + otherWeight);
 
     // NOTE: Times 0.5 because both occupants are expected to move.
-    result = geo_vector_add(result, geo_vector_mul(sepDir, (dist - sepDist) * 0.5f * relWeight));
+    const f32 sepStrength = (dist - sepDist) * 0.5f * relWeight * g_strength;
+    result                = geo_vector_add(result, geo_vector_mul(sepDir, sepStrength));
   }
   result.y = 0; // Zero out any movement out of the grid's plane.
   return result;
@@ -1318,8 +1323,10 @@ GeoVector geo_nav_separate(
   }
   if (nav_pred_blocked(grid, null, mapRes.cell)) {
     // Position is currently in a blocked cell; push it into the closest unblocked cell.
-    const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, mapRes.cell);
-    return geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
+    static const f32 g_unblockSepStrength = 25.0f;
+    const GeoNavCell closestUnblocked     = geo_nav_closest_unblocked(grid, mapRes.cell);
+    const GeoVector  toUnblocked = geo_vector_sub(nav_cell_pos(grid, closestUnblocked), pos);
+    return geo_vector_mul(toUnblocked, g_unblockSepStrength);
   }
 
   // Compute the local region to use, retrieves 3x3 cells around the position.
