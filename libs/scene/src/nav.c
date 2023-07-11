@@ -276,6 +276,10 @@ static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
  * Compute a rough estimate on how close to the target we can get based on the occupied cells.
  */
 static f32 scene_nav_arrive_threshold(const SceneNavEnvComp* env, const GeoNavCell toCell) {
+  /**
+   * TODO: This algorithm doesn't make much sense as it doesn't take nav-islands or even the arrival
+   * direction into account.
+   */
   const GeoNavCell closestFree = geo_nav_closest_free(env->navGrid, toCell);
   return math_max(geo_nav_distance(env->navGrid, toCell, closestFree), 0.1f);
 }
@@ -292,6 +296,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   // Limit the amount of path queries per-frame.
   u32      pathQueriesRemaining = path_max_queries_per_task;
   EcsView* agentsView           = ecs_world_view_t(world, AgentEntityView);
+
   for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
