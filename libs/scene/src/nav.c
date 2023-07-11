@@ -349,6 +349,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->cellCount                     = geo_nav_path(env->navGrid, fromCell, toCell, container);
       path->nextRefreshTime               = path_next_refresh_time(time);
       path->destination                   = toPos;
+      path->currentTargetIndex            = 1; // Path includes the start point; should be skipped.
       --pathQueriesRemaining;
 
       // Stop if no path is possible at this time.
@@ -358,16 +359,18 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
-    for (u32 i = (path->cellCount); i-- > 1;) {
+    for (u32 i = path->cellCount; i-- > path->currentTargetIndex;) {
       if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
+        path->currentTargetIndex = i;
         scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[i]));
         goto Done;
       }
     }
 
-    // No shortcut available; move to the next cell in the path.
+    // No shortcut available; move to the current target cell in the path.
     if (path->cellCount > 1) {
-      scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[1]));
+      const GeoNavCell moveTowardsCell = path->cells[path->currentTargetIndex];
+      scene_locomotion_move(loco, geo_nav_position(env->navGrid, moveTowardsCell));
       goto Done;
     }
 
