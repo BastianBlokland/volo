@@ -78,29 +78,6 @@ spec(nav) {
     ecs_run_sync(runner);
   }
 
-  it("sets the locomotion target to the destination") {
-    const EcsEntityId global = ecs_world_global(world);
-    const EcsEntityId agent  = test_create_agent(
-        world, geo_vector(gridCellSize * -2.0f, 0, 0), geo_vector(gridCellSize * 2.0f, 0, 0));
-    ecs_run_sync(runner); // Tick to create the agent.
-    ecs_run_sync(runner); // Tick to execute the navigation.
-
-    // No need to compute a path in case there's no obstacle.
-    const SceneNavPathComp* path = ecs_utils_read_t(world, PathView, agent, SceneNavPathComp);
-    check_eq_int(path->cellCount, 0);
-
-    const SceneLocomotionComp* loco =
-        ecs_utils_read_t(world, LocomotionView, agent, SceneLocomotionComp);
-    check(loco->flags & SceneLocomotion_Moving);
-    check_eq_float(loco->targetPos.x, gridCellSize * 2.0f, 1e-6f);
-    check_eq_float(loco->targetPos.y, 0, 1e-6f);
-    check_eq_float(loco->targetPos.z, 0, 1e-6f);
-
-    const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 0);
-    check_eq_int(stats->gridStats[GeoNavStat_LineQueryCount], 1);
-  }
-
   it("can compute a path around an obstacle") {
     const EcsEntityId global = ecs_world_global(world);
     const EcsEntityId agent  = test_create_agent(

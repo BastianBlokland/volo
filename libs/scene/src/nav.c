@@ -24,7 +24,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_max_queries_per_task 25
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
-#define path_refresh_max_dist 2.0f
+#define path_refresh_max_dist 0.5f
 
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
@@ -276,6 +276,10 @@ static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
  * Compute a rough estimate on how close to the target we can get based on the occupied cells.
  */
 static f32 scene_nav_arrive_threshold(const SceneNavEnvComp* env, const GeoNavCell toCell) {
+  /**
+   * TODO: This algorithm doesn't make much sense as it doesn't take nav-islands or even the arrival
+   * direction into account.
+   */
   const GeoNavCell closestFree = geo_nav_closest_free(env->navGrid, toCell);
   return math_max(geo_nav_distance(env->navGrid, toCell, closestFree), 0.1f);
 }
@@ -292,6 +296,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   // Limit the amount of path queries per-frame.
   u32      pathQueriesRemaining = path_max_queries_per_task;
   EcsView* agentsView           = ecs_world_view_t(world, AgentEntityView);
+
   for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -326,8 +331,14 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
-    if (!geo_nav_line_blocked(env->navGrid, fromCell, toCell)) {
-      // No obstacles between us and the target; move straight to the target
+    /**
+     * TODO: We can potentially avoid pathing if there's a straight line to the target. Care must
+     * be taken however to avoid oscillating between the straight line and the path, which can
+     * easily happen when moving on the border of a nav cell.
+     */
+
+    if (fromCell.data == toCell.data) {
+      // In the same cell as the target; move in a straight line.
       scene_locomotion_move(loco, toPos);
       goto Done;
     }
@@ -338,6 +349,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       path->cellCount                     = geo_nav_path(env->navGrid, fromCell, toCell, container);
       path->nextRefreshTime               = path_next_refresh_time(time);
       path->destination                   = toPos;
+      path->currentTargetIndex            = 1; // Path includes the start point; should be skipped.
       --pathQueriesRemaining;
 
       // Stop if no path is possible at this time.
@@ -347,16 +359,18 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     // Attempt to take a shortcut as far up the path as possible without being obstructed.
-    for (u32 i = (path->cellCount); i-- > 1;) {
+    for (u32 i = path->cellCount; i-- > path->currentTargetIndex;) {
       if (!geo_nav_line_blocked(env->navGrid, fromCell, path->cells[i])) {
+        path->currentTargetIndex = i;
         scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[i]));
         goto Done;
       }
     }
 
-    // No shortcut available; move to the next cell in the path.
+    // No shortcut available; move to the current target cell in the path.
     if (path->cellCount > 1) {
-      scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[1]));
+      const GeoNavCell moveTowardsCell = path->cells[path->currentTargetIndex];
+      scene_locomotion_move(loco, geo_nav_position(env->navGrid, moveTowardsCell));
       goto Done;
     }
 

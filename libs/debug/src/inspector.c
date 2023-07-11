@@ -878,7 +878,7 @@ static void inspector_vis_draw_locomotion(
   const GeoVector pos      = transform ? transform->position : geo_vector(0);
   const f32       scaleVal = scale ? scale->scale : 1.0f;
 
-  const f32 separationStrength = math_clamp_f32(geo_vector_mag(loco->lastSeparation) * 100, 0, 1);
+  const f32 separationStrength = math_clamp_f32(geo_vector_mag(loco->lastSeparation), 0, 1);
 
   const GeoColor circleColor = geo_color_lerp(geo_color_white, geo_color_red, separationStrength);
   debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, circleColor);
