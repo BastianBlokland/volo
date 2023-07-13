@@ -36,7 +36,7 @@ struct MetaData {
 struct GlyphData {
   f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
-              // y = atlasIndex,
+              // y = 16b atlasIndex,
               // z = 16b borderFrac 16b cornerFrac,
               // w = 8b clipId, 8b outlineWidth, 8b weight
 };
@@ -76,7 +76,7 @@ void main() {
   const f32v2     glyphPos     = glyphData.rect.xy;
   const f32v2     glyphSize    = glyphData.rect.zw;
   const f32v4     glyphColor   = color_from_u32(glyphData.data.x);
-  const u32       atlasIndex   = glyphData.data.y;
+  const u32       atlasIndex   = glyphData.data.y & 0xFFFF;
   const f32       borderFrac   = (glyphData.data.z & 0xFFFF) / f32(0xFFFF);
   const f32       cornerFrac   = (glyphData.data.z >> 16) / f32(0xFFFF);
   const u32       clipId       = glyphData.data.w & 0xFF;

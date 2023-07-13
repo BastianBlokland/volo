@@ -10,7 +10,8 @@ typedef struct {
   ALIGNAS(16)
   UiRect  rect;
   UiColor color;
-  u32     atlasIndex;
+  u16     atlasIndex;
+  u16     padding;
   u16     borderFrac; // 'border size' / rect.width * u16_max
   u16     cornerFrac; // 'corner size' / rect.width * u16_max
   u8      clipId;
