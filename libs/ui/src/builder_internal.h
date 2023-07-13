@@ -11,7 +11,7 @@ typedef struct {
   UiRect  rect;
   UiColor color;
   u16     atlasIndex;
-  u16     padding;
+  u16     angleFrac;  // 'angle radians' / math_pi_f32 / 2 * u16_max
   u16     borderFrac; // 'border size' / rect.width * u16_max
   u16     cornerFrac; // 'corner size' / rect.width * u16_max
   u8      clipId;
