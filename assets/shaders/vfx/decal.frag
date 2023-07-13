@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "geometry.glsl"
 #include "global.glsl"
-#include "math.glsl"
+#include "math_frag.glsl"
 #include "quat.glsl"
 #include "tags.glsl"
 

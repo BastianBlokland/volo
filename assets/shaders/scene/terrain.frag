@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "geometry.glsl"
 #include "global.glsl"
-#include "math.glsl"
+#include "math_frag.glsl"
 #include "tags.glsl"
 
 bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
