@@ -231,7 +231,7 @@ static void ftx_generate_font(
     const FtxDefResolvedFont font,
     const FtxGenFlags        flags,
     u32                      maxGlyphs,
-    u32*                     nextGlyphIndex,
+    u16*                     nextGlyphIndex,
     DynArray*                outChars, // AssetFtxChar[]
     AssetTexturePixelB1*     outPixels,
     FtxError*                err) {
@@ -246,7 +246,7 @@ static void ftx_generate_font(
     *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .variation  = font.variation,
-        .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
+        .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u16,
         .size       = inputChars[i].glyph->size,
         .offsetX    = inputChars[i].glyph->offsetX,
         .offsetY    = inputChars[i].glyph->offsetY + font.yOffset,
@@ -254,7 +254,7 @@ static void ftx_generate_font(
         .border     = def->border / (f32)def->glyphSize,
     };
     if (inputChars[i].glyph->segmentCount) {
-      if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {
+      if (UNLIKELY(*nextGlyphIndex >= maxGlyphs || *nextGlyphIndex == u16_max)) {
         *err = FtxError_TooManyGlyphs;
         return;
       }
@@ -279,7 +279,7 @@ static void ftx_generate(
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
-  u32       nextGlyphIndex = 0;
+  u16       nextGlyphIndex = 0;
   if (UNLIKELY(!maxGlyphs)) {
     *err = FtxError_TooManyGlyphs;
     goto Error;
