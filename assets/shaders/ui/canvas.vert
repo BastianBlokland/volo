@@ -92,8 +92,8 @@ void main() {
    * NOTE: Expected origin of the glyph is in the lower left hand corner but rotation should happen
    * around the center of the glyph.
    */
-  const f32v2 rotatedUnitPos = rotMat * c_unitPositions[in_vertexIndex] + f32v2(0.5, 0.5);
-  const f32v2 uiPos          = glyphPos + rotatedUnitPos * glyphSize;
+  const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * glyphSize) + glyphSize * 0.5;
+  const f32v2 uiPos    = glyphPos + uiPosRel;
 
   /**
    * Compute the x and y position in the texture atlas based on the glyphIndex.
