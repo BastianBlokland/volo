@@ -201,6 +201,7 @@ void ui_cmd_push_draw_glyph(
     const UiId    id,
     const Unicode cp,
     const u16     maxCorner,
+    const f32     angleRad,
     const UiFlags flags) {
 
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
@@ -208,6 +209,7 @@ void ui_cmd_push_draw_glyph(
       .drawGlyph = {
           .id        = id,
           .cp        = cp,
+          .angleRad  = angleRad,
           .maxCorner = maxCorner,
           .flags     = flags,
       }};

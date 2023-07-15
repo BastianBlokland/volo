@@ -156,3 +156,4 @@ String ui_canvas_text_editor_result(UiCanvasComp*);
  * control the size of the 9-slice corner.
  */
 UiId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner, UiFlags);
+UiId ui_canvas_draw_glyph_rotated(UiCanvasComp*, Unicode, u16 maxCorner, f32 angleRad, UiFlags);

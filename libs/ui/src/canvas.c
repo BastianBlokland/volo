@@ -764,8 +764,20 @@ bool ui_canvas_text_is_editing(UiCanvasComp* comp, const UiId id) {
 
 UiId ui_canvas_draw_glyph(
     UiCanvasComp* comp, const Unicode cp, const u16 maxCorner, const UiFlags flags) {
+  const UiId id       = comp->nextId++;
+  const f32  angleRad = 0.0f;
+  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, angleRad, flags);
+  return id;
+}
+
+UiId ui_canvas_draw_glyph_rotated(
+    UiCanvasComp* comp,
+    const Unicode cp,
+    const u16     maxCorner,
+    const f32     angleRad,
+    const UiFlags flags) {
   const UiId id = comp->nextId++;
-  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, flags);
+  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, angleRad, flags);
   return id;
 }
 
