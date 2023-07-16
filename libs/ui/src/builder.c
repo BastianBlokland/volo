@@ -356,7 +356,8 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   }
 }
 
-static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const UiFlags flags) {
+static void ui_build_debug_inspector(
+    UiBuildState* state, const UiId id, const UiFlags flags, const f32 angleRad) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_active(state);
@@ -393,6 +394,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   fmt_write(&str, "Variation\t{}\n", fmt_int(style.variation));
   fmt_write(&str, "ClipId\t\t{}\n", fmt_int(container.clipId));
   fmt_write(&str, "Interact\t{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+  fmt_write(
+      &str,
+      "Angle\t\t{} rad ({} deg)\n",
+      fmt_float(angleRad, .minDecDigits = 2, .maxDecDigits = 2),
+      fmt_float(angleRad * math_rad_to_deg, .maxDecDigits = 0));
 
   const f32    textSize = 500;
   const u16    fontSize = 20;
@@ -515,13 +521,15 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
     if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
-      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags);
+      const f32 angleRad = 0.0f;
+      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags, angleRad);
     }
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
     if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
-      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags);
+      const f32 angleRad = cmd->drawGlyph.angleRad;
+      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags, angleRad);
     }
     break;
   }
