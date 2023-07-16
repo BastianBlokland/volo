@@ -754,11 +754,11 @@ static bool rend_canvas_paint(
 
   // Fog pass.
   RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
-  const RvkSize fogSize   = set->flags & RendFlags_Fog
+  const RvkSize fogSize   = set->flags & (RendFlags_Fog | RendFlags_DebugFog)
                                 ? (RvkSize){set->fogResolution, set->fogResolution}
                                 : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
-  if (set->flags & RendFlags_Fog) {
+  if (set->flags & (RendFlags_Fog | RendFlags_DebugFog)) {
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
     const GeoMatrix*     fogProj   = rend_fog_proj(fog);
     const SceneTagFilter fogFilter = {0};
@@ -774,7 +774,7 @@ static bool rend_canvas_paint(
 
   // Fog-blur pass.
   RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
-  if (set->flags & RendFlags_Fog && set->fogBlurSteps) {
+  if (set->flags & (RendFlags_Fog | RendFlags_DebugFog) && set->fogBlurSteps) {
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
 
     struct {
