@@ -36,6 +36,8 @@ configure_shaders(volo_shaders
     shaders/light/light_point_debug.frag
     shaders/light/light_point.frag
     shaders/light/light_point.vert
+    shaders/minimap.frag
+    shaders/minimap.vert
     shaders/outline.frag
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_gradient.frag
