@@ -40,6 +40,7 @@ static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
 };
 static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudMinimapSize    = {.x = 250.0f, .y = 250.0f};
 
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
 
@@ -292,6 +293,26 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
 }
 
+static void hud_minimap_draw(UiCanvasComp* canvas) {
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_TopRight, g_hudMinimapSize, UiBase_Absolute);
+
+  // Draw frame.
+  ui_style_push(canvas);
+  const UiId frameId = ui_canvas_id_peek(canvas);
+  ui_style_color(canvas, ui_color_clear);
+  ui_style_outline(canvas, 3);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_TrackRect);
+  ui_style_pop(canvas);
+
+  const UiRect frameRect = ui_canvas_elem_rect(canvas, frameId);
+  ui_layout_container_push(canvas, UiClip_Rect);
+  (void)frameRect;
+  ui_layout_container_pop(canvas);
+
+  ui_layout_pop(canvas);
+}
+
 ecs_system_define(HudDrawUiSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -331,6 +352,7 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_health_draw(canvas, &viewProj, healthView);
     hud_groups_draw(canvas, cmd);
+    hud_minimap_draw(canvas);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
