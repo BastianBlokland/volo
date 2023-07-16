@@ -5,6 +5,6 @@
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v3 out_color;
+bind_internal(0) out f32v4 out_color;
 
-void main() { out_color = f32v3(in_texcoord, 1); }
+void main() { out_color = f32v4(in_texcoord, 0, 1); }

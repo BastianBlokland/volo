@@ -495,6 +495,10 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
 }
 
+static void painter_push_minimap(RendPaintContext* ctx) {
+  painter_push_simple(ctx, RvkRepositoryId_MinimapGraphic, mem_empty);
+}
+
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
@@ -975,6 +979,7 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
+    painter_push_minimap(&ctx);
     painter_push_draws_simple(&ctx, drawView, graphicView, RendDrawFlags_Post, RendDrawFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {
