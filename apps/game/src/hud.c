@@ -307,10 +307,16 @@ static void hud_minimap_draw(UiCanvasComp* canvas, RendSettingsComp* rendSetting
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_TrackRect);
   ui_style_pop(canvas);
 
+  const UiRect frameRect       = ui_canvas_elem_rect(canvas, frameId);
+  const f32    invCanvasWidth  = 1.0f / ui_canvas_resolution(canvas).x;
+  const f32    invCanvasHeight = 1.0f / ui_canvas_resolution(canvas).y;
+
   // Update renderer minimap settings.
-  const UiRect frameRect = ui_canvas_elem_rect(canvas, frameId);
   rendSettings->flags |= RendFlags_Minimap;
-  (void)frameRect;
+  rendSettings->minimapRect[0] = frameRect.x * invCanvasWidth;
+  rendSettings->minimapRect[1] = frameRect.y * invCanvasHeight;
+  rendSettings->minimapRect[2] = frameRect.width * invCanvasWidth;
+  rendSettings->minimapRect[3] = frameRect.height * invCanvasHeight;
 
   // Draw content.
   ui_layout_container_push(canvas, UiClip_Rect);

@@ -498,18 +498,14 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
 static void painter_push_minimap(RendPaintContext* ctx) {
   typedef struct {
     ALIGNAS(16)
-    f32 pos[2];
-    f32 size[2];
+    f32 rect[4]; // x, y, width, height.
     f32 alpha;
     f32 unused[3];
   } MinimapData;
 
   MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
-  data->pos[0]      = 0.9f;
-  data->pos[1]      = 0.9f;
-  data->size[0]     = 0.1f;
-  data->size[1]     = 0.1f;
-  data->alpha       = 1.0f;
+  mem_cpy(mem_var(data->rect), mem_var(ctx->settings->minimapRect));
+  data->alpha = 1.0f;
 
   painter_push_simple(ctx, RvkRepositoryId_MinimapGraphic, mem_create(data, sizeof(MinimapData)));
 }
