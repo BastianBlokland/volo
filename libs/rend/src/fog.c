@@ -6,16 +6,14 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_faction.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
 
 #include "fog_internal.h"
 
 static const String g_fogVisionGraphic = string_static("graphics/fog_vision.gra");
-static const GeoBox g_fogBounds        = {
-    .min = {.x = -225.0f, .y = -100.0f, .z = -225.0f},
-    .max = {.x = 225.0f, .y = 100.0f, .z = 225.0f},
-};
+static const f32    g_worldHeight      = 100.0f;
 
 ecs_comp_define(RendFogComp) {
   EcsEntityId drawEntity;
@@ -23,7 +21,8 @@ ecs_comp_define(RendFogComp) {
 };
 
 ecs_view_define(GlobalView) {
-  ecs_access_maybe_read(RendFogComp);
+  ecs_access_maybe_read(SceneTerrainComp);
+  ecs_access_maybe_write(RendFogComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_write(AssetManagerComp);
 }
@@ -43,6 +42,18 @@ static EcsEntityId rend_fog_draw_create(EcsWorld* world, AssetManagerComp* asset
   return entity;
 }
 
+static void rend_fog_update_proj(RendFogComp* fog, const SceneTerrainComp* terrain) {
+  GeoBox bounds;
+  if (terrain) {
+    const GeoBox terrainBounds = scene_terrain_bounds(terrain);
+    bounds                     = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
+  } else {
+    bounds = geo_box_from_center(geo_vector(0), geo_vector(400, 100, 400));
+  }
+  fog->projMatrix = geo_matrix_proj_ortho_box(
+      bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, bounds.min.y, bounds.max.y);
+}
+
 static void rend_fog_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId global = ecs_world_global(world);
   ecs_world_add_t(
@@ -50,14 +61,7 @@ static void rend_fog_create(EcsWorld* world, AssetManagerComp* assets) {
       global,
       RendFogComp,
       .drawEntity  = rend_fog_draw_create(world, assets),
-      .transMatrix = geo_matrix_rotate_x(math_pi_f32 * 0.5f),
-      .projMatrix  = geo_matrix_proj_ortho_box(
-          g_fogBounds.min.x,
-          g_fogBounds.max.x,
-          g_fogBounds.min.z,
-          g_fogBounds.max.z,
-          g_fogBounds.min.y,
-          g_fogBounds.max.y));
+      .transMatrix = geo_matrix_rotate_x(math_pi_f32 * 0.5f));
 }
 
 ecs_system_define(RendFogRenderSys) {
@@ -69,11 +73,14 @@ ecs_system_define(RendFogRenderSys) {
 
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
   AssetManagerComp*             assets         = ecs_view_write_t(globalItr, AssetManagerComp);
-  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
+  RendFogComp*                  fog            = ecs_view_write_t(globalItr, RendFogComp);
+  const SceneTerrainComp*       terrain        = ecs_view_read_t(globalItr, SceneTerrainComp);
   if (!fog) {
     rend_fog_create(world, assets);
     return;
   }
+
+  rend_fog_update_proj(fog, terrain);
 
   EcsView*      drawView = ecs_world_view_t(world, DrawView);
   EcsIterator*  drawItr  = ecs_view_at(drawView, fog->drawEntity);
@@ -95,8 +102,8 @@ ecs_system_define(RendFogRenderSys) {
     } FogVisionData;
     ASSERT(sizeof(FogVisionData) == 16, "Size needs to match the size defined in glsl");
 
-    const GeoBox bounds = geo_box_from_sphere(trans->position, vision->radius);
-    *rend_draw_add_instance_t(draw, FogVisionData, SceneTags_None, bounds) = (FogVisionData){
+    const GeoBox visBounds = geo_box_from_sphere(trans->position, vision->radius);
+    *rend_draw_add_instance_t(draw, FogVisionData, SceneTags_None, visBounds) = (FogVisionData){
         .data1.x = trans->position.x,
         .data1.y = trans->position.y,
         .data1.z = trans->position.z,
