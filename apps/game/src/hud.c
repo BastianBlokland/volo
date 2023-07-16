@@ -7,6 +7,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "input_manager.h"
 #include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -43,6 +44,7 @@ static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }
@@ -298,6 +300,7 @@ ecs_system_define(HudDrawUiSys) {
   }
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
+  const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsView* hudView       = ecs_world_view_t(world, HudView);
   EcsView* canvasView    = ecs_world_view_t(world, UiCanvasView);
@@ -321,6 +324,9 @@ ecs_system_define(HudDrawUiSys) {
     const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, canvas);
 
     ui_canvas_reset(canvas);
+    if (input_layer_active(input, string_hash_lit("Debug"))) {
+      continue;
+    }
     ui_canvas_to_back(canvas);
 
     hud_health_draw(canvas, &viewProj, healthView);
