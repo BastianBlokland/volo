@@ -132,11 +132,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->canvas->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->canvas->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -450,12 +450,12 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-         .settings      = settings,
-         .font          = font,
-         .renderer      = renderer,
-         .draw          = draw,
-         .clipRects[0]  = {.size = canvasSize},
-         .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -776,6 +776,9 @@ UiId ui_canvas_draw_glyph_rotated(
     const u16     maxCorner,
     const f32     angleRad,
     const UiFlags flags) {
+  diag_assert_msg(!(flags & UiFlags_Interactable), "Rotated glyphs cannot be interactable");
+  diag_assert_msg(!(flags & UiFlags_TrackRect), "Rectangle cannot be tracked for rotated glyphs");
+
   const UiId id = comp->nextId++;
   ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, angleRad, flags);
   return id;
