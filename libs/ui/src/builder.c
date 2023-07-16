@@ -152,12 +152,18 @@ static void ui_build_set_size_to(UiBuildState* state, const UiVector val, const 
   }
 }
 
+static f32 ui_build_angle_rad_to_frac(const f32 angle) {
+  static const f32 g_radToFrac = 1.0f / (math_pi_f32 * 2.0f);
+  return math_mod_f32(angle * g_radToFrac, 1.0f);
+}
+
 static void ui_build_glyph(
     UiBuildState*      state,
     const Unicode      cp,
     const UiRect       rect,
     const UiBuildStyle style,
     const u16          maxCorner,
+    const f32          angleRad,
     const u8           clipId) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
@@ -173,12 +179,14 @@ static void ui_build_glyph(
   if (UNLIKELY(outputRect.size.width < f32_epsilon || outputRect.size.height < f32_epsilon)) {
     return; // Glyph too small.
   }
+  const bool rotated = math_abs(angleRad) > f32_epsilon;
   state->ctx->outputGlyph(
       state->ctx->userCtx,
       (UiGlyphData){
           .rect         = outputRect,
           .color        = style.color,
           .atlasIndex   = ch->glyphIndex,
+          .angleFrac    = rotated ? (u16)(ui_build_angle_rad_to_frac(angleRad) * u16_max) : 0,
           .borderFrac   = (u16)(border / outputRect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / outputRect.size.width * u16_max),
           .clipId       = clipId,
@@ -222,8 +230,9 @@ static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* 
       .weight = UiWeight_Normal,
       .layer  = info->layer,
   };
-  const u8 maxCorner = 4; // Roundedness of the backgrounds.
-  ui_build_glyph(state, UiShape_Circle, info->rect, style, maxCorner, clipId);
+  const u8  maxCorner = 4; // Roundedness of the backgrounds.
+  const f32 angleRad  = 0.0f;
+  ui_build_glyph(state, UiShape_Circle, info->rect, style, maxCorner, angleRad, clipId);
 }
 
 static bool ui_rect_contains(const UiRect rect, const UiVector point) {
@@ -324,13 +333,16 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_active(state);
 
-  if (ui_build_cull(container, rect, style)) {
+  const bool rotated = math_abs(cmd->angleRad) > f32_epsilon;
+  // TODO: Support culling for rotated glyphs.
+  if (!rotated && ui_build_cull(container, rect, style)) {
     return;
   }
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    diag_assert(!rotated); // Hovering is not supported for rotated glyphs.
     state->hover = (UiBuildHover){
         .id    = cmd->id,
         .layer = style.layer,
@@ -338,14 +350,16 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     };
   }
 
-  ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
+  ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
 
   if (cmd->flags & UiFlags_TrackRect) {
+    diag_assert(!rotated); // Tracking is not supported for rotated glyphs.
     state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
   }
 }
 
-static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const UiFlags flags) {
+static void ui_build_debug_inspector(
+    UiBuildState* state, const UiId id, const UiFlags flags, const f32 angleRad) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_active(state);
@@ -360,9 +374,9 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
       .weight    = UiWeight_Bold,
       .layer     = UiLayer_Overlay};
 
-  ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0);
-  ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0);
-  ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
+  ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);
+  ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0.0f, 0);
+  ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0.0f, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
   fmt_write(&str, "Id\t\t{}\n", fmt_int(id));
@@ -382,6 +396,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   fmt_write(&str, "Variation\t{}\n", fmt_int(style.variation));
   fmt_write(&str, "ClipId\t\t{}\n", fmt_int(container.clipId));
   fmt_write(&str, "Interact\t{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+  fmt_write(
+      &str,
+      "Angle\t\t{} rad ({} deg)\n",
+      fmt_float(angleRad, .minDecDigits = 2, .maxDecDigits = 2),
+      fmt_float(angleRad * math_rad_to_deg, .maxDecDigits = 0));
 
   const f32    textSize = 500;
   const u16    fontSize = 20;
@@ -504,13 +523,15 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
     if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
-      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags);
+      const f32 angleRad = 0.0f;
+      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags, angleRad);
     }
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
     if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
-      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags);
+      const f32 angleRad = cmd->drawGlyph.angleRad;
+      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags, angleRad);
     }
     break;
   }

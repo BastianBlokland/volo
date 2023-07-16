@@ -4,16 +4,17 @@
 #include "binding.glsl"
 #include "color.glsl"
 #include "instance.glsl"
+#include "math.glsl"
 #include "ui.glsl"
 
 const u32   c_verticesPerGlyph                  = 6;
 const f32v2 c_unitPositions[c_verticesPerGlyph] = {
-    f32v2(0, 1),
-    f32v2(1, 1),
-    f32v2(0, 0),
-    f32v2(1, 1),
-    f32v2(1, 0),
-    f32v2(0, 0),
+    f32v2(-0.5, +0.5),
+    f32v2(+0.5, +0.5),
+    f32v2(-0.5, -0.5),
+    f32v2(+0.5, +0.5),
+    f32v2(+0.5, -0.5),
+    f32v2(-0.5, -0.5),
 };
 const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
     f32v2(0, 1),
@@ -36,7 +37,7 @@ struct MetaData {
 struct GlyphData {
   f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
-              // y = atlasIndex,
+              // y = 16b atlasIndex, 16b angleFrac,
               // z = 16b borderFrac 16b cornerFrac,
               // w = 8b clipId, 8b outlineWidth, 8b weight
 };
@@ -76,17 +77,23 @@ void main() {
   const f32v2     glyphPos     = glyphData.rect.xy;
   const f32v2     glyphSize    = glyphData.rect.zw;
   const f32v4     glyphColor   = color_from_u32(glyphData.data.x);
-  const u32       atlasIndex   = glyphData.data.y;
+  const u32       atlasIndex   = glyphData.data.y & 0xFFFF;
+  const f32       angleRad     = (glyphData.data.y >> 16) / f32(0xFFFF) * c_pi * 2;
   const f32       borderFrac   = (glyphData.data.z & 0xFFFF) / f32(0xFFFF);
   const f32       cornerFrac   = (glyphData.data.z >> 16) / f32(0xFFFF);
   const u32       clipId       = glyphData.data.w & 0xFF;
   const u32       outlineWidth = (glyphData.data.w >> 8) & 0xFF;
   const u32       weight       = (glyphData.data.w >> 16) & 0xFF;
 
+  const f32m2 rotMat = math_rotate_mat_f32m2(angleRad);
+
   /**
    * Compute the ui positions of the vertices.
+   * NOTE: Expected origin of the glyph is in the lower left hand corner but rotation should happen
+   * around the center of the glyph.
    */
-  const f32v2 uiPos = glyphPos + c_unitPositions[in_vertexIndex] * glyphSize;
+  const f32v2 uiPosRel = rotMat * (c_unitPositions[in_vertexIndex] * glyphSize) + glyphSize * 0.5;
+  const f32v2 uiPos    = glyphPos + uiPosRel;
 
   /**
    * Compute the x and y position in the texture atlas based on the glyphIndex.

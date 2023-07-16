@@ -95,6 +95,17 @@ typedef struct {
   String        tooltip;
 } UiNumboxOpts;
 
+typedef struct {
+  UiBase base;
+  f32    radius;
+  u16    maxCorner;
+} UiCircleOpts;
+
+typedef struct {
+  UiBase base;
+  f32    width;
+} UiLineOpts;
+
 // clang-format off
 
 /**
@@ -186,7 +197,7 @@ typedef struct {
 
 /**
  * Draw editable text box.
-* NOTE: Its important that the widget has a stable identifier in the canvas.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
  */
 #define ui_textbox(_CANVAS_, _DYN_TEXT_, ...) ui_textbox_with_opts((_CANVAS_), (_DYN_TEXT_),       \
   &((UiTextboxOpts){                                                                               \
@@ -198,13 +209,31 @@ typedef struct {
 
 /**
  * Draw editable number box.
-* NOTE: Its important that the widget has a stable identifier in the canvas.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
  */
 #define ui_numbox(_CANVAS_, _VALUE_, ...) ui_numbox_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiNumboxOpts){                                                                                \
     .max        = f64_max,                                                                         \
     .fontSize   = 16,                                                                              \
     .frameColor = ui_color(32, 32, 32, 192),                                                       \
+    __VA_ARGS__}))
+
+/**
+ * Draw a circle at the given point.
+ */
+#define ui_circle(_CANVAS_, _POS_, ...) ui_circle_with_opts((_CANVAS_), (_POS_),                   \
+  &((UiCircleOpts){                                                                                \
+    .base   = UiBase_Current,                                                                      \
+    .radius = 10,                                                                                  \
+    __VA_ARGS__}))
+
+/**
+ * Draw a line between two given points.
+ */
+#define ui_line(_CANVAS_, _FROM_, _TO_, ...) ui_line_with_opts((_CANVAS_), (_FROM_), (_TO_),       \
+  &((UiLineOpts){                                                                                  \
+    .base  = UiBase_Current,                                                                       \
+    .width = 10,                                                                                   \
     __VA_ARGS__}))
 
 // clang-format on
@@ -221,3 +250,5 @@ bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
 bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
 bool ui_numbox_with_opts(UiCanvasComp*, f64*, const UiNumboxOpts*);
+void ui_circle_with_opts(UiCanvasComp*, UiVector pos, const UiCircleOpts*);
+void ui_line_with_opts(UiCanvasComp*, UiVector from, UiVector to, const UiLineOpts*);

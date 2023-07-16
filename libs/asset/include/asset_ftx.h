@@ -17,7 +17,7 @@
 typedef struct {
   Unicode cp;
   u8      variation;
-  u32     glyphIndex; // sentinel_u32 when character has no glyph (for example a space).
+  u16     glyphIndex; // sentinel_u16 when character has no glyph (for example a space).
   f32     size;
   f32     offsetX, offsetY;
   f32     advance;

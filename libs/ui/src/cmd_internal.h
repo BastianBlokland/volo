@@ -89,8 +89,9 @@ typedef struct {
 typedef struct {
   UiId    id;
   Unicode cp;
+  f32     angleRad;
   u16     maxCorner;
-  UiFlags flags;
+  UiFlags flags : 16;
 } UiDrawGlyph;
 
 typedef struct {
@@ -136,6 +137,6 @@ void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
 void ui_cmd_push_style_variation(UiCmdBuffer*, u8 variation);
 void ui_cmd_push_style_weight(UiCmdBuffer*, UiWeight);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
-void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);
+void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, f32 angleRad, UiFlags);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);
