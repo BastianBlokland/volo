@@ -1,6 +1,7 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_bitset.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -361,6 +362,7 @@ ecs_module_init(game_hud_module) {
 }
 
 void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {
+  diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
   ecs_world_add_t(
       world,
       cameraEntity,
