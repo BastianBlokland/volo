@@ -253,6 +253,14 @@ f32 scene_terrain_height_scale(const SceneTerrainComp* terrain) {
   return g_terrainHeightScale;
 }
 
+GeoBox scene_terrain_bounds(const SceneTerrainComp* terrain) {
+  (void)terrain;
+  return (GeoBox){
+      .min = geo_vector(-g_terrainSizeHalf, 0, -g_terrainSizeHalf),
+      .max = geo_vector(g_terrainSizeHalf, g_terrainHeightScale, g_terrainSizeHalf),
+  };
+}
+
 f32 scene_terrain_intersect_ray(
     const SceneTerrainComp* terrain, const GeoRay* ray, const f32 maxDist) {
   /**

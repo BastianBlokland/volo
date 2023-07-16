@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "geo_box.h"
 #include "geo_ray.h"
 
 ecs_comp_extern(SceneTerrainComp);
@@ -22,6 +23,7 @@ u32 scene_terrain_version(const SceneTerrainComp*);
 EcsEntityId scene_terrain_graphic(const SceneTerrainComp*);
 f32         scene_terrain_size(const SceneTerrainComp*);
 f32         scene_terrain_height_scale(const SceneTerrainComp*);
+GeoBox      scene_terrain_bounds(const SceneTerrainComp*);
 
 /**
  * Compute the intersection of the given ray with the terrain.
