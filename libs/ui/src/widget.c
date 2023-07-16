@@ -738,6 +738,16 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
   return false;
 }
 
+void ui_circle_with_opts(UiCanvasComp* canvas, const UiVector pos, const UiCircleOpts* opts) {
+  const UiVector size = ui_vector(opts->radius * 2, opts->radius * 2);
+
+  ui_layout_push(canvas);
+  ui_layout_set_pos(canvas, opts->base, pos, opts->base);
+  ui_layout_resize(canvas, UiAlign_MiddleCenter, size, UiBase_Absolute, Ui_XY);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, opts->maxCorner, UiFlags_None);
+  ui_layout_pop(canvas);
+}
+
 void ui_line_with_opts(
     UiCanvasComp* canvas, const UiVector from, const UiVector to, const UiLineOpts* opts) {
 
