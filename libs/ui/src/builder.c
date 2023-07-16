@@ -342,6 +342,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    diag_assert(!rotated); // Hovering is not supported for rotated glyphs.
     state->hover = (UiBuildHover){
         .id    = cmd->id,
         .layer = style.layer,
@@ -352,6 +353,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, cmd->angleRad, container.clipId);
 
   if (cmd->flags & UiFlags_TrackRect) {
+    diag_assert(!rotated); // Tracking is not supported for rotated glyphs.
     state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
   }
 }
