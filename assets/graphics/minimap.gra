@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/minimap.vert.spv"
+    },
+    {
+      "shaderId": "shaders/minimap.frag.spv"
+    }
+  ],
+  "samplers": [ ],
+  "vertexCount": 6,
+  "renderOrder": -10,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}
