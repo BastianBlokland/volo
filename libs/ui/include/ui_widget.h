@@ -95,6 +95,11 @@ typedef struct {
   String        tooltip;
 } UiNumboxOpts;
 
+typedef struct {
+  f32    width;
+  UiBase base;
+} UiLineOpts;
+
 // clang-format off
 
 /**
@@ -207,6 +212,15 @@ typedef struct {
     .frameColor = ui_color(32, 32, 32, 192),                                                       \
     __VA_ARGS__}))
 
+/**
+ * Draw a line between two given points.
+ */
+#define ui_line(_CANVAS_, _FROM_, _TO_, ...) ui_line_with_opts((_CANVAS_), (_FROM_), (_TO_),       \
+  &((UiLineOpts){                                                                                  \
+    .width = 10,                                                                                   \
+    .base  = UiBase_Current,                                                                       \
+    __VA_ARGS__}))
+
 // clang-format on
 
 void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
@@ -221,3 +235,4 @@ bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
 bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
 bool ui_numbox_with_opts(UiCanvasComp*, f64*, const UiNumboxOpts*);
+void ui_line_with_opts(UiCanvasComp*, UiVector from, UiVector to, const UiLineOpts*);
