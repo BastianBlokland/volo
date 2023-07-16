@@ -342,7 +342,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
-    diag_assert(!rotated); // Hovering is not supported for rotated glyphs.
+    // TODO: Implement proper hovering for rotated glyphs.
     state->hover = (UiBuildHover){
         .id    = cmd->id,
         .layer = style.layer,
