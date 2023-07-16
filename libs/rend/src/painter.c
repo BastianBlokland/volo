@@ -500,6 +500,8 @@ static void painter_push_minimap(RendPaintContext* ctx) {
     ALIGNAS(16)
     f32 pos[2];
     f32 size[2];
+    f32 alpha;
+    f32 unused[3];
   } MinimapData;
 
   MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
@@ -507,6 +509,7 @@ static void painter_push_minimap(RendPaintContext* ctx) {
   data->pos[1]      = 0.9f;
   data->size[0]     = 0.1f;
   data->size[1]     = 0.1f;
+  data->alpha       = 1.0f;
 
   painter_push_simple(ctx, RvkRepositoryId_MinimapGraphic, mem_create(data, sizeof(MinimapData)));
 }
