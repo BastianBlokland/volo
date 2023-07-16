@@ -15,17 +15,13 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
+#include "scene_terrain.h"
 
 #include "light_internal.h"
 
 static const f32 g_lightDirMaxShadowDist  = 250.0f;
 static const f32 g_lightDirShadowStepSize = 10.0f;
-
-// TODO: Dynamically compute the world bounds based on content.
-static const GeoBox g_lightWorldBounds = {
-    .min = {.x = -250.0f, .y = 0.0f, .z = -250.0f},
-    .max = {.x = 250.0f, .y = 25.0f, .z = 250.0f},
-};
+static const f32 g_worldHeight            = 10.0f;
 
 typedef enum {
   RendLightType_Directional,
@@ -88,6 +84,7 @@ static void ecs_destruct_light(void* data) {
 }
 
 ecs_view_define(GlobalView) {
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(RendLightComp);
   ecs_access_maybe_write(RendLightRendererComp);
   ecs_access_read(RendSettingsGlobalComp);
@@ -224,6 +221,7 @@ static f32 rend_win_aspect(const GapWindowComp* win) {
 }
 
 static GeoMatrix rend_light_dir_shadow_proj(
+    const SceneTerrainComp*   terrain,
     const GapWindowComp*      win,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
@@ -236,7 +234,11 @@ static GeoMatrix rend_light_dir_shadow_proj(
 
   // Clip the camera frustum to the region that actually contains content.
   rend_clip_frustum_far_dist(frustum, g_lightDirMaxShadowDist);
-  rend_clip_frustum_far_to_bounds(frustum, &g_lightWorldBounds);
+  if (terrain) {
+    const GeoBox terrainBounds = scene_terrain_bounds(terrain);
+    const GeoBox worldBounds   = geo_box_dilate(&terrainBounds, geo_vector(0, g_worldHeight, 0));
+    rend_clip_frustum_far_to_bounds(frustum, &worldBounds);
+  }
 
   // Compute the bounding box in light-space.
   GeoBox bounds = geo_box_inverted3();
@@ -265,6 +267,7 @@ ecs_system_define(RendLightRenderSys) {
   AssetManagerComp*             assets   = ecs_view_write_t(globalItr, AssetManagerComp);
   RendLightRendererComp*        renderer = ecs_view_write_t(globalItr, RendLightRendererComp);
   const RendSettingsGlobalComp* settings = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const SceneTerrainComp*       terrain  = ecs_view_read_t(globalItr, SceneTerrainComp);
   if (!renderer) {
     rend_light_renderer_create(world, assets);
     rend_light_create(world, ecs_world_global(world)); // Global light component for convenience.
@@ -335,7 +338,8 @@ ecs_system_define(RendLightRenderSys) {
 
           renderer->hasShadow         = true;
           renderer->shadowTransMatrix = transMat;
-          renderer->shadowProjMatrix  = rend_light_dir_shadow_proj(win, cam, camTrans, &viewMat);
+          renderer->shadowProjMatrix =
+              rend_light_dir_shadow_proj(terrain, win, cam, camTrans, &viewMat);
 
           shadowViewProj = geo_matrix_mul(&renderer->shadowProjMatrix, &viewMat);
         } else {
