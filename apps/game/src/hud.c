@@ -313,10 +313,10 @@ static void hud_minimap_draw(UiCanvasComp* canvas, RendSettingsComp* rendSetting
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
-  rendSettings->minimapRect[0] = frameRect.x * invCanvasWidth;
-  rendSettings->minimapRect[1] = frameRect.y * invCanvasHeight;
-  rendSettings->minimapRect[2] = frameRect.width * invCanvasWidth;
-  rendSettings->minimapRect[3] = frameRect.height * invCanvasHeight;
+  rendSettings->minimapRect[0] = (frameRect.x - 0.5f) * invCanvasWidth;
+  rendSettings->minimapRect[1] = (frameRect.y - 0.5f) * invCanvasHeight;
+  rendSettings->minimapRect[2] = (frameRect.width + 0.5f) * invCanvasWidth;
+  rendSettings->minimapRect[3] = (frameRect.height + 0.5f) * invCanvasHeight;
 
   // Draw content.
   ui_layout_container_push(canvas, UiClip_Rect);
