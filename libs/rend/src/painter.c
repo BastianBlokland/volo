@@ -994,7 +994,9 @@ static bool rend_canvas_paint(
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
-    painter_push_minimap(&ctx);
+    if (set->flags & RendFlags_Minimap) {
+      painter_push_minimap(&ctx);
+    }
     painter_push_draws_simple(&ctx, drawView, graphicView, RendDrawFlags_Post, RendDrawFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {
