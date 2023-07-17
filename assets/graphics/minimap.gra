@@ -7,7 +7,18 @@
       "shaderId": "shaders/minimap.frag.spv"
     }
   ],
-  "samplers": [ ],
+  "samplers": [
+    {
+      "textureId": "external/terrain/terrain_3_height.r16",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "external/terrain/terrain_3_splat.tga",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
   "vertexCount": 6,
   "renderOrder": -10,
   "topology": "Triangles",

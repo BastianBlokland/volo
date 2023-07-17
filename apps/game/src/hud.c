@@ -42,7 +42,7 @@ static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
 static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize    = {.x = 250.0f, .y = 250.0f};
-static const f32      g_hudMinimapAlpha   = 0.8f;
+static const f32      g_hudMinimapAlpha   = 0.85f;
 
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
