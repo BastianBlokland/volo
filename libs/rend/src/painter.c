@@ -495,19 +495,30 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
       ctx, RvkRepositoryId_TonemapperGraphic, mem_create(data, sizeof(TonemapperData)));
 }
 
-static void painter_push_minimap(RendPaintContext* ctx) {
-  typedef struct {
-    ALIGNAS(16)
-    f32 rect[4]; // x, y, width, height.
-    f32 alpha;
-    f32 unused[3];
-  } MinimapData;
+static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
+  RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
+  const RvkRepositoryId graphicId = RvkRepositoryId_MinimapGraphic;
+  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+    typedef struct {
+      ALIGNAS(16)
+      f32 rect[4]; // x, y, width, height.
+      f32 alpha;
+      f32 unused[3];
+    } MinimapData;
 
-  MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
-  mem_cpy(mem_var(data->rect), mem_var(ctx->settings->minimapRect));
-  data->alpha = ctx->settings->minimapAlpha;
+    MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
+    mem_cpy(mem_var(data->rect), mem_var(ctx->settings->minimapRect));
+    data->alpha = ctx->settings->minimapAlpha;
 
-  painter_push_simple(ctx, RvkRepositoryId_MinimapGraphic, mem_create(data, sizeof(MinimapData)));
+    const RvkPassDraw draw = {
+        .graphic   = graphic,
+        .dynImage  = fogBuffer,
+        .instCount = 1,
+        .drawData  = mem_create(data, sizeof(MinimapData)),
+    };
+    painter_push(ctx, draw);
+  }
 }
 
 static void
@@ -991,7 +1002,7 @@ static bool rend_canvas_paint(
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     if (set->flags & RendFlags_Minimap) {
-      painter_push_minimap(&ctx);
+      painter_push_minimap(&ctx, fogBuffer);
     }
     painter_push_draws_simple(&ctx, drawView, graphicView, RendDrawFlags_Post, RendDrawFlags_None);
 
