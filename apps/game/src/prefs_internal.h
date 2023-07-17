@@ -2,7 +2,7 @@
 #include "ecs_module.h"
 
 typedef enum {
-  GameQuality_UltraLow,
+  GameQuality_VeryLow,
   GameQuality_Low,
   GameQuality_Medium,
   GameQuality_High,

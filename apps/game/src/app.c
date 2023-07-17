@@ -112,7 +112,7 @@ static void app_quality_apply(
   static const RendFlags g_rendOptionalFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
                                                   RendFlags_Distortion | RendFlags_ParticleShadows;
   switch (prefs->quality) {
-  case GameQuality_UltraLow:
+  case GameQuality_VeryLow:
     rendSetGlobal->flags &= ~RendGlobalFlags_SunShadows;
     rendSetWin->flags &= ~g_rendOptionalFeatures;
     rendSetWin->resolutionScale = 0.75f;
