@@ -87,6 +87,10 @@ ecs_view_define(InfoView) {
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
+static bool hud_rect_intersect(const UiRect a, const UiRect b) {
+  return a.x + a.width > b.x && b.x + b.width > a.x && a.y + a.height > b.y && b.y + b.height > a.y;
+}
+
 static GeoMatrix hud_ui_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* canvas) {
   const UiVector res    = ui_canvas_resolution(canvas);
@@ -128,7 +132,12 @@ static UiColor hud_health_color(const f32 norm) {
   return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
 }
 
-static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsView* healthView) {
+static void hud_health_draw(
+    UiCanvasComp*    canvas,
+    HudComp*         hud,
+    const GeoMatrix* viewProj,
+    EcsView*         healthView,
+    const UiVector   res) {
   ui_style_push(canvas);
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
@@ -151,9 +160,20 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     if (UNLIKELY(canvasPos.z <= 0)) {
       continue; // Position is behind the camera.
     }
+    const UiVector uiPos     = ui_vector(canvasPos.x * res.x, canvasPos.y * res.y);
+    const f32      barWidth  = g_hudHealthBarSize.width;
+    const f32      barHeight = g_hudHealthBarSize.height;
+
+    const UiRect bounds = {
+        .pos  = ui_vector(uiPos.x - barWidth * 0.5f, uiPos.y + g_hudHealthBarOffsetY),
+        .size = ui_vector(barWidth, barHeight + g_hudStatusSpacing.y + g_hudStatusIconSize.y),
+    };
+    if (hud_rect_intersect(hud->minimapRect, bounds)) {
+      continue; // Position is over the minimap.
+    }
 
     // Compute the health-bar ui rectangle.
-    ui_layout_set_pos(canvas, UiBase_Canvas, ui_vector(canvasPos.x, canvasPos.y), UiBase_Canvas);
+    ui_layout_set_pos(canvas, UiBase_Canvas, uiPos, UiBase_Absolute);
     ui_layout_move_dir(canvas, Ui_Up, g_hudHealthBarOffsetY, UiBase_Absolute);
     ui_layout_resize(canvas, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
@@ -377,7 +397,7 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_minimap_update(hud, rendSettings, res);
 
-    hud_health_draw(canvas, &viewProj, healthView);
+    hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
     hud_minimap_draw(canvas, hud);
 
