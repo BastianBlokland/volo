@@ -296,27 +296,32 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
 }
 
 static void hud_minimap_draw(UiCanvasComp* canvas, RendSettingsComp* rendSettings) {
+  const UiVector res = ui_canvas_resolution(canvas);
+  if (res.x < f32_epsilon || res.y < f32_epsilon) {
+    return;
+  }
+
+  const UiRect minimapRect = {
+      .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
+      .size = g_hudMinimapSize,
+  };
+
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Canvas, UiAlign_TopRight, g_hudMinimapSize, UiBase_Absolute);
+  ui_layout_set(canvas, minimapRect, UiBase_Absolute);
 
   // Draw frame.
   ui_style_push(canvas);
-  const UiId frameId = ui_canvas_id_peek(canvas);
   ui_style_color(canvas, ui_color_clear);
   ui_style_outline(canvas, 3);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_TrackRect);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
   ui_style_pop(canvas);
-
-  const UiRect frameRect       = ui_canvas_elem_rect(canvas, frameId);
-  const f32    invCanvasWidth  = 1.0f / ui_canvas_resolution(canvas).x;
-  const f32    invCanvasHeight = 1.0f / ui_canvas_resolution(canvas).y;
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
-  rendSettings->minimapRect[0] = (frameRect.x - 0.5f) * invCanvasWidth;
-  rendSettings->minimapRect[1] = (frameRect.y - 0.5f) * invCanvasHeight;
-  rendSettings->minimapRect[2] = (frameRect.width + 0.5f) * invCanvasWidth;
-  rendSettings->minimapRect[3] = (frameRect.height + 0.5f) * invCanvasHeight;
+  rendSettings->minimapRect[0] = (minimapRect.x - 0.5f) / res.width;
+  rendSettings->minimapRect[1] = (minimapRect.y - 0.5f) / res.height;
+  rendSettings->minimapRect[2] = (minimapRect.width + 0.5f) / res.width;
+  rendSettings->minimapRect[3] = (minimapRect.height + 0.5f) / res.height;
 
   // Draw content.
   ui_layout_container_push(canvas, UiClip_Rect);
