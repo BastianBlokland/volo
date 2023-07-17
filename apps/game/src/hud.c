@@ -43,7 +43,10 @@ static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize    = {.x = 250.0f, .y = 250.0f};
 
-ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
+ecs_comp_define(HudComp) {
+  EcsEntityId uiCanvas;
+  UiRect      minimapRect;
+};
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
@@ -52,10 +55,10 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(HudView) {
-  ecs_access_read(HudComp);
   ecs_access_read(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_write(HudComp);
   ecs_access_write(RendSettingsComp);
 }
 
@@ -295,19 +298,24 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
 }
 
-static void hud_minimap_draw(UiCanvasComp* canvas, RendSettingsComp* rendSettings) {
-  const UiVector res = ui_canvas_resolution(canvas);
-  if (res.x < f32_epsilon || res.y < f32_epsilon) {
-    return;
-  }
-
-  const UiRect minimapRect = {
+static void hud_minimap_update(HudComp* hud, RendSettingsComp* rendSettings, const UiVector res) {
+  // Compute minimap rect.
+  hud->minimapRect = (UiRect){
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
 
+  // Update renderer minimap settings.
+  rendSettings->flags |= RendFlags_Minimap;
+  rendSettings->minimapRect[0] = (hud->minimapRect.x - 0.5f) / res.width;
+  rendSettings->minimapRect[1] = (hud->minimapRect.y - 0.5f) / res.height;
+  rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
+  rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
+}
+
+static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud) {
   ui_layout_push(canvas);
-  ui_layout_set(canvas, minimapRect, UiBase_Absolute);
+  ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
 
   // Draw frame.
   ui_style_push(canvas);
@@ -315,13 +323,6 @@ static void hud_minimap_draw(UiCanvasComp* canvas, RendSettingsComp* rendSetting
   ui_style_outline(canvas, 3);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
   ui_style_pop(canvas);
-
-  // Update renderer minimap settings.
-  rendSettings->flags |= RendFlags_Minimap;
-  rendSettings->minimapRect[0] = (minimapRect.x - 0.5f) / res.width;
-  rendSettings->minimapRect[1] = (minimapRect.y - 0.5f) / res.height;
-  rendSettings->minimapRect[2] = (minimapRect.width + 0.5f) / res.width;
-  rendSettings->minimapRect[3] = (minimapRect.height + 0.5f) / res.height;
 
   // Draw content.
   ui_layout_container_push(canvas, UiClip_Rect);
@@ -356,6 +357,7 @@ ecs_system_define(HudDrawUiSys) {
     const SceneCameraComp*    cam          = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans     = ecs_view_read_t(itr, SceneTransformComp);
     RendSettingsComp*         rendSettings = ecs_view_write_t(itr, RendSettingsComp);
+    HudComp*                  hud          = ecs_view_write_t(itr, HudComp);
     if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
       continue;
     }
@@ -367,11 +369,17 @@ ecs_system_define(HudDrawUiSys) {
       rendSettings->flags &= ~RendFlags_Minimap;
       continue;
     }
+    const UiVector res = ui_canvas_resolution(canvas);
+    if (res.x < f32_epsilon || res.y < f32_epsilon) {
+      continue;
+    }
     ui_canvas_to_back(canvas);
+
+    hud_minimap_update(hud, rendSettings, res);
 
     hud_health_draw(canvas, &viewProj, healthView);
     hud_groups_draw(canvas, cmd);
-    hud_minimap_draw(canvas, rendSettings);
+    hud_minimap_draw(canvas, hud);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
