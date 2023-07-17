@@ -104,7 +104,8 @@ ecs_comp_extern_public(RendSettingsComp) {
   u32             bloomSteps;
   f32             bloomRadius;
   f32             distortionResolutionScale;
-  f32             minimapRect[4];      // x, y, width, height. Normalized screen coordinates.
+  f32             minimapRect[4]; // x, y, width, height. Normalized screen coordinates.
+  f32             minimapAlpha;
   EcsEntityId     debugViewerResource; // Resource entity to visualize for debug purposes.
 };
 

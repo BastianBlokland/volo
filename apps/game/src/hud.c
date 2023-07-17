@@ -42,6 +42,7 @@ static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
 static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize    = {.x = 250.0f, .y = 250.0f};
+static const f32      g_hudMinimapAlpha   = 0.8f;
 
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
@@ -331,6 +332,7 @@ static void hud_minimap_update(HudComp* hud, RendSettingsComp* rendSettings, con
   rendSettings->minimapRect[1] = (hud->minimapRect.y - 0.5f) / res.height;
   rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
   rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
+  rendSettings->minimapAlpha   = g_hudMinimapAlpha;
 }
 
 static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud) {
