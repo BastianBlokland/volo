@@ -532,21 +532,18 @@ static void update_camera_interact(
   }
   if (input_triggered_lit(input, "CameraReset")) {
     state->camPosTgt  = geo_vector(0);
-    state->camRotYTgt = -90.0f * math_deg_to_rad;
+    state->camRotYTgt = 0.0f;
     state->camZoomTgt = 0.0f;
     input_report_command(debugStats, string_lit("Reset camera"));
   }
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  const f32 camStartRotY = -90.0f * math_deg_to_rad;
   ecs_world_add_t(
       world,
       windowEntity,
       InputStateComp,
-      .uiCanvas   = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack),
-      .camRotY    = camStartRotY,
-      .camRotYTgt = camStartRotY);
+      .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
 ecs_view_define(GlobalUpdateView) {
