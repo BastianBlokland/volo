@@ -24,7 +24,7 @@ bind_internal(0) in f32v2 in_texcoord;
 bind_internal(0) out f32v4 out_color;
 
 void main() {
-  const f32v2 terrainCoord  = in_texcoord * 0.75; // TODO: Compute proper terrain texcoord.
+  const f32v2 terrainCoord  = in_texcoord; // TODO: Compute proper terrain texcoord.
   const f32   terrainHeight = texture(u_texTerrainHeight, terrainCoord).r;
   const f32v4 terrainSplat  = texture(u_texTerrainSplat, terrainCoord);
   const f32   fog           = texture(u_texFogBuffer, terrainCoord).r;
