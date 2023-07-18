@@ -400,6 +400,7 @@ static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud, EcsView* marker
     ui_circle(canvas, minimapPos, .base = UiBase_Container, .radius = g_hudMinimapDotRadius);
   }
   ui_layout_container_pop(canvas);
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
