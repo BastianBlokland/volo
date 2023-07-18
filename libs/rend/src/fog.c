@@ -51,7 +51,7 @@ static void rend_fog_update_proj(RendFogComp* fog, const SceneTerrainComp* terra
     bounds = geo_box_from_center(geo_vector(0), geo_vector(400, 100, 400));
   }
   fog->projMatrix = geo_matrix_proj_ortho_box(
-      bounds.min.x, bounds.max.x, bounds.min.z, bounds.max.z, bounds.min.y, bounds.max.y);
+      bounds.min.x, bounds.max.x, bounds.max.z, bounds.min.z, bounds.min.y, bounds.max.y);
 }
 
 static void rend_fog_create(EcsWorld* world, AssetManagerComp* assets) {
