@@ -157,7 +157,7 @@ static String hud_faction_name(const SceneFaction faction) {
 static UiColor hud_faction_color(const SceneFaction faction) {
   switch (faction) {
   case SceneFaction_A:
-    return ui_color(0, 50, 255, 255);
+    return ui_color(0, 40, 255, 255);
   case SceneFaction_None:
     return ui_color_white;
   default:
@@ -281,8 +281,9 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
 
   fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
   if (factionComp) {
-    const String factionName = hud_faction_name(factionComp->id);
-    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}\n", fmt_text(factionName));
+    const String  name  = hud_faction_name(factionComp->id);
+    const UiColor color = hud_faction_color(factionComp->id);
+    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}{}\ar\n", fmt_ui_color(color), fmt_text(name));
   }
   if (healthComp) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
