@@ -18,7 +18,9 @@
 #include "scene_name.h"
 #include "scene_status.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
+#include "scene_unit.h"
 #include "scene_visibility.h"
 #include "scene_weapon.h"
 #include "ui.h"
@@ -39,18 +41,21 @@ static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = 2,
 };
-static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
-static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
-static const UiVector g_hudMinimapSize    = {.x = 250.0f, .y = 250.0f};
-static const f32      g_hudMinimapAlpha   = 0.95f;
+static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
+static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
+static const f32      g_hudMinimapAlpha     = 0.95f;
+static const f32      g_hudMinimapDotRadius = 2.5f;
 
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
   UiRect      minimapRect;
+  GeoVector   minimapArea;
 };
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }
@@ -84,6 +89,13 @@ ecs_view_define(InfoView) {
   ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneNameComp);
+}
+
+ecs_view_define(MinimapMarkerView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_with(SceneUnitComp);
 }
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
@@ -131,6 +143,26 @@ static UiColor hud_health_color(const f32 norm) {
     return ui_color_lerp(g_colorDead, g_colorWarn, norm * 0.5f);
   }
   return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
+}
+
+static String hud_faction_name(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return string_lit("Player");
+  default:
+    return string_lit("Enemy");
+  }
+}
+
+static UiColor hud_faction_color(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return ui_color(0, 50, 255, 255);
+  case SceneFaction_None:
+    return ui_color_white;
+  default:
+    return ui_color(255, 0, 15, 255);
+  }
 }
 
 static void hud_health_draw(
@@ -227,15 +259,6 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
   }
 }
 
-static String hud_info_faction_name(const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return string_lit("Player");
-  default:
-    return string_lit("Enemy");
-  }
-}
-
 static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
   const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
@@ -258,7 +281,7 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
 
   fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
   if (factionComp) {
-    const String factionName = hud_info_faction_name(factionComp->id);
+    const String factionName = hud_faction_name(factionComp->id);
     fmt_write(&buffer, "\a.bFaction\ar:\a>15{}\n", fmt_text(factionName));
   }
   if (healthComp) {
@@ -319,12 +342,18 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
 }
 
-static void hud_minimap_update(HudComp* hud, RendSettingsComp* rendSettings, const UiVector res) {
+static void hud_minimap_update(
+    HudComp*                hud,
+    const SceneTerrainComp* terrain,
+    RendSettingsComp*       rendSettings,
+    const UiVector          res) {
   // Compute minimap rect.
   hud->minimapRect = (UiRect){
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
+  const f32 terrainSize = scene_terrain_size(terrain);
+  hud->minimapArea      = geo_vector(terrainSize, 0, terrainSize);
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
@@ -335,21 +364,43 @@ static void hud_minimap_update(HudComp* hud, RendSettingsComp* rendSettings, con
   rendSettings->minimapAlpha   = g_hudMinimapAlpha;
 }
 
-static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud) {
+static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
+  const GeoVector pos    = geo_vector_add(worldPos, geo_vector_mul(areaSize, 0.5f));
+  const GeoVector posRel = geo_vector_div_comps(pos, areaSize);
+  return ui_vector(posRel.x, posRel.z);
+}
+
+static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud, EcsView* markerView) {
   ui_layout_push(canvas);
   ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
+  ui_style_push(canvas);
 
   // Draw frame.
-  ui_style_push(canvas);
   ui_style_color(canvas, ui_color_clear);
   ui_style_outline(canvas, 3);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
-  ui_style_pop(canvas);
 
   // Draw content.
   ui_layout_container_push(canvas, UiClip_Rect);
+  ui_style_outline(canvas, 1);
+  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
+
+    const UiVector     minimapPos = hud_minimap_pos(transComp->position, hud->minimapArea);
+    const SceneFaction faction    = factionComp ? factionComp->id : SceneFaction_None;
+
+    ui_style_color(canvas, hud_faction_color(faction));
+    ui_circle(canvas, minimapPos, .base = UiBase_Container, .radius = g_hudMinimapDotRadius);
+  }
   ui_layout_container_pop(canvas);
 
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 
@@ -362,12 +413,14 @@ ecs_system_define(HudDrawUiSys) {
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
 
-  EcsView* hudView       = ecs_world_view_t(world, HudView);
-  EcsView* canvasView    = ecs_world_view_t(world, UiCanvasView);
-  EcsView* healthView    = ecs_world_view_t(world, HealthView);
-  EcsView* infoView      = ecs_world_view_t(world, InfoView);
-  EcsView* weaponMapView = ecs_world_view_t(world, WeaponMapView);
+  EcsView* hudView           = ecs_world_view_t(world, HudView);
+  EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
+  EcsView* healthView        = ecs_world_view_t(world, HealthView);
+  EcsView* infoView          = ecs_world_view_t(world, InfoView);
+  EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
+  EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
 
   EcsIterator* canvasItr    = ecs_view_itr(canvasView);
   EcsIterator* infoItr      = ecs_view_itr(infoView);
@@ -397,11 +450,11 @@ ecs_system_define(HudDrawUiSys) {
     }
     ui_canvas_to_back(canvas);
 
-    hud_minimap_update(hud, rendSettings, res);
+    hud_minimap_update(hud, terrain, rendSettings, res);
 
     hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
-    hud_minimap_draw(canvas, hud);
+    hud_minimap_draw(canvas, hud, minimapMarkerView);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
@@ -421,6 +474,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
+  ecs_register_view(MinimapMarkerView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -429,7 +483,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(UiCanvasView),
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
-      ecs_view_id(WeaponMapView));
+      ecs_view_id(WeaponMapView),
+      ecs_view_id(MinimapMarkerView));
 
   enum {
     Order_Normal    = 0,
