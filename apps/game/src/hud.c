@@ -96,6 +96,7 @@ ecs_view_define(InfoView) {
 ecs_view_define(MinimapMarkerView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneHealthComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneUnitComp);
 }
@@ -413,11 +414,15 @@ static u32 hud_minimap_marker_collect(
   u32 count = 0;
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
     const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
 
     if (visComp && !scene_visible(visComp, SceneFaction_A)) {
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
+    if (health->norm < f32_epsilon) {
+      continue;
     }
 
     out[count++] = (HudMinimapMarker){
