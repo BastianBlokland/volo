@@ -672,7 +672,12 @@ ecs_module_init(game_input_module) {
   }
 }
 
-EcsEntityId  input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }
+void input_camera_center(InputStateComp* state, const GeoVector worldPos) {
+  state->camPosTgt = worldPos;
+}
+
+EcsEntityId input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }
+
 TimeDuration input_hovered_time(const InputStateComp* state) {
   return state->hoveredEntity ? state->hoveredTime : 0;
 }

@@ -63,10 +63,10 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(HudView) {
-  ecs_access_read(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(HudComp);
+  ecs_access_write(InputStateComp);
   ecs_access_write(RendSettingsComp);
 }
 
@@ -402,6 +402,7 @@ static bool hud_minimap_camera_frustum(
 static void hud_minimap_draw(
     UiCanvasComp*             canvas,
     HudComp*                  hud,
+    InputStateComp*           inputState,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     EcsView*                  markerView) {
@@ -416,7 +417,19 @@ static void hud_minimap_draw(
   // Draw frame.
   ui_style_color(canvas, ui_color_clear);
   ui_style_outline(canvas, 3);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
+  const UiId     frameId = ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
+  const UiStatus frameStatus = ui_canvas_elem_status(canvas, frameId);
+
+  // Handle input.
+  if (frameStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (frameStatus >= UiStatus_Pressed) {
+    const UiVector uiPos = ui_canvas_input_pos(canvas);
+    const f32      x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * area.x;
+    const f32      z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * area.z;
+    input_camera_center(inputState, geo_vector(x, 0, z));
+  }
 
   const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
   const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
@@ -482,13 +495,12 @@ ecs_system_define(HudDrawUiSys) {
   EcsIterator* weaponMapItr = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    const HudComp*            state        = ecs_view_read_t(itr, HudComp);
-    const InputStateComp*     inputState   = ecs_view_read_t(itr, InputStateComp);
+    InputStateComp*           inputState   = ecs_view_write_t(itr, InputStateComp);
     const SceneCameraComp*    cam          = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans     = ecs_view_read_t(itr, SceneTransformComp);
     RendSettingsComp*         rendSettings = ecs_view_write_t(itr, RendSettingsComp);
     HudComp*                  hud          = ecs_view_write_t(itr, HudComp);
-    if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
+    if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
     UiCanvasComp*   canvas   = ecs_view_write_t(canvasItr, UiCanvasComp);
@@ -509,7 +521,7 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
-    hud_minimap_draw(canvas, hud, cam, camTrans, minimapMarkerView);
+    hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
