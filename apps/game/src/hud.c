@@ -47,7 +47,7 @@ static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
 static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
-static const f32      g_hudMinimapDotRadius = 2.5f;
+static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
 
 ecs_comp_define(HudComp) {
@@ -399,6 +399,39 @@ static bool hud_minimap_camera_frustum(
   return true;
 }
 
+typedef struct {
+  UiVector pos;
+  UiColor  color;
+} HudMinimapMarker;
+
+#define hud_minimap_marker_max 2048
+
+static u32 hud_minimap_marker_collect(
+    EcsView*         markerView,
+    const GeoVector  areaSize,
+    HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
+  u32 count = 0;
+  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
+
+    out[count++] = (HudMinimapMarker){
+        .pos   = hud_minimap_pos(transComp->position, areaSize),
+        .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+    };
+
+    if (UNLIKELY(count == hud_minimap_marker_max)) {
+      break;
+    }
+  }
+  return count;
+}
+
 static void hud_minimap_draw(
     UiCanvasComp*             canvas,
     HudComp*                  hud,
@@ -437,22 +470,24 @@ static void hud_minimap_draw(
 
   ui_layout_container_push(canvas, UiClip_Rect);
 
-  // Draw markers.
-  ui_style_outline(canvas, 1);
-  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
-    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
-    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+  // Collect markers.
+  HudMinimapMarker markers[hud_minimap_marker_max];
+  const u32        markerCount = hud_minimap_marker_collect(markerView, area, markers);
 
-    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
-      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
-    }
+  // Draw marker outlines.
+  ui_style_outline(canvas, 2);
+  ui_style_color(canvas, ui_color_black);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
+  }
 
-    const UiVector     minimapPos = hud_minimap_pos(transComp->position, area);
-    const SceneFaction faction    = factionComp ? factionComp->id : SceneFaction_None;
-
-    ui_style_color(canvas, hud_faction_color(faction));
-    ui_circle_with_opts(canvas, minimapPos, &circleOpts);
+  // Draw marker fill.
+  ui_style_outline(canvas, 0);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    ui_style_color(canvas, marker->color);
+    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
   }
 
   // Draw camera frustum.
