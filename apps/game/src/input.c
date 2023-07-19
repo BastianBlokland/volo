@@ -39,6 +39,10 @@ static const f32    g_inputDragThreshold         = 0.005f; // In normalized scre
 static StringHash   g_inputGroupActions[cmd_group_count];
 
 typedef enum {
+  InputFlags_AllowZoomOverUi = 1 << 0,
+} InputFlags;
+
+typedef enum {
   InputSelectState_None,
   InputSelectState_Blocked,
   InputSelectState_Down,
@@ -47,6 +51,7 @@ typedef enum {
 
 ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
+  InputFlags       flags;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
@@ -199,7 +204,8 @@ static void update_camera_movement(
   state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
 
   // Update zoom.
-  if ((input_blockers(input) & InputBlocker_HoveringUi) == 0) {
+  const bool isHoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+  if (!isHoveringUi || state->flags & InputFlags_AllowZoomOverUi) {
     const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
     state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
   }
@@ -674,6 +680,14 @@ ecs_module_init(game_input_module) {
 
 void input_camera_center(InputStateComp* state, const GeoVector worldPos) {
   state->camPosTgt = worldPos;
+}
+
+void input_set_allow_zoom_over_ui(InputStateComp* state, const bool allowZoomOverUI) {
+  if (allowZoomOverUI) {
+    state->flags |= InputFlags_AllowZoomOverUi;
+  } else {
+    state->flags &= ~InputFlags_AllowZoomOverUi;
+  }
 }
 
 EcsEntityId input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }

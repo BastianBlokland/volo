@@ -421,6 +421,7 @@ static void hud_minimap_draw(
   const UiStatus frameStatus = ui_canvas_elem_status(canvas, frameId);
 
   // Handle input.
+  input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
   if (frameStatus >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
