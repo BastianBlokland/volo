@@ -1,5 +1,6 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -46,6 +47,7 @@ static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.5f;
+static const f32      g_hudMinimapLineWidth = 2.5f;
 
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
@@ -371,7 +373,42 @@ static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSi
   return ui_vector(posRel.x, posRel.z);
 }
 
-static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud, EcsView* markerView) {
+static bool hud_minimap_camera_frustum(
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* camTrans,
+    const f32                 camAspect,
+    const GeoVector           areaSize,
+    UiVector                  out[PARAM_ARRAY_SIZE(4)]) {
+  const GeoPlane groundPlane = {.normal = geo_up};
+
+  static const GeoVector g_screenCorners[] = {
+      {.x = 0, .y = 0},
+      {.x = 0, .y = 1},
+      {.x = 1, .y = 1},
+      {.x = 1, .y = 0},
+  };
+
+  for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
+    const GeoRay ray  = scene_camera_ray(cam, camTrans, camAspect, g_screenCorners[i]);
+    const f32    rayT = geo_plane_intersect_ray(&groundPlane, &ray);
+    if (rayT < f32_epsilon) {
+      return false;
+    }
+    const GeoVector worldPos = geo_ray_position(&ray, rayT);
+    out[i]                   = hud_minimap_pos(worldPos, areaSize);
+  }
+  return true;
+}
+
+static void hud_minimap_draw(
+    UiCanvasComp*             canvas,
+    HudComp*                  hud,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* camTrans,
+    EcsView*                  markerView) {
+  const UiVector canvasRes    = ui_canvas_resolution(canvas);
+  const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+
   ui_layout_push(canvas);
   ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
   ui_style_push(canvas);
@@ -381,8 +418,12 @@ static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud, EcsView* marker
   ui_style_outline(canvas, 3);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
-  // Draw content.
+  const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
+  const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
+
   ui_layout_container_push(canvas, UiClip_Rect);
+
+  // Draw markers.
   ui_style_outline(canvas, 1);
   for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
     const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
@@ -397,8 +438,20 @@ static void hud_minimap_draw(UiCanvasComp* canvas, HudComp* hud, EcsView* marker
     const SceneFaction faction    = factionComp ? factionComp->id : SceneFaction_None;
 
     ui_style_color(canvas, hud_faction_color(faction));
-    ui_circle(canvas, minimapPos, .base = UiBase_Container, .radius = g_hudMinimapDotRadius);
+    ui_circle_with_opts(canvas, minimapPos, &circleOpts);
   }
+
+  // Draw camera frustum.
+  ui_style_outline(canvas, 0);
+  UiVector camFrustumPoints[4];
+  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, hud->minimapArea, camFrustumPoints)) {
+    ui_style_color(canvas, ui_color_white);
+    ui_line_with_opts(canvas, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[2], camFrustumPoints[3], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[3], camFrustumPoints[0], &lineOpts);
+  }
+
   ui_layout_container_pop(canvas);
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 
@@ -456,7 +509,7 @@ ecs_system_define(HudDrawUiSys) {
 
     hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
-    hud_minimap_draw(canvas, hud, minimapMarkerView);
+    hud_minimap_draw(canvas, hud, cam, camTrans, minimapMarkerView);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
