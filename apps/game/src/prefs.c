@@ -12,7 +12,7 @@
 #define prefs_file_size_max (usize_kibibyte * 64)
 
 const String g_gameQualityLabels[] = {
-    string_static("UltraLow"),
+    string_static("VeryLow"),
     string_static("Low"),
     string_static("Medium"),
     string_static("High"),
@@ -32,7 +32,7 @@ static void prefs_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     data_reg_enum_t(reg, GameQuality);
-    data_reg_const_t(reg, GameQuality, UltraLow);
+    data_reg_const_t(reg, GameQuality, VeryLow);
     data_reg_const_t(reg, GameQuality, Low);
     data_reg_const_t(reg, GameQuality, Medium);
     data_reg_const_t(reg, GameQuality, High);

@@ -35,6 +35,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
     { .repoId  = RvkRepositoryId_ShadowParticleGraphic,         .assetId = string_static("graphics/shadow_particle.gra") },
     { .repoId  = RvkRepositoryId_TonemapperGraphic,             .assetId = string_static("graphics/tonemapper.gra") },
     { .repoId  = RvkRepositoryId_FogGraphic,                    .assetId = string_static("graphics/fog.gra") },
+    { .repoId  = RvkRepositoryId_MinimapGraphic,                .assetId = string_static("graphics/minimap.gra") },
     { .repoId  = RvkRepositoryId_OutlineGraphic,                .assetId = string_static("graphics/outline.gra") },
     { .repoId  = RvkRepositoryId_AmbientGraphic,                .assetId = string_static("graphics/ambient.gra") },
     { .repoId  = RvkRepositoryId_AmbientDebugGraphic,           .assetId = string_static("graphics/ambient_debug.gra") },

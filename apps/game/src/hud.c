@@ -1,11 +1,15 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bitset.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "input_manager.h"
+#include "rend_settings.h"
 #include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -15,7 +19,9 @@
 #include "scene_name.h"
 #include "scene_status.h"
 #include "scene_target.h"
+#include "scene_terrain.h"
 #include "scene_transform.h"
+#include "scene_unit.h"
 #include "scene_visibility.h"
 #include "scene_weapon.h"
 #include "ui.h"
@@ -36,21 +42,32 @@ static const UiColor g_hudStatusIconColors[SceneStatusType_Count] = {
 static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
     [SceneStatusType_Burning] = 2,
 };
-static const UiVector g_hudStatusIconSize = {.x = 15.0f, .y = 15.0f};
-static const UiVector g_hudStatusSpacing  = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
+static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
+static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
+static const f32      g_hudMinimapPlaySize  = 225.0f;
+static const f32      g_hudMinimapAlpha     = 0.95f;
+static const f32      g_hudMinimapDotRadius = 2.0f;
+static const f32      g_hudMinimapLineWidth = 2.5f;
 
-ecs_comp_define(HudComp) { EcsEntityId uiCanvas; };
+ecs_comp_define(HudComp) {
+  EcsEntityId uiCanvas;
+  UiRect      minimapRect;
+};
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
 }
 
 ecs_view_define(HudView) {
-  ecs_access_read(HudComp);
-  ecs_access_read(InputStateComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_write(HudComp);
+  ecs_access_write(InputStateComp);
+  ecs_access_write(RendSettingsComp);
 }
 
 ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
@@ -76,7 +93,19 @@ ecs_view_define(InfoView) {
   ecs_access_read(SceneNameComp);
 }
 
+ecs_view_define(MinimapMarkerView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_read(SceneHealthComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_with(SceneUnitComp);
+}
+
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
+
+static bool hud_rect_intersect(const UiRect a, const UiRect b) {
+  return a.x + a.width > b.x && b.x + b.width > a.x && a.y + a.height > b.y && b.y + b.height > a.y;
+}
 
 static GeoMatrix hud_ui_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* canvas) {
@@ -119,7 +148,32 @@ static UiColor hud_health_color(const f32 norm) {
   return ui_color_lerp(g_colorWarn, g_colorFull, (norm - 0.5f) * 2.0f);
 }
 
-static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, EcsView* healthView) {
+static String hud_faction_name(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return string_lit("Player");
+  default:
+    return string_lit("Enemy");
+  }
+}
+
+static UiColor hud_faction_color(const SceneFaction faction) {
+  switch (faction) {
+  case SceneFaction_A:
+    return ui_color(0, 40, 255, 255);
+  case SceneFaction_None:
+    return ui_color_white;
+  default:
+    return ui_color(255, 0, 15, 255);
+  }
+}
+
+static void hud_health_draw(
+    UiCanvasComp*    canvas,
+    HudComp*         hud,
+    const GeoMatrix* viewProj,
+    EcsView*         healthView,
+    const UiVector   res) {
   ui_style_push(canvas);
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
@@ -142,9 +196,20 @@ static void hud_health_draw(UiCanvasComp* canvas, const GeoMatrix* viewProj, Ecs
     if (UNLIKELY(canvasPos.z <= 0)) {
       continue; // Position is behind the camera.
     }
+    const UiVector uiPos     = ui_vector(canvasPos.x * res.x, canvasPos.y * res.y);
+    const f32      barWidth  = g_hudHealthBarSize.width;
+    const f32      barHeight = g_hudHealthBarSize.height;
+
+    const UiRect bounds = {
+        .pos  = ui_vector(uiPos.x - barWidth * 0.5f, uiPos.y + g_hudHealthBarOffsetY),
+        .size = ui_vector(barWidth, barHeight + g_hudStatusSpacing.y + g_hudStatusIconSize.y),
+    };
+    if (hud_rect_intersect(hud->minimapRect, bounds)) {
+      continue; // Position is over the minimap.
+    }
 
     // Compute the health-bar ui rectangle.
-    ui_layout_set_pos(canvas, UiBase_Canvas, ui_vector(canvasPos.x, canvasPos.y), UiBase_Canvas);
+    ui_layout_set_pos(canvas, UiBase_Canvas, uiPos, UiBase_Absolute);
     ui_layout_move_dir(canvas, Ui_Up, g_hudHealthBarOffsetY, UiBase_Absolute);
     ui_layout_resize(canvas, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
@@ -197,15 +262,6 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
   }
 }
 
-static String hud_info_faction_name(const SceneFaction faction) {
-  switch (faction) {
-  case SceneFaction_A:
-    return string_lit("Player");
-  default:
-    return string_lit("Enemy");
-  }
-}
-
 static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
   const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
@@ -228,8 +284,9 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
 
   fmt_write(&buffer, "\a.bName\ar:\a>15{}\n", fmt_text(entityName));
   if (factionComp) {
-    const String factionName = hud_info_faction_name(factionComp->id);
-    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}\n", fmt_text(factionName));
+    const String  name  = hud_faction_name(factionComp->id);
+    const UiColor color = hud_faction_color(factionComp->id);
+    fmt_write(&buffer, "\a.bFaction\ar:\a>15{}{}\ar\n", fmt_ui_color(color), fmt_text(name));
   }
   if (healthComp) {
     const u32 healthVal    = (u32)math_round_up_f32(healthComp->max * healthComp->norm);
@@ -289,6 +346,173 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
   ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
 }
 
+static void hud_minimap_update(
+    HudComp*                hud,
+    const SceneTerrainComp* terrain,
+    RendSettingsComp*       rendSettings,
+    const UiVector          res) {
+  // Compute minimap rect.
+  hud->minimapRect = (UiRect){
+      .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
+      .size = g_hudMinimapSize,
+  };
+
+  // Update renderer minimap settings.
+  rendSettings->flags |= RendFlags_Minimap;
+  rendSettings->minimapRect[0] = (hud->minimapRect.x - 0.5f) / res.width;
+  rendSettings->minimapRect[1] = (hud->minimapRect.y - 0.5f) / res.height;
+  rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
+  rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
+  rendSettings->minimapAlpha   = g_hudMinimapAlpha;
+  rendSettings->minimapZoom    = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
+}
+
+static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
+  const GeoVector pos    = geo_vector_add(worldPos, geo_vector_mul(areaSize, 0.5f));
+  const GeoVector posRel = geo_vector_div_comps(pos, areaSize);
+  return ui_vector(posRel.x, posRel.z);
+}
+
+static bool hud_minimap_camera_frustum(
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* camTrans,
+    const f32                 camAspect,
+    const GeoVector           areaSize,
+    UiVector                  out[PARAM_ARRAY_SIZE(4)]) {
+  const GeoPlane groundPlane = {.normal = geo_up};
+
+  static const GeoVector g_screenCorners[] = {
+      {.x = 0, .y = 0},
+      {.x = 0, .y = 1},
+      {.x = 1, .y = 1},
+      {.x = 1, .y = 0},
+  };
+
+  for (u32 i = 0; i != array_elems(g_screenCorners); ++i) {
+    const GeoRay ray  = scene_camera_ray(cam, camTrans, camAspect, g_screenCorners[i]);
+    const f32    rayT = geo_plane_intersect_ray(&groundPlane, &ray);
+    if (rayT < f32_epsilon) {
+      return false;
+    }
+    const GeoVector worldPos = geo_ray_position(&ray, rayT);
+    out[i]                   = hud_minimap_pos(worldPos, areaSize);
+  }
+  return true;
+}
+
+typedef struct {
+  UiVector pos;
+  UiColor  color;
+} HudMinimapMarker;
+
+#define hud_minimap_marker_max 2048
+
+static u32 hud_minimap_marker_collect(
+    EcsView*         markerView,
+    const GeoVector  areaSize,
+    HudMinimapMarker out[PARAM_ARRAY_SIZE(hud_minimap_marker_max)]) {
+  u32 count = 0;
+  for (EcsIterator* itr = ecs_view_itr(markerView); ecs_view_walk(itr);) {
+    const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const SceneHealthComp*     health      = ecs_view_read_t(itr, SceneHealthComp);
+    const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneVisibilityComp* visComp     = ecs_view_read_t(itr, SceneVisibilityComp);
+
+    if (visComp && !scene_visible(visComp, SceneFaction_A)) {
+      continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
+    }
+    if (health->norm < f32_epsilon) {
+      continue;
+    }
+
+    out[count++] = (HudMinimapMarker){
+        .pos   = hud_minimap_pos(transComp->position, areaSize),
+        .color = hud_faction_color(factionComp ? factionComp->id : SceneFaction_None),
+    };
+
+    if (UNLIKELY(count == hud_minimap_marker_max)) {
+      break;
+    }
+  }
+  return count;
+}
+
+static void hud_minimap_draw(
+    UiCanvasComp*             canvas,
+    HudComp*                  hud,
+    InputStateComp*           inputState,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* camTrans,
+    EcsView*                  markerView) {
+  const UiVector  canvasRes    = ui_canvas_resolution(canvas);
+  const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+  const GeoVector area         = geo_vector(g_hudMinimapPlaySize, 0, g_hudMinimapPlaySize);
+
+  ui_layout_push(canvas);
+  ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
+  ui_style_push(canvas);
+
+  // Draw frame.
+  ui_style_color(canvas, ui_color_clear);
+  ui_style_outline(canvas, 3);
+  const UiId     frameId = ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
+  const UiStatus frameStatus = ui_canvas_elem_status(canvas, frameId);
+
+  // Handle input.
+  input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
+  if (frameStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (frameStatus >= UiStatus_Pressed) {
+    const UiVector uiPos = ui_canvas_input_pos(canvas);
+    const f32      x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * area.x;
+    const f32      z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * area.z;
+    input_camera_center(inputState, geo_vector(x, 0, z));
+  }
+
+  const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
+  const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
+
+  ui_layout_container_push(canvas, UiClip_Rect);
+
+  // Collect markers.
+  HudMinimapMarker markers[hud_minimap_marker_max];
+  const u32        markerCount = hud_minimap_marker_collect(markerView, area, markers);
+
+  // Draw marker outlines.
+  ui_style_outline(canvas, 2);
+  ui_style_color(canvas, ui_color_black);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
+  }
+
+  // Draw marker fill.
+  ui_style_outline(canvas, 0);
+  for (u32 i = 0; i != markerCount; ++i) {
+    const HudMinimapMarker* marker = &markers[i];
+    ui_style_color(canvas, marker->color);
+    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
+  }
+
+  // Draw camera frustum.
+  ui_style_outline(canvas, 0);
+  UiVector camFrustumPoints[4];
+  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, area, camFrustumPoints)) {
+    ui_style_color(canvas, ui_color_white);
+    ui_line_with_opts(canvas, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[2], camFrustumPoints[3], &lineOpts);
+    ui_line_with_opts(canvas, camFrustumPoints[3], camFrustumPoints[0], &lineOpts);
+  }
+
+  ui_layout_container_pop(canvas);
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
+
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+}
+
 ecs_system_define(HudDrawUiSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -297,33 +521,48 @@ ecs_system_define(HudDrawUiSys) {
   }
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
   const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
+  const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
 
-  EcsView* hudView       = ecs_world_view_t(world, HudView);
-  EcsView* canvasView    = ecs_world_view_t(world, UiCanvasView);
-  EcsView* healthView    = ecs_world_view_t(world, HealthView);
-  EcsView* infoView      = ecs_world_view_t(world, InfoView);
-  EcsView* weaponMapView = ecs_world_view_t(world, WeaponMapView);
+  EcsView* hudView           = ecs_world_view_t(world, HudView);
+  EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
+  EcsView* healthView        = ecs_world_view_t(world, HealthView);
+  EcsView* infoView          = ecs_world_view_t(world, InfoView);
+  EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
+  EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
 
   EcsIterator* canvasItr    = ecs_view_itr(canvasView);
   EcsIterator* infoItr      = ecs_view_itr(infoView);
   EcsIterator* weaponMapItr = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
-    const HudComp*            state      = ecs_view_read_t(itr, HudComp);
-    const InputStateComp*     inputState = ecs_view_read_t(itr, InputStateComp);
-    const SceneCameraComp*    cam        = ecs_view_read_t(itr, SceneCameraComp);
-    const SceneTransformComp* camTrans   = ecs_view_read_t(itr, SceneTransformComp);
-    if (!ecs_view_maybe_jump(canvasItr, state->uiCanvas)) {
+    InputStateComp*           inputState   = ecs_view_write_t(itr, InputStateComp);
+    const SceneCameraComp*    cam          = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* camTrans     = ecs_view_read_t(itr, SceneTransformComp);
+    RendSettingsComp*         rendSettings = ecs_view_write_t(itr, RendSettingsComp);
+    HudComp*                  hud          = ecs_view_write_t(itr, HudComp);
+    if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
     UiCanvasComp*   canvas   = ecs_view_write_t(canvasItr, UiCanvasComp);
     const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, canvas);
 
     ui_canvas_reset(canvas);
+    if (input_layer_active(input, string_hash_lit("Debug"))) {
+      rendSettings->flags &= ~RendFlags_Minimap;
+      continue;
+    }
+    const UiVector res = ui_canvas_resolution(canvas);
+    if (res.x < f32_epsilon || res.y < f32_epsilon) {
+      continue;
+    }
     ui_canvas_to_back(canvas);
 
-    hud_health_draw(canvas, &viewProj, healthView);
+    hud_minimap_update(hud, terrain, rendSettings, res);
+
+    hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
+    hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
@@ -343,6 +582,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
+  ecs_register_view(MinimapMarkerView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -351,7 +591,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(UiCanvasView),
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
-      ecs_view_id(WeaponMapView));
+      ecs_view_id(WeaponMapView),
+      ecs_view_id(MinimapMarkerView));
 
   enum {
     Order_Normal    = 0,
@@ -361,6 +602,7 @@ ecs_module_init(game_hud_module) {
 }
 
 void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {
+  diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
   ecs_world_add_t(
       world,
       cameraEntity,

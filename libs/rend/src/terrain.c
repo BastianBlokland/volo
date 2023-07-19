@@ -48,7 +48,7 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
   rend_draw_set_graphic(draw, scene_terrain_graphic(terrain));
   *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
       .size        = size,
-      .heightScale = scene_terrain_height_scale(terrain),
+      .heightScale = heightScale,
       .patchScale  = patchScale,
   };
 
@@ -67,8 +67,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* terrain, RendDrawComp
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_draw_add_instance_t(draw, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }

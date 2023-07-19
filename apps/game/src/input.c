@@ -3,7 +3,6 @@
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
-#include "geo_plane.h"
 #include "input_manager.h"
 #include "scene_attachment.h"
 #include "scene_camera.h"
@@ -40,6 +39,10 @@ static const f32    g_inputDragThreshold         = 0.005f; // In normalized scre
 static StringHash   g_inputGroupActions[cmd_group_count];
 
 typedef enum {
+  InputFlags_AllowZoomOverUi = 1 << 0,
+} InputFlags;
+
+typedef enum {
   InputSelectState_None,
   InputSelectState_Blocked,
   InputSelectState_Down,
@@ -48,6 +51,7 @@ typedef enum {
 
 ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
+  InputFlags       flags;
   InputSelectState selectState;
   GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 
@@ -200,7 +204,8 @@ static void update_camera_movement(
   state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
 
   // Update zoom.
-  if ((input_blockers(input) & InputBlocker_HoveringUi) == 0) {
+  const bool isHoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+  if (!isHoveringUi || state->flags & InputFlags_AllowZoomOverUi) {
     const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
     state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
   }
@@ -532,21 +537,18 @@ static void update_camera_interact(
   }
   if (input_triggered_lit(input, "CameraReset")) {
     state->camPosTgt  = geo_vector(0);
-    state->camRotYTgt = -90.0f * math_deg_to_rad;
+    state->camRotYTgt = 0.0f;
     state->camZoomTgt = 0.0f;
     input_report_command(debugStats, string_lit("Reset camera"));
   }
 }
 
 static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  const f32 camStartRotY = -90.0f * math_deg_to_rad;
   ecs_world_add_t(
       world,
       windowEntity,
       InputStateComp,
-      .uiCanvas   = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack),
-      .camRotY    = camStartRotY,
-      .camRotYTgt = camStartRotY);
+      .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -676,7 +678,20 @@ ecs_module_init(game_input_module) {
   }
 }
 
-EcsEntityId  input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }
+void input_camera_center(InputStateComp* state, const GeoVector worldPos) {
+  state->camPosTgt = worldPos;
+}
+
+void input_set_allow_zoom_over_ui(InputStateComp* state, const bool allowZoomOverUI) {
+  if (allowZoomOverUI) {
+    state->flags |= InputFlags_AllowZoomOverUi;
+  } else {
+    state->flags &= ~InputFlags_AllowZoomOverUi;
+  }
+}
+
+EcsEntityId input_hovered_entity(const InputStateComp* state) { return state->hoveredEntity; }
+
 TimeDuration input_hovered_time(const InputStateComp* state) {
   return state->hoveredEntity ? state->hoveredTime : 0;
 }
