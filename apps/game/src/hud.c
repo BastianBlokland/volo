@@ -45,6 +45,7 @@ static const u8 g_hudStatusIconOutline[SceneStatusType_Count] = {
 static const UiVector g_hudStatusIconSize   = {.x = 15.0f, .y = 15.0f};
 static const UiVector g_hudStatusSpacing    = {.x = 2.0f, .y = 4.0f};
 static const UiVector g_hudMinimapSize      = {.x = 300.0f, .y = 300.0f};
+static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.5f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
@@ -52,7 +53,6 @@ static const f32      g_hudMinimapLineWidth = 2.5f;
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
   UiRect      minimapRect;
-  GeoVector   minimapArea;
 };
 
 ecs_view_define(GlobalView) {
@@ -355,8 +355,6 @@ static void hud_minimap_update(
       .pos  = ui_vector(res.width - g_hudMinimapSize.width, res.height - g_hudMinimapSize.height),
       .size = g_hudMinimapSize,
   };
-  const f32 terrainSize = scene_terrain_size(terrain);
-  hud->minimapArea      = geo_vector(terrainSize, 0, terrainSize);
 
   // Update renderer minimap settings.
   rendSettings->flags |= RendFlags_Minimap;
@@ -365,6 +363,7 @@ static void hud_minimap_update(
   rendSettings->minimapRect[2] = (hud->minimapRect.width + 0.5f) / res.width;
   rendSettings->minimapRect[3] = (hud->minimapRect.height + 0.5f) / res.height;
   rendSettings->minimapAlpha   = g_hudMinimapAlpha;
+  rendSettings->minimapZoom    = scene_terrain_size(terrain) / g_hudMinimapPlaySize;
 }
 
 static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
@@ -406,8 +405,9 @@ static void hud_minimap_draw(
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     EcsView*                  markerView) {
-  const UiVector canvasRes    = ui_canvas_resolution(canvas);
-  const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+  const UiVector  canvasRes    = ui_canvas_resolution(canvas);
+  const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
+  const GeoVector area         = geo_vector(g_hudMinimapPlaySize, 0, g_hudMinimapPlaySize);
 
   ui_layout_push(canvas);
   ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
@@ -434,7 +434,7 @@ static void hud_minimap_draw(
       continue; // TODO: Make the local faction configurable instead of hardcoding 'A'.
     }
 
-    const UiVector     minimapPos = hud_minimap_pos(transComp->position, hud->minimapArea);
+    const UiVector     minimapPos = hud_minimap_pos(transComp->position, area);
     const SceneFaction faction    = factionComp ? factionComp->id : SceneFaction_None;
 
     ui_style_color(canvas, hud_faction_color(faction));
@@ -444,7 +444,7 @@ static void hud_minimap_draw(
   // Draw camera frustum.
   ui_style_outline(canvas, 0);
   UiVector camFrustumPoints[4];
-  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, hud->minimapArea, camFrustumPoints)) {
+  if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, area, camFrustumPoints)) {
     ui_style_color(canvas, ui_color_white);
     ui_line_with_opts(canvas, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
     ui_line_with_opts(canvas, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
