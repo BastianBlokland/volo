@@ -40,7 +40,7 @@ void main() {
   color *= mix(0.5, 2.0, round(terrainHeight * c_terrainHeightSteps) * c_terrainHeightStepsInv);
 
   // Fog of war.
-  color *= mix(0.15, 1.0, fog);
+  color *= mix(0.25, 1.0, fog);
 
   out_color = f32v4(color, alpha);
 }
