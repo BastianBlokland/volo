@@ -3,7 +3,6 @@
 #include "core_math.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
-#include "geo_plane.h"
 #include "input_manager.h"
 #include "scene_attachment.h"
 #include "scene_camera.h"
