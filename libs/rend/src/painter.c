@@ -504,12 +504,14 @@ static void painter_push_minimap(RendPaintContext* ctx, RvkImage* fogBuffer) {
       ALIGNAS(16)
       f32 rect[4]; // x, y, width, height.
       f32 alpha;
-      f32 unused[3];
+      f32 zoomInv;
+      f32 unused[2];
     } MinimapData;
 
     MinimapData* data = alloc_alloc_t(g_alloc_scratch, MinimapData);
     mem_cpy(mem_var(data->rect), mem_var(ctx->settings->minimapRect));
-    data->alpha = ctx->settings->minimapAlpha;
+    data->alpha   = ctx->settings->minimapAlpha;
+    data->zoomInv = ctx->settings->minimapZoom > 0 ? 1.0f / ctx->settings->minimapZoom : 1.0f;
 
     const RvkPassDraw draw = {
         .graphic   = graphic,
