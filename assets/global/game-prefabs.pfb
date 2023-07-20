@@ -278,6 +278,22 @@
       ]
     },
     {
+      "name": "BuildingBarracks", "isUnit": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_building_barracks.gra" },
+        { "$type": "AssetPrefabTrait_Scalable" },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -6, "y": 0, "z": -2.5 },
+            "max": { "x": 6, "y": 2.5, "z": 2.5 }
+          }
+        }
+      ]
+    },
+    {
       "name": "PropFloor",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_panel.gra" }
@@ -410,21 +426,6 @@
             "$type": "AssetPrefabShape_Box",
             "min": { "x": -1.25, "y": 0, "z": -3 },
             "max": { "x": 1.25, "y": 2.5, "z": 3 }
-          }
-        }
-      ]
-    },
-    {
-      "name": "PropBarracks",
-      "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barracks.gra" },
-        {
-          "$type": "AssetPrefabTrait_Collision",
-          "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -6, "y": 0, "z": -2.5 },
-            "max": { "x": 6, "y": 2.5, "z": 2.5 }
           }
         }
       ]
