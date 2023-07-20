@@ -415,6 +415,21 @@
       ]
     },
     {
+      "name": "PropBarracks",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barracks.gra" },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -6, "y": 0, "z": -2.5 },
+            "max": { "x": 6, "y": 2.5, "z": 2.5 }
+          }
+        }
+      ]
+    },
+    {
       "name": "PropCrate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_crate.gra" },
