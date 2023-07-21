@@ -284,6 +284,12 @@
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_barracks.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 15 },
         {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 2000,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathTurret"
+        },
+        {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
           "shape": {
@@ -291,7 +297,8 @@
             "min": { "x": -5.5, "y": 0, "z": -2.4 },
             "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
           }
-        }
+        },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } }
       ]
     },
     {
