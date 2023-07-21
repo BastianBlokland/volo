@@ -282,6 +282,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_barracks.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 15 },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
