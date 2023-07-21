@@ -155,7 +155,7 @@
     },
     {
       "id": 28776566,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 16.1348,
@@ -954,7 +954,7 @@
     },
     {
       "id": 174079092,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": -9.7895,
@@ -2586,7 +2586,7 @@
     },
     {
       "id": 475735617,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": -0.7808,
@@ -2790,7 +2790,7 @@
     },
     {
       "id": 525233552,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 18.7131,
@@ -3844,7 +3844,7 @@
     },
     {
       "id": 707805410,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": 4.3913,
@@ -6682,6 +6682,23 @@
       "scale": 1
     },
     {
+      "id": 1264208721,
+      "prefab": "UnitBarracks",
+      "faction": "A",
+      "position": {
+        "x": -14.5372,
+        "y": 0.4416,
+        "z": -10.4629
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7126,
+        "z": 0,
+        "w": 0.7015
+      },
+      "scale": 1
+    },
+    {
       "id": 1265083432,
       "prefab": "PropTree",
       "faction": "None",
@@ -9267,7 +9284,7 @@
     },
     {
       "id": 1829131885,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 13.2528,
@@ -9352,7 +9369,7 @@
     },
     {
       "id": 1841049238,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": -9.8305,
@@ -9437,7 +9454,7 @@
     },
     {
       "id": 1861818644,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 18.471,
@@ -9947,7 +9964,7 @@
     },
     {
       "id": 1947013993,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 15.684,
@@ -11511,7 +11528,7 @@
     },
     {
       "id": 2220958107,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": 3.431,
@@ -13041,7 +13058,7 @@
     },
     {
       "id": 2497956806,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": -13.4121,
@@ -13245,7 +13262,7 @@
     },
     {
       "id": 2528150434,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": -7.089,
@@ -16050,7 +16067,7 @@
     },
     {
       "id": 3085095186,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": -6.9782,
@@ -16101,7 +16118,7 @@
     },
     {
       "id": 3095078621,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": 8.79,
@@ -17325,7 +17342,7 @@
     },
     {
       "id": 3316160269,
-      "prefab": "TurretGun",
+      "prefab": "UnitTurretGun",
       "faction": "A",
       "position": {
         "x": 13.3779,
@@ -18124,7 +18141,7 @@
     },
     {
       "id": 3490452339,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": 8.2668,
@@ -18974,7 +18991,7 @@
     },
     {
       "id": 3653335978,
-      "prefab": "TurretMissile",
+      "prefab": "UnitTurretMissile",
       "faction": "A",
       "position": {
         "x": -0.5766,
@@ -20860,23 +20877,6 @@
       "scale": 1
     },
     {
-      "id": 3954558576,
-      "prefab": "TurretGun",
-      "faction": "A",
-      "position": {
-        "x": -13.3959,
-        "y": 0.6415,
-        "z": -3.6395
-      },
-      "rotation": {
-        "x": 0,
-        "y": -0.707,
-        "z": 0,
-        "w": 0.7072
-      },
-      "scale": 1
-    },
-    {
       "id": 3957593861,
       "prefab": "PropFence",
       "faction": "A",
@@ -21408,9 +21408,9 @@
       "prefab": "UnitRocket",
       "faction": "A",
       "position": {
-        "x": -13.1308,
-        "y": 0.8976,
-        "z": -6.7208
+        "x": -13,
+        "y": 1.0182,
+        "z": 5
       },
       "rotation": {
         "x": 0,
