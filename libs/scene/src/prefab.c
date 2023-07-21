@@ -220,7 +220,6 @@ static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .deathEffectPrefab = t->deathEffectPrefab);
 
   ecs_world_add_t(w, e, SceneDamageComp);
-  ecs_world_add_t(w, e, SceneDamageStatsComp);
 }
 
 static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
@@ -258,6 +257,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       .distanceMin       = t->targetDistanceMin,
       .distanceMax       = t->targetDistanceMax,
       .lineOfSightRadius = t->targetLineOfSightRadius);
+  ecs_world_add_t(w, e, SceneDamageStatsComp);
 }
 
 static void setup_collision(
