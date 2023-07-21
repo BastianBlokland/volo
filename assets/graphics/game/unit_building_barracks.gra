@@ -28,7 +28,7 @@
       "anisotropy": "x2"
     }
   ],
-  "meshId": "external/barracks/barracks.gltf",
+  "meshId": "external/barracks/barracks_2.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
