@@ -298,7 +298,8 @@
             "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
           }
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } }
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
     {
