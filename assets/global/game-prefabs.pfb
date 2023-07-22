@@ -287,7 +287,7 @@
           "$type": "AssetPrefabTrait_Health",
           "amount": 5000,
           "deathDestroyDelay": 0.8,
-          "deathEffectPrefab": "DeathTurret"
+          "deathEffectPrefab": "DeathStructure"
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -735,6 +735,20 @@
     },
     {
       "name": "DeathTurret", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.5,
+          "pitchMin": 1.0, "pitchMax": 1.1
+        }
+      ]
+    },
+    {
+      "name": "DeathStructure", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
