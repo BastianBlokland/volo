@@ -21,6 +21,7 @@
 #define target_refresh_time_min time_seconds(1)
 #define target_refresh_time_max time_seconds(2)
 #define target_score_current_entity 0.1f
+#define target_score_can_attack 0.2f
 #define target_score_dist 1.0f
 #define target_score_dir 0.25f
 #define target_score_random 0.1f
@@ -178,6 +179,7 @@ target_reachable(const SceneNavEnvComp* nav, const GeoVector finderPos, EcsItera
 }
 
 static f32 target_score(
+    const EcsWorld*              world,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
@@ -226,7 +228,13 @@ static f32 target_score(
     }
   }
 
-  f32 score = ecs_view_entity(targetItr) == targetOld ? target_score_current_entity : 0.0f;
+  f32 score = 0.0f;
+  if (ecs_view_entity(targetItr) == targetOld) {
+    score += target_score_current_entity;
+  }
+  if (ecs_world_has_t(world, ecs_view_entity(targetItr), SceneAttackComp)) {
+    score += target_score_can_attack;
+  }
   score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
   score += math_max(0, geo_vector_dot(finderAimDir, dir)) * target_score_dir; // Direction score.
   score += rng_sample_f32(g_rng) * target_score_random;                       // Random score.
@@ -320,7 +328,7 @@ ecs_system_define(SceneTargetUpdateSys) {
           continue; // Only auto-target units.
         }
         const f32 score = target_score(
-            colEnv, navEnv, finder, entity, pos, aimDir, faction, targetOld, targetItr);
+            world, colEnv, navEnv, finder, entity, pos, aimDir, faction, targetOld, targetItr);
 
         // Insert into the target queue.
         for (u32 i = 0; i != scene_target_queue_size; ++i) {
