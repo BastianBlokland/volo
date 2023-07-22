@@ -42,7 +42,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathUnitRifle",
@@ -94,7 +94,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathUnitRifle",
@@ -146,7 +146,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathUnitRifle",
@@ -197,7 +197,7 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-melee-auto.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathUnitEnemy"
@@ -237,7 +237,7 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
@@ -272,7 +272,7 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
