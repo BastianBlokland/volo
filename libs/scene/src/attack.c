@@ -150,7 +150,7 @@ static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* 
   return hitT > 0 ? geo_ray_position(&ray, hitT) : origin;
 }
 
-static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
+static SceneLayer damage_ignore_layers(const SceneFaction factionId) {
   switch (factionId) {
   case SceneFaction_A:
     return SceneLayer_UnitFactionA;
@@ -169,11 +169,11 @@ static SceneLayer damage_ignore_layer(const SceneFaction factionId) {
 }
 
 static SceneLayer damage_query_layer_mask(const SceneFaction factionId) {
-  SceneLayer layer = SceneLayer_Unit | SceneLayer_Destructible;
+  SceneLayer mask = SceneLayer_Unit | SceneLayer_Destructible;
   if (factionId != SceneFaction_None) {
-    layer &= ~damage_ignore_layer(factionId);
+    mask &= ~damage_ignore_layers(factionId);
   }
-  return layer;
+  return mask;
 }
 
 static GeoQuat proj_random_dev(const f32 spreadAngle) {

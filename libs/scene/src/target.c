@@ -93,12 +93,25 @@ static GeoVector target_aim_pos(const SceneTransformComp* trans, const SceneLoca
 }
 
 typedef struct {
+  EcsEntityId finderEntity;
+} TargetLineOfSightFilterCtx;
+
+static bool target_los_filter(const void* context, const EcsEntityId entity) {
+  const TargetLineOfSightFilterCtx* ctx = context;
+  if (entity == ctx->finderEntity) {
+    return false; // Ignore collisions with yourself.
+  }
+  return true;
+}
+
+typedef struct {
   bool hasLos;
   f32  distance;
 } TargetLineOfSightInfo;
 
 static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
+    const EcsEntityId            finderEntity,
     const SceneTransformComp*    finderTrans,
     const SceneLocationComp*     finderLoc,
     const f32                    radius,
@@ -116,9 +129,14 @@ static TargetLineOfSightInfo target_los_query(
     return (TargetLineOfSightInfo){.hasLos = false, .distance = dist};
   }
 
-  const SceneLayer       targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
-  const SceneQueryFilter filter      = {.layerMask = SceneLayer_Environment | targetLayer};
-  const GeoRay           ray         = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
+  const SceneLayer targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
+  const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
+  const SceneQueryFilter           filter    = {
+                   .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
+                   .callback  = target_los_filter,
+                   .context   = &filterCtx,
+  };
+  const GeoRay ray = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
 
   SceneRayHit hit;
   if (scene_query_ray_fat(collisionEnv, &ray, radius, dist, &filter, &hit)) {
@@ -163,6 +181,7 @@ static f32 target_score(
     const SceneCollisionEnvComp* collisionEnv,
     const SceneNavEnvComp*       nav,
     const SceneTargetFinderComp* finder,
+    const EcsEntityId            finderEntity,
     const GeoVector              finderPosCenter,
     const GeoVector              finderAimDir,
     const SceneFaction           finderFaction,
@@ -194,9 +213,14 @@ static f32 target_score(
   const GeoVector dir  = dist > f32_epsilon ? geo_vector_div(toTarget, dist) : geo_forward;
 
   if (finder->flags & SceneTarget_ConfigExcludeObscured) {
-    const SceneQueryFilter filter = {.layerMask = SceneLayer_Environment};
-    const GeoRay           ray    = {.point = finderPosCenter, .dir = dir};
-    SceneRayHit            hit;
+    const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
+    const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
+    const SceneQueryFilter           filter    = {
+                     .layerMask = SceneLayer_Environment | SceneLayer_Structure,
+                     .callback  = target_los_filter,
+                     .context   = &filterCtx,
+    };
+    SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit)) {
       return 0.0f; // Target obscured.
     }
@@ -295,8 +319,8 @@ ecs_system_define(SceneTargetUpdateSys) {
         if (!ecs_world_has_t(world, targetEntity, SceneUnitComp)) {
           continue; // Only auto-target units.
         }
-        const f32 score =
-            target_score(colEnv, navEnv, finder, pos, aimDir, faction, targetOld, targetItr);
+        const f32 score = target_score(
+            colEnv, navEnv, finder, entity, pos, aimDir, faction, targetOld, targetItr);
 
         // Insert into the target queue.
         for (u32 i = 0; i != scene_target_queue_size; ++i) {
@@ -324,7 +348,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
       const f32                   losRadius = finder->lineOfSightRadius;
       const TargetLineOfSightInfo losInfo =
-          target_los_query(colEnv, trans, loc, losRadius, targetItr);
+          target_los_query(colEnv, entity, trans, loc, losRadius, targetItr);
 
       if (losInfo.hasLos) {
         finder->flags |= SceneTarget_LineOfSight;

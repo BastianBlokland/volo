@@ -33,7 +33,11 @@
           "type": "string",
           "minLength": 1
         },
-        "isUnit": {
+        "isInfantry": {
+          "title": "bool",
+          "type": "boolean"
+        },
+        "isStructure": {
           "title": "bool",
           "type": "boolean"
         },

@@ -141,11 +141,16 @@ String scene_layer_name(const SceneLayer layer) {
   static const String g_names[] = {
       string_static("Debug"),
       string_static("Environment"),
-      string_static("UnitFactionA"),
-      string_static("UnitFactionB"),
-      string_static("UnitFactionC"),
-      string_static("UnitFactionD"),
-      string_static("UnitFactionNone"),
+      string_static("InfantryFactionA"),
+      string_static("InfantryFactionB"),
+      string_static("InfantryFactionC"),
+      string_static("InfantryFactionD"),
+      string_static("InfantryFactionNone"),
+      string_static("StructureFactionA"),
+      string_static("StructureFactionB"),
+      string_static("StructureFactionC"),
+      string_static("StructureFactionD"),
+      string_static("StructureFactionNone"),
       string_static("Destructible"),
   };
   ASSERT(array_elems(g_names) == SceneLayer_Count, "Incorrect number of layer names");

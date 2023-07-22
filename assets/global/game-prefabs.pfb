@@ -1,7 +1,7 @@
 {
   "prefabs": [
     {
-      "name": "UnitRifle", "isUnit": true,
+      "name": "UnitRifle", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
@@ -53,7 +53,7 @@
       ]
     },
     {
-      "name": "UnitRocket", "isUnit": true,
+      "name": "UnitRocket", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rocket.gra" },
@@ -105,7 +105,7 @@
       ]
     },
     {
-      "name": "UnitFlame", "isUnit": true,
+      "name": "UnitFlame", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
@@ -157,7 +157,7 @@
       ]
     },
     {
-      "name": "UnitEnemy", "isUnit": true, "isVolatile": true,
+      "name": "UnitEnemy", "isInfantry": true, "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_maynard.gra" },
@@ -207,7 +207,7 @@
       ]
     },
     {
-      "name": "UnitTurretGun", "isUnit": true,
+      "name": "UnitTurretGun", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
@@ -243,7 +243,7 @@
       ]
     },
     {
-      "name": "UnitTurretMissile", "isUnit": true,
+      "name": "UnitTurretMissile", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
@@ -278,14 +278,14 @@
       ]
     },
     {
-      "name": "UnitBarracks", "isUnit": true,
+      "name": "UnitBarracks", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_barracks.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 15 },
         {
           "$type": "AssetPrefabTrait_Health",
-          "amount": 2000,
+          "amount": 5000,
           "deathDestroyDelay": 0.8,
           "deathEffectPrefab": "DeathTurret"
         },

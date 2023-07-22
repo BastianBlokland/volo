@@ -124,20 +124,36 @@ ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
 }
 
 static SceneLayer prefab_instance_layer(const AssetPrefabFlags flags, const SceneFaction faction) {
-  if (flags & AssetPrefabFlags_Unit) {
+  if (flags & AssetPrefabFlags_Infantry) {
     switch (faction) {
     case SceneFaction_A:
-      return SceneLayer_UnitFactionA;
+      return SceneLayer_InfantryFactionA;
     case SceneFaction_B:
-      return SceneLayer_UnitFactionB;
+      return SceneLayer_InfantryFactionB;
     case SceneFaction_C:
-      return SceneLayer_UnitFactionC;
+      return SceneLayer_InfantryFactionC;
     case SceneFaction_D:
-      return SceneLayer_UnitFactionD;
+      return SceneLayer_InfantryFactionD;
     case SceneFaction_None:
-      return SceneLayer_UnitFactionNone;
+      return SceneLayer_InfantryFactionNone;
     default:
-      diag_crash_msg("Unsupported faction");
+      UNREACHABLE
+    }
+  }
+  if (flags & AssetPrefabFlags_Structure) {
+    switch (faction) {
+    case SceneFaction_A:
+      return SceneLayer_StructureFactionA;
+    case SceneFaction_B:
+      return SceneLayer_StructureFactionB;
+    case SceneFaction_C:
+      return SceneLayer_StructureFactionC;
+    case SceneFaction_D:
+      return SceneLayer_StructureFactionD;
+    case SceneFaction_None:
+      return SceneLayer_StructureFactionNone;
+    default:
+      UNREACHABLE
     }
   }
   if (flags & AssetPrefabFlags_Destructible) {
@@ -451,8 +467,13 @@ static void setup_prefab(
   ecs_world_add_t(w, e, SceneVelocityComp);
 
   SceneTagComp* tagComp = ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
-  if (prefab->flags & AssetPrefabFlags_Unit) {
+  if (prefab->flags & (AssetPrefabFlags_Infantry | AssetPrefabFlags_Structure)) {
     ecs_world_add_empty_t(w, e, SceneUnitComp);
+    if (prefab->flags & AssetPrefabFlags_Infantry) {
+      ecs_world_add_empty_t(w, e, SceneUnitInfantryComp);
+    } else if (prefab->flags & AssetPrefabFlags_Structure) {
+      ecs_world_add_empty_t(w, e, SceneUnitStructureComp);
+    }
     ecs_world_add_t(w, e, SceneVisibilityComp);
     tagComp->tags |= SceneTags_Unit;
   }

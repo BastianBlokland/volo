@@ -18,18 +18,35 @@ ecs_comp_extern(SceneScaleComp);
 #define scene_query_stat_count 7
 
 typedef enum {
-  SceneLayer_Debug           = 1 << 0,
-  SceneLayer_Environment     = 1 << 1,
-  SceneLayer_UnitFactionA    = 1 << 2,
-  SceneLayer_UnitFactionB    = 1 << 3,
-  SceneLayer_UnitFactionC    = 1 << 4,
-  SceneLayer_UnitFactionD    = 1 << 5,
-  SceneLayer_UnitFactionNone = 1 << 6,
-  SceneLayer_Unit = SceneLayer_UnitFactionA | SceneLayer_UnitFactionB | SceneLayer_UnitFactionC |
-                    SceneLayer_UnitFactionD | SceneLayer_UnitFactionNone,
-  SceneLayer_Destructible = 1 << 7,
+  SceneLayer_Debug                = 1 << 0,
+  SceneLayer_Environment          = 1 << 1,
+  SceneLayer_InfantryFactionA     = 1 << 2,
+  SceneLayer_InfantryFactionB     = 1 << 3,
+  SceneLayer_InfantryFactionC     = 1 << 4,
+  SceneLayer_InfantryFactionD     = 1 << 5,
+  SceneLayer_InfantryFactionNone  = 1 << 6,
+  SceneLayer_StructureFactionA    = 1 << 7,
+  SceneLayer_StructureFactionB    = 1 << 8,
+  SceneLayer_StructureFactionC    = 1 << 9,
+  SceneLayer_StructureFactionD    = 1 << 10,
+  SceneLayer_StructureFactionNone = 1 << 11,
+  SceneLayer_Destructible         = 1 << 12,
 
-  SceneLayer_Count = 8,
+  SceneLayer_Infantry = SceneLayer_InfantryFactionA | SceneLayer_InfantryFactionB |
+                        SceneLayer_InfantryFactionC | SceneLayer_InfantryFactionD |
+                        SceneLayer_InfantryFactionNone,
+
+  SceneLayer_Structure = SceneLayer_StructureFactionA | SceneLayer_StructureFactionB |
+                         SceneLayer_StructureFactionC | SceneLayer_StructureFactionD |
+                         SceneLayer_StructureFactionNone,
+
+  SceneLayer_Unit         = SceneLayer_Infantry | SceneLayer_Structure,
+  SceneLayer_UnitFactionA = SceneLayer_InfantryFactionA | SceneLayer_StructureFactionA,
+  SceneLayer_UnitFactionB = SceneLayer_InfantryFactionB | SceneLayer_StructureFactionB,
+  SceneLayer_UnitFactionC = SceneLayer_InfantryFactionC | SceneLayer_StructureFactionC,
+  SceneLayer_UnitFactionD = SceneLayer_InfantryFactionD | SceneLayer_StructureFactionD,
+
+  SceneLayer_Count = 13,
   SceneLayer_None  = 0,
   SceneLayer_All   = ~0,
 } SceneLayer;
