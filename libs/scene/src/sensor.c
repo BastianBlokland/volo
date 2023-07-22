@@ -79,7 +79,7 @@ ecs_system_define(SceneSensorUpdateSys) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
         scene_brain_set_null(brain, g_brainKeyNavArrived);
       } else {
-        scene_brain_set(brain, g_brainKeyNavArrived, script_vector3(navAgent->target));
+        scene_brain_set(brain, g_brainKeyNavArrived, script_vector3(navAgent->targetPos));
       }
     }
 

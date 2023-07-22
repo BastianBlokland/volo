@@ -37,7 +37,8 @@ typedef enum {
 
 ecs_comp_extern_public(SceneNavAgentComp) {
   SceneNavAgentFlags flags;
-  GeoVector          target;
+  EcsEntityId        targetEntity;
+  GeoVector          targetPos;
 };
 
 ecs_comp_extern_public(SceneNavPathComp) {
@@ -49,6 +50,7 @@ ecs_comp_extern_public(SceneNavPathComp) {
 };
 
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);
+void scene_nav_move_to_entity(SceneNavAgentComp*, EcsEntityId target);
 void scene_nav_stop(SceneNavAgentComp*);
 
 /**

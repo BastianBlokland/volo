@@ -35,7 +35,11 @@ ecs_system_define(SceneControllerUpdateSys) {
       // Start moving when the nav-target value is set.
       const ScriptVal navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
       if (script_val_has(navTarget)) {
-        scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
+        if (script_type(navTarget) == ScriptType_Entity) {
+          scene_nav_move_to_entity(navAgent, script_get_entity(navTarget, 0));
+        } else {
+          scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
+        }
         scene_brain_set_null(brain, g_brainKeyNavTarget);
       }
 

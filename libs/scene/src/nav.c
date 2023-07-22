@@ -254,6 +254,8 @@ ecs_view_define(AgentEntityView) {
   ecs_access_write(SceneNavPathComp);
 }
 
+ecs_view_define(TargetEntityView) { ecs_access_read(SceneTransformComp); }
+
 static bool path_needs_refresh(
     const SceneNavPathComp* path, const GeoVector targetPos, const SceneTimeComp* time) {
   if (time->time >= path->nextRefreshTime) {
@@ -297,6 +299,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   u32      pathQueriesRemaining = path_max_queries_per_task;
   EcsView* agentsView           = ecs_world_view_t(world, AgentEntityView);
 
+  EcsView*     targetView = ecs_world_view_t(world, TargetEntityView);
+  EcsIterator* targetItr  = ecs_view_itr(targetView);
+
   for (EcsIterator* itr = ecs_view_itr_step(agentsView, parCount, parIndex); ecs_view_walk(itr);) {
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      loco  = ecs_view_write_t(itr, SceneLocomotionComp);
@@ -308,8 +313,17 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       goto Done;
     }
 
+    if (agent->targetEntity) {
+      if (ecs_view_maybe_jump(targetItr, agent->targetEntity)) {
+        const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+        agent->targetPos                      = targetTrans->position;
+      } else {
+        agent->flags |= SceneNavAgent_Stop; // Target entity not valid (anymore).
+      }
+    }
+
     const GeoNavCell fromCell  = geo_nav_at_position(env->navGrid, trans->position);
-    GeoVector        toPos     = agent->target;
+    GeoVector        toPos     = agent->targetPos;
     GeoNavCell       toCell    = geo_nav_at_position(env->navGrid, toPos);
     const bool       toBlocked = geo_nav_blocked(env->navGrid, toCell);
     if (toBlocked) {
@@ -416,7 +430,8 @@ ecs_module_init(scene_nav_module) {
   ecs_register_system(
       SceneNavUpdateAgentsSys,
       ecs_register_view(UpdateAgentGlobalView),
-      ecs_register_view(AgentEntityView));
+      ecs_register_view(AgentEntityView),
+      ecs_register_view(TargetEntityView));
 
   ecs_parallel(SceneNavUpdateAgentsSys, 4);
 
@@ -431,7 +446,13 @@ ecs_module_init(scene_nav_module) {
 
 void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
   agent->flags |= SceneNavAgent_Traveling;
-  agent->target = target;
+  agent->targetEntity = 0;
+  agent->targetPos    = target;
+}
+
+void scene_nav_move_to_entity(SceneNavAgentComp* agent, const EcsEntityId target) {
+  agent->flags |= SceneNavAgent_Traveling;
+  agent->targetEntity = target;
 }
 
 void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
