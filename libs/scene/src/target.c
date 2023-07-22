@@ -133,9 +133,9 @@ static TargetLineOfSightInfo target_los_query(
   const SceneLayer targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
   const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
   const SceneQueryFilter           filter    = {
-                   .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
-                   .callback  = target_los_filter,
-                   .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
+      .callback  = target_los_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
 
@@ -195,6 +195,7 @@ static f32 target_score(
     return 0.0f; // Target not visible.
   }
 
+  const EcsEntityId         targetEntity    = ecs_view_entity(targetItr);
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneLocationComp*  targetLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
   const GeoVector           targetPosCenter = target_aim_pos(targetTrans, targetLoc);
@@ -218,21 +219,22 @@ static f32 target_score(
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
-                     .layerMask = SceneLayer_Environment | SceneLayer_Structure,
-                     .callback  = target_los_filter,
-                     .context   = &filterCtx,
+        .layerMask = SceneLayer_Environment | SceneLayer_Structure,
+        .callback  = target_los_filter,
+        .context   = &filterCtx,
     };
     SceneRayHit hit;
-    if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit)) {
+    if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit) && hit.entity != targetEntity) {
+
       return 0.0f; // Target obscured.
     }
   }
 
   f32 score = 0.0f;
-  if (ecs_view_entity(targetItr) == targetOld) {
+  if (targetEntity == targetOld) {
     score += target_score_current_entity;
   }
-  if (ecs_world_has_t(world, ecs_view_entity(targetItr), SceneAttackComp)) {
+  if (ecs_world_has_t(world, targetEntity, SceneAttackComp)) {
     score += target_score_can_attack;
   }
   score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
