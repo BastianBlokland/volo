@@ -751,8 +751,8 @@
       "name": "DeathStructure", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.dcl" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
