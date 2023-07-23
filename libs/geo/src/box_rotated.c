@@ -71,6 +71,23 @@ static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
 
 GeoBoxRotated
 geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin  = simd_vec_load(box->min.comps);
+  const SimdVec localMax  = simd_vec_load(box->max.comps);
+  const SimdVec posVec    = simd_vec_load(pos.comps);
+  const SimdVec rotVec    = simd_vec_load(rot.comps);
+  const SimdVec scaleHalf = simd_vec_broadcast(scale * 0.5f);
+
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), scaleHalf);
+  const SimdVec worldCenter = simd_vec_add(posVec, simd_quat_rotate(rotVec, localCenter));
+  const SimdVec halfSize    = simd_vec_mul(simd_vec_sub(localMax, localMin), scaleHalf);
+
+  GeoBoxRotated res;
+  simd_vec_store(simd_vec_sub(worldCenter, halfSize), res.box.min.comps);
+  simd_vec_store(simd_vec_add(worldCenter, halfSize), res.box.max.comps);
+  simd_vec_store(rotVec, res.rotation.comps);
+  return res;
+#else
   const GeoVector localCenter = geo_vector_mul(geo_vector_add(box->min, box->max), scale * .5f);
   const GeoVector worldCenter = geo_vector_add(pos, geo_quat_rotate(rot, localCenter));
   const GeoVector size        = geo_vector_mul(geo_vector_sub(box->max, box->min), scale);
@@ -78,6 +95,7 @@ geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const
       .box      = geo_box_from_center(worldCenter, size),
       .rotation = rot,
   };
+#endif
 }
 
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
