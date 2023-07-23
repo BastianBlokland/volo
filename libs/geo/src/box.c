@@ -335,10 +335,20 @@ GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 
 }
 
 GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
+#if geo_box_simd_enable
+  const SimdVec fromVec = simd_vec_load(from.comps);
+  const SimdVec toVec   = simd_vec_load(to.comps);
+
+  GeoBox res;
+  simd_vec_store(simd_vec_min(fromVec, toVec), res.min.comps);
+  simd_vec_store(simd_vec_max(fromVec, toVec), res.max.comps);
+  return res;
+#else
   return (GeoBox){
       .min = geo_vector_min(from, to),
       .max = geo_vector_max(from, to),
   };
+#endif
 }
 
 GeoBox
