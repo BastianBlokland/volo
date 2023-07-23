@@ -15,6 +15,11 @@ typedef struct {
 } GeoBoxRotated;
 
 /**
+ * Construct a rotated box from a local box and a transformation.
+ */
+GeoBoxRotated geo_box_rotated(const GeoBox*, GeoVector pos, GeoQuat rot, f32 scale);
+
+/**
  * Dilate the box by the given amount on all sides.
  */
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated*, GeoVector size);

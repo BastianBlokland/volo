@@ -69,6 +69,17 @@ static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
   }
 }
 
+GeoBoxRotated
+geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
+  const GeoVector localCenter = geo_vector_mul(geo_vector_add(box->min, box->max), scale * .5f);
+  const GeoVector worldCenter = geo_vector_add(pos, geo_quat_rotate(rot, localCenter));
+  const GeoVector size        = geo_vector_mul(geo_vector_sub(box->max, box->min), scale);
+  return (GeoBoxRotated){
+      .box      = geo_box_from_center(worldCenter, size),
+      .rotation = rot,
+  };
+}
+
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
   return (GeoBoxRotated){
       .box =
