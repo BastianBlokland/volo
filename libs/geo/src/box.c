@@ -42,10 +42,19 @@ GeoVector geo_box_size(const GeoBox* b) {
 }
 
 GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
+#if geo_box_simd_enable
+  const SimdVec min      = simd_vec_load(b->min.comps);
+  const SimdVec max      = simd_vec_load(b->max.comps);
+  const SimdVec pointVec = simd_vec_load(point.comps);
+  GeoVector     res;
+  simd_vec_store(simd_vec_max(min, simd_vec_min(pointVec, max)), res.comps);
+  return res;
+#else
   return geo_vector(
       math_clamp_f32(point.x, b->min.x, b->max.x),
       math_clamp_f32(point.y, b->min.y, b->max.y),
       math_clamp_f32(point.z, b->min.z, b->max.z));
+#endif
 }
 
 GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
