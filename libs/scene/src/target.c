@@ -49,6 +49,7 @@ ecs_view_define(TargetFinderView) {
   ecs_access_maybe_read(SceneAttackAimComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneLocationComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneTargetTraceComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneTargetFinderComp);
@@ -58,6 +59,7 @@ ecs_view_define(TargetView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneNavBlockerComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_read(SceneCollisionComp);
   ecs_access_read(SceneTransformComp);
@@ -85,10 +87,10 @@ static void target_trace_add(SceneTargetTraceComp* trace, const EcsEntityId e, c
   };
 }
 
-static GeoVector target_aim_pos(const SceneTransformComp* trans, const SceneLocationComp* loc) {
+static GeoVector target_aim_pos(
+    const SceneTransformComp* trans, const SceneScaleComp* scale, const SceneLocationComp* loc) {
   if (loc) {
-    // TODO: Take scale into account.
-    return geo_vector_add(trans->position, loc->offsets[SceneLocationType_AimTarget]);
+    return scene_location(loc, trans, scale, SceneLocationType_AimTarget);
   }
   return trans->position;
 }
@@ -114,13 +116,15 @@ static TargetLineOfSightInfo target_los_query(
     const SceneCollisionEnvComp* collisionEnv,
     const EcsEntityId            finderEntity,
     const SceneTransformComp*    finderTrans,
+    const SceneScaleComp*        finderScale,
     const SceneLocationComp*     finderLoc,
     const f32                    radius,
     EcsIterator*                 targetItr) {
-  const GeoVector           sourcePos   = target_aim_pos(finderTrans, finderLoc);
+  const GeoVector           sourcePos   = target_aim_pos(finderTrans, finderScale, finderLoc);
   const SceneTransformComp* targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  const SceneScaleComp*     targetScale = ecs_view_read_t(targetItr, SceneScaleComp);
   const SceneLocationComp*  targetLoc   = ecs_view_read_t(targetItr, SceneLocationComp);
-  const GeoVector           targetPos   = target_aim_pos(targetTrans, targetLoc);
+  const GeoVector           targetPos   = target_aim_pos(targetTrans, targetScale, targetLoc);
   const GeoVector           toTarget    = geo_vector_sub(targetPos, sourcePos);
   const f32                 dist        = geo_vector_mag(toTarget);
   if (dist <= target_los_dist_min || radius <= f32_epsilon) {
@@ -197,8 +201,9 @@ static f32 target_score(
 
   const EcsEntityId         targetEntity    = ecs_view_entity(targetItr);
   const SceneTransformComp* targetTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
+  const SceneScaleComp*     targetScale     = ecs_view_read_t(targetItr, SceneScaleComp);
   const SceneLocationComp*  targetLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
-  const GeoVector           targetPosCenter = target_aim_pos(targetTrans, targetLoc);
+  const GeoVector           targetPosCenter = target_aim_pos(targetTrans, targetScale, targetLoc);
   const GeoVector           toTarget        = geo_vector_sub(targetPosCenter, finderPosCenter);
   const f32                 distSqr         = geo_vector_mag_sqr(toTarget);
   if (distSqr < (finder->distanceMin * finder->distanceMin)) {
@@ -283,6 +288,7 @@ ecs_system_define(SceneTargetUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr_step(finderView, parCount, parIndex); ecs_view_walk(itr);) {
     const EcsEntityId         entity      = ecs_view_entity(itr);
     const SceneTransformComp* trans       = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scale       = ecs_view_read_t(itr, SceneScaleComp);
     const SceneLocationComp*  loc         = ecs_view_read_t(itr, SceneLocationComp);
     const SceneAttackAimComp* attackAim   = ecs_view_read_t(itr, SceneAttackAimComp);
     const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
@@ -312,7 +318,7 @@ ecs_system_define(SceneTargetUpdateSys) {
       if (trace) {
         target_trace_clear(trace);
       }
-      const GeoVector   pos       = target_aim_pos(trans, loc);
+      const GeoVector   pos       = target_aim_pos(trans, scale, loc);
       const GeoVector   aimDir    = scene_attack_aim_dir(trans, attackAim);
       const EcsEntityId targetOld = scene_target_primary(finder);
 
@@ -358,7 +364,7 @@ ecs_system_define(SceneTargetUpdateSys) {
 
       const f32                   losRadius = finder->lineOfSightRadius;
       const TargetLineOfSightInfo losInfo =
-          target_los_query(colEnv, entity, trans, loc, losRadius, targetItr);
+          target_los_query(colEnv, entity, trans, scale, loc, losRadius, targetItr);
 
       if (losInfo.hasLos) {
         finder->flags |= SceneTarget_LineOfSight;

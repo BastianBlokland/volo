@@ -117,14 +117,15 @@ static void aim_idle(SceneAttackAimComp* attackAim) {
 
 static GeoVector aim_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+  const SceneScaleComp*     scale = ecs_view_read_t(entityItr, SceneScaleComp);
   const SceneVelocityComp*  velo  = ecs_view_read_t(entityItr, SceneVelocityComp);
   const SceneLocationComp*  loc   = ecs_view_read_t(entityItr, SceneLocationComp);
 
-  const GeoVector predictedPos = scene_position_predict(trans, velo, timeInFuture);
   if (loc) {
-    return geo_vector_add(predictedPos, loc->offsets[SceneLocationType_AimTarget]);
+    return scene_location_predict(
+        loc, trans, scale, velo, SceneLocationType_AimTarget, timeInFuture);
   }
-  return predictedPos;
+  return scene_position_predict(trans, velo, timeInFuture);
 }
 
 static f32 aim_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
