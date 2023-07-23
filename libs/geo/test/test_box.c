@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_array.h"
 #include "core_math.h"
 #include "geo_box.h"
 #include "geo_sphere.h"
@@ -91,6 +92,50 @@ spec(box) {
     check_eq_vector(corners[5], geo_vector(-1, 1, 1));
     check_eq_vector(corners[6], geo_vector(1, 1, -1));
     check_eq_vector(corners[7], geo_vector(1, 1, 1));
+  }
+
+  it("can lookup the closest point in the box") {
+    // clang-format off
+    static const struct {
+      GeoVector boxMin, boxMax;
+      GeoVector point;
+      GeoVector expected;
+    } g_points[] = {
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {0, 0, 0},     .expected = {0, 0, 0},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {-2, 0, 0},    .expected = {-1, 0, 0},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {2, 0, 0},     .expected = {1, 0, 0},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {0, -2, 0},    .expected = {0, -1, 0},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {0, 2, 0},     .expected = {0, 1, 0},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {0, 0, -2},    .expected = {0, 0, -1},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {0, 0, 2},     .expected = {0, 0, 1},
+        },
+        { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
+          .point    = {-2, -2, -2},  .expected = {-1, -1, -1},
+        },
+        { .boxMin   = {-3, -3, -3},  .boxMax   = {-2, -2, -2},
+          .point    = {2, 2, 2},     .expected = {-2, -2, -2},
+        },
+    };
+    // clang-format on
+
+    for (u32 i = 0; i != array_elems(g_points); ++i) {
+      const GeoBox    box     = {.min = g_points[i].boxMin, .max = g_points[i].boxMax};
+      const GeoVector closest = geo_box_closest_point(&box, g_points[i].point);
+      check_eq_vector(closest, g_points[i].expected);
+    }
   }
 
   it("can transform a box") {
