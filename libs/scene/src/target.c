@@ -230,7 +230,6 @@ static f32 target_score(
     };
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit) && hit.entity != targetEntity) {
-
       return 0.0f; // Target obscured.
     }
   }
