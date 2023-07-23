@@ -33,6 +33,11 @@ GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 
 f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector* outNormal);
 
 /**
+ * Get the closest point within the rotated box to the given point.
+ */
+GeoVector geo_box_rotated_closest_point(const GeoBoxRotated*, GeoVector point);
+
+/**
  * Overlap tests.
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);

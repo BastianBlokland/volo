@@ -92,6 +92,11 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
+static GeoVector geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
+  const GeoVector boxCenter = geo_box_center(&box->box);
+  return geo_rotate_around(boxCenter, box->rotation, localPoint);
+}
+
 static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
   const GeoVector boxCenter      = geo_box_center(&box->box);
   const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
@@ -124,6 +129,12 @@ f32 geo_box_rotated_intersect_ray(
   }
 
   return rayHitT;
+}
+
+GeoVector geo_box_rotated_closest_point(const GeoBoxRotated* boxRotated, const GeoVector point) {
+  const GeoVector localPoint   = geo_box_rotated_local_point(boxRotated, point);
+  const GeoVector localClosest = geo_box_closest_point(&boxRotated->box, localPoint);
+  return geo_box_rotated_world_point(boxRotated, localClosest);
 }
 
 bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
