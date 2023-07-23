@@ -103,6 +103,7 @@ bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
 bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
 bool            geo_nav_blocker_remove_all(GeoNavGrid*);
 bool            geo_nav_blocker_reachable(const GeoNavGrid*, GeoNavBlockerId, GeoNavCell from);
+GeoNavCell      geo_nav_blocker_closest(const GeoNavGrid*, GeoNavBlockerId, GeoNavCell from);
 
 /**
  * (Re-)compute the islands.
@@ -146,6 +147,7 @@ typedef enum {
   GeoNavStat_FindItrEnqueues,
   GeoNavStat_LineQueryCount,
   GeoNavStat_BlockerReachableQueries,
+  GeoNavStat_BlockerClosestQueries,
   GeoNavStat_GridDataSize,
   GeoNavStat_WorkerDataSize,
 

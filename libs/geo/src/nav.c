@@ -825,6 +825,42 @@ static bool nav_blocker_neighbors_island(
   return false;
 }
 
+static GeoNavCell nav_blocker_closest_reachable(
+    const GeoNavGrid* grid, const GeoNavBlockerId blockerId, const GeoNavCell from) {
+
+  const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
+  const GeoNavRegion   region          = blocker->region;
+  const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
+  const GeoNavIsland   fromIsland      = geo_nav_island(grid, from);
+
+  GeoNavCell bestCell      = from;
+  u16        bestCost      = u16_max;
+  u32        indexInRegion = 0;
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      if (nav_bit_test(blockedInRegion, indexInRegion)) {
+        const GeoNavCell cell = {.x = x, .y = y};
+
+        // Find a neighbor with the lowest cost thats in the same island as 'from'
+        GeoNavCell neighbors[4];
+        const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
+        for (u32 i = 0; i != neighborCount; ++i) {
+          if (grid->cellIslands[nav_cell_index(grid, neighbors[i])] != fromIsland) {
+            continue; // Can't reach 'from'.
+          }
+          const u16 cost = nav_path_heuristic(from, neighbors[i]);
+          if (cost < bestCost) {
+            bestCell = neighbors[i];
+            bestCost = cost;
+          }
+        }
+      }
+      ++indexInRegion;
+    }
+  }
+  return bestCell;
+}
+
 static void nav_islands_fill(GeoNavGrid* grid, const GeoNavCell start, const GeoNavIsland island) {
   GeoNavCell queue[4096];
   u32        queueStart = 0;
@@ -1283,6 +1319,20 @@ bool geo_nav_blocker_reachable(
   ++nav_worker_state(grid)->stats[GeoNavStat_BlockerReachableQueries]; // Track query count.
 
   return nav_blocker_neighbors_island(grid, blockerId, island);
+}
+
+GeoNavCell geo_nav_blocker_closest(
+    const GeoNavGrid* grid, const GeoNavBlockerId blockerId, const GeoNavCell from) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+
+  if (sentinel_check(blockerId)) {
+    return from; // Blocker was never actually added; not reachable.
+  }
+  diag_assert(geo_nav_island(grid, from) != geo_nav_island_blocked);
+
+  ++nav_worker_state(grid)->stats[GeoNavStat_BlockerClosestQueries]; // Track query count.
+
+  return nav_blocker_closest_reachable(grid, blockerId, from);
 }
 
 void geo_nav_compute_islands(GeoNavGrid* grid) { grid->islandCount = nav_islands_compute(grid); }
