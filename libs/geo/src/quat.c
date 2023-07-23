@@ -96,21 +96,13 @@ GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 
 GeoQuat geo_quat_inverse(const GeoQuat q) {
   // Compute the conjugate ('transposing').
-  GeoQuat res = {
-      .x = q.x * -1,
-      .y = q.y * -1,
-      .z = q.z * -1,
-      .w = q.w,
-  };
-
-  // Divide by the squared length.
-  // TODO: Should we just skip this? Is only needed for non-normalized quaternions.
-  const f32 sqrMag = geo_vector_mag_sqr((GeoVector){q.x, q.y, q.z, q.w});
-  res.x /= sqrMag;
-  res.y /= sqrMag;
-  res.z /= sqrMag;
-  res.w /= sqrMag;
+#if geo_quat_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_quat_conjugate(simd_vec_load(q.comps)), res.comps);
   return res;
+#else
+  return (GeoQuat){.x = q.x * -1, .y = q.y * -1, .z = q.z * -1, .w = q.w};
+#endif
 }
 
 GeoQuat geo_quat_flip(const GeoQuat q) {

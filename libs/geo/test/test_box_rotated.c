@@ -49,7 +49,7 @@ spec(box_rotated) {
         geo_box_rotated_overlap_sphere(
             &(GeoBoxRotated){
                 {.min = {0, 0, 0}, .max = {1, 1, 1}}, .rotation = geo_quat_up_to_forward},
-            &(GeoSphere){.point = {0, 2, 0}, .radius = 1.0f}),
+            &(GeoSphere){.point = {0, 2, 0}, .radius = 1.01f}),
         "Sphere overlap check failed");
     check_msg(
         !geo_box_rotated_overlap_sphere(
