@@ -99,8 +99,23 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
 }
 
 static GeoVector geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localPointVec = simd_vec_load(localPoint.comps);
+  const SimdVec localMin      = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax      = simd_vec_load(box->box.max.comps);
+  const SimdVec half          = simd_vec_broadcast(0.5f);
+  const SimdVec rot           = simd_vec_load(box->rotation.comps);
+  const SimdVec localCenter   = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec worldPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(rot, simd_vec_sub(localPointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(worldPoint, res.comps);
+  return res;
+#else
   const GeoVector boxCenter = geo_box_center(&box->box);
   return geo_rotate_around(boxCenter, box->rotation, localPoint);
+#endif
 }
 
 static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
