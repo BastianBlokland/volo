@@ -58,11 +58,22 @@ GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
+#if geo_box_simd_enable
+  const SimdVec centerVec = simd_vec_load(center.comps);
+  const SimdVec sizeVec   = simd_vec_load(size.comps);
+  const SimdVec halfSize  = simd_vec_mul(sizeVec, simd_vec_broadcast(0.5f));
+
+  GeoBox res;
+  simd_vec_store(simd_vec_sub(centerVec, halfSize), res.min.comps);
+  simd_vec_store(simd_vec_add(centerVec, halfSize), res.max.comps);
+  return res;
+#else
   const GeoVector halfSize = geo_vector_mul(size, 0.5f);
   return (GeoBox){
       .min = geo_vector_sub(center, halfSize),
       .max = geo_vector_add(center, halfSize),
   };
+#endif
 }
 
 GeoBox geo_box_inverted2() {
