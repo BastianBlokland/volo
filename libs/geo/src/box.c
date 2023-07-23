@@ -122,10 +122,21 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
+#if geo_box_simd_enable
+  const SimdVec min     = simd_vec_load(b->min.comps);
+  const SimdVec max     = simd_vec_load(b->max.comps);
+  const SimdVec sizeVec = simd_vec_load(size.comps);
+
+  GeoBox res;
+  simd_vec_store(simd_vec_sub(min, sizeVec), res.min.comps);
+  simd_vec_store(simd_vec_add(max, sizeVec), res.max.comps);
+  return res;
+#else
   return (GeoBox){
       .min = geo_vector_sub(b->min, size),
       .max = geo_vector_add(b->max, size),
   };
+#endif
 }
 
 void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {

@@ -99,6 +99,17 @@ geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const
 }
 
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin = simd_vec_load(b->box.min.comps);
+  const SimdVec localMax = simd_vec_load(b->box.max.comps);
+  const SimdVec sizeVec  = simd_vec_load(size.comps);
+
+  GeoBoxRotated res;
+  simd_vec_store(simd_vec_sub(localMin, sizeVec), res.box.min.comps);
+  simd_vec_store(simd_vec_add(localMax, sizeVec), res.box.max.comps);
+  res.rotation = b->rotation;
+  return res;
+#else
   return (GeoBoxRotated){
       .box =
           {
@@ -107,6 +118,7 @@ GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector siz
           },
       .rotation = b->rotation,
   };
+#endif
 }
 
 GeoBoxRotated
