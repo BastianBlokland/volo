@@ -100,7 +100,7 @@ spec(box) {
       GeoVector boxMin, boxMax;
       GeoVector point;
       GeoVector expected;
-    } g_points[] = {
+    } g_data[] = {
         { .boxMin   = {-1, -1, -1},  .boxMax   = {1, 1, 1},
           .point    = {0, 0, 0},     .expected = {0, 0, 0},
         },
@@ -131,10 +131,10 @@ spec(box) {
     };
     // clang-format on
 
-    for (u32 i = 0; i != array_elems(g_points); ++i) {
-      const GeoBox    box     = {.min = g_points[i].boxMin, .max = g_points[i].boxMax};
-      const GeoVector closest = geo_box_closest_point(&box, g_points[i].point);
-      check_eq_vector(closest, g_points[i].expected);
+    for (u32 i = 0; i != array_elems(g_data); ++i) {
+      const GeoBox    box     = {.min = g_data[i].boxMin, .max = g_data[i].boxMax};
+      const GeoVector closest = geo_box_closest_point(&box, g_data[i].point);
+      check_eq_vector(closest, g_data[i].expected);
     }
   }
 
