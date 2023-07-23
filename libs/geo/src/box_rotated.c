@@ -5,6 +5,12 @@
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 
+#define geo_box_rotated_simd_enable 1
+
+#if geo_box_rotated_simd_enable
+#include "core_simd.h"
+#endif
+
 /**
  * Separating Axis Theorem helpers to check if two sets of points overlap on a given axis.
  */
@@ -98,9 +104,24 @@ static GeoVector geo_box_rotated_world_point(const GeoBoxRotated* box, const Geo
 }
 
 static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
+#if geo_box_rotated_simd_enable
+  const SimdVec pointVec    = simd_vec_load(point.comps);
+  const SimdVec localMin    = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax    = simd_vec_load(box->box.max.comps);
+  const SimdVec half        = simd_vec_broadcast(0.5f);
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec boxInvRot   = simd_quat_conjugate(simd_vec_load(box->rotation.comps));
+  const SimdVec localPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(pointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(localPoint, res.comps);
+  return res;
+#else
   const GeoVector boxCenter      = geo_box_center(&box->box);
   const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
   return geo_rotate_around(boxCenter, boxInvRotation, point);
+#endif
 }
 
 static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
