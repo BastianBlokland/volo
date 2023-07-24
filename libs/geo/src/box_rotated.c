@@ -139,7 +139,8 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
-static GeoVector geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
+MAYBE_UNUSED static GeoVector
+geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
 #if geo_box_rotated_simd_enable
   const SimdVec localPointVec = simd_vec_load(localPoint.comps);
   const SimdVec localMin      = simd_vec_load(box->box.min.comps);
@@ -209,9 +210,28 @@ f32 geo_box_rotated_intersect_ray(
 }
 
 GeoVector geo_box_rotated_closest_point(const GeoBoxRotated* boxRotated, const GeoVector point) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin    = simd_vec_load(boxRotated->box.min.comps);
+  const SimdVec localMax    = simd_vec_load(boxRotated->box.max.comps);
+  const SimdVec half        = simd_vec_broadcast(0.5f);
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+
+  const SimdVec boxRot    = simd_vec_load(boxRotated->rotation.comps);
+  const SimdVec boxInvRot = simd_quat_conjugate(boxRot);
+
+  SimdVec p = simd_vec_load(point.comps);
+  p         = simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(p, localCenter)));
+  p         = simd_vec_max(localMin, simd_vec_min(p, localMax));
+  p         = simd_vec_add(localCenter, simd_quat_rotate(boxRot, simd_vec_sub(p, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(p, res.comps);
+  return res;
+#else
   const GeoVector localPoint   = geo_box_rotated_local_point(boxRotated, point);
   const GeoVector localClosest = geo_box_closest_point(&boxRotated->box, localPoint);
   return geo_box_rotated_world_point(boxRotated, localClosest);
+#endif
 }
 
 bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
