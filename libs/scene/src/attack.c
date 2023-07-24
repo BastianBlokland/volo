@@ -139,9 +139,13 @@ static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* 
   const SceneCollisionComp* hitCollision = ecs_view_read_t(itr, SceneCollisionComp);
   const SceneLocationComp*  hitLoc       = ecs_view_read_t(itr, SceneLocationComp);
 
-  const GeoVector targetOff = hitLoc ? hitLoc->offsets[SceneLocationType_AimTarget] : geo_vector(0);
-  const GeoVector targetPos = geo_vector_add(hitTransform->position, targetOff);
-  const GeoVector toTarget  = geo_vector_sub(targetPos, origin);
+  GeoVector targetPos;
+  if (hitLoc) {
+    targetPos = scene_location(hitLoc, hitTransform, hitScale, SceneLocationType_AimTarget);
+  } else {
+    targetPos = hitTransform->position;
+  }
+  const GeoVector toTarget     = geo_vector_sub(targetPos, origin);
   const f32       toTargetDist = geo_vector_mag(toTarget);
   if (toTargetDist <= f32_epsilon) {
     return origin;
