@@ -5,6 +5,12 @@
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 
+#define geo_box_rotated_simd_enable 1
+
+#if geo_box_rotated_simd_enable
+#include "core_simd.h"
+#endif
+
 /**
  * Separating Axis Theorem helpers to check if two sets of points overlap on a given axis.
  */
@@ -63,7 +69,47 @@ static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
   }
 }
 
+GeoBoxRotated
+geo_box_rotated(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin  = simd_vec_load(box->min.comps);
+  const SimdVec localMax  = simd_vec_load(box->max.comps);
+  const SimdVec posVec    = simd_vec_load(pos.comps);
+  const SimdVec rotVec    = simd_vec_load(rot.comps);
+  const SimdVec scaleHalf = simd_vec_broadcast(scale * 0.5f);
+
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), scaleHalf);
+  const SimdVec worldCenter = simd_vec_add(posVec, simd_quat_rotate(rotVec, localCenter));
+  const SimdVec halfSize    = simd_vec_mul(simd_vec_sub(localMax, localMin), scaleHalf);
+
+  GeoBoxRotated res;
+  simd_vec_store(simd_vec_sub(worldCenter, halfSize), res.box.min.comps);
+  simd_vec_store(simd_vec_add(worldCenter, halfSize), res.box.max.comps);
+  simd_vec_store(rotVec, res.rotation.comps);
+  return res;
+#else
+  const GeoVector localCenter = geo_vector_mul(geo_vector_add(box->min, box->max), scale * .5f);
+  const GeoVector worldCenter = geo_vector_add(pos, geo_quat_rotate(rot, localCenter));
+  const GeoVector size        = geo_vector_mul(geo_vector_sub(box->max, box->min), scale);
+  return (GeoBoxRotated){
+      .box      = geo_box_from_center(worldCenter, size),
+      .rotation = rot,
+  };
+#endif
+}
+
 GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector size) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin = simd_vec_load(b->box.min.comps);
+  const SimdVec localMax = simd_vec_load(b->box.max.comps);
+  const SimdVec sizeVec  = simd_vec_load(size.comps);
+
+  GeoBoxRotated res;
+  simd_vec_store(simd_vec_sub(localMin, sizeVec), res.box.min.comps);
+  simd_vec_store(simd_vec_add(localMax, sizeVec), res.box.max.comps);
+  res.rotation = b->rotation;
+  return res;
+#else
   return (GeoBoxRotated){
       .box =
           {
@@ -72,6 +118,7 @@ GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated* b, const GeoVector siz
           },
       .rotation = b->rotation,
   };
+#endif
 }
 
 GeoBoxRotated
@@ -92,10 +139,46 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
+MAYBE_UNUSED static GeoVector
+geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localPointVec = simd_vec_load(localPoint.comps);
+  const SimdVec localMin      = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax      = simd_vec_load(box->box.max.comps);
+  const SimdVec half          = simd_vec_broadcast(0.5f);
+  const SimdVec rot           = simd_vec_load(box->rotation.comps);
+  const SimdVec localCenter   = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec worldPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(rot, simd_vec_sub(localPointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(worldPoint, res.comps);
+  return res;
+#else
+  const GeoVector boxCenter = geo_box_center(&box->box);
+  return geo_rotate_around(boxCenter, box->rotation, localPoint);
+#endif
+}
+
 static GeoVector geo_box_rotated_local_point(const GeoBoxRotated* box, const GeoVector point) {
+#if geo_box_rotated_simd_enable
+  const SimdVec pointVec    = simd_vec_load(point.comps);
+  const SimdVec localMin    = simd_vec_load(box->box.min.comps);
+  const SimdVec localMax    = simd_vec_load(box->box.max.comps);
+  const SimdVec half        = simd_vec_broadcast(0.5f);
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+  const SimdVec boxInvRot   = simd_quat_conjugate(simd_vec_load(box->rotation.comps));
+  const SimdVec localPoint =
+      simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(pointVec, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(localPoint, res.comps);
+  return res;
+#else
   const GeoVector boxCenter      = geo_box_center(&box->box);
   const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
   return geo_rotate_around(boxCenter, boxInvRotation, point);
+#endif
 }
 
 static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
@@ -124,6 +207,31 @@ f32 geo_box_rotated_intersect_ray(
   }
 
   return rayHitT;
+}
+
+GeoVector geo_box_rotated_closest_point(const GeoBoxRotated* boxRotated, const GeoVector point) {
+#if geo_box_rotated_simd_enable
+  const SimdVec localMin    = simd_vec_load(boxRotated->box.min.comps);
+  const SimdVec localMax    = simd_vec_load(boxRotated->box.max.comps);
+  const SimdVec half        = simd_vec_broadcast(0.5f);
+  const SimdVec localCenter = simd_vec_mul(simd_vec_add(localMin, localMax), half);
+
+  const SimdVec boxRot    = simd_vec_load(boxRotated->rotation.comps);
+  const SimdVec boxInvRot = simd_quat_conjugate(boxRot);
+
+  SimdVec p = simd_vec_load(point.comps);
+  p         = simd_vec_add(localCenter, simd_quat_rotate(boxInvRot, simd_vec_sub(p, localCenter)));
+  p         = simd_vec_max(localMin, simd_vec_min(p, localMax));
+  p         = simd_vec_add(localCenter, simd_quat_rotate(boxRot, simd_vec_sub(p, localCenter)));
+
+  GeoVector res;
+  simd_vec_store(p, res.comps);
+  return res;
+#else
+  const GeoVector localPoint   = geo_box_rotated_local_point(boxRotated, point);
+  const GeoVector localClosest = geo_box_closest_point(&boxRotated->box, localPoint);
+  return geo_box_rotated_world_point(boxRotated, localClosest);
+#endif
 }
 
 bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {

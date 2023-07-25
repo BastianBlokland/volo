@@ -368,9 +368,8 @@ static void hud_minimap_update(
 }
 
 static UiVector hud_minimap_pos(const GeoVector worldPos, const GeoVector areaSize) {
-  const GeoVector pos    = geo_vector_add(worldPos, geo_vector_mul(areaSize, 0.5f));
-  const GeoVector posRel = geo_vector_div_comps(pos, areaSize);
-  return ui_vector(posRel.x, posRel.z);
+  const GeoVector pos = geo_vector_add(worldPos, geo_vector_mul(areaSize, 0.5f));
+  return ui_vector(pos.x / areaSize.x, pos.z / areaSize.z);
 }
 
 static bool hud_minimap_camera_frustum(

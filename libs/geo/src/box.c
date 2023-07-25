@@ -42,18 +42,38 @@ GeoVector geo_box_size(const GeoBox* b) {
 }
 
 GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
+#if geo_box_simd_enable
+  const SimdVec min      = simd_vec_load(b->min.comps);
+  const SimdVec max      = simd_vec_load(b->max.comps);
+  const SimdVec pointVec = simd_vec_load(point.comps);
+  GeoVector     res;
+  simd_vec_store(simd_vec_max(min, simd_vec_min(pointVec, max)), res.comps);
+  return res;
+#else
   return geo_vector(
       math_clamp_f32(point.x, b->min.x, b->max.x),
       math_clamp_f32(point.y, b->min.y, b->max.y),
       math_clamp_f32(point.z, b->min.z, b->max.z));
+#endif
 }
 
 GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
+#if geo_box_simd_enable
+  const SimdVec centerVec = simd_vec_load(center.comps);
+  const SimdVec sizeVec   = simd_vec_load(size.comps);
+  const SimdVec halfSize  = simd_vec_mul(sizeVec, simd_vec_broadcast(0.5f));
+
+  GeoBox res;
+  simd_vec_store(simd_vec_sub(centerVec, halfSize), res.min.comps);
+  simd_vec_store(simd_vec_add(centerVec, halfSize), res.max.comps);
+  return res;
+#else
   const GeoVector halfSize = geo_vector_mul(size, 0.5f);
   return (GeoBox){
       .min = geo_vector_sub(center, halfSize),
       .max = geo_vector_add(center, halfSize),
   };
+#endif
 }
 
 GeoBox geo_box_inverted2() {
@@ -113,10 +133,21 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
+#if geo_box_simd_enable
+  const SimdVec min     = simd_vec_load(b->min.comps);
+  const SimdVec max     = simd_vec_load(b->max.comps);
+  const SimdVec sizeVec = simd_vec_load(size.comps);
+
+  GeoBox res;
+  simd_vec_store(simd_vec_sub(min, sizeVec), res.min.comps);
+  simd_vec_store(simd_vec_add(max, sizeVec), res.max.comps);
+  return res;
+#else
   return (GeoBox){
       .min = geo_vector_sub(b->min, size),
       .max = geo_vector_add(b->max, size),
   };
+#endif
 }
 
 void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
@@ -315,10 +346,20 @@ GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 
 }
 
 GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
+#if geo_box_simd_enable
+  const SimdVec fromVec = simd_vec_load(from.comps);
+  const SimdVec toVec   = simd_vec_load(to.comps);
+
+  GeoBox res;
+  simd_vec_store(simd_vec_min(fromVec, toVec), res.min.comps);
+  simd_vec_store(simd_vec_max(fromVec, toVec), res.max.comps);
+  return res;
+#else
   return (GeoBox){
       .min = geo_vector_min(from, to),
       .max = geo_vector_max(from, to),
   };
+#endif
 }
 
 GeoBox

@@ -90,10 +90,12 @@ GeoMatrix scene_matrix_world(const SceneTransformComp* trans, const SceneScaleCo
 }
 
 GeoVector scene_position_predict(
-    const SceneTransformComp* trans, const SceneVelocityComp* velo, const TimeDuration time) {
+    const SceneTransformComp* trans,
+    const SceneVelocityComp*  velo,
+    const TimeDuration        timeInFuture) {
   if (!velo) {
     return trans->position;
   }
-  const GeoVector delta = geo_vector_mul(velo->velocityAvg, time / (f32)time_second);
+  const GeoVector delta = geo_vector_mul(velo->velocityAvg, timeInFuture / (f32)time_second);
   return geo_vector_add(trans->position, delta);
 }

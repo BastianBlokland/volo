@@ -56,7 +56,7 @@
               "$name": "Move",
               "child": {
                 "$type": "AssetAiNode_Execute",
-                "script": "$cmd_nav_target = $target_position;"
+                "script": "$cmd_nav_target = $target_entity;"
               }
             }
           ]

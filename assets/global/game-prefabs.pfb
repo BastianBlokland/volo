@@ -1,10 +1,10 @@
 {
   "prefabs": [
     {
-      "name": "UnitRifle", "isUnit": true,
+      "name": "InfantryRifle", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rifle.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -42,21 +42,21 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
-          "tauntDeathPrefab": "TauntDeathUnitRifle",
-          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
+          "tauntDeathPrefab": "TauntDeathInfantryRifle",
+          "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
-      "name": "UnitRocket", "isUnit": true,
+      "name": "InfantryRocket", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_rocket.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rocket.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -94,21 +94,21 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
-          "tauntDeathPrefab": "TauntDeathUnitRifle",
-          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
+          "tauntDeathPrefab": "TauntDeathInfantryRifle",
+          "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
-      "name": "UnitFlame", "isUnit": true,
+      "name": "InfantryFlame", "isInfantry": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_flame.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_flame.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -146,21 +146,21 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
-          "tauntDeathPrefab": "TauntDeathUnitRifle",
-          "tauntConfirmPrefab": "TauntConfirmUnitRifle"
+          "tauntDeathPrefab": "TauntDeathInfantryRifle",
+          "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
-      "name": "UnitEnemy", "isUnit": true, "isVolatile": true,
+      "name": "InfantryEnemy", "isInfantry": true, "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_maynard.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_enemy.gra" },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4.5,
@@ -197,20 +197,20 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-melee-auto.bt" },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-melee-auto.bt" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
-          "tauntDeathPrefab": "TauntDeathUnitEnemy"
+          "tauntDeathPrefab": "TauntDeathInfantryEnemy"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
     {
-      "name": "TurretGun", "isUnit": true,
+      "name": "StructureTurretGun", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_gun.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_gun.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -237,16 +237,16 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
     {
-      "name": "TurretMissile", "isUnit": true,
+      "name": "StructureTurretMissile", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/unit_turret_missile.gra" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_missile.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -272,9 +272,39 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/unit-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
+      ]
+    },
+    {
+      "name": "StructureBarracks", "isStructure": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_barracks.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 15 },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 5000,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathStructure"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shape": {
+            "$type": "AssetPrefabShape_Box",
+            "min": { "x": -5.5, "y": 0, "z": -2.4 },
+            "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
+          }
+        },
+        {
+          "$type": "AssetPrefabTrait_Location", "aimTarget": {
+            "min": { "x": -5, "y": 1, "z": -1.5 },
+            "max": { "x": 5, "y": 2, "z": 1.5 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
     {
@@ -343,7 +373,7 @@
           "deathDestroyDelay": 0.5,
           "deathEffectPrefab": "ExplosionMedium"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 0.8 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 0.8 }, "max": { "y": 0.8 } } },
         { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
@@ -616,11 +646,11 @@
       ]
     },
     {
-      "name": "SpawnerUnitEnemy",
+      "name": "SpawnerInfantryEnemy",
       "traits": [
         {
           "$type": "AssetPrefabTrait_Spawner",
-          "prefabId": "UnitEnemy",
+          "prefabId": "InfantryEnemy",
           "radius": 20,
           "count": 150,
           "maxInstances": 350,
@@ -633,8 +663,8 @@
       "name": "ExplosionMedium", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.dcl" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Explosive",
           "delay": 0.1,
@@ -653,8 +683,8 @@
       "name": "ImpactMissile", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.dcl" },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],
@@ -713,6 +743,20 @@
       "name": "DeathTurret", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
+        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.dcl" },
+        {
+          "$type": "AssetPrefabTrait_Sound",
+          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "gainMin": 1.1, "gainMax": 1.5,
+          "pitchMin": 1.0, "pitchMax": 1.1
+        }
+      ]
+    },
+    {
+      "name": "DeathStructure", "isVolatile": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
         { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.dcl" },
         {
@@ -724,7 +768,7 @@
       ]
     },
     {
-      "name": "TauntDeathUnitRifle", "isVolatile": true,
+      "name": "TauntDeathInfantryRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
         {
@@ -736,7 +780,7 @@
       ]
     },
     {
-      "name": "TauntConfirmUnitRifle", "isVolatile": true,
+      "name": "TauntConfirmInfantryRifle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
         {
@@ -753,7 +797,7 @@
       ]
     },
     {
-      "name": "TauntDeathUnitEnemy", "isVolatile": true,
+      "name": "TauntDeathInfantryEnemy", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 2 },
         {

@@ -70,7 +70,7 @@ static bool projectile_query_filter(const void* context, const EcsEntityId entit
   return true;
 }
 
-static SceneLayer projectile_faction_ignore_layer(const SceneFaction faction) {
+static SceneLayer projectile_faction_ignore_layers(const SceneFaction faction) {
   switch (faction) {
   case SceneFaction_A:
     return SceneLayer_UnitFactionA;
@@ -91,7 +91,7 @@ static SceneLayer projectile_faction_ignore_layer(const SceneFaction faction) {
 static SceneLayer projectile_query_layer_mask(const SceneFactionComp* faction) {
   SceneLayer layer = SceneLayer_Environment | SceneLayer_Unit | SceneLayer_Destructible;
   if (faction) {
-    layer &= ~projectile_faction_ignore_layer(faction->id);
+    layer &= ~projectile_faction_ignore_layers(faction->id);
   }
   return layer;
 }

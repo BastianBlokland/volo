@@ -16,6 +16,7 @@
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
@@ -55,6 +56,7 @@ typedef enum {
   DebugInspectorVis_Health,
   DebugInspectorVis_Target,
   DebugInspectorVis_Vision,
+  DebugInspectorVis_Location,
 
   DebugInspectorVis_Count,
 } DebugInspectorVis;
@@ -87,6 +89,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_Health]          = string_static("Health"),
     [DebugInspectorVis_Target]          = string_static("Target"),
     [DebugInspectorVis_Vision]          = string_static("Vision"),
+    [DebugInspectorVis_Location]        = string_static("Location"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
 
@@ -141,6 +144,7 @@ ecs_view_define(GlobalVisDrawView) {
 }
 
 ecs_view_define(SubjectView) {
+  ecs_access_maybe_read(SceneLocationComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
@@ -970,7 +974,7 @@ static void inspector_vis_draw_navigation_path(
     debug_line(shape, posA, posB, geo_color_white);
   }
   if (agent->flags & SceneNavAgent_Traveling) {
-    debug_sphere(shape, agent->target, 0.1f, geo_color_blue, DebugShape_Overlay);
+    debug_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DebugShape_Overlay);
   }
 }
 
@@ -1029,6 +1033,21 @@ static void inspector_vis_draw_vision(
       geo_color_soothing_purple);
 }
 
+static void inspector_vis_draw_location(
+    DebugShapeComp*           shape,
+    const SceneLocationComp*  location,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
+    const GeoBoxRotated volume = scene_location(location, transform, scale, type);
+    const GeoVector     center = geo_box_center(&volume.box);
+    const GeoVector     size   = geo_box_size(&volume.box);
+    const GeoColor      color  = geo_color_get(type);
+    debug_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
+    debug_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
+  }
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
@@ -1046,6 +1065,7 @@ static void inspector_vis_draw_subject(
   const SceneTransformComp*  transformComp = ecs_view_read_t(subject, SceneTransformComp);
   const SceneVelocityComp*   veloComp      = ecs_view_read_t(subject, SceneVelocityComp);
   const SceneVisionComp*     visionComp    = ecs_view_read_t(subject, SceneVisionComp);
+  const SceneLocationComp*   locationComp  = ecs_view_read_t(subject, SceneLocationComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
     debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
@@ -1086,6 +1106,9 @@ static void inspector_vis_draw_subject(
   }
   if (visionComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Vision)) {
     inspector_vis_draw_vision(shape, visionComp, transformComp);
+  }
+  if (locationComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Location)) {
+    inspector_vis_draw_location(shape, locationComp, transformComp, scaleComp);
   }
 }
 

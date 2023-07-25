@@ -1,4 +1,5 @@
 #include "asset.h"
+#include "asset_prefab.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -40,13 +41,13 @@ static const struct {
         .id   = string_static("flags.pfb"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"Unit\","
-                              "      \"isUnit\": true,"
+                              "      \"isInfantry\": true,"
                               "      \"traits\": []"
                               "  }"
                               "]}"),
         .prefabs =
             {
-                {.name = string_static("Unit"), .flags = AssetPrefabFlags_Unit},
+                {.name = string_static("Unit"), .flags = AssetPrefabFlags_Infantry},
             },
         .prefabCount = 1,
     },

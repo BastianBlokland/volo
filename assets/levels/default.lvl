@@ -70,7 +70,7 @@
     },
     {
       "id": 9158941,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -9.9212,
@@ -155,7 +155,7 @@
     },
     {
       "id": 28776566,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 16.1348,
@@ -172,7 +172,7 @@
     },
     {
       "id": 29560039,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 14.2659,
@@ -835,7 +835,7 @@
     },
     {
       "id": 142759619,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 14.7747,
@@ -937,7 +937,7 @@
     },
     {
       "id": 168397675,
-      "prefab": "UnitRocket",
+      "prefab": "InfantryRocket",
       "faction": "A",
       "position": {
         "x": 18.3694,
@@ -954,7 +954,7 @@
     },
     {
       "id": 174079092,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": -9.7895,
@@ -1056,7 +1056,7 @@
     },
     {
       "id": 198237165,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 11.4572,
@@ -1090,7 +1090,7 @@
     },
     {
       "id": 205259947,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 6.5918,
@@ -1192,7 +1192,7 @@
     },
     {
       "id": 241904015,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 2.13,
@@ -1260,7 +1260,7 @@
     },
     {
       "id": 245753137,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 11.4002,
@@ -1413,7 +1413,7 @@
     },
     {
       "id": 281839834,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 15.3656,
@@ -1515,7 +1515,7 @@
     },
     {
       "id": 294849719,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -1.0892,
@@ -1651,7 +1651,7 @@
     },
     {
       "id": 311651611,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -8.0272,
@@ -2263,7 +2263,7 @@
     },
     {
       "id": 413192337,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": -5.6333,
@@ -2586,7 +2586,7 @@
     },
     {
       "id": 475735617,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": -0.7808,
@@ -2790,7 +2790,7 @@
     },
     {
       "id": 525233552,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 18.7131,
@@ -2892,7 +2892,7 @@
     },
     {
       "id": 543704110,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": -7.7924,
@@ -3164,7 +3164,7 @@
     },
     {
       "id": 588172068,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -5.5127,
@@ -3215,7 +3215,7 @@
     },
     {
       "id": 607292453,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -4.9855,
@@ -3266,7 +3266,7 @@
     },
     {
       "id": 612712351,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 14.4243,
@@ -3317,7 +3317,7 @@
     },
     {
       "id": 616199034,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 6.8,
@@ -3589,7 +3589,7 @@
     },
     {
       "id": 663224995,
-      "prefab": "SpawnerUnitEnemy",
+      "prefab": "SpawnerInfantryEnemy",
       "faction": "B",
       "position": {
         "x": -96.4603,
@@ -3844,7 +3844,7 @@
     },
     {
       "id": 707805410,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": 4.3913,
@@ -4286,7 +4286,7 @@
     },
     {
       "id": 782847942,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": -4.2256,
@@ -4422,7 +4422,7 @@
     },
     {
       "id": 805043648,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 8.9631,
@@ -4898,7 +4898,7 @@
     },
     {
       "id": 915165973,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 11.5953,
@@ -5289,7 +5289,7 @@
     },
     {
       "id": 979070462,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -3.1106,
@@ -5340,7 +5340,7 @@
     },
     {
       "id": 984796524,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 5.4934,
@@ -5391,7 +5391,7 @@
     },
     {
       "id": 1011182423,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 2.9565,
@@ -5510,7 +5510,7 @@
     },
     {
       "id": 1023582821,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 13.7952,
@@ -5629,7 +5629,7 @@
     },
     {
       "id": 1056768113,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.4,
@@ -5986,7 +5986,7 @@
     },
     {
       "id": 1117906574,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -2.1845,
@@ -6428,7 +6428,7 @@
     },
     {
       "id": 1203520206,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 6.1323,
@@ -6496,7 +6496,7 @@
     },
     {
       "id": 1217283121,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": -7.5776,
@@ -6513,7 +6513,7 @@
     },
     {
       "id": 1219041661,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -12.8181,
@@ -6678,6 +6678,23 @@
         "y": -0.6059,
         "z": 0,
         "w": 0.7956
+      },
+      "scale": 1
+    },
+    {
+      "id": 1264208721,
+      "prefab": "StructureBarracks",
+      "faction": "A",
+      "position": {
+        "x": -14.5372,
+        "y": 0.4416,
+        "z": -10.4629
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.7126,
+        "z": 0,
+        "w": 0.7015
       },
       "scale": 1
     },
@@ -6870,7 +6887,7 @@
     },
     {
       "id": 1290473079,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 11.1591,
@@ -6989,7 +7006,7 @@
     },
     {
       "id": 1310527096,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -7.2074,
@@ -7822,7 +7839,7 @@
     },
     {
       "id": 1518289993,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -7.3629,
@@ -8417,7 +8434,7 @@
     },
     {
       "id": 1632209818,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 1.9792,
@@ -8655,7 +8672,7 @@
     },
     {
       "id": 1673847613,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -6.581,
@@ -8961,7 +8978,7 @@
     },
     {
       "id": 1755222512,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -5.8368,
@@ -9233,7 +9250,7 @@
     },
     {
       "id": 1824228926,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 7.5926,
@@ -9267,7 +9284,7 @@
     },
     {
       "id": 1829131885,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 13.2528,
@@ -9318,7 +9335,7 @@
     },
     {
       "id": 1837380726,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -8.4,
@@ -9335,7 +9352,7 @@
     },
     {
       "id": 1840658262,
-      "prefab": "UnitRocket",
+      "prefab": "InfantryRocket",
       "faction": "A",
       "position": {
         "x": -13.1861,
@@ -9352,7 +9369,7 @@
     },
     {
       "id": 1841049238,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": -9.8305,
@@ -9386,7 +9403,7 @@
     },
     {
       "id": 1846647703,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 12.2861,
@@ -9437,7 +9454,7 @@
     },
     {
       "id": 1861818644,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 18.471,
@@ -9947,7 +9964,7 @@
     },
     {
       "id": 1947013993,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 15.684,
@@ -10202,7 +10219,7 @@
     },
     {
       "id": 2013464468,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 6.4567,
@@ -10270,7 +10287,7 @@
     },
     {
       "id": 2019017151,
-      "prefab": "SpawnerUnitEnemy",
+      "prefab": "SpawnerInfantryEnemy",
       "faction": "B",
       "position": {
         "x": 105.6586,
@@ -10440,7 +10457,7 @@
     },
     {
       "id": 2052977756,
-      "prefab": "SpawnerUnitEnemy",
+      "prefab": "SpawnerInfantryEnemy",
       "faction": "B",
       "position": {
         "x": 1.8242,
@@ -10610,7 +10627,7 @@
     },
     {
       "id": 2084873908,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -2,
@@ -11324,10 +11341,10 @@
     },
     {
       "id": 2186028776,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 7.0062,
+        "x": 7.0064,
         "y": 0.4241,
         "z": -6.0166
       },
@@ -11494,7 +11511,7 @@
     },
     {
       "id": 2217665514,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 4.7658,
@@ -11511,7 +11528,7 @@
     },
     {
       "id": 2220958107,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": 3.431,
@@ -11545,7 +11562,7 @@
     },
     {
       "id": 2224061310,
-      "prefab": "SpawnerUnitEnemy",
+      "prefab": "SpawnerInfantryEnemy",
       "faction": "B",
       "position": {
         "x": 3.7069,
@@ -11817,7 +11834,7 @@
     },
     {
       "id": 2286849536,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 2.0945,
@@ -11868,7 +11885,7 @@
     },
     {
       "id": 2295490514,
-      "prefab": "UnitRocket",
+      "prefab": "InfantryRocket",
       "faction": "A",
       "position": {
         "x": 18.2678,
@@ -12276,7 +12293,7 @@
     },
     {
       "id": 2377054944,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 15.1561,
@@ -12582,7 +12599,7 @@
     },
     {
       "id": 2420393642,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -9.2029,
@@ -12837,7 +12854,7 @@
     },
     {
       "id": 2456797111,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 14.0145,
@@ -13041,7 +13058,7 @@
     },
     {
       "id": 2497956806,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": -13.4121,
@@ -13109,12 +13126,12 @@
     },
     {
       "id": 2503918772,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
-        "x": 6.4124,
+        "x": 6.4123,
         "y": 0.4019,
-        "z": -6.1003
+        "z": -6.1001
       },
       "rotation": {
         "x": 0,
@@ -13245,7 +13262,7 @@
     },
     {
       "id": 2528150434,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": -7.089,
@@ -13908,7 +13925,7 @@
     },
     {
       "id": 2647535310,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 4.7834,
@@ -14129,7 +14146,7 @@
     },
     {
       "id": 2673378198,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 4.0044,
@@ -15132,7 +15149,7 @@
     },
     {
       "id": 2879157972,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 10.6368,
@@ -15812,7 +15829,7 @@
     },
     {
       "id": 3040656263,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.3419,
@@ -16050,7 +16067,7 @@
     },
     {
       "id": 3085095186,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": -6.9782,
@@ -16101,7 +16118,7 @@
     },
     {
       "id": 3095078621,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": 8.79,
@@ -16169,7 +16186,7 @@
     },
     {
       "id": 3115227998,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": -10.931,
@@ -16781,7 +16798,7 @@
     },
     {
       "id": 3206576013,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 10.22,
@@ -16934,7 +16951,7 @@
     },
     {
       "id": 3215305679,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 1.8987,
@@ -17019,7 +17036,7 @@
     },
     {
       "id": 3237393845,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 5.4231,
@@ -17189,7 +17206,7 @@
     },
     {
       "id": 3273523374,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 9.908,
@@ -17206,7 +17223,7 @@
     },
     {
       "id": 3274799204,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 0.8661,
@@ -17325,7 +17342,7 @@
     },
     {
       "id": 3316160269,
-      "prefab": "TurretGun",
+      "prefab": "StructureTurretGun",
       "faction": "A",
       "position": {
         "x": 13.3779,
@@ -17699,12 +17716,12 @@
     },
     {
       "id": 3426725573,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 7.5549,
         "y": 0.4105,
-        "z": 3.7001
+        "z": 3.7
       },
       "rotation": {
         "x": 0,
@@ -17716,7 +17733,7 @@
     },
     {
       "id": 3430371158,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 0.9581,
@@ -18073,7 +18090,7 @@
     },
     {
       "id": 3481722726,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -4.6406,
@@ -18124,7 +18141,7 @@
     },
     {
       "id": 3490452339,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": 8.2668,
@@ -18158,12 +18175,12 @@
     },
     {
       "id": 3495312658,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.5,
         "y": 0.4299,
-        "z": 4.8012
+        "z": 4.8011
       },
       "rotation": {
         "x": 0,
@@ -18379,7 +18396,7 @@
     },
     {
       "id": 3546417227,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 7.2804,
@@ -18600,7 +18617,7 @@
     },
     {
       "id": 3572138500,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -7.7842,
@@ -18736,7 +18753,7 @@
     },
     {
       "id": 3604733141,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -9.4523,
@@ -18974,7 +18991,7 @@
     },
     {
       "id": 3653335978,
-      "prefab": "TurretMissile",
+      "prefab": "StructureTurretMissile",
       "faction": "A",
       "position": {
         "x": -0.5766,
@@ -19246,7 +19263,7 @@
     },
     {
       "id": 3682277933,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 13.1622,
@@ -19467,7 +19484,7 @@
     },
     {
       "id": 3720989878,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -8.4,
@@ -19552,7 +19569,7 @@
     },
     {
       "id": 3739720739,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 13.2519,
@@ -19858,7 +19875,7 @@
     },
     {
       "id": 3790228300,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 4.4487,
@@ -19892,7 +19909,7 @@
     },
     {
       "id": 3793948372,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 0.42,
@@ -20402,7 +20419,7 @@
     },
     {
       "id": 3867201599,
-      "prefab": "UnitFlame",
+      "prefab": "InfantryFlame",
       "faction": "A",
       "position": {
         "x": 3.2245,
@@ -20521,12 +20538,12 @@
     },
     {
       "id": 3884719649,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.3405,
-        "y": 0.4661,
-        "z": 5.3794
+        "y": 0.4662,
+        "z": 5.3795
       },
       "rotation": {
         "x": 0,
@@ -20640,7 +20657,7 @@
     },
     {
       "id": 3906340799,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.4037,
@@ -20860,23 +20877,6 @@
       "scale": 1
     },
     {
-      "id": 3954558576,
-      "prefab": "TurretGun",
-      "faction": "A",
-      "position": {
-        "x": -13.3959,
-        "y": 0.6415,
-        "z": -3.6395
-      },
-      "rotation": {
-        "x": 0,
-        "y": -0.707,
-        "z": 0,
-        "w": 0.7072
-      },
-      "scale": 1
-    },
-    {
       "id": 3957593861,
       "prefab": "PropFence",
       "faction": "A",
@@ -20929,7 +20929,7 @@
     },
     {
       "id": 3965817060,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -4.791,
@@ -20946,7 +20946,7 @@
     },
     {
       "id": 3970443560,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 2.7939,
@@ -21048,7 +21048,7 @@
     },
     {
       "id": 3998419472,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 14.9736,
@@ -21405,12 +21405,12 @@
     },
     {
       "id": 4078876788,
-      "prefab": "UnitRocket",
+      "prefab": "InfantryRocket",
       "faction": "A",
       "position": {
-        "x": -13.1308,
-        "y": 0.8976,
-        "z": -6.7208
+        "x": -13,
+        "y": 1.0182,
+        "z": 5
       },
       "rotation": {
         "x": 0,
@@ -21762,7 +21762,7 @@
     },
     {
       "id": 4131723334,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 10.6728,
@@ -21983,7 +21983,7 @@
     },
     {
       "id": 4173739712,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 11.4789,
@@ -22272,7 +22272,7 @@
     },
     {
       "id": 4213069927,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": -0.1488,
@@ -22425,7 +22425,7 @@
     },
     {
       "id": 4251823009,
-      "prefab": "UnitRifle",
+      "prefab": "InfantryRifle",
       "faction": "A",
       "position": {
         "x": 2.2991,

@@ -134,7 +134,7 @@ typedef struct {
 } AssetPrefabTraitTauntDef;
 
 typedef struct {
-  AssetPrefabVec3Def aimTarget;
+  AssetPrefabShapeBoxDef aimTarget;
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
@@ -178,8 +178,7 @@ typedef struct {
 
 typedef struct {
   String name;
-  bool   isUnit;
-  bool   isVolatile;
+  bool   isInfantry, isStructure, isVolatile;
   struct {
     AssetPrefabTraitDef* values;
     usize                count;
@@ -303,7 +302,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitTauntDef, tauntConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitLocationDef);
-    data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetPrefabTraitExplosiveDef);
     data_reg_field_t(reg, AssetPrefabTraitExplosiveDef, delay, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -341,7 +340,8 @@ static void prefab_datareg_init() {
 
     data_reg_struct_t(reg, AssetPrefabDef);
     data_reg_field_t(reg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetPrefabDef, isUnit, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabDef, isInfantry, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabDef, isStructure, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_Array);
 
@@ -421,7 +421,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
-  result |= def->isUnit ? AssetPrefabFlags_Unit : 0;
+  result |= def->isInfantry ? AssetPrefabFlags_Infantry : 0;
+  result |= def->isStructure ? AssetPrefabFlags_Structure : 0;
   result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
   return result;
 }
@@ -579,7 +580,8 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Location:
       outTrait->data_location = (AssetPrefabTraitLocation){
-          .aimTarget = prefab_build_vec3(&traitDef->data_location.aimTarget),
+          .aimTarget.min = prefab_build_vec3(&traitDef->data_location.aimTarget.min),
+          .aimTarget.max = prefab_build_vec3(&traitDef->data_location.aimTarget.max),
       };
       break;
     case AssetPrefabTrait_Explosive:

@@ -50,6 +50,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
+  return simd_vec_set(-0.0f, -0.0f, -0.0f, -0.0f);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask3(void) {
+  return simd_vec_set(-0.0f, -0.0f, -0.0f, 0.0f);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
   ALIGNAS(16) static const u32 g_mask[4] = {~u32_lit(0), ~u32_lit(0), ~u32_lit(0), 0};
   // NOTE: Can we do this without a memory load?
@@ -126,9 +134,16 @@ simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
   return _mm_blendv_ps(a, b, mask);
 }
 
-MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec a) {
-  const SimdVec signBit = _mm_set1_ps(-0.0f);
-  return _mm_andnot_ps(signBit, a);
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
+  return _mm_andnot_ps(simd_vec_sign_mask(), vec);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_neg(const SimdVec vec) {
+  return _mm_xor_ps(vec, simd_vec_sign_mask());
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_neg3(const SimdVec vec) {
+  return _mm_xor_ps(vec, simd_vec_sign_mask3());
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_round_nearest(const SimdVec a) {
@@ -201,6 +216,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_rotate(const SimdVec quat, con
   const SimdVec a      = simd_vec_cross3(axis, vec);
   const SimdVec b      = simd_vec_cross3(axis, simd_vec_add(a, simd_vec_mul(vec, scalar)));
   return simd_vec_add(vec, simd_vec_mul(b, simd_vec_broadcast(2.0f)));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_conjugate(const SimdVec quat) {
+  return simd_vec_neg3(quat);
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
