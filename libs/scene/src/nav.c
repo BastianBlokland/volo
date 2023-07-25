@@ -294,45 +294,26 @@ typedef struct {
   GeoVector  position;
 } SceneNavGoal;
 
-static bool scene_nav_goal_pos(
-    const SceneNavEnvComp* env,
-    const GeoNavCell       fromCell,
-    const GeoVector        targetPos,
-    SceneNavGoal*          out) {
+static SceneNavGoal scene_nav_goal_pos(
+    const SceneNavEnvComp* env, const GeoNavCell fromCell, const GeoVector targetPos) {
   const GeoNavCell targetCell = geo_nav_at_position(env->navGrid, targetPos);
   if (geo_nav_reachable(env->navGrid, fromCell, targetCell)) {
-    *out = (SceneNavGoal){.cell = targetCell, .position = targetPos};
-    return true;
+    return (SceneNavGoal){.cell = targetCell, .position = targetPos};
   }
   const GeoNavCell reachableCell = geo_nav_closest_reachable(env->navGrid, fromCell, targetCell);
-  if (reachableCell.data == fromCell.data) {
-    return false; // Unable to find a reachable cell.
-  }
-  const GeoVector reachablePos = geo_nav_position(env->navGrid, reachableCell);
-  *out                         = (SceneNavGoal){.cell = reachableCell, .position = reachablePos};
-  return true;
+  const GeoVector  reachablePos  = geo_nav_position(env->navGrid, reachableCell);
+  return (SceneNavGoal){.cell = reachableCell, .position = reachablePos};
 }
 
-static bool scene_nav_goal_entity(
-    const SceneNavEnvComp* env,
-    const GeoNavCell       fromCell,
-    const EcsEntityId      targetEntity,
-    EcsIterator*           targetItr,
-    SceneNavGoal*          out) {
-  if (!ecs_view_maybe_jump(targetItr, targetEntity)) {
-    return false; // Target entity not valid (anymore).
-  }
+static SceneNavGoal scene_nav_goal_entity(
+    const SceneNavEnvComp* env, const GeoNavCell fromCell, EcsIterator* targetItr) {
   const SceneTransformComp*  targetTrans = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneNavBlockerComp* blocker     = ecs_view_read_t(targetItr, SceneNavBlockerComp);
   if (blocker && !sentinel_check(blocker->blockerId)) {
     const GeoNavCell closest = geo_nav_blocker_closest(env->navGrid, blocker->blockerId, fromCell);
-    if (closest.data == fromCell.data) {
-      return false; // Unable to reach the blocker.
-    }
-    *out = (SceneNavGoal){.cell = closest, .position = geo_nav_position(env->navGrid, closest)};
-    return true;
+    return (SceneNavGoal){.cell = closest, .position = geo_nav_position(env->navGrid, closest)};
   }
-  return scene_nav_goal_pos(env, fromCell, targetTrans->position, out);
+  return scene_nav_goal_pos(env, fromCell, targetTrans->position);
 }
 
 static void scene_nav_move_towards(
@@ -379,15 +360,12 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     const GeoNavCell fromCell = geo_nav_at_position(env->navGrid, trans->position);
     SceneNavGoal     goal;
     if (agent->targetEntity) {
-      if (scene_nav_goal_entity(env, fromCell, agent->targetEntity, targetItr, &goal)) {
-        agent->targetPos = goal.position;
-      } else {
-        goto Stop; // Unable to find a valid target.
+      if (!ecs_view_maybe_jump(targetItr, agent->targetEntity)) {
+        goto Stop; // Target entity not valid (anymore).
       }
+      goal = scene_nav_goal_entity(env, fromCell, targetItr);
     } else {
-      if (!scene_nav_goal_pos(env, fromCell, agent->targetPos, &goal)) {
-        goto Stop; // Unable to find a valid target.
-      }
+      goal = scene_nav_goal_pos(env, fromCell, agent->targetPos);
     }
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
