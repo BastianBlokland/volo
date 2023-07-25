@@ -149,7 +149,7 @@ typedef struct {
 } AssetPrefabTraitTaunt;
 
 typedef struct {
-  GeoVector aimTarget;
+  AssetPrefabShapeBox aimTarget;
 } AssetPrefabTraitLocation;
 
 typedef struct {

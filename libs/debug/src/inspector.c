@@ -1039,9 +1039,12 @@ static void inspector_vis_draw_location(
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
   for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
-    const GeoVector pos   = scene_location(location, transform, scale, type);
-    const GeoColor  color = geo_color_get(type);
-    debug_sphere(shape, pos, 0.1f, color, DebugShape_Overlay);
+    const GeoBoxRotated volume = scene_location(location, transform, scale, type);
+    const GeoVector     center = geo_box_center(&volume.box);
+    const GeoVector     size   = geo_box_size(&volume.box);
+    const GeoColor      color  = geo_color_get(type);
+    debug_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
+    debug_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
   }
 }
 

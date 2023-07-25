@@ -48,7 +48,7 @@
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
           "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
@@ -100,7 +100,7 @@
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
           "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
@@ -152,7 +152,7 @@
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
           "tauntConfirmPrefab": "TauntConfirmInfantryRifle"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.25 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
@@ -202,7 +202,7 @@
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathInfantryEnemy"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1.1 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.1 }, "max": { "y": 1.1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
     },
@@ -238,7 +238,7 @@
           }
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
@@ -273,7 +273,7 @@
           }
         },
         { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
     },
@@ -298,7 +298,12 @@
             "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
           }
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 1 } },
+        {
+          "$type": "AssetPrefabTrait_Location", "aimTarget": {
+            "min": { "x": -5, "y": 1, "z": -1.5 },
+            "max": { "x": 5, "y": 2, "z": 1.5 }
+          }
+        },
         { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },
@@ -368,7 +373,7 @@
           "deathDestroyDelay": 0.5,
           "deathEffectPrefab": "ExplosionMedium"
         },
-        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "y": 0.8 } },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 0.8 }, "max": { "y": 0.8 } } },
         { "$type": "AssetPrefabTrait_Status", "burnable": true }
       ]
     },

@@ -537,8 +537,8 @@
               "type": "string"
             },
             "aimTarget": {
-              "title": "AssetPrefabVec3Def",
-              "$ref": "#/$defs/AssetPrefabVec3Def"
+              "title": "AssetPrefabShapeBoxDef",
+              "$ref": "#/$defs/AssetPrefabShapeBoxDef"
             }
           },
           "required": [
@@ -835,6 +835,30 @@
         {
           "label": "New",
           "body": "^{}"
+        }
+      ]
+    },
+    "AssetPrefabShapeBoxDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "title": "AssetPrefabVec3Def",
+          "$ref": "#/$defs/AssetPrefabVec3Def"
+        },
+        "max": {
+          "title": "AssetPrefabVec3Def",
+          "$ref": "#/$defs/AssetPrefabVec3Def"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"min\": {},\n  \"max\": {}\n}"
         }
       ]
     }

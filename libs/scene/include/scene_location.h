@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "geo_vector.h"
+#include "geo_box_rotated.h"
 
 // Forward declare from 'scene_transform.h'.
 ecs_comp_extern(SceneTransformComp);
@@ -16,15 +16,15 @@ typedef enum {
   SceneLocationType_Count,
 } SceneLocationType;
 
-ecs_comp_extern_public(SceneLocationComp) { GeoVector offsets[SceneLocationType_Count]; };
+ecs_comp_extern_public(SceneLocationComp) { GeoBox volumes[SceneLocationType_Count]; };
 
-GeoVector scene_location(
+GeoBoxRotated scene_location(
     const SceneLocationComp*, const SceneTransformComp*, const SceneScaleComp*, SceneLocationType);
 
-GeoVector scene_location_predict(
+GeoBoxRotated scene_location_predict(
     const SceneLocationComp*,
     const SceneTransformComp*,
     const SceneScaleComp*,
     const SceneVelocityComp*,
     SceneLocationType,
-    TimeDuration);
+    TimeDuration timeInFuture);

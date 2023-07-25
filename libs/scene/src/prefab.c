@@ -345,7 +345,19 @@ static void setup_taunt(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrait
 }
 
 static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLocation* t) {
-  ecs_world_add_t(w, e, SceneLocationComp, .offsets[SceneLocationType_AimTarget] = t->aimTarget);
+  static const struct {
+    SceneLocationType type;
+    u32               traitOffset;
+  } g_mappings[] = {
+      {SceneLocationType_AimTarget, offsetof(AssetPrefabTraitLocation, aimTarget)},
+  };
+
+  SceneLocationComp* loc = ecs_world_add_t(w, e, SceneLocationComp);
+  for (u32 i = 0; i != array_elems(g_mappings); ++i) {
+    const AssetPrefabShapeBox* box       = (void*)t + g_mappings[i].traitOffset;
+    loc->volumes[g_mappings[i].type].min = box->min;
+    loc->volumes[g_mappings[i].type].max = box->max;
+  }
 }
 
 static void setup_explosive(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitExplosive* t) {

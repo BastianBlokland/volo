@@ -115,35 +115,39 @@ static void aim_idle(SceneAttackAimComp* attackAim) {
   }
 }
 
-static GeoVector aim_position(EcsIterator* entityItr, const TimeDuration timeInFuture) {
-  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
-  const SceneScaleComp*     scale = ecs_view_read_t(entityItr, SceneScaleComp);
-  const SceneVelocityComp*  velo  = ecs_view_read_t(entityItr, SceneVelocityComp);
-  const SceneLocationComp*  loc   = ecs_view_read_t(entityItr, SceneLocationComp);
-
-  if (loc) {
-    return scene_location_predict(
-        loc, trans, scale, velo, SceneLocationType_AimTarget, timeInFuture);
-  }
-  return scene_position_predict(trans, velo, timeInFuture);
-}
-
-static f32 aim_estimate_distance(const GeoVector pos, EcsIterator* targetItr) {
+static GeoVector
+aim_position(const GeoVector origin, EcsIterator* targetItr, const TimeDuration timeInFuture) {
   const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
-  return geo_vector_mag(geo_vector_sub(tgtTrans->position, pos));
+  const SceneScaleComp*     tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
+  const SceneVelocityComp*  tgtVelo  = ecs_view_read_t(targetItr, SceneVelocityComp);
+  const SceneLocationComp*  tgtLoc   = ecs_view_read_t(targetItr, SceneLocationComp);
+
+  if (tgtLoc) {
+    const GeoBoxRotated aimVolume = scene_location_predict(
+        tgtLoc, tgtTrans, tgtScale, tgtVelo, SceneLocationType_AimTarget, timeInFuture);
+    return geo_box_rotated_closest_point(&aimVolume, origin);
+  }
+  return scene_position_predict(tgtTrans, tgtVelo, timeInFuture);
 }
 
-static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* itr) {
-  const SceneTransformComp* hitTransform = ecs_view_read_t(itr, SceneTransformComp);
-  const SceneScaleComp*     hitScale     = ecs_view_read_t(itr, SceneScaleComp);
-  const SceneCollisionComp* hitCollision = ecs_view_read_t(itr, SceneCollisionComp);
-  const SceneLocationComp*  hitLoc       = ecs_view_read_t(itr, SceneLocationComp);
+static f32 aim_estimate_distance(const GeoVector origin, EcsIterator* targetItr) {
+  const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
+  return geo_vector_mag(geo_vector_sub(tgtTrans->position, origin));
+}
+
+static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* targetItr) {
+  const SceneTransformComp* tgtTrans     = ecs_view_read_t(targetItr, SceneTransformComp);
+  const SceneScaleComp*     tgtScale     = ecs_view_read_t(targetItr, SceneScaleComp);
+  const SceneCollisionComp* tgtCollision = ecs_view_read_t(targetItr, SceneCollisionComp);
+  const SceneLocationComp*  tgtLoc       = ecs_view_read_t(targetItr, SceneLocationComp);
 
   GeoVector targetPos;
-  if (hitLoc) {
-    targetPos = scene_location(hitLoc, hitTransform, hitScale, SceneLocationType_AimTarget);
+  if (tgtLoc) {
+    const GeoBoxRotated aimVolume =
+        scene_location(tgtLoc, tgtTrans, tgtScale, SceneLocationType_AimTarget);
+    targetPos = geo_box_rotated_closest_point(&aimVolume, origin);
   } else {
-    targetPos = hitTransform->position;
+    targetPos = tgtTrans->position;
   }
   const GeoVector toTarget     = geo_vector_sub(targetPos, origin);
   const f32       toTargetDist = geo_vector_mag(toTarget);
@@ -151,8 +155,8 @@ static GeoVector aim_estimate_impact_point(const GeoVector origin, EcsIterator* 
     return origin;
   }
   const GeoRay ray  = {.point = origin, .dir = geo_vector_div(toTarget, toTargetDist)};
-  const f32    hitT = scene_collision_intersect_ray(hitCollision, hitTransform, hitScale, &ray);
-  return hitT > 0 ? geo_ray_position(&ray, hitT) : origin;
+  const f32    tgtT = scene_collision_intersect_ray(tgtCollision, tgtTrans, tgtScale, &ray);
+  return tgtT > 0 ? geo_ray_position(&ray, tgtT) : origin;
 }
 
 static SceneLayer damage_ignore_layers(const SceneFaction factionId) {
@@ -682,7 +686,7 @@ ecs_system_define(SceneAttackSys) {
       if (weapon->flags & AssetWeapon_PredictiveAim) {
         impactTimeEst = weapon_estimate_impact_time(weaponMap, weapon, distEst);
       }
-      const GeoVector targetPos = aim_position(targetItr, impactTimeEst);
+      const GeoVector targetPos = aim_position(trans->position, targetItr, impactTimeEst);
       aim_face(attackAim, skel, skelTempl, loco, trans, targetPos, deltaSec);
 
       const bool      isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
