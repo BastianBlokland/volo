@@ -2,6 +2,7 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -354,7 +355,7 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 
   SceneLocationComp* loc = ecs_world_add_t(w, e, SceneLocationComp);
   for (u32 i = 0; i != array_elems(g_mappings); ++i) {
-    const AssetPrefabShapeBox* box       = (void*)t + g_mappings[i].traitOffset;
+    const AssetPrefabShapeBox* box       = bits_ptr_offset(t, g_mappings[i].traitOffset);
     loc->volumes[g_mappings[i].type].min = box->min;
     loc->volumes[g_mappings[i].type].max = box->max;
   }
