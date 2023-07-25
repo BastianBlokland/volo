@@ -139,7 +139,7 @@ INLINE_HINT static bool nav_cell_clamp_axis(const GeoNavGrid* grid, f32* value) 
   return false;
 }
 
-INLINE_HINT GeoNavIsland nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+INLINE_HINT static GeoNavIsland nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
   return grid->cellIslands[nav_cell_index(grid, cell)];
 }
 
