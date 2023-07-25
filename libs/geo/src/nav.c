@@ -139,6 +139,10 @@ INLINE_HINT static bool nav_cell_clamp_axis(const GeoNavGrid* grid, f32* value) 
   return false;
 }
 
+INLINE_HINT GeoNavIsland nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
+  return grid->cellIslands[nav_cell_index(grid, cell)];
+}
+
 static Mem nav_occupancy_mem(GeoNavGrid* grid) {
   const usize size = sizeof(u16) * grid->cellCountTotal * geo_nav_occupants_per_cell;
   return mem_create(grid->cellOccupancy, size);
@@ -831,7 +835,7 @@ static GeoNavCell nav_blocker_closest_reachable(
   const GeoNavBlocker* blocker         = &grid->blockers[blockerId];
   const GeoNavRegion   region          = blocker->region;
   const BitSet         blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  const GeoNavIsland   fromIsland      = geo_nav_island(grid, from);
+  const GeoNavIsland   fromIsland      = nav_island(grid, from);
 
   GeoNavCell bestCell      = from;
   u16        bestCost      = u16_max;
@@ -1064,7 +1068,7 @@ bool geo_nav_reachable(const GeoNavGrid* grid, const GeoNavCell from, const GeoN
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
-  return geo_nav_island(grid, from) == geo_nav_island(grid, to);
+  return nav_island(grid, from) == nav_island(grid, to);
 }
 
 bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -1123,7 +1127,7 @@ geo_nav_closest_reachable(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
   GeoNavWorkerState*  s          = nav_worker_state(grid);
-  const GeoNavIsland  fromIsland = geo_nav_island(grid, from);
+  const GeoNavIsland  fromIsland = nav_island(grid, from);
   GeoNavCell          res[1];
   GeoNavCellContainer container = {.cells = res, .capacity = array_elems(res)};
   if (nav_find(grid, s, &fromIsland, to, nav_pred_reachable, container)) {
@@ -1138,7 +1142,7 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid* grid, const GeoVector pos) {
 
 GeoNavIsland geo_nav_island(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
-  return grid->cellIslands[nav_cell_index(grid, cell)];
+  return nav_island(grid, cell);
 }
 
 u32 geo_nav_path(
@@ -1152,7 +1156,7 @@ u32 geo_nav_path(
   if (nav_pred_blocked(grid, null, from)) {
     return 0; // From cell is blocked; no path possible.
   }
-  if (geo_nav_island(grid, from) != geo_nav_island(grid, to)) {
+  if (nav_island(grid, from) != nav_island(grid, to)) {
     return 0; // Cells are on different islands; no path possible.
   }
 
@@ -1311,7 +1315,7 @@ bool geo_nav_blocker_reachable(
   if (sentinel_check(blockerId)) {
     return false; // Blocker was never actually added; not reachable.
   }
-  const GeoNavIsland island = geo_nav_island(grid, from);
+  const GeoNavIsland island = nav_island(grid, from);
   if (island == geo_nav_island_blocked) {
     return false; // From cell is blocked; not reachable.
   }
@@ -1328,7 +1332,7 @@ GeoNavCell geo_nav_blocker_closest(
   if (sentinel_check(blockerId)) {
     return from; // Blocker was never actually added; not reachable.
   }
-  diag_assert(geo_nav_island(grid, from) != geo_nav_island_blocked);
+  diag_assert(nav_island(grid, from) != geo_nav_island_blocked);
 
   ++nav_worker_state(grid)->stats[GeoNavStat_BlockerClosestQueries]; // Track query count.
 
