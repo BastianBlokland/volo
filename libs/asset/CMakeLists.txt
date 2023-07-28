@@ -19,6 +19,7 @@ add_library(lib_asset STATIC
   src/loader_mesh_pme.c
   src/loader_mesh.c
   src/loader_prefab.c
+  src/loader_product.c
   src/loader_raw.c
   src/loader_shader_spv.c
   src/loader_shader.c

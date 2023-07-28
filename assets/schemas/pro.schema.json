@@ -1,0 +1,87 @@
+{
+  "title": "AssetProductMapDef",
+  "$ref": "#/$defs/AssetProductMapDef",
+  "$defs": {
+    "AssetProductMapDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sets": {
+          "type": "array",
+          "items": {
+            "title": "AssetProductSetDef",
+            "$ref": "#/$defs/AssetProductSetDef"
+          }
+        }
+      },
+      "required": [
+        "sets"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"sets\": []\n}"
+        }
+      ]
+    },
+    "AssetProductSetDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "title": "AssetProductDef",
+            "$ref": "#/$defs/AssetProductDef"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "products"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"name\": \"placeholder\",\n  \"products\": []\n}"
+        }
+      ]
+    },
+    "AssetProductDef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetProduct_Unit"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "unitPrefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "unitPrefab"
+          ]
+        }
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New AssetProduct_Unit",
+          "body": "^{\n  \"\\$type\": \"AssetProduct_Unit\",\n  \"unitPrefab\": \"placeholder\"\n}"
+        }
+      ]
+    }
+  }
+}
