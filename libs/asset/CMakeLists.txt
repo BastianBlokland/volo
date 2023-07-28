@@ -53,11 +53,12 @@ add_executable(test_lib_asset
   test/test_loader_ftx.c
   test/test_loader_graphic.c
   test/test_loader_inputmap.c
+  test/test_loader_level.c
   test/test_loader_mesh_gltf.c
   test/test_loader_mesh_obj.c
   test/test_loader_prefab.c
+  test/test_loader_product.c
   test/test_loader_raw.c
-  test/test_loader_level.c
   test/test_loader_shader_spv.c
   test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
