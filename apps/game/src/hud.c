@@ -51,6 +51,7 @@ static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
+static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 500.0f};
 
 ecs_comp_define(HudComp) {
   EcsEntityId uiCanvas;
@@ -104,7 +105,10 @@ ecs_view_define(MinimapMarkerView) {
   ecs_access_with(SceneUnitComp);
 }
 
-ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
+ecs_view_define(ProductionView) {
+  ecs_access_read(SceneNameComp);
+  ecs_access_write(SceneProductionComp);
+}
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
@@ -517,9 +521,49 @@ static void hud_minimap_draw(
   ui_layout_pop(canvas);
 }
 
-static void hud_production_draw(UiCanvasComp* canvas, EcsIterator* productionItr) {
-  (void)canvas;
-  (void)productionItr;
+static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
+  static const f32 g_height = 30;
+
+  const SceneNameComp* nameComp   = ecs_view_read_t(itr, SceneNameComp);
+  const String         entityName = stringtable_lookup(g_stringtable, nameComp->name);
+  const Unicode        icon       = UiShape_Groups; // TODO: Make the icon configurable.
+
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_TopLeft, Ui_Y);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, g_height), UiBase_Absolute, Ui_Y);
+
+  ui_style_outline(canvas, 3);
+  ui_style_color(canvas, ui_color(16, 16, 16, 128));
+  const UiId id = ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
+
+  ui_style_outline(canvas, 2);
+  ui_style_color(canvas, ui_color_white);
+  ui_label(
+      canvas,
+      fmt_write_scratch("{} {}", fmt_text(ui_shape_scratch(icon)), fmt_text(entityName)),
+      .align    = UiAlign_MiddleCenter,
+      .fontSize = 22);
+
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+  return id;
+}
+
+static void hud_production_draw(UiCanvasComp* canvas, EcsIterator* itr, const UiVector res) {
+  const UiRect rect = (UiRect){
+      .pos.x = res.width - g_hudProductionSize.width,
+      .pos.y = res.height - g_hudMinimapSize.height - g_hudProductionSize.height - 2.0f,
+      .size  = g_hudProductionSize,
+  };
+
+  ui_layout_push(canvas);
+  ui_layout_set(canvas, rect, UiBase_Absolute);
+
+  hud_production_header_draw(canvas, itr);
+
+  ui_layout_pop(canvas);
 }
 
 ecs_system_define(HudDrawUiSys) {
@@ -577,7 +621,7 @@ ecs_system_define(HudDrawUiSys) {
     hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
 
     if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
-      hud_production_draw(canvas, productionItr);
+      hud_production_draw(canvas, productionItr, res);
     }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
