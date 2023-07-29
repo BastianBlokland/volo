@@ -1,3 +1,4 @@
+#include "asset_product.h"
 #include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -561,14 +562,17 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
 }
 
 static void hud_production_queue_draw(
-    UiCanvasComp* canvas, SceneProductionComp* production, SceneProductQueue* queue) {
-  (void)production;
-  (void)queue;
+    UiCanvasComp* canvas, SceneProductionComp* production, const u32 queueIndex) {
+  const SceneProductQueue* queue = production->queues + queueIndex;
 
   ui_style_push(canvas);
   ui_style_outline(canvas, 3);
   ui_style_color(canvas, ui_color(16, 16, 16, 128));
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
+  const UiId id = ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
+
+  if (!string_is_empty(queue->product->name)) {
+    ui_tooltip(canvas, id, queue->product->name);
+  }
   ui_style_pop(canvas);
 }
 
@@ -580,8 +584,8 @@ static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator*
   hud_production_header_draw(canvas, itr);
 
   SceneProductionComp* production     = ecs_view_write_t(itr, SceneProductionComp);
-  const u32            colCount       = 3;
-  const u32            rowCount       = math_max(production->queueCount / colCount, 1);
+  const u32            colCount       = 2;
+  const u32            rowCount       = production->queueCount / colCount + 1;
   const f32            spacing        = 10.0f;
   const f32            scrollbarWidth = 10.0f;
   const f32            availableWidth = g_hudProductionSize.width - scrollbarWidth;
@@ -603,7 +607,7 @@ static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator*
     for (u32 col = 0; col != colCount; ++col) {
       const u32 queueIndex = row * colCount + col;
       if (queueIndex < production->queueCount) {
-        hud_production_queue_draw(canvas, production, production->queues + queueIndex);
+        hud_production_queue_draw(canvas, production, queueIndex);
       }
       ui_layout_move_dir(canvas, Ui_Right, entrySize + spacing, UiBase_Absolute);
     }

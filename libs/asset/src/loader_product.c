@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
   AssetProductType type;
+  String           name;
   union {
     AssetProductUnitDef data_unit;
   };
@@ -55,6 +56,7 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
+    data_reg_union_name_t(reg, AssetProductDef, name);
     data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
 
     data_reg_struct_t(reg, AssetProductSetDef);
@@ -123,6 +125,7 @@ static void productset_build(
   array_ptr_for_t(def->products, AssetProductDef, productDef) {
     AssetProduct* outProduct = dynarray_push_t(outProducts, AssetProduct);
     outProduct->type         = productDef->type;
+    outProduct->name         = string_maybe_dup(g_alloc_heap, productDef->name);
 
     switch (productDef->type) {
     case AssetProduct_Unit:
@@ -165,6 +168,9 @@ static void ecs_destruct_productmap_comp(void* data) {
     alloc_free_array_t(g_alloc_heap, comp->sets, comp->setCount);
   }
   if (comp->products) {
+    for (u32 i = 0; i != comp->productCount; ++i) {
+      string_maybe_free(g_alloc_heap, comp->products[i].name);
+    }
     alloc_free_array_t(g_alloc_heap, comp->products, comp->productCount);
   }
 }
@@ -225,6 +231,7 @@ ecs_system_define(LoadProductAssetSys) {
 
   Error:
     log_e("Failed to load ProductMap", log_param("error", fmt_text(errMsg)));
+    dynarray_for_t(&products, AssetProduct, prod) { string_maybe_free(g_alloc_heap, prod->name); }
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:

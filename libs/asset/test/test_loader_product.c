@@ -16,19 +16,20 @@ static const struct {
     },
     {
         .id   = string_static("test.pro"),
-        .text = string_static(
-            "{ \"sets\": [ {"
-            "      \"name\": \"A\","
-            "      \"products\": ["
-            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
-            "      ]"
-            "    }, {"
-            "      \"name\": \"B\","
-            "      \"products\": ["
-            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
-            "      ]"
-            "    }"
-            "]}"),
+        .text = string_static("{ \"sets\": [ {"
+                              "      \"name\": \"A\","
+                              "      \"products\": ["
+                              "        { \"$type\": \"AssetProduct_Unit\", \"$name\": \"P1\","
+                              "          \"unitPrefab\": \"InfantryRifle\" }"
+                              "      ]"
+                              "    }, {"
+                              "      \"name\": \"B\","
+                              "      \"products\": ["
+                              "        { \"$type\": \"AssetProduct_Unit\", \"$name\": \"P2\","
+                              "          \"unitPrefab\": \"InfantryRifle\" }"
+                              "      ]"
+                              "    }"
+                              "]}"),
     },
 
 };
@@ -43,19 +44,20 @@ static const struct {
     },
     {
         .id   = string_static("duplicate-set-name.pro"),
-        .text = string_static(
-            "{ \"sets\": [ {"
-            "      \"name\": \"A\","
-            "      \"products\": ["
-            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
-            "      ]"
-            "    }, {"
-            "      \"name\": \"A\","
-            "      \"products\": ["
-            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
-            "      ]"
-            "    }"
-            "]}"),
+        .text = string_static("{ \"sets\": [ {"
+                              "      \"name\": \"A\","
+                              "      \"products\": ["
+                              "        { \"$type\": \"AssetProduct_Unit\", \"$name\": \"P1\","
+                              "          \"unitPrefab\": \"InfantryRifle\" }"
+                              "      ]"
+                              "    }, {"
+                              "      \"name\": \"A\","
+                              "      \"products\": ["
+                              "        { \"$type\": \"AssetProduct_Unit\", \"$name\": \"P1\","
+                              "          \"unitPrefab\": \"InfantryRifle\" }"
+                              "      ]"
+                              "    }"
+                              "]}"),
     },
 };
 

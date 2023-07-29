@@ -16,6 +16,7 @@ typedef struct {
 
 typedef struct sAssetProduct {
   AssetProductType type;
+  String           name;
   union {
     AssetProductUnit data_unit;
   };
