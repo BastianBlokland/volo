@@ -2,7 +2,6 @@
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_product.h"
@@ -198,5 +197,3 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
       SceneProductResourceComp,
       .mapId = string_dup(g_alloc_heap, productMapId));
 }
-
-EcsEntityId scene_product_map(const SceneProductResourceComp* comp) { return comp->mapEntity; }
