@@ -2,13 +2,16 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+// Forward declare from 'asset_product.h'.
+typedef struct sAssetProduct AssetProduct;
+
 /**
  * Global product resource.
  */
 ecs_comp_extern(SceneProductResourceComp);
 
 typedef struct {
-  u32 productIndex;
+  const AssetProduct* product;
 } SceneProductQueue;
 
 ecs_comp_extern_public(SceneProductionComp) {

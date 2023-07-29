@@ -14,7 +14,7 @@ typedef struct {
   StringHash unitPrefab;
 } AssetProductUnit;
 
-typedef struct {
+typedef struct sAssetProduct {
   AssetProductType type;
   union {
     AssetProductUnit data_unit;

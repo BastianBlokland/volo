@@ -54,7 +54,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
 
   for (u32 i = 0; i != production->queueCount; ++i) {
     production->queues[i] = (SceneProductQueue){
-        .productIndex = productSet->productIndex + i,
+        .product = &map->products[productSet->productIndex + i],
     };
   }
 
