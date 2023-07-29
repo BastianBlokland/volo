@@ -65,6 +65,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
 }
 
 ecs_view_define(ProductMapView) { ecs_access_read(AssetProductMapComp); }
+ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
 
 ecs_view_define(ResInitGlobalView) {
   ecs_access_write(AssetManagerComp);
@@ -88,6 +89,18 @@ ecs_system_define(SceneProductResInitSys) {
     log_i("Acquiring product-map", log_param("id", fmt_text(resource->mapId)));
     asset_acquire(world, resource->mapEntity);
     resource->flags |= ProductRes_MapAcquired;
+  }
+}
+
+static void scene_production_reset_all_queues(EcsWorld* world) {
+  EcsView* view = ecs_world_view_t(world, ProductionView);
+  for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
+    SceneProductionComp* prod = ecs_view_write_t(itr, SceneProductionComp);
+    if (prod->queues) {
+      alloc_free_array_t(g_alloc_heap, prod->queues, prod->queueCount);
+      prod->queues     = null;
+      prod->queueCount = 0;
+    }
   }
 }
 
@@ -116,6 +129,13 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
     asset_release(world, resource->mapEntity);
     resource->flags &= ~ProductRes_MapAcquired;
     resource->flags |= ProductRes_MapUnloading;
+
+    /**
+     * Reset all queues so they will be re-initialized using the new product map.
+     * TODO: Instead of throwing away all queue state we can try to preserve the old state when
+     * its still compatible with the new product-map.
+     */
+    scene_production_reset_all_queues(world);
   }
   if (resource->flags & ProductRes_MapUnloading && !isLoaded) {
     resource->flags &= ~ProductRes_MapUnloading;
@@ -123,8 +143,6 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
 }
 
 ecs_view_define(UpdateGlobalView) { ecs_access_read(SceneProductResourceComp); }
-
-ecs_view_define(UpdateProductionView) { ecs_access_write(SceneProductionComp); }
 
 ecs_system_define(SceneProductUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -139,7 +157,7 @@ ecs_system_define(SceneProductUpdateSys) {
     return;
   }
 
-  EcsView* productionView = ecs_world_view_t(world, UpdateProductionView);
+  EcsView* productionView = ecs_world_view_t(world, ProductionView);
   for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
     SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
 
@@ -155,15 +173,19 @@ ecs_module_init(scene_product_module) {
   ecs_register_comp(SceneProductionComp, .destructor = ecs_destruct_production);
 
   ecs_register_view(ProductMapView);
+  ecs_register_view(ProductionView);
 
   ecs_register_system(SceneProductResInitSys, ecs_register_view(ResInitGlobalView));
 
-  ecs_register_system(SceneProductResUnloadChangedSys, ecs_register_view(ResUnloadGlobalView));
+  ecs_register_system(
+      SceneProductResUnloadChangedSys,
+      ecs_register_view(ResUnloadGlobalView),
+      ecs_view_id(ProductionView));
 
   ecs_register_system(
       SceneProductUpdateSys,
       ecs_register_view(UpdateGlobalView),
-      ecs_register_view(UpdateProductionView),
+      ecs_view_id(ProductionView),
       ecs_view_id(ProductMapView));
 }
 
