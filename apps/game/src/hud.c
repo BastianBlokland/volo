@@ -560,6 +560,18 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
   return id;
 }
 
+static void hud_production_queue_draw(
+    UiCanvasComp* canvas, SceneProductionComp* production, SceneProductQueue* queue) {
+  (void)production;
+  (void)queue;
+
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 3);
+  ui_style_color(canvas, ui_color(16, 16, 16, 128));
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
+  ui_style_pop(canvas);
+}
+
 static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator* itr) {
   ui_layout_push(canvas);
   ui_layout_set(canvas, ui_rect(ui_vector(0, 0), g_hudProductionSize), UiBase_Absolute);
@@ -567,21 +579,38 @@ static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator*
   hud_production_bg_draw(canvas);
   hud_production_header_draw(canvas, itr);
 
-  SceneProductionComp* production  = ecs_view_write_t(itr, SceneProductionComp);
-  const u32            columnCount = 2;
-  const u32            rowCount    = math_max(production->queueCount / columnCount, 1);
+  SceneProductionComp* production     = ecs_view_write_t(itr, SceneProductionComp);
+  const u32            colCount       = 3;
+  const u32            rowCount       = math_max(production->queueCount / colCount, 1);
+  const f32            spacing        = 10.0f;
+  const f32            scrollbarWidth = 10.0f;
+  const f32            availableWidth = g_hudProductionSize.width - scrollbarWidth;
+  const f32            entrySize      = (availableWidth - (colCount + 1) * spacing) / colCount;
+  const UiVector       entrySizeVec   = ui_vector(entrySize, entrySize);
+  const f32            height         = rowCount * entrySize + (rowCount + 1) * spacing;
 
-  UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  for (u32 i = 0; i != columnCount; ++i) {
-    ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -33), UiBase_Absolute, Ui_Y);
+  ui_scrollview_begin(canvas, &hud->productionScrollView, height);
+
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_TopLeft, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopLeft, entrySizeVec, UiBase_Absolute, Ui_XY);
+  ui_layout_move_dir(canvas, Ui_Down, spacing, UiBase_Absolute);
+
+  for (u32 row = 0; row != rowCount; ++row) {
+    ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_X);
+    ui_layout_move_dir(canvas, Ui_Right, spacing, UiBase_Absolute);
+
+    for (u32 col = 0; col != colCount; ++col) {
+      const u32 queueIndex = row * colCount + col;
+      if (queueIndex < production->queueCount) {
+        hud_production_queue_draw(canvas, production, production->queues + queueIndex);
+      }
+      ui_layout_move_dir(canvas, Ui_Right, entrySize + spacing, UiBase_Absolute);
+    }
+    ui_layout_move_dir(canvas, Ui_Down, entrySize + spacing, UiBase_Absolute);
   }
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
-
-  ui_scrollview_begin(canvas, &hud->productionScrollView, ui_table_height(&table, rowCount));
 
   ui_scrollview_end(canvas, &hud->productionScrollView);
-  ui_layout_container_pop(canvas);
   ui_layout_pop(canvas);
 }
 
