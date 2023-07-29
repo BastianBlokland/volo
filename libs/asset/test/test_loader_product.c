@@ -16,14 +16,19 @@ static const struct {
     },
     {
         .id   = string_static("test.pro"),
-        .text = string_static("{ \"sets\": [ {"
-                              "      \"name\": \"A\","
-                              "      \"products\": []"
-                              "    }, {"
-                              "      \"name\": \"B\","
-                              "      \"products\": []"
-                              "    }"
-                              "]}"),
+        .text = string_static(
+            "{ \"sets\": [ {"
+            "      \"name\": \"A\","
+            "      \"products\": ["
+            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
+            "      ]"
+            "    }, {"
+            "      \"name\": \"B\","
+            "      \"products\": ["
+            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
+            "      ]"
+            "    }"
+            "]}"),
     },
 
 };
@@ -38,14 +43,19 @@ static const struct {
     },
     {
         .id   = string_static("duplicate-set-name.pro"),
-        .text = string_static("{ \"sets\": [ {"
-                              "      \"name\": \"A\","
-                              "      \"products\": []"
-                              "    }, {"
-                              "      \"name\": \"A\","
-                              "      \"products\": []"
-                              "    }"
-                              "]}"),
+        .text = string_static(
+            "{ \"sets\": [ {"
+            "      \"name\": \"A\","
+            "      \"products\": ["
+            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
+            "      ]"
+            "    }, {"
+            "      \"name\": \"A\","
+            "      \"products\": ["
+            "        { \"$type\": \"AssetProduct_Unit\", \"unitPrefab\": \"InfantryRifle\" }"
+            "      ]"
+            "    }"
+            "]}"),
     },
 };
 

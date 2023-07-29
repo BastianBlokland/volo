@@ -59,7 +59,7 @@ static void product_datareg_init() {
 
     data_reg_struct_t(reg, AssetProductSetDef);
     data_reg_field_t(reg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_Array);
+    data_reg_field_t(reg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetProductMapDef);
     data_reg_field_t(reg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_Array);
@@ -79,6 +79,7 @@ static i8 asset_productset_compare(const void* a, const void* b) {
 typedef enum {
   ProductError_None                = 0,
   ProductError_DuplicateProductSet = 1,
+  ProductError_EmptyProductSet     = 2,
 
   ProductError_Count,
 } ProductError;
@@ -87,6 +88,7 @@ static String product_error_str(const ProductError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Multiple product-sets with the same name"),
+      string_static("Product-set cannot be empty"),
   };
   ASSERT(array_elems(g_msgs) == ProductError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -105,6 +107,11 @@ static void productset_build(
     DynArray*                 outProducts, // AssetProduct[], needs to be already initialized.
     AssetProductSet*          outSet,
     ProductError*             err) {
+
+  if (!def->products.count) {
+    *err = ProductError_EmptyProductSet;
+    return;
+  }
 
   *err    = ProductError_None;
   *outSet = (AssetProductSet){
