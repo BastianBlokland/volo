@@ -34,7 +34,10 @@ static void ecs_destruct_production(void* data) {
 
 static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsView* mapView) {
   const SceneProductResourceComp* resource = ecs_view_read_t(globalItr, SceneProductResourceComp);
-  EcsIterator*                    itr      = ecs_view_maybe_at(mapView, resource->mapEntity);
+  if (!(resource->flags & ProductRes_MapAcquired)) {
+    return null;
+  }
+  EcsIterator* itr = ecs_view_maybe_at(mapView, resource->mapEntity);
   return itr ? ecs_view_read_t(itr, AssetProductMapComp) : null;
 }
 
