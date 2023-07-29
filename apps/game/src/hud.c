@@ -17,6 +17,8 @@
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
+#include "scene_product.h"
+#include "scene_selection.h"
 #include "scene_status.h"
 #include "scene_target.h"
 #include "scene_terrain.h"
@@ -57,6 +59,7 @@ ecs_comp_define(HudComp) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
@@ -100,6 +103,8 @@ ecs_view_define(MinimapMarkerView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneUnitComp);
 }
+
+ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
@@ -512,6 +517,11 @@ static void hud_minimap_draw(
   ui_layout_pop(canvas);
 }
 
+static void hud_production_draw(UiCanvasComp* canvas, EcsIterator* productionItr) {
+  (void)canvas;
+  (void)productionItr;
+}
+
 ecs_system_define(HudDrawUiSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -519,9 +529,10 @@ ecs_system_define(HudDrawUiSys) {
     return;
   }
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneSelectionComp*      sel       = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
   EcsView* hudView           = ecs_world_view_t(world, HudView);
   EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
@@ -529,10 +540,12 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* infoView          = ecs_world_view_t(world, InfoView);
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
   EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
+  EcsView* productionView    = ecs_world_view_t(world, ProductionView);
 
-  EcsIterator* canvasItr    = ecs_view_itr(canvasView);
-  EcsIterator* infoItr      = ecs_view_itr(infoView);
-  EcsIterator* weaponMapItr = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
+  EcsIterator* canvasItr     = ecs_view_itr(canvasView);
+  EcsIterator* infoItr       = ecs_view_itr(infoView);
+  EcsIterator* productionItr = ecs_view_itr(productionView);
+  EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
     InputStateComp*           inputState   = ecs_view_write_t(itr, InputStateComp);
@@ -552,7 +565,7 @@ ecs_system_define(HudDrawUiSys) {
       continue;
     }
     const UiVector res = ui_canvas_resolution(canvas);
-    if (res.x < f32_epsilon || res.y < f32_epsilon) {
+    if (UNLIKELY(res.x < f32_epsilon || res.y < f32_epsilon)) {
       continue;
     }
     ui_canvas_to_back(canvas);
@@ -562,6 +575,10 @@ ecs_system_define(HudDrawUiSys) {
     hud_health_draw(canvas, hud, &viewProj, healthView, res);
     hud_groups_draw(canvas, cmd);
     hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
+
+    if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
+      hud_production_draw(canvas, productionItr);
+    }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
@@ -582,6 +599,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
   ecs_register_view(MinimapMarkerView);
+  ecs_register_view(ProductionView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -591,7 +609,8 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
-      ecs_view_id(MinimapMarkerView));
+      ecs_view_id(MinimapMarkerView),
+      ecs_view_id(ProductionView));
 
   enum {
     Order_Normal    = 0,
