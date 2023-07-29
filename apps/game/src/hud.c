@@ -251,9 +251,9 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
   static const UiVector g_size    = {50, 25};
   static const f32      g_spacing = 8.0f;
 
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_BottomLeft, Ui_XY);
-  ui_layout_move(canvas, ui_vector(g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_BottomLeft, g_size, UiBase_Absolute, Ui_XY);
+  ui_layout_move_to(canvas, UiBase_Container, UiAlign_BottomRight, Ui_XY);
+  ui_layout_move(canvas, ui_vector(-g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_BottomRight, g_size, UiBase_Absolute, Ui_XY);
 
   for (u32 i = cmd_group_count; i-- != 0;) {
     const u32 size = cmd_group_size(cmd, i);
