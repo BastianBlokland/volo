@@ -51,11 +51,12 @@ static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
-static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 500.0f};
+static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
 
 ecs_comp_define(HudComp) {
-  EcsEntityId uiCanvas;
-  UiRect      minimapRect;
+  EcsEntityId  uiCanvas;
+  UiRect       minimapRect;
+  UiScrollview productionScrollView;
 };
 
 ecs_view_define(GlobalView) {
@@ -521,6 +522,14 @@ static void hud_minimap_draw(
   ui_layout_pop(canvas);
 }
 
+static void hud_production_bg_draw(UiCanvasComp* canvas) {
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color(16, 16, 16, 128));
+  ui_style_outline(canvas, 3);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
+  ui_style_pop(canvas);
+}
+
 static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
   static const f32 g_height = 30;
 
@@ -551,18 +560,28 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
   return id;
 }
 
-static void hud_production_draw(UiCanvasComp* canvas, EcsIterator* itr, const UiVector res) {
-  const UiRect rect = (UiRect){
-      .pos.x = res.width - g_hudProductionSize.width,
-      .pos.y = res.height - g_hudMinimapSize.height - g_hudProductionSize.height - 2.0f,
-      .size  = g_hudProductionSize,
-  };
-
+static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator* itr) {
   ui_layout_push(canvas);
-  ui_layout_set(canvas, rect, UiBase_Absolute);
+  ui_layout_set(canvas, ui_rect(ui_vector(0, 0), g_hudProductionSize), UiBase_Absolute);
 
+  hud_production_bg_draw(canvas);
   hud_production_header_draw(canvas, itr);
 
+  SceneProductionComp* production  = ecs_view_write_t(itr, SceneProductionComp);
+  const u32            columnCount = 2;
+  const u32            rowCount    = math_max(production->queueCount / columnCount, 1);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  for (u32 i = 0; i != columnCount; ++i) {
+    ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  }
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  ui_scrollview_begin(canvas, &hud->productionScrollView, ui_table_height(&table, rowCount));
+
+  ui_scrollview_end(canvas, &hud->productionScrollView);
+  ui_layout_container_pop(canvas);
   ui_layout_pop(canvas);
 }
 
@@ -621,7 +640,7 @@ ecs_system_define(HudDrawUiSys) {
     hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
 
     if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
-      hud_production_draw(canvas, productionItr, res);
+      hud_production_draw(canvas, hud, productionItr);
     }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
