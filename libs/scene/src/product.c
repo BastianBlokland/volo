@@ -17,6 +17,8 @@ ecs_comp_define(SceneProductResourceComp) {
   EcsEntityId     mapEntity;
 };
 
+ecs_comp_define_public(SceneProductionComp);
+
 static void ecs_destruct_product_resource(void* data) {
   SceneProductResourceComp* comp = data;
   string_free(g_alloc_heap, comp->mapId);
@@ -80,6 +82,7 @@ ecs_system_define(SceneProductUnloadChangedMapSys) {
 
 ecs_module_init(scene_product_module) {
   ecs_register_comp(SceneProductResourceComp, .destructor = ecs_destruct_product_resource);
+  ecs_register_comp(SceneProductionComp);
 
   ecs_register_view(InitGlobalView);
   ecs_register_view(UnloadGlobalView);

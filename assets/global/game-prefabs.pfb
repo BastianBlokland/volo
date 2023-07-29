@@ -283,6 +283,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_barracks.gra" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 15 },
+        { "$type": "AssetPrefabTrait_Production", "productSetId": "Barracks" },
         {
           "$type": "AssetPrefabTrait_Health",
           "amount": 5000,

@@ -8,6 +8,11 @@
 ecs_comp_extern(SceneProductResourceComp);
 
 /**
+ * Production component.
+ */
+ecs_comp_extern_public(SceneProductionComp) { StringHash productSetId; };
+
+/**
  * Create a new product resource from the given ProductMap.
  */
 void scene_product_init(EcsWorld*, String productMapId);
