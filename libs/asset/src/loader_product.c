@@ -23,6 +23,7 @@ typedef struct {
   f32    costTime;
   u16    queueMax;
   u16    queueBulkSize;
+  f32    cooldown;
   String unitPrefab;
 } AssetProductUnitDef;
 
@@ -64,6 +65,7 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductUnitDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductUnitDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
@@ -136,14 +138,16 @@ static void productset_build(
       outProduct->costTime      = (TimeDuration)time_seconds(productDef->data_unit.costTime);
       outProduct->queueMax      = productDef->data_unit.queueMax;
       outProduct->queueBulkSize = productDef->data_unit.queueBulkSize;
+      outProduct->cooldown      = (TimeDuration)time_seconds(productDef->data_unit.cooldown);
       outProduct->data_unit     = (AssetProductUnit){
-              .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+          .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
       };
       break;
     }
     outProduct->costTime      = math_max(outProduct->costTime, time_millisecond);
     outProduct->queueMax      = outProduct->queueMax ? outProduct->queueMax : u16_max;
     outProduct->queueBulkSize = outProduct->queueBulkSize ? outProduct->queueBulkSize : 5;
+    outProduct->cooldown      = math_max(outProduct->cooldown, time_millisecond);
     if (*err) {
       return; // Failed to build product-set.
     }

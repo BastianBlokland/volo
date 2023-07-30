@@ -9,6 +9,7 @@
           "icon": "\uF051",
           "costTime": 5,
           "queueMax": 99,
+          "cooldown": 1,
           "unitPrefab": "InfantryRifle"
         },
         {
@@ -17,6 +18,7 @@
           "icon": "\uF050",
           "costTime": 8,
           "queueMax": 99,
+          "cooldown": 1,
           "unitPrefab": "InfantryRocket"
         },
         {
@@ -25,6 +27,7 @@
           "icon": "\uF052",
           "costTime": 8,
           "queueMax": 99,
+          "cooldown": 1,
           "unitPrefab": "InfantryFlame"
         }
       ]

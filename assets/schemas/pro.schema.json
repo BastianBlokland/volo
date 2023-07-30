@@ -85,6 +85,10 @@
               "minimum": 0,
               "maximum": 65535
             },
+            "cooldown": {
+              "title": "f32",
+              "type": "number"
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

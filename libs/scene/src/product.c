@@ -224,7 +224,19 @@ ecs_system_define(SceneProductUpdateSys) {
         queue->progress += (f32)time->delta / (f32)product->costTime;
         if (queue->progress >= 1.0f) {
           --queue->count;
+          queue->state    = SceneProductState_Cooldown;
           queue->progress = 0.0f;
+        }
+        break;
+      case SceneProductState_Cooldown:
+        queue->progress += (f32)time->delta / (f32)product->cooldown;
+        if (queue->progress >= 1.0f) {
+          queue->progress = 0.0f;
+          if (queue->count) {
+            queue->state = SceneProductState_Active;
+          } else {
+            queue->state = SceneProductState_Idle;
+          }
         }
         break;
       }

@@ -23,6 +23,7 @@ typedef struct sAssetProduct {
   String           name;
   Unicode          icon;
   TimeDuration     costTime;
+  TimeDuration     cooldown;
   u16              queueMax;
   u16              queueBulkSize;
   union {

@@ -573,6 +573,7 @@ static void hud_production_queue_bg_draw(
     color = ui_color(16, 16, 16, 128);
     break;
   case SceneProductState_Active:
+  case SceneProductState_Cooldown:
     color = ui_color(0, 78, 0, 128);
     break;
   }
@@ -611,6 +612,7 @@ static void hud_production_queue_icon_draw(
     ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
     break;
   case SceneProductState_Active:
+  case SceneProductState_Cooldown:
     ui_style_color(canvas, ui_color_gray);
     ui_style_outline(canvas, 2);
     break;

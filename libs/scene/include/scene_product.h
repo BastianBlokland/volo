@@ -14,6 +14,7 @@ typedef enum {
 typedef enum {
   SceneProductState_Idle,
   SceneProductState_Active,
+  SceneProductState_Cooldown,
 } SceneProductState;
 
 typedef struct {
