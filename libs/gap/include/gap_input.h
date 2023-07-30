@@ -1,5 +1,6 @@
 #pragma once
 #include "core_string.h"
+#include "core_unicode.h"
 
 /**
  * Represents a physical key (independent of the users keyboard layout).
@@ -102,6 +103,11 @@ typedef enum {
 
   GapParam_Count,
 } GapParam;
+
+/**
+ * Single character representation of a key, or null if there is no single char representation.
+ */
+Unicode gap_key_char(GapKey);
 
 /**
  * Textual representation of a key.

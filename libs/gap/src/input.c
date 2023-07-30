@@ -4,6 +4,34 @@
 
 #include "input_internal.h"
 
+static const Unicode g_keyChars[GapKey_Count] = {
+    [GapKey_Plus] = '+',        [GapKey_Minus] = '-',
+    [GapKey_BracketLeft] = '[', [GapKey_BracketRight] = ']',
+    [GapKey_A] = 'a',           [GapKey_B] = 'b',
+    [GapKey_C] = 'c',           [GapKey_D] = 'd',
+    [GapKey_E] = 'e',           [GapKey_F] = 'f',
+    [GapKey_G] = 'g',           [GapKey_H] = 'h',
+    [GapKey_I] = 'i',           [GapKey_J] = 'j',
+    [GapKey_K] = 'k',           [GapKey_L] = 'l',
+    [GapKey_M] = 'm',           [GapKey_N] = 'n',
+    [GapKey_O] = 'o',           [GapKey_P] = 'p',
+    [GapKey_Q] = 'q',           [GapKey_R] = 'r',
+    [GapKey_S] = 's',           [GapKey_T] = 't',
+    [GapKey_U] = 'u',           [GapKey_V] = 'v',
+    [GapKey_W] = 'w',           [GapKey_X] = 'x',
+    [GapKey_Y] = 'y',           [GapKey_Z] = 'z',
+    [GapKey_Alpha0] = '0',      [GapKey_Alpha1] = '1',
+    [GapKey_Alpha2] = '2',      [GapKey_Alpha3] = '3',
+    [GapKey_Alpha4] = '4',      [GapKey_Alpha5] = '5',
+    [GapKey_Alpha6] = '6',      [GapKey_Alpha7] = '7',
+    [GapKey_Alpha8] = '8',      [GapKey_Alpha9] = '9',
+};
+
+Unicode gap_key_char(const GapKey key) {
+  diag_assert(key < GapKey_Count);
+  return g_keyChars[key];
+}
+
 static const String g_keyStrs[] = {
     string_static("mouse-left"),
     string_static("mouse-right"),
