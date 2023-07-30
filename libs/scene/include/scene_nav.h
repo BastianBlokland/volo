@@ -49,6 +49,11 @@ ecs_comp_extern_public(SceneNavPathComp) {
   TimeDuration nextRefreshTime;
 };
 
+ecs_comp_extern_public(SceneNavRequestComp) {
+  EcsEntityId targetEntity;
+  GeoVector   targetPos;
+};
+
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);
 void scene_nav_move_to_entity(SceneNavAgentComp*, EcsEntityId target);
 void scene_nav_stop(SceneNavAgentComp*);
