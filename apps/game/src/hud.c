@@ -53,6 +53,7 @@ static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
 static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
+static StringHash     g_hudProductQueueActions[5];
 
 ecs_comp_define(HudComp) {
   EcsEntityId  uiCanvas;
@@ -633,8 +634,10 @@ static void hud_production_queue_draw(
   SceneProductQueue*  queue   = production->queues + queueIndex;
   const AssetProduct* product = queue->product;
 
-  const UiId     id     = ui_canvas_id_peek(canvas);
-  const UiStatus status = ui_canvas_elem_status(canvas, id);
+  const UiId       id     = ui_canvas_id_peek(canvas);
+  const UiStatus   status = ui_canvas_elem_status(canvas, id);
+  const StringHash hotkey =
+      queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
   hud_production_queue_bg_draw(canvas, status);
   hud_production_queue_icon_draw(canvas, product, status);
@@ -646,7 +649,7 @@ static void hud_production_queue_draw(
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
-  if (status == UiStatus_Activated) {
+  if (status == UiStatus_Activated || input_triggered_hash(input, hotkey)) {
     ui_canvas_sound(canvas, UiSoundType_Click);
     if (input_modifiers(input) & InputModifier_Control) {
       queue->requests |= input_modifiers(input) & InputModifier_Shift
@@ -801,6 +804,11 @@ ecs_module_init(game_hud_module) {
     Order_HudDrawUi = 1,
   };
   ecs_order(HudDrawUiSys, Order_HudDrawUi);
+
+  // Initialize product queue action hashes.
+  for (u32 i = 0; i != array_elems(g_hudProductQueueActions); ++i) {
+    g_hudProductQueueActions[i] = string_hash(fmt_write_scratch("ProductQueue{}", fmt_int(i + 1)));
+  }
 }
 
 void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {
