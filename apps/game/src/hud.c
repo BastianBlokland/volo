@@ -581,7 +581,8 @@ static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus st
     ui_style_outline(canvas, 2);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
+  const UiFlags flags = UiFlags_Interactable | UiFlags_InteractSupportAlt;
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, flags);
   ui_style_pop(canvas);
 }
 
@@ -678,16 +679,23 @@ static void hud_production_queue_draw(
     ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
   if (status == UiStatus_Activated || input_triggered_hash(input, hotkey)) {
-    ui_canvas_sound(canvas, UiSoundType_Click);
     if (input_modifiers(input) & InputModifier_Control) {
+      ui_canvas_sound(canvas, UiSoundType_ClickAlt);
       queue->requests |= input_modifiers(input) & InputModifier_Shift
                              ? SceneProductRequest_CancelAll
                              : SceneProductRequest_CancelSingle;
     } else {
+      ui_canvas_sound(canvas, UiSoundType_Click);
       queue->requests |= input_modifiers(input) & InputModifier_Shift
                              ? SceneProductRequest_EnqueueBulk
                              : SceneProductRequest_EnqueueSingle;
     }
+  }
+  if (status == UiStatus_ActivatedAlt) {
+    ui_canvas_sound(canvas, UiSoundType_ClickAlt);
+    queue->requests |= input_modifiers(input) & InputModifier_Shift
+                           ? SceneProductRequest_CancelAll
+                           : SceneProductRequest_CancelSingle;
   }
   if (!string_is_empty(product->name)) {
     ui_tooltip(canvas, id, product->name);
