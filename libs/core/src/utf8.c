@@ -109,7 +109,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
     return string_consume(utf8, 1);
   }
 
-  // Validate that the remaning characters are all valid utf8 continuation characters.
+  // Validate that the remaining characters are all valid utf8 continuation characters.
   if (UNLIKELY(utf8.size < charCount)) {
     *out = 0;
     return string_empty;
