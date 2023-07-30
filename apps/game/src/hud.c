@@ -9,6 +9,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "gap_input.h"
 #include "input_manager.h"
 #include "rend_settings.h"
 #include "scene_attack.h"
@@ -605,10 +606,33 @@ static void hud_production_queue_count_draw(UiCanvasComp* canvas, const ScenePro
   ui_layout_push(canvas);
 
   ui_style_weight(canvas, UiWeight_Bold);
-  ui_style_outline(canvas, 3);
+  ui_style_outline(canvas, 2);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_TopLeft, g_size, UiBase_Absolute);
   const String countText = fmt_write_scratch("{}", fmt_int(queue->count));
   ui_label(canvas, countText, .align = UiAlign_MiddleCenter, .fontSize = 25);
+
+  ui_layout_pop(canvas);
+  ui_style_pop(canvas);
+}
+
+static void hud_production_queue_hotkey_draw(
+    UiCanvasComp* canvas, const InputManagerComp* input, const StringHash actionHash) {
+  static const UiVector g_size = {.x = 40, .y = 40};
+
+  const GapKey  actionPrimaryKey     = input_primary_key(input, actionHash);
+  const Unicode actionPrimaryKeyChar = gap_key_char(actionPrimaryKey);
+  if (!actionPrimaryKeyChar) {
+    return;
+  }
+
+  ui_style_push(canvas);
+  ui_layout_push(canvas);
+
+  ui_style_weight(canvas, UiWeight_Bold);
+  ui_style_outline(canvas, 2);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_TopRight, g_size, UiBase_Absolute);
+  const String hotkeyText = fmt_write_scratch("{}", fmt_char(actionPrimaryKeyChar));
+  ui_label(canvas, hotkeyText, .align = UiAlign_MiddleCenter, .fontSize = 20);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
@@ -643,6 +667,9 @@ static void hud_production_queue_draw(
   hud_production_queue_icon_draw(canvas, product, status);
   if (queue->count) {
     hud_production_queue_count_draw(canvas, queue);
+  }
+  if (hotkey) {
+    hud_production_queue_hotkey_draw(canvas, input, hotkey);
   }
   hud_production_queue_cost_draw(canvas, product);
 
