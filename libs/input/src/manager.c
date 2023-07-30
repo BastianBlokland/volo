@@ -11,6 +11,11 @@
 
 #include "resource_internal.h"
 
+typedef struct {
+  StringHash nameHash;
+  GapKey     primarykey;
+} InputActionInfo;
+
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
   InputBlocker    blockers : 16;
@@ -23,12 +28,19 @@ ecs_comp_define(InputManagerComp) {
   TimeDuration    doubleclickInterval;
   DynArray        triggeredActions; // StringHash[], names of the triggered actions. Not sorted.
   DynArray        activeLayers;     // StringHash[], names of the active layers. Not sorted.
+  DynArray        actionInfos;      // InputActionInfo[], sorted on the name.
 };
 
 static void ecs_destruct_input_manager(void* data) {
   InputManagerComp* comp = data;
   dynarray_destroy(&comp->triggeredActions);
   dynarray_destroy(&comp->activeLayers);
+  dynarray_destroy(&comp->actionInfos);
+}
+
+static i8 input_compare_action_info(const void* a, const void* b) {
+  return compare_stringhash(
+      field_ptr(a, InputActionInfo, nameHash), field_ptr(b, InputActionInfo, nameHash));
 }
 
 ecs_view_define(GlobalView) {
@@ -46,7 +58,8 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       ecs_world_global(world),
       InputManagerComp,
       .triggeredActions = dynarray_create_t(g_alloc_heap, StringHash, 8),
-      .activeLayers     = dynarray_create_t(g_alloc_heap, StringHash, 2));
+      .activeLayers     = dynarray_create_t(g_alloc_heap, StringHash, 2),
+      .actionInfos      = dynarray_create_t(g_alloc_heap, InputActionInfo, 64));
 }
 
 static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {
@@ -179,6 +192,19 @@ static void input_update_triggered(
   }
 }
 
+static void input_update_key_info(InputManagerComp* manager, const AssetInputMapComp* map) {
+  for (usize i = 0; i != map->actionCount; ++i) {
+    const AssetInputAction* action = &map->actions[i];
+    if (UNLIKELY(!action->bindingCount)) {
+      continue;
+    }
+    const AssetInputBinding* primaryBinding = &map->bindings[action->bindingIndex];
+    const InputActionInfo info = {.nameHash = action->nameHash, .primarykey = primaryBinding->key};
+    *dynarray_insert_sorted_t(
+        &manager->actionInfos, InputActionInfo, input_compare_action_info, &info) = info;
+  }
+}
+
 ecs_system_define(InputUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -207,12 +233,15 @@ ecs_system_define(InputUpdateSys) {
   input_update_cursor(manager, win);
   manager->doubleclickInterval = gap_window_doubleclick_interval(win);
 
+  dynarray_clear(&manager->actionInfos);
+
   EcsEntityId mapAssets[input_resource_max_maps];
   u32         mapAssetCount = input_resource_maps(resource, mapAssets);
   for (u32 i = 0; i != mapAssetCount; ++i) {
     const AssetInputMapComp* map = input_map_asset(world, mapAssets[i]);
     if (map && input_layer_active(manager, map->layer)) {
       input_update_triggered(manager, map, win);
+      input_update_key_info(manager, map);
     }
   }
 }
@@ -274,6 +303,13 @@ TimeDuration input_doubleclick_interval(const InputManagerComp* manager) {
 bool input_triggered_hash(const InputManagerComp* manager, const StringHash actionHash) {
   InputManagerComp* manMut = (InputManagerComp*)manager;
   return dynarray_search_linear(&manMut->triggeredActions, compare_stringhash, &actionHash) != null;
+}
+
+GapKey input_primary_key(const InputManagerComp* manager, const StringHash actionHash) {
+  InputManagerComp*      manMut = (InputManagerComp*)manager;
+  const InputActionInfo* info   = dynarray_search_binary(
+      &manMut->actionInfos, input_compare_action_info, &(InputActionInfo){.nameHash = actionHash});
+  return info ? info->primarykey : GapKey_None;
 }
 
 void input_layer_enable(InputManagerComp* manager, const StringHash layerHash) {

@@ -5,6 +5,9 @@
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
 
+// Forward declare from 'gap_input.h'.
+typedef enum eGapKey GapKey;
+
 /**
  * Controls the cursor behaviour:
  * - Normal:  Cursor is visible and can be moved freely.
@@ -64,6 +67,8 @@ TimeDuration    input_doubleclick_interval(const InputManagerComp*);
   input_triggered_hash((_MANAGER_), string_hash_lit(_ACTION_LIT_))
 
 bool input_triggered_hash(const InputManagerComp*, StringHash actionHash);
+
+GapKey input_primary_key(const InputManagerComp*, StringHash actionHash);
 
 void input_layer_enable(InputManagerComp*, StringHash layerHash);
 void input_layer_disable(InputManagerComp*, StringHash layerHash);
