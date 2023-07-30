@@ -6,7 +6,7 @@
  * Represents a physical key (independent of the users keyboard layout).
  * NOTE: Care must be taken when changing these values, they are potentially serialized.
  */
-typedef enum {
+typedef enum eGapKey {
   GapKey_None      = -1,
   GapKey_MouseLeft = 0,
   GapKey_MouseRight,
