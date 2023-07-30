@@ -5,7 +5,9 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_lifetime.h"
 #include "scene_product.h"
+#include "scene_sound.h"
 #include "scene_time.h"
 
 typedef enum {
@@ -175,6 +177,16 @@ static void scene_product_process_queue_requests(SceneProductQueue* queue) {
   queue->requests = 0;
 }
 
+static void scene_product_ready_sound(EcsWorld* world, SceneProductQueue* queue) {
+  const AssetProduct* prod = queue->product;
+  if (!prod->soundReady) {
+    return;
+  }
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = prod->soundReady, .gain = 1.0f, .pitch = 1.0f);
+}
+
 ecs_system_define(SceneProductUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -226,6 +238,7 @@ ecs_system_define(SceneProductUpdateSys) {
           --queue->count;
           queue->state    = SceneProductState_Cooldown;
           queue->progress = 0.0f;
+          scene_product_ready_sound(world, queue);
         }
         break;
       case SceneProductState_Cooldown:

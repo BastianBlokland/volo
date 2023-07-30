@@ -89,6 +89,11 @@
               "title": "f32",
               "type": "number"
             },
+            "soundReadyId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

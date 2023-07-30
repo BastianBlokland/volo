@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_data.h"
 #include "core_unicode.h"
+#include "ecs_entity.h"
 #include "ecs_module.h"
 
 // Forward declare from 'core_time.h'.
@@ -26,6 +27,7 @@ typedef struct sAssetProduct {
   TimeDuration     cooldown;
   u16              queueMax;
   u16              queueBulkSize;
+  EcsEntityId      soundReady;
   union {
     AssetProductUnit data_unit;
   };
