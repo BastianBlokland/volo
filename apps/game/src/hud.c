@@ -599,15 +599,25 @@ static void hud_production_queue_bg_draw(
 }
 
 static void hud_production_queue_icon_draw(
-    UiCanvasComp* canvas, const AssetProduct* product, const UiStatus status) {
+    UiCanvasComp* canvas, const SceneProductQueue* queue, const UiStatus status) {
   static const UiVector g_size = {.x = 60, .y = 60};
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
 
-  ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
+  switch (queue->state) {
+  case SceneProductState_Idle:
+    ui_style_color(canvas, ui_color_white);
+    ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
+    break;
+  case SceneProductState_Active:
+    ui_style_color(canvas, ui_color_gray);
+    ui_style_outline(canvas, 2);
+    break;
+  }
+
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
-  ui_canvas_draw_glyph(canvas, product->icon, 0, UiFlags_None);
+  ui_canvas_draw_glyph(canvas, queue->product->icon, 0, UiFlags_None);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
@@ -684,7 +694,7 @@ static void hud_production_queue_draw(
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
   hud_production_queue_bg_draw(canvas, queue, status);
-  hud_production_queue_icon_draw(canvas, product, status);
+  hud_production_queue_icon_draw(canvas, queue, status);
   if (queue->count) {
     hud_production_queue_count_draw(canvas, queue);
   }
@@ -692,6 +702,17 @@ static void hud_production_queue_draw(
     hud_production_queue_hotkey_draw(canvas, input, hotkey);
   }
   hud_production_queue_cost_draw(canvas, product);
+
+  if (queue->state == SceneProductState_Active) {
+    ui_style_push(canvas);
+    ui_style_variation(canvas, UiVariation_Monospace);
+    ui_style_weight(canvas, UiWeight_Bold);
+    ui_style_outline(canvas, 3);
+    const u32    percent      = (u32)(queue->progress * 100.0f);
+    const String progressText = fmt_write_scratch("{}%", fmt_int(percent, .minDigits = 2));
+    ui_label(canvas, progressText, .align = UiAlign_MiddleCenter, .fontSize = 30);
+    ui_style_pop(canvas);
+  }
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
