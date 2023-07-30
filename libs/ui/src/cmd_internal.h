@@ -82,8 +82,8 @@ typedef struct {
   UiId    id;
   String  text;
   u16     fontSize;
-  UiAlign align;
-  UiFlags flags;
+  UiAlign align : 8;
+  UiFlags flags : 16;
 } UiDrawText;
 
 typedef struct {
