@@ -164,6 +164,15 @@ ecs_system_define(SceneProductUpdateSys) {
     if (!production->queues && !product_queues_init(production, productMap)) {
       continue;
     }
+
+    // Process product queue requests.
+    for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+      SceneProductQueue* queue = &production->queues[queueIndex];
+      if (queue->requests & SceneProductRequest_Enqueue) {
+        ++queue->count;
+      }
+      queue->requests = 0;
+    }
   }
 }
 

@@ -4,9 +4,14 @@
 // Forward declare from 'asset_product.h'.
 typedef struct sAssetProduct AssetProduct;
 
+typedef enum {
+  SceneProductRequest_Enqueue = 1 << 0,
+} SceneProductRequest;
+
 typedef struct {
   const AssetProduct* product;
   u32                 count;
+  SceneProductRequest requests;
 } SceneProductQueue;
 
 ecs_comp_extern_public(SceneProductionComp) {

@@ -598,7 +598,7 @@ static void hud_production_queue_icon_draw(
 }
 
 static void hud_production_queue_count_draw(UiCanvasComp* canvas, const SceneProductQueue* queue) {
-  static const UiVector g_size = {.x = 35, .y = 40};
+  static const UiVector g_size = {.x = 40, .y = 40};
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
@@ -627,8 +627,8 @@ static void hud_production_queue_cost_draw(UiCanvasComp* canvas, const AssetProd
 
 static void hud_production_queue_draw(
     UiCanvasComp* canvas, SceneProductionComp* production, const u32 queueIndex) {
-  const SceneProductQueue* queue   = production->queues + queueIndex;
-  const AssetProduct*      product = queue->product;
+  SceneProductQueue*  queue   = production->queues + queueIndex;
+  const AssetProduct* product = queue->product;
 
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
@@ -645,6 +645,7 @@ static void hud_production_queue_draw(
   }
   if (status == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
+    queue->requests |= SceneProductRequest_Enqueue;
   }
   if (!string_is_empty(product->name)) {
     ui_tooltip(canvas, id, product->name);
