@@ -582,6 +582,33 @@ static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus st
   ui_style_pop(canvas);
 }
 
+static void hud_production_queue_icon_draw(
+    UiCanvasComp* canvas, const AssetProduct* product, const UiStatus status) {
+  static const UiVector g_size = {.x = 50, .y = 50};
+
+  ui_style_push(canvas);
+  ui_layout_push(canvas);
+
+  ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
+  ui_canvas_draw_glyph(canvas, product->icon, 0, UiFlags_None);
+
+  ui_layout_pop(canvas);
+  ui_style_pop(canvas);
+}
+
+static void hud_production_queue_cost_draw(UiCanvasComp* canvas, const AssetProduct* product) {
+  static const UiVector g_size = {.x = 70, .y = 30};
+
+  ui_layout_push(canvas);
+
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_BottomLeft, g_size, UiBase_Absolute);
+  const String costText = fmt_write_scratch("\uE425 {}", fmt_duration(product->costTime));
+  ui_label(canvas, costText, .align = UiAlign_MiddleCenter);
+
+  ui_layout_pop(canvas);
+}
+
 static void hud_production_queue_draw(
     UiCanvasComp* canvas, SceneProductionComp* production, const u32 queueIndex) {
   const SceneProductQueue* queue   = production->queues + queueIndex;
@@ -590,27 +617,13 @@ static void hud_production_queue_draw(
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
 
-  ui_layout_container_push(canvas, UiClip_None);
   hud_production_queue_bg_draw(canvas, status);
+  hud_production_queue_icon_draw(canvas, product, status);
+  hud_production_queue_cost_draw(canvas, product);
 
-  ui_style_push(canvas);
-  ui_style_color(canvas, ui_color_white);
-  ui_style_outline(canvas, 2);
-  ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-0.5f, -0.5f), UiBase_Container, Ui_XY);
-  ui_canvas_draw_glyph(canvas, product->icon, 0, UiFlags_None);
-
-  // Cost label.
-  ui_layout_inner(canvas, UiBase_Container, UiAlign_BottomLeft, ui_vector(70, 30), UiBase_Absolute);
-  const String costText = fmt_write_scratch("\uE425 {}", fmt_duration(product->costTime));
-  ui_label(canvas, costText, .align = UiAlign_MiddleCenter);
-
-  ui_layout_pop(canvas);
   if (!string_is_empty(product->name)) {
     ui_tooltip(canvas, id, product->name);
   }
-  ui_style_pop(canvas);
-  ui_layout_container_pop(canvas);
 }
 
 static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator* itr) {
