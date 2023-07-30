@@ -588,7 +588,7 @@ static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus st
 
 static void hud_production_queue_icon_draw(
     UiCanvasComp* canvas, const AssetProduct* product, const UiStatus status) {
-  static const UiVector g_size = {.x = 50, .y = 50};
+  static const UiVector g_size = {.x = 60, .y = 60};
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
@@ -619,22 +619,28 @@ static void hud_production_queue_count_draw(UiCanvasComp* canvas, const ScenePro
 
 static void hud_production_queue_hotkey_draw(
     UiCanvasComp* canvas, const InputManagerComp* input, const StringHash actionHash) {
-  static const UiVector g_size = {.x = 40, .y = 40};
+  static const UiVector g_size = {.x = 25, .y = 25};
 
   const GapKey  actionPrimaryKey     = input_primary_key(input, actionHash);
   const Unicode actionPrimaryKeyChar = gap_key_char(actionPrimaryKey);
   if (!actionPrimaryKeyChar) {
     return;
   }
+  const String hotkeyText = fmt_write_scratch("{}", fmt_char(actionPrimaryKeyChar));
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_TopRight, g_size, UiBase_Absolute);
+  ui_layout_move(canvas, ui_vector(-5.0f, -5.0f), UiBase_Absolute, Ui_XY);
 
   ui_style_weight(canvas, UiWeight_Bold);
   ui_style_outline(canvas, 2);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_TopRight, g_size, UiBase_Absolute);
-  const String hotkeyText = fmt_write_scratch("{}", fmt_char(actionPrimaryKeyChar));
-  ui_label(canvas, hotkeyText, .align = UiAlign_MiddleCenter, .fontSize = 20);
+
+  ui_style_color(canvas, ui_color(128, 128, 128, 128));
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_None);
+
+  ui_style_color(canvas, ui_color_white);
+  ui_label(canvas, hotkeyText, .align = UiAlign_MiddleCenter);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
