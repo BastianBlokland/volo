@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_vector.h"
 
 // Forward declare from 'asset_product.h'.
 typedef struct sAssetProduct AssetProduct;
@@ -29,6 +30,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   StringHash         productSetId;
   u32                queueCount;
   SceneProductQueue* queues;
+  GeoVector          spawnOffset;
 };
 
 void scene_product_init(EcsWorld*, String productMapId);

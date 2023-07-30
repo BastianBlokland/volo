@@ -628,6 +628,10 @@
             "$name": {
               "type": "string"
             },
+            "spawnOffset": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
             "productSetId": {
               "title": "String",
               "type": "string",

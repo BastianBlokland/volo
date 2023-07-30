@@ -381,7 +381,8 @@ static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 
 static void
 setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduction* t) {
-  ecs_world_add_t(w, e, SceneProductionComp, .productSetId = t->productSetId);
+  ecs_world_add_t(
+      w, e, SceneProductionComp, .productSetId = t->productSetId, .spawnOffset = t->spawnOffset);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {

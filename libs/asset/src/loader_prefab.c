@@ -152,7 +152,8 @@ typedef struct {
 } AssetPrefabTraitVisionDef;
 
 typedef struct {
-  String productSetId;
+  AssetPrefabVec3Def spawnOffset;
+  String             productSetId;
 } AssetPrefabTraitProductionDef;
 
 typedef struct {
@@ -322,6 +323,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(reg, AssetPrefabTraitProductionDef);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, spawnOffset, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
@@ -613,6 +615,7 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Production:
       outTrait->data_production = (AssetPrefabTraitProduction){
+          .spawnOffset  = prefab_build_vec3(&traitDef->data_production.spawnOffset),
           .productSetId = string_hash(traitDef->data_production.productSetId),
       };
       break;

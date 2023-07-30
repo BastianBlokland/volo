@@ -168,6 +168,7 @@ typedef struct {
 } AssetPrefabTraitVision;
 
 typedef struct {
+  GeoVector  spawnOffset;
   StringHash productSetId;
 } AssetPrefabTraitProduction;
 

@@ -71,8 +71,10 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
 }
 
 ecs_view_define(ProductMapView) { ecs_access_read(AssetProductMapComp); }
+
 ecs_view_define(ProductionView) {
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_write(SceneProductionComp);
 }
@@ -185,29 +187,39 @@ static void scene_product_process_queue_requests(SceneProductQueue* queue) {
 }
 
 static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue, EcsIterator* itr) {
-  const AssetProduct*       prod        = queue->product;
-  const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
-  const SceneTransformComp* transComp   = ecs_view_read_t(itr, SceneTransformComp);
+  const AssetProduct*        product     = queue->product;
+  const SceneProductionComp* production  = ecs_view_read_t(itr, SceneProductionComp);
+  const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
+  const SceneScaleComp*      scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
+  const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
 
-  switch (prod->type) {
+  const GeoVector    position = transComp ? transComp->position : geo_vector(0);
+  const GeoQuat      rotation = transComp ? transComp->rotation : geo_quat_ident;
+  const SceneFaction faction  = factionComp ? factionComp->id : SceneFaction_None;
+  const f32          scale    = scaleComp ? scaleComp->scale : 1.0f;
+
+  const GeoVector spawnPos = geo_vector_add(
+      position, geo_quat_rotate(rotation, geo_vector_mul(production->spawnOffset, scale)));
+
+  switch (product->type) {
   case AssetProduct_Unit:
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
-            .prefabId = prod->data_unit.unitPrefab,
+            .prefabId = product->data_unit.unitPrefab,
             .flags    = ScenePrefabFlags_SnapToTerrain,
-            .position = transComp ? transComp->position : geo_vector(0),
+            .position = spawnPos,
             .rotation = geo_quat_ident,
             .scale    = 1.0f,
-            .faction  = factionComp ? factionComp->id : SceneFaction_None,
+            .faction  = faction,
         });
     break;
   }
 
-  if (prod->soundReady) {
+  if (product->soundReady) {
     const EcsEntityId e = ecs_world_entity_create(world);
     ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
-    ecs_world_add_t(world, e, SceneSoundComp, .asset = prod->soundReady, .gain = 1, .pitch = 1);
+    ecs_world_add_t(world, e, SceneSoundComp, .asset = product->soundReady, .gain = 1, .pitch = 1);
   }
 }
 
