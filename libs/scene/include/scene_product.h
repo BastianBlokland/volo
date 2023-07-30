@@ -5,7 +5,8 @@
 typedef struct sAssetProduct AssetProduct;
 
 typedef enum {
-  SceneProductRequest_Enqueue = 1 << 0,
+  SceneProductRequest_Enqueue      = 1 << 0,
+  SceneProductRequest_CancelSingle = 1 << 1,
 } SceneProductRequest;
 
 typedef struct {

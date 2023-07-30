@@ -172,6 +172,9 @@ ecs_system_define(SceneProductUpdateSys) {
       if (queue->requests & SceneProductRequest_Enqueue && queue->count < product->queueMax) {
         ++queue->count;
       }
+      if (queue->requests & SceneProductRequest_CancelSingle && queue->count) {
+        --queue->count;
+      }
       queue->requests = 0;
     }
   }

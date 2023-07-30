@@ -626,7 +626,10 @@ static void hud_production_queue_cost_draw(UiCanvasComp* canvas, const AssetProd
 }
 
 static void hud_production_queue_draw(
-    UiCanvasComp* canvas, SceneProductionComp* production, const u32 queueIndex) {
+    UiCanvasComp*           canvas,
+    const InputManagerComp* input,
+    SceneProductionComp*    production,
+    const u32               queueIndex) {
   SceneProductQueue*  queue   = production->queues + queueIndex;
   const AssetProduct* product = queue->product;
 
@@ -645,14 +648,19 @@ static void hud_production_queue_draw(
   }
   if (status == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
-    queue->requests |= SceneProductRequest_Enqueue;
+    if (input_modifiers(input) & InputModifier_Control) {
+      queue->requests |= SceneProductRequest_CancelSingle;
+    } else {
+      queue->requests |= SceneProductRequest_Enqueue;
+    }
   }
   if (!string_is_empty(product->name)) {
     ui_tooltip(canvas, id, product->name);
   }
 }
 
-static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator* itr) {
+static void hud_production_draw(
+    UiCanvasComp* canvas, HudComp* hud, const InputManagerComp* input, EcsIterator* itr) {
   ui_layout_push(canvas);
   ui_layout_set(canvas, ui_rect(ui_vector(0, 0), g_hudProductionSize), UiBase_Absolute);
 
@@ -683,7 +691,7 @@ static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator*
     for (u32 col = 0; col != colCount; ++col) {
       const u32 queueIndex = row * colCount + col;
       if (queueIndex < production->queueCount) {
-        hud_production_queue_draw(canvas, production, queueIndex);
+        hud_production_queue_draw(canvas, input, production, queueIndex);
       }
       ui_layout_move_dir(canvas, Ui_Right, entrySize + spacing, UiBase_Absolute);
     }
@@ -749,7 +757,7 @@ ecs_system_define(HudDrawUiSys) {
     hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
 
     if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
-      hud_production_draw(canvas, hud, productionItr);
+      hud_production_draw(canvas, hud, input, productionItr);
     }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
