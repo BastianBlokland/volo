@@ -25,6 +25,7 @@ typedef struct {
   u16    queueBulkSize;
   f32    cooldown;
   String soundReadyId;
+  f32    soundReadyGain;
   String unitPrefab;
 } AssetProductUnitDef;
 
@@ -68,6 +69,7 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductUnitDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductUnitDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
@@ -149,15 +151,17 @@ static void productset_build(
       outProduct->cooldown      = (TimeDuration)time_seconds(productDef->data_unit.cooldown);
       outProduct->soundReady =
           asset_maybe_lookup(ctx->world, ctx->assetManager, productDef->data_unit.soundReadyId);
-      outProduct->data_unit = (AssetProductUnit){
+      outProduct->soundReadyGain = productDef->data_unit.soundReadyGain;
+      outProduct->data_unit      = (AssetProductUnit){
           .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
       };
       break;
     }
-    outProduct->costTime      = math_max(outProduct->costTime, time_millisecond);
-    outProduct->queueMax      = outProduct->queueMax ? outProduct->queueMax : u16_max;
-    outProduct->queueBulkSize = outProduct->queueBulkSize ? outProduct->queueBulkSize : 5;
-    outProduct->cooldown      = math_max(outProduct->cooldown, time_millisecond);
+    outProduct->costTime       = math_max(outProduct->costTime, time_millisecond);
+    outProduct->queueMax       = outProduct->queueMax ? outProduct->queueMax : u16_max;
+    outProduct->queueBulkSize  = outProduct->queueBulkSize ? outProduct->queueBulkSize : 5;
+    outProduct->cooldown       = math_max(outProduct->cooldown, time_millisecond);
+    outProduct->soundReadyGain = outProduct->soundReadyGain <= 0 ? 1 : outProduct->soundReadyGain;
     if (*err) {
       return; // Failed to build product-set.
     }

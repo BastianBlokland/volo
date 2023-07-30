@@ -94,6 +94,10 @@
               "type": "string",
               "minLength": 1
             },
+            "soundReadyGain": {
+              "title": "f32",
+              "type": "number"
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

@@ -28,6 +28,7 @@ typedef struct sAssetProduct {
   u16              queueMax;
   u16              queueBulkSize;
   EcsEntityId      soundReady;
+  f32              soundReadyGain;
   union {
     AssetProductUnit data_unit;
   };

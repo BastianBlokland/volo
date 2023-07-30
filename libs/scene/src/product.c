@@ -219,7 +219,13 @@ static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue,
   if (product->soundReady) {
     const EcsEntityId e = ecs_world_entity_create(world);
     ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
-    ecs_world_add_t(world, e, SceneSoundComp, .asset = product->soundReady, .gain = 1, .pitch = 1);
+    ecs_world_add_t(
+        world,
+        e,
+        SceneSoundComp,
+        .asset = product->soundReady,
+        .gain  = product->soundReadyGain,
+        .pitch = 1.0f);
   }
 }
 
