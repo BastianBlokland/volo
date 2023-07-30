@@ -564,16 +564,25 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
 static void hud_production_queue_draw(
     UiCanvasComp* canvas, SceneProductionComp* production, const u32 queueIndex) {
   const SceneProductQueue* queue = production->queues + queueIndex;
+  ui_layout_container_push(canvas, UiClip_None);
 
   ui_style_push(canvas);
   ui_style_outline(canvas, 3);
   ui_style_color(canvas, ui_color(16, 16, 16, 128));
   const UiId id = ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
 
+  ui_style_color(canvas, ui_color_white);
+  ui_style_outline(canvas, 2);
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-0.5f, -0.5f), UiBase_Container, Ui_XY);
+  ui_canvas_draw_glyph(canvas, queue->product->icon, 0, UiFlags_None);
+  ui_layout_pop(canvas);
+
   if (!string_is_empty(queue->product->name)) {
     ui_tooltip(canvas, id, queue->product->name);
   }
   ui_style_pop(canvas);
+  ui_layout_container_pop(canvas);
 }
 
 static void hud_production_draw(UiCanvasComp* canvas, HudComp* hud, EcsIterator* itr) {

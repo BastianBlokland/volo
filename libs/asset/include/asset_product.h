@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_data.h"
+#include "core_unicode.h"
 #include "ecs_module.h"
 
 /**
@@ -17,6 +18,7 @@ typedef struct {
 typedef struct sAssetProduct {
   AssetProductType type;
   String           name;
+  Unicode          icon;
   union {
     AssetProductUnit data_unit;
   };

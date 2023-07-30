@@ -65,6 +65,10 @@
             "$name": {
               "type": "string"
             },
+            "icon": {
+              "title": "String",
+              "type": "string"
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

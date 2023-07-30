@@ -6,6 +6,7 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
+#include "core_utf8.h"
 #include "data.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
@@ -16,6 +17,7 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
+  String icon;
   String unitPrefab;
 } AssetProductUnitDef;
 
@@ -53,6 +55,7 @@ static void product_datareg_init() {
 
     // clang-format off
     data_reg_struct_t(reg, AssetProductUnitDef);
+    data_reg_field_t(reg, AssetProductUnitDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
@@ -129,6 +132,7 @@ static void productset_build(
 
     switch (productDef->type) {
     case AssetProduct_Unit:
+      utf8_cp_read(productDef->data_unit.icon, &outProduct->icon);
       product_unit_build(&productDef->data_unit, &outProduct->data_unit, err);
       break;
     }
