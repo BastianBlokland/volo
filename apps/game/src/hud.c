@@ -649,7 +649,11 @@ static void hud_production_queue_draw(
   if (status == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
     if (input_modifiers(input) & InputModifier_Control) {
-      queue->requests |= SceneProductRequest_CancelSingle;
+      if (input_modifiers(input) & InputModifier_Shift) {
+        queue->requests |= SceneProductRequest_CancelAll;
+      } else {
+        queue->requests |= SceneProductRequest_CancelSingle;
+      }
     } else {
       queue->requests |= SceneProductRequest_Enqueue;
     }

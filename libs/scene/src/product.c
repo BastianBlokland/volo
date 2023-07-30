@@ -175,6 +175,9 @@ ecs_system_define(SceneProductUpdateSys) {
       if (queue->requests & SceneProductRequest_CancelSingle && queue->count) {
         --queue->count;
       }
+      if (queue->requests & SceneProductRequest_CancelAll) {
+        queue->count = 0;
+      }
       queue->requests = 0;
     }
   }
