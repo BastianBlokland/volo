@@ -597,6 +597,22 @@ static void hud_production_queue_icon_draw(
   ui_style_pop(canvas);
 }
 
+static void hud_production_queue_count_draw(UiCanvasComp* canvas, const SceneProductQueue* queue) {
+  static const UiVector g_size = {.x = 35, .y = 40};
+
+  ui_style_push(canvas);
+  ui_layout_push(canvas);
+
+  ui_style_weight(canvas, UiWeight_Bold);
+  ui_style_outline(canvas, 3);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_TopLeft, g_size, UiBase_Absolute);
+  const String countText = fmt_write_scratch("{}", fmt_int(queue->count));
+  ui_label(canvas, countText, .align = UiAlign_MiddleCenter, .fontSize = 25);
+
+  ui_layout_pop(canvas);
+  ui_style_pop(canvas);
+}
+
 static void hud_production_queue_cost_draw(UiCanvasComp* canvas, const AssetProduct* product) {
   static const UiVector g_size = {.x = 70, .y = 30};
 
@@ -619,6 +635,9 @@ static void hud_production_queue_draw(
 
   hud_production_queue_bg_draw(canvas, status);
   hud_production_queue_icon_draw(canvas, product, status);
+  if (queue->count) {
+    hud_production_queue_count_draw(canvas, queue);
+  }
   hud_production_queue_cost_draw(canvas, product);
 
   if (status >= UiStatus_Hovered) {
