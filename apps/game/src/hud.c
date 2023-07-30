@@ -563,21 +563,33 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
   return id;
 }
 
-static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus status) {
+static void hud_production_queue_bg_draw(
+    UiCanvasComp* canvas, const SceneProductQueue* queue, const UiStatus status) {
   ui_style_push(canvas);
+
+  UiColor color;
+  switch (queue->state) {
+  case SceneProductState_Idle:
+    color = ui_color(16, 16, 16, 128);
+    break;
+  case SceneProductState_Active:
+    color = ui_color(0, 78, 0, 128);
+    break;
+  }
+
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color(canvas, ui_color(32, 32, 32, 128));
+    ui_style_color_with_mult(canvas, color, 1.5f);
     ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
-    ui_style_color(canvas, ui_color(48, 48, 48, 128));
+    ui_style_color_with_mult(canvas, color, 2.0f);
     ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
-    ui_style_color(canvas, ui_color(16, 16, 16, 128));
+    ui_style_color(canvas, color);
     ui_style_outline(canvas, 2);
     break;
   }
@@ -671,7 +683,7 @@ static void hud_production_queue_draw(
   const StringHash hotkey =
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
-  hud_production_queue_bg_draw(canvas, status);
+  hud_production_queue_bg_draw(canvas, queue, status);
   hud_production_queue_icon_draw(canvas, product, status);
   if (queue->count) {
     hud_production_queue_count_draw(canvas, queue);
