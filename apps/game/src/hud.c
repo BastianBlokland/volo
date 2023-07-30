@@ -572,6 +572,7 @@ static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus st
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_color(canvas, ui_color(48, 48, 48, 128));
     ui_style_outline(canvas, 1);
     break;

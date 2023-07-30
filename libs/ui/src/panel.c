@@ -107,6 +107,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_outline(canvas, 1);
     size = ui_vector(18, 18);
     break;
@@ -135,6 +136,7 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, const UiPanelOpts* 
   switch (ui_canvas_elem_status(canvas, id)) {
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_color_with_mult(canvas, opts->topBarColor, 2);
     break;
   case UiStatus_Hovered:
@@ -202,6 +204,7 @@ static void ui_panel_tabs(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpt
         break;
       case UiStatus_Pressed:
       case UiStatus_Activated:
+      case UiStatus_ActivatedAlt:
         ui_style_color_with_mult(canvas, g_tabInactiveColor, 3);
         break;
       case UiStatus_Idle:
