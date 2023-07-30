@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_product.h"
+#include "scene_time.h"
 
 typedef enum {
   ProductRes_MapAcquired  = 1 << 0,
@@ -142,7 +143,37 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_read(SceneProductResourceComp); }
+ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(SceneProductResourceComp);
+  ecs_access_read(SceneTimeComp);
+}
+
+static bool scene_product_any_queue_active(SceneProductionComp* production) {
+  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->state > SceneProductState_Idle) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void scene_product_process_queue_requests(SceneProductQueue* queue) {
+  const AssetProduct* product = queue->product;
+  if (queue->requests & SceneProductRequest_EnqueueSingle && queue->count < product->queueMax) {
+    ++queue->count;
+  }
+  if (queue->requests & SceneProductRequest_EnqueueBulk && queue->count < product->queueMax) {
+    queue->count += math_min(product->queueBulkSize, product->queueMax - queue->count);
+  }
+  if (queue->requests & SceneProductRequest_CancelSingle && queue->count) {
+    --queue->count;
+  }
+  if (queue->requests & SceneProductRequest_CancelAll) {
+    queue->count = 0;
+  }
+  queue->requests = 0;
+}
 
 ecs_system_define(SceneProductUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -150,6 +181,7 @@ ecs_system_define(SceneProductUpdateSys) {
   if (!globalItr) {
     return;
   }
+  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView*                   productMapView = ecs_world_view_t(world, ProductMapView);
   const AssetProductMapComp* productMap     = product_map_get(globalItr, productMapView);
@@ -166,23 +198,36 @@ ecs_system_define(SceneProductUpdateSys) {
       continue;
     }
 
-    // Process product queue requests.
+    bool anyQueueActive = scene_product_any_queue_active(production);
+
+    // Update product queues.
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
       SceneProductQueue*  queue   = &production->queues[queueIndex];
       const AssetProduct* product = queue->product;
-      if (queue->requests & SceneProductRequest_EnqueueSingle && queue->count < product->queueMax) {
-        ++queue->count;
+
+      scene_product_process_queue_requests(queue);
+
+      switch (queue->state) {
+      case SceneProductState_Idle:
+        if (queue->count && !anyQueueActive) {
+          queue->state    = SceneProductState_Active;
+          queue->progress = 0.0f;
+          anyQueueActive  = true;
+        }
+        break;
+      case SceneProductState_Active:
+        if (!queue->count) {
+          queue->state    = SceneProductState_Idle;
+          queue->progress = 0.0f;
+          break;
+        }
+        queue->progress += (f32)time->delta / (f32)product->costTime;
+        if (queue->progress >= 1.0f) {
+          --queue->count;
+          queue->progress = 0.0f;
+        }
+        break;
       }
-      if (queue->requests & SceneProductRequest_EnqueueBulk && queue->count < product->queueMax) {
-        queue->count += math_min(product->queueBulkSize, product->queueMax - queue->count);
-      }
-      if (queue->requests & SceneProductRequest_CancelSingle && queue->count) {
-        --queue->count;
-      }
-      if (queue->requests & SceneProductRequest_CancelAll) {
-        queue->count = 0;
-      }
-      queue->requests = 0;
     }
   }
 }

@@ -11,10 +11,17 @@ typedef enum {
   SceneProductRequest_CancelAll     = 1 << 4,
 } SceneProductRequest;
 
+typedef enum {
+  SceneProductState_Idle,
+  SceneProductState_Active,
+} SceneProductState;
+
 typedef struct {
   const AssetProduct* product;
   u32                 count;
-  SceneProductRequest requests;
+  SceneProductState   state : 8;
+  SceneProductRequest requests : 8;
+  f32                 progress;
 } SceneProductQueue;
 
 ecs_comp_extern_public(SceneProductionComp) {
