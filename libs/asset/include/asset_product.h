@@ -23,6 +23,7 @@ typedef struct sAssetProduct {
   String           name;
   Unicode          icon;
   TimeDuration     costTime;
+  u16              queueMax;
   union {
     AssetProductUnit data_unit;
   };

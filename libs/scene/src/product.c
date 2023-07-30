@@ -167,8 +167,9 @@ ecs_system_define(SceneProductUpdateSys) {
 
     // Process product queue requests.
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
-      SceneProductQueue* queue = &production->queues[queueIndex];
-      if (queue->requests & SceneProductRequest_Enqueue) {
+      SceneProductQueue*  queue   = &production->queues[queueIndex];
+      const AssetProduct* product = queue->product;
+      if (queue->requests & SceneProductRequest_Enqueue && queue->count < product->queueMax) {
         ++queue->count;
       }
       queue->requests = 0;

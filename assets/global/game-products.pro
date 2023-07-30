@@ -8,6 +8,7 @@
           "$name": "Assault Ranger",
           "icon": "\uF051",
           "costTime": 10,
+          "queueMax": 99,
           "unitPrefab": "InfantryRifle"
         },
         {
@@ -15,6 +16,7 @@
           "$name": "Rocket Ranger",
           "icon": "\uF050",
           "costTime": 15,
+          "queueMax": 99,
           "unitPrefab": "InfantryRocket"
         },
         {
@@ -22,6 +24,7 @@
           "$name": "Flame Ranger",
           "icon": "\uF052",
           "costTime": 15,
+          "queueMax": 99,
           "unitPrefab": "InfantryFlame"
         }
       ]

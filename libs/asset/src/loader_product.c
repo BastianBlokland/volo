@@ -21,6 +21,7 @@ static DataMeta g_dataMapDefMeta;
 typedef struct {
   String icon;
   f32    costTime;
+  u16    queueMax;
   String unitPrefab;
 } AssetProductUnitDef;
 
@@ -60,6 +61,7 @@ static void product_datareg_init() {
     data_reg_struct_t(reg, AssetProductUnitDef);
     data_reg_field_t(reg, AssetProductUnitDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductUnitDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
@@ -103,14 +105,6 @@ static String product_error_str(const ProductError err) {
   return g_msgs[err];
 }
 
-static void
-product_unit_build(const AssetProductUnitDef* def, AssetProductUnit* out, ProductError* err) {
-  *out = (AssetProductUnit){
-      .unitPrefab = string_hash(def->unitPrefab),
-  };
-  *err = ProductError_None;
-}
-
 static void productset_build(
     const AssetProductSetDef* def,
     DynArray*                 outProducts, // AssetProduct[], needs to be already initialized.
@@ -137,11 +131,15 @@ static void productset_build(
     switch (productDef->type) {
     case AssetProduct_Unit:
       utf8_cp_read(productDef->data_unit.icon, &outProduct->icon);
-      outProduct->costTime = (TimeDuration)time_seconds(productDef->data_unit.costTime);
-      product_unit_build(&productDef->data_unit, &outProduct->data_unit, err);
+      outProduct->costTime  = (TimeDuration)time_seconds(productDef->data_unit.costTime);
+      outProduct->queueMax  = productDef->data_unit.queueMax;
+      outProduct->data_unit = (AssetProductUnit){
+          .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+      };
       break;
     }
     outProduct->costTime = math_max(outProduct->costTime, time_millisecond);
+    outProduct->queueMax = outProduct->queueMax ? outProduct->queueMax : u16_max;
     if (*err) {
       return; // Failed to build product-set.
     }
