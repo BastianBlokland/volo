@@ -621,6 +621,12 @@ static void hud_production_queue_draw(
   hud_production_queue_icon_draw(canvas, product, status);
   hud_production_queue_cost_draw(canvas, product);
 
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated) {
+    ui_canvas_sound(canvas, UiSoundType_Click);
+  }
   if (!string_is_empty(product->name)) {
     ui_tooltip(canvas, id, product->name);
   }
