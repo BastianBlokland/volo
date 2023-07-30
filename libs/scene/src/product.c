@@ -5,10 +5,13 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_faction.h"
 #include "scene_lifetime.h"
+#include "scene_prefab.h"
 #include "scene_product.h"
 #include "scene_sound.h"
 #include "scene_time.h"
+#include "scene_transform.h"
 
 typedef enum {
   ProductRes_MapAcquired  = 1 << 0,
@@ -68,7 +71,11 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
 }
 
 ecs_view_define(ProductMapView) { ecs_access_read(AssetProductMapComp); }
-ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
+ecs_view_define(ProductionView) {
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_write(SceneProductionComp);
+}
 
 ecs_view_define(ResInitGlobalView) {
   ecs_access_write(AssetManagerComp);
@@ -177,14 +184,31 @@ static void scene_product_process_queue_requests(SceneProductQueue* queue) {
   queue->requests = 0;
 }
 
-static void scene_product_ready_sound(EcsWorld* world, SceneProductQueue* queue) {
-  const AssetProduct* prod = queue->product;
-  if (!prod->soundReady) {
-    return;
+static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue, EcsIterator* itr) {
+  const AssetProduct*       prod        = queue->product;
+  const SceneFactionComp*   factionComp = ecs_view_read_t(itr, SceneFactionComp);
+  const SceneTransformComp* transComp   = ecs_view_read_t(itr, SceneTransformComp);
+
+  switch (prod->type) {
+  case AssetProduct_Unit:
+    scene_prefab_spawn(
+        world,
+        &(ScenePrefabSpec){
+            .prefabId = prod->data_unit.unitPrefab,
+            .flags    = ScenePrefabFlags_SnapToTerrain,
+            .position = transComp ? transComp->position : geo_vector(0),
+            .rotation = geo_quat_ident,
+            .scale    = 1.0f,
+            .faction  = factionComp ? factionComp->id : SceneFaction_None,
+        });
+    break;
   }
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = prod->soundReady, .gain = 1.0f, .pitch = 1.0f);
+
+  if (prod->soundReady) {
+    const EcsEntityId e = ecs_world_entity_create(world);
+    ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+    ecs_world_add_t(world, e, SceneSoundComp, .asset = prod->soundReady, .gain = 1, .pitch = 1);
+  }
 }
 
 ecs_system_define(SceneProductUpdateSys) {
@@ -238,7 +262,7 @@ ecs_system_define(SceneProductUpdateSys) {
           --queue->count;
           queue->state    = SceneProductState_Cooldown;
           queue->progress = 0.0f;
-          scene_product_ready_sound(world, queue);
+          scene_product_ready(world, queue, itr);
         }
         break;
       case SceneProductState_Cooldown:
