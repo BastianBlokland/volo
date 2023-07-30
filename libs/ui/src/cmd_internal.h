@@ -80,10 +80,11 @@ typedef struct {
 
 typedef struct {
   UiId    id;
-  String  text;
+  void*   textPtr;
+  u16     textSize;
   u16     fontSize;
-  UiAlign align : 8;
   UiFlags flags : 16;
+  UiAlign align : 8;
 } UiDrawText;
 
 typedef struct {
