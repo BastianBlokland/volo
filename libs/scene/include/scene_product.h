@@ -18,6 +18,11 @@ typedef enum {
   SceneProductState_Cooldown,
 } SceneProductState;
 
+typedef enum {
+  SceneProductRallySpace_Local,
+  SceneProductRallySpace_World,
+} SceneProductRallySpace;
+
 typedef struct {
   const AssetProduct* product;
   u32                 count;
@@ -27,10 +32,11 @@ typedef struct {
 } SceneProductQueue;
 
 ecs_comp_extern_public(SceneProductionComp) {
-  StringHash         productSetId;
-  u32                queueCount;
-  SceneProductQueue* queues;
-  GeoVector          spawnPos, rallyPos;
+  StringHash             productSetId;
+  u32                    queueCount;
+  SceneProductQueue*     queues;
+  SceneProductRallySpace rallySpace;
+  GeoVector              spawnPos, rallyPos;
 };
 
 void scene_product_init(EcsWorld*, String productMapId);

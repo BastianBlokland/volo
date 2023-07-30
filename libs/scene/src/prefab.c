@@ -386,6 +386,7 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
       e,
       SceneProductionComp,
       .productSetId = t->productSetId,
+      .rallySpace   = SceneProductRallySpace_Local,
       .spawnPos     = t->spawnPos,
       .rallyPos     = t->rallyPos);
 }

@@ -203,8 +203,10 @@ static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue,
   const GeoVector spawnPos = geo_vector_add(
       position, geo_quat_rotate(rotation, geo_vector_mul(production->spawnPos, scale)));
 
-  const GeoVector rallyPos = geo_vector_add(
-      position, geo_quat_rotate(rotation, geo_vector_mul(production->rallyPos, scale)));
+  GeoVector rallyPos = production->rallyPos;
+  if (production->rallySpace == SceneProductRallySpace_Local) {
+    rallyPos = geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(rallyPos, scale)));
+  }
 
   const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPos);
   const f32       moveMag   = geo_vector_mag(moveDelta);
