@@ -30,7 +30,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   StringHash         productSetId;
   u32                queueCount;
   SceneProductQueue* queues;
-  GeoVector          spawnOffset;
+  GeoVector          spawnPos, rallyPos;
 };
 
 void scene_product_init(EcsWorld*, String productMapId);

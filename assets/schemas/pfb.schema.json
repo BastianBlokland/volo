@@ -628,7 +628,11 @@
             "$name": {
               "type": "string"
             },
-            "spawnOffset": {
+            "spawnPos": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "rallyPos": {
               "title": "AssetPrefabVec3Def",
               "$ref": "#/$defs/AssetPrefabVec3Def"
             },

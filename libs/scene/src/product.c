@@ -2,11 +2,13 @@
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
+#include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_product.h"
 #include "scene_sound.h"
@@ -199,21 +201,31 @@ static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue,
   const f32          scale    = scaleComp ? scaleComp->scale : 1.0f;
 
   const GeoVector spawnPos = geo_vector_add(
-      position, geo_quat_rotate(rotation, geo_vector_mul(production->spawnOffset, scale)));
+      position, geo_quat_rotate(rotation, geo_vector_mul(production->spawnPos, scale)));
+
+  const GeoVector rallyPos = geo_vector_add(
+      position, geo_quat_rotate(rotation, geo_vector_mul(production->rallyPos, scale)));
+
+  const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPos);
+  const f32       moveMag   = geo_vector_mag(moveDelta);
+  const GeoVector fwd = moveMag > f32_epsilon ? geo_vector_div(moveDelta, moveMag) : geo_forward;
 
   switch (product->type) {
-  case AssetProduct_Unit:
-    scene_prefab_spawn(
+  case AssetProduct_Unit: {
+    const EcsEntityId e = scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
             .prefabId = product->data_unit.unitPrefab,
             .flags    = ScenePrefabFlags_SnapToTerrain,
             .position = spawnPos,
-            .rotation = geo_quat_ident,
+            .rotation = geo_quat_look(fwd, geo_up),
             .scale    = 1.0f,
             .faction  = faction,
         });
-    break;
+    if (moveMag > f32_epsilon) {
+      ecs_world_add_t(world, e, SceneNavRequestComp, .targetPos = rallyPos);
+    }
+  } break;
   }
 
   if (product->soundReady) {
