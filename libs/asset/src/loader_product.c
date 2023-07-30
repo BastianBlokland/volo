@@ -3,9 +3,11 @@
 #include "core_annotation.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "core_utf8.h"
 #include "data.h"
 #include "ecs_utils.h"
@@ -18,6 +20,7 @@ static DataMeta g_dataMapDefMeta;
 
 typedef struct {
   String icon;
+  f32    costTime;
   String unitPrefab;
 } AssetProductUnitDef;
 
@@ -56,6 +59,7 @@ static void product_datareg_init() {
     // clang-format off
     data_reg_struct_t(reg, AssetProductUnitDef);
     data_reg_field_t(reg, AssetProductUnitDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductUnitDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_union_t(reg, AssetProductDef, type);
@@ -133,9 +137,11 @@ static void productset_build(
     switch (productDef->type) {
     case AssetProduct_Unit:
       utf8_cp_read(productDef->data_unit.icon, &outProduct->icon);
+      outProduct->costTime = (TimeDuration)time_seconds(productDef->data_unit.costTime);
       product_unit_build(&productDef->data_unit, &outProduct->data_unit, err);
       break;
     }
+    outProduct->costTime = math_max(outProduct->costTime, time_millisecond);
     if (*err) {
       return; // Failed to build product-set.
     }

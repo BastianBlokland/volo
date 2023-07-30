@@ -69,6 +69,10 @@
               "title": "String",
               "type": "string"
             },
+            "costTime": {
+              "title": "f32",
+              "type": "number"
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

@@ -576,8 +576,13 @@ static void hud_production_queue_draw(
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-0.5f, -0.5f), UiBase_Container, Ui_XY);
   ui_canvas_draw_glyph(canvas, queue->product->icon, 0, UiFlags_None);
-  ui_layout_pop(canvas);
 
+  // Cost label.
+  ui_layout_inner(canvas, UiBase_Container, UiAlign_BottomLeft, ui_vector(70, 30), UiBase_Absolute);
+  const String costText = fmt_write_scratch("\uE425 {}", fmt_duration(queue->product->costTime));
+  ui_label(canvas, costText, .align = UiAlign_MiddleCenter);
+
+  ui_layout_pop(canvas);
   if (!string_is_empty(queue->product->name)) {
     ui_tooltip(canvas, id, queue->product->name);
   }

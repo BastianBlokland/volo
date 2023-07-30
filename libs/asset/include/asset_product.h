@@ -3,6 +3,9 @@
 #include "core_unicode.h"
 #include "ecs_module.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 /**
  * Production database.
  */
@@ -19,6 +22,7 @@ typedef struct sAssetProduct {
   AssetProductType type;
   String           name;
   Unicode          icon;
+  TimeDuration     costTime;
   union {
     AssetProductUnit data_unit;
   };
