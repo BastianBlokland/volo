@@ -2,6 +2,7 @@
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_product.h"
@@ -169,8 +170,11 @@ ecs_system_define(SceneProductUpdateSys) {
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
       SceneProductQueue*  queue   = &production->queues[queueIndex];
       const AssetProduct* product = queue->product;
-      if (queue->requests & SceneProductRequest_Enqueue && queue->count < product->queueMax) {
+      if (queue->requests & SceneProductRequest_EnqueueSingle && queue->count < product->queueMax) {
         ++queue->count;
+      }
+      if (queue->requests & SceneProductRequest_EnqueueBulk && queue->count < product->queueMax) {
+        queue->count += math_min(product->queueBulkSize, product->queueMax - queue->count);
       }
       if (queue->requests & SceneProductRequest_CancelSingle && queue->count) {
         --queue->count;

@@ -79,6 +79,12 @@
               "minimum": 0,
               "maximum": 65535
             },
+            "queueBulkSize": {
+              "title": "u16",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
             "unitPrefab": {
               "title": "String",
               "type": "string",

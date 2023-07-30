@@ -649,13 +649,13 @@ static void hud_production_queue_draw(
   if (status == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
     if (input_modifiers(input) & InputModifier_Control) {
-      if (input_modifiers(input) & InputModifier_Shift) {
-        queue->requests |= SceneProductRequest_CancelAll;
-      } else {
-        queue->requests |= SceneProductRequest_CancelSingle;
-      }
+      queue->requests |= input_modifiers(input) & InputModifier_Shift
+                             ? SceneProductRequest_CancelAll
+                             : SceneProductRequest_CancelSingle;
     } else {
-      queue->requests |= SceneProductRequest_Enqueue;
+      queue->requests |= input_modifiers(input) & InputModifier_Shift
+                             ? SceneProductRequest_EnqueueBulk
+                             : SceneProductRequest_EnqueueSingle;
     }
   }
   if (!string_is_empty(product->name)) {
