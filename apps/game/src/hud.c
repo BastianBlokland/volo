@@ -588,7 +588,7 @@ static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus st
 
 static void hud_production_queue_icon_draw(
     UiCanvasComp* canvas, const SceneProductQueue* queue, const UiStatus status) {
-  static const UiVector g_size = {.x = 60, .y = 60};
+  static const UiVector g_size = {.x = 30, .y = 30};
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
@@ -596,7 +596,7 @@ static void hud_production_queue_icon_draw(
   ui_style_color(canvas, ui_color_white);
   switch (queue->state) {
   case SceneProductState_Idle:
-    ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
+    ui_style_outline(canvas, status == UiStatus_Hovered ? 2 : 1);
     break;
   case SceneProductState_Active:
   case SceneProductState_Cooldown:
@@ -624,7 +624,7 @@ static void hud_production_queue_progress_draw(UiCanvasComp* canvas, const f32 p
 }
 
 static void hud_production_queue_count_draw(UiCanvasComp* canvas, const SceneProductQueue* queue) {
-  static const UiVector g_size = {.x = 40, .y = 40};
+  static const UiVector g_size = {.x = 30, .y = 30};
 
   ui_style_push(canvas);
   ui_layout_push(canvas);
@@ -633,7 +633,7 @@ static void hud_production_queue_count_draw(UiCanvasComp* canvas, const ScenePro
   ui_style_outline(canvas, 2);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_TopLeft, g_size, UiBase_Absolute);
   const String countText = fmt_write_scratch("{}", fmt_int(queue->count));
-  ui_label(canvas, countText, .align = UiAlign_MiddleCenter, .fontSize = 25);
+  ui_label(canvas, countText, .align = UiAlign_MiddleCenter, .fontSize = 20);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
@@ -641,7 +641,7 @@ static void hud_production_queue_count_draw(UiCanvasComp* canvas, const ScenePro
 
 static void hud_production_queue_hotkey_draw(
     UiCanvasComp* canvas, const InputManagerComp* input, const StringHash actionHash) {
-  static const UiVector g_size = {.x = 25, .y = 25};
+  static const UiVector g_size = {.x = 20, .y = 20};
 
   const GapKey  actionPrimaryKey     = input_primary_key(input, actionHash);
   const Unicode actionPrimaryKeyChar = gap_key_char(actionPrimaryKey);
@@ -662,7 +662,7 @@ static void hud_production_queue_hotkey_draw(
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_None);
 
   ui_style_color(canvas, ui_color_white);
-  ui_label(canvas, hotkeyText, .align = UiAlign_MiddleCenter);
+  ui_label(canvas, hotkeyText, .align = UiAlign_MiddleCenter, .fontSize = 14);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
@@ -694,11 +694,11 @@ static void hud_production_queue_draw(
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
   hud_production_queue_bg_draw(canvas, status);
-  hud_production_queue_icon_draw(canvas, queue, status);
   if (queue->state >= SceneProductState_Active) {
     const f32 progress = queue->state == SceneProductState_Active ? queue->progress : 1.0f;
     hud_production_queue_progress_draw(canvas, progress);
   }
+  hud_production_queue_icon_draw(canvas, queue, status);
   if (queue->count) {
     hud_production_queue_count_draw(canvas, queue);
   }
@@ -743,7 +743,7 @@ static void hud_production_draw(
   hud_production_header_draw(canvas, itr);
 
   SceneProductionComp* production     = ecs_view_write_t(itr, SceneProductionComp);
-  const u32            colCount       = 2;
+  const u32            colCount       = 3;
   const u32            rowCount       = production->queueCount / colCount + 1;
   const f32            spacing        = 10.0f;
   const f32            scrollbarWidth = 10.0f;
