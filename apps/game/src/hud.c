@@ -730,7 +730,13 @@ static void hud_production_queue_draw(
                            : SceneProductRequest_CancelSingle;
   }
   if (!string_is_empty(product->name)) {
-    ui_tooltip(canvas, id, product->name);
+    Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+    DynString buffer    = dynstring_create_over(bufferMem);
+
+    fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(product->name));
+    fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(product->costTime));
+
+    ui_tooltip(canvas, id, dynstring_view(&buffer));
   }
 }
 
