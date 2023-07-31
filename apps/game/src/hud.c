@@ -563,39 +563,26 @@ static UiId hud_production_header_draw(UiCanvasComp* canvas, EcsIterator* itr) {
   return id;
 }
 
-static void hud_production_queue_bg_draw(
-    UiCanvasComp* canvas, const SceneProductQueue* queue, const UiStatus status) {
+static void hud_production_queue_bg_draw(UiCanvasComp* canvas, const UiStatus status) {
   ui_style_push(canvas);
-
-  UiColor color;
-  switch (queue->state) {
-  case SceneProductState_Idle:
-    color = ui_color(16, 16, 16, 128);
-    break;
-  case SceneProductState_Active:
-  case SceneProductState_Cooldown:
-    color = ui_color(0, 78, 0, 128);
-    break;
-  }
-
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color_with_mult(canvas, color, 1.5f);
+    ui_style_color(canvas, ui_color(32, 32, 32, 128));
     ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
   case UiStatus_ActivatedAlt:
-    ui_style_color_with_mult(canvas, color, 2.0f);
+    ui_style_color(canvas, ui_color(48, 48, 48, 128));
     ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
-    ui_style_color(canvas, color);
+    ui_style_color(canvas, ui_color(16, 16, 16, 128));
     ui_style_outline(canvas, 2);
     break;
   }
   const UiFlags flags = UiFlags_Interactable | UiFlags_InteractSupportAlt;
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, flags);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, flags);
   ui_style_pop(canvas);
 }
 
@@ -606,23 +593,34 @@ static void hud_production_queue_icon_draw(
   ui_style_push(canvas);
   ui_layout_push(canvas);
 
+  ui_style_color(canvas, ui_color_white);
   switch (queue->state) {
   case SceneProductState_Idle:
-    ui_style_color(canvas, ui_color_white);
     ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 2);
     break;
   case SceneProductState_Active:
   case SceneProductState_Cooldown:
-    ui_style_color(canvas, ui_color_gray);
     ui_style_outline(canvas, 2);
     break;
   }
-
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
   ui_canvas_draw_glyph(canvas, queue->product->icon, 0, UiFlags_None);
 
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
+}
+
+static void hud_production_queue_progress_draw(UiCanvasComp* canvas, const f32 progress) {
+  ui_layout_push(canvas);
+  ui_style_push(canvas);
+
+  ui_style_color(canvas, ui_color(0, 78, 0, 128));
+  ui_style_outline(canvas, 0);
+  ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(progress, 0), UiBase_Current, Ui_X);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 static void hud_production_queue_count_draw(UiCanvasComp* canvas, const SceneProductQueue* queue) {
@@ -660,7 +658,7 @@ static void hud_production_queue_hotkey_draw(
   ui_style_weight(canvas, UiWeight_Bold);
   ui_style_outline(canvas, 2);
 
-  ui_style_color(canvas, ui_color(128, 128, 128, 128));
+  ui_style_color(canvas, ui_color(128, 128, 128, 16));
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_None);
 
   ui_style_color(canvas, ui_color_white);
@@ -695,8 +693,12 @@ static void hud_production_queue_draw(
   const StringHash hotkey =
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
-  hud_production_queue_bg_draw(canvas, queue, status);
+  hud_production_queue_bg_draw(canvas, status);
   hud_production_queue_icon_draw(canvas, queue, status);
+  if (queue->state >= SceneProductState_Active) {
+    const f32 progress = queue->state == SceneProductState_Active ? queue->progress : 1.0f;
+    hud_production_queue_progress_draw(canvas, progress);
+  }
   if (queue->count) {
     hud_production_queue_count_draw(canvas, queue);
   }
@@ -704,17 +706,6 @@ static void hud_production_queue_draw(
     hud_production_queue_hotkey_draw(canvas, input, hotkey);
   }
   hud_production_queue_cost_draw(canvas, product);
-
-  if (queue->state == SceneProductState_Active) {
-    ui_style_push(canvas);
-    ui_style_variation(canvas, UiVariation_Monospace);
-    ui_style_weight(canvas, UiWeight_Bold);
-    ui_style_outline(canvas, 3);
-    const u32    percent      = (u32)(queue->progress * 100.0f);
-    const String progressText = fmt_write_scratch("{}%", fmt_int(percent, .minDigits = 2));
-    ui_label(canvas, progressText, .align = UiAlign_MiddleCenter, .fontSize = 30);
-    ui_style_pop(canvas);
-  }
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
