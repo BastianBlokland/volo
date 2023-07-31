@@ -157,11 +157,12 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
 }
 
 ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneProductResourceComp);
   ecs_access_read(SceneTimeComp);
 }
 
-static bool scene_product_any_queue_active(SceneProductionComp* production) {
+static bool production_any_queue_active(SceneProductionComp* production) {
   for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
     if (queue->state > SceneProductState_Idle) {
@@ -171,7 +172,7 @@ static bool scene_product_any_queue_active(SceneProductionComp* production) {
   return false;
 }
 
-static void scene_product_process_queue_requests(SceneProductQueue* queue) {
+static void production_process_queue_requests(SceneProductQueue* queue) {
   const AssetProduct* product = queue->product;
   if (queue->requests & SceneProductRequest_EnqueueSingle && queue->count < product->queueMax) {
     ++queue->count;
@@ -188,27 +189,38 @@ static void scene_product_process_queue_requests(SceneProductQueue* queue) {
   queue->requests = 0;
 }
 
-static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue, EcsIterator* itr) {
+static GeoVector production_world_from_local(EcsIterator* itr, const GeoVector localPos) {
+  const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+
+  const GeoVector position = transComp ? transComp->position : geo_vector(0);
+  const GeoQuat   rotation = transComp ? transComp->rotation : geo_quat_ident;
+  const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+
+  return geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(localPos, scale)));
+}
+
+static GeoVector production_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
+  GeoNavCell cell = scene_nav_at_position(nav, pos);
+  scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
+  return scene_nav_position(nav, cell);
+}
+
+static void production_ready(
+    EcsWorld* world, const SceneNavEnvComp* nav, const SceneProductQueue* queue, EcsIterator* itr) {
   const AssetProduct*        product     = queue->product;
   const SceneProductionComp* production  = ecs_view_read_t(itr, SceneProductionComp);
   const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
-  const SceneScaleComp*      scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
-  const SceneTransformComp*  transComp   = ecs_view_read_t(itr, SceneTransformComp);
 
-  const GeoVector    position = transComp ? transComp->position : geo_vector(0);
-  const GeoQuat      rotation = transComp ? transComp->rotation : geo_quat_ident;
-  const SceneFaction faction  = factionComp ? factionComp->id : SceneFaction_None;
-  const f32          scale    = scaleComp ? scaleComp->scale : 1.0f;
-
-  const GeoVector spawnPos = geo_vector_add(
-      position, geo_quat_rotate(rotation, geo_vector_mul(production->spawnPos, scale)));
+  const GeoVector spawnPos      = production_world_from_local(itr, production->spawnPos);
+  const GeoVector spawnPosOnNav = production_world_on_nav(nav, spawnPos);
 
   GeoVector rallyPos = production->rallyPos;
   if (production->rallySpace == SceneProductRallySpace_Local) {
-    rallyPos = geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(rallyPos, scale)));
+    rallyPos = production_world_from_local(itr, rallyPos);
   }
 
-  const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPos);
+  const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPosOnNav);
   const f32       moveMag   = geo_vector_mag(moveDelta);
   const GeoVector fwd = moveMag > f32_epsilon ? geo_vector_div(moveDelta, moveMag) : geo_forward;
 
@@ -219,10 +231,10 @@ static void scene_product_ready(EcsWorld* world, const SceneProductQueue* queue,
         &(ScenePrefabSpec){
             .prefabId = product->data_unit.unitPrefab,
             .flags    = ScenePrefabFlags_SnapToTerrain,
-            .position = spawnPos,
+            .position = spawnPosOnNav,
             .rotation = geo_quat_look(fwd, geo_up),
             .scale    = 1.0f,
-            .faction  = faction,
+            .faction  = factionComp ? factionComp->id : SceneFaction_None,
         });
     if (moveMag > f32_epsilon) {
       ecs_world_add_t(world, e, SceneNavRequestComp, .targetPos = rallyPos);
@@ -249,7 +261,8 @@ ecs_system_define(SceneProductUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeComp*   time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneNavEnvComp* nav  = ecs_view_read_t(globalItr, SceneNavEnvComp);
 
   EcsView*                   productMapView = ecs_world_view_t(world, ProductMapView);
   const AssetProductMapComp* productMap     = product_map_get(globalItr, productMapView);
@@ -266,14 +279,14 @@ ecs_system_define(SceneProductUpdateSys) {
       continue;
     }
 
-    bool anyQueueActive = scene_product_any_queue_active(production);
+    bool anyQueueActive = production_any_queue_active(production);
 
     // Update product queues.
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
       SceneProductQueue*  queue   = &production->queues[queueIndex];
       const AssetProduct* product = queue->product;
 
-      scene_product_process_queue_requests(queue);
+      production_process_queue_requests(queue);
 
       switch (queue->state) {
       case SceneProductState_Idle:
@@ -294,7 +307,7 @@ ecs_system_define(SceneProductUpdateSys) {
           --queue->count;
           queue->state    = SceneProductState_Cooldown;
           queue->progress = 0.0f;
-          scene_product_ready(world, queue, itr);
+          production_ready(world, nav, queue, itr);
         }
         break;
       case SceneProductState_Cooldown:
