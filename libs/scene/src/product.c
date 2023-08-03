@@ -264,7 +264,6 @@ static void product_queue_ready_unit(ProductQueueContext* ctx) {
         ctx->world,
         &(ScenePrefabSpec){
             .prefabId = product->data_unit.unitPrefab,
-            .flags    = ScenePrefabFlags_SnapToTerrain,
             .position = spawnPos,
             .rotation = geo_quat_look(forward, geo_up),
             .scale    = 1.0f,
