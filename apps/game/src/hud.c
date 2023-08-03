@@ -740,6 +740,8 @@ static void hud_production_queue_draw(
     }
     ui_tooltip(canvas, id, dynstring_view(&buffer));
   }
+
+  ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
 
 static void hud_production_draw(
