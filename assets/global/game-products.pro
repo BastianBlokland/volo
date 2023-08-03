@@ -12,7 +12,8 @@
           "cooldown": 1,
           "soundReadyId": "external/sound/announcer-unit-ready.wav",
           "soundReadyGain": 0.5,
-          "unitPrefab": "InfantryRifle"
+          "unitPrefab": "InfantryRifle",
+          "unitCount": 3
         },
         {
           "$type": "AssetProduct_Unit",
@@ -23,7 +24,8 @@
           "cooldown": 1,
           "soundReadyId": "external/sound/announcer-unit-ready.wav",
           "soundReadyGain": 0.5,
-          "unitPrefab": "InfantryRocket"
+          "unitPrefab": "InfantryRocket",
+          "unitCount": 2
         },
         {
           "$type": "AssetProduct_Unit",
@@ -34,7 +36,8 @@
           "cooldown": 1,
           "soundReadyId": "external/sound/announcer-unit-ready.wav",
           "soundReadyGain": 0.5,
-          "unitPrefab": "InfantryFlame"
+          "unitPrefab": "InfantryFlame",
+          "unitCount": 2
         }
       ]
     }

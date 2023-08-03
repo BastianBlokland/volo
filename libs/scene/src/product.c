@@ -239,10 +239,12 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
 }
 
 static void product_queue_ready_unit(ProductQueueContext* ctx) {
-  const AssetProduct*     product     = ctx->queue->product;
+  const AssetProduct* product = ctx->queue->product;
+  diag_assert(product->type == AssetProduct_Unit);
+
   const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
 
-  const u32        spawnCount = 1;
+  const u32        spawnCount = product->data_unit.unitCount;
   const GeoVector  spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
   const GeoVector  rallyPos   = product_rally_pos(ctx->itr);
   const GeoNavCell rallyCell  = scene_nav_at_position(ctx->nav, rallyPos);

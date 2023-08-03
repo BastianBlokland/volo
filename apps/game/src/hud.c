@@ -735,7 +735,9 @@ static void hud_production_queue_draw(
 
     fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(product->name));
     fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(product->costTime));
-
+    if (product->type == AssetProduct_Unit) {
+      fmt_write(&buffer, "\a.bCount\ar:\a>10{}\n", fmt_int(product->data_unit.unitCount));
+    }
     ui_tooltip(canvas, id, dynstring_view(&buffer));
   }
 }

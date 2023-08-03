@@ -17,6 +17,7 @@ typedef enum {
 
 typedef struct {
   StringHash unitPrefab;
+  u32        unitCount;
 } AssetProductUnit;
 
 typedef struct sAssetProduct {

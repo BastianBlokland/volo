@@ -102,6 +102,12 @@
               "title": "String",
               "type": "string",
               "minLength": 1
+            },
+            "unitCount": {
+              "title": "u32",
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 4294967295
             }
           },
           "required": [

@@ -27,6 +27,7 @@ typedef struct {
   String soundReadyId;
   f32    soundReadyGain;
   String unitPrefab;
+  u32    unitCount;
 } AssetProductUnitDef;
 
 typedef struct {
@@ -71,6 +72,7 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductUnitDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
     data_reg_union_t(reg, AssetProductDef, type);
     data_reg_union_name_t(reg, AssetProductDef, name);
@@ -153,7 +155,8 @@ static void productset_build(
           asset_maybe_lookup(ctx->world, ctx->assetManager, productDef->data_unit.soundReadyId);
       outProduct->soundReadyGain = productDef->data_unit.soundReadyGain;
       outProduct->data_unit      = (AssetProductUnit){
-          .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+               .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+               .unitCount  = math_max(1, productDef->data_unit.unitCount),
       };
       break;
     }
