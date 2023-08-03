@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
 #include "scene_register.h"
@@ -76,6 +77,16 @@ void scene_transform_rotate_around(
   const GeoVector deltaRotated = geo_quat_rotate(rot, delta);
   trans->position              = geo_vector_add(pivot, deltaRotated);
   trans->rotation              = geo_quat_norm(geo_quat_mul(rot, trans->rotation));
+}
+
+void scene_transform_scale_around(
+    SceneTransformComp* trans, SceneScaleComp* scale, const GeoVector pivot, const f32 scaleDelta) {
+  diag_assert(scaleDelta > f32_epsilon);
+
+  const GeoVector delta       = geo_vector_sub(trans->position, pivot);
+  const GeoVector deltaScaled = geo_vector_mul(delta, scaleDelta);
+  trans->position             = geo_vector_add(pivot, deltaScaled);
+  scale->scale *= scaleDelta;
 }
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp* trans) {
