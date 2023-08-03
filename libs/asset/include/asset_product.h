@@ -8,7 +8,7 @@
 typedef i64 TimeDuration;
 
 /**
- * Production database.
+ * Product database.
  */
 
 typedef enum {
