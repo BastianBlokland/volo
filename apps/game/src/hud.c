@@ -680,6 +680,20 @@ static void hud_production_queue_cost_draw(UiCanvasComp* canvas, const AssetProd
   ui_layout_pop(canvas);
 }
 
+static void hud_production_queue_tooltip(UiCanvasComp* c, const AssetProduct* prod, const UiId id) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  if (!string_is_empty(prod->name)) {
+    fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(prod->name));
+  }
+  fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(prod->costTime));
+  if (prod->type == AssetProduct_Unit) {
+    fmt_write(&buffer, "\a.bCount\ar:\a>10{}\n", fmt_int(prod->data_unit.unitCount));
+  }
+  ui_tooltip(c, id, dynstring_view(&buffer));
+}
+
 static void hud_production_queue_draw(
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
@@ -729,17 +743,7 @@ static void hud_production_queue_draw(
                            ? SceneProductRequest_CancelAll
                            : SceneProductRequest_CancelSingle;
   }
-  if (!string_is_empty(product->name)) {
-    Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
-    DynString buffer    = dynstring_create_over(bufferMem);
-
-    fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(product->name));
-    fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(product->costTime));
-    if (product->type == AssetProduct_Unit) {
-      fmt_write(&buffer, "\a.bCount\ar:\a>10{}\n", fmt_int(product->data_unit.unitCount));
-    }
-    ui_tooltip(canvas, id, dynstring_view(&buffer));
-  }
+  hud_production_queue_tooltip(canvas, product, id);
 
   ui_canvas_id_block_next(canvas); // End on an consistent id.
 }
