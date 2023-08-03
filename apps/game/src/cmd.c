@@ -144,16 +144,15 @@ static void cmd_group_update_position(CmdGroup* group, EcsWorld* world) {
   EcsIterator* transformItr  = ecs_view_itr(transformView);
   DynArray*    entities      = &group->entities;
 
-  group->position = geo_vector(0);
+  u32 count = 0;
   dynarray_for_t(entities, EcsEntityId, object) {
     if (ecs_view_maybe_jump(transformItr, *object)) {
       const GeoVector pos = ecs_view_read_t(transformItr, SceneTransformComp)->position;
-      group->position     = geo_vector_add(group->position, pos);
+      group->position     = count ? geo_vector_add(group->position, pos) : pos;
+      ++count;
     }
   }
-  if (dynarray_size(entities)) {
-    group->position = geo_vector_div(group->position, dynarray_size(entities));
-  }
+  group->position = count ? geo_vector_div(group->position, count) : geo_vector(0);
 }
 
 static bool cmd_is_player_owned(EcsIterator* itr) {
