@@ -66,6 +66,12 @@ static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVecto
   return scene_nav_position(nav, cell);
 }
 
+static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
+}
+
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {
   diag_assert(!production->queues);
   diag_assert(production->productSetId);
@@ -217,7 +223,7 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
   queue->requests = 0;
 }
 
-static void product_queue_ready(ProductQueueContext* ctx) {
+static void product_queue_ready_unit(ProductQueueContext* ctx) {
   const AssetProduct*        product     = ctx->queue->product;
   const SceneProductionComp* production  = ecs_view_read_t(ctx->itr, SceneProductionComp);
   const SceneFactionComp*    factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
@@ -234,34 +240,32 @@ static void product_queue_ready(ProductQueueContext* ctx) {
   const f32       moveMag   = geo_vector_mag(moveDelta);
   const GeoVector fwd = moveMag > f32_epsilon ? geo_vector_div(moveDelta, moveMag) : geo_forward;
 
-  switch (product->type) {
-  case AssetProduct_Unit: {
-    const EcsEntityId e = scene_prefab_spawn(
-        ctx->world,
-        &(ScenePrefabSpec){
-            .prefabId = product->data_unit.unitPrefab,
-            .flags    = ScenePrefabFlags_SnapToTerrain,
-            .position = spawnPosOnNav,
-            .rotation = geo_quat_look(fwd, geo_up),
-            .scale    = 1.0f,
-            .faction  = factionComp ? factionComp->id : SceneFaction_None,
-        });
-    if (moveMag > f32_epsilon) {
-      ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = rallyPos);
-    }
-  } break;
+  const EcsEntityId e = scene_prefab_spawn(
+      ctx->world,
+      &(ScenePrefabSpec){
+          .prefabId = product->data_unit.unitPrefab,
+          .flags    = ScenePrefabFlags_SnapToTerrain,
+          .position = spawnPosOnNav,
+          .rotation = geo_quat_look(fwd, geo_up),
+          .scale    = 1.0f,
+          .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      });
+  if (moveMag > f32_epsilon) {
+    ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = rallyPos);
   }
+}
+
+static void product_queue_ready(ProductQueueContext* ctx) {
+  const AssetProduct* product = ctx->queue->product;
 
   if (product->soundReady) {
-    const EcsEntityId e = ecs_world_entity_create(ctx->world);
-    ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = time_second);
-    ecs_world_add_t(
-        ctx->world,
-        e,
-        SceneSoundComp,
-        .asset = product->soundReady,
-        .gain  = product->soundReadyGain,
-        .pitch = 1.0f);
+    product_sound_play(ctx->world, product->soundReady, product->soundReadyGain);
+  }
+
+  switch (product->type) {
+  case AssetProduct_Unit:
+    product_queue_ready_unit(ctx);
+    break;
   }
 }
 
