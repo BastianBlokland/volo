@@ -674,8 +674,23 @@ static void hud_production_queue_cost_draw(UiCanvasComp* c, const AssetProduct* 
   ui_layout_push(c);
 
   ui_layout_inner(c, UiBase_Current, UiAlign_BottomLeft, g_size, UiBase_Absolute);
-  const String costText = fmt_write_scratch("\uE425 {}", fmt_duration(product->costTime));
-  ui_label(c, costText, .align = UiAlign_MiddleCenter);
+  const String text = fmt_write_scratch("\uE425 {}", fmt_duration(product->costTime));
+  ui_label(c, text, .align = UiAlign_MiddleCenter);
+
+  ui_layout_pop(c);
+}
+
+static void hud_production_meta_draw(UiCanvasComp* c, const AssetProduct* product) {
+  static const UiVector g_size = {.x = 30, .y = 25};
+
+  ui_layout_push(c);
+
+  ui_layout_inner(c, UiBase_Current, UiAlign_BottomRight, g_size, UiBase_Absolute);
+  String text = string_empty;
+  if (product->type == AssetProduct_Unit) {
+    text = fmt_write_scratch("x{}", fmt_int(product->data_unit.unitCount));
+  }
+  ui_label(c, text, .align = UiAlign_MiddleCenter);
 
   ui_layout_pop(c);
 }
@@ -720,6 +735,7 @@ static void hud_production_queue_draw(
     hud_production_queue_hotkey_draw(c, input, hotkey);
   }
   hud_production_queue_cost_draw(c, product);
+  hud_production_meta_draw(c, product);
 
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(c, UiInteractType_Action);
