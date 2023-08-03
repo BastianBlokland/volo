@@ -21,15 +21,15 @@ typedef struct {
 } AssetProductUnit;
 
 typedef struct sAssetProduct {
-  AssetProductType type;
   String           name;
+  AssetProductType type;
   Unicode          icon;
   TimeDuration     costTime;
   TimeDuration     cooldown;
   u16              queueMax;
   u16              queueBulkSize;
-  EcsEntityId      soundReady;
   f32              soundReadyGain;
+  EcsEntityId      soundReady;
   union {
     AssetProductUnit data_unit;
   };
