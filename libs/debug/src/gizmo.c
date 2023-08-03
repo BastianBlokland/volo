@@ -635,14 +635,14 @@ ecs_system_define(DebugGizmoUpdateSys) {
   const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
 
   // Register all gizmos that where active in the last frame.
-  GeoVector center = {0};
+  GeoVector center;
   geo_query_env_clear(gizmo->queryEnv);
   for (u32 i = 0; i != gizmo->entries.size; ++i) {
     const DebugGizmoEntry* entry = gizmo_entry(gizmo, i);
     gizmo_register(gizmo, entry);
-    center = geo_vector_add(center, entry->pos);
+    center = i ? geo_vector_add(center, entry->pos) : entry->pos;
   }
-  center = geo_vector_div(center, gizmo->entries.size ? gizmo->entries.size : 1.0f);
+  center = gizmo->entries.size ? geo_vector_div(center, gizmo->entries.size) : geo_vector(0);
 
   // Update the editor.
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
