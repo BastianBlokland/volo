@@ -14,6 +14,7 @@
 #include "scene_camera.h"
 #include "scene_level.h"
 #include "scene_prefab.h"
+#include "scene_product.h"
 #include "scene_register.h"
 #include "scene_sound.h"
 #include "scene_terrain.h"
@@ -613,6 +614,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   scene_level_load(world, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
   scene_weapon_init(world, string_lit("global/game-weapons.wea"));
+  scene_product_init(world, string_lit("global/game-products.pro"));
   scene_terrain_init(
       world,
       string_lit("graphics/scene/terrain.gra"),

@@ -58,6 +58,7 @@ typedef enum {
   AssetPrefabTrait_Explosive,
   AssetPrefabTrait_Status,
   AssetPrefabTrait_Vision,
+  AssetPrefabTrait_Production,
   AssetPrefabTrait_Scalable,
 
   AssetPrefabTrait_Count,
@@ -167,6 +168,11 @@ typedef struct {
 } AssetPrefabTraitVision;
 
 typedef struct {
+  GeoVector  spawnPos, rallyPos;
+  StringHash productSetId;
+} AssetPrefabTraitProduction;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitName       data_name;
@@ -188,6 +194,7 @@ typedef struct {
     AssetPrefabTraitExplosive  data_explosive;
     AssetPrefabTraitStatus     data_status;
     AssetPrefabTraitVision     data_vision;
+    AssetPrefabTraitProduction data_production;
   };
 } AssetPrefabTrait;
 

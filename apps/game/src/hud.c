@@ -1,3 +1,4 @@
+#include "asset_product.h"
 #include "asset_weapon.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -8,6 +9,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "gap_input.h"
 #include "input_manager.h"
 #include "rend_settings.h"
 #include "scene_attack.h"
@@ -17,6 +19,8 @@
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
+#include "scene_product.h"
+#include "scene_selection.h"
 #include "scene_status.h"
 #include "scene_target.h"
 #include "scene_terrain.h"
@@ -49,14 +53,18 @@ static const f32      g_hudMinimapPlaySize  = 225.0f;
 static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
+static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
+static StringHash     g_hudProductQueueActions[5];
 
 ecs_comp_define(HudComp) {
-  EcsEntityId uiCanvas;
-  UiRect      minimapRect;
+  EcsEntityId  uiCanvas;
+  UiRect       minimapRect;
+  UiScrollview productionScrollView;
 };
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneWeaponResourceComp);
   ecs_access_write(CmdControllerComp);
@@ -101,6 +109,11 @@ ecs_view_define(MinimapMarkerView) {
   ecs_access_with(SceneUnitComp);
 }
 
+ecs_view_define(ProductionView) {
+  ecs_access_read(SceneNameComp);
+  ecs_access_write(SceneProductionComp);
+}
+
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
 static bool hud_rect_intersect(const UiRect a, const UiRect b) {
@@ -108,8 +121,8 @@ static bool hud_rect_intersect(const UiRect a, const UiRect b) {
 }
 
 static GeoMatrix hud_ui_view_proj(
-    const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* canvas) {
-  const UiVector res    = ui_canvas_resolution(canvas);
+    const SceneCameraComp* cam, const SceneTransformComp* camTrans, const UiCanvasComp* c) {
+  const UiVector res    = ui_canvas_resolution(c);
   const f32      aspect = (f32)res.width / (f32)res.height;
   return scene_camera_view_proj(cam, camTrans, aspect);
 }
@@ -169,12 +182,12 @@ static UiColor hud_faction_color(const SceneFaction faction) {
 }
 
 static void hud_health_draw(
-    UiCanvasComp*    canvas,
+    UiCanvasComp*    c,
     HudComp*         hud,
     const GeoMatrix* viewProj,
     EcsView*         healthView,
     const UiVector   res) {
-  ui_style_push(canvas);
+  ui_style_push(c);
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
     const SceneHealthComp*    health    = ecs_view_read_t(itr, SceneHealthComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
@@ -209,41 +222,41 @@ static void hud_health_draw(
     }
 
     // Compute the health-bar ui rectangle.
-    ui_layout_set_pos(canvas, UiBase_Canvas, uiPos, UiBase_Absolute);
-    ui_layout_move_dir(canvas, Ui_Up, g_hudHealthBarOffsetY, UiBase_Absolute);
-    ui_layout_resize(canvas, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
+    ui_layout_set_pos(c, UiBase_Canvas, uiPos, UiBase_Absolute);
+    ui_layout_move_dir(c, Ui_Up, g_hudHealthBarOffsetY, UiBase_Absolute);
+    ui_layout_resize(c, UiAlign_MiddleCenter, g_hudHealthBarSize, UiBase_Absolute, Ui_XY);
 
     // Draw the health-bar background.
-    ui_style_color(canvas, ui_color(8, 8, 8, 192));
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
+    ui_style_color(c, ui_color(8, 8, 8, 192));
+    ui_canvas_draw_glyph(c, UiShape_Circle, 4, UiFlags_None);
 
     // Draw the health-bar foreground.
-    ui_style_color(canvas, hud_health_color(health->norm));
-    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(health->norm, 0), UiBase_Current, Ui_X);
-    ui_canvas_draw_glyph(canvas, UiShape_Circle, 4, UiFlags_None);
+    ui_style_color(c, hud_health_color(health->norm));
+    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(health->norm, 0), UiBase_Current, Ui_X);
+    ui_canvas_draw_glyph(c, UiShape_Circle, 4, UiFlags_None);
 
     if (status && status->active) {
-      ui_layout_next(canvas, Ui_Up, g_hudStatusSpacing.y);
-      ui_layout_resize(canvas, UiAlign_BottomLeft, g_hudStatusIconSize, UiBase_Absolute, Ui_XY);
+      ui_layout_next(c, Ui_Up, g_hudStatusSpacing.y);
+      ui_layout_resize(c, UiAlign_BottomLeft, g_hudStatusIconSize, UiBase_Absolute, Ui_XY);
       bitset_for(bitset_from_var(status->active), typeIndex) {
-        ui_style_color(canvas, g_hudStatusIconColors[typeIndex]);
-        ui_style_outline(canvas, g_hudStatusIconOutline[typeIndex]);
-        ui_canvas_draw_glyph(canvas, g_hudStatusIcons[typeIndex], 0, UiFlags_None);
-        ui_layout_next(canvas, Ui_Right, g_hudStatusSpacing.x);
+        ui_style_color(c, g_hudStatusIconColors[typeIndex]);
+        ui_style_outline(c, g_hudStatusIconOutline[typeIndex]);
+        ui_canvas_draw_glyph(c, g_hudStatusIcons[typeIndex], 0, UiFlags_None);
+        ui_layout_next(c, Ui_Right, g_hudStatusSpacing.x);
       }
     }
   }
-  ui_style_pop(canvas);
-  ui_canvas_id_block_next(canvas); // End on an consistent id.
+  ui_style_pop(c);
+  ui_canvas_id_block_next(c); // End on an consistent id.
 }
 
-static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
+static void hud_groups_draw(UiCanvasComp* c, CmdControllerComp* cmd) {
   static const UiVector g_size    = {50, 25};
   static const f32      g_spacing = 8.0f;
 
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_BottomLeft, Ui_XY);
-  ui_layout_move(canvas, ui_vector(g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_BottomLeft, g_size, UiBase_Absolute, Ui_XY);
+  ui_layout_move_to(c, UiBase_Container, UiAlign_BottomRight, Ui_XY);
+  ui_layout_move(c, ui_vector(-g_spacing, g_spacing), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(c, UiAlign_BottomRight, g_size, UiBase_Absolute, Ui_XY);
 
   for (u32 i = cmd_group_count; i-- != 0;) {
     const u32 size = cmd_group_size(cmd, i);
@@ -251,18 +264,18 @@ static void hud_groups_draw(UiCanvasComp* canvas, CmdControllerComp* cmd) {
       continue;
     }
     if (ui_button(
-            canvas,
+            c,
             .label      = fmt_write_scratch("\a|02{}\ar {}", fmt_int(i + 1), fmt_ui_shape(Group)),
             .fontSize   = 20,
             .frameColor = ui_color(32, 32, 32, 192),
             .tooltip    = fmt_write_scratch("Size: {}", fmt_int(size)))) {
       cmd_push_select_group(cmd, i);
     }
-    ui_layout_next(canvas, Ui_Up, g_spacing);
+    ui_layout_next(c, Ui_Up, g_spacing);
   }
 }
 
-static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
+static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* weaponMapItr) {
   const SceneAttackComp*       attackComp   = ecs_view_read_t(infoItr, SceneAttackComp);
   const SceneDamageStatsComp*  damageStats  = ecs_view_read_t(infoItr, SceneDamageStatsComp);
   const SceneFactionComp*      factionComp  = ecs_view_read_t(infoItr, SceneFactionComp);
@@ -343,7 +356,7 @@ static void hud_info_draw(UiCanvasComp* canvas, EcsIterator* infoItr, EcsIterato
     fmt_write(&buffer, "\a.bKills\ar:\a>15{}\n", fmt_int(damageStats->kills));
   }
 
-  ui_tooltip(canvas, sentinel_u64, dynstring_view(&buffer));
+  ui_tooltip(c, sentinel_u64, dynstring_view(&buffer));
 }
 
 static void hud_minimap_update(
@@ -437,33 +450,33 @@ static u32 hud_minimap_marker_collect(
 }
 
 static void hud_minimap_draw(
-    UiCanvasComp*             canvas,
+    UiCanvasComp*             c,
     HudComp*                  hud,
     InputStateComp*           inputState,
     const SceneCameraComp*    cam,
     const SceneTransformComp* camTrans,
     EcsView*                  markerView) {
-  const UiVector  canvasRes    = ui_canvas_resolution(canvas);
+  const UiVector  canvasRes    = ui_canvas_resolution(c);
   const f32       canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
   const GeoVector area         = geo_vector(g_hudMinimapPlaySize, 0, g_hudMinimapPlaySize);
 
-  ui_layout_push(canvas);
-  ui_layout_set(canvas, hud->minimapRect, UiBase_Absolute);
-  ui_style_push(canvas);
+  ui_layout_push(c);
+  ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
+  ui_style_push(c);
 
   // Draw frame.
-  ui_style_color(canvas, ui_color_clear);
-  ui_style_outline(canvas, 3);
-  const UiId     frameId = ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
-  const UiStatus frameStatus = ui_canvas_elem_status(canvas, frameId);
+  ui_style_color(c, ui_color_clear);
+  ui_style_outline(c, 3);
+  const UiId     frameId     = ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+  const UiStatus frameStatus = ui_canvas_elem_status(c, frameId);
 
   // Handle input.
   input_set_allow_zoom_over_ui(inputState, frameStatus >= UiStatus_Hovered);
   if (frameStatus >= UiStatus_Hovered) {
-    ui_canvas_interact_type(canvas, UiInteractType_Action);
+    ui_canvas_interact_type(c, UiInteractType_Action);
   }
   if (frameStatus >= UiStatus_Pressed) {
-    const UiVector uiPos = ui_canvas_input_pos(canvas);
+    const UiVector uiPos = ui_canvas_input_pos(c);
     const f32      x = ((uiPos.x - hud->minimapRect.x) / hud->minimapRect.width - 0.5f) * area.x;
     const f32      z = ((uiPos.y - hud->minimapRect.y) / hud->minimapRect.height - 0.5f) * area.z;
     input_camera_center(inputState, geo_vector(x, 0, z));
@@ -472,44 +485,326 @@ static void hud_minimap_draw(
   const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
   const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
 
-  ui_layout_container_push(canvas, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_Rect);
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];
   const u32        markerCount = hud_minimap_marker_collect(markerView, area, markers);
 
   // Draw marker outlines.
-  ui_style_outline(canvas, 2);
-  ui_style_color(canvas, ui_color_black);
+  ui_style_outline(c, 2);
+  ui_style_color(c, ui_color_black);
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
-    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
+    ui_circle_with_opts(c, marker->pos, &circleOpts);
   }
 
   // Draw marker fill.
-  ui_style_outline(canvas, 0);
+  ui_style_outline(c, 0);
   for (u32 i = 0; i != markerCount; ++i) {
     const HudMinimapMarker* marker = &markers[i];
-    ui_style_color(canvas, marker->color);
-    ui_circle_with_opts(canvas, marker->pos, &circleOpts);
+    ui_style_color(c, marker->color);
+    ui_circle_with_opts(c, marker->pos, &circleOpts);
   }
 
   // Draw camera frustum.
-  ui_style_outline(canvas, 0);
+  ui_style_outline(c, 0);
   UiVector camFrustumPoints[4];
   if (hud_minimap_camera_frustum(cam, camTrans, canvasAspect, area, camFrustumPoints)) {
-    ui_style_color(canvas, ui_color_white);
-    ui_line_with_opts(canvas, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
-    ui_line_with_opts(canvas, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
-    ui_line_with_opts(canvas, camFrustumPoints[2], camFrustumPoints[3], &lineOpts);
-    ui_line_with_opts(canvas, camFrustumPoints[3], camFrustumPoints[0], &lineOpts);
+    ui_style_color(c, ui_color_white);
+    ui_line_with_opts(c, camFrustumPoints[0], camFrustumPoints[1], &lineOpts);
+    ui_line_with_opts(c, camFrustumPoints[1], camFrustumPoints[2], &lineOpts);
+    ui_line_with_opts(c, camFrustumPoints[2], camFrustumPoints[3], &lineOpts);
+    ui_line_with_opts(c, camFrustumPoints[3], camFrustumPoints[0], &lineOpts);
   }
 
-  ui_layout_container_pop(canvas);
-  ui_canvas_id_block_next(canvas); // End on an consistent id.
+  ui_layout_container_pop(c);
+  ui_canvas_id_block_next(c); // End on an consistent id.
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
+  ui_style_pop(c);
+  ui_layout_pop(c);
+}
+
+static void hud_production_bg_draw(UiCanvasComp* c) {
+  ui_style_push(c);
+  ui_style_color(c, ui_color(16, 16, 16, 128));
+  ui_style_outline(c, 3);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+  ui_style_pop(c);
+}
+
+static UiId hud_production_header_draw(UiCanvasComp* c, EcsIterator* itr) {
+  static const f32 g_height = 30;
+
+  const SceneNameComp* nameComp   = ecs_view_read_t(itr, SceneNameComp);
+  const String         entityName = stringtable_lookup(g_stringtable, nameComp->name);
+  const Unicode        icon       = UiShape_Groups; // TODO: Make the icon configurable.
+
+  ui_layout_push(c);
+  ui_style_push(c);
+
+  ui_layout_move_to(c, UiBase_Current, UiAlign_TopLeft, Ui_Y);
+  ui_layout_resize(c, UiAlign_TopLeft, ui_vector(0, g_height), UiBase_Absolute, Ui_Y);
+
+  ui_style_outline(c, 3);
+  ui_style_color(c, ui_color(16, 16, 16, 128));
+  const UiId id = ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+
+  ui_style_outline(c, 2);
+  ui_style_color(c, ui_color_white);
+  ui_label(
+      c,
+      fmt_write_scratch("{} {}", fmt_text(ui_shape_scratch(icon)), fmt_text(entityName)),
+      .align    = UiAlign_MiddleCenter,
+      .fontSize = 22);
+
+  ui_style_pop(c);
+  ui_layout_pop(c);
+  return id;
+}
+
+static void hud_production_queue_bg_draw(UiCanvasComp* c, const UiStatus status) {
+  ui_style_push(c);
+  switch (status) {
+  case UiStatus_Hovered:
+    ui_style_color(c, ui_color(32, 32, 32, 128));
+    ui_style_outline(c, 3);
+    break;
+  case UiStatus_Pressed:
+  case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
+    ui_style_color(c, ui_color(48, 48, 48, 128));
+    ui_style_outline(c, 1);
+    break;
+  case UiStatus_Idle:
+    ui_style_color(c, ui_color(16, 16, 16, 128));
+    ui_style_outline(c, 2);
+    break;
+  }
+  const UiFlags flags = UiFlags_Interactable | UiFlags_InteractSupportAlt;
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, flags);
+  ui_style_pop(c);
+}
+
+static void hud_production_queue_icon_draw(
+    UiCanvasComp* c, const SceneProductQueue* queue, const UiStatus status) {
+  static const UiVector g_size = {.x = 30, .y = 30};
+
+  ui_style_push(c);
+  ui_layout_push(c);
+
+  ui_style_color(c, ui_color_white);
+  switch (queue->state) {
+  case SceneProductState_Idle:
+    ui_style_outline(c, status == UiStatus_Hovered ? 2 : 1);
+    break;
+  case SceneProductState_Active:
+  case SceneProductState_Cooldown:
+    ui_style_outline(c, 2);
+    break;
+  }
+  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
+  ui_canvas_draw_glyph(c, queue->product->icon, 0, UiFlags_None);
+
+  ui_layout_pop(c);
+  ui_style_pop(c);
+}
+
+static void hud_production_queue_progress_draw(UiCanvasComp* c, const f32 progress) {
+  ui_layout_push(c);
+  ui_style_push(c);
+
+  ui_style_color(c, ui_color(0, 78, 0, 128));
+  ui_style_outline(c, 0);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(progress, 0), UiBase_Current, Ui_X);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
+
+  ui_style_pop(c);
+  ui_layout_pop(c);
+}
+
+static void hud_production_queue_count_draw(UiCanvasComp* c, const SceneProductQueue* queue) {
+  static const UiVector g_size = {.x = 30, .y = 30};
+
+  ui_style_push(c);
+  ui_layout_push(c);
+
+  ui_style_weight(c, UiWeight_Bold);
+  ui_style_outline(c, 2);
+  ui_layout_inner(c, UiBase_Current, UiAlign_TopLeft, g_size, UiBase_Absolute);
+  const String countText = fmt_write_scratch("{}", fmt_int(queue->count));
+  ui_label(c, countText, .align = UiAlign_MiddleCenter, .fontSize = 20);
+
+  ui_layout_pop(c);
+  ui_style_pop(c);
+}
+
+static void hud_production_queue_hotkey_draw(
+    UiCanvasComp* c, const InputManagerComp* input, const StringHash actionHash) {
+  static const UiVector g_size = {.x = 20, .y = 20};
+
+  const GapKey  actionPrimaryKey     = input_primary_key(input, actionHash);
+  const Unicode actionPrimaryKeyChar = gap_key_char(actionPrimaryKey);
+  if (!actionPrimaryKeyChar) {
+    return;
+  }
+  const String hotkeyText = fmt_write_scratch("{}", fmt_char(actionPrimaryKeyChar));
+
+  ui_style_push(c);
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Current, UiAlign_TopRight, g_size, UiBase_Absolute);
+  ui_layout_move(c, ui_vector(-5.0f, -5.0f), UiBase_Absolute, Ui_XY);
+
+  ui_style_weight(c, UiWeight_Bold);
+  ui_style_outline(c, 2);
+
+  ui_style_color(c, ui_color(128, 128, 128, 16));
+  ui_canvas_draw_glyph(c, UiShape_Circle, 0, UiFlags_None);
+
+  ui_style_color(c, ui_color_white);
+  ui_label(c, hotkeyText, .align = UiAlign_MiddleCenter, .fontSize = 14);
+
+  ui_layout_pop(c);
+  ui_style_pop(c);
+}
+
+static void hud_production_queue_cost_draw(UiCanvasComp* c, const AssetProduct* product) {
+  static const UiVector g_size = {.x = 45, .y = 25};
+
+  ui_layout_push(c);
+
+  ui_layout_inner(c, UiBase_Current, UiAlign_BottomLeft, g_size, UiBase_Absolute);
+  const String text = fmt_write_scratch("\uE425 {}", fmt_duration(product->costTime));
+  ui_label(c, text, .align = UiAlign_MiddleCenter);
+
+  ui_layout_pop(c);
+}
+
+static void hud_production_meta_draw(UiCanvasComp* c, const AssetProduct* product) {
+  static const UiVector g_size = {.x = 30, .y = 25};
+
+  ui_layout_push(c);
+
+  ui_layout_inner(c, UiBase_Current, UiAlign_BottomRight, g_size, UiBase_Absolute);
+  String text = string_empty;
+  if (product->type == AssetProduct_Unit) {
+    text = fmt_write_scratch("x{}", fmt_int(product->data_unit.unitCount));
+  }
+  ui_label(c, text, .align = UiAlign_MiddleCenter);
+
+  ui_layout_pop(c);
+}
+
+static void hud_production_queue_tooltip(UiCanvasComp* c, const AssetProduct* prod, const UiId id) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 4 * usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  if (!string_is_empty(prod->name)) {
+    fmt_write(&buffer, "\a.bName\ar:\a>10{}\n", fmt_text(prod->name));
+  }
+  fmt_write(&buffer, "\a.bTime\ar:\a>10{}\n", fmt_duration(prod->costTime));
+  if (prod->type == AssetProduct_Unit) {
+    fmt_write(&buffer, "\a.bCount\ar:\a>10{}\n", fmt_int(prod->data_unit.unitCount));
+  }
+  ui_tooltip(c, id, dynstring_view(&buffer));
+}
+
+static void hud_production_queue_draw(
+    UiCanvasComp*           c,
+    const InputManagerComp* input,
+    SceneProductionComp*    production,
+    const u32               queueIndex) {
+  SceneProductQueue*  queue   = production->queues + queueIndex;
+  const AssetProduct* product = queue->product;
+
+  const UiId       id     = ui_canvas_id_peek(c);
+  const UiStatus   status = ui_canvas_elem_status(c, id);
+  const StringHash hotkey =
+      queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
+
+  hud_production_queue_bg_draw(c, status);
+  if (queue->state >= SceneProductState_Active) {
+    const f32 progress = queue->state == SceneProductState_Active ? queue->progress : 1.0f;
+    hud_production_queue_progress_draw(c, progress);
+  }
+  hud_production_queue_icon_draw(c, queue, status);
+  if (queue->count) {
+    hud_production_queue_count_draw(c, queue);
+  }
+  if (hotkey) {
+    hud_production_queue_hotkey_draw(c, input, hotkey);
+  }
+  hud_production_queue_cost_draw(c, product);
+  hud_production_meta_draw(c, product);
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(c, UiInteractType_Action);
+  }
+  if (status == UiStatus_Activated || input_triggered_hash(input, hotkey)) {
+    if (input_modifiers(input) & InputModifier_Control) {
+      ui_canvas_sound(c, UiSoundType_ClickAlt);
+      queue->requests |= input_modifiers(input) & InputModifier_Shift
+                             ? SceneProductRequest_CancelAll
+                             : SceneProductRequest_CancelSingle;
+    } else {
+      ui_canvas_sound(c, UiSoundType_Click);
+      queue->requests |= input_modifiers(input) & InputModifier_Shift
+                             ? SceneProductRequest_EnqueueBulk
+                             : SceneProductRequest_EnqueueSingle;
+    }
+  }
+  if (status == UiStatus_ActivatedAlt) {
+    ui_canvas_sound(c, UiSoundType_ClickAlt);
+    queue->requests |= input_modifiers(input) & InputModifier_Shift
+                           ? SceneProductRequest_CancelAll
+                           : SceneProductRequest_CancelSingle;
+  }
+  hud_production_queue_tooltip(c, product, id);
+
+  ui_canvas_id_block_next(c); // End on an consistent id.
+}
+
+static void hud_production_draw(
+    UiCanvasComp* c, HudComp* hud, const InputManagerComp* input, EcsIterator* itr) {
+  ui_layout_push(c);
+  ui_layout_set(c, ui_rect(ui_vector(0, 0), g_hudProductionSize), UiBase_Absolute);
+
+  hud_production_bg_draw(c);
+  hud_production_header_draw(c, itr);
+
+  SceneProductionComp* production     = ecs_view_write_t(itr, SceneProductionComp);
+  const u32            colCount       = 3;
+  const u32            rowCount       = production->queueCount / colCount + 1;
+  const f32            spacing        = 10.0f;
+  const f32            scrollbarWidth = 10.0f;
+  const f32            availableWidth = g_hudProductionSize.width - scrollbarWidth;
+  const f32            entrySize      = (availableWidth - (colCount + 1) * spacing) / colCount;
+  const UiVector       entrySizeVec   = ui_vector(entrySize, entrySize);
+  const f32            height         = rowCount * entrySize + (rowCount + 1) * spacing;
+
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -33), UiBase_Absolute, Ui_Y);
+  ui_scrollview_begin(c, &hud->productionScrollView, height);
+
+  ui_layout_move_to(c, UiBase_Current, UiAlign_TopLeft, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopLeft, entrySizeVec, UiBase_Absolute, Ui_XY);
+  ui_layout_move_dir(c, Ui_Down, spacing, UiBase_Absolute);
+
+  for (u32 row = 0; row != rowCount; ++row) {
+    ui_layout_move_to(c, UiBase_Container, UiAlign_TopLeft, Ui_X);
+    ui_layout_move_dir(c, Ui_Right, spacing, UiBase_Absolute);
+
+    for (u32 col = 0; col != colCount; ++col) {
+      const u32 queueIndex = row * colCount + col;
+      if (queueIndex < production->queueCount) {
+        hud_production_queue_draw(c, input, production, queueIndex);
+      }
+      ui_layout_move_dir(c, Ui_Right, entrySize + spacing, UiBase_Absolute);
+    }
+    ui_layout_move_dir(c, Ui_Down, entrySize + spacing, UiBase_Absolute);
+  }
+
+  ui_scrollview_end(c, &hud->productionScrollView);
+  ui_layout_pop(c);
 }
 
 ecs_system_define(HudDrawUiSys) {
@@ -519,9 +814,10 @@ ecs_system_define(HudDrawUiSys) {
     return;
   }
   CmdControllerComp*             cmd       = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
   const InputManagerComp*        input     = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneSelectionComp*      sel       = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTerrainComp*        terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneWeaponResourceComp* weaponRes = ecs_view_read_t(globalItr, SceneWeaponResourceComp);
 
   EcsView* hudView           = ecs_world_view_t(world, HudView);
   EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
@@ -529,10 +825,12 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* infoView          = ecs_world_view_t(world, InfoView);
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
   EcsView* minimapMarkerView = ecs_world_view_t(world, MinimapMarkerView);
+  EcsView* productionView    = ecs_world_view_t(world, ProductionView);
 
-  EcsIterator* canvasItr    = ecs_view_itr(canvasView);
-  EcsIterator* infoItr      = ecs_view_itr(infoView);
-  EcsIterator* weaponMapItr = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
+  EcsIterator* canvasItr     = ecs_view_itr(canvasView);
+  EcsIterator* infoItr       = ecs_view_itr(infoView);
+  EcsIterator* productionItr = ecs_view_itr(productionView);
+  EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
 
   for (EcsIterator* itr = ecs_view_itr(hudView); ecs_view_walk(itr);) {
     InputStateComp*           inputState   = ecs_view_write_t(itr, InputStateComp);
@@ -543,32 +841,36 @@ ecs_system_define(HudDrawUiSys) {
     if (!ecs_view_maybe_jump(canvasItr, hud->uiCanvas)) {
       continue;
     }
-    UiCanvasComp*   canvas   = ecs_view_write_t(canvasItr, UiCanvasComp);
-    const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, canvas);
+    UiCanvasComp*   c        = ecs_view_write_t(canvasItr, UiCanvasComp);
+    const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, c);
 
-    ui_canvas_reset(canvas);
+    ui_canvas_reset(c);
     if (input_layer_active(input, string_hash_lit("Debug"))) {
       rendSettings->flags &= ~RendFlags_Minimap;
       continue;
     }
-    const UiVector res = ui_canvas_resolution(canvas);
-    if (res.x < f32_epsilon || res.y < f32_epsilon) {
+    const UiVector res = ui_canvas_resolution(c);
+    if (UNLIKELY(res.x < f32_epsilon || res.y < f32_epsilon)) {
       continue;
     }
-    ui_canvas_to_back(canvas);
+    ui_canvas_to_back(c);
 
     hud_minimap_update(hud, terrain, rendSettings, res);
 
-    hud_health_draw(canvas, hud, &viewProj, healthView, res);
-    hud_groups_draw(canvas, cmd);
-    hud_minimap_draw(canvas, hud, inputState, cam, camTrans, minimapMarkerView);
+    hud_health_draw(c, hud, &viewProj, healthView, res);
+    hud_groups_draw(c, cmd);
+    hud_minimap_draw(c, hud, inputState, cam, camTrans, minimapMarkerView);
+
+    if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
+      hud_production_draw(c, hud, input, productionItr);
+    }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
     const TimeDuration hoveredTime   = input_hovered_time(inputState);
     if (hoveredTime >= time_second && ecs_view_maybe_jump(infoItr, hoveredEntity)) {
-      hud_info_draw(canvas, infoItr, weaponMapItr);
+      hud_info_draw(c, infoItr, weaponMapItr);
     }
-    ui_canvas_id_block_next(canvas); // End on an consistent id.
+    ui_canvas_id_block_next(c); // End on an consistent id.
   }
 }
 
@@ -582,6 +884,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
   ecs_register_view(MinimapMarkerView);
+  ecs_register_view(ProductionView);
 
   ecs_register_system(
       HudDrawUiSys,
@@ -591,13 +894,19 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
-      ecs_view_id(MinimapMarkerView));
+      ecs_view_id(MinimapMarkerView),
+      ecs_view_id(ProductionView));
 
   enum {
     Order_Normal    = 0,
     Order_HudDrawUi = 1,
   };
   ecs_order(HudDrawUiSys, Order_HudDrawUi);
+
+  // Initialize product queue action hashes.
+  for (u32 i = 0; i != array_elems(g_hudProductQueueActions); ++i) {
+    g_hudProductQueueActions[i] = string_hash(fmt_write_scratch("ProductQueue{}", fmt_int(i + 1)));
+  }
 }
 
 void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {

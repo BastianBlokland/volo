@@ -36,6 +36,7 @@ ecs_comp_define_public(SceneNavStatsComp);
 ecs_comp_define_public(SceneNavBlockerComp);
 ecs_comp_define_public(SceneNavAgentComp);
 ecs_comp_define_public(SceneNavPathComp);
+ecs_comp_define_public(SceneNavRequestComp);
 
 static void ecs_destruct_nav_env_comp(void* data) {
   SceneNavEnvComp* comp = data;
@@ -448,12 +449,32 @@ ecs_system_define(SceneNavUpdateStatsSys) {
   scene_nav_stats_update(stats, env->navGrid);
 }
 
+ecs_view_define(NavRequestsView) {
+  ecs_access_write(SceneNavAgentComp);
+  ecs_access_read(SceneNavRequestComp);
+}
+
+ecs_system_define(SceneNavApplyRequestsSys) {
+  EcsView* reqView = ecs_world_view_t(world, NavRequestsView);
+  for (EcsIterator* itr = ecs_view_itr(reqView); ecs_view_walk(itr);) {
+    SceneNavAgentComp*         agent   = ecs_view_write_t(itr, SceneNavAgentComp);
+    const SceneNavRequestComp* request = ecs_view_read_t(itr, SceneNavRequestComp);
+    if (request->targetEntity) {
+      scene_nav_move_to_entity(agent, request->targetEntity);
+    } else {
+      scene_nav_move_to(agent, request->targetPos);
+    }
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneNavRequestComp);
+  }
+}
+
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
   ecs_register_comp(SceneNavStatsComp);
   ecs_register_comp(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
+  ecs_register_comp(SceneNavRequestComp);
 
   ecs_register_system(
       SceneNavInitSys,
@@ -470,6 +491,8 @@ ecs_module_init(scene_nav_module) {
       ecs_register_view(TargetEntityView));
 
   ecs_parallel(SceneNavUpdateAgentsSys, 4);
+
+  ecs_register_system(SceneNavApplyRequestsSys, ecs_register_view(NavRequestsView));
 
   ecs_register_system(SceneNavUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
 

@@ -52,6 +52,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);
   }
+  case AssetFormat_Pro: {
+    RET_LOADER(pro);
+  }
   case AssetFormat_Ptx: {
     RET_LOADER(ptx);
   }

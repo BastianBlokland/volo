@@ -105,9 +105,9 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   ui_layout_resize(
       canvas, UiAlign_MiddleRight, ui_vector(g_scrollBarWidth, 0), UiBase_Absolute, Ui_X);
 
-  const UiColor barColor    = ui_color(16, 16, 16, 192);
-  const UiColor handleColor = ui_color_white;
   const bool hovered = status->flags & UiScrollviewStatus_HoveredBar && status->offscreenHeight > 0;
+  const UiColor barColor    = ui_color(16, 16, 16, 192);
+  const UiColor handleColor = hovered ? ui_color_white : ui_color(255, 255, 255, 178);
 
   ui_style_push(canvas);
 
@@ -123,7 +123,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   // Draw bar handle.
   const f32 offscreenFrac = 1.0f - status->viewportFrac;
   const f32 handleTopFrac = 1.0f - status->offsetFrac * offscreenFrac;
-  const f32 handleInsetX  = hovered ? 5 : 7;
+  const f32 handleInsetX  = hovered ? 4 : 6;
 
   ui_layout_move(canvas, ui_vector(0, handleTopFrac), UiBase_Current, Ui_Y);
   ui_layout_resize(

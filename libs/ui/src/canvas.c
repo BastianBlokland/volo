@@ -227,22 +227,33 @@ static void ui_canvas_update_interaction(
   }
 
   const UiFlags activeFlags         = canvas->activeElemFlags;
+  const bool    interactOnPress     = (activeFlags & UiFlags_InteractOnPress) != 0;
   const bool    hasActiveElem       = !sentinel_check(canvas->activeId);
   const bool    activeElemIsHovered = canvas->activeId == hoveredId;
-  const bool    activeInput = activeFlags & UiFlags_InteractOnPress ? inputPressed : inputReleased;
+  const bool    activeInput         = interactOnPress ? inputPressed : inputReleased;
+
+  const bool supportAlt       = (activeFlags & UiFlags_InteractSupportAlt) != 0;
+  const bool inputAltDown     = supportAlt && gap_window_key_down(window, GapKey_MouseRight);
+  const bool inputAltPressed  = supportAlt && gap_window_key_pressed(window, GapKey_MouseRight);
+  const bool inputAltReleased = supportAlt && gap_window_key_released(window, GapKey_MouseRight);
+  const bool activeInputAlt   = interactOnPress ? inputAltPressed : inputAltReleased;
 
   if (hasActiveElem && activeElemIsHovered && activeInput) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
     return;
   }
-  if (hasActiveElem && activeElemIsHovered && inputDown) {
+  if (hasActiveElem && activeElemIsHovered && activeInputAlt) {
+    ui_canvas_set_active(canvas, canvas->activeId, UiStatus_ActivatedAlt);
+    return;
+  }
+  if (hasActiveElem && activeElemIsHovered && (inputDown || inputAltDown)) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Pressed);
     return;
   }
   const bool allowSwitch =
       activeFlags & UiFlags_InteractAllowSwitch && hoveredFlags & UiFlags_InteractAllowSwitch;
 
-  if (inputDown && !allowSwitch) {
+  if ((inputDown || inputAltDown) && !allowSwitch) {
     return; // Keep the same element active while holding down the input.
   }
 

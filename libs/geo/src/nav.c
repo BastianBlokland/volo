@@ -1332,7 +1332,9 @@ GeoNavCell geo_nav_blocker_closest(
   if (sentinel_check(blockerId)) {
     return from; // Blocker was never actually added; not reachable.
   }
-  diag_assert(nav_island(grid, from) != geo_nav_island_blocked);
+  if (nav_island(grid, from) == geo_nav_island_blocked) {
+    return from; // Origin position is blocked.
+  }
 
   ++nav_worker_state(grid)->stats[GeoNavStat_BlockerClosestQueries]; // Track query count.
 

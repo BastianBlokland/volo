@@ -26,6 +26,7 @@
     "*.pfb": "json",
     "*.pme": "json",
     "*.prefs": "json",
+    "*.pro": "json",
     "*.ptx": "json",
     "*.vfx": "json",
     "*.wea": "json",
@@ -45,6 +46,7 @@
     { "fileMatch": [ "*.lvl" ], "url": "./assets/schemas/lvl.schema.json" },
     { "fileMatch": [ "*.pfb" ], "url": "./assets/schemas/pfb.schema.json" },
     { "fileMatch": [ "*.pme" ], "url": "./assets/schemas/pme.schema.json" },
+    { "fileMatch": [ "*.pro" ], "url": "./assets/schemas/pro.schema.json" },
     { "fileMatch": [ "*.ptx" ], "url": "./assets/schemas/ptx.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
     { "fileMatch": [ "*.wea" ], "url": "./assets/schemas/wea.schema.json" }

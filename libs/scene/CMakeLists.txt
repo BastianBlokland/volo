@@ -24,6 +24,7 @@ add_library(lib_scene STATIC
   src/name.c
   src/nav.c
   src/prefab.c
+  src/product.c
   src/projectile.c
   src/register.c
   src/renderable.c

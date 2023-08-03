@@ -19,6 +19,7 @@ ui_interactable_frame_style(UiCanvasComp* canvas, const UiColor color, const UiS
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_color_with_mult(canvas, color, 3);
     ui_style_outline(canvas, 1);
     break;
@@ -36,6 +37,7 @@ static void ui_interactable_text_style(UiCanvasComp* canvas, const UiStatus stat
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_outline(canvas, 0);
     break;
   case UiStatus_Idle:
@@ -146,6 +148,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   case UiStatus_Hovered:
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_color_with_mult(canvas, opts->barColor, 1.5);
     break;
   case UiStatus_Idle:
@@ -185,6 +188,7 @@ static void ui_slider_handle(
     ui_style_outline(canvas, 0);
     break;
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
   case UiStatus_Idle:
     break;
   }
@@ -304,6 +308,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
+  case UiStatus_ActivatedAlt:
     ui_style_color_with_mult(canvas, opts->bgColor, 3);
     ui_style_outline(canvas, 1);
     break;
@@ -408,6 +413,7 @@ static UiSelectFlags ui_select_dropdown(
       break;
     case UiStatus_Pressed:
     case UiStatus_Activated:
+    case UiStatus_ActivatedAlt:
       ui_style_color_with_mult(canvas, opts->dropFrameColor, 3);
       break;
     case UiStatus_Idle:

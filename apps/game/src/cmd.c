@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "scene_brain.h"
 #include "scene_faction.h"
+#include "scene_product.h"
 #include "scene_selection.h"
 #include "scene_taunt.h"
 #include "scene_transform.h"
@@ -96,6 +97,11 @@ ecs_view_define(BrainView) {
   ecs_access_maybe_write(SceneTauntComp);
 }
 
+ecs_view_define(ProdView) {
+  ecs_access_read(SceneFactionComp);
+  ecs_access_write(SceneProductionComp);
+}
+
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
 
 static void cmd_group_add_internal(CmdGroup* group, const EcsEntityId object) {
@@ -165,6 +171,15 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
     if (taunt) {
       scene_taunt_request(taunt, SceneTauntType_Confirm);
     }
+    return;
+  }
+
+  EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
+  if (prodItr && cmd_is_player_owned(prodItr)) {
+    SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
+    prod->rallySpace          = SceneProductRallySpace_World;
+    prod->rallyPos            = cmdMove->position;
+    return;
   }
 }
 
@@ -264,12 +279,14 @@ ecs_module_init(game_cmd_module) {
 
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(BrainView);
+  ecs_register_view(ProdView);
   ecs_register_view(TransformView);
 
   ecs_register_system(
       CmdControllerUpdateSys,
       ecs_view_id(GlobalUpdateView),
       ecs_view_id(BrainView),
+      ecs_view_id(ProdView),
       ecs_view_id(TransformView));
 
   ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);

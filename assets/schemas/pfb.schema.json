@@ -623,6 +623,35 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabTrait_Production"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "spawnPos": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "rallyPos": {
+              "title": "AssetPrefabVec3Def",
+              "$ref": "#/$defs/AssetPrefabVec3Def"
+            },
+            "productSetId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "productSetId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabTrait_Scalable"
             },
             "$name": {
@@ -710,6 +739,10 @@
         {
           "label": "New AssetPrefabTrait_Vision",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vision\",\n  \"radius\": 1\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_Production",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Production\",\n  \"productSetId\": \"placeholder\"\n}"
         },
         {
           "label": "New AssetPrefabTrait_Scalable",

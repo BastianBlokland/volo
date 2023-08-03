@@ -19,6 +19,7 @@ typedef enum {
   UiStatus_Hovered,
   UiStatus_Pressed,
   UiStatus_Activated,
+  UiStatus_ActivatedAlt,
 } UiStatus;
 
 /**
@@ -48,11 +49,12 @@ typedef enum {
   UiFlags_Interactable        = 1 << 0,
   UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
   UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
-  UiFlags_TrackRect           = 1 << 3, // Allows querying the elem with 'ui_canvas_elem_rect()'.
-  UiFlags_TrackTextInfo       = 1 << 4, // Internal use only atm.
-  UiFlags_AllowWordBreak      = 1 << 5, // Allow breaking up text in the middle of words.
-  UiFlags_SingleLine          = 1 << 6, // Only draw the first line of the text.
-  UiFlags_TightTextRect       = 1 << 7, // Clamp the rectangle to the text size.
+  UiFlags_InteractSupportAlt  = 1 << 3, // Support alternative (right mouse button) activation.
+  UiFlags_TrackRect           = 1 << 4, // Allows querying the elem with 'ui_canvas_elem_rect()'.
+  UiFlags_TrackTextInfo       = 1 << 5, // Internal use only atm.
+  UiFlags_AllowWordBreak      = 1 << 6, // Allow breaking up text in the middle of words.
+  UiFlags_SingleLine          = 1 << 7, // Only draw the first line of the text.
+  UiFlags_TightTextRect       = 1 << 8, // Clamp the rectangle to the text size.
 } UiFlags;
 
 typedef enum {

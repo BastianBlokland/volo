@@ -8,7 +8,7 @@
  * A single unicode codepoint.
  * https://en.wikipedia.org/wiki/Unicode#Architecture_and_terminology
  */
-typedef enum {
+typedef enum eUnicode {
   Unicode_Invalid        = 0x0,
   Unicode_Bell           = 0x7,
   Unicode_Backspace      = 0x8,

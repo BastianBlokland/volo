@@ -287,7 +287,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       cmd->flags,
       rect,
       state->ctx->inputPos,
-      cmd->text,
+      mem_create(cmd->textPtr, cmd->textSize),
       cmd->fontSize,
       style.color,
       style.outline,

@@ -152,6 +152,11 @@ typedef struct {
 } AssetPrefabTraitVisionDef;
 
 typedef struct {
+  AssetPrefabVec3Def spawnPos, rallyPos;
+  String             productSetId;
+} AssetPrefabTraitProductionDef;
+
+typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitNameDef       data_name;
@@ -173,6 +178,7 @@ typedef struct {
     AssetPrefabTraitExplosiveDef  data_explosive;
     AssetPrefabTraitStatusDef     data_status;
     AssetPrefabTraitVisionDef     data_vision;
+    AssetPrefabTraitProductionDef data_production;
   };
 } AssetPrefabTraitDef;
 
@@ -316,6 +322,11 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitVisionDef);
     data_reg_field_t(reg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
+    data_reg_struct_t(reg, AssetPrefabTraitProductionDef);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, spawnPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallyPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
@@ -336,6 +347,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Explosive, data_explosive, t_AssetPrefabTraitExplosiveDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProductionDef);
     data_reg_choice_empty(reg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
     data_reg_struct_t(reg, AssetPrefabDef);
@@ -600,6 +612,13 @@ static void prefab_build(
     case AssetPrefabTrait_Vision:
       outTrait->data_vision = (AssetPrefabTraitVision){
           .radius = traitDef->data_vision.radius,
+      };
+      break;
+    case AssetPrefabTrait_Production:
+      outTrait->data_production = (AssetPrefabTraitProduction){
+          .spawnPos     = prefab_build_vec3(&traitDef->data_production.spawnPos),
+          .rallyPos     = prefab_build_vec3(&traitDef->data_production.rallyPos),
+          .productSetId = string_hash(traitDef->data_production.productSetId),
       };
       break;
     case AssetPrefabTrait_Scalable:

@@ -6,6 +6,8 @@
 #define ui_cmdbuffer_transient_chunk_size (32 * usize_kibibyte)
 #define ui_cmdbuffer_max_text_size (8 * usize_kibibyte)
 
+ASSERT(ui_cmdbuffer_max_text_size < u16_max, "Text size needs to be storable in a u16");
+
 struct sUiCmdBuffer {
   DynArray   commands; // UiCmd[]
   Allocator* alloc;
@@ -189,7 +191,8 @@ void ui_cmd_push_draw_text(
       .type     = UiCmd_DrawText,
       .drawText = {
           .id       = id,
-          .text     = textCopy,
+          .textPtr  = textCopy.ptr,
+          .textSize = (u16)textCopy.size,
           .fontSize = fontSize,
           .align    = align,
           .flags    = flags,
