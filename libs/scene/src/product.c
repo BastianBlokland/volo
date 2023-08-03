@@ -49,6 +49,23 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
   return itr ? ecs_view_read_t(itr, AssetProductMapComp) : null;
 }
 
+static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
+  const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+
+  const GeoVector position = transComp ? transComp->position : geo_vector(0);
+  const GeoQuat   rotation = transComp ? transComp->rotation : geo_quat_ident;
+  const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+
+  return geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(localPos, scale)));
+}
+
+static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
+  GeoNavCell cell = scene_nav_at_position(nav, pos);
+  scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
+  return scene_nav_position(nav, cell);
+}
+
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {
   diag_assert(!production->queues);
   diag_assert(production->productSetId);
@@ -162,9 +179,19 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
 }
 
-static bool production_any_queue_active(SceneProductionComp* production) {
-  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
-    SceneProductQueue* queue = &production->queues[queueIndex];
+typedef struct {
+  EcsWorld*              world;
+  const SceneNavEnvComp* nav;
+  SceneProductionComp*   production;
+  SceneProductQueue*     queue;
+  EcsIterator*           itr;
+  bool                   anyQueueActive;
+  TimeDuration           timeDelta;
+} ProductQueueContext;
+
+static bool product_queue_any_active(ProductQueueContext* ctx) {
+  for (u32 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &ctx->production->queues[queueIndex];
     if (queue->state > SceneProductState_Idle) {
       return true;
     }
@@ -172,8 +199,9 @@ static bool production_any_queue_active(SceneProductionComp* production) {
   return false;
 }
 
-static void production_process_queue_requests(SceneProductQueue* queue) {
-  const AssetProduct* product = queue->product;
+static void product_queue_process_requests(ProductQueueContext* ctx) {
+  SceneProductQueue*  queue   = ctx->queue;
+  const AssetProduct* product = ctx->queue->product;
   if (queue->requests & SceneProductRequest_EnqueueSingle && queue->count < product->queueMax) {
     ++queue->count;
   }
@@ -189,35 +217,17 @@ static void production_process_queue_requests(SceneProductQueue* queue) {
   queue->requests = 0;
 }
 
-static GeoVector production_world_from_local(EcsIterator* itr, const GeoVector localPos) {
-  const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
-  const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+static void product_queue_ready(ProductQueueContext* ctx) {
+  const AssetProduct*        product     = ctx->queue->product;
+  const SceneProductionComp* production  = ecs_view_read_t(ctx->itr, SceneProductionComp);
+  const SceneFactionComp*    factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
 
-  const GeoVector position = transComp ? transComp->position : geo_vector(0);
-  const GeoQuat   rotation = transComp ? transComp->rotation : geo_quat_ident;
-  const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
-
-  return geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(localPos, scale)));
-}
-
-static GeoVector production_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
-  GeoNavCell cell = scene_nav_at_position(nav, pos);
-  scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
-  return scene_nav_position(nav, cell);
-}
-
-static void production_ready(
-    EcsWorld* world, const SceneNavEnvComp* nav, const SceneProductQueue* queue, EcsIterator* itr) {
-  const AssetProduct*        product     = queue->product;
-  const SceneProductionComp* production  = ecs_view_read_t(itr, SceneProductionComp);
-  const SceneFactionComp*    factionComp = ecs_view_read_t(itr, SceneFactionComp);
-
-  const GeoVector spawnPos      = production_world_from_local(itr, production->spawnPos);
-  const GeoVector spawnPosOnNav = production_world_on_nav(nav, spawnPos);
+  const GeoVector spawnPos      = product_world_from_local(ctx->itr, production->spawnPos);
+  const GeoVector spawnPosOnNav = product_world_on_nav(ctx->nav, spawnPos);
 
   GeoVector rallyPos = production->rallyPos;
   if (production->rallySpace == SceneProductRallySpace_Local) {
-    rallyPos = production_world_from_local(itr, rallyPos);
+    rallyPos = product_world_from_local(ctx->itr, rallyPos);
   }
 
   const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPosOnNav);
@@ -227,7 +237,7 @@ static void production_ready(
   switch (product->type) {
   case AssetProduct_Unit: {
     const EcsEntityId e = scene_prefab_spawn(
-        world,
+        ctx->world,
         &(ScenePrefabSpec){
             .prefabId = product->data_unit.unitPrefab,
             .flags    = ScenePrefabFlags_SnapToTerrain,
@@ -237,21 +247,59 @@ static void production_ready(
             .faction  = factionComp ? factionComp->id : SceneFaction_None,
         });
     if (moveMag > f32_epsilon) {
-      ecs_world_add_t(world, e, SceneNavRequestComp, .targetPos = rallyPos);
+      ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = rallyPos);
     }
   } break;
   }
 
   if (product->soundReady) {
-    const EcsEntityId e = ecs_world_entity_create(world);
-    ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+    const EcsEntityId e = ecs_world_entity_create(ctx->world);
+    ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = time_second);
     ecs_world_add_t(
-        world,
+        ctx->world,
         e,
         SceneSoundComp,
         .asset = product->soundReady,
         .gain  = product->soundReadyGain,
         .pitch = 1.0f);
+  }
+}
+
+static void product_queue_update(ProductQueueContext* ctx) {
+  SceneProductQueue* queue = ctx->queue;
+  switch (queue->state) {
+  case SceneProductState_Idle:
+    if (queue->count && !ctx->anyQueueActive) {
+      queue->state        = SceneProductState_Active;
+      queue->progress     = 0.0f;
+      ctx->anyQueueActive = true;
+    }
+    break;
+  case SceneProductState_Active:
+    if (!queue->count) {
+      queue->state    = SceneProductState_Idle;
+      queue->progress = 0.0f;
+      break;
+    }
+    queue->progress += (f32)ctx->timeDelta / (f32)queue->product->costTime;
+    if (queue->progress >= 1.0f) {
+      --queue->count;
+      queue->state    = SceneProductState_Cooldown;
+      queue->progress = 0.0f;
+      product_queue_ready(ctx);
+    }
+    break;
+  case SceneProductState_Cooldown:
+    queue->progress += (f32)ctx->timeDelta / (f32)queue->product->cooldown;
+    if (queue->progress >= 1.0f) {
+      queue->progress = 0.0f;
+      if (queue->count) {
+        queue->state = SceneProductState_Active;
+      } else {
+        queue->state = SceneProductState_Idle;
+      }
+    }
+    break;
   }
 }
 
@@ -279,49 +327,20 @@ ecs_system_define(SceneProductUpdateSys) {
       continue;
     }
 
-    bool anyQueueActive = production_any_queue_active(production);
+    ProductQueueContext ctx = {
+        .world      = world,
+        .production = production,
+        .nav        = nav,
+        .timeDelta  = time->delta,
+        .itr        = itr,
+    };
+    ctx.anyQueueActive = product_queue_any_active(&ctx);
 
     // Update product queues.
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
-      SceneProductQueue*  queue   = &production->queues[queueIndex];
-      const AssetProduct* product = queue->product;
-
-      production_process_queue_requests(queue);
-
-      switch (queue->state) {
-      case SceneProductState_Idle:
-        if (queue->count && !anyQueueActive) {
-          queue->state    = SceneProductState_Active;
-          queue->progress = 0.0f;
-          anyQueueActive  = true;
-        }
-        break;
-      case SceneProductState_Active:
-        if (!queue->count) {
-          queue->state    = SceneProductState_Idle;
-          queue->progress = 0.0f;
-          break;
-        }
-        queue->progress += (f32)time->delta / (f32)product->costTime;
-        if (queue->progress >= 1.0f) {
-          --queue->count;
-          queue->state    = SceneProductState_Cooldown;
-          queue->progress = 0.0f;
-          production_ready(world, nav, queue, itr);
-        }
-        break;
-      case SceneProductState_Cooldown:
-        queue->progress += (f32)time->delta / (f32)product->cooldown;
-        if (queue->progress >= 1.0f) {
-          queue->progress = 0.0f;
-          if (queue->count) {
-            queue->state = SceneProductState_Active;
-          } else {
-            queue->state = SceneProductState_Idle;
-          }
-        }
-        break;
-      }
+      ctx.queue = &production->queues[queueIndex];
+      product_queue_process_requests(&ctx);
+      product_queue_update(&ctx);
     }
   }
 }
