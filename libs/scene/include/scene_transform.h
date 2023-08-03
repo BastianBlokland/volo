@@ -23,6 +23,8 @@ ecs_comp_extern_public(SceneVelocityComp) {
   GeoVector velocityAvg;
 };
 
+void scene_transform_rotate_around(SceneTransformComp*, GeoVector pivot, GeoQuat);
+
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
 GeoMatrix scene_transform_matrix_inv(const SceneTransformComp*);
 

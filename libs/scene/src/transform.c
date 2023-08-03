@@ -70,6 +70,14 @@ ecs_module_init(scene_transform_module) {
   ecs_order(SceneVelocityUpdateSys, SceneOrder_VelocityUpdate);
 }
 
+void scene_transform_rotate_around(
+    SceneTransformComp* trans, const GeoVector pivot, const GeoQuat rot) {
+  const GeoVector delta        = geo_vector_sub(trans->position, pivot);
+  const GeoVector deltaRotated = geo_quat_rotate(rot, delta);
+  trans->position              = geo_vector_add(pivot, deltaRotated);
+  trans->rotation              = geo_quat_norm(geo_quat_mul(rot, trans->rotation));
+}
+
 GeoMatrix scene_transform_matrix(const SceneTransformComp* trans) {
   const GeoMatrix pos = geo_matrix_translate(trans->position);
   const GeoMatrix rot = geo_matrix_from_quat(trans->rotation);
