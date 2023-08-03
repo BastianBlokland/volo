@@ -65,38 +65,9 @@
             "$name": {
               "type": "string"
             },
-            "icon": {
-              "title": "String",
-              "type": "string"
-            },
-            "costTime": {
-              "title": "f32",
-              "type": "number"
-            },
-            "queueMax": {
-              "title": "u16",
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 65535
-            },
-            "queueBulkSize": {
-              "title": "u16",
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 65535
-            },
-            "cooldown": {
-              "title": "f32",
-              "type": "number"
-            },
-            "soundReadyId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "soundReadyGain": {
-              "title": "f32",
-              "type": "number"
+            "meta": {
+              "title": "AssetProductMetaDef",
+              "$ref": "#/$defs/AssetProductMetaDef"
             },
             "unitPrefab": {
               "title": "String",
@@ -120,6 +91,56 @@
         {
           "label": "New AssetProduct_Unit",
           "body": "^{\n  \"\\$type\": \"AssetProduct_Unit\",\n  \"unitPrefab\": \"placeholder\"\n}"
+        }
+      ]
+    },
+    "AssetProductMetaDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "String",
+          "type": "string"
+        },
+        "icon": {
+          "title": "String",
+          "type": "string"
+        },
+        "costTime": {
+          "title": "f32",
+          "type": "number"
+        },
+        "queueMax": {
+          "title": "u16",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "queueBulkSize": {
+          "title": "u16",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "cooldown": {
+          "title": "f32",
+          "type": "number"
+        },
+        "soundReadyId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "soundReadyGain": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{}"
         }
       ]
     }

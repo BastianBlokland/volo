@@ -19,6 +19,7 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
+  String name;
   String icon;
   f32    costTime;
   u16    queueMax;
@@ -26,13 +27,16 @@ typedef struct {
   f32    cooldown;
   String soundReadyId;
   f32    soundReadyGain;
-  String unitPrefab;
-  u32    unitCount;
+} AssetProductMetaDef;
+
+typedef struct {
+  AssetProductMetaDef meta;
+  String              unitPrefab;
+  u32                 unitCount;
 } AssetProductUnitDef;
 
 typedef struct {
   AssetProductType type;
-  String           name;
   union {
     AssetProductUnitDef data_unit;
   };
@@ -63,19 +67,22 @@ static void product_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(reg, AssetProductMetaDef);
+    data_reg_field_t(reg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_struct_t(reg, AssetProductUnitDef);
-    data_reg_field_t(reg, AssetProductUnitDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductUnitDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
     data_reg_union_t(reg, AssetProductDef, type);
-    data_reg_union_name_t(reg, AssetProductDef, name);
     data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
 
     data_reg_struct_t(reg, AssetProductSetDef);
@@ -120,6 +127,20 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
+static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
+  const TimeDuration costTimeRaw = (TimeDuration)time_seconds(def->costTime);
+  const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
+
+  utf8_cp_read(def->icon, &out->icon);
+  out->name           = string_maybe_dup(g_alloc_heap, def->name);
+  out->costTime       = math_max(costTimeRaw, time_millisecond);
+  out->queueMax       = def->queueMax ? def->queueMax : u16_max;
+  out->queueBulkSize  = def->queueBulkSize ? def->queueBulkSize : 5;
+  out->cooldown       = math_max(cooldownRaw, time_millisecond);
+  out->soundReady     = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
+  out->soundReadyGain = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
+}
+
 static void productset_build(
     BuildCtx*                 ctx,
     const AssetProductSetDef* def,
@@ -142,29 +163,16 @@ static void productset_build(
   array_ptr_for_t(def->products, AssetProductDef, productDef) {
     AssetProduct* outProduct = dynarray_push_t(outProducts, AssetProduct);
     outProduct->type         = productDef->type;
-    outProduct->name         = string_maybe_dup(g_alloc_heap, productDef->name);
 
     switch (productDef->type) {
     case AssetProduct_Unit:
-      utf8_cp_read(productDef->data_unit.icon, &outProduct->icon);
-      outProduct->costTime      = (TimeDuration)time_seconds(productDef->data_unit.costTime);
-      outProduct->queueMax      = productDef->data_unit.queueMax;
-      outProduct->queueBulkSize = productDef->data_unit.queueBulkSize;
-      outProduct->cooldown      = (TimeDuration)time_seconds(productDef->data_unit.cooldown);
-      outProduct->soundReady =
-          asset_maybe_lookup(ctx->world, ctx->assetManager, productDef->data_unit.soundReadyId);
-      outProduct->soundReadyGain = productDef->data_unit.soundReadyGain;
-      outProduct->data_unit      = (AssetProductUnit){
-               .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
-               .unitCount  = math_max(1, productDef->data_unit.unitCount),
+      product_build_meta(ctx, &productDef->data_unit.meta, outProduct);
+      outProduct->data_unit = (AssetProductUnit){
+          .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+          .unitCount  = math_max(1, productDef->data_unit.unitCount),
       };
       break;
     }
-    outProduct->costTime       = math_max(outProduct->costTime, time_millisecond);
-    outProduct->queueMax       = outProduct->queueMax ? outProduct->queueMax : u16_max;
-    outProduct->queueBulkSize  = outProduct->queueBulkSize ? outProduct->queueBulkSize : 5;
-    outProduct->cooldown       = math_max(outProduct->cooldown, time_millisecond);
-    outProduct->soundReadyGain = outProduct->soundReadyGain <= 0 ? 1 : outProduct->soundReadyGain;
     if (*err) {
       return; // Failed to build product-set.
     }
