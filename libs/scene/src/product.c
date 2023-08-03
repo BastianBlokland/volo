@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "asset_product.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -49,6 +50,18 @@ static const AssetProductMapComp* product_map_get(EcsIterator* globalItr, EcsVie
   return itr ? ecs_view_read_t(itr, AssetProductMapComp) : null;
 }
 
+static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
+  GeoNavCell cell = scene_nav_at_position(nav, pos);
+  scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
+  return scene_nav_position(nav, cell);
+}
+
+static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
+}
+
 static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
   const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
@@ -60,16 +73,18 @@ static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector loca
   return geo_vector_add(position, geo_quat_rotate(rotation, geo_vector_mul(localPos, scale)));
 }
 
-static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVector pos) {
-  GeoNavCell cell = scene_nav_at_position(nav, pos);
-  scene_nav_closest_unblocked_n(nav, cell, (GeoNavCellContainer){.cells = &cell, .capacity = 1});
-  return scene_nav_position(nav, cell);
+static GeoVector product_spawn_pos(EcsIterator* itr, const SceneNavEnvComp* nav) {
+  const SceneProductionComp* production = ecs_view_read_t(itr, SceneProductionComp);
+  const GeoVector            pos        = product_world_from_local(itr, production->spawnPos);
+  return product_world_on_nav(nav, pos);
 }
 
-static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
+static GeoVector product_rally_pos(EcsIterator* itr) {
+  const SceneProductionComp* production = ecs_view_read_t(itr, SceneProductionComp);
+  if (production->rallySpace == SceneProductRallySpace_World) {
+    return production->rallyPos;
+  }
+  return product_world_from_local(itr, production->rallyPos);
 }
 
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {
@@ -224,34 +239,46 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
 }
 
 static void product_queue_ready_unit(ProductQueueContext* ctx) {
-  const AssetProduct*        product     = ctx->queue->product;
-  const SceneProductionComp* production  = ecs_view_read_t(ctx->itr, SceneProductionComp);
-  const SceneFactionComp*    factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+  const AssetProduct*     product     = ctx->queue->product;
+  const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
 
-  const GeoVector spawnPos      = product_world_from_local(ctx->itr, production->spawnPos);
-  const GeoVector spawnPosOnNav = product_world_on_nav(ctx->nav, spawnPos);
+  const u32        spawnCount = 1;
+  const GeoVector  spawnPos   = product_spawn_pos(ctx->itr, ctx->nav);
+  const GeoVector  rallyPos   = product_rally_pos(ctx->itr);
+  const GeoNavCell rallyCell  = scene_nav_at_position(ctx->nav, rallyPos);
 
-  GeoVector rallyPos = production->rallyPos;
-  if (production->rallySpace == SceneProductRallySpace_Local) {
-    rallyPos = product_world_from_local(ctx->itr, rallyPos);
-  }
+  GeoNavCell                targetCells[32];
+  const GeoNavCellContainer targetCellContainer = {
+      .cells    = targetCells,
+      .capacity = math_min(spawnCount, array_elems(targetCells)),
+  };
+  const u32 targetCellCnt = scene_nav_closest_unblocked_n(ctx->nav, rallyCell, targetCellContainer);
 
-  const GeoVector moveDelta = geo_vector_sub(rallyPos, spawnPosOnNav);
-  const f32       moveMag   = geo_vector_mag(moveDelta);
-  const GeoVector fwd = moveMag > f32_epsilon ? geo_vector_div(moveDelta, moveMag) : geo_forward;
+  const GeoVector toRallyVec = geo_vector_sub(rallyPos, spawnPos);
+  const f32       toRallyMag = geo_vector_mag(toRallyVec);
+  const GeoVector forward =
+      toRallyMag > f32_epsilon ? geo_vector_div(toRallyVec, toRallyMag) : geo_forward;
 
-  const EcsEntityId e = scene_prefab_spawn(
-      ctx->world,
-      &(ScenePrefabSpec){
-          .prefabId = product->data_unit.unitPrefab,
-          .flags    = ScenePrefabFlags_SnapToTerrain,
-          .position = spawnPosOnNav,
-          .rotation = geo_quat_look(fwd, geo_up),
-          .scale    = 1.0f,
-          .faction  = factionComp ? factionComp->id : SceneFaction_None,
-      });
-  if (moveMag > f32_epsilon) {
-    ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = rallyPos);
+  for (u32 i = 0; i != spawnCount; ++i) {
+    const EcsEntityId e = scene_prefab_spawn(
+        ctx->world,
+        &(ScenePrefabSpec){
+            .prefabId = product->data_unit.unitPrefab,
+            .flags    = ScenePrefabFlags_SnapToTerrain,
+            .position = spawnPos,
+            .rotation = geo_quat_look(forward, geo_up),
+            .scale    = 1.0f,
+            .faction  = factionComp ? factionComp->id : SceneFaction_None,
+        });
+    GeoVector pos;
+    if (LIKELY(i < targetCellCnt)) {
+      const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
+      pos = sameCellAsRallPos ? rallyPos : scene_nav_position(ctx->nav, targetCells[i]);
+    } else {
+      // We didn't find a free cell for this entity; just move to the raw rallyPos.
+      pos = rallyPos;
+    }
+    ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
   }
 }
 
