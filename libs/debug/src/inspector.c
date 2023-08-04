@@ -817,27 +817,89 @@ static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSelectionCo
   }
 }
 
+static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSelectionComp* sel) {
+  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  GeoVector    pivot;
+  u32          count = 0;
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_view_maybe_jump(itr, *e)) {
+      const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+      pivot = count ? geo_vector_add(pivot, transComp->position) : transComp->position;
+      ++count;
+    }
+  }
+  return count ? geo_vector_div(pivot, count) : geo_vector(0);
+}
+
+static void debug_inspector_tool_group_update(
+    EcsWorld*                   world,
+    DebugInspectorSettingsComp* set,
+    const SceneSelectionComp*   sel,
+    DebugGizmoComp*             gizmo) {
+  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  if (!ecs_view_maybe_jump(itr, scene_selection_main(sel))) {
+    return; // No main selected entity or its missing required components.
+  }
+  const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
+
+  const GeoVector pos   = debug_inspector_tool_pivot(world, sel);
+  const GeoQuat   rot   = mainTrans->rotation;
+  const f32       scale = mainScale ? mainScale->scale : 1.0f;
+
+  static const DebugGizmoId g_groupGizmoId = 1234567890;
+
+  GeoVector posEdit   = pos;
+  GeoQuat   rotEdit   = rot;
+  f32       scaleEdit = scale;
+  switch (set->tool) {
+  case DebugInspectorTool_Translation:
+    debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rot);
+    break;
+  case DebugInspectorTool_Rotation:
+    debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
+    break;
+  case DebugInspectorTool_Scale:
+    debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+    break;
+  default:
+    break;
+  }
+
+  const GeoVector posDelta   = geo_vector_sub(posEdit, pos);
+  const GeoQuat   rotDelta   = geo_quat_from_to(rot, rotEdit);
+  const f32       scaleDelta = scaleEdit / scale;
+
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_view_maybe_jump(itr, *e)) {
+      SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+      transform->position           = geo_vector_add(transform->position, posDelta);
+      scene_transform_rotate_around(transform, pos, rotDelta);
+      if (scaleComp) {
+        scene_transform_scale_around(transform, scaleComp, pos, scaleDelta);
+      }
+    }
+  }
+}
+
 static void debug_inspector_tool_individual_update(
     EcsWorld*                   world,
     DebugInspectorSettingsComp* set,
     const SceneSelectionComp*   sel,
     DebugGizmoComp*             gizmo) {
-  EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-    if (ecs_view_maybe_jump(subjectItr, *e)) {
-      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
-      SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
-      SceneScaleComp*     scaleComp = ecs_view_write_t(subjectItr, SceneScaleComp);
+    if (ecs_view_maybe_jump(itr, *e)) {
+      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
+      SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        if (transform) {
-          debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
-        }
+        debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
         break;
       case DebugInspectorTool_Rotation:
-        if (transform) {
-          debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
-        }
+        debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
         break;
       case DebugInspectorTool_Scale:
         if (scaleComp) {
@@ -885,7 +947,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
 
   if (set->tool != DebugInspectorTool_None) {
-    debug_inspector_tool_individual_update(world, set, sel, gizmo);
+    if (input_modifiers(input) & InputModifier_Control) {
+      debug_inspector_tool_individual_update(world, set, sel, gizmo);
+    } else {
+      debug_inspector_tool_group_update(world, set, sel, gizmo);
+    }
   }
 }
 
