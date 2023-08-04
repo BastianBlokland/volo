@@ -150,7 +150,7 @@ GeoBox geo_box_dilate(const GeoBox* b, const GeoVector size) {
 #endif
 }
 
-void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
+void geo_box_corners3(const GeoBox* box, GeoVector corners[PARAM_ARRAY_SIZE(8)]) {
   corners[0] = geo_vector(box->min.x, box->min.y, box->min.z);
   corners[1] = geo_vector(box->min.x, box->min.y, box->max.z);
   corners[2] = geo_vector(box->max.x, box->min.y, box->min.z);

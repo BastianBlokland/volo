@@ -61,7 +61,7 @@ GeoBox geo_box_dilate(const GeoBox*, GeoVector size);
 /**
  * Retrieve the 8 corners of the 3d box.
  */
-void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
+void geo_box_corners3(const GeoBox*, GeoVector corners[PARAM_ARRAY_SIZE(8)]);
 
 /**
  * Construct a transformed 3d box.
