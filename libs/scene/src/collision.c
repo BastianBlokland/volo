@@ -26,7 +26,7 @@ ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionEntityView) {
   ecs_access_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
 }
 
