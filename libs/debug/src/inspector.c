@@ -843,6 +843,28 @@ static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSelectionComp* 
   dynarray_destroy(&newEntities);
 }
 
+ecs_comp_extern(SceneCameraComp);
+
+static void debug_inspector_tool_select_all(EcsWorld* world, SceneSelectionComp* sel) {
+  const u32    compCount       = ecs_def_comp_count(ecs_world_def(world));
+  const BitSet ignoredCompMask = mem_stack(bits_to_bytes(compCount) + 1);
+
+  // Setup ignored components.
+  bitset_clear_all(ignoredCompMask);
+  bitset_set(ignoredCompMask, ecs_comp_id(SceneCameraComp));
+
+  scene_selection_clear(sel);
+  EcsView* subjectView = ecs_world_view_t(world, SubjectView);
+  for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+    const EcsEntityId    e         = ecs_view_entity(itr);
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(world, e);
+    if (bitset_any_of(ecs_world_component_mask(world, archetype), ignoredCompMask)) {
+      continue;
+    }
+    scene_selection_add(sel, e);
+  }
+}
+
 static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSelectionComp* sel) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   GeoVector    pivot;
@@ -974,6 +996,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
     debug_inspector_tool_duplicate(world, sel);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
+  }
+  if (input_triggered_lit(input, "DebugInspectorSelectAll")) {
+    debug_inspector_tool_select_all(world, sel);
+    debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
   if (set->tool != DebugInspectorTool_None) {
