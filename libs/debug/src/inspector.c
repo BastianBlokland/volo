@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_float.h"
@@ -127,7 +128,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneSelectionComp);
+  ecs_access_write(SceneSelectionComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -167,14 +168,6 @@ ecs_view_define(SubjectView) {
 }
 
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
-
-static void inspector_notify_tool(DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats) {
-  debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
-}
-
-static void inspector_notify_destroy(DebugStatsGlobalComp* stats) {
-  debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
-}
 
 static void inspector_notify_vis(
     DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
@@ -671,7 +664,7 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Tool"));
     ui_table_next_column(canvas, table);
     if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
-      inspector_notify_tool(settings, stats);
+      debug_stats_notify(stats, string_lit("Tool"), g_toolNames[settings->tool]);
     }
 
     inspector_panel_next(canvas, panelComp, table);
@@ -817,6 +810,39 @@ static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSelectionCo
   }
 }
 
+static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSelectionComp* sel) {
+  DynArray     newEntities = dynarray_create_t(g_alloc_heap, EcsEntityId, 64);
+  EcsIterator* itr         = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (!ecs_view_maybe_jump(itr, *e)) {
+      continue; // Selected entity is missing required components.
+    }
+    const SceneTransformComp*      transComp      = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*          scaleComp      = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneFactionComp*        factionComp    = ecs_view_read_t(itr, SceneFactionComp);
+    const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    if (!prefabInstComp) {
+      continue; // Only prefab instances can be duplicated.
+    }
+    const EcsEntityId duplicatedEntity = scene_prefab_spawn(
+        world,
+        &(ScenePrefabSpec){
+            .id       = prefabInstComp->id,
+            .prefabId = prefabInstComp->prefabId,
+            .faction  = factionComp ? factionComp->id : SceneFaction_None,
+            .scale    = scaleComp ? scaleComp->scale : 1.0f,
+            .position = transComp->position,
+            .rotation = transComp->rotation,
+        });
+    *dynarray_push_t(&newEntities, EcsEntityId) = duplicatedEntity;
+  }
+
+  // Select the newly created entities.
+  scene_selection_clear(sel);
+  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_selection_add(sel, *e); }
+  dynarray_destroy(&newEntities);
+}
+
 static GeoVector debug_inspector_tool_pivot(EcsWorld* world, const SceneSelectionComp* sel) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   GeoVector    pivot;
@@ -921,7 +947,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     return;
   }
   const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneSelectionComp*   sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
+  SceneSelectionComp*         sel   = ecs_view_write_t(globalItr, SceneSelectionComp);
   DebugGizmoComp*             gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
   DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
   DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
@@ -931,19 +957,23 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
-    inspector_notify_tool(set, stats);
+    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Rotation);
-    inspector_notify_tool(set, stats);
+    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolScale")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Scale);
-    inspector_notify_tool(set, stats);
+    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     debug_inspector_tool_destroy(world, sel);
-    inspector_notify_destroy(stats);
+    debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
+  }
+  if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
+    debug_inspector_tool_duplicate(world, sel);
+    debug_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
 
   if (set->tool != DebugInspectorTool_None) {

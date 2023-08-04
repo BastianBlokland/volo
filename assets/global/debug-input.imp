@@ -217,6 +217,13 @@
       ]
     },
     {
+      "name": "DebugInspectorDuplicate",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "D", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
       "name": "DebugInspectorToolTranslation",
       "blockers": [ "TextInput" ],
       "bindings": [
