@@ -267,7 +267,7 @@ static void debug_camera_draw_input_ray(
   debug_line(shape, start, end, geo_color_fuchsia);
 
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_All};
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllNonDebug};
   const f32              maxDist = 1e5f;
   if (scene_query_ray(collisionEnv, &ray, maxDist, &filter, &hit)) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);

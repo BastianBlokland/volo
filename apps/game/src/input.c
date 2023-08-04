@@ -267,9 +267,9 @@ static void update_camera_movement_debug(
 static SceneQueryFilter select_filter(InputManagerComp* input) {
   if (input_layer_active(input, string_hash_lit("Debug"))) {
     /**
-     * Allow selecting all objects in debug mode.
+     * Allow selecting all objects (including debug shapes) in debug mode.
      */
-    return (SceneQueryFilter){.layerMask = SceneLayer_All};
+    return (SceneQueryFilter){.layerMask = SceneLayer_AllIncludingDebug};
   }
   /**
    * Only allow selecting your own units.

@@ -46,9 +46,10 @@ typedef enum {
   SceneLayer_UnitFactionC = SceneLayer_InfantryFactionC | SceneLayer_StructureFactionC,
   SceneLayer_UnitFactionD = SceneLayer_InfantryFactionD | SceneLayer_StructureFactionD,
 
-  SceneLayer_Count = 13,
-  SceneLayer_None  = 0,
-  SceneLayer_All   = ~0,
+  SceneLayer_Count             = 13,
+  SceneLayer_None              = 0,
+  SceneLayer_AllIncludingDebug = ~0,
+  SceneLayer_AllNonDebug       = ~SceneLayer_Debug,
 } SceneLayer;
 
 /**
