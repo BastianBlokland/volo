@@ -190,12 +190,7 @@ static bool geo_prim_overlap_frustum(
   switch (prim->type) {
   case GeoQueryPrim_Sphere: {
     const GeoSphere* sphere = &((const GeoSphere*)prim->shapes)[entryIdx];
-    // TODO: Implement sphere <-> frustum overlap instead of converting spheres to boxes.
-    const GeoBoxRotated box = {
-        .box      = geo_box_from_sphere(sphere->point, sphere->radius),
-        .rotation = geo_quat_ident,
-    };
-    return geo_box_rotated_overlap_frustum(&box, frustum);
+    return geo_sphere_overlap_frustum(sphere, frustum);
   }
   case GeoQueryPrim_Capsule: {
     const GeoCapsule* cap = &((const GeoCapsule*)prim->shapes)[entryIdx];
