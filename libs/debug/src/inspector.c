@@ -817,6 +817,41 @@ static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSelectionCo
   }
 }
 
+static void debug_inspector_tool_individual_update(
+    EcsWorld*                   world,
+    DebugInspectorSettingsComp* set,
+    const SceneSelectionComp*   sel,
+    DebugGizmoComp*             gizmo) {
+  EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_view_maybe_jump(subjectItr, *e)) {
+      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
+      SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(subjectItr, SceneScaleComp);
+      switch (set->tool) {
+      case DebugInspectorTool_Translation:
+        if (transform) {
+          debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
+        }
+        break;
+      case DebugInspectorTool_Rotation:
+        if (transform) {
+          debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
+        }
+        break;
+      case DebugInspectorTool_Scale:
+        if (scaleComp) {
+          const GeoVector position = transform ? transform->position : geo_vector(0);
+          debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
 ecs_system_define(DebugInspectorToolUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalToolUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -849,35 +884,8 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     inspector_notify_destroy(stats);
   }
 
-  EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-    if (ecs_view_maybe_jump(subjectItr, *e)) {
-
-      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
-      SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
-      SceneScaleComp*     scaleComp = ecs_view_write_t(subjectItr, SceneScaleComp);
-      switch (set->tool) {
-      case DebugInspectorTool_Translation:
-        if (transform) {
-          debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
-        }
-        break;
-      case DebugInspectorTool_Rotation:
-        if (transform) {
-          debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
-        }
-        break;
-      case DebugInspectorTool_Scale:
-        if (scaleComp) {
-          const GeoVector position = transform ? transform->position : geo_vector(0);
-          debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
-        }
-        break;
-      case DebugInspectorTool_None:
-      case DebugInspectorTool_Count:
-        break;
-      }
-    }
+  if (set->tool != DebugInspectorTool_None) {
+    debug_inspector_tool_individual_update(world, set, sel, gizmo);
   }
 }
 
