@@ -801,11 +801,19 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
 }
 
 static void
-debug_inspector_toggle_tool(DebugInspectorSettingsComp* set, const DebugInspectorTool tool) {
+debug_inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspectorTool tool) {
   if (set->tool != tool) {
     set->tool = tool;
   } else {
     set->tool = DebugInspectorTool_None;
+  }
+}
+
+static void debug_inspector_tool_destroy(EcsWorld* world, const SceneSelectionComp* sel) {
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_world_exists(world, *e)) {
+      ecs_world_entity_destroy(world, *e);
+    }
   }
 }
 
@@ -825,26 +833,25 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     set->tool = DebugInspectorTool_None;
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
-    debug_inspector_toggle_tool(set, DebugInspectorTool_Translation);
+    debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
     inspector_notify_tool(set, stats);
   }
   if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
-    debug_inspector_toggle_tool(set, DebugInspectorTool_Rotation);
+    debug_inspector_tool_toggle(set, DebugInspectorTool_Rotation);
     inspector_notify_tool(set, stats);
   }
   if (input_triggered_lit(input, "DebugInspectorToolScale")) {
-    debug_inspector_toggle_tool(set, DebugInspectorTool_Scale);
+    debug_inspector_tool_toggle(set, DebugInspectorTool_Scale);
     inspector_notify_tool(set, stats);
+  }
+  if (input_triggered_lit(input, "DebugInspectorDestroy")) {
+    debug_inspector_tool_destroy(world, sel);
+    inspector_notify_destroy(stats);
   }
 
   EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
   for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
     if (ecs_view_maybe_jump(subjectItr, *e)) {
-
-      if (input_triggered_lit(input, "DebugInspectorDestroy")) {
-        ecs_world_entity_destroy(world, *e);
-        inspector_notify_destroy(stats);
-      }
 
       const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
       SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
