@@ -81,10 +81,10 @@ static GeoVector product_spawn_pos(EcsIterator* itr, const SceneNavEnvComp* nav)
 
 static GeoVector product_rally_pos(EcsIterator* itr) {
   const SceneProductionComp* production = ecs_view_read_t(itr, SceneProductionComp);
-  if (production->rallySpace == SceneProductRallySpace_World) {
-    return production->rallyPos;
+  if (production->flags & SceneProductFlags_RallyLocalSpace) {
+    return product_world_from_local(itr, production->rallyPos);
   }
-  return product_world_from_local(itr, production->rallyPos);
+  return production->rallyPos;
 }
 
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {

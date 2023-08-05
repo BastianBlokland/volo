@@ -176,8 +176,8 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
   if (prodItr && cmd_is_player_owned(prodItr)) {
     SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
-    prod->rallySpace          = SceneProductRallySpace_World;
-    prod->rallyPos            = cmdMove->position;
+    prod->flags &= ~SceneProductFlags_RallyLocalSpace;
+    prod->rallyPos = cmdMove->position;
     return;
   }
 }
