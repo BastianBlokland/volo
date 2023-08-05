@@ -204,7 +204,7 @@
     },
     {
       "name": "DebugPanelClose",
-      "blockers": [ "TextInput" ],
+      "blockers": [ "TextInput", "HoveringGizmo" ],
       "bindings": [
         { "type": "Pressed", "key": "Escape" }
       ]
