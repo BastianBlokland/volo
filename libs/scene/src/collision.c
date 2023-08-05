@@ -13,7 +13,10 @@ ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable 
 ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");
 ASSERT(scene_query_stat_count == GeoQueryStat_Count, "Mismatching collision query stat count");
 
-ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
+ecs_comp_define(SceneCollisionEnvComp) {
+  SceneLayer   ignoreMask; // Layers to ignore globally.
+  GeoQueryEnv* queryEnv;
+};
 ecs_comp_define_public(SceneCollisionStatsComp);
 ecs_comp_define_public(SceneCollisionComp);
 
@@ -24,11 +27,13 @@ static void ecs_destruct_collision_env_comp(void* data) {
 
 ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
-ecs_view_define(CollisionEntityView) {
+ecs_view_define(CollisionView) {
   ecs_access_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
 }
+
+ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
 
 static void collision_env_create(EcsWorld* world) {
   GeoQueryEnv* queryEnv = geo_query_env_create(g_alloc_heap);
@@ -58,16 +63,24 @@ ecs_system_define(SceneCollisionUpdateSys) {
     return;
   }
 
+  EcsView* collisionView = ecs_world_view_t(world, CollisionView);
+  EcsView* transformView = ecs_world_view_t(world, TransformView);
+
   SceneCollisionEnvComp* env = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
   geo_query_env_clear(env->queryEnv);
 
-  EcsView* collisionEntities = ecs_world_view_t(world, CollisionEntityView);
-  for (EcsIterator* itr = ecs_view_itr(collisionEntities); ecs_view_walk(itr);) {
+  /**
+   * Insert geo shapes for all colliders.
+   */
+  for (EcsIterator* itr = ecs_view_itr(collisionView); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
 
     diag_assert_msg(collision->layer, "SceneCollision needs at least one layer");
+    if (collision->layer & env->ignoreMask) {
+      continue;
+    }
 
     const u64           id         = (u64)ecs_view_entity(itr);
     const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
@@ -92,6 +105,19 @@ ecs_system_define(SceneCollisionUpdateSys) {
     } break;
     default:
       diag_crash();
+    }
+  }
+
+  /**
+   * Insert a debug sphere shape for all entities with a transform.
+   * The debug shapes are useful to be able to select entities without a collider.
+   */
+  if (!(env->ignoreMask & SceneLayer_Debug)) {
+    for (EcsIterator* itr = ecs_view_itr(transformView); ecs_view_walk(itr);) {
+      const SceneTransformComp* trans  = ecs_view_read_t(itr, SceneTransformComp);
+      const GeoSphere           sphere = {.point = trans->position, .radius = 0.25f};
+      const u64                 id     = (u64)ecs_view_entity(itr);
+      geo_query_insert_sphere(env->queryEnv, sphere, id, (GeoQueryLayer)SceneLayer_Debug);
     }
   }
 }
@@ -119,10 +145,14 @@ ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionComp);
 
   ecs_register_view(UpdateGlobalView);
-  ecs_register_view(CollisionEntityView);
+  ecs_register_view(CollisionView);
+  ecs_register_view(TransformView);
 
   ecs_register_system(
-      SceneCollisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(CollisionEntityView));
+      SceneCollisionUpdateSys,
+      ecs_view_id(UpdateGlobalView),
+      ecs_view_id(CollisionView),
+      ecs_view_id(TransformView));
 
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 
@@ -166,6 +196,12 @@ String scene_collision_type_name(const SceneCollisionType type) {
   };
   ASSERT(array_elems(g_names) == SceneCollisionType_Count, "Incorrect number of type names");
   return g_names[type];
+}
+
+SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp* env) { return env->ignoreMask; }
+
+void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLayer mask) {
+  env->ignoreMask = mask;
 }
 
 void scene_collision_add_sphere(

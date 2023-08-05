@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_float.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
@@ -44,4 +45,22 @@ bool geo_sphere_overlap_box(const GeoSphere* sphere, const GeoBox* box) {
   const GeoVector closest = geo_box_closest_point(box, sphere->point);
   const f32       distSqr = geo_vector_mag_sqr(geo_vector_sub(closest, sphere->point));
   return distSqr <= (sphere->radius * sphere->radius);
+}
+
+bool geo_sphere_overlap_frustum(
+    const GeoSphere* sphere, const GeoVector frustum[PARAM_ARRAY_SIZE(8)]) {
+  const GeoPlane frustumPlanes[] = {
+      geo_plane_at_triangle(frustum[3], frustum[6], frustum[2]), // Right.
+      geo_plane_at_triangle(frustum[1], frustum[4], frustum[0]), // Left.
+      geo_plane_at_triangle(frustum[2], frustum[5], frustum[1]), // Up.
+      geo_plane_at_triangle(frustum[4], frustum[7], frustum[0]), // Down.
+      geo_plane_at_triangle(frustum[4], frustum[5], frustum[6]), // Back.
+      geo_plane_at_triangle(frustum[2], frustum[1], frustum[0]), // Front.
+  };
+  array_for_t(frustumPlanes, GeoPlane, plane) {
+    if ((geo_vector_dot(sphere->point, plane->normal) - plane->distance) < -sphere->radius) {
+      return false;
+    }
+  }
+  return true;
 }

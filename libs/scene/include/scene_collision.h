@@ -46,9 +46,10 @@ typedef enum {
   SceneLayer_UnitFactionC = SceneLayer_InfantryFactionC | SceneLayer_StructureFactionC,
   SceneLayer_UnitFactionD = SceneLayer_InfantryFactionD | SceneLayer_StructureFactionD,
 
-  SceneLayer_Count = 13,
-  SceneLayer_None  = 0,
-  SceneLayer_All   = ~0,
+  SceneLayer_Count             = 13,
+  SceneLayer_None              = 0,
+  SceneLayer_AllIncludingDebug = ~0,
+  SceneLayer_AllNonDebug       = ~SceneLayer_Debug,
 } SceneLayer;
 
 /**
@@ -118,6 +119,12 @@ String scene_layer_name(SceneLayer);
  * Lookup the name of the given collision type.
  */
 String scene_collision_type_name(SceneCollisionType);
+
+/**
+ * Set a mask to ignore colliders on specific layers globally.
+ */
+SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp*);
+void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 
 /**
  * Add a collision shape to the given entity.

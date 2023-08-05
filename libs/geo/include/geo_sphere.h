@@ -29,3 +29,4 @@ f32 geo_sphere_intersect_ray(const GeoSphere*, const GeoRay*);
  */
 bool geo_sphere_overlap(const GeoSphere*, const GeoSphere*);
 bool geo_sphere_overlap_box(const GeoSphere*, const GeoBox*);
+bool geo_sphere_overlap_frustum(const GeoSphere*, const GeoVector[PARAM_ARRAY_SIZE(8)]);
