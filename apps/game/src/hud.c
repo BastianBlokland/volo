@@ -54,7 +54,7 @@ static const f32      g_hudMinimapAlpha     = 0.95f;
 static const f32      g_hudMinimapDotRadius = 2.0f;
 static const f32      g_hudMinimapLineWidth = 2.5f;
 static const UiVector g_hudProductionSize   = {.x = 300.0f, .y = 400.0f};
-static StringHash     g_hudProductQueueActions[5];
+static StringHash     g_hudProductQueueActions[3];
 
 ecs_comp_define(HudComp) {
   EcsEntityId  uiCanvas;

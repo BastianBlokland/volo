@@ -78,8 +78,6 @@
     { "name": "ProductQueue1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Q" } ] },
     { "name": "ProductQueue2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "W" } ] },
     { "name": "ProductQueue3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "E" } ] },
-    { "name": "ProductQueue4", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "R" } ] },
-    { "name": "ProductQueue5", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "T" } ] },
 
     { "name": "CommandGroup1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha1" } ] },
     { "name": "CommandGroup2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Alpha2" } ] },
