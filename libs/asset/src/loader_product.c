@@ -36,9 +36,15 @@ typedef struct {
 } AssetProductUnitDef;
 
 typedef struct {
+  AssetProductMetaDef meta;
+  String              prefab;
+} AssetProductPlacableDef;
+
+typedef struct {
   AssetProductType type;
   union {
-    AssetProductUnitDef data_unit;
+    AssetProductUnitDef     data_unit;
+    AssetProductPlacableDef data_placable;
   };
 } AssetProductDef;
 
@@ -82,8 +88,13 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
+    data_reg_struct_t(reg, AssetProductPlacableDef);
+    data_reg_field_t(reg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_union_t(reg, AssetProductDef, type);
     data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
+    data_reg_choice_t(reg, AssetProductDef, AssetProduct_Placable, data_placable, t_AssetProductPlacableDef);
 
     data_reg_struct_t(reg, AssetProductSetDef);
     data_reg_field_t(reg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -170,6 +181,12 @@ static void productset_build(
       outProduct->data_unit = (AssetProductUnit){
           .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
           .unitCount  = math_max(1, productDef->data_unit.unitCount),
+      };
+      break;
+    case AssetProduct_Placable:
+      product_build_meta(ctx, &productDef->data_placable.meta, outProduct);
+      outProduct->data_placable = (AssetProductPlaceable){
+          .prefab = string_hash(productDef->data_placable.prefab),
       };
       break;
     }

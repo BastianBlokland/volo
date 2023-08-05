@@ -13,12 +13,17 @@ typedef i64 TimeDuration;
 
 typedef enum {
   AssetProduct_Unit,
+  AssetProduct_Placable,
 } AssetProductType;
 
 typedef struct {
   StringHash unitPrefab;
   u32        unitCount;
 } AssetProductUnit;
+
+typedef struct {
+  StringHash prefab;
+} AssetProductPlaceable;
 
 typedef struct sAssetProduct {
   String           name;
@@ -31,7 +36,8 @@ typedef struct sAssetProduct {
   f32              soundReadyGain;
   EcsEntityId      soundReady;
   union {
-    AssetProductUnit data_unit;
+    AssetProductUnit      data_unit;
+    AssetProductPlaceable data_placable;
   };
 } AssetProduct;
 

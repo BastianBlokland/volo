@@ -85,12 +85,41 @@
             "$type",
             "unitPrefab"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetProduct_Placable"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "meta": {
+              "title": "AssetProductMetaDef",
+              "$ref": "#/$defs/AssetProductMetaDef"
+            },
+            "prefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "prefab"
+          ]
         }
       ],
       "defaultSnippets": [
         {
           "label": "New AssetProduct_Unit",
           "body": "^{\n  \"\\$type\": \"AssetProduct_Unit\",\n  \"unitPrefab\": \"placeholder\"\n}"
+        },
+        {
+          "label": "New AssetProduct_Placable",
+          "body": "^{\n  \"\\$type\": \"AssetProduct_Placable\",\n  \"prefab\": \"placeholder\"\n}"
         }
       ]
     },

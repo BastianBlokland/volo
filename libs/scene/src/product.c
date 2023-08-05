@@ -294,6 +294,8 @@ static void product_queue_ready(ProductQueueContext* ctx) {
   case AssetProduct_Unit:
     product_queue_ready_unit(ctx);
     break;
+  case AssetProduct_Placable:
+    break;
   }
 }
 
