@@ -283,7 +283,7 @@ static void product_queue_ready_unit(ProductQueueContext* ctx) {
   }
 }
 
-static void product_queue_ready(ProductQueueContext* ctx) {
+static bool product_queue_ready(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
 
   if (product->soundReady) {
@@ -293,10 +293,11 @@ static void product_queue_ready(ProductQueueContext* ctx) {
   switch (product->type) {
   case AssetProduct_Unit:
     product_queue_ready_unit(ctx);
-    break;
+    return true;
   case AssetProduct_Placable:
-    break;
+    return false;
   }
+  UNREACHABLE
 }
 
 static void product_queue_update(ProductQueueContext* ctx) {
@@ -318,9 +319,13 @@ static void product_queue_update(ProductQueueContext* ctx) {
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->costTime;
     if (queue->progress >= 1.0f) {
       --queue->count;
-      queue->state    = SceneProductState_Cooldown;
+      queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
-      product_queue_ready(ctx);
+    }
+    break;
+  case SceneProductState_Ready:
+    if (product_queue_ready(ctx)) {
+      queue->state = SceneProductState_Cooldown;
     }
     break;
   case SceneProductState_Cooldown:
