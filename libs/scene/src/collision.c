@@ -13,7 +13,10 @@ ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable 
 ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");
 ASSERT(scene_query_stat_count == GeoQueryStat_Count, "Mismatching collision query stat count");
 
-ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
+ecs_comp_define(SceneCollisionEnvComp) {
+  SceneLayer   ignoreMask; // Layers to ignore globally.
+  GeoQueryEnv* queryEnv;
+};
 ecs_comp_define_public(SceneCollisionStatsComp);
 ecs_comp_define_public(SceneCollisionComp);
 
@@ -75,6 +78,9 @@ ecs_system_define(SceneCollisionUpdateSys) {
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
 
     diag_assert_msg(collision->layer, "SceneCollision needs at least one layer");
+    if (collision->layer & env->ignoreMask) {
+      continue;
+    }
 
     const u64           id         = (u64)ecs_view_entity(itr);
     const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
@@ -106,11 +112,13 @@ ecs_system_define(SceneCollisionUpdateSys) {
    * Insert a debug sphere shape for all entities with a transform.
    * The debug shapes are useful to be able to select entities without a collider.
    */
-  for (EcsIterator* itr = ecs_view_itr(transformView); ecs_view_walk(itr);) {
-    const SceneTransformComp* trans  = ecs_view_read_t(itr, SceneTransformComp);
-    const GeoSphere           sphere = {.point = trans->position, .radius = 0.25f};
-    const u64                 id     = (u64)ecs_view_entity(itr);
-    geo_query_insert_sphere(env->queryEnv, sphere, id, (GeoQueryLayer)SceneLayer_Debug);
+  if (!(env->ignoreMask & SceneLayer_Debug)) {
+    for (EcsIterator* itr = ecs_view_itr(transformView); ecs_view_walk(itr);) {
+      const SceneTransformComp* trans  = ecs_view_read_t(itr, SceneTransformComp);
+      const GeoSphere           sphere = {.point = trans->position, .radius = 0.25f};
+      const u64                 id     = (u64)ecs_view_entity(itr);
+      geo_query_insert_sphere(env->queryEnv, sphere, id, (GeoQueryLayer)SceneLayer_Debug);
+    }
   }
 }
 
@@ -188,6 +196,12 @@ String scene_collision_type_name(const SceneCollisionType type) {
   };
   ASSERT(array_elems(g_names) == SceneCollisionType_Count, "Incorrect number of type names");
   return g_names[type];
+}
+
+SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp* env) { return env->ignoreMask; }
+
+void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLayer mask) {
+  env->ignoreMask = mask;
 }
 
 void scene_collision_add_sphere(

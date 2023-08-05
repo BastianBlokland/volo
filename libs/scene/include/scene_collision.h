@@ -121,6 +121,12 @@ String scene_layer_name(SceneLayer);
 String scene_collision_type_name(SceneCollisionType);
 
 /**
+ * Set a mask to ignore colliders on specific layers globally.
+ */
+SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp*);
+void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
+
+/**
  * Add a collision shape to the given entity.
  */
 

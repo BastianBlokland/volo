@@ -551,15 +551,29 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
       .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
+/**
+ * Update the global collision mask to include debug colliders when we have the debug input active.
+ * This allows us to use the debug colliders to select entities that have no collider.
+ */
+static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputManagerComp* input) {
+  SceneLayer ignoreMask = scene_collision_ignore_mask(env);
+  if (input_layer_active(input, string_hash_lit("Debug"))) {
+    ignoreMask &= ~SceneLayer_Debug; // Include debug layer.
+  } else {
+    ignoreMask |= SceneLayer_Debug; // Ignore debug layer;
+  }
+  scene_collision_ignore_mask_set(env, ignoreMask);
+}
+
 ecs_view_define(GlobalUpdateView) {
   ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_maybe_write(DebugStatsGlobalComp);
-  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
   ecs_access_write(InputManagerComp);
+  ecs_access_write(SceneCollisionEnvComp);
 }
 
 ecs_view_define(CameraView) {
@@ -574,14 +588,16 @@ ecs_system_define(InputUpdateSys) {
   if (!globalItr) {
     return;
   }
-  CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneCollisionEnvComp* colEnv        = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
-  const SceneNavEnvComp*       nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
-  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
-  DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  CmdControllerComp*        cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
+  const SceneNavEnvComp*    nav           = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSelectionComp* sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneTerrainComp*   terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneTimeComp*      time          = ecs_view_read_t(globalItr, SceneTimeComp);
+  DebugStatsGlobalComp*     debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  InputManagerComp*         input         = ecs_view_write_t(globalItr, InputManagerComp);
+  SceneCollisionEnvComp*    colEnv        = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
+
+  input_update_collision_mask(colEnv, input);
 
   if (input_triggered_lit(input, "OrderStop")) {
     input_order_stop(cmdController, sel, debugStats);
