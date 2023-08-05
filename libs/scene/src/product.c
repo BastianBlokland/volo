@@ -321,13 +321,17 @@ static void product_queue_update(ProductQueueContext* ctx) {
       --queue->count;
       queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
+      // Fallthrough.
+    } else {
+      break;
     }
-    break;
   case SceneProductState_Ready:
     if (product_queue_ready(ctx)) {
       queue->state = SceneProductState_Cooldown;
+      // Fallthrough.
+    } else {
+      break;
     }
-    break;
   case SceneProductState_Cooldown:
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->cooldown;
     if (queue->progress >= 1.0f) {
