@@ -908,7 +908,13 @@ static void debug_inspector_tool_group_update(
     debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
     break;
   case DebugInspectorTool_Scale:
-    debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+    /**
+     * Disable scaling if the main selected entity has no scale, reason is in that case we have no
+     * reference for the delta computation and the editing wont be stable across frames.
+     */
+    if (mainScale) {
+      debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+    }
     break;
   default:
     break;
