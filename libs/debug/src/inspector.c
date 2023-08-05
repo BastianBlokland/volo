@@ -900,32 +900,44 @@ static void debug_inspector_tool_group_update(
   GeoVector posEdit   = pos;
   GeoQuat   rotEdit   = rot;
   f32       scaleEdit = scale;
+  bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
   case DebugInspectorTool_Translation:
-    debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rot);
+    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, rot);
     break;
   case DebugInspectorTool_Rotation:
-    debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
+    rotDirty |= debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
     break;
   case DebugInspectorTool_Scale:
-    debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+    /**
+     * Disable scaling if the main selected entity has no scale, reason is in that case we have no
+     * reference for the delta computation and the editing wont be stable across frames.
+     */
+    if (mainScale) {
+      scaleDirty |= debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+    }
     break;
   default:
     break;
   }
 
-  const GeoVector posDelta   = geo_vector_sub(posEdit, pos);
-  const GeoQuat   rotDelta   = geo_quat_from_to(rot, rotEdit);
-  const f32       scaleDelta = scaleEdit / scale;
-
-  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
-    if (ecs_view_maybe_jump(itr, *e)) {
-      SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
-      SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
-      transform->position           = geo_vector_add(transform->position, posDelta);
-      scene_transform_rotate_around(transform, pos, rotDelta);
-      if (scaleComp) {
-        scene_transform_scale_around(transform, scaleComp, pos, scaleDelta);
+  if (posDirty || rotDirty || scaleDirty) {
+    const GeoVector posDelta   = geo_vector_sub(posEdit, pos);
+    const GeoQuat   rotDelta   = geo_quat_from_to(rot, rotEdit);
+    const f32       scaleDelta = scaleEdit / scale;
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      if (ecs_view_maybe_jump(itr, *e)) {
+        SceneTransformComp* transform = ecs_view_write_t(itr, SceneTransformComp);
+        SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
+        if (posDirty) {
+          transform->position = geo_vector_add(transform->position, posDelta);
+        }
+        if (rotDirty) {
+          scene_transform_rotate_around(transform, pos, rotDelta);
+        }
+        if (scaleComp && scaleDirty) {
+          scene_transform_scale_around(transform, scaleComp, pos, scaleDelta);
+        }
       }
     }
   }
