@@ -593,16 +593,21 @@ static void hud_production_queue_icon_draw(
   ui_style_push(c);
   ui_layout_push(c);
 
-  ui_style_color(c, ui_color_white);
+  UiColor color = ui_color_white;
   switch (queue->state) {
   case SceneProductState_Idle:
     ui_style_outline(c, status == UiStatus_Hovered ? 2 : 1);
+    break;
+  case SceneProductState_Ready:
+    ui_style_outline(c, 1);
+    color = ui_color_gray;
     break;
   case SceneProductState_Active:
   case SceneProductState_Cooldown:
     ui_style_outline(c, 2);
     break;
   }
+  ui_style_color(c, color);
   ui_layout_inner(c, UiBase_Current, UiAlign_MiddleCenter, g_size, UiBase_Absolute);
   ui_canvas_draw_glyph(c, queue->product->icon, 0, UiFlags_None);
 
@@ -734,9 +739,14 @@ static void hud_production_queue_draw(
   if (hotkey) {
     hud_production_queue_hotkey_draw(c, input, hotkey);
   }
+  if (queue->state == SceneProductState_Ready) {
+    ui_style_push(c);
+    ui_style_weight(c, UiWeight_Heavy);
+    ui_label(c, string_lit("READY"), .align = UiAlign_MiddleCenter, .fontSize = 20);
+    ui_style_pop(c);
+  }
   hud_production_queue_cost_draw(c, product);
   hud_production_meta_draw(c, product);
-
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
