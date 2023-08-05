@@ -602,7 +602,7 @@ static void hud_production_queue_icon_draw(
     ui_style_outline(c, 1);
     color = ui_color_gray;
     break;
-  case SceneProductState_Active:
+  case SceneProductState_Building:
   case SceneProductState_Cooldown:
     ui_style_outline(c, 2);
     break;
@@ -728,8 +728,8 @@ static void hud_production_queue_draw(
       queueIndex < array_elems(g_hudProductQueueActions) ? g_hudProductQueueActions[queueIndex] : 0;
 
   hud_production_queue_bg_draw(c, status);
-  if (queue->state >= SceneProductState_Active) {
-    const f32 progress = queue->state == SceneProductState_Active ? queue->progress : 1.0f;
+  if (queue->state >= SceneProductState_Building) {
+    const f32 progress = queue->state == SceneProductState_Building ? queue->progress : 1.0f;
     hud_production_queue_progress_draw(c, progress);
   }
   hud_production_queue_icon_draw(c, queue, status);

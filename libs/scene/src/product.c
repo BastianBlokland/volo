@@ -206,11 +206,11 @@ typedef struct {
   SceneProductionComp*   production;
   SceneProductQueue*     queue;
   EcsIterator*           itr;
-  bool                   anyQueueActive;
+  bool                   anyQueueBusy;
   TimeDuration           timeDelta;
 } ProductQueueContext;
 
-static bool product_queue_any_active(ProductQueueContext* ctx) {
+static bool product_queue_any_busy(ProductQueueContext* ctx) {
   for (u32 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &ctx->production->queues[queueIndex];
     if (queue->state > SceneProductState_Idle) {
@@ -304,13 +304,13 @@ static void product_queue_update(ProductQueueContext* ctx) {
   SceneProductQueue* queue = ctx->queue;
   switch (queue->state) {
   case SceneProductState_Idle:
-    if (queue->count && !ctx->anyQueueActive) {
-      queue->state        = SceneProductState_Active;
-      queue->progress     = 0.0f;
-      ctx->anyQueueActive = true;
+    if (queue->count && !ctx->anyQueueBusy) {
+      queue->state      = SceneProductState_Building;
+      queue->progress   = 0.0f;
+      ctx->anyQueueBusy = true;
     }
     break;
-  case SceneProductState_Active:
+  case SceneProductState_Building:
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
@@ -342,7 +342,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (queue->progress >= 1.0f) {
       queue->progress = 0.0f;
       if (queue->count) {
-        queue->state = SceneProductState_Active;
+        queue->state = SceneProductState_Building;
       } else {
         queue->state = SceneProductState_Idle;
       }
@@ -382,7 +382,7 @@ ecs_system_define(SceneProductUpdateSys) {
         .timeDelta  = time->delta,
         .itr        = itr,
     };
-    ctx.anyQueueActive = product_queue_any_active(&ctx);
+    ctx.anyQueueBusy = product_queue_any_busy(&ctx);
 
     // Update product queues.
     for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
