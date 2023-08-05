@@ -152,10 +152,11 @@ ecs_comp_define(DebugGizmoComp) {
   GeoQueryEnv* queryEnv;
   f32          size;
 
-  DebugGizmoStatus  status;
-  DebugGizmoType    activeType;
   DebugGizmoId      activeId;
-  DebugGizmoSection activeSection;
+  DebugGizmoStatus  status : 8;
+  DebugGizmoType    activeType : 8;
+  DebugGizmoSection activeSection : 8;
+  bool              requestReset;
   u32               interactingTicks;
   union {
     DebugGizmoEditorTranslation  translation;
@@ -350,6 +351,7 @@ static void gizmo_interaction_start(
   comp->activeId         = entry->id;
   comp->activeSection    = section;
   comp->interactingTicks = 0;
+  comp->requestReset     = false;
 
   switch (entry->type) {
   case DebugGizmoType_Translation:
@@ -610,6 +612,9 @@ static void gizmo_update_interaction(
       UNREACHABLE
     }
     if (active) {
+      if (gap_window_key_down(window, GapKey_Escape)) {
+        comp->requestReset = true;
+      }
       ++comp->interactingTicks;
     } else {
       gizmo_interaction_cancel(comp);
@@ -878,7 +883,12 @@ bool debug_gizmo_translation(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Translation);
   if (isInteracting) {
-    *translation = comp->editor.translation.result;
+    if (comp->requestReset) {
+      *translation = comp->editor.translation.basePos;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *translation = comp->editor.translation.result;
+    }
   }
   return isInteracting;
 }
@@ -896,7 +906,12 @@ bool debug_gizmo_rotation(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Rotation);
   if (isInteracting) {
-    *rotation = comp->editor.rotation.result;
+    if (comp->requestReset) {
+      *rotation = comp->editor.rotation.baseRot;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *rotation = comp->editor.rotation.result;
+    }
   }
   return isInteracting;
 }
@@ -914,7 +929,12 @@ bool debug_gizmo_scale_uniform(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_ScaleUniform);
   if (isInteracting) {
-    *scale = comp->editor.scaleUniform.result;
+    if (comp->requestReset) {
+      *scale = comp->editor.scaleUniform.baseScale;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *scale = comp->editor.scaleUniform.result;
+    }
   }
   return isInteracting;
 }
