@@ -733,7 +733,7 @@ static void hud_production_queue_draw(
     hud_production_queue_progress_draw(c, progress);
   }
   hud_production_queue_icon_draw(c, queue, status);
-  if (queue->count) {
+  if (queue->state != SceneProductState_Ready && queue->count) {
     hud_production_queue_count_draw(c, queue);
   }
   if (hotkey) {
