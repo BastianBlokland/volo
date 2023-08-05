@@ -235,7 +235,6 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
   if (queue->requests & SceneProductRequest_CancelAll) {
     queue->count = 0;
   }
-  queue->requests = 0;
 }
 
 static bool product_queue_ready(ProductQueueContext* ctx) {
@@ -243,6 +242,9 @@ static bool product_queue_ready(ProductQueueContext* ctx) {
   case AssetProduct_Unit:
     return true;
   case AssetProduct_Placable:
+    if (ctx->queue->requests & SceneProductRequest_Activate) {
+      return true;
+    }
     return false;
   }
   UNREACHABLE
@@ -409,6 +411,7 @@ ecs_system_define(SceneProductUpdateSys) {
       ctx.queue = &production->queues[queueIndex];
       product_queue_process_requests(&ctx);
       product_queue_update(&ctx);
+      ctx.queue->requests = 0;
     }
   }
 }

@@ -10,6 +10,7 @@ typedef enum {
   SceneProductRequest_EnqueueBulk   = 1 << 2,
   SceneProductRequest_CancelSingle  = 1 << 3,
   SceneProductRequest_CancelAll     = 1 << 4,
+  SceneProductRequest_Activate      = 1 << 5,
 } SceneProductRequest;
 
 typedef enum {

@@ -752,16 +752,20 @@ static void hud_production_queue_draw(
     ui_canvas_interact_type(c, UiInteractType_Action);
   }
   if (status == UiStatus_Activated || input_triggered_hash(input, hotkey)) {
-    if (input_modifiers(input) & InputModifier_Control) {
-      ui_canvas_sound(c, UiSoundType_ClickAlt);
-      queue->requests |= input_modifiers(input) & InputModifier_Shift
-                             ? SceneProductRequest_CancelAll
-                             : SceneProductRequest_CancelSingle;
+    if (queue->state == SceneProductState_Ready) {
+      queue->requests |= SceneProductRequest_Activate;
     } else {
-      ui_canvas_sound(c, UiSoundType_Click);
-      queue->requests |= input_modifiers(input) & InputModifier_Shift
-                             ? SceneProductRequest_EnqueueBulk
-                             : SceneProductRequest_EnqueueSingle;
+      if (input_modifiers(input) & InputModifier_Control) {
+        ui_canvas_sound(c, UiSoundType_ClickAlt);
+        queue->requests |= input_modifiers(input) & InputModifier_Shift
+                               ? SceneProductRequest_CancelAll
+                               : SceneProductRequest_CancelSingle;
+      } else {
+        ui_canvas_sound(c, UiSoundType_Click);
+        queue->requests |= input_modifiers(input) & InputModifier_Shift
+                               ? SceneProductRequest_EnqueueBulk
+                               : SceneProductRequest_EnqueueSingle;
+      }
     }
   }
   if (status == UiStatus_ActivatedAlt) {
