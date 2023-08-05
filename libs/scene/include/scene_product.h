@@ -16,6 +16,7 @@ typedef enum {
   SceneProductState_Idle,
   SceneProductState_Building,
   SceneProductState_Ready,
+  SceneProductState_Active,
   SceneProductState_Cooldown,
 } SceneProductState;
 

@@ -599,6 +599,7 @@ static void hud_production_queue_icon_draw(
     ui_style_outline(c, status == UiStatus_Hovered ? 2 : 1);
     break;
   case SceneProductState_Ready:
+  case SceneProductState_Active:
     ui_style_outline(c, 1);
     color = ui_color_gray;
     break;
@@ -733,7 +734,7 @@ static void hud_production_queue_draw(
     hud_production_queue_progress_draw(c, progress);
   }
   hud_production_queue_icon_draw(c, queue, status);
-  if (queue->state != SceneProductState_Ready && queue->count) {
+  if (queue->count) {
     hud_production_queue_count_draw(c, queue);
   }
   if (hotkey) {

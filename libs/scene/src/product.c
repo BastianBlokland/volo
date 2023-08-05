@@ -238,7 +238,17 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
   queue->requests = 0;
 }
 
-static void product_queue_ready_unit(ProductQueueContext* ctx) {
+static bool product_queue_ready(ProductQueueContext* ctx) {
+  switch (ctx->queue->product->type) {
+  case AssetProduct_Unit:
+    return true;
+  case AssetProduct_Placable:
+    return false;
+  }
+  UNREACHABLE
+}
+
+static bool product_queue_active_unit(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Unit);
 
@@ -281,15 +291,13 @@ static void product_queue_ready_unit(ProductQueueContext* ctx) {
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
   }
+  return true;
 }
 
-static bool product_queue_ready(ProductQueueContext* ctx) {
-  const AssetProduct* product = ctx->queue->product;
-
-  switch (product->type) {
+static bool product_queue_active(ProductQueueContext* ctx) {
+  switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
-    product_queue_ready_unit(ctx);
-    return true;
+    return product_queue_active_unit(ctx);
   case AssetProduct_Placable:
     return false;
   }
@@ -331,6 +339,18 @@ static void product_queue_update(ProductQueueContext* ctx) {
       break;
     }
     if (product_queue_ready(ctx)) {
+      queue->state = SceneProductState_Active;
+      // Fallthrough.
+    } else {
+      break;
+    }
+  case SceneProductState_Active:
+    if (!queue->count) {
+      queue->state    = SceneProductState_Idle;
+      queue->progress = 0.0f;
+      break;
+    }
+    if (product_queue_active(ctx)) {
       --queue->count;
       queue->state = SceneProductState_Cooldown;
       // Fallthrough.
