@@ -286,10 +286,6 @@ static void product_queue_ready_unit(ProductQueueContext* ctx) {
 static bool product_queue_ready(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
 
-  if (product->soundReady) {
-    product_sound_play(ctx->world, product->soundReady, product->soundReadyGain);
-  }
-
   switch (product->type) {
   case AssetProduct_Unit:
     product_queue_ready_unit(ctx);
@@ -301,7 +297,8 @@ static bool product_queue_ready(ProductQueueContext* ctx) {
 }
 
 static void product_queue_update(ProductQueueContext* ctx) {
-  SceneProductQueue* queue = ctx->queue;
+  SceneProductQueue*  queue   = ctx->queue;
+  const AssetProduct* product = ctx->queue->product;
   switch (queue->state) {
   case SceneProductState_Idle:
     if (queue->count && !ctx->anyQueueBusy) {
@@ -320,6 +317,9 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (queue->progress >= 1.0f) {
       queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
+      if (product->soundReady) {
+        product_sound_play(ctx->world, product->soundReady, product->soundReadyGain);
+      }
       // Fallthrough.
     } else {
       break;
