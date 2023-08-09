@@ -164,7 +164,7 @@ static void update_placement_input(const SceneSelectionComp* sel, EcsView* produ
       // TODO: Set placement position.
     } else {
       // Not selected anymore; cancel placement.
-      // TODO: Cancel.
+      scene_product_placement_cancel(production);
     }
   }
 }

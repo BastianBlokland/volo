@@ -11,6 +11,7 @@ typedef enum {
   SceneProductRequest_CancelSingle  = 1 << 3,
   SceneProductRequest_CancelAll     = 1 << 4,
   SceneProductRequest_Activate      = 1 << 5,
+  SceneProductRequest_Deactivate    = 1 << 6,
 } SceneProductRequest;
 
 typedef enum {
@@ -44,3 +45,4 @@ ecs_comp_extern_public(SceneProductionComp) {
 void scene_product_init(EcsWorld*, String productMapId);
 
 bool scene_product_placement_active(const SceneProductionComp*);
+void scene_product_placement_cancel(SceneProductionComp*);
