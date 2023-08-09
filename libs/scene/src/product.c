@@ -446,3 +446,13 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
       SceneProductResourceComp,
       .mapId = string_dup(g_alloc_heap, productMapId));
 }
+
+bool scene_product_placement_active(const SceneProductionComp* production) {
+  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
+      return true;
+    }
+  }
+  return false;
+}

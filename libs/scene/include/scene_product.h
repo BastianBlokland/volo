@@ -42,3 +42,5 @@ ecs_comp_extern_public(SceneProductionComp) {
 };
 
 void scene_product_init(EcsWorld*, String productMapId);
+
+bool scene_product_placement_active(const SceneProductionComp*);
