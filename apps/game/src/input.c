@@ -154,21 +154,6 @@ static void update_group_input(
   }
 }
 
-static void update_placement_input(const SceneSelectionComp* sel, EcsView* productionView) {
-  for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
-    SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
-    if (!scene_product_placement_active(production)) {
-      continue; // No placement active.
-    }
-    if (ecs_view_entity(itr) == scene_selection_main(sel)) {
-      // TODO: Set placement position.
-    } else {
-      // Not selected anymore; cancel placement.
-      scene_product_placement_cancel(production);
-    }
-  }
-}
-
 static void update_camera_movement(
     InputStateComp*      state,
     InputManagerComp*    input,
@@ -278,6 +263,22 @@ static void update_camera_movement_debug(
   }
 
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
+}
+
+static void placement_update(
+    const SceneSelectionComp* sel, const SceneTerrainComp* terrain, EcsView* productionView) {
+  for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
+    SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
+    if (!scene_product_placement_active(production)) {
+      continue; // No placement active.
+    }
+    if (ecs_view_entity(itr) == scene_selection_main(sel)) {
+      // TODO: Set placement position.
+    } else {
+      // Not selected anymore; cancel placement.
+      scene_product_placement_cancel(production);
+    }
+  }
 }
 
 static SceneQueryFilter select_filter(InputManagerComp* input) {
@@ -496,10 +497,13 @@ static void update_camera_interact(
     const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
-    DebugStatsGlobalComp*        debugStats) {
+    DebugStatsGlobalComp*        debugStats,
+    EcsView*                     productionView) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+
+  placement_update(sel, terrain, productionView);
 
   const bool selectActive = input_triggered_lit(input, "Select");
   switch (state->selectState) {
@@ -640,7 +644,6 @@ ecs_system_define(InputUpdateSys) {
 
     if (input_active_window(input) == ecs_view_entity(camItr)) {
       update_group_input(state, cmdController, input, sel, time, debugStats);
-      update_placement_input(sel, productionView);
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
       } else {
@@ -658,7 +661,8 @@ ecs_system_define(InputUpdateSys) {
           nav,
           cam,
           camTrans,
-          debugStats);
+          debugStats,
+          productionView);
     } else {
       state->selectState = InputSelectState_None;
     }
