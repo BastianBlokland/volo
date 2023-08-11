@@ -237,20 +237,26 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
   }
 }
 
-static bool product_queue_ready(ProductQueueContext* ctx) {
+typedef enum {
+  ProductResult_Running,
+  ProductResult_Success,
+  ProductResult_Cancelled,
+} ProductResult;
+
+static ProductResult product_queue_ready(ProductQueueContext* ctx) {
   switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
-    return true;
+    return ProductResult_Success;
   case AssetProduct_Placable:
     if (ctx->queue->requests & SceneProductRequest_Activate) {
-      return true;
+      return ProductResult_Success;
     }
-    return false;
+    return ProductResult_Running;
   }
   UNREACHABLE
 }
 
-static bool product_queue_active_unit(ProductQueueContext* ctx) {
+static ProductResult product_queue_active_unit(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Unit);
 
@@ -293,15 +299,25 @@ static bool product_queue_active_unit(ProductQueueContext* ctx) {
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
   }
-  return true;
+  return ProductResult_Success;
 }
 
-static bool product_queue_active(ProductQueueContext* ctx) {
+static ProductResult product_queue_active_placeable(ProductQueueContext* ctx) {
+  if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+    return ProductResult_Success;
+  }
+  if (ctx->queue->requests & SceneProductRequest_PlacementCancel) {
+    return ProductResult_Cancelled;
+  }
+  return ProductResult_Running;
+}
+
+static ProductResult product_queue_active(ProductQueueContext* ctx) {
   switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
     return product_queue_active_unit(ctx);
   case AssetProduct_Placable:
-    return false;
+    return product_queue_active_placeable(ctx);
   }
   UNREACHABLE
 }
@@ -309,6 +325,7 @@ static bool product_queue_active(ProductQueueContext* ctx) {
 static void product_queue_update(ProductQueueContext* ctx) {
   SceneProductQueue*  queue   = ctx->queue;
   const AssetProduct* product = ctx->queue->product;
+  ProductResult       result;
   switch (queue->state) {
   case SceneProductState_Idle:
     if (queue->count && !ctx->anyQueueBusy) {
@@ -340,7 +357,8 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->progress = 0.0f;
       break;
     }
-    if (product_queue_ready(ctx)) {
+    result = product_queue_ready(ctx);
+    if (result == ProductResult_Success) {
       queue->state = SceneProductState_Active;
       // Fallthrough.
     } else {
@@ -352,10 +370,11 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->progress = 0.0f;
       break;
     }
-    if (queue->requests & SceneProductRequest_PlacementCancel) {
-      // TODO: This needs to be generalized.
+    result = product_queue_active(ctx);
+    if (result == ProductResult_Cancelled) {
       queue->state = SceneProductState_Ready;
-    } else if (product_queue_active(ctx)) {
+      break;
+    } else if (result == ProductResult_Success) {
       --queue->count;
       queue->state = SceneProductState_Cooldown;
       // Fallthrough.
