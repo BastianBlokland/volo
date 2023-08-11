@@ -352,7 +352,8 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->progress = 0.0f;
       break;
     }
-    if (queue->requests & SceneProductRequest_Deactivate) {
+    if (queue->requests & SceneProductRequest_PlacementCancel) {
+      // TODO: This needs to be generalized.
       queue->state = SceneProductState_Ready;
     } else if (product_queue_active(ctx)) {
       --queue->count;
@@ -459,11 +460,20 @@ bool scene_product_placement_active(const SceneProductionComp* production) {
   return false;
 }
 
+void scene_product_placement_accept(SceneProductionComp* production) {
+  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
+      queue->requests |= SceneProductRequest_PlacementAccept;
+    }
+  }
+}
+
 void scene_product_placement_cancel(SceneProductionComp* production) {
   for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
     if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
-      queue->requests |= SceneProductRequest_Deactivate;
+      queue->requests |= SceneProductRequest_PlacementCancel;
     }
   }
 }
