@@ -39,7 +39,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   u32                queueCount;
   SceneProductQueue* queues;
   SceneProductFlags  flags;
-  GeoVector          spawnPos, rallyPos;
+  GeoVector          spawnPos, rallyPos, placementPos;
 };
 
 void scene_product_init(EcsWorld*, String productMapId);

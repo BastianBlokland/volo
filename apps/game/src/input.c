@@ -266,14 +266,26 @@ static void update_camera_movement_debug(
 }
 
 static void placement_update(
-    const SceneSelectionComp* sel, const SceneTerrainComp* terrain, EcsView* productionView) {
+    const SceneSelectionComp* sel,
+    const SceneTerrainComp*   terrain,
+    EcsView*                  productionView,
+    const GeoRay*             inputRay) {
   for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
     SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
     if (!scene_product_placement_active(production)) {
       continue; // No placement active.
     }
     if (ecs_view_entity(itr) == scene_selection_main(sel)) {
-      // TODO: Set placement position.
+      // Update placement position.
+      f32 rayT;
+      if (terrain) {
+        rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+      } else {
+        rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
+      }
+      if (rayT > g_inputMinInteractDist) {
+        production->placementPos = geo_ray_position(inputRay, rayT);
+      }
     } else {
       // Not selected anymore; cancel placement.
       scene_product_placement_cancel(production);
@@ -503,7 +515,7 @@ static void update_camera_interact(
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  placement_update(sel, terrain, productionView);
+  placement_update(sel, terrain, productionView, &inputRay);
 
   const bool selectActive = input_triggered_lit(input, "Select");
   switch (state->selectState) {
