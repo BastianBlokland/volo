@@ -101,7 +101,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
   production->queues     = alloc_array_t(g_alloc_heap, SceneProductQueue, productSet->productCount);
   production->queueCount = productSet->productCount;
 
-  for (u32 i = 0; i != production->queueCount; ++i) {
+  for (u16 i = 0; i != production->queueCount; ++i) {
     production->queues[i] = (SceneProductQueue){
         .product = &map->products[productSet->productIndex + i],
     };
@@ -211,7 +211,7 @@ typedef struct {
 } ProductQueueContext;
 
 static bool product_queue_any_busy(ProductQueueContext* ctx) {
-  for (u32 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
+  for (u16 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &ctx->production->queues[queueIndex];
     if (queue->state > SceneProductState_Idle) {
       return true;
@@ -429,7 +429,7 @@ ecs_system_define(SceneProductUpdateSys) {
     ctx.anyQueueBusy = product_queue_any_busy(&ctx);
 
     // Update product queues.
-    for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
       ctx.queue = &production->queues[queueIndex];
       product_queue_process_requests(&ctx);
       product_queue_update(&ctx);
@@ -470,7 +470,7 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
 }
 
 bool scene_product_placement_active(const SceneProductionComp* production) {
-  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
     if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
       return true;
@@ -480,7 +480,7 @@ bool scene_product_placement_active(const SceneProductionComp* production) {
 }
 
 void scene_product_placement_accept(SceneProductionComp* production) {
-  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
     if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
       queue->requests |= SceneProductRequest_PlacementAccept;
@@ -489,7 +489,7 @@ void scene_product_placement_accept(SceneProductionComp* production) {
 }
 
 void scene_product_placement_cancel(SceneProductionComp* production) {
-  for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
     if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
       queue->requests |= SceneProductRequest_PlacementCancel;

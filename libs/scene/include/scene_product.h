@@ -37,9 +37,9 @@ typedef struct {
 
 ecs_comp_extern_public(SceneProductionComp) {
   StringHash         productSetId;
-  u32                queueCount;
+  SceneProductFlags  flags : 16;
+  u16                queueCount;
   SceneProductQueue* queues;
-  SceneProductFlags  flags;
   GeoVector          spawnPos, rallyPos, placementPos;
 };
 
