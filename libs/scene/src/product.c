@@ -243,7 +243,7 @@ typedef enum {
   ProductResult_Cancelled,
 } ProductResult;
 
-static ProductResult product_queue_ready(ProductQueueContext* ctx) {
+static ProductResult product_queue_process_ready(ProductQueueContext* ctx) {
   switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
     return ProductResult_Success;
@@ -256,7 +256,7 @@ static ProductResult product_queue_ready(ProductQueueContext* ctx) {
   UNREACHABLE
 }
 
-static ProductResult product_queue_active_unit(ProductQueueContext* ctx) {
+static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Unit);
 
@@ -294,7 +294,7 @@ static ProductResult product_queue_active_unit(ProductQueueContext* ctx) {
       const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
       pos = sameCellAsRallPos ? rallyPos : scene_nav_position(ctx->nav, targetCells[i]);
     } else {
-      // We didn't find a free cell for this entity; just move to the raw rallyPos.
+      // We didn't find a unblocked cell for this entity; just move to the raw rallyPos.
       pos = rallyPos;
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
@@ -302,7 +302,7 @@ static ProductResult product_queue_active_unit(ProductQueueContext* ctx) {
   return ProductResult_Success;
 }
 
-static ProductResult product_queue_active_placeable(ProductQueueContext* ctx) {
+static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
     return ProductResult_Success;
   }
@@ -312,12 +312,12 @@ static ProductResult product_queue_active_placeable(ProductQueueContext* ctx) {
   return ProductResult_Running;
 }
 
-static ProductResult product_queue_active(ProductQueueContext* ctx) {
+static ProductResult product_queue_process_active(ProductQueueContext* ctx) {
   switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
-    return product_queue_active_unit(ctx);
+    return product_queue_process_active_unit(ctx);
   case AssetProduct_Placable:
-    return product_queue_active_placeable(ctx);
+    return product_queue_process_active_placeable(ctx);
   }
   UNREACHABLE
 }
@@ -357,7 +357,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->progress = 0.0f;
       break;
     }
-    result = product_queue_ready(ctx);
+    result = product_queue_process_ready(ctx);
     if (result == ProductResult_Success) {
       queue->state = SceneProductState_Active;
       // Fallthrough.
@@ -370,7 +370,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->progress = 0.0f;
       break;
     }
-    result = product_queue_active(ctx);
+    result = product_queue_process_active(ctx);
     if (result == ProductResult_Cancelled) {
       queue->state = SceneProductState_Ready;
       break;
