@@ -30,6 +30,7 @@ ecs_comp_define(SceneProductResourceComp) {
 };
 
 ecs_comp_define_public(SceneProductionComp);
+ecs_comp_define(SceneProductPreviewComp);
 
 static void ecs_destruct_product_resource(void* data) {
   SceneProductResourceComp* comp = data;
@@ -312,6 +313,13 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
   diag_assert(ctx->queue->product->type == AssetProduct_Placable);
 
   const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_empty_t(ctx->world, e, SceneProductPreviewComp);
+  ecs_world_add_t(
+      ctx->world,
+      e,
+      SceneTransformComp,
+      .position = ctx->production->placementPos,
+      .rotation = geo_quat_ident);
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
@@ -323,12 +331,6 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
       ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .alpha = 0.5f);
     }
   }
-  ecs_world_add_t(
-      ctx->world,
-      e,
-      SceneTransformComp,
-      .position = ctx->production->placementPos,
-      .rotation = geo_quat_ident);
   return e;
 }
 
@@ -483,6 +485,7 @@ ecs_system_define(SceneProductUpdateSys) {
 ecs_module_init(scene_product_module) {
   ecs_register_comp(SceneProductResourceComp, .destructor = ecs_destruct_product_resource);
   ecs_register_comp(SceneProductionComp, .destructor = ecs_destruct_production);
+  ecs_register_comp_empty(SceneProductPreviewComp);
 
   ecs_register_view(ProductMapView);
   ecs_register_view(ProductionView);
