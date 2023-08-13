@@ -1054,6 +1054,25 @@ bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_pred_blocked(grid, null, cell);
 }
 
+bool geo_nav_blocked_box_rotated(const GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
+  const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
+  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      const GeoNavCell cell = {.x = x, .y = y};
+      if (!nav_pred_blocked(grid, null, cell)) {
+        continue; // Not blocked.
+      }
+      const GeoBox cellBox = nav_cell_box(grid, cell);
+      if (!geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
+        continue; // Not overlapping.
+      }
+      return true; // Blocked and overlapping.
+    }
+  }
+  return false;
+}
+
 bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
