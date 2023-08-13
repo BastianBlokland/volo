@@ -822,6 +822,17 @@ u16 asset_prefab_get_index_from_user(const AssetPrefabMapComp* map, const u16 us
   return map->userIndexLookup[userIndex];
 }
 
+const AssetPrefabTrait* asset_prefab_trait_get(
+    const AssetPrefabMapComp* map, const AssetPrefab* prefab, const AssetPrefabTraitType type) {
+  for (u16 i = 0; i != prefab->traitCount; ++i) {
+    const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
+    if (trait->type == type) {
+      return trait;
+    }
+  }
+  return null;
+}
+
 AssetDataReg asset_prefab_datareg() {
   prefab_datareg_init();
   return (AssetDataReg){
