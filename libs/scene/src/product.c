@@ -6,6 +6,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"
@@ -15,6 +16,7 @@
 #include "scene_product.h"
 #include "scene_renderable.h"
 #include "scene_sound.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
@@ -343,8 +345,44 @@ static void product_placement_preview_destroy(ProductQueueContext* ctx) {
   }
 }
 
+static bool product_placement_blocked(ProductQueueContext* ctx) {
+  diag_assert(ctx->queue->product->type == AssetProduct_Placable);
+
+  const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
+  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  if (!prefab) {
+    return true; // TODO: Report error?
+  }
+  const GeoVector         placementPos = ctx->production->placementPos;
+  const GeoQuat           placementRot = geo_quat_ident;
+  const AssetPrefabTrait* collisionTrait =
+      asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Collision);
+  if (!collisionTrait) {
+    return false;
+  }
+  const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
+  switch (shape->type) {
+  case AssetPrefabShape_Sphere:
+    return true; // TODO: Support sphere shapes.
+  case AssetPrefabShape_Capsule:
+    return true; // TODO: Support capsule shapes.
+  case AssetPrefabShape_Box: {
+    const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
+    const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
+    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+  }
+  }
+  UNREACHABLE
+}
+
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
-  if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+  const bool blocked = product_placement_blocked(ctx);
+  if (blocked) {
+    ctx->production->flags |= SceneProductFlags_PlacementBlocked;
+  } else {
+    ctx->production->flags &= ~SceneProductFlags_PlacementBlocked;
+  }
+  if (!blocked && ctx->queue->requests & SceneProductRequest_PlacementAccept) {
     const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
     scene_prefab_spawn(
         ctx->world,
@@ -506,6 +544,7 @@ ecs_system_define(SceneProductUpdateSys) {
 ecs_view_define(PreviewUpdateView) {
   ecs_access_read(SceneProductPreviewComp);
   ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneTagComp);
 }
 
 ecs_view_define(PreviewInstigatorView) { ecs_access_read(SceneProductionComp); }
@@ -518,13 +557,22 @@ ecs_system_define(SceneProductPreviewUpdateSys) {
 
   for (EcsIterator* itr = ecs_view_itr(previewView); ecs_view_walk(itr);) {
     const SceneProductPreviewComp* preview = ecs_view_read_t(itr, SceneProductPreviewComp);
-    SceneTransformComp*            trans   = ecs_view_write_t(itr, SceneTransformComp);
     if (!ecs_view_maybe_jump(instigatorItr, preview->instigator)) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
       continue;
     }
     const SceneProductionComp* production = ecs_view_read_t(instigatorItr, SceneProductionComp);
-    trans->position                       = production->placementPos;
+
+    SceneTransformComp* trans = ecs_view_write_t(itr, SceneTransformComp);
+    trans->position           = production->placementPos;
+
+    SceneTagComp*   tagComp    = ecs_utils_write_or_add_t(world, itr, SceneTagComp);
+    const SceneTags blockedTag = SceneTags_Damaged; // TODO: Rename this tag or add a bespoke tag.
+    if (production->flags & SceneProductFlags_PlacementBlocked) {
+      tagComp->tags |= blockedTag;
+    } else {
+      tagComp->tags &= ~blockedTag;
+    }
   }
 }
 

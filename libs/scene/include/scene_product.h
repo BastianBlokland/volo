@@ -25,7 +25,8 @@ typedef enum {
 } SceneProductState;
 
 typedef enum {
-  SceneProductFlags_RallyLocalSpace = 1 << 0,
+  SceneProductFlags_RallyLocalSpace  = 1 << 0,
+  SceneProductFlags_PlacementBlocked = 1 << 1,
 } SceneProductFlags;
 
 typedef struct {
