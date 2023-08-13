@@ -5,7 +5,7 @@
 #include "geometry.glsl"
 #include "global.glsl"
 #include "math_frag.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 
 bind_spec(0) const f32 s_heightNormalIntensity = 1.0;
 bind_spec(1) const f32 s_splat1UvScale         = 50;

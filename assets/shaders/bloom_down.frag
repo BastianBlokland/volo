@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 #include "texture.glsl"
 
 bind_global_img(0) uniform sampler2D u_texInput;

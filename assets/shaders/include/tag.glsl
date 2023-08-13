@@ -1,5 +1,5 @@
-#ifndef INCLUDE_TAGS
-#define INCLUDE_TAGS
+#ifndef INCLUDE_TAG
+#define INCLUDE_TAG
 
 #include "types.glsl"
 
@@ -27,4 +27,4 @@ bool tag_is_set(const u32 tags, const u32 tagBit) { return (tags & (1 << tagBit)
 f32 tags_tex_encode(const u32 tags) { return f32(tags & 0xFF) / 255.0; }
 u32 tags_tex_decode(const f32 texNorm) { return u32(texNorm * 255.999); }
 
-#endif // INCLUDE_TAGS
+#endif // INCLUDE_TAG
