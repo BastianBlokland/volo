@@ -336,11 +336,20 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
   return e;
 }
 
+static void product_placement_preview_destroy(ProductQueueContext* ctx) {
+  if (ctx->production->placementPreview) {
+    ecs_world_entity_destroy(ctx->world, ctx->production->placementPreview);
+    ctx->production->placementPreview = 0;
+  }
+}
+
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+    product_placement_preview_destroy(ctx);
     return ProductResult_Success;
   }
   if (ctx->queue->requests & SceneProductRequest_PlacementCancel) {
+    product_placement_preview_destroy(ctx);
     return ProductResult_Cancelled;
   }
   if (!ctx->production->placementPreview) {
