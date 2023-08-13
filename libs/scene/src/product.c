@@ -19,6 +19,7 @@
 #include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 
 typedef enum {
   ProductRes_MapAcquired  = 1 << 0,
@@ -207,17 +208,19 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_read(ScenePrefabResourceComp);
   ecs_access_read(SceneProductResourceComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
 }
 
 typedef struct {
-  EcsWorld*                 world;
-  const SceneNavEnvComp*    nav;
-  const AssetPrefabMapComp* prefabMap;
-  SceneProductionComp*      production;
-  SceneProductQueue*        queue;
-  EcsIterator*              itr;
-  bool                      anyQueueBusy;
-  TimeDuration              timeDelta;
+  EcsWorld*                     world;
+  const SceneNavEnvComp*        nav;
+  const SceneVisibilityEnvComp* visiblityEnv;
+  const AssetPrefabMapComp*     prefabMap;
+  SceneProductionComp*          production;
+  SceneProductQueue*            queue;
+  EcsIterator*                  itr;
+  bool                          anyQueueBusy;
+  TimeDuration                  timeDelta;
 } ProductQueueContext;
 
 static bool product_queue_any_busy(ProductQueueContext* ctx) {
@@ -348,13 +351,21 @@ static void product_placement_preview_destroy(ProductQueueContext* ctx) {
 static bool product_placement_blocked(ProductQueueContext* ctx) {
   diag_assert(ctx->queue->product->type == AssetProduct_Placable);
 
+  const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+  const SceneFaction      faction     = factionComp ? factionComp->id : SceneFaction_A;
+
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
   if (!prefab) {
     return true; // TODO: Report error?
   }
-  const GeoVector         placementPos = ctx->production->placementPos;
-  const GeoQuat           placementRot = geo_quat_ident;
+  const GeoVector placementPos = ctx->production->placementPos;
+  const GeoQuat   placementRot = geo_quat_ident;
+
+  if (!scene_visible_pos(ctx->visiblityEnv, faction, placementPos)) {
+    return true; // Position not visible.
+  }
+
   const AssetPrefabTrait* collisionTrait =
       asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Collision);
   if (!collisionTrait) {
@@ -495,9 +506,10 @@ ecs_system_define(SceneProductUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*           time      = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneNavEnvComp*         nav       = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
+  const SceneTimeComp*           time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneNavEnvComp*         nav          = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneVisibilityEnvComp*  visiblityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const ScenePrefabResourceComp* prefabRes    = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
 
   EcsView*                   productMapView = ecs_world_view_t(world, ProductMapView);
   const AssetProductMapComp* productMap     = product_map_get(globalItr, productMapView);
@@ -522,12 +534,13 @@ ecs_system_define(SceneProductUpdateSys) {
     }
 
     ProductQueueContext ctx = {
-        .world      = world,
-        .nav        = nav,
-        .prefabMap  = prefabMap,
-        .production = production,
-        .itr        = itr,
-        .timeDelta  = time->delta,
+        .world        = world,
+        .nav          = nav,
+        .visiblityEnv = visiblityEnv,
+        .prefabMap    = prefabMap,
+        .production   = production,
+        .itr          = itr,
+        .timeDelta    = time->delta,
     };
     ctx.anyQueueBusy = product_queue_any_busy(&ctx);
 
