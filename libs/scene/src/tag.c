@@ -20,17 +20,18 @@ String scene_tag_name(const SceneTags tags) {
   diag_assert_msg(bits_popcnt((u32)tags) == 1, "Exactly one tag should be set");
   const u32           index     = bits_ctz_32(tags);
   static const String g_names[] = {
-      string_static("Terrain"),
-      string_static("Geometry"),
-      string_static("Vfx"),
-      string_static("Ui"),
-      string_static("Debug"),
       string_static("Unit"),
       string_static("Selected"),
+      string_static("Emit"),
       string_static("Damaged"),
+      string_static("Geometry"),
+      string_static("Transparent"),
+      string_static("Vfx"),
+      string_static("Debug"),
       string_static("Light"),
       string_static("ShadowCaster"),
-      string_static("Emit"),
+      string_static("Terrain"),
+      string_static("Ui"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
   return g_names[index];
