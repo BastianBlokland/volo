@@ -437,6 +437,9 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->state      = SceneProductState_Building;
       queue->progress   = 0.0f;
       ctx->anyQueueBusy = true;
+      if (product->soundBuilding) {
+        product_sound_play(ctx->world, product->soundBuilding, product->soundBuildingGain);
+      }
     }
     break;
   case SceneProductState_Building:

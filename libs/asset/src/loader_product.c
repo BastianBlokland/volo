@@ -25,8 +25,8 @@ typedef struct {
   u16    queueMax;
   u16    queueBulkSize;
   f32    cooldown;
-  String soundReadyId, soundCancelId, soundSuccessId;
-  f32    soundReadyGain, soundCancelGain, soundSuccessGain;
+  String soundBuildingId, soundReadyId, soundCancelId, soundSuccessId;
+  f32    soundBuildingGain, soundReadyGain, soundCancelGain, soundSuccessGain;
 } AssetProductMetaDef;
 
 typedef struct {
@@ -80,6 +80,8 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundBuildingId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundBuildingGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, soundCancelId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
@@ -147,17 +149,19 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
   utf8_cp_read(def->icon, &out->icon);
-  out->name             = string_maybe_dup(g_alloc_heap, def->name);
-  out->costTime         = math_max(costTimeRaw, time_millisecond);
-  out->queueMax         = def->queueMax ? def->queueMax : u16_max;
-  out->queueBulkSize    = def->queueBulkSize ? def->queueBulkSize : 5;
-  out->cooldown         = math_max(cooldownRaw, time_millisecond);
-  out->soundReady       = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
-  out->soundReadyGain   = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
-  out->soundCancel      = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundCancelId);
-  out->soundCancelGain  = def->soundCancelGain <= 0 ? 1 : def->soundCancelGain;
-  out->soundSuccess     = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundSuccessId);
-  out->soundSuccessGain = def->soundSuccessGain <= 0 ? 1 : def->soundSuccessGain;
+  out->name              = string_maybe_dup(g_alloc_heap, def->name);
+  out->costTime          = math_max(costTimeRaw, time_millisecond);
+  out->queueMax          = def->queueMax ? def->queueMax : u16_max;
+  out->queueBulkSize     = def->queueBulkSize ? def->queueBulkSize : 5;
+  out->cooldown          = math_max(cooldownRaw, time_millisecond);
+  out->soundBuilding     = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundBuildingId);
+  out->soundBuildingGain = def->soundBuildingGain <= 0 ? 1 : def->soundBuildingGain;
+  out->soundReady        = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
+  out->soundReadyGain    = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
+  out->soundCancel       = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundCancelId);
+  out->soundCancelGain   = def->soundCancelGain <= 0 ? 1 : def->soundCancelGain;
+  out->soundSuccess      = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundSuccessId);
+  out->soundSuccessGain  = def->soundSuccessGain <= 0 ? 1 : def->soundSuccessGain;
 }
 
 static void productset_build(
