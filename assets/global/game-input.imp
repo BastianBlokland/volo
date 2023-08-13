@@ -75,6 +75,21 @@
       ]
     },
 
+    {
+      "name": "PlacementAccept",
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
+      "bindings": [
+        { "type": "Released", "key": "MouseLeft" }
+      ]
+    },
+    {
+      "name": "PlacementCancel",
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
+      "bindings": [
+        { "type": "Pressed", "key": "MouseRight" }
+      ]
+    },
+
     { "name": "ProductQueue1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Q" } ] },
     { "name": "ProductQueue2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "W" } ] },
     { "name": "ProductQueue3", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "E" } ] },

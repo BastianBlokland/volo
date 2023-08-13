@@ -266,6 +266,7 @@ static void update_camera_movement_debug(
 }
 
 static void placement_update(
+    const InputManagerComp*   input,
     const SceneSelectionComp* sel,
     const SceneTerrainComp*   terrain,
     EcsView*                  productionView,
@@ -285,6 +286,11 @@ static void placement_update(
       }
       if (rayT > g_inputMinInteractDist) {
         production->placementPos = geo_ray_position(inputRay, rayT);
+      }
+      if (input_triggered_lit(input, "PlacementAccept")) {
+        scene_product_placement_accept(production);
+      } else if (input_triggered_lit(input, "PlacementCancel")) {
+        scene_product_placement_cancel(production);
       }
     } else {
       // Not selected anymore; cancel placement.
@@ -515,7 +521,7 @@ static void update_camera_interact(
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  placement_update(sel, terrain, productionView, &inputRay);
+  placement_update(input, sel, terrain, productionView, &inputRay);
 
   const bool selectActive = input_triggered_lit(input, "Select");
   switch (state->selectState) {
