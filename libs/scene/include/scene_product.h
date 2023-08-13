@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
 
@@ -40,6 +41,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   SceneProductFlags  flags : 16;
   u16                queueCount;
   SceneProductQueue* queues;
+  EcsEntityId        placementPreview;
   GeoVector          spawnPos, rallyPos, placementPos;
 };
 

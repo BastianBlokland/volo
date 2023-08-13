@@ -13,6 +13,7 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_product.h"
+#include "scene_renderable.h"
 #include "scene_sound.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -307,12 +308,39 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
   return ProductResult_Success;
 }
 
+static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
+  diag_assert(ctx->queue->product->type == AssetProduct_Placable);
+
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+
+  const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
+  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  if (prefab) {
+    const AssetPrefabTrait* renderableTrait =
+        asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
+    if (renderableTrait) {
+      const EcsEntityId graphic = renderableTrait->data_renderable.graphic;
+      ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .alpha = 0.5f);
+    }
+  }
+  ecs_world_add_t(
+      ctx->world,
+      e,
+      SceneTransformComp,
+      .position = ctx->production->placementPos,
+      .rotation = geo_quat_ident);
+  return e;
+}
+
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
     return ProductResult_Success;
   }
   if (ctx->queue->requests & SceneProductRequest_PlacementCancel) {
     return ProductResult_Cancelled;
+  }
+  if (!ctx->production->placementPreview) {
+    ctx->production->placementPreview = product_placement_preview_create(ctx);
   }
   return ProductResult_Running;
 }
