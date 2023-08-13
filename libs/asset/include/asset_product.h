@@ -22,7 +22,9 @@ typedef struct {
 } AssetProductUnit;
 
 typedef struct {
-  StringHash prefab;
+  StringHash  prefab;
+  f32         soundBlockedGain;
+  EcsEntityId soundBlocked;
 } AssetProductPlaceable;
 
 typedef struct sAssetProduct {

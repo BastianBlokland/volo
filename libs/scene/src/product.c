@@ -65,7 +65,7 @@ static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVecto
 
 static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
   const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
   ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
 }
 
@@ -387,32 +387,45 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
 }
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
+  SceneProductionComp* prod    = ctx->production;
+  const AssetProduct*  product = ctx->queue->product;
+  diag_assert(product->type == AssetProduct_Placable);
+  const AssetProductPlaceable* productPlace = &product->data_placable;
+
   const bool blocked = product_placement_blocked(ctx);
   if (blocked) {
-    ctx->production->flags |= SceneProductFlags_PlacementBlocked;
+    prod->flags |= SceneProductFlags_PlacementBlocked;
   } else {
-    ctx->production->flags &= ~SceneProductFlags_PlacementBlocked;
+    prod->flags &= ~SceneProductFlags_PlacementBlocked;
   }
-  if (!blocked && ctx->queue->requests & SceneProductRequest_PlacementAccept) {
-    const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
-    scene_prefab_spawn(
-        ctx->world,
-        &(ScenePrefabSpec){
-            .prefabId = ctx->queue->product->data_placable.prefab,
-            .position = ctx->production->placementPos,
-            .rotation = geo_quat_ident,
-            .scale    = 1.0f,
-            .faction  = factionComp ? factionComp->id : SceneFaction_None,
-        });
-    product_placement_preview_destroy(ctx);
-    return ProductResult_Success;
+  if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+    if (blocked) {
+      if (productPlace->soundBlocked && !(prod->flags & SceneProductFlags_PlacementBlockedWarned)) {
+        product_sound_play(ctx->world, productPlace->soundBlocked, productPlace->soundBlockedGain);
+        prod->flags |= SceneProductFlags_PlacementBlockedWarned;
+      }
+    } else {
+      const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+      scene_prefab_spawn(
+          ctx->world,
+          &(ScenePrefabSpec){
+              .prefabId = product->data_placable.prefab,
+              .position = prod->placementPos,
+              .rotation = geo_quat_ident,
+              .scale    = 1.0f,
+              .faction  = factionComp ? factionComp->id : SceneFaction_None,
+          });
+      product_placement_preview_destroy(ctx);
+      return ProductResult_Success;
+    }
   }
   if (ctx->queue->requests & SceneProductRequest_PlacementCancel) {
     product_placement_preview_destroy(ctx);
     return ProductResult_Cancelled;
   }
-  if (!ctx->production->placementPreview) {
-    ctx->production->placementPreview = product_placement_preview_create(ctx);
+  if (!prod->placementPreview) {
+    prod->flags &= ~SceneProductFlags_PlacementBlockedWarned;
+    prod->placementPreview = product_placement_preview_create(ctx);
   }
   return ProductResult_Running;
 }

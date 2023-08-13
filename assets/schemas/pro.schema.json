@@ -104,6 +104,15 @@
               "title": "String",
               "type": "string",
               "minLength": 1
+            },
+            "soundBlockedId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "soundBlockedGain": {
+              "title": "f32",
+              "type": "number"
             }
           },
           "required": [

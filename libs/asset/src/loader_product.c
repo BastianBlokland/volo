@@ -38,6 +38,8 @@ typedef struct {
 typedef struct {
   AssetProductMetaDef meta;
   String              prefab;
+  String              soundBlockedId;
+  f32                 soundBlockedGain;
 } AssetProductPlacableDef;
 
 typedef struct {
@@ -97,6 +99,8 @@ static void product_datareg_init() {
     data_reg_struct_t(reg, AssetProductPlacableDef);
     data_reg_field_t(reg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductPlacableDef, soundBlockedId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductPlacableDef, soundBlockedGain, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetProductDef, type);
     data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
@@ -195,12 +199,16 @@ static void productset_build(
           .unitCount  = math_max(1, productDef->data_unit.unitCount),
       };
       break;
-    case AssetProduct_Placable:
-      product_build_meta(ctx, &productDef->data_placable.meta, outProduct);
+    case AssetProduct_Placable: {
+      const AssetProductPlacableDef* placeDef = &productDef->data_placable;
+      product_build_meta(ctx, &placeDef->meta, outProduct);
       outProduct->data_placable = (AssetProductPlaceable){
-          .prefab = string_hash(productDef->data_placable.prefab),
+          .prefab = string_hash(placeDef->prefab),
+          .soundBlocked =
+              asset_maybe_lookup(ctx->world, ctx->assetManager, placeDef->soundBlockedId),
+          .soundBlockedGain = placeDef->soundBlockedGain <= 0 ? 1 : placeDef->soundBlockedGain,
       };
-      break;
+    } break;
     }
     if (*err) {
       return; // Failed to build product-set.
