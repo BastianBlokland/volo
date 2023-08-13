@@ -172,6 +172,15 @@
         "soundCancelGain": {
           "title": "f32",
           "type": "number"
+        },
+        "soundSuccessId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "soundSuccessGain": {
+          "title": "f32",
+          "type": "number"
         }
       },
       "required": [],

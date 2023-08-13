@@ -485,6 +485,9 @@ static void product_queue_update(ProductQueueContext* ctx) {
     } else if (result == ProductResult_Success) {
       --queue->count;
       queue->state = SceneProductState_Cooldown;
+      if (product->soundSuccess) {
+        product_sound_play(ctx->world, product->soundSuccess, product->soundSuccessGain);
+      }
       // Fallthrough.
     } else {
       break;
