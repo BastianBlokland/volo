@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "asset_prefab.h"
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -119,6 +120,8 @@ ecs_view_define(ProductionView) {
   ecs_access_write(SceneProductionComp);
 }
 
+ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
+
 ecs_view_define(ResInitGlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_write(SceneProductResourceComp);
@@ -196,18 +199,20 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(ScenePrefabResourceComp);
   ecs_access_read(SceneProductResourceComp);
   ecs_access_read(SceneTimeComp);
 }
 
 typedef struct {
-  EcsWorld*              world;
-  const SceneNavEnvComp* nav;
-  SceneProductionComp*   production;
-  SceneProductQueue*     queue;
-  EcsIterator*           itr;
-  bool                   anyQueueBusy;
-  TimeDuration           timeDelta;
+  EcsWorld*                 world;
+  const SceneNavEnvComp*    nav;
+  const AssetPrefabMapComp* prefabMap;
+  SceneProductionComp*      production;
+  SceneProductQueue*        queue;
+  EcsIterator*              itr;
+  bool                      anyQueueBusy;
+  TimeDuration              timeDelta;
 } ProductQueueContext;
 
 static bool product_queue_any_busy(ProductQueueContext* ctx) {
@@ -401,14 +406,22 @@ ecs_system_define(SceneProductUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*   time = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneNavEnvComp* nav  = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTimeComp*           time      = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneNavEnvComp*         nav       = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const ScenePrefabResourceComp* prefabRes = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
 
   EcsView*                   productMapView = ecs_world_view_t(world, ProductMapView);
   const AssetProductMapComp* productMap     = product_map_get(globalItr, productMapView);
   if (!productMap) {
     return;
   }
+
+  EcsView*     prefabMapView = ecs_world_view_t(world, PrefabMapView);
+  EcsIterator* prefabMapItr  = ecs_view_maybe_at(prefabMapView, scene_prefab_map(prefabRes));
+  if (!prefabMapItr) {
+    return;
+  }
+  const AssetPrefabMapComp* prefabMap = ecs_view_read_t(prefabMapItr, AssetPrefabMapComp);
 
   EcsView* productionView = ecs_world_view_t(world, ProductionView);
   for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
@@ -421,10 +434,11 @@ ecs_system_define(SceneProductUpdateSys) {
 
     ProductQueueContext ctx = {
         .world      = world,
-        .production = production,
         .nav        = nav,
-        .timeDelta  = time->delta,
+        .prefabMap  = prefabMap,
+        .production = production,
         .itr        = itr,
+        .timeDelta  = time->delta,
     };
     ctx.anyQueueBusy = product_queue_any_busy(&ctx);
 
@@ -444,6 +458,7 @@ ecs_module_init(scene_product_module) {
 
   ecs_register_view(ProductMapView);
   ecs_register_view(ProductionView);
+  ecs_register_view(PrefabMapView);
 
   ecs_register_system(SceneProductResInitSys, ecs_register_view(ResInitGlobalView));
 
@@ -456,7 +471,8 @@ ecs_module_init(scene_product_module) {
       SceneProductUpdateSys,
       ecs_register_view(UpdateGlobalView),
       ecs_view_id(ProductionView),
-      ecs_view_id(ProductMapView));
+      ecs_view_id(ProductMapView),
+      ecs_view_id(PrefabMapView));
 }
 
 void scene_product_init(EcsWorld* world, const String productMapId) {
