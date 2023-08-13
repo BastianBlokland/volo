@@ -345,6 +345,16 @@ static void product_placement_preview_destroy(ProductQueueContext* ctx) {
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+    const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+    scene_prefab_spawn(
+        ctx->world,
+        &(ScenePrefabSpec){
+            .prefabId = ctx->queue->product->data_placable.prefab,
+            .position = ctx->production->placementPos,
+            .rotation = geo_quat_ident,
+            .scale    = 1.0f,
+            .faction  = factionComp ? factionComp->id : SceneFaction_None,
+        });
     product_placement_preview_destroy(ctx);
     return ProductResult_Success;
   }
