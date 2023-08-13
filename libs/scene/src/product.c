@@ -484,6 +484,31 @@ ecs_system_define(SceneProductUpdateSys) {
   }
 }
 
+ecs_view_define(PreviewUpdateView) {
+  ecs_access_read(SceneProductPreviewComp);
+  ecs_access_write(SceneTransformComp);
+}
+
+ecs_view_define(PreviewInstigatorView) { ecs_access_read(SceneProductionComp); }
+
+ecs_system_define(SceneProductPreviewUpdateSys) {
+  EcsView* previewView    = ecs_world_view_t(world, PreviewUpdateView);
+  EcsView* instigatorView = ecs_world_view_t(world, PreviewInstigatorView);
+
+  EcsIterator* instigatorItr = ecs_view_itr(instigatorView);
+
+  for (EcsIterator* itr = ecs_view_itr(previewView); ecs_view_walk(itr);) {
+    const SceneProductPreviewComp* preview = ecs_view_read_t(itr, SceneProductPreviewComp);
+    SceneTransformComp*            trans   = ecs_view_write_t(itr, SceneTransformComp);
+    if (!ecs_view_maybe_jump(instigatorItr, preview->instigator)) {
+      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+      continue;
+    }
+    const SceneProductionComp* production = ecs_view_read_t(instigatorItr, SceneProductionComp);
+    trans->position                       = production->placementPos;
+  }
+}
+
 ecs_module_init(scene_product_module) {
   ecs_register_comp(SceneProductResourceComp, .destructor = ecs_destruct_product_resource);
   ecs_register_comp(SceneProductionComp, .destructor = ecs_destruct_production);
@@ -506,6 +531,11 @@ ecs_module_init(scene_product_module) {
       ecs_view_id(ProductionView),
       ecs_view_id(ProductMapView),
       ecs_view_id(PrefabMapView));
+
+  ecs_register_system(
+      SceneProductPreviewUpdateSys,
+      ecs_register_view(PreviewUpdateView),
+      ecs_register_view(PreviewInstigatorView));
 }
 
 void scene_product_init(EcsWorld* world, const String productMapId) {
