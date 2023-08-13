@@ -158,6 +158,9 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_up.tga
       sound/alarm-01.wav
       sound/ambiance-01.wav
+      sound/announcer-building-01.wav
+      sound/announcer-cancelled-01.wav
+      sound/announcer-structure-deployed-01.wav
       sound/announcer-structure-ready-01.wav
       sound/announcer-unit-ready-02.wav
       sound/burning-01.wav
