@@ -265,18 +265,21 @@ static void update_camera_movement_debug(
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
 
-static void placement_update(
+static bool placement_update(
     const InputManagerComp*   input,
     const SceneSelectionComp* sel,
     const SceneTerrainComp*   terrain,
     EcsView*                  productionView,
     const GeoRay*             inputRay) {
+  bool placementActive = false;
   for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
     SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
     if (!scene_product_placement_active(production)) {
       continue; // No placement active.
     }
     if (ecs_view_entity(itr) == scene_selection_main(sel)) {
+      placementActive = true;
+
       // Update placement position.
       f32 rayT;
       if (terrain) {
@@ -297,6 +300,7 @@ static void placement_update(
       scene_product_placement_cancel(production);
     }
   }
+  return placementActive;
 }
 
 static SceneQueryFilter select_filter(InputManagerComp* input) {
@@ -521,9 +525,9 @@ static void update_camera_interact(
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  placement_update(input, sel, terrain, productionView, &inputRay);
+  const bool placementActive = placement_update(input, sel, terrain, productionView, &inputRay);
 
-  const bool selectActive = input_triggered_lit(input, "Select");
+  const bool selectActive = !placementActive && input_triggered_lit(input, "Select");
   switch (state->selectState) {
   case InputSelectState_None:
     if (input_blockers(input) & (InputBlocker_HoveringUi | InputBlocker_HoveringGizmo)) {
@@ -570,7 +574,7 @@ static void update_camera_interact(
   }
 
   const bool hasSelection = !scene_selection_empty(sel);
-  if (!selectActive && hasSelection && input_triggered_lit(input, "Order")) {
+  if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, cmdController, collisionEnv, sel, terrain, nav, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
