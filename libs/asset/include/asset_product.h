@@ -33,8 +33,8 @@ typedef struct sAssetProduct {
   TimeDuration     cooldown;
   u16              queueMax;
   u16              queueBulkSize;
-  f32              soundReadyGain;
-  EcsEntityId      soundReady;
+  f32              soundReadyGain, soundCancelGain;
+  EcsEntityId      soundReady, soundCancel;
   union {
     AssetProductUnit      data_unit;
     AssetProductPlaceable data_placable;

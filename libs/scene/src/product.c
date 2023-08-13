@@ -478,6 +478,9 @@ static void product_queue_update(ProductQueueContext* ctx) {
     result = product_queue_process_active(ctx);
     if (result == ProductResult_Cancelled) {
       queue->state = SceneProductState_Ready;
+      if (product->soundCancel) {
+        product_sound_play(ctx->world, product->soundCancel, product->soundCancelGain);
+      }
       break;
     } else if (result == ProductResult_Success) {
       --queue->count;

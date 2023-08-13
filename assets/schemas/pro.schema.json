@@ -163,6 +163,15 @@
         "soundReadyGain": {
           "title": "f32",
           "type": "number"
+        },
+        "soundCancelId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "soundCancelGain": {
+          "title": "f32",
+          "type": "number"
         }
       },
       "required": [],
