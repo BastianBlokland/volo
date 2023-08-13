@@ -11,7 +11,7 @@
             "costTime": 3,
             "queueMax": 99,
             "cooldown": 1,
-            "soundReadyId": "external/sound/announcer-unit-ready.wav",
+            "soundReadyId": "external/sound/announcer-unit-ready-02.wav",
             "soundReadyGain": 0.5
           },
           "unitPrefab": "InfantryRifle",
@@ -25,7 +25,7 @@
             "costTime": 5,
             "queueMax": 99,
             "cooldown": 1,
-            "soundReadyId": "external/sound/announcer-unit-ready.wav",
+            "soundReadyId": "external/sound/announcer-unit-ready-02.wav",
             "soundReadyGain": 0.5
           },
           "unitPrefab": "InfantryRocket",
@@ -39,7 +39,7 @@
             "costTime": 5,
             "queueMax": 99,
             "cooldown": 1,
-            "soundReadyId": "external/sound/announcer-unit-ready.wav",
+            "soundReadyId": "external/sound/announcer-unit-ready-02.wav",
             "soundReadyGain": 0.5
           },
           "unitPrefab": "InfantryFlame",
