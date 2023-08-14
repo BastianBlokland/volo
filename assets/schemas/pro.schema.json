@@ -105,14 +105,9 @@
               "type": "string",
               "minLength": 1
             },
-            "soundBlockedId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "soundBlockedGain": {
-              "title": "f32",
-              "type": "number"
+            "soundBlocked": {
+              "title": "AssetProductSoundDef",
+              "$ref": "#/$defs/AssetProductSoundDef"
             }
           },
           "required": [
@@ -164,41 +159,21 @@
           "title": "f32",
           "type": "number"
         },
-        "soundBuildingId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
+        "soundBuilding": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         },
-        "soundBuildingGain": {
-          "title": "f32",
-          "type": "number"
+        "soundReady": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         },
-        "soundReadyId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
+        "soundCancel": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         },
-        "soundReadyGain": {
-          "title": "f32",
-          "type": "number"
-        },
-        "soundCancelId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "soundCancelGain": {
-          "title": "f32",
-          "type": "number"
-        },
-        "soundSuccessId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
-        },
-        "soundSuccessGain": {
-          "title": "f32",
-          "type": "number"
+        "soundSuccess": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         }
       },
       "required": [],
@@ -206,6 +181,30 @@
         {
           "label": "New",
           "body": "^{}"
+        }
+      ]
+    },
+    "AssetProductSoundDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "gain": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "assetId"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"assetId\": \"placeholder\"\n}"
         }
       ]
     }
