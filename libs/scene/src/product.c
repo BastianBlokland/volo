@@ -8,6 +8,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_sphere.h"
 #include "log_logger.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
@@ -377,8 +378,12 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   }
   const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
   switch (shape->type) {
-  case AssetPrefabShape_Sphere:
-    return true; // TODO: Support sphere shapes.
+  case AssetPrefabShape_Sphere: {
+    const GeoVector offset = shape->data_sphere.offset;
+    const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
+    const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
+    return scene_nav_blocked_sphere(ctx->nav, &sphereWorld);
+  }
   case AssetPrefabShape_Capsule:
     return true; // TODO: Support capsule shapes.
   case AssetPrefabShape_Box: {
