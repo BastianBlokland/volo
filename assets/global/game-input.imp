@@ -89,6 +89,20 @@
         { "type": "Pressed", "key": "MouseRight" }
       ]
     },
+    {
+      "name": "PlacementRotateLeft",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketLeft" }
+      ]
+    },
+    {
+      "name": "PlacementRotateRight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketRight" }
+      ]
+    },
 
     { "name": "ProductQueue1", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "Q" } ] },
     { "name": "ProductQueue2", "blockers": [ "TextInput" ], "bindings": [ { "type": "Pressed", "key": "W" } ] },

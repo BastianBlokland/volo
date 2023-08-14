@@ -44,6 +44,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   u16                queueCount;
   SceneProductQueue* queues;
   EcsEntityId        placementPreview;
+  f32                placementAngle;
   GeoVector          spawnPos, rallyPos, placementPos;
 };
 

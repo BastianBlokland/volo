@@ -295,6 +295,11 @@ static bool placement_update(
       } else if (input_triggered_lit(input, "PlacementCancel")) {
         scene_product_placement_cancel(production);
       }
+      if (input_triggered_lit(input, "PlacementRotateLeft")) {
+        production->placementAngle -= math_pi_f32 * 0.25f;
+      } else if (input_triggered_lit(input, "PlacementRotateRight")) {
+        production->placementAngle += math_pi_f32 * 0.25f;
+      }
     } else {
       // Not selected anymore; cancel placement.
       scene_product_placement_cancel(production);

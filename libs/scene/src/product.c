@@ -333,7 +333,7 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
       e,
       SceneTransformComp,
       .position = ctx->production->placementPos,
-      .rotation = geo_quat_ident);
+      .rotation = geo_quat_angle_axis(geo_up, ctx->production->placementAngle));
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
@@ -367,7 +367,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     return true; // TODO: Report error?
   }
   const GeoVector placementPos = ctx->production->placementPos;
-  const GeoQuat   placementRot = geo_quat_ident;
+  const GeoQuat   placementRot = geo_quat_angle_axis(geo_up, ctx->production->placementAngle);
 
   if (!scene_visible_pos(ctx->visiblityEnv, faction, placementPos)) {
     return true; // Position not visible.
@@ -432,7 +432,7 @@ static ProductResult product_queue_process_active_placeable(ProductQueueContext*
           &(ScenePrefabSpec){
               .prefabId = product->data_placable.prefab,
               .position = prod->placementPos,
-              .rotation = geo_quat_ident,
+              .rotation = geo_quat_angle_axis(geo_up, prod->placementAngle),
               .scale    = 1.0f,
               .faction  = factionComp ? factionComp->id : SceneFaction_None,
           });
@@ -613,6 +613,7 @@ ecs_system_define(SceneProductPreviewUpdateSys) {
 
     SceneTransformComp* trans = ecs_view_write_t(itr, SceneTransformComp);
     trans->position           = production->placementPos;
+    trans->rotation           = geo_quat_angle_axis(geo_up, production->placementAngle);
 
     SceneTagComp*   tagComp    = ecs_utils_write_or_add_t(world, itr, SceneTagComp);
     const SceneTags blockedTag = SceneTags_Damaged; // TODO: Rename this tag or add a bespoke tag.
