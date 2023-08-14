@@ -72,6 +72,7 @@ GeoBox       geo_nav_box(const GeoNavGrid*, GeoNavCell);
 GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_blocked_box_rotated(const GeoNavGrid*, const GeoBoxRotated*);
+bool         geo_nav_blocked_sphere(const GeoNavGrid*, const GeoSphere*);
 bool         geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 bool         geo_nav_reachable(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);

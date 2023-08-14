@@ -555,6 +555,10 @@ bool scene_nav_blocked_box(const SceneNavEnvComp* env, const GeoBoxRotated* boxR
   return geo_nav_blocked_box_rotated(env->navGrid, boxRotated);
 }
 
+bool scene_nav_blocked_sphere(const SceneNavEnvComp* env, const GeoSphere* sphere) {
+  return geo_nav_blocked_sphere(env->navGrid, sphere);
+}
+
 bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_occupied(env->navGrid, cell);
 }
