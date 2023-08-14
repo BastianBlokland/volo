@@ -153,19 +153,20 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
   utf8_cp_read(def->icon, &out->icon);
-  out->name              = string_maybe_dup(g_alloc_heap, def->name);
-  out->costTime          = math_max(costTimeRaw, time_millisecond);
-  out->queueMax          = def->queueMax ? def->queueMax : u16_max;
-  out->queueBulkSize     = def->queueBulkSize ? def->queueBulkSize : 5;
-  out->cooldown          = math_max(cooldownRaw, time_millisecond);
-  out->soundBuilding     = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundBuildingId);
-  out->soundBuildingGain = def->soundBuildingGain <= 0 ? 1 : def->soundBuildingGain;
-  out->soundReady        = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
-  out->soundReadyGain    = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
-  out->soundCancel       = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundCancelId);
-  out->soundCancelGain   = def->soundCancelGain <= 0 ? 1 : def->soundCancelGain;
-  out->soundSuccess      = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundSuccessId);
-  out->soundSuccessGain  = def->soundSuccessGain <= 0 ? 1 : def->soundSuccessGain;
+  out->name          = string_maybe_dup(g_alloc_heap, def->name);
+  out->costTime      = math_max(costTimeRaw, time_millisecond);
+  out->queueMax      = def->queueMax ? def->queueMax : u16_max;
+  out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
+  out->cooldown      = math_max(cooldownRaw, time_millisecond);
+  out->soundBuilding.asset =
+      asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundBuildingId);
+  out->soundBuilding.gain = def->soundBuildingGain <= 0 ? 1 : def->soundBuildingGain;
+  out->soundReady.asset   = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
+  out->soundReady.gain    = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
+  out->soundCancel.asset  = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundCancelId);
+  out->soundCancel.gain   = def->soundCancelGain <= 0 ? 1 : def->soundCancelGain;
+  out->soundSuccess.asset = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundSuccessId);
+  out->soundSuccess.gain  = def->soundSuccessGain <= 0 ? 1 : def->soundSuccessGain;
 }
 
 static void productset_build(
@@ -204,9 +205,9 @@ static void productset_build(
       product_build_meta(ctx, &placeDef->meta, outProduct);
       outProduct->data_placable = (AssetProductPlaceable){
           .prefab = string_hash(placeDef->prefab),
-          .soundBlocked =
+          .soundBlocked.asset =
               asset_maybe_lookup(ctx->world, ctx->assetManager, placeDef->soundBlockedId),
-          .soundBlockedGain = placeDef->soundBlockedGain <= 0 ? 1 : placeDef->soundBlockedGain,
+          .soundBlocked.gain = placeDef->soundBlockedGain <= 0 ? 1 : placeDef->soundBlockedGain,
       };
     } break;
     }

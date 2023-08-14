@@ -63,10 +63,14 @@ static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVecto
   return scene_nav_position(nav, cell);
 }
 
-static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
+static void product_sound_play(EcsWorld* world, const AssetProductSound* sound) {
+  if (!sound->asset) {
+    return;
+  }
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
+  ecs_world_add_t(
+      world, e, SceneSoundComp, .asset = sound->asset, .gain = sound->gain, .pitch = 1.0f);
 }
 
 static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
@@ -400,8 +404,8 @@ static ProductResult product_queue_process_active_placeable(ProductQueueContext*
   }
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
     if (blocked) {
-      if (productPlace->soundBlocked && !(prod->flags & SceneProductFlags_PlacementBlockedWarned)) {
-        product_sound_play(ctx->world, productPlace->soundBlocked, productPlace->soundBlockedGain);
+      if (!(prod->flags & SceneProductFlags_PlacementBlockedWarned)) {
+        product_sound_play(ctx->world, &productPlace->soundBlocked);
         prod->flags |= SceneProductFlags_PlacementBlockedWarned;
       }
     } else {
@@ -450,9 +454,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->state      = SceneProductState_Building;
       queue->progress   = 0.0f;
       ctx->anyQueueBusy = true;
-      if (product->soundBuilding) {
-        product_sound_play(ctx->world, product->soundBuilding, product->soundBuildingGain);
-      }
+      product_sound_play(ctx->world, &product->soundBuilding);
     }
     break;
   case SceneProductState_Building:
@@ -465,9 +467,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (queue->progress >= 1.0f) {
       queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
-      if (product->soundReady) {
-        product_sound_play(ctx->world, product->soundReady, product->soundReadyGain);
-      }
+      product_sound_play(ctx->world, &product->soundReady);
       // Fallthrough.
     } else {
       break;
@@ -494,16 +494,12 @@ static void product_queue_update(ProductQueueContext* ctx) {
     result = product_queue_process_active(ctx);
     if (result == ProductResult_Cancelled) {
       queue->state = SceneProductState_Ready;
-      if (product->soundCancel) {
-        product_sound_play(ctx->world, product->soundCancel, product->soundCancelGain);
-      }
+      product_sound_play(ctx->world, &product->soundCancel);
       break;
     } else if (result == ProductResult_Success) {
       --queue->count;
       queue->state = SceneProductState_Cooldown;
-      if (product->soundSuccess) {
-        product_sound_play(ctx->world, product->soundSuccess, product->soundSuccessGain);
-      }
+      product_sound_play(ctx->world, &product->soundSuccess);
       // Fallthrough.
     } else {
       break;
