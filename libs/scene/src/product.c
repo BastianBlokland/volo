@@ -318,6 +318,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
       pos = rallyPos;
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
+    ecs_world_add_t(ctx->world, e, SceneRenderableFadeinComp, .duration = time_milliseconds(500));
   }
   return ProductResult_Success;
 }
