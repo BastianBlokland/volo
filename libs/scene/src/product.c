@@ -8,8 +8,10 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_box_rotated.h"
 #include "geo_sphere.h"
 #include "log_logger.h"
+#include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
 #include "scene_nav.h"
@@ -384,8 +386,18 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
     return scene_nav_blocked_sphere(ctx->nav, &sphereWorld);
   }
-  case AssetPrefabShape_Capsule:
-    return true; // TODO: Support capsule shapes.
+  case AssetPrefabShape_Capsule: {
+    static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
+    const GeoVector         offset         = shape->data_capsule.offset;
+    const f32               height         = shape->data_capsule.height;
+    const f32               radius         = shape->data_capsule.radius;
+    const SceneCollisionDir dir            = SceneCollision_Up; // TODO: Make this configurable.
+    const GeoVector         dirVec         = geo_quat_rotate(placementRot, g_capsuleDir[dir]);
+    const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
+    const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
+    const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
+    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+  }
   case AssetPrefabShape_Box: {
     const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
     const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
