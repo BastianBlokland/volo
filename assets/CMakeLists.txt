@@ -163,6 +163,7 @@ if(${EXTERNAL_ASSETS})
       sound/announcer-location-invalid-01.wav
       sound/announcer-structure-deployed-01.wav
       sound/announcer-structure-ready-01.wav
+      sound/announcer-training-01.wav
       sound/announcer-unit-ready-02.wav
       sound/burning-01.wav
       sound/burning-02.wav
