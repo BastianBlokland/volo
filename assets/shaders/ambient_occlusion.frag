@@ -67,7 +67,7 @@ void main() {
   const f32m3 rotMatrix = kernel_rotation_matrix(viewNormal, random_normal());
 
   f32 occlusion = 0.0;
-  for (u32 i = 0; i != c_kernelSize; ++i) {
+  for (u32 i = 0; i < c_kernelSize; ++i) {
     /**
      * Get the kernel position in view-space, oriented along the surface normal.
      */

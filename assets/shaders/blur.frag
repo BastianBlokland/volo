@@ -29,7 +29,7 @@ bind_internal(0) out f32v4 out_color;
 void main() {
   const f32v2 sampleSize = 1.0 / textureSize(u_texInput, 0) * u_draw.sampleScale;
   f32v4       res        = texture(u_texInput, in_texcoord) * c_kernelWeights[0];
-  for (i32 i = 1; i != c_sampleCount; ++i) {
+  for (i32 i = 1; i < c_sampleCount; ++i) {
     if (s_horizontal) {
       res += texture(u_texInput, in_texcoord + f32v2(sampleSize.x * i, 0)) * c_kernelWeights[i];
       res += texture(u_texInput, in_texcoord - f32v2(sampleSize.x * i, 0)) * c_kernelWeights[i];
