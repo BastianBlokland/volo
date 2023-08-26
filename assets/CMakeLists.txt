@@ -161,6 +161,7 @@ if(${EXTERNAL_ASSETS})
       sound/announcer-building-01.wav
       sound/announcer-cancelled-01.wav
       sound/announcer-location-invalid-01.wav
+      sound/announcer-rallypos-updated-01.wav
       sound/announcer-structure-deployed-01.wav
       sound/announcer-structure-ready-01.wav
       sound/announcer-training-01.wav

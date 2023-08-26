@@ -12,7 +12,8 @@
             "queueMax": 99,
             "cooldown": 1,
             "soundBuilding": { "assetId": "external/sound/announcer-training-01.wav", "gain": 0.5 },
-            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 }
+            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 }
           },
           "unitPrefab": "InfantryRifle",
           "unitCount": 3
@@ -26,7 +27,8 @@
             "queueMax": 99,
             "cooldown": 1,
             "soundBuilding": { "assetId": "external/sound/announcer-training-01.wav", "gain": 0.5 },
-            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 }
+            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 }
           },
           "unitPrefab": "InfantryRocket",
           "unitCount": 2
@@ -40,7 +42,8 @@
             "queueMax": 99,
             "cooldown": 1,
             "soundBuilding": { "assetId": "external/sound/announcer-training-01.wav", "gain": 0.5 },
-            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 }
+            "soundReady": { "assetId": "external/sound/announcer-unit-ready-02.wav", "gain": 0.5 },
+            "soundCancel": { "assetId": "external/sound/announcer-cancelled-01.wav", "gain": 0.5 }
           },
           "unitPrefab": "InfantryFlame",
           "unitCount": 2
