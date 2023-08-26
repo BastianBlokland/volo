@@ -479,6 +479,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
+      product_sound_play(ctx->world, &product->soundCancel);
       break;
     }
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->costTime;
@@ -494,6 +495,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
+      product_sound_play(ctx->world, &product->soundCancel);
       break;
     }
     result = product_queue_process_ready(ctx);
@@ -507,12 +509,12 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
+      product_sound_play(ctx->world, &product->soundCancel);
       break;
     }
     result = product_queue_process_active(ctx);
     if (result == ProductResult_Cancelled) {
       queue->state = SceneProductState_Ready;
-      product_sound_play(ctx->world, &product->soundCancel);
       break;
     } else if (result == ProductResult_Success) {
       --queue->count;
