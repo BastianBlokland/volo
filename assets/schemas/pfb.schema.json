@@ -636,6 +636,14 @@
               "title": "AssetPrefabVec3Def",
               "$ref": "#/$defs/AssetPrefabVec3Def"
             },
+            "rallySoundId": {
+              "title": "String",
+              "type": "string"
+            },
+            "rallySoundGain": {
+              "title": "f32",
+              "type": "number"
+            },
             "productSetId": {
               "title": "String",
               "type": "string",

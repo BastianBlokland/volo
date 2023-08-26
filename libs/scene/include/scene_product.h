@@ -28,6 +28,7 @@ typedef enum {
   SceneProductFlags_RallyLocalSpace        = 1 << 0,
   SceneProductFlags_PlacementBlocked       = 1 << 1,
   SceneProductFlags_PlacementBlockedWarned = 1 << 2,
+  SceneProductFlags_RallyPosUpdated        = 1 << 3,
 } SceneProductFlags;
 
 typedef struct {
@@ -44,6 +45,8 @@ ecs_comp_extern_public(SceneProductionComp) {
   u16                queueCount;
   SceneProductQueue* queues;
   EcsEntityId        placementPreview;
+  EcsEntityId        rallySoundAsset;
+  f32                rallySoundGain;
   f32                placementAngle;
   GeoVector          spawnPos, rallyPos, placementPos;
 };

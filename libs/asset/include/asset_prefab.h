@@ -168,8 +168,10 @@ typedef struct {
 } AssetPrefabTraitVision;
 
 typedef struct {
-  GeoVector  spawnPos, rallyPos;
-  StringHash productSetId;
+  GeoVector   spawnPos, rallyPos;
+  EcsEntityId rallySoundAsset;
+  f32         rallySoundGain;
+  StringHash  productSetId;
 } AssetPrefabTraitProduction;
 
 typedef struct {

@@ -385,10 +385,12 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
       w,
       e,
       SceneProductionComp,
-      .productSetId = t->productSetId,
-      .flags        = SceneProductFlags_RallyLocalSpace,
-      .spawnPos     = t->spawnPos,
-      .rallyPos     = t->rallyPos);
+      .productSetId    = t->productSetId,
+      .flags           = SceneProductFlags_RallyLocalSpace,
+      .rallySoundAsset = t->rallySoundAsset,
+      .rallySoundGain  = t->rallySoundGain,
+      .spawnPos        = t->spawnPos,
+      .rallyPos        = t->rallyPos);
 }
 
 static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {

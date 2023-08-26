@@ -66,14 +66,12 @@ static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVecto
   return scene_nav_position(nav, cell);
 }
 
-static void product_sound_play(EcsWorld* world, const AssetProductSound* sound) {
-  if (!sound->asset) {
-    return;
+static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f32 gain) {
+  if (asset) {
+    const EcsEntityId e = ecs_world_entity_create(world);
+    ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
+    ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
   }
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
-  ecs_world_add_t(
-      world, e, SceneSoundComp, .asset = sound->asset, .gain = sound->gain, .pitch = 1.0f);
 }
 
 static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
@@ -423,7 +421,8 @@ static ProductResult product_queue_process_active_placeable(ProductQueueContext*
   if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
     if (blocked) {
       if (!(prod->flags & SceneProductFlags_PlacementBlockedWarned)) {
-        product_sound_play(ctx->world, &productPlace->soundBlocked);
+        const AssetProductSound* soundBlocked = &productPlace->soundBlocked;
+        product_sound_play(ctx->world, soundBlocked->asset, soundBlocked->gain);
         prod->flags |= SceneProductFlags_PlacementBlockedWarned;
       }
     } else {
@@ -472,21 +471,21 @@ static void product_queue_update(ProductQueueContext* ctx) {
       queue->state      = SceneProductState_Building;
       queue->progress   = 0.0f;
       ctx->anyQueueBusy = true;
-      product_sound_play(ctx->world, &product->soundBuilding);
+      product_sound_play(ctx->world, product->soundBuilding.asset, product->soundBuilding.gain);
     }
     break;
   case SceneProductState_Building:
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
-      product_sound_play(ctx->world, &product->soundCancel);
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
       break;
     }
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->costTime;
     if (queue->progress >= 1.0f) {
       queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
-      product_sound_play(ctx->world, &product->soundReady);
+      product_sound_play(ctx->world, product->soundReady.asset, product->soundReady.gain);
       // Fallthrough.
     } else {
       break;
@@ -495,7 +494,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
-      product_sound_play(ctx->world, &product->soundCancel);
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
       break;
     }
     result = product_queue_process_ready(ctx);
@@ -509,7 +508,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
-      product_sound_play(ctx->world, &product->soundCancel);
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
       break;
     }
     result = product_queue_process_active(ctx);
@@ -519,7 +518,7 @@ static void product_queue_update(ProductQueueContext* ctx) {
     } else if (result == ProductResult_Success) {
       --queue->count;
       queue->state = SceneProductState_Cooldown;
-      product_sound_play(ctx->world, &product->soundSuccess);
+      product_sound_play(ctx->world, product->soundSuccess.asset, product->soundSuccess.gain);
       // Fallthrough.
     } else {
       break;
@@ -569,6 +568,11 @@ ecs_system_define(SceneProductUpdateSys) {
     // Initialize product queues.
     if (!production->queues && !product_queues_init(production, productMap)) {
       continue;
+    }
+
+    if (production->flags & SceneProductFlags_RallyPosUpdated) {
+      product_sound_play(world, production->rallySoundAsset, production->rallySoundGain);
+      production->flags &= ~SceneProductFlags_RallyPosUpdated;
     }
 
     ProductQueueContext ctx = {
@@ -670,11 +674,12 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
 void scene_product_rallypos_set_world(SceneProductionComp* production, const GeoVector rallyPos) {
   production->rallyPos = rallyPos;
   production->flags &= ~SceneProductFlags_RallyLocalSpace;
+  production->flags |= SceneProductFlags_RallyPosUpdated;
 }
 
 void scene_product_rallypos_set_local(SceneProductionComp* production, const GeoVector rallyPos) {
   production->rallyPos = rallyPos;
-  production->flags |= SceneProductFlags_RallyLocalSpace;
+  production->flags |= SceneProductFlags_RallyLocalSpace | SceneProductFlags_RallyPosUpdated;
 }
 
 bool scene_product_placement_active(const SceneProductionComp* production) {
