@@ -50,6 +50,9 @@ ecs_comp_extern_public(SceneProductionComp) {
 
 void scene_product_init(EcsWorld*, String productMapId);
 
+void scene_product_rallypos_set_world(SceneProductionComp*, GeoVector rallyPos);
+void scene_product_rallypos_set_local(SceneProductionComp*, GeoVector rallyPos);
+
 bool scene_product_placement_active(const SceneProductionComp*);
 void scene_product_placement_accept(SceneProductionComp*);
 void scene_product_placement_cancel(SceneProductionComp*);

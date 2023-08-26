@@ -178,8 +178,7 @@ cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const Cmd
     EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
     if (prodItr && cmd_is_player_owned(prodItr)) {
       SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
-      prod->flags &= ~SceneProductFlags_RallyLocalSpace;
-      prod->rallyPos = cmdMove->position;
+      scene_product_rallypos_set_world(prod, cmdMove->position);
       return;
     }
   }

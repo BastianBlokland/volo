@@ -667,6 +667,16 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
       .mapId = string_dup(g_alloc_heap, productMapId));
 }
 
+void scene_product_rallypos_set_world(SceneProductionComp* production, const GeoVector rallyPos) {
+  production->rallyPos = rallyPos;
+  production->flags &= ~SceneProductFlags_RallyLocalSpace;
+}
+
+void scene_product_rallypos_set_local(SceneProductionComp* production, const GeoVector rallyPos) {
+  production->rallyPos = rallyPos;
+  production->flags |= SceneProductFlags_RallyLocalSpace;
+}
+
 bool scene_product_placement_active(const SceneProductionComp* production) {
   for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &production->queues[queueIndex];
