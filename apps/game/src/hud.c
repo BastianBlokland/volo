@@ -152,11 +152,9 @@ static void hud_indicator_ring_draw(
     u32     padding[2];
   } RingData;
 
-  const f32       circumference = radius * math_pi_f32 * 2.0f;
-  const f32       vertexDensity = 0.25f;
-  const u32       vertexCount   = (u32)math_round_up_f32(circumference / vertexDensity);
-  const SceneTags tags          = SceneTags_Vfx;
-  const GeoBox    bounds        = geo_box_inverted3(); // TODO: Compute bounds.
+  const u32       vertexCount = 250; // TODO: Make this dynamic based on the circumference.
+  const SceneTags tags        = SceneTags_Vfx;
+  const GeoBox    bounds      = geo_box_inverted3(); // TODO: Compute bounds.
 
   rend_draw_set_vertex_count(draw, vertexCount);
   *rend_draw_add_instance_t(draw, RingData, tags, bounds) = (RingData){
