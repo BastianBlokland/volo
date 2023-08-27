@@ -7,7 +7,7 @@
 
 const f32 c_behindThreshold = 0.1;
 const f32 c_behindAlphaMul  = 0.15;
-const f32 c_edgeSharpness   = 4.0;
+const f32 c_edgeSharpness   = 6.0;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_global_img(1) uniform sampler2D u_texGeoData1;
