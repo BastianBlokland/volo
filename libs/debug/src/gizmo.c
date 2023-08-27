@@ -152,10 +152,11 @@ ecs_comp_define(DebugGizmoComp) {
   GeoQueryEnv* queryEnv;
   f32          size;
 
-  DebugGizmoStatus  status;
-  DebugGizmoType    activeType;
   DebugGizmoId      activeId;
-  DebugGizmoSection activeSection;
+  DebugGizmoStatus  status : 8;
+  DebugGizmoType    activeType : 8;
+  DebugGizmoSection activeSection : 8;
+  bool              requestReset;
   u32               interactingTicks;
   union {
     DebugGizmoEditorTranslation  translation;
@@ -350,6 +351,7 @@ static void gizmo_interaction_start(
   comp->activeId         = entry->id;
   comp->activeSection    = section;
   comp->interactingTicks = 0;
+  comp->requestReset     = false;
 
   switch (entry->type) {
   case DebugGizmoType_Translation:
@@ -414,7 +416,7 @@ static GeoPlane gizmo_translation_plane(
   return geo_plane_at(nrm, basePos);
 }
 
-static void gizmo_update_interaction_translation(
+static bool gizmo_update_interaction_translation(
     DebugGizmoComp*         comp,
     DebugStatsGlobalComp*   stats,
     DebugGridComp*          grid,
@@ -430,7 +432,7 @@ static void gizmo_update_interaction_translation(
   const GeoPlane plane   = gizmo_translation_plane(data->basePos, data->baseRot, section, ray);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
   if (hitDist < 0 || hitDist > 1e3f) {
-    return; // No intersection with the interaction plane.
+    return false; // No intersection with the interaction plane.
   }
   const GeoVector inputPos = geo_ray_position(ray, hitDist);
   if (!comp->interactingTicks) {
@@ -455,6 +457,8 @@ static void gizmo_update_interaction_translation(
       stats,
       string_lit("Gizmo delta"),
       fmt_write_scratch("{}", fmt_float(statDeltaMag, .minDecDigits = 4, .maxDecDigits = 4)));
+
+  return true;
 }
 
 static f32 gizmo_vector_angle(const GeoVector from, const GeoVector to, const GeoVector axis) {
@@ -466,7 +470,7 @@ static f32 gizmo_vector_angle(const GeoVector from, const GeoVector to, const Ge
   return math_acos_f32(math_clamp_f32(dotTo, -1.0f, 1.0f)) * math_sign(dotTangent);
 }
 
-static void gizmo_update_interaction_rotation(
+static bool gizmo_update_interaction_rotation(
     DebugGizmoComp*       comp,
     DebugStatsGlobalComp* stats,
     const GapWindowComp*  window,
@@ -484,7 +488,7 @@ static void gizmo_update_interaction_rotation(
   const GeoPlane plane   = geo_plane_at(axis, data->basePos);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
   if (hitDist < 0 || hitDist > 1e3f) {
-    return; // No intersection with the interaction plane.
+    return false; // No intersection with the interaction plane.
   }
   const GeoVector delta = geo_vector_sub(geo_ray_position(ray, hitDist), data->basePos);
   if (!comp->interactingTicks) {
@@ -503,9 +507,11 @@ static void gizmo_update_interaction_rotation(
       string_lit("Gizmo delta"),
       fmt_write_scratch(
           "{} degrees", fmt_float(angle * math_rad_to_deg, .minDecDigits = 1, .maxDecDigits = 1)));
+
+  return true;
 }
 
-static void gizmo_update_interaction_scale_uniform(
+static bool gizmo_update_interaction_scale_uniform(
     DebugGizmoComp* comp, DebugStatsGlobalComp* stats, const GeoRay* ray) {
   DebugGizmoEditorScaleUniform* data = &comp->editor.scaleUniform;
 
@@ -522,7 +528,7 @@ static void gizmo_update_interaction_scale_uniform(
 
   const f32 hitDist = geo_plane_intersect_ray(&plane, ray);
   if (hitDist < 0 || hitDist > 1e3f) {
-    return; // No intersection with the interaction plane.
+    return false; // No intersection with the interaction plane.
   }
   const f32 height = geo_ray_position(ray, hitDist).y;
   if (!comp->interactingTicks) {
@@ -536,6 +542,8 @@ static void gizmo_update_interaction_scale_uniform(
       string_lit("Gizmo delta"),
       fmt_write_scratch(
           "x {}", fmt_float(data->resultDelta, .minDecDigits = 2, .maxDecDigits = 2)));
+
+  return true;
 }
 
 static void gizmo_update_interaction(
@@ -589,20 +597,28 @@ static void gizmo_update_interaction(
   }
 
   if (isInteracting) {
+    bool active;
     switch (comp->activeType) {
     case DebugGizmoType_Translation:
-      gizmo_update_interaction_translation(comp, stats, grid, terrain, window, &inputRay);
+      active = gizmo_update_interaction_translation(comp, stats, grid, terrain, window, &inputRay);
       break;
     case DebugGizmoType_Rotation:
-      gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
+      active = gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
       break;
     case DebugGizmoType_ScaleUniform:
-      gizmo_update_interaction_scale_uniform(comp, stats, &inputRay);
+      active = gizmo_update_interaction_scale_uniform(comp, stats, &inputRay);
       break;
     case DebugGizmoType_Count:
       UNREACHABLE
     }
-    ++comp->interactingTicks;
+    if (active) {
+      if (gap_window_key_down(window, GapKey_Escape)) {
+        comp->requestReset = true;
+      }
+      ++comp->interactingTicks;
+    } else {
+      gizmo_interaction_cancel(comp);
+    }
   }
 }
 
@@ -867,7 +883,12 @@ bool debug_gizmo_translation(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Translation);
   if (isInteracting) {
-    *translation = comp->editor.translation.result;
+    if (comp->requestReset) {
+      *translation = comp->editor.translation.basePos;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *translation = comp->editor.translation.result;
+    }
   }
   return isInteracting;
 }
@@ -885,7 +906,12 @@ bool debug_gizmo_rotation(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Rotation);
   if (isInteracting) {
-    *rotation = comp->editor.rotation.result;
+    if (comp->requestReset) {
+      *rotation = comp->editor.rotation.baseRot;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *rotation = comp->editor.rotation.result;
+    }
   }
   return isInteracting;
 }
@@ -903,7 +929,12 @@ bool debug_gizmo_scale_uniform(
 
   const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_ScaleUniform);
   if (isInteracting) {
-    *scale = comp->editor.scaleUniform.result;
+    if (comp->requestReset) {
+      *scale = comp->editor.scaleUniform.baseScale;
+      gizmo_interaction_cancel(comp);
+    } else {
+      *scale = comp->editor.scaleUniform.result;
+    }
   }
   return isInteracting;
 }
