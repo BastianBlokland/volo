@@ -66,6 +66,11 @@ void rvk_canvas_img_clear_depth(RvkCanvas*, RvkImage*, f32 depth);
 void rvk_canvas_img_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
 void rvk_canvas_img_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
 
+/**
+ * Full barrier; will flush and invalidate all caches and stall everything. Only for debugging.
+ */
+void rvk_canvas_barrier_full(const RvkCanvas*);
+
 void rvk_canvas_end(RvkCanvas*);
 
 /**

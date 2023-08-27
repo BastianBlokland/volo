@@ -18,4 +18,5 @@ ecs_comp_extern_public(SceneRenderableComp) {
   f32         alpha;
 };
 
+ecs_comp_extern_public(SceneRenderableFadeinComp) { TimeDuration duration, elapsed; };
 ecs_comp_extern_public(SceneRenderableFadeoutComp) { TimeDuration duration; };

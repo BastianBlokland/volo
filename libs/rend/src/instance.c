@@ -111,8 +111,12 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(itr, SceneSkeletonComp);
-    const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
     const bool                isSkinned     = skeletonComp->jointCount != 0;
+
+    SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
+    if (renderable->alpha < 1.0f) {
+      tags |= SceneTags_Transparent;
+    }
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendInstanceDrawComp))) {
       if (++createdDraws > rend_instance_max_draw_create_per_task) {

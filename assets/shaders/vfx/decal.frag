@@ -6,7 +6,7 @@
 #include "global.glsl"
 #include "math_frag.glsl"
 #include "quat.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 
 const f32 c_fadeAngleMin = 0.2;
 const f32 c_fadeAngleMax = 0.8;

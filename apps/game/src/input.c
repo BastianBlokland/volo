@@ -10,6 +10,7 @@
 #include "scene_lifetime.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
+#include "scene_product.h"
 #include "scene_selection.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
@@ -264,6 +265,49 @@ static void update_camera_movement_debug(
   input_cursor_mode_set(input, lockCursor ? InputCursorMode_Locked : InputCursorMode_Normal);
 }
 
+static bool placement_update(
+    const InputManagerComp*   input,
+    const SceneSelectionComp* sel,
+    const SceneTerrainComp*   terrain,
+    EcsView*                  productionView,
+    const GeoRay*             inputRay) {
+  bool placementActive = false;
+  for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
+    SceneProductionComp* production = ecs_view_write_t(itr, SceneProductionComp);
+    if (!scene_product_placement_active(production)) {
+      continue; // No placement active.
+    }
+    if (ecs_view_entity(itr) == scene_selection_main(sel)) {
+      placementActive = true;
+
+      // Update placement position.
+      f32 rayT;
+      if (terrain) {
+        rayT = scene_terrain_intersect_ray(terrain, inputRay, g_inputMaxInteractDist);
+      } else {
+        rayT = geo_plane_intersect_ray(&(GeoPlane){.normal = geo_up}, inputRay);
+      }
+      if (rayT > g_inputMinInteractDist) {
+        production->placementPos = geo_ray_position(inputRay, rayT);
+      }
+      if (input_triggered_lit(input, "PlacementAccept")) {
+        scene_product_placement_accept(production);
+      } else if (input_triggered_lit(input, "PlacementCancel")) {
+        scene_product_placement_cancel(production);
+      }
+      if (input_triggered_lit(input, "PlacementRotateLeft")) {
+        production->placementAngle -= math_pi_f32 * 0.25f;
+      } else if (input_triggered_lit(input, "PlacementRotateRight")) {
+        production->placementAngle += math_pi_f32 * 0.25f;
+      }
+    } else {
+      // Not selected anymore; cancel placement.
+      scene_product_placement_cancel(production);
+    }
+  }
+  return placementActive;
+}
+
 static SceneQueryFilter select_filter(InputManagerComp* input) {
   if (input_layer_active(input, string_hash_lit("Debug"))) {
     /**
@@ -480,12 +524,15 @@ static void update_camera_interact(
     const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
-    DebugStatsGlobalComp*        debugStats) {
+    DebugStatsGlobalComp*        debugStats,
+    EcsView*                     productionView) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  const bool selectActive = input_triggered_lit(input, "Select");
+  const bool placementActive = placement_update(input, sel, terrain, productionView, &inputRay);
+
+  const bool selectActive = !placementActive && input_triggered_lit(input, "Select");
   switch (state->selectState) {
   case InputSelectState_None:
     if (input_blockers(input) & (InputBlocker_HoveringUi | InputBlocker_HoveringGizmo)) {
@@ -532,7 +579,7 @@ static void update_camera_interact(
   }
 
   const bool hasSelection = !scene_selection_empty(sel);
-  if (!selectActive && hasSelection && input_triggered_lit(input, "Order")) {
+  if (!placementActive && !selectActive && hasSelection && input_triggered_lit(input, "Order")) {
     input_order(world, cmdController, collisionEnv, sel, terrain, nav, debugStats, &inputRay);
   }
   if (input_triggered_lit(input, "CameraReset")) {
@@ -541,14 +588,6 @@ static void update_camera_interact(
     state->camZoomTgt = 0.0f;
     input_report_command(debugStats, string_lit("Reset camera"));
   }
-}
-
-static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
-  ecs_world_add_t(
-      world,
-      windowEntity,
-      InputStateComp,
-      .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
 /**
@@ -563,6 +602,14 @@ static void input_update_collision_mask(SceneCollisionEnvComp* env, const InputM
     ignoreMask |= SceneLayer_Debug; // Ignore debug layer;
   }
   scene_collision_ignore_mask_set(env, ignoreMask);
+}
+
+static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
+  ecs_world_add_t(
+      world,
+      windowEntity,
+      InputStateComp,
+      .uiCanvas = ui_canvas_create(world, windowEntity, UiCanvasCreateFlags_ToBack));
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -581,6 +628,8 @@ ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_write(SceneTransformComp);
 }
+
+ecs_view_define(ProductionView) { ecs_access_write(SceneProductionComp); }
 
 ecs_system_define(InputUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
@@ -603,9 +652,10 @@ ecs_system_define(InputUpdateSys) {
     input_order_stop(cmdController, sel, debugStats);
   }
 
-  EcsView* cameraView = ecs_world_view_t(world, CameraView);
-  for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    EcsIterator*           camItr   = ecs_view_at(cameraView, ecs_view_entity(itr));
+  EcsView* cameraView     = ecs_world_view_t(world, CameraView);
+  EcsView* productionView = ecs_world_view_t(world, ProductionView);
+
+  for (EcsIterator* camItr = ecs_view_itr(cameraView); ecs_view_walk(camItr);) {
     const SceneCameraComp* cam      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    camTrans = ecs_view_write_t(camItr, SceneTransformComp);
     InputStateComp*        state    = ecs_view_write_t(camItr, InputStateComp);
@@ -619,7 +669,7 @@ ecs_system_define(InputUpdateSys) {
       input_report_selection_count(debugStats, state->lastSelectionCount);
     }
 
-    if (input_active_window(input) == ecs_view_entity(itr)) {
+    if (input_active_window(input) == ecs_view_entity(camItr)) {
       update_group_input(state, cmdController, input, sel, time, debugStats);
       if (input_layer_active(input, string_hash_lit("Debug"))) {
         update_camera_movement_debug(input, time, cam, camTrans);
@@ -638,7 +688,8 @@ ecs_system_define(InputUpdateSys) {
           nav,
           cam,
           camTrans,
-          debugStats);
+          debugStats,
+          productionView);
     } else {
       state->selectState = InputSelectState_None;
     }
@@ -678,8 +729,13 @@ ecs_module_init(game_input_module) {
   ecs_register_view(CameraView);
   ecs_register_view(UiCameraView);
   ecs_register_view(UiCanvasView);
+  ecs_register_view(ProductionView);
 
-  ecs_register_system(InputUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
+  ecs_register_system(
+      InputUpdateSys,
+      ecs_view_id(GlobalUpdateView),
+      ecs_view_id(CameraView),
+      ecs_view_id(ProductionView));
   ecs_register_system(InputDrawUiSys, ecs_view_id(UiCameraView), ecs_view_id(UiCanvasView));
 
   enum {

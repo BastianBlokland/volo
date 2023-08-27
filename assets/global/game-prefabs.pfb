@@ -286,7 +286,9 @@
         {
           "$type": "AssetPrefabTrait_Production",
           "productSetId": "Barracks",
-          "spawnPos": { "x": 6 }, "rallyPos": { "x": 10 }
+          "spawnPos": { "x": 6 },
+          "rallyPos": { "x": 10 },
+          "rallySoundId": "external/sound/announcer-rallypos-updated-01.wav", "rallySoundGain": 0.5
         },
         {
           "$type": "AssetPrefabTrait_Health",

@@ -19,14 +19,18 @@ static DataReg* g_dataReg;
 static DataMeta g_dataMapDefMeta;
 
 typedef struct {
-  String name;
-  String icon;
-  f32    costTime;
-  u16    queueMax;
-  u16    queueBulkSize;
-  f32    cooldown;
-  String soundReadyId;
-  f32    soundReadyGain;
+  String assetId;
+  f32    gain;
+} AssetProductSoundDef;
+
+typedef struct {
+  String               name;
+  String               icon;
+  f32                  costTime;
+  u16                  queueMax;
+  u16                  queueBulkSize;
+  f32                  cooldown;
+  AssetProductSoundDef soundBuilding, soundReady, soundCancel, soundSuccess;
 } AssetProductMetaDef;
 
 typedef struct {
@@ -36,9 +40,16 @@ typedef struct {
 } AssetProductUnitDef;
 
 typedef struct {
+  AssetProductMetaDef  meta;
+  String               prefab;
+  AssetProductSoundDef soundBlocked;
+} AssetProductPlacableDef;
+
+typedef struct {
   AssetProductType type;
   union {
-    AssetProductUnitDef data_unit;
+    AssetProductUnitDef     data_unit;
+    AssetProductPlacableDef data_placable;
   };
 } AssetProductDef;
 
@@ -67,6 +78,10 @@ static void product_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(reg, AssetProductSoundDef);
+    data_reg_field_t(reg, AssetProductSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductSoundDef, gain, data_prim_t(f32), .flags = DataFlags_Opt);
+
     data_reg_struct_t(reg, AssetProductMetaDef);
     data_reg_field_t(reg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, icon, data_prim_t(String), .flags = DataFlags_Opt);
@@ -74,16 +89,24 @@ static void product_datareg_init() {
     data_reg_field_t(reg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundReadyId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-    data_reg_field_t(reg, AssetProductMetaDef, soundReadyGain, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundBuilding, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundReady, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundCancel, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductMetaDef, soundSuccess, t_AssetProductSoundDef, .flags = DataFlags_Opt);
 
     data_reg_struct_t(reg, AssetProductUnitDef);
     data_reg_field_t(reg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(reg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
+    data_reg_struct_t(reg, AssetProductPlacableDef);
+    data_reg_field_t(reg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetProductPlacableDef, soundBlocked, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+
     data_reg_union_t(reg, AssetProductDef, type);
     data_reg_choice_t(reg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);
+    data_reg_choice_t(reg, AssetProductDef, AssetProduct_Placable, data_placable, t_AssetProductPlacableDef);
 
     data_reg_struct_t(reg, AssetProductSetDef);
     data_reg_field_t(reg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -127,18 +150,26 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
+static void
+product_build_sound(BuildCtx* ctx, const AssetProductSoundDef* def, AssetProductSound* out) {
+  out->asset = asset_maybe_lookup(ctx->world, ctx->assetManager, def->assetId);
+  out->gain  = def->gain <= 0 ? 1 : def->gain;
+}
+
 static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
   const TimeDuration costTimeRaw = (TimeDuration)time_seconds(def->costTime);
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
   utf8_cp_read(def->icon, &out->icon);
-  out->name           = string_maybe_dup(g_alloc_heap, def->name);
-  out->costTime       = math_max(costTimeRaw, time_millisecond);
-  out->queueMax       = def->queueMax ? def->queueMax : u16_max;
-  out->queueBulkSize  = def->queueBulkSize ? def->queueBulkSize : 5;
-  out->cooldown       = math_max(cooldownRaw, time_millisecond);
-  out->soundReady     = asset_maybe_lookup(ctx->world, ctx->assetManager, def->soundReadyId);
-  out->soundReadyGain = def->soundReadyGain <= 0 ? 1 : def->soundReadyGain;
+  out->name          = string_maybe_dup(g_alloc_heap, def->name);
+  out->costTime      = math_max(costTimeRaw, time_millisecond);
+  out->queueMax      = def->queueMax ? def->queueMax : u16_max;
+  out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
+  out->cooldown      = math_max(cooldownRaw, time_millisecond);
+  product_build_sound(ctx, &def->soundBuilding, &out->soundBuilding);
+  product_build_sound(ctx, &def->soundReady, &out->soundReady);
+  product_build_sound(ctx, &def->soundCancel, &out->soundCancel);
+  product_build_sound(ctx, &def->soundSuccess, &out->soundSuccess);
 }
 
 static void productset_build(
@@ -172,6 +203,14 @@ static void productset_build(
           .unitCount  = math_max(1, productDef->data_unit.unitCount),
       };
       break;
+    case AssetProduct_Placable: {
+      const AssetProductPlacableDef* placeDef = &productDef->data_placable;
+      product_build_meta(ctx, &placeDef->meta, outProduct);
+      outProduct->data_placable = (AssetProductPlaceable){
+          .prefab = string_hash(placeDef->prefab),
+      };
+      product_build_sound(ctx, &placeDef->soundBlocked, &outProduct->data_placable.soundBlocked);
+    } break;
     }
     if (*err) {
       return; // Failed to build product-set.

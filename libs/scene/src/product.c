@@ -1,20 +1,28 @@
 #include "asset_manager.h"
+#include "asset_prefab.h"
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_box_rotated.h"
+#include "geo_sphere.h"
 #include "log_logger.h"
+#include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_product.h"
+#include "scene_renderable.h"
 #include "scene_sound.h"
+#include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_visibility.h"
 
 typedef enum {
   ProductRes_MapAcquired  = 1 << 0,
@@ -28,6 +36,8 @@ ecs_comp_define(SceneProductResourceComp) {
 };
 
 ecs_comp_define_public(SceneProductionComp);
+
+ecs_comp_define(SceneProductPreviewComp) { EcsEntityId instigator; };
 
 static void ecs_destruct_product_resource(void* data) {
   SceneProductResourceComp* comp = data;
@@ -56,10 +66,12 @@ static GeoVector product_world_on_nav(const SceneNavEnvComp* nav, const GeoVecto
   return scene_nav_position(nav, cell);
 }
 
-static void product_sound_play(EcsWorld* world, const EcsEntityId soundAsset, const f32 gain) {
-  const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_second);
-  ecs_world_add_t(world, e, SceneSoundComp, .asset = soundAsset, .gain = gain, .pitch = 1.0f);
+static void product_sound_play(EcsWorld* world, const EcsEntityId asset, const f32 gain) {
+  if (asset) {
+    const EcsEntityId e = ecs_world_entity_create(world);
+    ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(2));
+    ecs_world_add_t(world, e, SceneSoundComp, .asset = asset, .gain = gain, .pitch = 1.0f);
+  }
 }
 
 static GeoVector product_world_from_local(EcsIterator* itr, const GeoVector localPos) {
@@ -81,10 +93,10 @@ static GeoVector product_spawn_pos(EcsIterator* itr, const SceneNavEnvComp* nav)
 
 static GeoVector product_rally_pos(EcsIterator* itr) {
   const SceneProductionComp* production = ecs_view_read_t(itr, SceneProductionComp);
-  if (production->rallySpace == SceneProductRallySpace_World) {
-    return production->rallyPos;
+  if (production->flags & SceneProductFlags_RallyLocalSpace) {
+    return product_world_from_local(itr, production->rallyPos);
   }
-  return product_world_from_local(itr, production->rallyPos);
+  return production->rallyPos;
 }
 
 static bool product_queues_init(SceneProductionComp* production, const AssetProductMapComp* map) {
@@ -101,7 +113,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
   production->queues     = alloc_array_t(g_alloc_heap, SceneProductQueue, productSet->productCount);
   production->queueCount = productSet->productCount;
 
-  for (u32 i = 0; i != production->queueCount; ++i) {
+  for (u16 i = 0; i != production->queueCount; ++i) {
     production->queues[i] = (SceneProductQueue){
         .product = &map->products[productSet->productIndex + i],
     };
@@ -118,6 +130,8 @@ ecs_view_define(ProductionView) {
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_write(SceneProductionComp);
 }
+
+ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 ecs_view_define(ResInitGlobalView) {
   ecs_access_write(AssetManagerComp);
@@ -196,22 +210,26 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(ScenePrefabResourceComp);
   ecs_access_read(SceneProductResourceComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneVisibilityEnvComp);
 }
 
 typedef struct {
-  EcsWorld*              world;
-  const SceneNavEnvComp* nav;
-  SceneProductionComp*   production;
-  SceneProductQueue*     queue;
-  EcsIterator*           itr;
-  bool                   anyQueueActive;
-  TimeDuration           timeDelta;
+  EcsWorld*                     world;
+  const SceneNavEnvComp*        nav;
+  const SceneVisibilityEnvComp* visiblityEnv;
+  const AssetPrefabMapComp*     prefabMap;
+  SceneProductionComp*          production;
+  SceneProductQueue*            queue;
+  EcsIterator*                  itr;
+  bool                          anyQueueBusy;
+  TimeDuration                  timeDelta;
 } ProductQueueContext;
 
-static bool product_queue_any_active(ProductQueueContext* ctx) {
-  for (u32 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
+static bool product_queue_any_busy(ProductQueueContext* ctx) {
+  for (u16 queueIndex = 0; queueIndex != ctx->production->queueCount; ++queueIndex) {
     SceneProductQueue* queue = &ctx->production->queues[queueIndex];
     if (queue->state > SceneProductState_Idle) {
       return true;
@@ -235,10 +253,28 @@ static void product_queue_process_requests(ProductQueueContext* ctx) {
   if (queue->requests & SceneProductRequest_CancelAll) {
     queue->count = 0;
   }
-  queue->requests = 0;
 }
 
-static void product_queue_ready_unit(ProductQueueContext* ctx) {
+typedef enum {
+  ProductResult_Running,
+  ProductResult_Success,
+  ProductResult_Cancelled,
+} ProductResult;
+
+static ProductResult product_queue_process_ready(ProductQueueContext* ctx) {
+  switch (ctx->queue->product->type) {
+  case AssetProduct_Unit:
+    return ProductResult_Success;
+  case AssetProduct_Placable:
+    if (ctx->queue->requests & SceneProductRequest_Activate) {
+      return ProductResult_Success;
+    }
+    return ProductResult_Running;
+  }
+  UNREACHABLE
+}
+
+static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx) {
   const AssetProduct* product = ctx->queue->product;
   diag_assert(product->type == AssetProduct_Unit);
 
@@ -276,57 +312,231 @@ static void product_queue_ready_unit(ProductQueueContext* ctx) {
       const bool sameCellAsRallPos = targetCells[i].data == rallyCell.data;
       pos = sameCellAsRallPos ? rallyPos : scene_nav_position(ctx->nav, targetCells[i]);
     } else {
-      // We didn't find a free cell for this entity; just move to the raw rallyPos.
+      // We didn't find a unblocked cell for this entity; just move to the raw rallyPos.
       pos = rallyPos;
     }
     ecs_world_add_t(ctx->world, e, SceneNavRequestComp, .targetPos = pos);
+    ecs_world_add_t(ctx->world, e, SceneRenderableFadeinComp, .duration = time_milliseconds(500));
+  }
+  return ProductResult_Success;
+}
+
+static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
+  diag_assert(ctx->queue->product->type == AssetProduct_Placable);
+  const EcsEntityId instigator = ecs_view_entity(ctx->itr);
+
+  const EcsEntityId e = ecs_world_entity_create(ctx->world);
+  ecs_world_add_t(ctx->world, e, SceneProductPreviewComp, .instigator = instigator);
+  ecs_world_add_t(
+      ctx->world,
+      e,
+      SceneTransformComp,
+      .position = ctx->production->placementPos,
+      .rotation = geo_quat_angle_axis(geo_up, ctx->production->placementAngle));
+
+  const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
+  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  if (prefab) {
+    const AssetPrefabTrait* renderableTrait =
+        asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
+    if (renderableTrait) {
+      const EcsEntityId graphic = renderableTrait->data_renderable.graphic;
+      ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .alpha = 0.5f);
+    }
+  }
+  return e;
+}
+
+static void product_placement_preview_destroy(ProductQueueContext* ctx) {
+  if (ctx->production->placementPreview) {
+    ecs_world_entity_destroy(ctx->world, ctx->production->placementPreview);
+    ctx->production->placementPreview = 0;
   }
 }
 
-static void product_queue_ready(ProductQueueContext* ctx) {
-  const AssetProduct* product = ctx->queue->product;
+static bool product_placement_blocked(ProductQueueContext* ctx) {
+  diag_assert(ctx->queue->product->type == AssetProduct_Placable);
 
-  if (product->soundReady) {
-    product_sound_play(ctx->world, product->soundReady, product->soundReadyGain);
+  const SceneTransformComp* transComp   = ecs_view_read_t(ctx->itr, SceneTransformComp);
+  const SceneFactionComp*   factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+  const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_A;
+
+  const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
+  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  if (!prefab) {
+    return true; // TODO: Report error?
+  }
+  const GeoVector placementOrigin = transComp ? transComp->position : geo_vector(0);
+  const GeoVector placementPos    = ctx->production->placementPos;
+  const GeoQuat   placementRot    = geo_quat_angle_axis(geo_up, ctx->production->placementAngle);
+
+  const f32 placementRadiusMax = ctx->production->placementRadius;
+  const f32 placementDist      = geo_vector_mag(geo_vector_sub(placementPos, placementOrigin));
+  if (placementRadiusMax > f32_epsilon && placementDist > ctx->production->placementRadius) {
+    return true; // Position out of placement radius.
   }
 
-  switch (product->type) {
+  if (!scene_visible_pos(ctx->visiblityEnv, faction, placementPos)) {
+    return true; // Position not visible.
+  }
+
+  const AssetPrefabTrait* collisionTrait =
+      asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Collision);
+  if (!collisionTrait) {
+    return false;
+  }
+  const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
+  switch (shape->type) {
+  case AssetPrefabShape_Sphere: {
+    const GeoVector offset = shape->data_sphere.offset;
+    const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
+    const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
+    return scene_nav_blocked_sphere(ctx->nav, &sphereWorld);
+  }
+  case AssetPrefabShape_Capsule: {
+    static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
+    const GeoVector         offset         = shape->data_capsule.offset;
+    const f32               height         = shape->data_capsule.height;
+    const f32               radius         = shape->data_capsule.radius;
+    const SceneCollisionDir dir            = SceneCollision_Up; // TODO: Make this configurable.
+    const GeoVector         dirVec         = geo_quat_rotate(placementRot, g_capsuleDir[dir]);
+    const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
+    const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
+    const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
+    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+  }
+  case AssetPrefabShape_Box: {
+    const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
+    const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
+    return scene_nav_blocked_box(ctx->nav, &boxWorld);
+  }
+  }
+  UNREACHABLE
+}
+
+static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
+  SceneProductionComp* prod    = ctx->production;
+  const AssetProduct*  product = ctx->queue->product;
+  diag_assert(product->type == AssetProduct_Placable);
+  const AssetProductPlaceable* productPlace = &product->data_placable;
+
+  const bool blocked = product_placement_blocked(ctx);
+  if (blocked) {
+    prod->flags |= SceneProductFlags_PlacementBlocked;
+  } else {
+    prod->flags &= ~SceneProductFlags_PlacementBlocked;
+  }
+  if (ctx->queue->requests & SceneProductRequest_PlacementAccept) {
+    if (blocked) {
+      if (!(prod->flags & SceneProductFlags_PlacementBlockedWarned)) {
+        const AssetProductSound* soundBlocked = &productPlace->soundBlocked;
+        product_sound_play(ctx->world, soundBlocked->asset, soundBlocked->gain);
+        prod->flags |= SceneProductFlags_PlacementBlockedWarned;
+      }
+    } else {
+      const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+      scene_prefab_spawn(
+          ctx->world,
+          &(ScenePrefabSpec){
+              .prefabId = product->data_placable.prefab,
+              .position = prod->placementPos,
+              .rotation = geo_quat_angle_axis(geo_up, prod->placementAngle),
+              .scale    = 1.0f,
+              .faction  = factionComp ? factionComp->id : SceneFaction_None,
+          });
+      product_placement_preview_destroy(ctx);
+      return ProductResult_Success;
+    }
+  }
+  if (ctx->queue->requests & SceneProductRequest_PlacementCancel) {
+    product_placement_preview_destroy(ctx);
+    return ProductResult_Cancelled;
+  }
+  if (!prod->placementPreview) {
+    prod->flags &= ~SceneProductFlags_PlacementBlockedWarned;
+    prod->placementPreview = product_placement_preview_create(ctx);
+  }
+  return ProductResult_Running;
+}
+
+static ProductResult product_queue_process_active(ProductQueueContext* ctx) {
+  switch (ctx->queue->product->type) {
   case AssetProduct_Unit:
-    product_queue_ready_unit(ctx);
-    break;
+    return product_queue_process_active_unit(ctx);
+  case AssetProduct_Placable:
+    return product_queue_process_active_placeable(ctx);
   }
+  UNREACHABLE
 }
 
 static void product_queue_update(ProductQueueContext* ctx) {
-  SceneProductQueue* queue = ctx->queue;
+  SceneProductQueue*  queue   = ctx->queue;
+  const AssetProduct* product = ctx->queue->product;
+  ProductResult       result;
   switch (queue->state) {
   case SceneProductState_Idle:
-    if (queue->count && !ctx->anyQueueActive) {
-      queue->state        = SceneProductState_Active;
-      queue->progress     = 0.0f;
-      ctx->anyQueueActive = true;
+    if (queue->count && !ctx->anyQueueBusy) {
+      queue->state      = SceneProductState_Building;
+      queue->progress   = 0.0f;
+      ctx->anyQueueBusy = true;
+      product_sound_play(ctx->world, product->soundBuilding.asset, product->soundBuilding.gain);
     }
     break;
-  case SceneProductState_Active:
+  case SceneProductState_Building:
     if (!queue->count) {
       queue->state    = SceneProductState_Idle;
       queue->progress = 0.0f;
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
       break;
     }
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->costTime;
     if (queue->progress >= 1.0f) {
-      --queue->count;
-      queue->state    = SceneProductState_Cooldown;
+      queue->state    = SceneProductState_Ready;
       queue->progress = 0.0f;
-      product_queue_ready(ctx);
+      product_sound_play(ctx->world, product->soundReady.asset, product->soundReady.gain);
+      // Fallthrough.
+    } else {
+      break;
     }
-    break;
+  case SceneProductState_Ready:
+    if (!queue->count) {
+      queue->state    = SceneProductState_Idle;
+      queue->progress = 0.0f;
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
+      break;
+    }
+    result = product_queue_process_ready(ctx);
+    if (result == ProductResult_Success) {
+      queue->state = SceneProductState_Active;
+      // Fallthrough.
+    } else {
+      break;
+    }
+  case SceneProductState_Active:
+    if (!queue->count) {
+      queue->state    = SceneProductState_Idle;
+      queue->progress = 0.0f;
+      product_sound_play(ctx->world, product->soundCancel.asset, product->soundCancel.gain);
+      break;
+    }
+    result = product_queue_process_active(ctx);
+    if (result == ProductResult_Cancelled) {
+      queue->state = SceneProductState_Ready;
+      break;
+    } else if (result == ProductResult_Success) {
+      --queue->count;
+      queue->state = SceneProductState_Cooldown;
+      product_sound_play(ctx->world, product->soundSuccess.asset, product->soundSuccess.gain);
+      // Fallthrough.
+    } else {
+      break;
+    }
   case SceneProductState_Cooldown:
     queue->progress += (f32)ctx->timeDelta / (f32)queue->product->cooldown;
     if (queue->progress >= 1.0f) {
       queue->progress = 0.0f;
       if (queue->count) {
-        queue->state = SceneProductState_Active;
+        queue->state = SceneProductState_Building;
       } else {
         queue->state = SceneProductState_Idle;
       }
@@ -341,14 +551,23 @@ ecs_system_define(SceneProductUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*   time = ecs_view_read_t(globalItr, SceneTimeComp);
-  const SceneNavEnvComp* nav  = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneTimeComp*           time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneNavEnvComp*         nav          = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneVisibilityEnvComp*  visiblityEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const ScenePrefabResourceComp* prefabRes    = ecs_view_read_t(globalItr, ScenePrefabResourceComp);
 
   EcsView*                   productMapView = ecs_world_view_t(world, ProductMapView);
   const AssetProductMapComp* productMap     = product_map_get(globalItr, productMapView);
   if (!productMap) {
     return;
   }
+
+  EcsView*     prefabMapView = ecs_world_view_t(world, PrefabMapView);
+  EcsIterator* prefabMapItr  = ecs_view_maybe_at(prefabMapView, scene_prefab_map(prefabRes));
+  if (!prefabMapItr) {
+    return;
+  }
+  const AssetPrefabMapComp* prefabMap = ecs_view_read_t(prefabMapItr, AssetPrefabMapComp);
 
   EcsView* productionView = ecs_world_view_t(world, ProductionView);
   for (EcsIterator* itr = ecs_view_itr(productionView); ecs_view_walk(itr);) {
@@ -359,20 +578,64 @@ ecs_system_define(SceneProductUpdateSys) {
       continue;
     }
 
+    if (production->flags & SceneProductFlags_RallyPosUpdated) {
+      product_sound_play(world, production->rallySoundAsset, production->rallySoundGain);
+      production->flags &= ~SceneProductFlags_RallyPosUpdated;
+    }
+
     ProductQueueContext ctx = {
-        .world      = world,
-        .production = production,
-        .nav        = nav,
-        .timeDelta  = time->delta,
-        .itr        = itr,
+        .world        = world,
+        .nav          = nav,
+        .visiblityEnv = visiblityEnv,
+        .prefabMap    = prefabMap,
+        .production   = production,
+        .itr          = itr,
+        .timeDelta    = time->delta,
     };
-    ctx.anyQueueActive = product_queue_any_active(&ctx);
+    ctx.anyQueueBusy = product_queue_any_busy(&ctx);
 
     // Update product queues.
-    for (u32 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
       ctx.queue = &production->queues[queueIndex];
       product_queue_process_requests(&ctx);
       product_queue_update(&ctx);
+      ctx.queue->requests = 0;
+    }
+  }
+}
+
+ecs_view_define(PreviewUpdateView) {
+  ecs_access_read(SceneProductPreviewComp);
+  ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneTagComp);
+}
+
+ecs_view_define(PreviewInstigatorView) { ecs_access_read(SceneProductionComp); }
+
+ecs_system_define(SceneProductPreviewUpdateSys) {
+  EcsView* previewView    = ecs_world_view_t(world, PreviewUpdateView);
+  EcsView* instigatorView = ecs_world_view_t(world, PreviewInstigatorView);
+
+  EcsIterator* instigatorItr = ecs_view_itr(instigatorView);
+
+  for (EcsIterator* itr = ecs_view_itr(previewView); ecs_view_walk(itr);) {
+    const SceneProductPreviewComp* preview = ecs_view_read_t(itr, SceneProductPreviewComp);
+    if (!ecs_view_maybe_jump(instigatorItr, preview->instigator)) {
+      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+      continue;
+    }
+    const SceneProductionComp* production = ecs_view_read_t(instigatorItr, SceneProductionComp);
+
+    SceneTransformComp* trans = ecs_view_write_t(itr, SceneTransformComp);
+    trans->position           = production->placementPos;
+    trans->rotation           = geo_quat_angle_axis(geo_up, production->placementAngle);
+
+    SceneTagComp*   tagComp    = ecs_utils_write_or_add_t(world, itr, SceneTagComp);
+    const SceneTags blockedTag = SceneTags_Damaged; // TODO: Rename this tag or add a bespoke tag.
+    if (production->flags & SceneProductFlags_PlacementBlocked) {
+      tagComp->tags |= blockedTag;
+    } else {
+      tagComp->tags &= ~blockedTag;
     }
   }
 }
@@ -380,9 +643,11 @@ ecs_system_define(SceneProductUpdateSys) {
 ecs_module_init(scene_product_module) {
   ecs_register_comp(SceneProductResourceComp, .destructor = ecs_destruct_product_resource);
   ecs_register_comp(SceneProductionComp, .destructor = ecs_destruct_production);
+  ecs_register_comp(SceneProductPreviewComp);
 
   ecs_register_view(ProductMapView);
   ecs_register_view(ProductionView);
+  ecs_register_view(PrefabMapView);
 
   ecs_register_system(SceneProductResInitSys, ecs_register_view(ResInitGlobalView));
 
@@ -395,7 +660,13 @@ ecs_module_init(scene_product_module) {
       SceneProductUpdateSys,
       ecs_register_view(UpdateGlobalView),
       ecs_view_id(ProductionView),
-      ecs_view_id(ProductMapView));
+      ecs_view_id(ProductMapView),
+      ecs_view_id(PrefabMapView));
+
+  ecs_register_system(
+      SceneProductPreviewUpdateSys,
+      ecs_register_view(PreviewUpdateView),
+      ecs_register_view(PreviewInstigatorView));
 }
 
 void scene_product_init(EcsWorld* world, const String productMapId) {
@@ -406,4 +677,43 @@ void scene_product_init(EcsWorld* world, const String productMapId) {
       ecs_world_global(world),
       SceneProductResourceComp,
       .mapId = string_dup(g_alloc_heap, productMapId));
+}
+
+void scene_product_rallypos_set_world(SceneProductionComp* production, const GeoVector rallyPos) {
+  production->rallyPos = rallyPos;
+  production->flags &= ~SceneProductFlags_RallyLocalSpace;
+  production->flags |= SceneProductFlags_RallyPosUpdated;
+}
+
+void scene_product_rallypos_set_local(SceneProductionComp* production, const GeoVector rallyPos) {
+  production->rallyPos = rallyPos;
+  production->flags |= SceneProductFlags_RallyLocalSpace | SceneProductFlags_RallyPosUpdated;
+}
+
+bool scene_product_placement_active(const SceneProductionComp* production) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void scene_product_placement_accept(SceneProductionComp* production) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
+      queue->requests |= SceneProductRequest_PlacementAccept;
+    }
+  }
+}
+
+void scene_product_placement_cancel(SceneProductionComp* production) {
+  for (u16 queueIndex = 0; queueIndex != production->queueCount; ++queueIndex) {
+    SceneProductQueue* queue = &production->queues[queueIndex];
+    if (queue->product->type == AssetProduct_Placable && queue->state == SceneProductState_Active) {
+      queue->requests |= SceneProductRequest_PlacementCancel;
+    }
+  }
 }

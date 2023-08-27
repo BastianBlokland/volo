@@ -159,7 +159,8 @@ static bool cmd_is_player_owned(EcsIterator* itr) {
   return ecs_view_read_t(itr, SceneFactionComp)->id == g_playerFaction;
 }
 
-static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
+static void
+cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const CmdMove* cmdMove) {
   EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdMove->object);
   if (brainItr && cmd_is_player_owned(brainItr)) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
@@ -173,12 +174,13 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
     return;
   }
 
-  EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
-  if (prodItr && cmd_is_player_owned(prodItr)) {
-    SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
-    prod->rallySpace          = SceneProductRallySpace_World;
-    prod->rallyPos            = cmdMove->position;
-    return;
+  if (cmdMove->object == scene_selection_main(selection)) {
+    EcsIterator* prodItr = ecs_view_maybe_at(ecs_world_view_t(world, ProdView), cmdMove->object);
+    if (prodItr && cmd_is_player_owned(prodItr)) {
+      SceneProductionComp* prod = ecs_view_write_t(prodItr, SceneProductionComp);
+      scene_product_rallypos_set_world(prod, cmdMove->position);
+      return;
+    }
   }
 }
 
@@ -231,7 +233,7 @@ static void cmd_execute(
     scene_selection_clear(selection);
     break;
   case Cmd_Move:
-    cmd_execute_move(world, &cmd->move);
+    cmd_execute_move(world, selection, &cmd->move);
     break;
   case Cmd_Stop:
     cmd_execute_stop(world, &cmd->stop);

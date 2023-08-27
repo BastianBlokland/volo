@@ -85,12 +85,45 @@
             "$type",
             "unitPrefab"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
+              "const": "AssetProduct_Placable"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "meta": {
+              "title": "AssetProductMetaDef",
+              "$ref": "#/$defs/AssetProductMetaDef"
+            },
+            "prefab": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            },
+            "soundBlocked": {
+              "title": "AssetProductSoundDef",
+              "$ref": "#/$defs/AssetProductSoundDef"
+            }
+          },
+          "required": [
+            "$type",
+            "prefab"
+          ]
         }
       ],
       "defaultSnippets": [
         {
           "label": "New AssetProduct_Unit",
           "body": "^{\n  \"\\$type\": \"AssetProduct_Unit\",\n  \"unitPrefab\": \"placeholder\"\n}"
+        },
+        {
+          "label": "New AssetProduct_Placable",
+          "body": "^{\n  \"\\$type\": \"AssetProduct_Placable\",\n  \"prefab\": \"placeholder\"\n}"
         }
       ]
     },
@@ -126,14 +159,21 @@
           "title": "f32",
           "type": "number"
         },
-        "soundReadyId": {
-          "title": "String",
-          "type": "string",
-          "minLength": 1
+        "soundBuilding": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         },
-        "soundReadyGain": {
-          "title": "f32",
-          "type": "number"
+        "soundReady": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
+        },
+        "soundCancel": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
+        },
+        "soundSuccess": {
+          "title": "AssetProductSoundDef",
+          "$ref": "#/$defs/AssetProductSoundDef"
         }
       },
       "required": [],
@@ -141,6 +181,30 @@
         {
           "label": "New",
           "body": "^{}"
+        }
+      ]
+    },
+    "AssetProductSoundDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "title": "String",
+          "type": "string",
+          "minLength": 1
+        },
+        "gain": {
+          "title": "f32",
+          "type": "number"
+        }
+      },
+      "required": [
+        "assetId"
+      ],
+      "defaultSnippets": [
+        {
+          "label": "New",
+          "body": "^{\n  \"assetId\": \"placeholder\"\n}"
         }
       ]
     }

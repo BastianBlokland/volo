@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 #include "texture.glsl"
 
 struct BloomData {

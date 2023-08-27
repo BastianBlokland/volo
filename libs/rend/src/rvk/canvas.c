@@ -202,6 +202,12 @@ void rvk_canvas_img_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   rvk_job_img_blit(job, src, dst);
 }
 
+void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  rvk_job_barrier_full(job);
+}
+
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];

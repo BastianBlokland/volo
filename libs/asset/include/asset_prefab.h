@@ -168,8 +168,11 @@ typedef struct {
 } AssetPrefabTraitVision;
 
 typedef struct {
-  GeoVector  spawnPos, rallyPos;
-  StringHash productSetId;
+  GeoVector   spawnPos, rallyPos;
+  EcsEntityId rallySoundAsset;
+  f32         rallySoundGain;
+  StringHash  productSetId;
+  f32         placementRadius;
 } AssetPrefabTraitProduction;
 
 typedef struct {
@@ -219,11 +222,11 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   usize             traitCount;
 };
 
-/**
- * Lookup a prefab by the hash of its name.
- */
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
+
+const AssetPrefabTrait*
+asset_prefab_trait_get(const AssetPrefabMapComp*, const AssetPrefab*, AssetPrefabTraitType);
 
 AssetDataReg asset_prefab_datareg(void);

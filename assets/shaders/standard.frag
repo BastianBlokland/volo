@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "geometry.glsl"
 #include "rand.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 
 const f32 c_alphaTextureThreshold = 0.2;
 const f32 c_alphaDitherMax        = 0.99;

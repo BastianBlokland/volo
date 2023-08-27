@@ -153,7 +153,10 @@ typedef struct {
 
 typedef struct {
   AssetPrefabVec3Def spawnPos, rallyPos;
+  String             rallySoundId;
+  f32                rallySoundGain;
   String             productSetId;
+  f32                placementRadius;
 } AssetPrefabTraitProductionDef;
 
 typedef struct {
@@ -325,7 +328,10 @@ static void prefab_datareg_init() {
     data_reg_struct_t(reg, AssetPrefabTraitProductionDef);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, spawnPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallyPos, t_AssetPrefabVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallySoundId, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallySoundGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
@@ -614,13 +620,18 @@ static void prefab_build(
           .radius = traitDef->data_vision.radius,
       };
       break;
-    case AssetPrefabTrait_Production:
-      outTrait->data_production = (AssetPrefabTraitProduction){
-          .spawnPos     = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos     = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId = string_hash(traitDef->data_production.productSetId),
+    case AssetPrefabTrait_Production: {
+      const String rallySoundId   = traitDef->data_production.rallySoundId;
+      const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
+      outTrait->data_production   = (AssetPrefabTraitProduction){
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
-      break;
+    } break;
     case AssetPrefabTrait_Scalable:
     case AssetPrefabTrait_Count:
       break;
@@ -820,6 +831,17 @@ u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash nameH
 u16 asset_prefab_get_index_from_user(const AssetPrefabMapComp* map, const u16 userIndex) {
   diag_assert(userIndex < map->prefabCount);
   return map->userIndexLookup[userIndex];
+}
+
+const AssetPrefabTrait* asset_prefab_trait_get(
+    const AssetPrefabMapComp* map, const AssetPrefab* prefab, const AssetPrefabTraitType type) {
+  for (u16 i = 0; i != prefab->traitCount; ++i) {
+    const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
+    if (trait->type == type) {
+      return trait;
+    }
+  }
+  return null;
 }
 
 AssetDataReg asset_prefab_datareg() {

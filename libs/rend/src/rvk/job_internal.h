@@ -36,6 +36,11 @@ void rvk_job_img_copy(RvkJob*, RvkImage* src, RvkImage* dst);
 void rvk_job_img_blit(RvkJob*, RvkImage* src, RvkImage* dst);
 void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
 
+/**
+ * Full barrier; will flush and invalidate all caches and stall everything. Only for debugging.
+ */
+void rvk_job_barrier_full(RvkJob*);
+
 void rvk_job_end(
     RvkJob*,
     VkSemaphore        waitForDeps,

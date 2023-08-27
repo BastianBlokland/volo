@@ -11,8 +11,14 @@ typedef i64 TimeDuration;
  * Product database.
  */
 
+typedef struct {
+  EcsEntityId asset;
+  f32         gain;
+} AssetProductSound;
+
 typedef enum {
   AssetProduct_Unit,
+  AssetProduct_Placable,
 } AssetProductType;
 
 typedef struct {
@@ -20,18 +26,23 @@ typedef struct {
   u32        unitCount;
 } AssetProductUnit;
 
+typedef struct {
+  StringHash        prefab;
+  AssetProductSound soundBlocked;
+} AssetProductPlaceable;
+
 typedef struct sAssetProduct {
-  String           name;
-  AssetProductType type;
-  Unicode          icon;
-  TimeDuration     costTime;
-  TimeDuration     cooldown;
-  u16              queueMax;
-  u16              queueBulkSize;
-  f32              soundReadyGain;
-  EcsEntityId      soundReady;
+  String            name;
+  AssetProductType  type;
+  Unicode           icon;
+  TimeDuration      costTime;
+  TimeDuration      cooldown;
+  u16               queueMax;
+  u16               queueBulkSize;
+  AssetProductSound soundBuilding, soundReady, soundCancel, soundSuccess;
   union {
-    AssetProductUnit data_unit;
+    AssetProductUnit      data_unit;
+    AssetProductPlaceable data_placable;
   };
 } AssetProduct;
 

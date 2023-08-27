@@ -31,6 +31,8 @@ configure_shaders(volo_shaders
     shaders/fog_vision.vert
     shaders/fog.frag
     shaders/fullscreen.vert
+    shaders/hud/indicator_ring.vert
+    shaders/hud/indicator.frag
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
     shaders/light/light_point_debug.frag
@@ -158,7 +160,14 @@ if(${EXTERNAL_ASSETS})
       skybox/teide_small_up.tga
       sound/alarm-01.wav
       sound/ambiance-01.wav
-      sound/announcer-unit-ready.wav
+      sound/announcer-building-01.wav
+      sound/announcer-cancelled-01.wav
+      sound/announcer-location-invalid-01.wav
+      sound/announcer-rallypos-updated-01.wav
+      sound/announcer-structure-deployed-01.wav
+      sound/announcer-structure-ready-01.wav
+      sound/announcer-training-01.wav
+      sound/announcer-unit-ready-02.wav
       sound/burning-01.wav
       sound/burning-02.wav
       sound/burning-03.wav

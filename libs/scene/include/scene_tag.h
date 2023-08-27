@@ -4,19 +4,20 @@
 
 typedef enum {
   SceneTags_None         = 0,
-  SceneTags_Terrain      = 1 << 0,
-  SceneTags_Geometry     = 1 << 1,
-  SceneTags_Vfx          = 1 << 2,
-  SceneTags_Ui           = 1 << 3,
-  SceneTags_Debug        = 1 << 4,
-  SceneTags_Unit         = 1 << 5,
-  SceneTags_Selected     = 1 << 6,
-  SceneTags_Damaged      = 1 << 7,
-  SceneTags_Light        = 1 << 8,
-  SceneTags_ShadowCaster = 1 << 9,
-  SceneTags_Emit         = 1 << 10,
+  SceneTags_Unit         = 1 << 0,
+  SceneTags_Selected     = 1 << 1,
+  SceneTags_Emit         = 1 << 2,
+  SceneTags_Damaged      = 1 << 3,
+  SceneTags_Geometry     = 1 << 4,
+  SceneTags_Transparent  = 1 << 5,
+  SceneTags_Terrain      = 1 << 6,
+  SceneTags_Vfx          = 1 << 7,
+  SceneTags_Debug        = 1 << 8,
+  SceneTags_Light        = 1 << 9,
+  SceneTags_ShadowCaster = 1 << 10,
+  SceneTags_Ui           = 1 << 11,
 
-  SceneTags_Count   = 11,
+  SceneTags_Count   = 12,
   SceneTags_Default = SceneTags_Geometry | SceneTags_ShadowCaster | SceneTags_Emit,
 } SceneTags;
 

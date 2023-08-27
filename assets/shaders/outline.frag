@@ -2,11 +2,12 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
-#include "tags.glsl"
+#include "tag.glsl"
 #include "texture.glsl"
 
 const f32   c_depthThreshold = 1e-4;
 const f32v3 c_outlineColor   = f32v3(0.75, 0.75, 0.75);
+const u32   c_excludeMask    = (1 << tag_selected_bit) | (1 << tag_transparent_bit);
 
 bind_global_img(1) uniform sampler2D u_texGeoData1;
 bind_global_img(2) uniform sampler2D u_texGeoDepth;
@@ -30,7 +31,7 @@ void main() {
   const f32 depth = depth_at_offset(0, 0);
   const u32 tags  = tags_at_offset(0, 0);
 
-  if (tag_is_set(tags, tag_selected_bit)) {
+  if ((tags & c_excludeMask) != 0) {
     out_color = f32v3(0);
     return;
   }
