@@ -856,6 +856,9 @@ static void hud_production_draw(
     const GeoVector pos = ecs_view_read_t(itr, SceneTransformComp)->position;
     hud_indicator_ring_draw(hud, drawItr, pos, production->placementRadius, ui_color_white);
   }
+  if (!(production->flags & SceneProductFlags_RallyLocalSpace)) {
+    hud_indicator_ring_draw(hud, drawItr, production->rallyPos, 0.25f, ui_color(0, 128, 0, 255));
+  }
 
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -33), UiBase_Absolute, Ui_Y);
   ui_scrollview_begin(c, &hud->productionScrollView, height);
