@@ -152,9 +152,11 @@ static void hud_indicator_ring_draw(
     u32     padding[2];
   } RingData;
 
-  const u32       vertexCount = 250; // TODO: Make this dynamic based on the circumference.
-  const SceneTags tags        = SceneTags_Vfx;
-  const GeoBox    bounds      = geo_box_inverted3(); // TODO: Compute bounds.
+  const u32       vertexCount  = 200;
+  const f32       maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
+  const SceneTags tags         = SceneTags_Vfx;
+  const GeoBox    bounds       = geo_box_from_center(
+      center, geo_vector((radius + maxThickness) * 2.0f, 1.0f, (radius + maxThickness) * 2.0f));
 
   rend_draw_set_vertex_count(draw, vertexCount);
   *rend_draw_add_instance_t(draw, RingData, tags, bounds) = (RingData){
