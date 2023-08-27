@@ -26,11 +26,11 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Damaged"),
       string_static("Geometry"),
       string_static("Transparent"),
+      string_static("Terrain"),
       string_static("Vfx"),
       string_static("Debug"),
       string_static("Light"),
       string_static("ShadowCaster"),
-      string_static("Terrain"),
       string_static("Ui"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
