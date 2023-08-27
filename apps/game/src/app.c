@@ -61,8 +61,12 @@ static void app_ambiance_create(EcsWorld* world, AssetManagerComp* assets) {
       .looping = true);
 }
 
-static EcsEntityId
-app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const u16 height) {
+static EcsEntityId app_window_create(
+    EcsWorld*         world,
+    AssetManagerComp* assets,
+    const bool        fullscreen,
+    const u16         width,
+    const u16         height) {
   const GapVector      size   = {.width = (i32)width, .height = (i32)height};
   const GapWindowMode  mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
   const GapWindowFlags flags  = fullscreen ? GapWindowFlags_CursorConfine : GapWindowFlags_Default;
@@ -81,7 +85,7 @@ app_window_create(EcsWorld* world, const bool fullscreen, const u16 width, const
 
   ecs_world_add_empty_t(world, window, SceneSoundListenerComp);
   ecs_world_add_t(world, window, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  hud_init(world, window);
+  hud_init(world, assets, window);
 
   return window;
 }
@@ -584,6 +588,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
     return;
   }
 
+  const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
+  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
+
   GamePrefsComp* prefs      = prefs_init(world);
   const bool     fullscreen = prefs->fullscreen && !cli_parse_provided(invoc, g_windowFlag);
   const u16      width      = (u16)cli_read_u64(invoc, g_widthFlag, prefs->windowWidth);
@@ -594,15 +601,12 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   SndMixerComp* soundMixer = snd_mixer_init(world);
   snd_mixer_gain_set(soundMixer, prefs->volume * 1e-2f);
 
-  const EcsEntityId win             = app_window_create(world, fullscreen, width, height);
+  const EcsEntityId win             = app_window_create(world, assets, fullscreen, width, height);
   RendSettingsComp* rendSettingsWin = rend_settings_window_init(world, win);
 
   app_quality_apply(prefs, rendSettingsGlobal, rendSettingsWin);
 
   ecs_world_add_t(world, ecs_world_global(world), AppComp, .mainWindow = win);
-
-  const AssetManagerFlags assetFlg = AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload;
-  AssetManagerComp*       assets   = asset_manager_create_fs(world, assetFlg, assetPath);
 
   app_ambiance_create(world, assets);
 

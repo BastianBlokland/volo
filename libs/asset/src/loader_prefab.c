@@ -156,6 +156,7 @@ typedef struct {
   String             rallySoundId;
   f32                rallySoundGain;
   String             productSetId;
+  f32                placementRadius;
 } AssetPrefabTraitProductionDef;
 
 typedef struct {
@@ -330,6 +331,7 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallySoundId, data_prim_t(String), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, rallySoundGain, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(reg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, AssetPrefabTraitProductionDef, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_union_t(reg, AssetPrefabTraitDef, type);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
@@ -627,6 +629,7 @@ static void prefab_build(
             .productSetId    = string_hash(traitDef->data_production.productSetId),
             .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
             .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

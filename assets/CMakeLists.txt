@@ -31,6 +31,8 @@ configure_shaders(volo_shaders
     shaders/fog_vision.vert
     shaders/fog.frag
     shaders/fullscreen.vert
+    shaders/hud/indicator_ring.vert
+    shaders/hud/indicator.frag
     shaders/light/light_directional.frag
     shaders/light/light_directional.vert
     shaders/light/light_point_debug.frag

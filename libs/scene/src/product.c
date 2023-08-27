@@ -357,16 +357,24 @@ static void product_placement_preview_destroy(ProductQueueContext* ctx) {
 static bool product_placement_blocked(ProductQueueContext* ctx) {
   diag_assert(ctx->queue->product->type == AssetProduct_Placable);
 
-  const SceneFactionComp* factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
-  const SceneFaction      faction     = factionComp ? factionComp->id : SceneFaction_A;
+  const SceneTransformComp* transComp   = ecs_view_read_t(ctx->itr, SceneTransformComp);
+  const SceneFactionComp*   factionComp = ecs_view_read_t(ctx->itr, SceneFactionComp);
+  const SceneFaction        faction     = factionComp ? factionComp->id : SceneFaction_A;
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
   const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
   if (!prefab) {
     return true; // TODO: Report error?
   }
-  const GeoVector placementPos = ctx->production->placementPos;
-  const GeoQuat   placementRot = geo_quat_angle_axis(geo_up, ctx->production->placementAngle);
+  const GeoVector placementOrigin = transComp ? transComp->position : geo_vector(0);
+  const GeoVector placementPos    = ctx->production->placementPos;
+  const GeoQuat   placementRot    = geo_quat_angle_axis(geo_up, ctx->production->placementAngle);
+
+  const f32 placementRadiusMax = ctx->production->placementRadius;
+  const f32 placementDist      = geo_vector_mag(geo_vector_sub(placementPos, placementOrigin));
+  if (placementRadiusMax > f32_epsilon && placementDist > ctx->production->placementRadius) {
+    return true; // Position out of placement radius.
+  }
 
   if (!scene_visible_pos(ctx->visiblityEnv, faction, placementPos)) {
     return true; // Position not visible.

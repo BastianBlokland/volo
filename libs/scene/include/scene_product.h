@@ -48,6 +48,7 @@ ecs_comp_extern_public(SceneProductionComp) {
   EcsEntityId        rallySoundAsset;
   f32                rallySoundGain;
   f32                placementAngle;
+  f32                placementRadius;
   GeoVector          spawnPos, rallyPos, placementPos;
 };
 

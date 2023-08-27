@@ -1,0 +1,16 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/hud/indicator_ring.vert.spv"
+    },
+    {
+      "shaderId": "shaders/hud/indicator.frag.spv"
+    }
+  ],
+  "renderOrder": 500,
+  "topology": "TriangleStrip",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

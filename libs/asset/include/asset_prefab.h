@@ -172,6 +172,7 @@ typedef struct {
   EcsEntityId rallySoundAsset;
   f32         rallySoundGain;
   StringHash  productSetId;
+  f32         placementRadius;
 } AssetPrefabTraitProduction;
 
 typedef struct {

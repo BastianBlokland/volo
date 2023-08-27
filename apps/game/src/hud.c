@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "asset_product.h"
 #include "asset_weapon.h"
 #include "core_alloc.h"
@@ -11,12 +12,14 @@
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "input_manager.h"
+#include "rend_draw.h"
 #include "rend_settings.h"
 #include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_product.h"
@@ -60,6 +63,8 @@ ecs_comp_define(HudComp) {
   EcsEntityId  uiCanvas;
   UiRect       minimapRect;
   UiScrollview productionScrollView;
+
+  EcsEntityId drawIndicatorRing;
 };
 
 ecs_view_define(GlobalView) {
@@ -79,6 +84,7 @@ ecs_view_define(HudView) {
 }
 
 ecs_view_define(UiCanvasView) { ecs_access_write(UiCanvasComp); }
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_view_define(HealthView) {
   ecs_access_maybe_read(SceneCollisionComp);
@@ -111,10 +117,57 @@ ecs_view_define(MinimapMarkerView) {
 
 ecs_view_define(ProductionView) {
   ecs_access_read(SceneNameComp);
+  ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneProductionComp);
 }
 
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
+
+static EcsEntityId hud_indicator_draw_create(
+    EcsWorld* world, AssetManagerComp* assets, const EcsEntityId window, const String graphic) {
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
+
+  RendDrawComp* draw = rend_draw_create(world, e, RendDrawFlags_None);
+  rend_draw_set_graphic(draw, asset_lookup(world, assets, graphic));
+  rend_draw_set_camera_filter(draw, window);
+  return e;
+}
+
+static void hud_indicator_ring_draw(
+    const HudComp*  hud,
+    EcsIterator*    drawItr,
+    const GeoVector center,
+    const f32       radius,
+    const UiColor   color) {
+  ecs_view_jump(drawItr, hud->drawIndicatorRing);
+  RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+
+  typedef struct {
+    ALIGNAS(16)
+    f32     center[3];
+    f32     radius;
+    u32     vertexCount;
+    UiColor color;
+    u32     padding[2];
+  } RingData;
+
+  const f32       circumference = radius * math_pi_f32 * 2.0f;
+  const f32       vertexDensity = 0.25f;
+  const u32       vertexCount   = (u32)math_round_up_f32(circumference / vertexDensity);
+  const SceneTags tags          = SceneTags_Vfx;
+  const GeoBox    bounds        = geo_box_inverted3(); // TODO: Compute bounds.
+
+  rend_draw_set_vertex_count(draw, vertexCount);
+  *rend_draw_add_instance_t(draw, RingData, tags, bounds) = (RingData){
+      .center[0]   = center.x,
+      .center[1]   = center.y,
+      .center[2]   = center.z,
+      .radius      = radius,
+      .vertexCount = vertexCount,
+      .color       = color,
+  };
+}
 
 static bool hud_rect_intersect(const UiRect a, const UiRect b) {
   return a.x + a.width > b.x && b.x + b.width > a.x && a.y + a.height > b.y && b.y + b.height > a.y;
@@ -780,7 +833,11 @@ static void hud_production_queue_draw(
 }
 
 static void hud_production_draw(
-    UiCanvasComp* c, HudComp* hud, const InputManagerComp* input, EcsIterator* itr) {
+    UiCanvasComp*           c,
+    HudComp*                hud,
+    const InputManagerComp* input,
+    EcsIterator*            drawItr,
+    EcsIterator*            itr) {
   ui_layout_push(c);
   ui_layout_set(c, ui_rect(ui_vector(0, 0), g_hudProductionSize), UiBase_Absolute);
 
@@ -796,6 +853,11 @@ static void hud_production_draw(
   const f32            entrySize      = (availableWidth - (colCount + 1) * spacing) / colCount;
   const UiVector       entrySizeVec   = ui_vector(entrySize, entrySize);
   const f32            height         = rowCount * entrySize + (rowCount + 1) * spacing;
+
+  if (production->placementRadius > f32_epsilon) {
+    const GeoVector pos = ecs_view_read_t(itr, SceneTransformComp)->position;
+    hud_indicator_ring_draw(hud, drawItr, pos, production->placementRadius, ui_color_white);
+  }
 
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -33), UiBase_Absolute, Ui_Y);
   ui_scrollview_begin(c, &hud->productionScrollView, height);
@@ -836,6 +898,7 @@ ecs_system_define(HudDrawUiSys) {
 
   EcsView* hudView           = ecs_world_view_t(world, HudView);
   EcsView* canvasView        = ecs_world_view_t(world, UiCanvasView);
+  EcsView* drawView          = ecs_world_view_t(world, DrawView);
   EcsView* healthView        = ecs_world_view_t(world, HealthView);
   EcsView* infoView          = ecs_world_view_t(world, InfoView);
   EcsView* weaponMapView     = ecs_world_view_t(world, WeaponMapView);
@@ -843,6 +906,7 @@ ecs_system_define(HudDrawUiSys) {
   EcsView* productionView    = ecs_world_view_t(world, ProductionView);
 
   EcsIterator* canvasItr     = ecs_view_itr(canvasView);
+  EcsIterator* drawItr       = ecs_view_itr(drawView);
   EcsIterator* infoItr       = ecs_view_itr(infoView);
   EcsIterator* productionItr = ecs_view_itr(productionView);
   EcsIterator* weaponMapItr  = ecs_view_maybe_at(weaponMapView, scene_weapon_map(weaponRes));
@@ -877,7 +941,7 @@ ecs_system_define(HudDrawUiSys) {
     hud_minimap_draw(c, hud, inputState, cam, camTrans, minimapMarkerView);
 
     if (ecs_view_maybe_jump(productionItr, scene_selection_main(sel))) {
-      hud_production_draw(c, hud, input, productionItr);
+      hud_production_draw(c, hud, input, drawItr, productionItr);
     }
 
     const EcsEntityId  hoveredEntity = input_hovered_entity(inputState);
@@ -895,6 +959,7 @@ ecs_module_init(game_hud_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(HudView);
   ecs_register_view(UiCanvasView);
+  ecs_register_view(DrawView);
   ecs_register_view(HealthView);
   ecs_register_view(InfoView);
   ecs_register_view(WeaponMapView);
@@ -906,6 +971,7 @@ ecs_module_init(game_hud_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(HudView),
       ecs_view_id(UiCanvasView),
+      ecs_view_id(DrawView),
       ecs_view_id(HealthView),
       ecs_view_id(InfoView),
       ecs_view_id(WeaponMapView),
@@ -924,11 +990,16 @@ ecs_module_init(game_hud_module) {
   }
 }
 
-void hud_init(EcsWorld* world, const EcsEntityId cameraEntity) {
+void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
+
+  const EcsEntityId indicatorRingDraw = hud_indicator_draw_create(
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.gra"));
+
   ecs_world_add_t(
       world,
       cameraEntity,
       HudComp,
-      .uiCanvas = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None));
+      .uiCanvas          = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None),
+      .drawIndicatorRing = indicatorRingDraw);
 }

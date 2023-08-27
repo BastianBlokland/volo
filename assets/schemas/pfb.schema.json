@@ -648,6 +648,10 @@
               "title": "String",
               "type": "string",
               "minLength": 1
+            },
+            "placementRadius": {
+              "title": "f32",
+              "type": "number"
             }
           },
           "required": [
