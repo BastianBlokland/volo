@@ -7,7 +7,7 @@
       "shaderId": "shaders/hud/indicator.frag.spv"
     }
   ],
-  "renderOrder": 500,
+  "renderOrder": 1100,
   "topology": "TriangleStrip",
   "rasterizer": "Fill",
   "blend": "Alpha",
