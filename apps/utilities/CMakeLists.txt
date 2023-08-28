@@ -8,7 +8,7 @@ add_executable(app_schemasetup schemasetup.c)
 target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
-add_custom_target(schemasetup COMMAND app_schemasetup "--out"
+add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/atl.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/atx.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/bt.btschema"
@@ -37,4 +37,4 @@ add_executable(app_repl repl.c)
 target_link_libraries(app_repl PRIVATE lib_app_cli lib_script)
 configure_debuggable(app_repl)
 
-add_custom_target(repl COMMAND app_repl VERBATIM USES_TERMINAL)
+add_custom_target(run.repl COMMAND app_repl VERBATIM USES_TERMINAL)
