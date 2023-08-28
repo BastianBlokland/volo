@@ -162,6 +162,12 @@ void tty_pal_opts_set(File* file, const TtyOpts opts) {
     mode |= ENABLE_LINE_INPUT;
   }
 
+  if (opts & TtyOpts_NoSignals) {
+    mode &= ~ENABLE_PROCESSED_INPUT;
+  } else {
+    mode |= ENABLE_PROCESSED_INPUT;
+  }
+
   const BOOL setRes = SetConsoleMode(file->handle, mode);
   if (UNLIKELY(!setRes)) {
     diag_crash_msg("SetConsoleMode() failed");

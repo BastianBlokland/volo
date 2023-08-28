@@ -59,6 +59,12 @@ void tty_pal_opts_set(File* file, const TtyOpts opts) {
     t.c_lflag |= ICANON;
   }
 
+  if (opts & TtyOpts_NoSignals) {
+    t.c_lflag &= ~ISIG;
+  } else {
+    t.c_lflag |= ISIG;
+  }
+
   const int setAttrRes = tcsetattr(file->handle, TCSANOW, &t);
   if (UNLIKELY(setAttrRes != 0)) {
     diag_crash_msg("tcsetattr() failed: {}", fmt_int(setAttrRes));

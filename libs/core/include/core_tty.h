@@ -115,9 +115,10 @@ u16 tty_width(File*);
 u16 tty_height(File*);
 
 typedef enum {
-  TtyOpts_None     = 0,
-  TtyOpts_NoEcho   = 1 << 0,
-  TtyOpts_NoBuffer = 1 << 1,
+  TtyOpts_None      = 0,
+  TtyOpts_NoEcho    = 1 << 0,
+  TtyOpts_NoBuffer  = 1 << 1,
+  TtyOpts_NoSignals = 1 << 2, // Disable signal sending, eg. enables reading ctrl-c as input.
 } TtyOpts;
 
 /**
