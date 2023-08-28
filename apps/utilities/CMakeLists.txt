@@ -30,3 +30,11 @@ message(STATUS "> application: dbgsetup")
 
 add_executable(app_dbgsetup dbgsetup.c)
 target_link_libraries(app_dbgsetup PRIVATE lib_app_cli lib_json lib_log)
+
+message(STATUS "> application: repl")
+
+add_executable(app_repl repl.c)
+target_link_libraries(app_repl PRIVATE lib_app_cli lib_script)
+configure_debuggable(app_repl)
+
+add_custom_target(repl COMMAND app_repl VERBATIM USES_TERMINAL)
