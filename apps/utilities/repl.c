@@ -5,6 +5,7 @@
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_eval.h"
+#include "script_lex.h"
 #include "script_mem.h"
 #include "script_read.h"
 
@@ -21,6 +22,42 @@ static void repl_output_error(const String message) {
       fmt_text(message),
       fmt_ttystyle());
   repl_output(text);
+}
+
+static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
+  switch (tokenType) {
+  case ScriptTokenType_Error:
+    return TtyFgColor_BrightRed;
+  case ScriptTokenType_Number:
+    return TtyFgColor_Yellow;
+  case ScriptTokenType_Identifier:
+    return TtyFgColor_Green;
+  case ScriptTokenType_Key:
+    return TtyFgColor_Blue;
+  case ScriptTokenType_ParenOpen:
+  case ScriptTokenType_ParenClose:
+  case ScriptTokenType_Comma:
+  case ScriptTokenType_Eq:
+  case ScriptTokenType_EqEq:
+  case ScriptTokenType_Bang:
+  case ScriptTokenType_BangEq:
+  case ScriptTokenType_Le:
+  case ScriptTokenType_LeEq:
+  case ScriptTokenType_Gt:
+  case ScriptTokenType_GtEq:
+  case ScriptTokenType_Plus:
+  case ScriptTokenType_Minus:
+  case ScriptTokenType_Star:
+  case ScriptTokenType_Slash:
+  case ScriptTokenType_Colon:
+  case ScriptTokenType_SemiColon:
+  case ScriptTokenType_AmpAmp:
+  case ScriptTokenType_PipePipe:
+  case ScriptTokenType_QMark:
+  case ScriptTokenType_QMarkQMark:
+  case ScriptTokenType_End:
+    return TtyFgColor_Default;
+  }
 }
 
 typedef struct {
@@ -82,8 +119,21 @@ static void repl_edit_render(const ReplState* state) {
   tty_write_style_sequence(&buffer, ttystyle());
 
   // Render edit text.
-  dynstring_append(&buffer, dynstring_view(state->editBuffer));
+  String      editText = dynstring_view(state->editBuffer);
+  ScriptToken token;
+  for (;;) {
+    const String remText   = script_lex(editText, null, &token);
+    const usize  tokenSize = editText.size - remText.size;
+    const String tokenText = string_slice(editText, 0, tokenSize);
+    tty_write_style_sequence(&buffer, ttystyle(.fgColor = repl_token_color(token.type)));
+    dynstring_append(&buffer, tokenText);
+    if (token.type == ScriptTokenType_End) {
+      break;
+    }
+    editText = remText;
+  }
 
+  tty_write_style_sequence(&buffer, ttystyle());
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
