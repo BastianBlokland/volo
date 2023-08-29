@@ -43,11 +43,16 @@ static void repl_edit_render(const ReplState* state) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  tty_write_clear_line_sequence(&buffer, TtyClearMode_All);
-  tty_write_set_cursor_hor_sequence(&buffer, 0);
+  tty_write_clear_line_sequence(&buffer, TtyClearMode_All); // Clear line.
+  tty_write_set_cursor_hor_sequence(&buffer, 0);            // Move cursor to beginning of line.
+  tty_write_line_wrap_sequence(&buffer, false);             // Disable line wrap.
+
+  // Render header.
   tty_write_style_sequence(&buffer, ttystyle(.flags = TtyStyleFlags_Faint));
   dynstring_append(&buffer, string_lit("> "));
   tty_write_style_sequence(&buffer, ttystyle());
+
+  // Render edit text.
   dynstring_append(&buffer, dynstring_view(state->editBuffer));
 
   file_write_sync(g_file_stdout, dynstring_view(&buffer));
@@ -60,6 +65,7 @@ static void repl_edit_render_cleanup() {
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All);
   tty_write_set_cursor_hor_sequence(&buffer, 0);
+  tty_write_line_wrap_sequence(&buffer, true); // TODO: Only do this if it was originally enabled?
 
   file_write_sync(g_file_stdout, dynstring_view(&buffer));
   dynstring_destroy(&buffer);
