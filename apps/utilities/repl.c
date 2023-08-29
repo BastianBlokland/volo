@@ -61,12 +61,20 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
 }
 
 typedef struct {
+  String     editPrevText;
   DynString* editBuffer;
   ScriptMem* scriptMem;
 } ReplState;
 
 static bool repl_edit_empty(const ReplState* state) {
   return string_is_empty(dynstring_view(state->editBuffer));
+}
+
+static void repl_edit_prev(const ReplState* state) {
+  if (!string_is_empty(state->editPrevText)) {
+    dynstring_clear(state->editBuffer);
+    dynstring_append(state->editBuffer, state->editPrevText);
+  }
 }
 
 static void repl_edit_clear(const ReplState* state) { dynstring_clear(state->editBuffer); }
@@ -88,6 +96,9 @@ static void repl_edit_delete(const ReplState* state) {
 
 static void repl_edit_submit(ReplState* state) {
   repl_output(string_lit("\n")); // Preserve the input line.
+
+  string_maybe_free(g_alloc_heap, state->editPrevText);
+  state->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(state->editBuffer));
 
   ScriptDoc*       script = script_create(g_alloc_heap);
   ScriptReadResult res;
@@ -163,6 +174,9 @@ static bool repl_update(ReplState* state, TtyInputToken* input) {
   case TtyInputType_KeyBackspace:
     repl_edit_delete(state);
     break;
+  case TtyInputType_KeyUp:
+    repl_edit_prev(state);
+    break;
   case TtyInputType_Accept:
     if (!repl_edit_empty(state)) {
       repl_edit_submit(state);
@@ -213,6 +227,7 @@ Stop:
 
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
+  string_maybe_free(g_alloc_heap, state.editPrevText);
   script_mem_destroy(state.scriptMem);
   return 0;
 }
