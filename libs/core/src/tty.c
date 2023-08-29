@@ -83,6 +83,15 @@ void tty_write_set_cursor_sequence(DynString* str, const u32 row, const u32 col)
   dynstring_append_char(str, 'H');
 }
 
+void tty_write_set_cursor_hor_sequence(DynString* str, const u32 col) {
+  /**
+   * 'CSI' sequence: 'Cursor Horizontal Absolute'.
+   */
+  dynstring_append(str, string_lit(tty_esc "["));
+  format_write_int(str, col);
+  dynstring_append_char(str, 'G');
+}
+
 void tty_write_cursor_show_sequence(DynString* str, const bool show) {
   /**
    * Private 'CSI' sequence.
