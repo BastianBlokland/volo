@@ -222,3 +222,11 @@ void tty_write_alt_screen_sequence(DynString* str, const bool enable) {
   dynstring_append(str, string_lit(tty_esc "[?1049"));
   dynstring_append_char(str, enable ? 'h' : 'l');
 }
+
+void tty_write_line_wrap_sequence(DynString* str, bool enable) {
+  /**
+   * 'CSI' sequence: 'Enable Line Wrap' / 'Disable Line Wrap'.
+   */
+  dynstring_append(str, string_lit(tty_esc "[?7"));
+  dynstring_append_char(str, enable ? 'h' : 'l');
+}

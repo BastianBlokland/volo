@@ -215,7 +215,11 @@ void tty_write_clear_sequence(DynString*, TtyClearMode);
 void tty_write_clear_line_sequence(DynString*, TtyClearMode);
 
 /**
- * Write a ANSI escape sequence to the provided dynamic-string for enabling alternative screen
- * buffer.
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling alt screen buffer.
  */
 void tty_write_alt_screen_sequence(DynString*, bool enable);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling / disabling line wrap.
+ */
+void tty_write_line_wrap_sequence(DynString*, bool enable);
