@@ -31,12 +31,9 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Number:
     return TtyFgColor_Yellow;
   case ScriptTokenType_Identifier:
-    return TtyFgColor_Green;
+    return TtyFgColor_Magenta;
   case ScriptTokenType_Key:
     return TtyFgColor_Blue;
-  case ScriptTokenType_ParenOpen:
-  case ScriptTokenType_ParenClose:
-  case ScriptTokenType_Comma:
   case ScriptTokenType_Eq:
   case ScriptTokenType_EqEq:
   case ScriptTokenType_Bang:
@@ -55,6 +52,10 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_PipePipe:
   case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
+    return TtyFgColor_Green;
+  case ScriptTokenType_ParenOpen:
+  case ScriptTokenType_ParenClose:
+  case ScriptTokenType_Comma:
   case ScriptTokenType_End:
     return TtyFgColor_Default;
   }
