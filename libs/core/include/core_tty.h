@@ -1,6 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "core_types.h"
+#include "core_unicode.h"
 
 // Forward declare from 'core_file.h'.
 typedef struct sFile File;
@@ -142,6 +143,37 @@ typedef enum {
  * Pre-condition: file is opened with read access.
  */
 bool tty_read(File*, DynString*, TtyReadFlags);
+
+typedef enum {
+  TtyInputType_Accept,
+  TtyInputType_Interrupt,
+  TtyInputType_KeyEscape,
+  TtyInputType_KeyUp,
+  TtyInputType_KeyDown,
+  TtyInputType_KeyRight,
+  TtyInputType_KeyLeft,
+  TtyInputType_KeyEnd,
+  TtyInputType_KeyHome,
+  TtyInputType_KeyDelete,
+  TtyInputType_KeyBackspace,
+  TtyInputType_Text,
+  TtyInputType_Unsupported,
+  TtyInputType_End,
+} TtyInputType;
+
+typedef struct {
+  TtyInputType type;
+  union {
+    Unicode val_text;
+  };
+} TtyInputToken;
+
+/**
+ * Read a single Tty input token.
+ * Returns the remaining input.
+ * The token is written to the output pointer.
+ */
+String tty_input_lex(String, TtyInputToken*);
 
 /**
  * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal style.

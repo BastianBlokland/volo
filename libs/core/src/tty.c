@@ -1,6 +1,8 @@
+#include "core_ascii.h"
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_format.h"
+#include "core_utf8.h"
 
 #include "init_internal.h"
 #include "tty_internal.h"
@@ -14,6 +16,99 @@ u16  tty_height(File* file) { return tty_pal_height(file); }
 void tty_opts_set(File* file, const TtyOpts opts) { tty_pal_opts_set(file, opts); }
 bool tty_read(File* file, DynString* dynstr, const TtyReadFlags flags) {
   return tty_pal_read(file, dynstr, flags);
+}
+
+static String tty_input_lex_escape(String str, TtyInputToken* out) {
+  enum { TtyInputEscapeModifiersMax = 16 };
+  i64 modifiers[TtyInputEscapeModifiersMax];
+  u32 modifierCount = 0;
+  for (;;) {
+    if (UNLIKELY(string_is_empty(str))) {
+      return out->type = TtyInputType_Unsupported, str;
+    }
+    const u8 ch = string_begin(str)[0];
+    switch (ch) {
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      if (UNLIKELY(modifierCount == TtyInputEscapeModifiersMax)) {
+        return out->type = TtyInputType_Unsupported, string_consume(str, 1);
+      }
+      str = format_read_i64(str, &modifiers[modifierCount++], 10);
+      continue;
+    case ';':
+      str = string_consume(str, 1);
+      continue; // Modifier separator.
+    case 'A':
+      return out->type = TtyInputType_KeyUp, string_consume(str, 1);
+    case 'B':
+      return out->type = TtyInputType_KeyDown, string_consume(str, 1);
+    case 'C':
+      return out->type = TtyInputType_KeyRight, string_consume(str, 1);
+    case 'D':
+      return out->type = TtyInputType_KeyLeft, string_consume(str, 1);
+    case 'F':
+      return out->type = TtyInputType_KeyEnd, string_consume(str, 1);
+    case 'H':
+      return out->type = TtyInputType_KeyHome, string_consume(str, 1);
+    case '~':
+      if (!modifierCount) {
+        return out->type = TtyInputType_Unsupported, string_consume(str, 1);
+      }
+      switch (modifiers[0]) {
+      case 1:
+        return out->type = TtyInputType_KeyHome, string_consume(str, 1);
+      case 3:
+        return out->type = TtyInputType_KeyDelete, string_consume(str, 1);
+      case 4:
+        return out->type = TtyInputType_KeyEnd, string_consume(str, 1);
+      case 7:
+        return out->type = TtyInputType_KeyHome, string_consume(str, 1);
+      case 8:
+        return out->type = TtyInputType_KeyEnd, string_consume(str, 1);
+      }
+      return out->type = TtyInputType_Unsupported, string_consume(str, 1);
+    }
+    return out->type = TtyInputType_Unsupported, string_consume(str, 1);
+  }
+}
+
+String tty_input_lex(String str, TtyInputToken* out) {
+  for (;;) {
+    Unicode cp;
+    str = utf8_cp_read(str, &cp);
+    switch (cp) {
+    case Unicode_Invalid:
+      return out->type = TtyInputType_End, string_empty;
+    case Unicode_Escape:
+      if (!string_is_empty(str) && string_begin(str)[0] == '[') {
+        return tty_input_lex_escape(string_consume(str, 1), out);
+      }
+      return out->type = TtyInputType_KeyEscape, str;
+    case Unicode_EndOfText:
+      return out->type = TtyInputType_Interrupt, str;
+    case Unicode_Backspace:
+      return out->type = TtyInputType_KeyDelete, str;
+    case Unicode_Delete:
+      return out->type = TtyInputType_KeyBackspace, str;
+    case Unicode_Newline:
+      return out->type = TtyInputType_Accept, str;
+    default:
+      if (!unicode_is_ascii(cp) || ascii_is_printable((u8)cp)) {
+        // Either a printable ascii character or a non-ascii character.
+        return out->type = TtyInputType_Text, out->val_text = cp, str;
+      }
+      return out->type = TtyInputType_Unsupported, str;
+    }
+  }
 }
 
 void tty_write_style_sequence(DynString* str, TtyStyle style) {
