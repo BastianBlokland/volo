@@ -57,8 +57,9 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_ParenClose:
   case ScriptTokenType_Comma:
   case ScriptTokenType_End:
-    return TtyFgColor_Default;
+    break;
   }
+  return TtyFgColor_Default;
 }
 
 typedef struct {
