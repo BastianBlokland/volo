@@ -13,11 +13,17 @@ typedef struct {
   DynString* editBuffer;
 } ReplState;
 
+static bool repl_edit_empty(const ReplState* state) {
+  return string_is_empty(dynstring_view(state->editBuffer));
+}
+
+static void repl_edit_clear(const ReplState* state) { dynstring_clear(state->editBuffer); }
+
 static void repl_edit_insert(const ReplState* state, const Unicode cp) {
   utf8_cp_write(state->editBuffer, cp);
 }
 
-static void repl_edit_delete_char(const ReplState* state) {
+static void repl_edit_delete(const ReplState* state) {
   // Delete the last utf8 code-point.
   String str = dynstring_view(state->editBuffer);
   for (usize i = str.size; i-- > 0;) {
@@ -28,7 +34,10 @@ static void repl_edit_delete_char(const ReplState* state) {
   }
 }
 
-static void repl_edit_submit(ReplState* state) { dynstring_clear(state->editBuffer); }
+static void repl_edit_submit(ReplState* state) {
+  file_write_sync(g_file_stdout, string_lit("\n"));
+  dynstring_clear(state->editBuffer);
+}
 
 static void repl_edit_render(const ReplState* state) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
@@ -36,7 +45,21 @@ static void repl_edit_render(const ReplState* state) {
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All);
   tty_write_set_cursor_hor_sequence(&buffer, 0);
+  tty_write_style_sequence(&buffer, ttystyle(.flags = TtyStyleFlags_Faint));
+  dynstring_append(&buffer, string_lit("> "));
+  tty_write_style_sequence(&buffer, ttystyle());
   dynstring_append(&buffer, dynstring_view(state->editBuffer));
+
+  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}
+
+static void repl_edit_render_cleanup() {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  tty_write_clear_line_sequence(&buffer, TtyClearMode_All);
+  tty_write_set_cursor_hor_sequence(&buffer, 0);
 
   file_write_sync(g_file_stdout, dynstring_view(&buffer));
   dynstring_destroy(&buffer);
@@ -46,14 +69,19 @@ static bool repl_update(ReplState* state, TtyInputToken* input) {
   switch (input->type) {
   case TtyInputType_Interrupt:
     return false; // Stop.
+  case TtyInputType_KeyEscape:
+    repl_edit_clear(state);
+    break;
   case TtyInputType_Text:
     repl_edit_insert(state, input->val_text);
     break;
   case TtyInputType_KeyBackspace:
-    repl_edit_delete_char(state);
+    repl_edit_delete(state);
     break;
   case TtyInputType_Accept:
-    repl_edit_submit(state);
+    if (!repl_edit_empty(state)) {
+      repl_edit_submit(state);
+    }
     break;
   default:
     break;
@@ -76,6 +104,7 @@ static i32 repl_run_interactive() {
   };
 
   tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
+  repl_edit_render(&state);
 
   while (tty_read(g_file_stdin, &readBuffer, TtyReadFlags_None)) {
     String        readStr = dynstring_view(&readBuffer);
@@ -93,6 +122,7 @@ static i32 repl_run_interactive() {
   }
 
 Stop:
+  repl_edit_render_cleanup();
   tty_opts_set(g_file_stdin, TtyOpts_None);
 
   dynstring_destroy(&readBuffer);
