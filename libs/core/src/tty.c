@@ -100,6 +100,7 @@ String tty_input_lex(String str, TtyInputToken* out) {
     case Unicode_Delete:
       return out->type = TtyInputType_KeyBackspace, str;
     case Unicode_Newline:
+    case Unicode_CarriageReturn:
       return out->type = TtyInputType_Accept, str;
     default:
       if (!unicode_is_ascii(cp) || ascii_is_printable((u8)cp)) {
