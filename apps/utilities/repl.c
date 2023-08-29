@@ -4,13 +4,28 @@
 #include "core_format.h"
 #include "core_tty.h"
 #include "core_utf8.h"
+#include "script_eval.h"
+#include "script_mem.h"
+#include "script_read.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
  */
 
+static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
+
+static void repl_output_error(const String message) {
+  const String text = fmt_write_scratch(
+      "{}ERROR: {}{}\n",
+      fmt_ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold),
+      fmt_text(message),
+      fmt_ttystyle());
+  repl_output(text);
+}
+
 typedef struct {
   DynString* editBuffer;
+  ScriptMem* scriptMem;
 } ReplState;
 
 static bool repl_edit_empty(const ReplState* state) {
@@ -35,7 +50,21 @@ static void repl_edit_delete(const ReplState* state) {
 }
 
 static void repl_edit_submit(ReplState* state) {
-  file_write_sync(g_file_stdout, string_lit("\n"));
+  repl_output(string_lit("\n")); // Preserve the input line.
+
+  ScriptDoc*       script = script_create(g_alloc_heap);
+  ScriptReadResult res;
+  script_read_all(script, dynstring_view(state->editBuffer), &res);
+
+  if (res.type == ScriptResult_Success) {
+    const ScriptVal value = script_eval(script, state->scriptMem, res.expr);
+    const String    text  = fmt_write_scratch("{}\n", fmt_text(script_val_str_scratch(value)));
+    repl_output(text);
+  } else {
+    repl_output_error(script_error_str(res.error));
+  }
+
+  script_destroy(script);
   dynstring_clear(state->editBuffer);
 }
 
@@ -55,7 +84,7 @@ static void repl_edit_render(const ReplState* state) {
   // Render edit text.
   dynstring_append(&buffer, dynstring_view(state->editBuffer));
 
-  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+  repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
 
@@ -67,7 +96,7 @@ static void repl_edit_render_cleanup() {
   tty_write_set_cursor_hor_sequence(&buffer, 0);
   tty_write_line_wrap_sequence(&buffer, true); // TODO: Only do this if it was originally enabled?
 
-  file_write_sync(g_file_stdout, dynstring_view(&buffer));
+  repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
 
@@ -107,6 +136,7 @@ static i32 repl_run_interactive() {
 
   ReplState state = {
       .editBuffer = &editBuffer,
+      .scriptMem  = script_mem_create(g_alloc_heap),
   };
 
   tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
@@ -133,6 +163,7 @@ Stop:
 
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
+  script_mem_destroy(state.scriptMem);
   return 0;
 }
 
