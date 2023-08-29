@@ -1,6 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "core_types.h"
+#include "core_unicode.h"
 
 // Forward declare from 'core_file.h'.
 typedef struct sFile File;
@@ -115,9 +116,10 @@ u16 tty_width(File*);
 u16 tty_height(File*);
 
 typedef enum {
-  TtyOpts_None     = 0,
-  TtyOpts_NoEcho   = 1 << 0,
-  TtyOpts_NoBuffer = 1 << 1,
+  TtyOpts_None      = 0,
+  TtyOpts_NoEcho    = 1 << 0,
+  TtyOpts_NoBuffer  = 1 << 1,
+  TtyOpts_NoSignals = 1 << 2, // Disable signal sending, eg. enables reading ctrl-c as input.
 } TtyOpts;
 
 /**
@@ -142,6 +144,37 @@ typedef enum {
  */
 bool tty_read(File*, DynString*, TtyReadFlags);
 
+typedef enum {
+  TtyInputType_Accept,
+  TtyInputType_Interrupt,
+  TtyInputType_KeyEscape,
+  TtyInputType_KeyUp,
+  TtyInputType_KeyDown,
+  TtyInputType_KeyRight,
+  TtyInputType_KeyLeft,
+  TtyInputType_KeyEnd,
+  TtyInputType_KeyHome,
+  TtyInputType_KeyDelete,
+  TtyInputType_KeyBackspace,
+  TtyInputType_Text,
+  TtyInputType_Unsupported,
+  TtyInputType_End,
+} TtyInputType;
+
+typedef struct {
+  TtyInputType type;
+  union {
+    Unicode val_text;
+  };
+} TtyInputToken;
+
+/**
+ * Read a single Tty input token.
+ * Returns the remaining input.
+ * The token is written to the output pointer.
+ */
+String tty_input_lex(String, TtyInputToken*);
+
 /**
  * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal style.
  */
@@ -158,6 +191,7 @@ void tty_write_window_title_sequence(DynString*, String title);
  * NOTE: The values are 1-based.
  */
 void tty_write_set_cursor_sequence(DynString*, u32 row, u32 col);
+void tty_write_set_cursor_hor_sequence(DynString*, u32 col);
 
 /**
  * Write a ANSI escape sequence to the provided dynamic-string for enabling / disabling the cursor.
@@ -181,7 +215,11 @@ void tty_write_clear_sequence(DynString*, TtyClearMode);
 void tty_write_clear_line_sequence(DynString*, TtyClearMode);
 
 /**
- * Write a ANSI escape sequence to the provided dynamic-string for enabling alternative screen
- * buffer.
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling alt screen buffer.
  */
 void tty_write_alt_screen_sequence(DynString*, bool enable);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling / disabling line wrap.
+ */
+void tty_write_line_wrap_sequence(DynString*, bool enable);

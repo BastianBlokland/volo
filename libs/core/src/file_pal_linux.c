@@ -153,7 +153,7 @@ FileResult file_write_sync(File* file, const String data) {
     switch (errno) {
     case EAGAIN:
     case EINTR:
-      continue; // Retry on interupt.
+      continue; // Retry on interrupt.
     }
     return fileresult_from_errno();
   }
@@ -181,7 +181,7 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
     }
     switch (errno) {
     case EINTR:
-      continue; // Retry on interupt.
+      continue; // Retry on interrupt.
     }
     return fileresult_from_errno();
   }

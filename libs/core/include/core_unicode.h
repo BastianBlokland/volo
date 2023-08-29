@@ -10,6 +10,7 @@
  */
 typedef enum eUnicode {
   Unicode_Invalid        = 0x0,
+  Unicode_EndOfText      = 0x3,
   Unicode_Bell           = 0x7,
   Unicode_Backspace      = 0x8,
   Unicode_HorizontalTab  = 0x9,
