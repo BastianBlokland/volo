@@ -20,7 +20,7 @@ typedef struct {
   String     name;
   StringHash nameHash; // NOTE: Initialized at runtime.
   u32        argCount;
-  u32        opType; // ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
+  u32        opType; // ScriptOpNullary / ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
 } ScriptFunction;
 
 static ScriptFunction g_scriptReadFuncs[] = {
@@ -32,6 +32,7 @@ static ScriptFunction g_scriptReadFuncs[] = {
     {.name = string_static("distance"), .argCount = 1, .opType = ScriptOpUnary_Magnitude},
     {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
     {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
+    {.name = string_static("random"), .argCount = 0, .opType = ScriptOpNullary_Random},
 };
 
 typedef enum {
@@ -228,6 +229,8 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
       continue;
     }
     switch (func->argCount) {
+    case 0:
+      return script_expr(script_add_op_nullary(ctx->doc, func->opType));
     case 1:
       return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
     case 2:

@@ -30,6 +30,19 @@ INLINE_HINT static ScriptVal eval_store(ScriptEvalContext* ctx, const ScriptExpr
   return val;
 }
 
+INLINE_HINT static ScriptVal eval_op_nul(ScriptEvalContext* ctx, const ScriptExprOpNullary* expr) {
+  (void)ctx;
+
+  switch (expr->op) {
+  case ScriptOpNullary_Random:
+    return script_val_random();
+  case ScriptOpNullary_Count:
+    break;
+  }
+  diag_assert_fail("Invalid nullary operation");
+  UNREACHABLE
+}
+
 INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExprOpUnary* expr) {
   const ScriptVal val = eval(ctx, expr->arg1);
 
@@ -124,6 +137,8 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_load(ctx, &expr_data(ctx, expr)->data_load);
   case ScriptExprType_Store:
     return eval_store(ctx, &expr_data(ctx, expr)->data_store);
+  case ScriptExprType_OpNullary:
+    return eval_op_nul(ctx, &expr_data(ctx, expr)->data_op_nullary);
   case ScriptExprType_OpUnary:
     return eval_op_una(ctx, &expr_data(ctx, expr)->data_op_unary);
   case ScriptExprType_OpBinary:

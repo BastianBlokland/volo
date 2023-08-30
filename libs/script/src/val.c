@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_time.h"
 #include "script_val.h"
 
@@ -457,6 +458,8 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
              ? script_number(geo_vector_angle(val_as_vector3(a), val_as_vector3(b)))
              : script_null();
 }
+
+ScriptVal script_val_random() { return script_number(rng_sample_f32(g_rng)); }
 
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||

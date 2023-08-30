@@ -43,6 +43,11 @@ spec(doc) {
         "  [value: 42]");
   }
 
+  it("can create basic nullary operation expressions") {
+    check_expr_str_lit(
+        doc, script_add_op_nullary(doc, ScriptOpNullary_Random), "[op-nullary: random]");
+  }
+
   it("can create basic unary operation expressions") {
     check_expr_str_lit(
         doc,

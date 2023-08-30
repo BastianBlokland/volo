@@ -44,9 +44,9 @@ static void script_doc_constant_add(ScriptDoc* doc, const String name, const Scr
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-                .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
-                .values = dynarray_create_t(alloc, ScriptVal, 32),
-                .alloc  = alloc,
+      .exprs  = dynarray_create_t(alloc, ScriptExprData, 64),
+      .values = dynarray_create_t(alloc, ScriptVal, 32),
+      .alloc  = alloc,
   };
 
   // Register build-in constants.
@@ -102,6 +102,15 @@ ScriptExpr script_add_store(ScriptDoc* doc, const StringHash key, const ScriptEx
       });
 }
 
+ScriptExpr script_add_op_nullary(ScriptDoc* doc, const ScriptOpNullary op) {
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type            = ScriptExprType_OpNullary,
+          .data_op_nullary = {.op = op},
+      });
+}
+
 ScriptExpr script_add_op_unary(ScriptDoc* doc, const ScriptExpr arg1, const ScriptOpUnary op) {
   return script_doc_expr_add(
       doc,
@@ -147,6 +156,7 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
     return;
   case ScriptExprType_Value:
   case ScriptExprType_Load:
+  case ScriptExprType_OpNullary:
   case ScriptExprType_OpUnary:
   case ScriptExprType_OpBinary:
   case ScriptExprType_OpTernary:
@@ -178,6 +188,7 @@ void script_expr_visit(
   switch (data->type) {
   case ScriptExprType_Value:
   case ScriptExprType_Load:
+  case ScriptExprType_OpNullary:
     return; // No children.
   case ScriptExprType_Store:
     script_expr_visit(doc, data->data_store.val, ctx, visitor);
@@ -227,6 +238,9 @@ void script_expr_str_write(
   case ScriptExprType_Store:
     fmt_write(str, "[store: ${}]", fmt_int(data->data_store.key));
     script_expr_str_write_child(doc, data->data_store.val, indent + 1, str);
+    return;
+  case ScriptExprType_OpNullary:
+    fmt_write(str, "[op-nullary: {}]", script_op_nullary_fmt(data->data_op_nullary.op));
     return;
   case ScriptExprType_OpUnary:
     fmt_write(str, "[op-unary: {}]", script_op_unary_fmt(data->data_op_unary.op));

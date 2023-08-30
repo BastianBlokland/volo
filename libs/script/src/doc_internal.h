@@ -19,6 +19,10 @@ typedef struct {
 } ScriptExprStore;
 
 typedef struct {
+  ScriptOpNullary op;
+} ScriptExprOpNullary;
+
+typedef struct {
   ScriptExpr    arg1;
   ScriptOpUnary op;
 } ScriptExprOpUnary;
@@ -42,6 +46,7 @@ typedef struct {
     ScriptExprValue     data_value;
     ScriptExprLoad      data_load;
     ScriptExprStore     data_store;
+    ScriptExprOpNullary data_op_nullary;
     ScriptExprOpUnary   data_op_unary;
     ScriptExprOpBinary  data_op_binary;
     ScriptExprOpTernary data_op_ternary;
