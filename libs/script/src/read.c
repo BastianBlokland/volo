@@ -445,7 +445,7 @@ void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);
-  if (UNLIKELY(token.type != ScriptTokenType_End)) {
+  if (UNLIKELY(res->type == ScriptResult_Success && token.type != ScriptTokenType_End)) {
     *res = script_err(ScriptError_UnexpectedTokenAfterExpression);
   }
 }
