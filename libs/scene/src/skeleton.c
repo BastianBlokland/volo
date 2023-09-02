@@ -31,7 +31,7 @@ typedef enum {
 
 typedef struct {
   u32        frameCount;
-  const f32* times;
+  const u16* times; // Normalized, fractions of the anim duration.
   union {
     void*            values_raw;
     const GeoVector* values_vec;
@@ -212,7 +212,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
         tl->anims[animIndex].joints[joint][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
-            .times      = (const f32*)mem_at_u8(tl->animData, assetChannel->timeData),
+            .times      = (const u16*)mem_at_u8(tl->animData, assetChannel->timeData),
             .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
         };
       }
@@ -295,7 +295,7 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
   }
 }
 
-static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 tNorm) {
+static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   /**
    * Binary search for the first frame with a higher time (and then return the frame before it).
    */
@@ -304,7 +304,7 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 tNorm) {
   while (count) {
     const u32 step   = count / 2;
     const u32 middle = begin + step;
-    if (ch->times[middle] < tNorm) {
+    if (ch->times[middle] < tNorm16) {
       begin = middle + 1;
       count -= step + 1;
     } else {
@@ -314,25 +314,25 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 tNorm) {
   return begin - (begin ? 1 : 0);
 }
 
-static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 tNorm) {
-  const u32 frame = anim_find_frame(ch, tNorm);
+static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
+  const u32 frame = anim_find_frame(ch, tNorm16);
   if (frame == ch->frameCount - 1) {
     return ch->values_vec[frame];
   }
-  const f32 fromT = ch->times[frame];
-  const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = (tNorm - fromT) / (toT - fromT);
+  const u16 fromT16 = ch->times[frame];
+  const u16 toT16   = ch->times[frame + 1];
+  const f32 frac    = (f32)(tNorm16 - fromT16) / (f32)(toT16 - fromT16);
   return geo_vector_lerp(ch->values_vec[frame], ch->values_vec[frame + 1], frac);
 }
 
-static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 tNorm) {
-  const u32 frame = anim_find_frame(ch, tNorm);
+static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
+  const u32 frame = anim_find_frame(ch, tNorm16);
   if (frame == ch->frameCount - 1) {
     return ch->values_quat[frame];
   }
-  const f32 fromT = ch->times[frame];
-  const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = (tNorm - fromT) / (toT - fromT);
+  const u16 fromT16 = ch->times[frame];
+  const u16 toT16   = ch->times[frame + 1];
+  const f32 frac    = (f32)(tNorm16 - fromT16) / (f32)(toT16 - fromT16);
 
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
@@ -373,7 +373,8 @@ static void anim_sample_layer(
     const f32                     layerTimeNorm,
     f32*                          weights,
     SceneJointPose*               out) {
-  const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
+  const u16                tNorm16 = (u16)(layerTimeNorm * u16_max);
+  const SceneSkeletonAnim* anim    = &tl->anims[layerIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
     if (!scene_skeleton_mask_test(&layer->mask, j)) {
       continue; // Layer is disabled for this joint.
@@ -388,13 +389,13 @@ static void anim_sample_layer(
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
 
     if (chT->frameCount && *weightT < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chT, layerTimeNorm), layerWeight, weightT, &out[j].t);
+      anim_blend_vec(anim_channel_get_vec(chT, tNorm16), layerWeight, weightT, &out[j].t);
     }
     if (chR->frameCount && *weightR < scene_weight_max) {
-      anim_blend_quat(anim_channel_get_quat(chR, layerTimeNorm), layerWeight, weightR, &out[j].r);
+      anim_blend_quat(anim_channel_get_quat(chR, tNorm16), layerWeight, weightR, &out[j].r);
     }
     if (chS->frameCount && *weightS < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chS, layerTimeNorm), layerWeight, weightS, &out[j].s);
+      anim_blend_vec(anim_channel_get_vec(chS, tNorm16), layerWeight, weightS, &out[j].s);
     }
   }
 }
@@ -668,10 +669,11 @@ SceneJointPose scene_skeleton_sample(
   const SceneSkeletonChannel* chR = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation];
   const SceneSkeletonChannel* chS = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale];
 
+  const u16 tNorm16 = (u16)(time / tl->anims[layer].duration * u16_max);
   return (SceneJointPose){
-      .t = chT->frameCount ? anim_channel_get_vec(chT, time) : geo_vector(0),
-      .r = chR->frameCount ? anim_channel_get_quat(chR, time) : geo_quat_ident,
-      .s = chS->frameCount ? anim_channel_get_vec(chS, time) : geo_vector(1, 1, 1),
+      .t = chT->frameCount ? anim_channel_get_vec(chT, tNorm16) : geo_vector(0),
+      .r = chR->frameCount ? anim_channel_get_quat(chR, tNorm16) : geo_quat_ident,
+      .s = chS->frameCount ? anim_channel_get_vec(chS, tNorm16) : geo_vector(1, 1, 1),
   };
 }
 

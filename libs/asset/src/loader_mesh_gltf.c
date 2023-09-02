@@ -460,14 +460,14 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
 }
 
 static AssetMeshAnimPtr
-gltf_anim_data_push_access_norm(GltfLoad* ld, const u32 acc, const f32 refValue) {
+gltf_anim_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
   diag_assert(ld->access[acc].compCount == 1);
 
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(f32));
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(u16));
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm                                    = ld->access[acc].data_f32[i] / refValue;
-    *(f32*)dynarray_push(&ld->animData, sizeof(f32)).ptr = valNorm;
+    *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
   }
   return res;
 }
@@ -1262,7 +1262,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_anim_data_push_access_norm(ld, srcChannel->accInput, duration),
+              .timeData   = gltf_anim_data_push_access_norm16(ld, srcChannel->accInput, duration),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
           gltf_process_anim_channel(ld, resChannel, target);
