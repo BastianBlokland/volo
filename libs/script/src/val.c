@@ -490,21 +490,60 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
 }
 
 ScriptVal script_val_round_down(const ScriptVal val) {
-  return script_type(val) == ScriptType_Number
-             ? script_number(math_round_down_f64(val_as_number(val)))
-             : script_null();
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_down_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_down(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
 }
 
 ScriptVal script_val_round_nearest(const ScriptVal val) {
-  return script_type(val) == ScriptType_Number
-             ? script_number(math_round_nearest_f64(val_as_number(val)))
-             : script_null();
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_nearest_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_nearest(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
 }
 
 ScriptVal script_val_round_up(const ScriptVal val) {
-  return script_type(val) == ScriptType_Number
-             ? script_number(math_round_up_f64(val_as_number(val)))
-             : script_null();
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_up_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_up(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
 }
 
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
