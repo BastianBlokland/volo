@@ -72,18 +72,18 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
-            string_static("get_x(1)"),
-            string_static("[op-unary: get-x]\n"
+            string_static("vector_x(1)"),
+            string_static("[op-unary: vector-x]\n"
                           "  [value: 1]"),
         },
         {
-            string_static("get_y(1)"),
-            string_static("[op-unary: get-y]\n"
+            string_static("vector_y(1)"),
+            string_static("[op-unary: vector-y]\n"
                           "  [value: 1]"),
         },
         {
-            string_static("get_z(1)"),
-            string_static("[op-unary: get-z]\n"
+            string_static("vector_z(1)"),
+            string_static("[op-unary: vector-z]\n"
                           "  [value: 1]"),
         },
 
