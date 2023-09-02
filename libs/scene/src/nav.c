@@ -370,9 +370,9 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     }
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
-    const f32       distToTarget    = geo_vector_mag(toTarget);
-    const f32       arriveThreshold = scene_nav_arrive_threshold(env, goal.cell);
-    if (distToTarget <= arriveThreshold) {
+    const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
+    const f32       arriveThreshold = loco->radius + scene_nav_arrive_threshold(env, goal.cell);
+    if (distToTargetSqr <= (arriveThreshold * arriveThreshold)) {
       goto Stop; // Arrived at destination.
     }
 
