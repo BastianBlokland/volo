@@ -113,11 +113,11 @@ bool script_truthy(const ScriptVal value) {
   case ScriptType_Null:
     return false;
   case ScriptType_Number:
-    return false;
+    return true;
   case ScriptType_Bool:
     return val_as_bool(value);
   case ScriptType_Vector3:
-    return false;
+    return true;
   case ScriptType_Entity:
     return ecs_entity_valid(val_as_entity(value));
   case ScriptType_Count:
