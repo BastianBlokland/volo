@@ -57,20 +57,20 @@ spec(val) {
 
   it("can test if a value is truthy") {
     check(!script_truthy(script_null()));
-    check(!script_truthy(script_number(42)));
+    check(script_truthy(script_number(42)));
     check(script_truthy(script_bool(true)));
     check(!script_truthy(script_bool(false)));
-    check(!script_truthy(script_vector3_lit(1, 2, 0)));
+    check(script_truthy(script_vector3_lit(1, 2, 0)));
     check(script_truthy(script_entity(u64_lit(0x42) << 32)));
     check(!script_truthy(script_entity(0x0)));
   }
 
   it("can test if a value is falsy") {
     check(script_falsy(script_null()));
-    check(script_falsy(script_number(42)));
+    check(!script_falsy(script_number(42)));
     check(!script_falsy(script_bool(true)));
     check(script_falsy(script_bool(false)));
-    check(script_falsy(script_vector3_lit(1, 2, 0)));
+    check(!script_falsy(script_vector3_lit(1, 2, 0)));
     check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
     check(script_falsy(script_entity(0x0)));
   }
@@ -264,12 +264,12 @@ spec(val) {
       ScriptVal val;
       ScriptVal expected;
     } testData[] = {
-        {script_null(), .expected = script_null()},
-        {script_number(42), .expected = script_null()},
+        {script_null(), .expected = script_bool(true)},
+        {script_number(42), .expected = script_bool(false)},
         {script_bool(true), .expected = script_bool(false)},
         {script_bool(false), .expected = script_bool(true)},
-        {script_vector3_lit(1, 2, 3), .expected = script_null()},
-        {script_time(time_seconds(2)), .expected = script_null()},
+        {script_vector3_lit(1, 2, 3), .expected = script_bool(false)},
+        {script_time(time_seconds(2)), .expected = script_bool(false)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

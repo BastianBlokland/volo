@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_time.h"
 #include "script_val.h"
 
@@ -112,11 +113,11 @@ bool script_truthy(const ScriptVal value) {
   case ScriptType_Null:
     return false;
   case ScriptType_Number:
-    return false;
+    return true;
   case ScriptType_Bool:
     return val_as_bool(value);
   case ScriptType_Vector3:
-    return false;
+    return true;
   case ScriptType_Entity:
     return ecs_entity_valid(val_as_entity(value));
   case ScriptType_Count:
@@ -276,21 +277,7 @@ ScriptVal script_val_neg(const ScriptVal val) {
   UNREACHABLE
 }
 
-ScriptVal script_val_inv(const ScriptVal val) {
-  switch (script_type(val)) {
-  case ScriptType_Null:
-  case ScriptType_Number:
-  case ScriptType_Vector3:
-  case ScriptType_Entity:
-    return script_null();
-  case ScriptType_Bool:
-    return script_bool(!val_as_bool(val));
-  case ScriptType_Count:
-    break;
-  }
-  diag_assert_fail("Invalid script value");
-  UNREACHABLE
-}
+ScriptVal script_val_inv(const ScriptVal val) { return script_bool(!script_truthy(val)); }
 
 ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) != script_type(b)) {
@@ -458,6 +445,93 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
              : script_null();
 }
 
+ScriptVal script_val_random() { return script_number(rng_sample_f32(g_rng)); }
+
+ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
+  if (script_type(a) != script_type(b)) {
+    return script_null();
+  }
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(rng_sample_range(g_rng, val_as_number(a), val_as_number(b)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return script_vector3_lit(
+        rng_sample_range(g_rng, vecA.x, vecB.x),
+        rng_sample_range(g_rng, vecA.y, vecB.y),
+        rng_sample_range(g_rng, vecA.z, vecB.z));
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_round_down(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_down_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_down(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_round_nearest(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_nearest_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_nearest(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_round_up(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(math_round_up_f64(val_as_number(val)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_round_up(val_as_vector3_dirty_w(val)));
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {
@@ -466,17 +540,17 @@ ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const
   return script_vector3_lit((f32)val_as_number(x), (f32)val_as_number(y), (f32)val_as_number(z));
 }
 
-ScriptVal script_val_get_x(const ScriptVal val) {
+ScriptVal script_val_vector_x(const ScriptVal val) {
   return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).x)
                                                 : script_null();
 }
 
-ScriptVal script_val_get_y(const ScriptVal val) {
+ScriptVal script_val_vector_y(const ScriptVal val) {
   return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).y)
                                                 : script_null();
 }
 
-ScriptVal script_val_get_z(const ScriptVal val) {
+ScriptVal script_val_vector_z(const ScriptVal val) {
   return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).z)
                                                 : script_null();
 }

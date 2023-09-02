@@ -207,6 +207,46 @@
       ]
     },
     {
+      "name": "InfantryTest", "isInfantry": true,
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Test Infantry" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.gra" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        {
+          "$type": "AssetPrefabTrait_Movement",
+          "speed": 4,
+          "rotationSpeed": 360,
+          "radius": 0.3,
+          "moveAnimation": "run"
+        },
+        {
+          "$type": "AssetPrefabTrait_Footstep",
+          "jointA": "LeftToeBase",
+          "jointB": "RightToeBase",
+          "decalIdA": "vfx/game/footstep_left.dcl",
+          "decalIdB": "vfx/game/footstep_right.dcl"
+        },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 100,
+          "deathDestroyDelay": 2.5
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": false,
+          "shape": {
+            "$type": "AssetPrefabShape_Capsule",
+            "offset": { "y": 0.3 },
+            "radius": 0.3,
+            "height": 1.2
+          }
+        },
+        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-random-move.bt" },
+        { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
+        { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
+      ]
+    },
+    {
       "name": "StructureTurretGun", "isStructure": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },

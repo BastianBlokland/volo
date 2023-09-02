@@ -45,12 +45,12 @@ spec(eval) {
         {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
         {string_static("vector(1,true,3)"), script_null()},
         {string_static("vector(1 + 2, 2 + 3, 3 + 4)"), script_vector3_lit(3, 5, 7)},
-        {string_static("get_x(vector(1, 2, 3))"), script_number(1)},
-        {string_static("get_y(vector(1, 2, 3))"), script_number(2)},
-        {string_static("get_z(vector(1, 2, 3))"), script_number(3)},
-        {string_static("get_x(vector(1, true, 3))"), script_null()},
-        {string_static("get_y(vector(1, true, 3))"), script_null()},
-        {string_static("get_z(vector(1, true, 3))"), script_null()},
+        {string_static("vector_x(vector(1, 2, 3))"), script_number(1)},
+        {string_static("vector_y(vector(1, 2, 3))"), script_number(2)},
+        {string_static("vector_z(vector(1, 2, 3))"), script_number(3)},
+        {string_static("vector_x(vector(1, true, 3))"), script_null()},
+        {string_static("vector_y(vector(1, true, 3))"), script_null()},
+        {string_static("vector_z(vector(1, true, 3))"), script_null()},
 
         // Memory loads.
         {string_static("$v1"), script_bool(true)},
@@ -90,6 +90,12 @@ spec(eval) {
         {string_static("angle(up, down) == pi"), script_bool(true)},
         {string_static("up * 42"), script_vector3_lit(0, 42, 0)},
         {string_static("up * 42 / 42"), script_vector3(geo_up)},
+        {string_static("round_down(1.6)"), script_number(1.0)},
+        {string_static("round_down(1.0)"), script_number(1.0)},
+        {string_static("round_up(1.0)"), script_number(1.0)},
+        {string_static("round_up(1.1)"), script_number(2.0)},
+        {string_static("round_nearest(1.1)"), script_number(1.0)},
+        {string_static("round_nearest(1.5)"), script_number(2.0)},
 
         // Equality.
         {string_static("1 == 1"), script_bool(true)},

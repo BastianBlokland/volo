@@ -20,18 +20,23 @@ typedef struct {
   String     name;
   StringHash nameHash; // NOTE: Initialized at runtime.
   u32        argCount;
-  u32        opType; // ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
+  u32        opType; // ScriptOpNullary / ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
 } ScriptFunction;
 
 static ScriptFunction g_scriptReadFuncs[] = {
     {.name = string_static("vector"), .argCount = 3, .opType = ScriptOpTernary_ComposeVector3},
-    {.name = string_static("get_x"), .argCount = 1, .opType = ScriptOpUnary_GetX},
-    {.name = string_static("get_y"), .argCount = 1, .opType = ScriptOpUnary_GetY},
-    {.name = string_static("get_z"), .argCount = 1, .opType = ScriptOpUnary_GetZ},
+    {.name = string_static("vector_x"), .argCount = 1, .opType = ScriptOpUnary_VectorX},
+    {.name = string_static("vector_y"), .argCount = 1, .opType = ScriptOpUnary_VectorY},
+    {.name = string_static("vector_z"), .argCount = 1, .opType = ScriptOpUnary_VectorZ},
     {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
     {.name = string_static("distance"), .argCount = 1, .opType = ScriptOpUnary_Magnitude},
     {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
     {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
+    {.name = string_static("random"), .argCount = 0, .opType = ScriptOpNullary_Random},
+    {.name = string_static("random"), .argCount = 2, .opType = ScriptOpBinary_RandomBetween},
+    {.name = string_static("round_down"), .argCount = 1, .opType = ScriptOpUnary_RoundDown},
+    {.name = string_static("round_nearest"), .argCount = 1, .opType = ScriptOpUnary_RoundNearest},
+    {.name = string_static("round_up"), .argCount = 1, .opType = ScriptOpUnary_RoundUp},
 };
 
 typedef enum {
@@ -228,6 +233,8 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
       continue;
     }
     switch (func->argCount) {
+    case 0:
+      return script_expr(script_add_op_nullary(ctx->doc, func->opType));
     case 1:
       return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
     case 2:
@@ -442,7 +449,7 @@ void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);
-  if (UNLIKELY(token.type != ScriptTokenType_End)) {
+  if (UNLIKELY(res->type == ScriptResult_Success && token.type != ScriptTokenType_End)) {
     *res = script_err(ScriptError_UnexpectedTokenAfterExpression);
   }
 }

@@ -70,9 +70,10 @@ ecs_system_define(SceneLocomotionMoveSys) {
 
     GeoVector posDelta = {0};
     if (loco->flags & SceneLocomotion_Moving) {
-      const GeoVector toTarget = geo_vector_xz(geo_vector_sub(loco->targetPos, pos));
-      const f32       distSqr  = geo_vector_mag_sqr(toTarget);
-      if (distSqr < (loco_arrive_threshold * loco_arrive_threshold)) {
+      const GeoVector toTarget  = geo_vector_xz(geo_vector_sub(loco->targetPos, pos));
+      const f32       distSqr   = geo_vector_mag_sqr(toTarget);
+      const f32       threshold = loco->radius + loco_arrive_threshold;
+      if (distSqr <= (threshold * threshold)) {
         loco->flags &= ~SceneLocomotion_Moving;
       } else {
         posDelta = scene_loco_move(loco, trans, scale, dt);

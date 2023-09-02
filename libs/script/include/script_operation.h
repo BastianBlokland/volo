@@ -2,13 +2,22 @@
 #include "script_val.h"
 
 typedef enum {
+  ScriptOpNullary_Random,
+
+  ScriptOpNullary_Count,
+} ScriptOpNullary;
+
+typedef enum {
   ScriptOpUnary_Negate,
   ScriptOpUnary_Invert,
   ScriptOpUnary_Normalize,
   ScriptOpUnary_Magnitude,
-  ScriptOpUnary_GetX,
-  ScriptOpUnary_GetY,
-  ScriptOpUnary_GetZ,
+  ScriptOpUnary_VectorX,
+  ScriptOpUnary_VectorY,
+  ScriptOpUnary_VectorZ,
+  ScriptOpUnary_RoundDown,
+  ScriptOpUnary_RoundNearest,
+  ScriptOpUnary_RoundUp,
 
   ScriptOpUnary_Count,
 } ScriptOpUnary;
@@ -30,6 +39,7 @@ typedef enum {
   ScriptOpBinary_Distance,
   ScriptOpBinary_Angle,
   ScriptOpBinary_RetRight,
+  ScriptOpBinary_RandomBetween,
 
   ScriptOpBinary_Count,
 } ScriptOpBinary;
@@ -44,6 +54,7 @@ typedef enum {
 /**
  * Get a textual representation of the given operation.
  */
+String script_op_nullary_str(ScriptOpNullary);
 String script_op_unary_str(ScriptOpUnary);
 String script_op_binary_str(ScriptOpBinary);
 String script_op_ternary_str(ScriptOpTernary);
@@ -51,6 +62,7 @@ String script_op_ternary_str(ScriptOpTernary);
 /**
  * Create a formatting argument for an operation type.
  */
+#define script_op_nullary_fmt(_VAL_) fmt_text(script_op_nullary_str(_VAL_))
 #define script_op_unary_fmt(_VAL_) fmt_text(script_op_unary_str(_VAL_))
 #define script_op_binary_fmt(_VAL_) fmt_text(script_op_binary_str(_VAL_))
 #define script_op_ternary_fmt(_VAL_) fmt_text(script_op_ternary_str(_VAL_))

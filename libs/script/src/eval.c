@@ -30,6 +30,19 @@ INLINE_HINT static ScriptVal eval_store(ScriptEvalContext* ctx, const ScriptExpr
   return val;
 }
 
+INLINE_HINT static ScriptVal eval_op_nul(ScriptEvalContext* ctx, const ScriptExprOpNullary* expr) {
+  (void)ctx;
+
+  switch (expr->op) {
+  case ScriptOpNullary_Random:
+    return script_val_random();
+  case ScriptOpNullary_Count:
+    break;
+  }
+  diag_assert_fail("Invalid nullary operation");
+  UNREACHABLE
+}
+
 INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExprOpUnary* expr) {
   const ScriptVal val = eval(ctx, expr->arg1);
 
@@ -42,12 +55,18 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
     return script_val_norm(val);
   case ScriptOpUnary_Magnitude:
     return script_val_mag(val);
-  case ScriptOpUnary_GetX:
-    return script_val_get_x(val);
-  case ScriptOpUnary_GetY:
-    return script_val_get_y(val);
-  case ScriptOpUnary_GetZ:
-    return script_val_get_z(val);
+  case ScriptOpUnary_VectorX:
+    return script_val_vector_x(val);
+  case ScriptOpUnary_VectorY:
+    return script_val_vector_y(val);
+  case ScriptOpUnary_VectorZ:
+    return script_val_vector_z(val);
+  case ScriptOpUnary_RoundDown:
+    return script_val_round_down(val);
+  case ScriptOpUnary_RoundNearest:
+    return script_val_round_nearest(val);
+  case ScriptOpUnary_RoundUp:
+    return script_val_round_up(val);
   case ScriptOpUnary_Count:
     break;
   }
@@ -90,6 +109,8 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_angle(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_RetRight:
     return eval(ctx, expr->arg2);
+  case ScriptOpBinary_RandomBetween:
+    return script_val_random_between(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_Count:
     break;
   }
@@ -124,6 +145,8 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_load(ctx, &expr_data(ctx, expr)->data_load);
   case ScriptExprType_Store:
     return eval_store(ctx, &expr_data(ctx, expr)->data_store);
+  case ScriptExprType_OpNullary:
+    return eval_op_nul(ctx, &expr_data(ctx, expr)->data_op_nullary);
   case ScriptExprType_OpUnary:
     return eval_op_una(ctx, &expr_data(ctx, expr)->data_op_unary);
   case ScriptExprType_OpBinary:
