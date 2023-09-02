@@ -1143,7 +1143,7 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
   return true;
 }
 
-static void gltf_optimize_anim_channel(
+static void gltf_process_anim_channel(
     GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
 
   /**
@@ -1159,7 +1159,7 @@ static void gltf_optimize_anim_channel(
   }
 }
 
-static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
+static void gltf_process_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
   GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
 
   /**
@@ -1252,9 +1252,9 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
-          gltf_optimize_anim_channel(ld, resChannel, target);
+          gltf_process_anim_channel(ld, resChannel, target);
           if (target == AssetMeshAnimTarget_Rotation) {
-            gltf_optimize_anim_channel_rot(ld, resChannel);
+            gltf_process_anim_channel_rot(ld, resChannel);
           }
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
