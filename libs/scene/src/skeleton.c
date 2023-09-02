@@ -146,12 +146,12 @@ static void scene_skeleton_init_from_templ(
     const bool isLowestLayer = i == tl->animCount - 1;
     const f32  startTime     = rng_sample_range(g_rng, 0, tl->anims->duration);
     layers[i]                = (SceneAnimLayer){
-        .time     = startTime,
-        .duration = tl->anims[i].duration,
-        .speed    = 1.0f,
-        .weight   = isLowestLayer ? 1.0f : 0.0f,
-        .nameHash = tl->anims[i].nameHash,
-        .flags    = SceneAnimFlags_Loop,
+                       .time     = startTime,
+                       .duration = tl->anims[i].duration,
+                       .speed    = 1.0f,
+                       .weight   = isLowestLayer ? 1.0f : 0.0f,
+                       .nameHash = tl->anims[i].nameHash,
+                       .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
@@ -295,7 +295,7 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
   }
 }
 
-static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
+static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 tNorm) {
   /**
    * Binary search for the first frame with a higher time (and then return the frame before it).
    */
@@ -304,7 +304,7 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   while (count) {
     const u32 step   = count / 2;
     const u32 middle = begin + step;
-    if (ch->times[middle] < t) {
+    if (ch->times[middle] < tNorm) {
       begin = middle + 1;
       count -= step + 1;
     } else {
@@ -314,25 +314,25 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   return begin - (begin ? 1 : 0);
 }
 
-static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 t) {
-  const u32 frame = anim_find_frame(ch, t);
+static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 tNorm) {
+  const u32 frame = anim_find_frame(ch, tNorm);
   if (frame == ch->frameCount - 1) {
     return ch->values_vec[frame];
   }
   const f32 fromT = ch->times[frame];
   const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = (t - fromT) / (toT - fromT);
+  const f32 frac  = (tNorm - fromT) / (toT - fromT);
   return geo_vector_lerp(ch->values_vec[frame], ch->values_vec[frame + 1], frac);
 }
 
-static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t) {
-  const u32 frame = anim_find_frame(ch, t);
+static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 tNorm) {
+  const u32 frame = anim_find_frame(ch, tNorm);
   if (frame == ch->frameCount - 1) {
     return ch->values_quat[frame];
   }
   const f32 fromT = ch->times[frame];
   const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = (t - fromT) / (toT - fromT);
+  const f32 frac  = (tNorm - fromT) / (toT - fromT);
 
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
@@ -370,6 +370,7 @@ static void anim_sample_layer(
     const SceneAnimLayer*         layer,
     const u32                     layerIndex,
     const f32                     layerWeight,
+    const f32                     layerTimeNorm,
     f32*                          weights,
     SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
@@ -387,13 +388,13 @@ static void anim_sample_layer(
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
 
     if (chT->frameCount && *weightT < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layerWeight, weightT, &out[j].t);
+      anim_blend_vec(anim_channel_get_vec(chT, layerTimeNorm), layerWeight, weightT, &out[j].t);
     }
     if (chR->frameCount && *weightR < scene_weight_max) {
-      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layerWeight, weightR, &out[j].r);
+      anim_blend_quat(anim_channel_get_quat(chR, layerTimeNorm), layerWeight, weightR, &out[j].r);
     }
     if (chS->frameCount && *weightS < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layerWeight, weightS, &out[j].s);
+      anim_blend_vec(anim_channel_get_vec(chS, layerTimeNorm), layerWeight, weightS, &out[j].s);
     }
   }
 }
@@ -444,8 +445,8 @@ static void anim_mul_rec(
   }
 }
 
-static f32 anim_compute_fade(const f32 time, const f32 duration, const SceneAnimFlags flags) {
-  const f32 tQuad    = (time / duration) * 4.0f;
+static f32 anim_compute_fade(const f32 timeNorm, const SceneAnimFlags flags) {
+  const f32 tQuad    = timeNorm * 4.0f;
   f32       strength = 1.0f;
   if (flags & SceneAnimFlags_AutoFadeIn) {
     // Fade-in over the first 25%.
@@ -509,12 +510,13 @@ ecs_system_define(SceneSkeletonUpdateSys) {
           layer->time = layer->duration;
         }
       }
-      f32 layerWeight = layer->weight;
+      const f32 layerTimeNorm = layer->time / layer->duration;
+      f32       layerWeight   = layer->weight;
       if (layer->flags & SceneAnimFlags_AutoFade) {
-        layerWeight *= anim_compute_fade(layer->time, layer->duration, layer->flags);
+        layerWeight *= anim_compute_fade(layerTimeNorm, layer->flags);
       }
       if (layerWeight > scene_weight_min) {
-        anim_sample_layer(tl, layer, i, layerWeight, weights, poses);
+        anim_sample_layer(tl, layer, i, layerWeight, layerTimeNorm, weights, poses);
       }
     }
     anim_sample_def(tl, weights, poses);

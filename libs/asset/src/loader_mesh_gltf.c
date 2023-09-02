@@ -414,7 +414,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransf
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_access(GltfLoad* ld, const u32 acc) {
+MAYBE_UNUSED static AssetMeshAnimPtr gltf_anim_data_push_access(GltfLoad* ld, const u32 acc) {
   const u32 elemSize         = gltf_comp_size(ld->access[acc].compType) * ld->access[acc].compCount;
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, bits_nextpow2(elemSize));
   const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
@@ -455,6 +455,19 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
     src                              = geo_matrix_mul(&src, &g_negZMat);
 
     mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(src));
+  }
+  return res;
+}
+
+static AssetMeshAnimPtr
+gltf_anim_data_push_access_norm(GltfLoad* ld, const u32 acc, const f32 refValue) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  diag_assert(ld->access[acc].compCount == 1);
+
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(f32));
+  for (u32 i = 0; i != ld->access[acc].count; ++i) {
+    const f32 valNorm                                    = ld->access[acc].data_f32[i] / refValue;
+    *(f32*)dynarray_push(&ld->animData, sizeof(f32)).ptr = valNorm;
   }
   return res;
 }
@@ -1249,7 +1262,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
+              .timeData   = gltf_anim_data_push_access_norm(ld, srcChannel->accInput, duration),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
           gltf_process_anim_channel(ld, resChannel, target);
