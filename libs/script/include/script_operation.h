@@ -12,9 +12,9 @@ typedef enum {
   ScriptOpUnary_Invert,
   ScriptOpUnary_Normalize,
   ScriptOpUnary_Magnitude,
-  ScriptOpUnary_GetX,
-  ScriptOpUnary_GetY,
-  ScriptOpUnary_GetZ,
+  ScriptOpUnary_VectorX,
+  ScriptOpUnary_VectorY,
+  ScriptOpUnary_VectorZ,
 
   ScriptOpUnary_Count,
 } ScriptOpUnary;

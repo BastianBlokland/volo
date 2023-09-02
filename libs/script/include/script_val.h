@@ -98,9 +98,9 @@ ScriptVal script_val_random_between(ScriptVal, ScriptVal);
  * Value conversions.
  */
 ScriptVal script_val_compose_vector3(ScriptVal, ScriptVal, ScriptVal);
-ScriptVal script_val_get_x(ScriptVal);
-ScriptVal script_val_get_y(ScriptVal);
-ScriptVal script_val_get_z(ScriptVal);
+ScriptVal script_val_vector_x(ScriptVal);
+ScriptVal script_val_vector_y(ScriptVal);
+ScriptVal script_val_vector_z(ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

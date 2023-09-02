@@ -18,9 +18,9 @@ String script_op_unary_str(const ScriptOpUnary o) {
       string_static("invert"),
       string_static("normalize"),
       string_static("magnitude"),
-      string_static("get-x"),
-      string_static("get-y"),
-      string_static("get-z"),
+      string_static("vector-x"),
+      string_static("vector-y"),
+      string_static("vector-z"),
   };
   ASSERT(array_elems(g_names) == ScriptOpUnary_Count, "Incorrect number of names");
   return g_names[o];

@@ -55,12 +55,12 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
     return script_val_norm(val);
   case ScriptOpUnary_Magnitude:
     return script_val_mag(val);
-  case ScriptOpUnary_GetX:
-    return script_val_get_x(val);
-  case ScriptOpUnary_GetY:
-    return script_val_get_y(val);
-  case ScriptOpUnary_GetZ:
-    return script_val_get_z(val);
+  case ScriptOpUnary_VectorX:
+    return script_val_vector_x(val);
+  case ScriptOpUnary_VectorY:
+    return script_val_vector_y(val);
+  case ScriptOpUnary_VectorZ:
+    return script_val_vector_z(val);
   case ScriptOpUnary_Count:
     break;
   }
