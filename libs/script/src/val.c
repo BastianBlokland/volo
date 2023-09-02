@@ -489,6 +489,24 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_round_down(const ScriptVal val) {
+  return script_type(val) == ScriptType_Number
+             ? script_number(math_round_down_f64(val_as_number(val)))
+             : script_null();
+}
+
+ScriptVal script_val_round_nearest(const ScriptVal val) {
+  return script_type(val) == ScriptType_Number
+             ? script_number(math_round_nearest_f64(val_as_number(val)))
+             : script_null();
+}
+
+ScriptVal script_val_round_up(const ScriptVal val) {
+  return script_type(val) == ScriptType_Number
+             ? script_number(math_round_up_f64(val_as_number(val)))
+             : script_null();
+}
+
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {

@@ -61,6 +61,12 @@ INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExp
     return script_val_vector_y(val);
   case ScriptOpUnary_VectorZ:
     return script_val_vector_z(val);
+  case ScriptOpUnary_RoundDown:
+    return script_val_round_down(val);
+  case ScriptOpUnary_RoundNearest:
+    return script_val_round_nearest(val);
+  case ScriptOpUnary_RoundUp:
+    return script_val_round_up(val);
   case ScriptOpUnary_Count:
     break;
   }

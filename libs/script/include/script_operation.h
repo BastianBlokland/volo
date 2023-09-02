@@ -15,6 +15,9 @@ typedef enum {
   ScriptOpUnary_VectorX,
   ScriptOpUnary_VectorY,
   ScriptOpUnary_VectorZ,
+  ScriptOpUnary_RoundDown,
+  ScriptOpUnary_RoundNearest,
+  ScriptOpUnary_RoundUp,
 
   ScriptOpUnary_Count,
 } ScriptOpUnary;

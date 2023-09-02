@@ -21,6 +21,9 @@ String script_op_unary_str(const ScriptOpUnary o) {
       string_static("vector-x"),
       string_static("vector-y"),
       string_static("vector-z"),
+      string_static("round-down"),
+      string_static("round-nearest"),
+      string_static("round-up"),
   };
   ASSERT(array_elems(g_names) == ScriptOpUnary_Count, "Incorrect number of names");
   return g_names[o];
