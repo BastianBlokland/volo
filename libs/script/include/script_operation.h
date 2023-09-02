@@ -36,6 +36,7 @@ typedef enum {
   ScriptOpBinary_Distance,
   ScriptOpBinary_Angle,
   ScriptOpBinary_RetRight,
+  ScriptOpBinary_RandomBetween,
 
   ScriptOpBinary_Count,
 } ScriptOpBinary;

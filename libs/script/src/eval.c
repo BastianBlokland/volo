@@ -103,6 +103,8 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_angle(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_RetRight:
     return eval(ctx, expr->arg2);
+  case ScriptOpBinary_RandomBetween:
+    return script_val_random_between(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_Count:
     break;
   }

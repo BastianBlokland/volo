@@ -461,6 +461,34 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
 
 ScriptVal script_val_random() { return script_number(rng_sample_f32(g_rng)); }
 
+ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
+  if (script_type(a) != script_type(b)) {
+    return script_null();
+  }
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_number(rng_sample_range(g_rng, val_as_number(a), val_as_number(b)));
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    const GeoVector vecA = val_as_vector3_dirty_w(a);
+    const GeoVector vecB = val_as_vector3_dirty_w(b);
+    return script_vector3_lit(
+        rng_sample_range(g_rng, vecA.x, vecB.x),
+        rng_sample_range(g_rng, vecA.y, vecB.y),
+        rng_sample_range(g_rng, vecA.z, vecB.z));
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
 ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {

@@ -45,6 +45,7 @@ String script_op_binary_str(const ScriptOpBinary o) {
       string_static("distance"),
       string_static("angle"),
       string_static("ret-right"),
+      string_static("random-between"),
   };
   ASSERT(array_elems(g_names) == ScriptOpBinary_Count, "Incorrect number of names");
   return g_names[o];

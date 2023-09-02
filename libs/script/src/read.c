@@ -33,6 +33,7 @@ static ScriptFunction g_scriptReadFuncs[] = {
     {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
     {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
     {.name = string_static("random"), .argCount = 0, .opType = ScriptOpNullary_Random},
+    {.name = string_static("random"), .argCount = 2, .opType = ScriptOpBinary_RandomBetween},
 };
 
 typedef enum {
