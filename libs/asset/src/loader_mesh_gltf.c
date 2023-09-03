@@ -35,6 +35,8 @@
  */
 #define gltf_skinned_bounds_mult 3.0f
 
+#define gltf_eq_threshold 1e-2f
+
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
@@ -1156,6 +1158,26 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
   return true;
 }
 
+static void gltf_process_remove_frame(GltfLoad* ld, AssetMeshAnimChannel* ch, const u32 frame) {
+  const usize toMove = --ch->frameCount - frame;
+  if (toMove) {
+    // Move time data.
+    {
+      const usize size = sizeof(u16);
+      const Mem   dst  = dynarray_at(&ld->animData, ch->timeData + frame * size, toMove * size);
+      const Mem src = dynarray_at(&ld->animData, ch->timeData + (frame + 1) * size, toMove * size);
+      mem_move(dst, src);
+    }
+    // Move value data.
+    {
+      const usize size = sizeof(GeoVector);
+      const Mem   dst  = dynarray_at(&ld->animData, ch->valueData + frame * size, toMove * size);
+      const Mem src = dynarray_at(&ld->animData, ch->valueData + (frame + 1) * size, toMove * size);
+      mem_move(dst, src);
+    }
+  }
+}
+
 static void gltf_process_anim_channel(
     GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
 
@@ -1171,13 +1193,25 @@ static void gltf_process_anim_channel(
   if (ch->frameCount > 1) {
     bool allEq = true;
     for (u32 i = 1; i != ch->frameCount; ++i) {
-      if (!eq(data[0], data[i], 1e-4f)) {
+      if (!eq(data[0], data[i], gltf_eq_threshold)) {
         allEq = false;
         break;
       }
     }
     if (allEq) {
       ch->frameCount = 1;
+    }
+  }
+
+  /**
+   * Remove redundant frames (frames that are the same as the previous and the next).
+   */
+  if (ch->frameCount > 2) {
+    for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
+      if (eq(data[i], data[i - 1], gltf_eq_threshold) &&
+          eq(data[i], data[i + 1], gltf_eq_threshold)) {
+        gltf_process_remove_frame(ld, ch, i);
+      }
     }
   }
 }
@@ -1208,7 +1242,7 @@ static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* ani
       const AssetMeshAnimChannel* ch  = &anims[animIndex].joints[jointIndex][tgt];
       const GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
       for (u32 frame = 0; frame != ch->frameCount; ++frame) {
-        if (!geo_vector_equal3(data[frame], g_one, 1e-4f)) {
+        if (!geo_vector_equal3(data[frame], g_one, gltf_eq_threshold)) {
           return true;
         }
       }
@@ -1293,10 +1327,10 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access_norm16(ld, srcChannel->accInput, duration),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
-          gltf_process_anim_channel(ld, resChannel, target);
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
+          gltf_process_anim_channel(ld, resChannel, target);
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
