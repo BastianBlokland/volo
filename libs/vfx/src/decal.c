@@ -22,7 +22,7 @@
 #include "atlas_internal.h"
 #include "draw_internal.h"
 
-#define vfx_decal_max_create_per_tick 50
+#define vfx_decal_max_create_per_tick 100
 #define vfx_decal_max_asset_requests 4
 
 typedef struct {

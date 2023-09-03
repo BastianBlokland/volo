@@ -29,6 +29,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load(const f32 values[PARAM_ARR
 }
 
 /**
+ * Load 8 (128 bit aligned) u16 values into a Simd vector.
+ * Pre-condition: bits_aligned_ptr(values, 16)
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_load_u16(const u16 values[PARAM_ARRAY_SIZE(8)]) {
+  return _mm_load_ps((const f32*)values);
+}
+
+/**
  * Store a Simd vector to 4 (128 bit aligned) float values.
  * Pre-condition: bits_aligned_ptr(values, 16)
  */
@@ -48,6 +56,10 @@ simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) {
+  return _mm_castsi128_ps(_mm_set1_epi16(value));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_sign_mask(void) {
@@ -113,20 +125,28 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_and(const SimdVec a, const Simd
   return _mm_and_ps(a, b);
 }
 
+MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u32(const SimdVec a) {
+  return _mm_movemask_ps(a);
+}
+
+MAYBE_UNUSED INLINE_HINT static u32 simd_vec_mask_u8(const SimdVec a) {
+  return _mm_movemask_epi8(_mm_castps_si128(a));
+}
+
 MAYBE_UNUSED INLINE_HINT static bool simd_vec_any_true(const SimdVec a) {
-  return _mm_movemask_ps(a) != 0b0000;
+  return simd_vec_mask_u32(a) != 0b0000;
 }
 
 MAYBE_UNUSED INLINE_HINT static bool simd_vec_any_false(const SimdVec a) {
-  return _mm_movemask_ps(a) != 0b1111;
+  return simd_vec_mask_u32(a) != 0b1111;
 }
 
 MAYBE_UNUSED INLINE_HINT static bool simd_vec_all_true(const SimdVec a) {
-  return _mm_movemask_ps(a) == 0b1111;
+  return simd_vec_mask_u32(a) == 0b1111;
 }
 
 MAYBE_UNUSED INLINE_HINT static bool simd_vec_all_false(const SimdVec a) {
-  return _mm_movemask_ps(a) == 0b0000;
+  return simd_vec_mask_u32(a) == 0b0000;
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec

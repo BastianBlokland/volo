@@ -44,7 +44,7 @@ typedef enum {
 
 typedef struct {
   u32              frameCount;
-  AssetMeshAnimPtr timeData;  // f32[frameCount].
+  AssetMeshAnimPtr timeData;  // u16[frameCount] (normalized, fractions of the anim duration).
   AssetMeshAnimPtr valueData; // (GeoVector | GeoQuat)[frameCount].
 } AssetMeshAnimChannel;
 

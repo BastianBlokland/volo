@@ -35,6 +35,8 @@
  */
 #define gltf_skinned_bounds_mult 3.0f
 
+#define gltf_eq_threshold 1e-2f
+
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
@@ -414,7 +416,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransf
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_access(GltfLoad* ld, const u32 acc) {
+MAYBE_UNUSED static AssetMeshAnimPtr gltf_anim_data_push_access(GltfLoad* ld, const u32 acc) {
   const u32 elemSize         = gltf_comp_size(ld->access[acc].compType) * ld->access[acc].compCount;
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, bits_nextpow2(elemSize));
   const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
@@ -455,6 +457,19 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
     src                              = geo_matrix_mul(&src, &g_negZMat);
 
     mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(src));
+  }
+  return res;
+}
+
+static AssetMeshAnimPtr
+gltf_anim_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  diag_assert(ld->access[acc].compCount == 1);
+
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(u16));
+  for (u32 i = 0; i != ld->access[acc].count; ++i) {
+    const f32 valNorm                                    = ld->access[acc].data_f32[i] / refValue;
+    *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
   }
   return res;
 }
@@ -1143,23 +1158,65 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
   return true;
 }
 
-static void gltf_optimize_anim_channel(
-    GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
+static void gltf_process_remove_frame(GltfLoad* ld, AssetMeshAnimChannel* ch, const u32 frame) {
+  const usize toMove = --ch->frameCount - frame;
+  if (toMove) {
+    // Move time data.
+    {
+      const usize size = sizeof(u16);
+      const Mem   dst  = dynarray_at(&ld->animData, ch->timeData + frame * size, toMove * size);
+      const Mem src = dynarray_at(&ld->animData, ch->timeData + (frame + 1) * size, toMove * size);
+      mem_move(dst, src);
+    }
+    // Move value data.
+    {
+      const usize size = sizeof(GeoVector);
+      const Mem   dst  = dynarray_at(&ld->animData, ch->valueData + frame * size, toMove * size);
+      const Mem src = dynarray_at(&ld->animData, ch->valueData + (frame + 1) * size, toMove * size);
+      mem_move(dst, src);
+    }
+  }
+}
 
-  /**
-   * If a channel consist of only two frames and both are identical we can skip the interpolation.
-   */
+static void gltf_process_anim_channel(
+    GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
 
   typedef bool (*EqFunc)(GeoVector, GeoVector, f32);
   const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
 
+  /**
+   * If a channel consists of all identical frames we can skip the interpolation.
+   * TODO: Instead of just truncating the frame count we should avoid including data for the removed
+   * frames at all.
+   */
   GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
-  if (ch->frameCount == 2 && eq(data[0], data[1], 1e-4f)) {
-    ch->frameCount = 1;
+  if (ch->frameCount > 1) {
+    bool allEq = true;
+    for (u32 i = 1; i != ch->frameCount; ++i) {
+      if (!eq(data[0], data[i], gltf_eq_threshold)) {
+        allEq = false;
+        break;
+      }
+    }
+    if (allEq) {
+      ch->frameCount = 1;
+    }
+  }
+
+  /**
+   * Remove redundant frames (frames that are the same as the previous and the next).
+   */
+  if (ch->frameCount > 2) {
+    for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
+      if (eq(data[i], data[i - 1], gltf_eq_threshold) &&
+          eq(data[i], data[i + 1], gltf_eq_threshold)) {
+        gltf_process_remove_frame(ld, ch, i);
+      }
+    }
   }
 }
 
-static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
+static void gltf_process_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
   GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
 
   /**
@@ -1174,6 +1231,24 @@ static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChan
       rotPoses[i] = geo_quat_flip(rotPoses[i]);
     }
   }
+}
+
+static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* anims) {
+  static const GeoVector g_one = {.x = 1, .y = 1, .z = 1};
+
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+      const AssetMeshAnimTarget   tgt = AssetMeshAnimTarget_Scale;
+      const AssetMeshAnimChannel* ch  = &anims[animIndex].joints[jointIndex][tgt];
+      const GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
+      for (u32 frame = 0; frame != ch->frameCount; ++frame) {
+        if (!geo_vector_equal3(data[frame], g_one, gltf_eq_threshold)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
@@ -1249,19 +1324,29 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
+              .timeData   = gltf_anim_data_push_access_norm16(ld, srcChannel->accInput, duration),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
-          gltf_optimize_anim_channel(ld, resChannel, target);
           if (target == AssetMeshAnimTarget_Rotation) {
-            gltf_optimize_anim_channel_rot(ld, resChannel);
+            gltf_process_anim_channel_rot(ld, resChannel);
           }
+          gltf_process_anim_channel(ld, resChannel, target);
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
       }
     }
     resAnims[animIndex].duration = duration;
+  }
+
+  // Remove all scale channels if all of the channels use the identity scale.
+  // TODO: Instead of truncating the frameCount to zero we should skip the all the channel data.
+  if (!gtlf_process_any_joint_scaled(ld, resAnims)) {
+    for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+      for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+        resAnims[animIndex].joints[jointIndex][AssetMeshAnimTarget_Scale].frameCount = 0;
+      }
+    }
   }
 
   // Create the default pose output.
