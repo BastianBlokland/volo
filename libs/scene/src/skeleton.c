@@ -302,7 +302,7 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   u32 count = ch->frameCount;
   u32 begin = 0;
   while (count) {
-    const u32 step   = count / 2;
+    const u32 step   = count >> 1;
     const u32 middle = begin + step;
     if (ch->times[middle] < tNorm16) {
       begin = middle + 1;
@@ -311,7 +311,7 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
       count = step;
     }
   }
-  return begin - (begin ? 1 : 0);
+  return begin ? (begin - 1) : 0;
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
