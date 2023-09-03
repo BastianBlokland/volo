@@ -174,9 +174,15 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
    * https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp
    */
 
+#if geo_quat_simd_enable
+  const SimdVec aVec = simd_vec_load(a.comps);
+  const SimdVec bVec = simd_vec_load(b.comps);
+  const f32     dot  = simd_vec_x(simd_vec_dot4(aVec, bVec));
+#else
   const f32 dot = geo_quat_dot(a, b);
-  f32       tA, tB;
+#endif
 
+  f32 tA, tB;
   if (math_abs(dot) < 0.99999f) {
     const f32 x = intrinsic_acos_f32(dot);
     const f32 y = 1.0f / intrinsic_sin_f32(x);
@@ -188,12 +194,21 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
     tB = t;
   }
 
+#if geo_quat_simd_enable
+  const SimdVec tAVec = simd_vec_broadcast(tA);
+  const SimdVec tBVec = simd_vec_broadcast(tB);
+
+  GeoQuat res;
+  simd_vec_store(simd_vec_add(simd_vec_mul(aVec, tAVec), simd_vec_mul(bVec, tBVec)), res.comps);
+  return res;
+#else
   return (GeoQuat){
       a.x * tA + b.x * tB,
       a.y * tA + b.y * tB,
       a.z * tA + b.z * tB,
       a.w * tA + b.w * tB,
   };
+#endif
 }
 
 bool geo_quat_towards(GeoQuat* q, const GeoQuat target, const f32 maxAngle) {
