@@ -1199,6 +1199,24 @@ static void gltf_process_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChann
   }
 }
 
+static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* anims) {
+  static const GeoVector g_one = {.x = 1, .y = 1, .z = 1};
+
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+      const AssetMeshAnimTarget   tgt = AssetMeshAnimTarget_Scale;
+      const AssetMeshAnimChannel* ch  = &anims[animIndex].joints[jointIndex][tgt];
+      const GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
+      for (u32 frame = 0; frame != ch->frameCount; ++frame) {
+        if (!geo_vector_equal3(data[frame], g_one, 1e-4f)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
@@ -1285,6 +1303,16 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       }
     }
     resAnims[animIndex].duration = duration;
+  }
+
+  // Remove all scale channels if all of the channels use the identity scale.
+  // TODO: Instead of truncating the frameCount to zero we should skip the all the channel data.
+  if (!gtlf_process_any_joint_scaled(ld, resAnims)) {
+    for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+      for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+        resAnims[animIndex].joints[jointIndex][AssetMeshAnimTarget_Scale].frameCount = 0;
+      }
+    }
   }
 
   // Create the default pose output.
