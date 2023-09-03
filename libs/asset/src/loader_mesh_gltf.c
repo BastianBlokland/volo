@@ -1159,16 +1159,26 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
 static void gltf_process_anim_channel(
     GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
 
-  /**
-   * If a channel consist of only two frames and both are identical we can skip the interpolation.
-   */
-
   typedef bool (*EqFunc)(GeoVector, GeoVector, f32);
   const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
 
+  /**
+   * If a channel consists of all identical frames we can skip the interpolation.
+   * TODO: Instead of just truncating the frame count we should avoid including data for the removed
+   * frames at all.
+   */
   GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
-  if (ch->frameCount == 2 && eq(data[0], data[1], 1e-4f)) {
-    ch->frameCount = 1;
+  if (ch->frameCount > 1) {
+    bool allEq = true;
+    for (u32 i = 1; i != ch->frameCount; ++i) {
+      if (!eq(data[0], data[i], 1e-4f)) {
+        allEq = false;
+        break;
+      }
+    }
+    if (allEq) {
+      ch->frameCount = 1;
+    }
   }
 }
 
