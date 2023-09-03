@@ -13,7 +13,7 @@
 
 #define scene_footstep_lift_threshold 0.05f
 #define scene_footstep_decal_lifetime time_seconds(2)
-#define scene_footstep_max_per_tick 100
+#define scene_footstep_max_per_tick 150
 
 ASSERT(scene_footstep_feet_max <= 8, "Feet state needs to be representable with 8 bits")
 
