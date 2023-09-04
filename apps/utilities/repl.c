@@ -22,7 +22,7 @@ static void repl_output(const String text) { file_write_sync(g_file_stdout, text
 
 static void repl_output_error(const String message) {
   const String text = fmt_write_scratch(
-      "{}ERROR: {}{}\n",
+      "{}ERROR: {}{}",
       fmt_ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold),
       fmt_text(message),
       fmt_ttystyle());
@@ -121,7 +121,7 @@ static void repl_edit_submit(ReplState* state) {
     const ScriptVal value = script_eval(script, state->scriptMem, res.expr);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
-    repl_output_error(script_error_str(res.error));
+    repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
   }
 
   script_destroy(script);
