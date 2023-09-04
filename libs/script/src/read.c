@@ -135,6 +135,10 @@ static ScriptOpBinary token_op_binary_modify(const ScriptTokenType type) {
     return ScriptOpBinary_Add;
   case ScriptTokenType_MinusEq:
     return ScriptOpBinary_Sub;
+  case ScriptTokenType_StarEq:
+    return ScriptOpBinary_Mul;
+  case ScriptTokenType_SlashEq:
+    return ScriptOpBinary_Div;
   default:
     diag_assert_fail("Invalid binary modify operation token");
     UNREACHABLE
@@ -336,7 +340,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       return script_expr(script_add_mem_store(ctx->doc, token.val_key, val.expr));
     }
     case ScriptTokenType_PlusEq:
-    case ScriptTokenType_MinusEq: {
+    case ScriptTokenType_MinusEq:
+    case ScriptTokenType_StarEq:
+    case ScriptTokenType_SlashEq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
       const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
