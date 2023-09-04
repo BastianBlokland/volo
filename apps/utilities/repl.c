@@ -119,7 +119,7 @@ static void repl_edit_submit(ReplState* state) {
 
   ScriptDoc*       script = script_create(g_alloc_heap);
   ScriptReadResult res;
-  script_read_all(script, dynstring_view(state->editBuffer), &res);
+  script_read(script, dynstring_view(state->editBuffer), &res);
 
   if (res.type == ScriptResult_Success) {
     if (state->flags & ReplFlags_OutputAst) {

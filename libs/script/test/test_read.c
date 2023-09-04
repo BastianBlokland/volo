@@ -418,8 +418,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
-      const String     remInput = script_read_expr(doc, g_testData[i].input, &res);
-      check_eq_string(remInput, string_lit(""));
+      script_read(doc, g_testData[i].input, &res);
 
       check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
       check_expr_str(doc, res.expr, g_testData[i].expect);
@@ -466,8 +465,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
-      const String     remInput = script_read_expr(doc, g_testData[i].input, &res);
-      check_eq_string(remInput, string_lit(""));
+      script_read(doc, g_testData[i].input, &res);
 
       check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
       check_msg(
@@ -481,14 +479,14 @@ spec(read) {
 
   it("can read all input") {
     ScriptReadResult res;
-    script_read_all(doc, string_lit("1  "), &res);
+    script_read(doc, string_lit("1  "), &res);
 
     check_require(res.type == ScriptResult_Success);
   }
 
   it("fails when read-all finds additional tokens after the expression") {
     ScriptReadResult res;
-    script_read_all(doc, string_lit("1 1"), &res);
+    script_read(doc, string_lit("1 1"), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check(res.error == ScriptError_UnexpectedTokenAfterExpression);
@@ -499,7 +497,7 @@ spec(read) {
     dynstring_append_chars(&str, '(', 100);
 
     ScriptReadResult res;
-    script_read_expr(doc, dynstring_view(&str), &res);
+    script_read(doc, dynstring_view(&str), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check_eq_int(res.error, ScriptError_RecursionLimitExceeded);

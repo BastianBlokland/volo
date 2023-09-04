@@ -470,18 +470,7 @@ static void script_read_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res) {
-  script_read_init();
-
-  ScriptReadContext ctx = {
-      .doc   = doc,
-      .input = str,
-  };
-  *res = read_expr(&ctx, OpPrecedence_None);
-  return ctx.input;
-}
-
-void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
   script_read_init();
 
   ScriptReadContext ctx = {

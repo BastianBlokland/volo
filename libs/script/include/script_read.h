@@ -19,10 +19,6 @@ typedef struct {
 /**
  * Read a script expression.
  *
- * Returns the remaining input.
- * The result is written to the output pointer.
- *
  * Pre-condition: res != null.
  */
-String script_read_expr(ScriptDoc*, String, ScriptReadResult* res);
-void   script_read_all(ScriptDoc*, String, ScriptReadResult* res);
+void script_read(ScriptDoc*, String, ScriptReadResult* res);
