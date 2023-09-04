@@ -320,9 +320,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
         return val;
       }
-      return script_expr(script_add_store(ctx->doc, token.val_key, val.expr));
+      return script_expr(script_add_mem_store(ctx->doc, token.val_key, val.expr));
     }
-    return script_expr(script_add_load(ctx->doc, token.val_key));
+    return script_expr(script_add_mem_load(ctx->doc, token.val_key));
   }
   /**
    * Lex errors.

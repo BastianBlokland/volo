@@ -20,13 +20,13 @@ INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExpr
   return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
 }
 
-INLINE_HINT static ScriptVal eval_load(ScriptEvalContext* ctx, const ScriptExprLoad* expr) {
+INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExprMemLoad* expr) {
   return script_mem_get(ctx->m, expr->key);
 }
 
-INLINE_HINT static ScriptVal eval_store(ScriptEvalContext* ctx, const ScriptExprStore* expr) {
-  const ScriptVal val = eval(ctx, expr->val);
-  script_mem_set(ctx->m, expr->key, val);
+INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExprMemStore* exp) {
+  const ScriptVal val = eval(ctx, exp->val);
+  script_mem_set(ctx->m, exp->key, val);
   return val;
 }
 
@@ -141,10 +141,10 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
-  case ScriptExprType_Load:
-    return eval_load(ctx, &expr_data(ctx, expr)->data_load);
-  case ScriptExprType_Store:
-    return eval_store(ctx, &expr_data(ctx, expr)->data_store);
+  case ScriptExprType_MemLoad:
+    return eval_mem_load(ctx, &expr_data(ctx, expr)->data_mem_load);
+  case ScriptExprType_MemStore:
+    return eval_mem_store(ctx, &expr_data(ctx, expr)->data_mem_store);
   case ScriptExprType_OpNullary:
     return eval_op_nul(ctx, &expr_data(ctx, expr)->data_op_nullary);
   case ScriptExprType_OpUnary:

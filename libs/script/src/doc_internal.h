@@ -11,12 +11,12 @@ typedef struct {
 
 typedef struct {
   StringHash key;
-} ScriptExprLoad;
+} ScriptExprMemLoad;
 
 typedef struct {
   StringHash key;
   ScriptExpr val;
-} ScriptExprStore;
+} ScriptExprMemStore;
 
 typedef struct {
   ScriptOpNullary op;
@@ -44,8 +44,8 @@ typedef struct {
   ScriptExprType type;
   union {
     ScriptExprValue     data_value;
-    ScriptExprLoad      data_load;
-    ScriptExprStore     data_store;
+    ScriptExprMemLoad   data_mem_load;
+    ScriptExprMemStore  data_mem_store;
     ScriptExprOpNullary data_op_nullary;
     ScriptExprOpUnary   data_op_unary;
     ScriptExprOpBinary  data_op_binary;

@@ -18,19 +18,19 @@ spec(read) {
         {string_static("null"), string_static("[value: null]")},
         {string_static("42.1337"), string_static("[value: 42.1337]")},
         {string_static("true"), string_static("[value: true]")},
-        {string_static("$hello"), string_static("[load: $3944927369]")},
+        {string_static("$hello"), string_static("[mem-load: $3944927369]")},
         {string_static("pi"), string_static("[value: 3.1415927]")},
         {string_static("deg_to_rad"), string_static("[value: 0.0174533]")},
         {string_static("rad_to_deg"), string_static("[value: 57.2957802]")},
         {
             string_static("$hello = 42"),
-            string_static("[store: $3944927369]\n"
+            string_static("[mem-store: $3944927369]\n"
                           "  [value: 42]"),
         },
         {
             string_static("$hello = $world"),
-            string_static("[store: $3944927369]\n"
-                          "  [load: $4293346878]"),
+            string_static("[mem-store: $3944927369]\n"
+                          "  [mem-load: $4293346878]"),
         },
         {
             string_static("distance(1,2)"),
@@ -89,9 +89,9 @@ spec(read) {
 
         // Parenthesized expressions.
         {string_static("(42.1337)"), string_static("[value: 42.1337]")},
-        {string_static("($hello)"), string_static("[load: $3944927369]")},
+        {string_static("($hello)"), string_static("[mem-load: $3944927369]")},
         {string_static("((42.1337))"), string_static("[value: 42.1337]")},
-        {string_static("(($hello))"), string_static("[load: $3944927369]")},
+        {string_static("(($hello))"), string_static("[mem-load: $3944927369]")},
 
         // Unary expressions.
         {
@@ -121,7 +121,7 @@ spec(read) {
         {
             string_static("$hello != null"),
             string_static("[op-binary: not-equal]\n"
-                          "  [load: $3944927369]\n"
+                          "  [mem-load: $3944927369]\n"
                           "  [value: null]"),
         },
         {
@@ -287,7 +287,7 @@ spec(read) {
         },
         {
             string_static("$hello = 1 + 2"),
-            string_static("[store: $3944927369]\n"
+            string_static("[mem-store: $3944927369]\n"
                           "  [op-binary: add]\n"
                           "    [value: 1]\n"
                           "    [value: 2]"),
@@ -304,8 +304,8 @@ spec(read) {
         },
         {
             string_static("$hello = $world = 1 + 2"),
-            string_static("[store: $3944927369]\n"
-                          "  [store: $4293346878]\n"
+            string_static("[mem-store: $3944927369]\n"
+                          "  [mem-store: $4293346878]\n"
                           "    [op-binary: add]\n"
                           "      [value: 1]\n"
                           "      [value: 2]"),
@@ -316,10 +316,10 @@ spec(read) {
                           "  [op-binary: logic-or]\n"
                           "    [value: true]\n"
                           "    [op-binary: ret-right]\n"
-                          "      [store: $3645546703]\n"
+                          "      [mem-store: $3645546703]\n"
                           "        [value: 1]\n"
                           "      [value: false]\n"
-                          "  [load: $3645546703]"),
+                          "  [mem-load: $3645546703]"),
         },
 
         // Group expressions.
@@ -357,11 +357,11 @@ spec(read) {
             string_static("$a = 1; $b = 2; $c = 3"),
             string_static("[op-binary: ret-right]\n"
                           "  [op-binary: ret-right]\n"
-                          "    [store: $3645546703]\n"
+                          "    [mem-store: $3645546703]\n"
                           "      [value: 1]\n"
-                          "    [store: $1612769824]\n"
+                          "    [mem-store: $1612769824]\n"
                           "      [value: 2]\n"
-                          "  [store: $1857025631]\n"
+                          "  [mem-store: $1857025631]\n"
                           "    [value: 3]"),
         },
     };
