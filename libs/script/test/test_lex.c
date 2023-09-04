@@ -69,6 +69,7 @@ spec(lex) {
         {string_static("||"), tok_simple(PipePipe)},
         {string_static("?"), tok_simple(QMark)},
         {string_static("??"), tok_simple(QMarkQMark)},
+        {string_static("?\?="), tok_simple(QMarkQMarkEq)},
 
         {string_static(":"), tok_simple(Colon)},
         {string_static(";"), tok_simple(SemiColon)},

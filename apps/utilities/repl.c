@@ -63,6 +63,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_PipePipe:
   case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
+  case ScriptTokenType_QMarkQMarkEq:
     return TtyFgColor_Green;
   case ScriptTokenType_ParenOpen:
   case ScriptTokenType_ParenClose:

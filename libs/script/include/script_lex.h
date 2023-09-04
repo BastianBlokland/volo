@@ -3,38 +3,39 @@
 #include "script_error.h"
 
 typedef enum {
-  ScriptTokenType_ParenOpen,  // (
-  ScriptTokenType_ParenClose, // )
-  ScriptTokenType_Comma,      // ,
-  ScriptTokenType_Eq,         // =
-  ScriptTokenType_EqEq,       // ==
-  ScriptTokenType_Bang,       // !
-  ScriptTokenType_BangEq,     // !=
-  ScriptTokenType_Le,         // <
-  ScriptTokenType_LeEq,       // <=
-  ScriptTokenType_Gt,         // >
-  ScriptTokenType_GtEq,       // >=
-  ScriptTokenType_Plus,       // +
-  ScriptTokenType_PlusEq,     // +=
-  ScriptTokenType_Minus,      // -
-  ScriptTokenType_MinusEq,    // -=
-  ScriptTokenType_Star,       // *
-  ScriptTokenType_StarEq,     // *=
-  ScriptTokenType_Slash,      // /
-  ScriptTokenType_SlashEq,    // /=
-  ScriptTokenType_Percent,    // %
-  ScriptTokenType_PercentEq,  // %=
-  ScriptTokenType_Colon,      // :
-  ScriptTokenType_SemiColon,  // ;
-  ScriptTokenType_AmpAmp,     // &&
-  ScriptTokenType_PipePipe,   // ||
-  ScriptTokenType_QMark,      // ?
-  ScriptTokenType_QMarkQMark, // ??
-  ScriptTokenType_Number,     // 42.1337
-  ScriptTokenType_Identifier, // foo
-  ScriptTokenType_Key,        // $bar
-  ScriptTokenType_Error,      //
-  ScriptTokenType_End,        // \0
+  ScriptTokenType_ParenOpen,    // (
+  ScriptTokenType_ParenClose,   // )
+  ScriptTokenType_Comma,        // ,
+  ScriptTokenType_Eq,           // =
+  ScriptTokenType_EqEq,         // ==
+  ScriptTokenType_Bang,         // !
+  ScriptTokenType_BangEq,       // !=
+  ScriptTokenType_Le,           // <
+  ScriptTokenType_LeEq,         // <=
+  ScriptTokenType_Gt,           // >
+  ScriptTokenType_GtEq,         // >=
+  ScriptTokenType_Plus,         // +
+  ScriptTokenType_PlusEq,       // +=
+  ScriptTokenType_Minus,        // -
+  ScriptTokenType_MinusEq,      // -=
+  ScriptTokenType_Star,         // *
+  ScriptTokenType_StarEq,       // *=
+  ScriptTokenType_Slash,        // /
+  ScriptTokenType_SlashEq,      // /=
+  ScriptTokenType_Percent,      // %
+  ScriptTokenType_PercentEq,    // %=
+  ScriptTokenType_Colon,        // :
+  ScriptTokenType_SemiColon,    // ;
+  ScriptTokenType_AmpAmp,       // &&
+  ScriptTokenType_PipePipe,     // ||
+  ScriptTokenType_QMark,        // ?
+  ScriptTokenType_QMarkQMark,   // ??
+  ScriptTokenType_QMarkQMarkEq, // ??=
+  ScriptTokenType_Number,       // 42.1337
+  ScriptTokenType_Identifier,   // foo
+  ScriptTokenType_Key,          // $bar
+  ScriptTokenType_Error,        //
+  ScriptTokenType_End,          // \0
 } ScriptTokenType;
 
 typedef struct {

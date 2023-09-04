@@ -185,6 +185,9 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
+        if (script_peek(str, 2) == '=') {
+          return out->type = ScriptTokenType_QMarkQMarkEq, string_consume(str, 3);
+        }
         return out->type = ScriptTokenType_QMarkQMark, string_consume(str, 2);
       }
       return out->type = ScriptTokenType_QMark, string_consume(str, 1);
@@ -294,6 +297,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("?");
   case ScriptTokenType_QMarkQMark:
     return string_lit("??");
+  case ScriptTokenType_QMarkQMarkEq:
+    return string_lit("?\?=");
   case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
   case ScriptTokenType_Identifier:

@@ -255,6 +255,13 @@ spec(read) {
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
+        {
+            string_static("$hello ?\?= 42"),
+            string_static("[mem-store: $3944927369]\n"
+                          "  [op-binary: null-coalescing]\n"
+                          "    [mem-load: $3944927369]\n"
+                          "    [value: 42]"),
+        },
 
         // Compound expressions.
         {

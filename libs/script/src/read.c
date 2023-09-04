@@ -144,6 +144,8 @@ static ScriptOpBinary token_op_binary_modify(const ScriptTokenType type) {
     return ScriptOpBinary_Div;
   case ScriptTokenType_PercentEq:
     return ScriptOpBinary_Mod;
+  case ScriptTokenType_QMarkQMarkEq:
+    return ScriptOpBinary_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary modify operation token");
     UNREACHABLE
@@ -348,7 +350,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_MinusEq:
     case ScriptTokenType_StarEq:
     case ScriptTokenType_SlashEq:
-    case ScriptTokenType_PercentEq: {
+    case ScriptTokenType_PercentEq:
+    case ScriptTokenType_QMarkQMarkEq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
       const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
