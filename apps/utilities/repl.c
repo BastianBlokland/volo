@@ -43,7 +43,9 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Gt:
   case ScriptTokenType_GtEq:
   case ScriptTokenType_Plus:
+  case ScriptTokenType_PlusEq:
   case ScriptTokenType_Minus:
+  case ScriptTokenType_MinusEq:
   case ScriptTokenType_Star:
   case ScriptTokenType_Slash:
   case ScriptTokenType_Colon:

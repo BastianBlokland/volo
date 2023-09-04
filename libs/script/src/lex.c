@@ -149,8 +149,14 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case ';':
       return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
     case '+':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_PlusEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Plus, string_consume(str, 1);
     case '-':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_MinusEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Minus, string_consume(str, 1);
     case '*':
       return out->type = ScriptTokenType_Star, string_consume(str, 1);
@@ -247,8 +253,12 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit(">=");
   case ScriptTokenType_Plus:
     return string_lit("+");
+  case ScriptTokenType_PlusEq:
+    return string_lit("+=");
   case ScriptTokenType_Minus:
     return string_lit("-");
+  case ScriptTokenType_MinusEq:
+    return string_lit("-=");
   case ScriptTokenType_Star:
     return string_lit("*");
   case ScriptTokenType_Slash:

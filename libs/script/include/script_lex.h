@@ -15,7 +15,9 @@ typedef enum {
   ScriptTokenType_Gt,         // >
   ScriptTokenType_GtEq,       // >=
   ScriptTokenType_Plus,       // +
+  ScriptTokenType_PlusEq,     // +=
   ScriptTokenType_Minus,      // -
+  ScriptTokenType_MinusEq,    // -=
   ScriptTokenType_Star,       // *
   ScriptTokenType_Slash,      // /
   ScriptTokenType_Colon,      // :

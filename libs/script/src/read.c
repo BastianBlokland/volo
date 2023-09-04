@@ -129,6 +129,18 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
   }
 }
 
+static ScriptOpBinary token_op_binary_modify(const ScriptTokenType type) {
+  switch (type) {
+  case ScriptTokenType_PlusEq:
+    return ScriptOpBinary_Add;
+  case ScriptTokenType_MinusEq:
+    return ScriptOpBinary_Sub;
+  default:
+    diag_assert_fail("Invalid binary modify operation token");
+    UNREACHABLE
+  }
+}
+
 typedef struct {
   ScriptDoc* doc;
   String     input;
@@ -314,7 +326,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_Key: {
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken);
-    if (nextToken.type == ScriptTokenType_Eq) {
+    switch (nextToken.type) {
+    case ScriptTokenType_Eq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
       const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
@@ -322,7 +335,21 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       }
       return script_expr(script_add_mem_store(ctx->doc, token.val_key, val.expr));
     }
-    return script_expr(script_add_mem_load(ctx->doc, token.val_key));
+    case ScriptTokenType_PlusEq:
+    case ScriptTokenType_MinusEq: {
+      ctx->input                 = remInput; // Consume the 'nextToken'.
+      const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
+      if (UNLIKELY(val.type == ScriptResult_Fail)) {
+        return val;
+      }
+      const ScriptExpr     loadExpr = script_add_mem_load(ctx->doc, token.val_key);
+      const ScriptOpBinary op       = token_op_binary_modify(nextToken.type);
+      const ScriptExpr     opExpr   = script_add_op_binary(ctx->doc, loadExpr, val.expr, op);
+      return script_expr(script_add_mem_store(ctx->doc, token.val_key, opExpr));
+    }
+    default:
+      return script_expr(script_add_mem_load(ctx->doc, token.val_key));
+    }
   }
   /**
    * Lex errors.

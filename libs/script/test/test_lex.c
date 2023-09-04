@@ -55,7 +55,9 @@ spec(lex) {
         {string_static(">="), tok_simple(GtEq)},
 
         {string_static("+"), tok_simple(Plus)},
+        {string_static("+="), tok_simple(PlusEq)},
         {string_static("-"), tok_simple(Minus)},
+        {string_static("-="), tok_simple(MinusEq)},
         {string_static("*"), tok_simple(Star)},
         {string_static("/"), tok_simple(Slash)},
 
