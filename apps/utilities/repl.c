@@ -67,6 +67,8 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
     return TtyFgColor_Green;
   case ScriptTokenType_ParenOpen:
   case ScriptTokenType_ParenClose:
+  case ScriptTokenType_CurlyOpen:
+  case ScriptTokenType_CurlyClose:
   case ScriptTokenType_Comma:
   case ScriptTokenType_End:
     break;
