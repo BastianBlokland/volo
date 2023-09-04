@@ -32,14 +32,16 @@ spec(doc) {
   }
 
   it("can create load expressions") {
-    check_expr_str_lit(doc, script_add_load(doc, string_hash_lit("Hello")), "[load: $938478706]");
+    check_expr_str_lit(
+        doc, script_add_mem_load(doc, string_hash_lit("Hello")), "[mem-load: $938478706]");
   }
 
   it("can create store expressions") {
     check_expr_str_lit(
         doc,
-        script_add_store(doc, string_hash_lit("Hello"), script_add_value(doc, script_number(42))),
-        "[store: $938478706]\n"
+        script_add_mem_store(
+            doc, string_hash_lit("Hello"), script_add_value(doc, script_number(42))),
+        "[mem-store: $938478706]\n"
         "  [value: 42]");
   }
 

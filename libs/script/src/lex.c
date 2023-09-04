@@ -149,13 +149,30 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case ';':
       return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
     case '+':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_PlusEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Plus, string_consume(str, 1);
     case '-':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_MinusEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Minus, string_consume(str, 1);
     case '*':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_StarEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Star, string_consume(str, 1);
     case '/':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_SlashEq, string_consume(str, 2);
+      }
       return out->type = ScriptTokenType_Slash, string_consume(str, 1);
+    case '%':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_PercentEq, string_consume(str, 2);
+      }
+      return out->type = ScriptTokenType_Percent, string_consume(str, 1);
     case '&':
       if (script_peek(str, 1) == '&') {
         return out->type = ScriptTokenType_AmpAmp, string_consume(str, 2);
@@ -168,6 +185,9 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
+        if (script_peek(str, 2) == '=') {
+          return out->type = ScriptTokenType_QMarkQMarkEq, string_consume(str, 3);
+        }
         return out->type = ScriptTokenType_QMarkQMark, string_consume(str, 2);
       }
       return out->type = ScriptTokenType_QMark, string_consume(str, 1);
@@ -247,12 +267,24 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit(">=");
   case ScriptTokenType_Plus:
     return string_lit("+");
+  case ScriptTokenType_PlusEq:
+    return string_lit("+=");
   case ScriptTokenType_Minus:
     return string_lit("-");
+  case ScriptTokenType_MinusEq:
+    return string_lit("-=");
   case ScriptTokenType_Star:
     return string_lit("*");
+  case ScriptTokenType_StarEq:
+    return string_lit("*=");
   case ScriptTokenType_Slash:
     return string_lit("/");
+  case ScriptTokenType_SlashEq:
+    return string_lit("/=");
+  case ScriptTokenType_Percent:
+    return string_lit("%");
+  case ScriptTokenType_PercentEq:
+    return string_lit("%=");
   case ScriptTokenType_Colon:
     return string_lit(":");
   case ScriptTokenType_SemiColon:
@@ -265,6 +297,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("?");
   case ScriptTokenType_QMarkQMark:
     return string_lit("??");
+  case ScriptTokenType_QMarkQMarkEq:
+    return string_lit("?\?=");
   case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
   case ScriptTokenType_Identifier:

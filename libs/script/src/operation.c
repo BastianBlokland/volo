@@ -45,6 +45,7 @@ String script_op_binary_str(const ScriptOpBinary o) {
       string_static("sub"),
       string_static("mul"),
       string_static("div"),
+      string_static("mod"),
       string_static("distance"),
       string_static("angle"),
       string_static("ret-right"),

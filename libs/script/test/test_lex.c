@@ -55,14 +55,21 @@ spec(lex) {
         {string_static(">="), tok_simple(GtEq)},
 
         {string_static("+"), tok_simple(Plus)},
+        {string_static("+="), tok_simple(PlusEq)},
         {string_static("-"), tok_simple(Minus)},
+        {string_static("-="), tok_simple(MinusEq)},
         {string_static("*"), tok_simple(Star)},
+        {string_static("*="), tok_simple(StarEq)},
         {string_static("/"), tok_simple(Slash)},
+        {string_static("/="), tok_simple(SlashEq)},
+        {string_static("%"), tok_simple(Percent)},
+        {string_static("%="), tok_simple(PercentEq)},
 
         {string_static("&&"), tok_simple(AmpAmp)},
         {string_static("||"), tok_simple(PipePipe)},
         {string_static("?"), tok_simple(QMark)},
         {string_static("??"), tok_simple(QMarkQMark)},
+        {string_static("?\?="), tok_simple(QMarkQMarkEq)},
 
         {string_static(":"), tok_simple(Colon)},
         {string_static(";"), tok_simple(SemiColon)},

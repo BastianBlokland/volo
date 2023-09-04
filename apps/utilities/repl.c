@@ -13,11 +13,16 @@
  * ReadEvalPrintLoop - Utility to play around with script execution.
  */
 
+typedef enum {
+  ReplFlags_None      = 0,
+  ReplFlags_OutputAst = 1 << 0,
+} ReplFlags;
+
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
 static void repl_output_error(const String message) {
   const String text = fmt_write_scratch(
-      "{}ERROR: {}{}\n",
+      "{}ERROR: {}{}",
       fmt_ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold),
       fmt_text(message),
       fmt_ttystyle());
@@ -43,15 +48,22 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Gt:
   case ScriptTokenType_GtEq:
   case ScriptTokenType_Plus:
+  case ScriptTokenType_PlusEq:
   case ScriptTokenType_Minus:
+  case ScriptTokenType_MinusEq:
   case ScriptTokenType_Star:
+  case ScriptTokenType_StarEq:
   case ScriptTokenType_Slash:
+  case ScriptTokenType_SlashEq:
+  case ScriptTokenType_Percent:
+  case ScriptTokenType_PercentEq:
   case ScriptTokenType_Colon:
   case ScriptTokenType_SemiColon:
   case ScriptTokenType_AmpAmp:
   case ScriptTokenType_PipePipe:
   case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
+  case ScriptTokenType_QMarkQMarkEq:
     return TtyFgColor_Green;
   case ScriptTokenType_ParenOpen:
   case ScriptTokenType_ParenClose:
@@ -63,6 +75,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
 }
 
 typedef struct {
+  ReplFlags  flags;
   String     editPrevText;
   DynString* editBuffer;
   ScriptMem* scriptMem;
@@ -107,11 +120,13 @@ static void repl_edit_submit(ReplState* state) {
   script_read_all(script, dynstring_view(state->editBuffer), &res);
 
   if (res.type == ScriptResult_Success) {
+    if (state->flags & ReplFlags_OutputAst) {
+      repl_output(fmt_write_scratch("{}\n", script_expr_fmt(script, res.expr)));
+    }
     const ScriptVal value = script_eval(script, state->scriptMem, res.expr);
-    const String    text  = fmt_write_scratch("{}\n", fmt_text(script_val_str_scratch(value)));
-    repl_output(text);
+    repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
-    repl_output_error(script_error_str(res.error));
+    repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
   }
 
   script_destroy(script);
@@ -191,7 +206,7 @@ static bool repl_update(ReplState* state, TtyInputToken* input) {
   return true; // Keep running.
 }
 
-static i32 repl_run_interactive() {
+static i32 repl_run_interactive(const ReplFlags flags) {
   if (!tty_isatty(g_file_stdin) || !tty_isatty(g_file_stdout)) {
     file_write_sync(g_file_stderr, string_lit("ERROR: REPL has to be ran interactively\n"));
     return 1;
@@ -201,6 +216,7 @@ static i32 repl_run_interactive() {
   DynString editBuffer = dynstring_create(g_alloc_heap, 128);
 
   ReplState state = {
+      .flags      = flags,
       .editBuffer = &editBuffer,
       .scriptMem  = script_mem_create(g_alloc_heap),
   };
@@ -234,13 +250,17 @@ Stop:
   return 0;
 }
 
-static CliId g_helpFlag;
+static CliId g_astFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Script ReadEvalPrintLoop utility."));
 
+  g_astFlag = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
+  cli_register_desc(app, g_astFlag, string_lit("Ouput the abstract-syntax-tree expressions."));
+
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_helpFlag, g_astFlag);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -248,5 +268,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_file_stdout);
     return 0;
   }
-  return repl_run_interactive();
+
+  ReplFlags flags = ReplFlags_None;
+  if (cli_parse_provided(invoc, g_astFlag)) {
+    flags |= ReplFlags_OutputAst;
+  }
+
+  return repl_run_interactive(flags);
 }

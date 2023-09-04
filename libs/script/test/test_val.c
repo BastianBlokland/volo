@@ -426,6 +426,47 @@ spec(val) {
     }
   }
 
+  it("can compute the modulo of values") {
+    const struct {
+      ScriptVal a, b;
+      ScriptVal expected;
+    } testData[] = {
+        {script_null(), script_null(), .expected = script_null()},
+        {script_null(), script_number(42), .expected = script_null()},
+        {script_number(42), script_null(), .expected = script_null()},
+        {script_number(42), script_bool(false), .expected = script_null()},
+
+        {script_number(42), script_number(1), .expected = script_number(0)},
+        {script_number(42), script_number(2), .expected = script_number(0)},
+        {script_number(42), script_number(42), .expected = script_number(0)},
+        {script_number(42), script_number(4), .expected = script_number(2)},
+        {script_number(42), script_number(43), .expected = script_number(42)},
+        {script_number(42), script_number(-1), .expected = script_number(0)},
+        {script_number(42), script_number(-43), .expected = script_number(42)},
+
+        {script_number(-42), script_number(1), .expected = script_number(0)},
+        {script_number(-42), script_number(2), .expected = script_number(0)},
+        {script_number(-42), script_number(42), .expected = script_number(0)},
+        {script_number(-42), script_number(4), .expected = script_number(-2)},
+        {script_number(-42), script_number(43), .expected = script_number(-42)},
+        {script_number(-42), script_number(43), .expected = script_number(-42)},
+        {script_number(-42), script_number(-1), .expected = script_number(0)},
+        {script_number(-42), script_number(-43), .expected = script_number(-42)},
+
+        {.a        = script_vector3_lit(4, 6, 6),
+         .b        = script_vector3_lit(2, 3, 4),
+         .expected = script_vector3_lit(0, 0, 2)},
+        {.a        = script_vector3_lit(4, 6, 6),
+         .b        = script_number(4),
+         .expected = script_vector3_lit(0, 2, 2)},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const ScriptVal actual = script_val_mod(testData[i].a, testData[i].b);
+      check_eq_val(actual, testData[i].expected);
+    }
+  }
+
   it("can compute the distance between values") {
     const struct {
       ScriptVal a, b;

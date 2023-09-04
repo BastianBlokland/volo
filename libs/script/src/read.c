@@ -67,6 +67,7 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
     return OpPrecedence_Additive;
   case ScriptTokenType_Star:
   case ScriptTokenType_Slash:
+  case ScriptTokenType_Percent:
     return OpPrecedence_Multiplicative;
   case ScriptTokenType_AmpAmp:
   case ScriptTokenType_PipePipe:
@@ -115,6 +116,8 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_Mul;
   case ScriptTokenType_Slash:
     return ScriptOpBinary_Div;
+  case ScriptTokenType_Percent:
+    return ScriptOpBinary_Mod;
   case ScriptTokenType_SemiColon:
     return ScriptOpBinary_RetRight;
   case ScriptTokenType_AmpAmp:
@@ -125,6 +128,26 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
+    UNREACHABLE
+  }
+}
+
+static ScriptOpBinary token_op_binary_modify(const ScriptTokenType type) {
+  switch (type) {
+  case ScriptTokenType_PlusEq:
+    return ScriptOpBinary_Add;
+  case ScriptTokenType_MinusEq:
+    return ScriptOpBinary_Sub;
+  case ScriptTokenType_StarEq:
+    return ScriptOpBinary_Mul;
+  case ScriptTokenType_SlashEq:
+    return ScriptOpBinary_Div;
+  case ScriptTokenType_PercentEq:
+    return ScriptOpBinary_Mod;
+  case ScriptTokenType_QMarkQMarkEq:
+    return ScriptOpBinary_NullCoalescing;
+  default:
+    diag_assert_fail("Invalid binary modify operation token");
     UNREACHABLE
   }
 }
@@ -314,15 +337,34 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_Key: {
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken);
-    if (nextToken.type == ScriptTokenType_Eq) {
+    switch (nextToken.type) {
+    case ScriptTokenType_Eq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
       const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
         return val;
       }
-      return script_expr(script_add_store(ctx->doc, token.val_key, val.expr));
+      return script_expr(script_add_mem_store(ctx->doc, token.val_key, val.expr));
     }
-    return script_expr(script_add_load(ctx->doc, token.val_key));
+    case ScriptTokenType_PlusEq:
+    case ScriptTokenType_MinusEq:
+    case ScriptTokenType_StarEq:
+    case ScriptTokenType_SlashEq:
+    case ScriptTokenType_PercentEq:
+    case ScriptTokenType_QMarkQMarkEq: {
+      ctx->input                 = remInput; // Consume the 'nextToken'.
+      const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
+      if (UNLIKELY(val.type == ScriptResult_Fail)) {
+        return val;
+      }
+      const ScriptExpr     loadExpr = script_add_mem_load(ctx->doc, token.val_key);
+      const ScriptOpBinary op       = token_op_binary_modify(nextToken.type);
+      const ScriptExpr     opExpr   = script_add_op_binary(ctx->doc, loadExpr, val.expr, op);
+      return script_expr(script_add_mem_store(ctx->doc, token.val_key, opExpr));
+    }
+    default:
+      return script_expr(script_add_mem_load(ctx->doc, token.val_key));
+    }
   }
   /**
    * Lex errors.
@@ -392,6 +434,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Minus:
     case ScriptTokenType_Star:
     case ScriptTokenType_Slash:
+    case ScriptTokenType_Percent:
     case ScriptTokenType_AmpAmp:
     case ScriptTokenType_PipePipe:
     case ScriptTokenType_QMarkQMark: {

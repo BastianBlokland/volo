@@ -83,7 +83,7 @@ spec(node_try) {
             .nextSibling = sentinel_u16,
             .data_execute =
                 {
-                    .scriptExpr = script_add_store(
+                    .scriptExpr = script_add_mem_store(
                         scriptDoc,
                         string_hash_lit("test"),
                         script_add_value(scriptDoc, script_number(42.42))),

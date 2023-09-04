@@ -82,23 +82,23 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
       });
 }
 
-ScriptExpr script_add_load(ScriptDoc* doc, const StringHash key) {
+ScriptExpr script_add_mem_load(ScriptDoc* doc, const StringHash key) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type      = ScriptExprType_Load,
-          .data_load = {.key = key},
+          .type          = ScriptExprType_MemLoad,
+          .data_mem_load = {.key = key},
       });
 }
 
-ScriptExpr script_add_store(ScriptDoc* doc, const StringHash key, const ScriptExpr val) {
+ScriptExpr script_add_mem_store(ScriptDoc* doc, const StringHash key, const ScriptExpr val) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type       = ScriptExprType_Store,
-          .data_store = {.key = key, .val = val},
+          .type           = ScriptExprType_MemStore,
+          .data_mem_store = {.key = key, .val = val},
       });
 }
 
@@ -151,11 +151,11 @@ ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
 static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* isReadonly = ctx;
   switch (script_doc_expr_data(doc, expr)->type) {
-  case ScriptExprType_Store:
+  case ScriptExprType_MemStore:
     *isReadonly = false;
     return;
   case ScriptExprType_Value:
-  case ScriptExprType_Load:
+  case ScriptExprType_MemLoad:
   case ScriptExprType_OpNullary:
   case ScriptExprType_OpUnary:
   case ScriptExprType_OpBinary:
@@ -187,11 +187,11 @@ void script_expr_visit(
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
   switch (data->type) {
   case ScriptExprType_Value:
-  case ScriptExprType_Load:
+  case ScriptExprType_MemLoad:
   case ScriptExprType_OpNullary:
     return; // No children.
-  case ScriptExprType_Store:
-    script_expr_visit(doc, data->data_store.val, ctx, visitor);
+  case ScriptExprType_MemStore:
+    script_expr_visit(doc, data->data_mem_store.val, ctx, visitor);
     return;
   case ScriptExprType_OpUnary:
     script_expr_visit(doc, data->data_op_unary.arg1, ctx, visitor);
@@ -232,12 +232,12 @@ void script_expr_str_write(
     script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
     fmt_write(str, "]");
     return;
-  case ScriptExprType_Load:
-    fmt_write(str, "[load: ${}]", fmt_int(data->data_load.key));
+  case ScriptExprType_MemLoad:
+    fmt_write(str, "[mem-load: ${}]", fmt_int(data->data_mem_load.key));
     return;
-  case ScriptExprType_Store:
-    fmt_write(str, "[store: ${}]", fmt_int(data->data_store.key));
-    script_expr_str_write_child(doc, data->data_store.val, indent + 1, str);
+  case ScriptExprType_MemStore:
+    fmt_write(str, "[mem-store: ${}]", fmt_int(data->data_mem_store.key));
+    script_expr_str_write_child(doc, data->data_mem_store.val, indent + 1, str);
     return;
   case ScriptExprType_OpNullary:
     fmt_write(str, "[op-nullary: {}]", script_op_nullary_fmt(data->data_op_nullary.op));
