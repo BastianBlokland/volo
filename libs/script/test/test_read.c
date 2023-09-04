@@ -213,6 +213,22 @@ spec(read) {
                           "    [value: 4]"),
         },
 
+        // Modify expressions.
+        {
+            string_static("$hello += 42"),
+            string_static("[mem-store: $3944927369]\n"
+                          "  [op-binary: add]\n"
+                          "    [mem-load: $3944927369]\n"
+                          "    [value: 42]"),
+        },
+        {
+            string_static("$hello -= 42"),
+            string_static("[mem-store: $3944927369]\n"
+                          "  [op-binary: sub]\n"
+                          "    [mem-load: $3944927369]\n"
+                          "    [value: 42]"),
+        },
+
         // Compound expressions.
         {
             string_static("-42 + 1"),
