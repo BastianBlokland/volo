@@ -62,6 +62,8 @@ spec(lex) {
         {string_static("*="), tok_simple(StarEq)},
         {string_static("/"), tok_simple(Slash)},
         {string_static("/="), tok_simple(SlashEq)},
+        {string_static("%"), tok_simple(Percent)},
+        {string_static("%="), tok_simple(PercentEq)},
 
         {string_static("&&"), tok_simple(AmpAmp)},
         {string_static("||"), tok_simple(PipePipe)},

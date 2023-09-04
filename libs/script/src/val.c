@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_time.h"
@@ -377,6 +378,44 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
       const GeoVector vecA = val_as_vector3_dirty_w(a);
       const GeoVector vecB = val_as_vector3_dirty_w(b);
       return script_vector3(geo_vector_div_comps(vecA, vecB));
+    }
+    return script_null();
+  }
+  case ScriptType_Entity:
+    return script_null();
+  case ScriptType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid script value");
+  UNREACHABLE
+}
+
+ScriptVal script_val_mod(const ScriptVal a, const ScriptVal b) {
+  switch (script_type(a)) {
+  case ScriptType_Null:
+    return script_null();
+  case ScriptType_Number:
+    return script_type(b) == ScriptType_Number
+               ? script_number(intrinsic_fmod_f64(val_as_number(a), val_as_number(b)))
+               : script_null();
+  case ScriptType_Bool:
+    return script_null();
+  case ScriptType_Vector3: {
+    if (script_type(b) == ScriptType_Number) {
+      const GeoVector vecA    = val_as_vector3_dirty_w(a);
+      const f32       scalarB = (f32)val_as_number(b);
+      return script_vector3_lit(
+          intrinsic_fmod_f32(vecA.x, scalarB),
+          intrinsic_fmod_f32(vecA.y, scalarB),
+          intrinsic_fmod_f32(vecA.z, scalarB));
+    }
+    if (script_type(b) == ScriptType_Vector3) {
+      const GeoVector vecA = val_as_vector3_dirty_w(a);
+      const GeoVector vecB = val_as_vector3_dirty_w(b);
+      return script_vector3_lit(
+          intrinsic_fmod_f32(vecA.x, vecB.x),
+          intrinsic_fmod_f32(vecA.y, vecB.y),
+          intrinsic_fmod_f32(vecA.z, vecB.z));
     }
     return script_null();
   }

@@ -22,6 +22,8 @@ typedef enum {
   ScriptTokenType_StarEq,     // *=
   ScriptTokenType_Slash,      // /
   ScriptTokenType_SlashEq,    // /=
+  ScriptTokenType_Percent,    // %
+  ScriptTokenType_PercentEq,  // %=
   ScriptTokenType_Colon,      // :
   ScriptTokenType_SemiColon,  // ;
   ScriptTokenType_AmpAmp,     // &&

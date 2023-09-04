@@ -173,6 +173,12 @@ spec(read) {
                           "  [value: 42]"),
         },
         {
+            string_static("null % 42"),
+            string_static("[op-binary: mod]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
             string_static("true && false"),
             string_static("[op-binary: logic-and]\n"
                           "  [value: true]\n"
@@ -239,6 +245,13 @@ spec(read) {
             string_static("$hello /= 42"),
             string_static("[mem-store: $3944927369]\n"
                           "  [op-binary: div]\n"
+                          "    [mem-load: $3944927369]\n"
+                          "    [value: 42]"),
+        },
+        {
+            string_static("$hello %= 42"),
+            string_static("[mem-store: $3944927369]\n"
+                          "  [op-binary: mod]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },

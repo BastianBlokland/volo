@@ -87,6 +87,7 @@ ScriptVal script_val_add(ScriptVal, ScriptVal);
 ScriptVal script_val_sub(ScriptVal, ScriptVal);
 ScriptVal script_val_mul(ScriptVal, ScriptVal);
 ScriptVal script_val_div(ScriptVal, ScriptVal);
+ScriptVal script_val_mod(ScriptVal, ScriptVal);
 ScriptVal script_val_dist(ScriptVal, ScriptVal);
 ScriptVal script_val_norm(ScriptVal);
 ScriptVal script_val_mag(ScriptVal);

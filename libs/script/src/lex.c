@@ -168,6 +168,11 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
         return out->type = ScriptTokenType_SlashEq, string_consume(str, 2);
       }
       return out->type = ScriptTokenType_Slash, string_consume(str, 1);
+    case '%':
+      if (script_peek(str, 1) == '=') {
+        return out->type = ScriptTokenType_PercentEq, string_consume(str, 2);
+      }
+      return out->type = ScriptTokenType_Percent, string_consume(str, 1);
     case '&':
       if (script_peek(str, 1) == '&') {
         return out->type = ScriptTokenType_AmpAmp, string_consume(str, 2);
@@ -273,6 +278,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("/");
   case ScriptTokenType_SlashEq:
     return string_lit("/=");
+  case ScriptTokenType_Percent:
+    return string_lit("%");
+  case ScriptTokenType_PercentEq:
+    return string_lit("%=");
   case ScriptTokenType_Colon:
     return string_lit(":");
   case ScriptTokenType_SemiColon:
