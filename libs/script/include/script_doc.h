@@ -23,6 +23,7 @@ typedef enum {
   ScriptExprType_OpUnary,
   ScriptExprType_OpBinary,
   ScriptExprType_OpTernary,
+  ScriptExprType_Block,
 
   ScriptExprType_Count,
 } ScriptExprType;
@@ -54,6 +55,7 @@ ScriptExpr script_add_op_nullary(ScriptDoc*, ScriptOpNullary);
 ScriptExpr script_add_op_unary(ScriptDoc*, ScriptExpr, ScriptOpUnary);
 ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptOpBinary);
 ScriptExpr script_add_op_ternary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptExpr, ScriptOpTernary);
+ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
 
 /**
  * Query expression data.

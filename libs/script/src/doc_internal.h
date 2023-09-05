@@ -41,6 +41,10 @@ typedef struct {
 } ScriptExprOpTernary;
 
 typedef struct {
+  u32 blockIndex, blockSize;
+} ScriptExprBlock;
+
+typedef struct {
   ScriptExprType type;
   union {
     ScriptExprValue     data_value;
@@ -50,6 +54,7 @@ typedef struct {
     ScriptExprOpUnary   data_op_unary;
     ScriptExprOpBinary  data_op_binary;
     ScriptExprOpTernary data_op_ternary;
+    ScriptExprBlock     data_block;
   };
 } ScriptExprData;
 
@@ -59,8 +64,9 @@ typedef struct {
 } ScriptConstant;
 
 struct sScriptDoc {
-  DynArray       exprs;  // ScriptExprData[]
-  DynArray       values; // ScriptVal[]
+  DynArray       exprData;   // ScriptExprData[]
+  DynArray       blockExprs; // ScriptExpr[]
+  DynArray       values;     // ScriptVal[]
   ScriptConstant constants[script_constants_max];
   Allocator*     alloc;
 };
@@ -69,6 +75,11 @@ struct sScriptDoc {
  * Add new expressions.
  */
 ScriptExpr script_add_value_id(ScriptDoc*, ScriptValId);
+
+/**
+ * Retrieve a pointer to a block of expressions.
+ */
+const ScriptExpr* script_doc_block_exprs(const ScriptDoc*, u32 index);
 
 /**
  * Lookup a constant by name.

@@ -118,8 +118,6 @@ static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
     return ScriptOpBinary_Div;
   case ScriptTokenType_Percent:
     return ScriptOpBinary_Mod;
-  case ScriptTokenType_SemiColon:
-    return ScriptOpBinary_RetRight;
   case ScriptTokenType_AmpAmp:
     return ScriptOpBinary_LogicAnd;
   case ScriptTokenType_PipePipe:
@@ -417,13 +415,19 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       }
       res = script_expr(selectExpr.expr);
     } break;
-    case ScriptTokenType_SemiColon:
+    case ScriptTokenType_SemiColon: {
       // Expressions are allowed to be ended with semi-colons.
       if (read_at_end(ctx)) {
         ctx->input = string_empty;
         return res;
       }
-      // Fallthrough.
+      const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
+      if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
+        return rhs;
+      }
+      const ScriptExpr exprs[] = {res.expr, rhs.expr};
+      res                      = script_expr(script_add_block(ctx->doc, exprs, array_elems(exprs)));
+    } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
     case ScriptTokenType_Le:

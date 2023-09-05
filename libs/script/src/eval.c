@@ -13,7 +13,7 @@ typedef struct {
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
 
 INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const ScriptExpr expr) {
-  return &dynarray_begin_t(&ctx->doc->exprs, ScriptExprData)[expr];
+  return &dynarray_begin_t(&ctx->doc->exprData, ScriptExprData)[expr];
 }
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
@@ -109,8 +109,6 @@ INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExp
     return script_val_dist(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_Angle:
     return script_val_angle(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_RetRight:
-    return eval(ctx, expr->arg2);
   case ScriptOpBinary_RandomBetween:
     return script_val_random_between(a, eval(ctx, expr->arg2));
   case ScriptOpBinary_Count:
@@ -139,6 +137,17 @@ INLINE_HINT static ScriptVal eval_op_ter(ScriptEvalContext* ctx, const ScriptExp
   UNREACHABLE
 }
 
+INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExprBlock* expr) {
+  const ScriptExpr* blockExprs = script_doc_block_exprs(ctx->doc, expr->blockIndex);
+
+  // NOTE: Blocks need at least one expression.
+  ScriptVal ret;
+  for (u32 i = 0; i != expr->blockSize; ++i) {
+    ret = eval(ctx, blockExprs[i]);
+  }
+  return ret;
+}
+
 static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
@@ -155,6 +164,9 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_op_bin(ctx, &expr_data(ctx, expr)->data_op_binary);
   case ScriptExprType_OpTernary:
     return eval_op_ter(ctx, &expr_data(ctx, expr)->data_op_ternary);
+  case ScriptExprType_Block: {
+    return eval_block(ctx, &expr_data(ctx, expr)->data_block);
+  }
   case ScriptExprType_Count:
     break;
   }

@@ -137,7 +137,7 @@ spec(eval) {
         {string_static("(false ? $m = 44 : 0); $m"), script_null()},
         {string_static("(false ? 0 : $n = 55); $n"), script_number(55)},
 
-        // Group expressions.
+        // Blocks.
         {string_static("1; 2; 3"), script_number(3)},
         {string_static("1; 2; 3;"), script_number(3)},
         {string_static("$e = 1; $e + 41"), script_number(42)},
