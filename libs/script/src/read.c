@@ -8,6 +8,7 @@
 #include "doc_internal.h"
 
 #define script_depth_max 25
+#define script_block_size_max 128
 #define script_args_max 10
 
 #define script_err(_ERR_)                                                                          \
@@ -41,7 +42,6 @@ static ScriptFunction g_scriptReadFuncs[] = {
 
 typedef enum {
   OpPrecedence_None,
-  OpPrecedence_Grouping,
   OpPrecedence_Assignment,
   OpPrecedence_Conditional,
   OpPrecedence_Logical,
@@ -75,8 +75,6 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
     return OpPrecedence_Conditional;
-  case ScriptTokenType_SemiColon:
-    return OpPrecedence_Grouping;
   default:
     return OpPrecedence_None;
   }
@@ -163,6 +161,38 @@ static bool read_at_end(const ScriptReadContext* ctx) {
 }
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
+
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
+  ScriptExpr exprs[script_block_size_max];
+  u32        exprCount = 0;
+
+BlockNext:
+  if (UNLIKELY(exprCount == script_block_size_max)) {
+    return script_err(ScriptError_BlockSizeExceedsMaximum);
+  }
+  const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(arg.type == ScriptResult_Fail)) {
+    return script_err(arg.error);
+  }
+  exprs[exprCount++] = arg.expr;
+
+  ScriptToken  token;
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_SemiColon) {
+    ctx->input = remInput; // Consume the semi.
+    if (read_at_end(ctx)) {
+      ctx->input = string_empty;
+      goto BlockEnd;
+    }
+    goto BlockNext;
+  }
+
+BlockEnd:
+  if (exprCount == 1) {
+    return script_expr(exprs[0]);
+  }
+  return script_expr(script_add_block(ctx->doc, exprs, exprCount));
+}
 
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
@@ -270,7 +300,7 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_Grouping);
+  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -281,7 +311,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
 
-  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_Grouping);
+  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(b2.type == ScriptResult_Fail)) {
     return b2;
   }
@@ -415,19 +445,6 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       }
       res = script_expr(selectExpr.expr);
     } break;
-    case ScriptTokenType_SemiColon: {
-      // Expressions are allowed to be ended with semi-colons.
-      if (read_at_end(ctx)) {
-        ctx->input = string_empty;
-        return res;
-      }
-      const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
-      if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
-        return rhs;
-      }
-      const ScriptExpr exprs[] = {res.expr, rhs.expr};
-      res                      = script_expr(script_add_block(ctx->doc, exprs, array_elems(exprs)));
-    } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
     case ScriptTokenType_Le:
@@ -481,7 +498,7 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
       .doc   = doc,
       .input = str,
   };
-  *res = read_expr(&ctx, OpPrecedence_None);
+  *res = read_expr_block(&ctx);
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);

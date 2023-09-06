@@ -12,6 +12,7 @@ typedef enum {
   ScriptError_NoFunctionFoundForIdentifier,
   ScriptError_UnclosedParenthesizedExpression,
   ScriptError_UnterminatedArgumentList,
+  ScriptError_BlockSizeExceedsMaximum,
   ScriptError_ArgumentCountExceedsMaximum,
   ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
