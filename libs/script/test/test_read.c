@@ -15,6 +15,7 @@ spec(read) {
       String input, expect;
     } g_testData[] = {
         // Primary expressions.
+        {string_static(""), string_static("[value: null]")},
         {string_static("null"), string_static("[value: null]")},
         {string_static("42.1337"), string_static("[value: 42.1337]")},
         {string_static("true"), string_static("[value: true]")},
@@ -360,17 +361,17 @@ spec(read) {
                           "      [value: 1]\n"
                           "      [value: 2]"),
         },
-        // {
-        //     string_static("true || ($a = 1; false); $a"),
-        //     string_static("[block]\n"
-        //                   "  [op-binary: logic-or]\n"
-        //                   "    [value: true]\n"
-        //                   "    [block]\n"
-        //                   "      [mem-store: $3645546703]\n"
-        //                   "        [value: 1]\n"
-        //                   "      [value: false]\n"
-        //                   "  [mem-load: $3645546703]"),
-        // },
+        {
+            string_static("true || {$a = 1; false}; $a"),
+            string_static("[block]\n"
+                          "  [op-binary: logic-or]\n"
+                          "    [value: true]\n"
+                          "    [block]\n"
+                          "      [mem-store: $3645546703]\n"
+                          "        [value: 1]\n"
+                          "      [value: false]\n"
+                          "  [mem-load: $3645546703]"),
+        },
 
         // Group expressions.
         {
@@ -410,6 +411,22 @@ spec(read) {
                           "  [mem-store: $1857025631]\n"
                           "    [value: 3]"),
         },
+        {
+            string_static("{1}"),
+            string_static("[value: 1]"),
+        },
+        {
+            string_static("{1; 2}"),
+            string_static("[block]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("{1; 2;}"),
+            string_static("[block]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -426,7 +443,6 @@ spec(read) {
       String      input;
       ScriptError expected;
     } g_testData[] = {
-        {string_static(""), ScriptError_MissingPrimaryExpression},
         {string_static("hello"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
@@ -447,7 +463,7 @@ spec(read) {
         {string_static("1 ? foo"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("1 ? 1 : foo"), ScriptError_NoConstantFoundForIdentifier},
         {string_static("distance"), ScriptError_NoConstantFoundForIdentifier},
-        {string_static("distance("), ScriptError_MissingPrimaryExpression},
+        {string_static("distance("), ScriptError_UnterminatedArgumentList},
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
         {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},
         {string_static("distance(1,"), ScriptError_MissingPrimaryExpression},
@@ -457,6 +473,11 @@ spec(read) {
         {string_static("hello(1 + 2 + 4, 5 + 6 + 7)"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(1,2,3,4,5,6,7,8,9,10)"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(1,2,3,4,5,6,7,8,9,10,"), ScriptError_ArgumentCountExceedsMaximum},
+        {string_static("{"), ScriptError_UnterminatedScope},
+        {string_static("{1"), ScriptError_UnterminatedScope},
+        {string_static("{1;"), ScriptError_UnterminatedScope},
+        {string_static("{1;2"), ScriptError_UnterminatedScope},
+        {string_static("{1;2;"), ScriptError_UnterminatedScope},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

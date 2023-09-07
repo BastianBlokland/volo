@@ -154,17 +154,26 @@ typedef struct {
   u32        recursionDepth;
 } ScriptReadContext;
 
-static bool read_at_end(const ScriptReadContext* ctx) {
-  ScriptToken token;
-  script_lex(ctx->input, null, &token);
-  return token.type == ScriptTokenType_End;
-}
-
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
-static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
-  ScriptExpr exprs[script_block_size_max];
-  u32        exprCount = 0;
+typedef enum {
+  ScriptBlockType_Root,
+  ScriptBlockType_Scope,
+} ScriptBlockType;
+
+/**
+ * NOTE: For scope block the caller is expected to consume the opening curly brace.
+ */
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBlockType type) {
+  ScriptToken token;
+  ScriptExpr  exprs[script_block_size_max];
+  u32         exprCount = 0;
+
+  script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_CurlyClose || token.type == ScriptTokenType_End) {
+    // Empty scope.
+    goto BlockEnd;
+  }
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
@@ -176,22 +185,36 @@ BlockNext:
   }
   exprs[exprCount++] = arg.expr;
 
-  ScriptToken  token;
   const String remInput = script_lex(ctx->input, null, &token);
   if (token.type == ScriptTokenType_SemiColon) {
     ctx->input = remInput; // Consume the semi.
-    if (read_at_end(ctx)) {
+
+    script_lex(ctx->input, null, &token);
+    if (token.type == ScriptTokenType_End) {
       ctx->input = string_empty;
+      goto BlockEnd;
+    }
+    if (type == ScriptBlockType_Scope && token.type == ScriptTokenType_CurlyClose) {
       goto BlockEnd;
     }
     goto BlockNext;
   }
 
 BlockEnd:
-  if (exprCount == 1) {
-    return script_expr(exprs[0]);
+  if (type == ScriptBlockType_Scope) {
+    ctx->input = script_lex(ctx->input, null, &token);
+    if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
+      return script_err(ScriptError_UnterminatedScope);
+    }
   }
-  return script_expr(script_add_block(ctx->doc, exprs, exprCount));
+  switch (exprCount) {
+  case 0:
+    return script_expr(script_add_value(ctx->doc, script_null()));
+  case 1:
+    return script_expr(exprs[0]);
+  default:
+    return script_expr(script_add_block(ctx->doc, exprs, exprCount));
+  }
 }
 
 /**
@@ -232,7 +255,7 @@ static ScriptArgsResult read_args(ScriptReadContext* ctx, ScriptExpr out[script_
   u32         count = 0;
 
   script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_ParenClose) {
+  if (token.type == ScriptTokenType_ParenClose || token.type == ScriptTokenType_End) {
     // Empty argument list.
     goto ArgEnd;
   }
@@ -325,11 +348,16 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
 
   switch (token.type) {
-  /**
-   * Parenthesized expression.
-   */
+    /**
+     * Parenthesized expression.
+     */
   case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
+    /**
+     * Scope.
+     */
+  case ScriptTokenType_CurlyOpen:
+    return read_expr_block(ctx, ScriptBlockType_Scope);
     /**
      * Identifiers.
      */
@@ -498,7 +526,7 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
       .doc   = doc,
       .input = str,
   };
-  *res = read_expr_block(&ctx);
+  *res = read_expr_block(&ctx, ScriptBlockType_Root);
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);

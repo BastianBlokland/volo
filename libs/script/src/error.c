@@ -12,6 +12,7 @@ static const String g_errorStrs[] = {
     string_static("NoConstantFoundForIdentifier"),
     string_static("NoFunctionFoundForIdentifier"),
     string_static("UnclosedParenthesizedExpression"),
+    string_static("UnterminatedScope"),
     string_static("UnterminatedArgumentList"),
     string_static("BlockSizeExceedsMaximum"),
     string_static("ArgumentCountExceedsMaximum"),
