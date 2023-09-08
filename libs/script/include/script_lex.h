@@ -37,6 +37,7 @@ typedef enum {
   ScriptTokenType_Identifier,   // foo
   ScriptTokenType_Key,          // $bar
   ScriptTokenType_If,           // if
+  ScriptTokenType_Else,         // else
   ScriptTokenType_Error,        //
   ScriptTokenType_End,          // \0
 } ScriptTokenType;
