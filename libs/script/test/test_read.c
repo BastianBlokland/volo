@@ -35,56 +35,56 @@ spec(read) {
         },
         {
             string_static("distance(1,2)"),
-            string_static("[op-binary: distance]\n"
+            string_static("[intrinsic: distance]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("distance(1)"),
-            string_static("[op-unary: magnitude]\n"
+            string_static("[intrinsic: magnitude]\n"
                           "  [value: 1]"),
         },
         {
             string_static("distance(1 + 2, 3 / 4)"),
-            string_static("[op-binary: distance]\n"
-                          "  [op-binary: add]\n"
+            string_static("[intrinsic: distance]\n"
+                          "  [intrinsic: add]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
-                          "  [op-binary: div]\n"
+                          "  [intrinsic: div]\n"
                           "    [value: 3]\n"
                           "    [value: 4]"),
         },
         {
             string_static("vector(1, 2, 3)"),
-            string_static("[op-ternary: compose-vector3]\n"
+            string_static("[intrinsic: compose-vector3]\n"
                           "  [value: 1]\n"
                           "  [value: 2]\n"
                           "  [value: 3]"),
         },
         {
             string_static("normalize(1)"),
-            string_static("[op-unary: normalize]\n"
+            string_static("[intrinsic: normalize]\n"
                           "  [value: 1]"),
         },
         {
             string_static("angle(1, 2)"),
-            string_static("[op-binary: angle]\n"
+            string_static("[intrinsic: angle]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("vector_x(1)"),
-            string_static("[op-unary: vector-x]\n"
+            string_static("[intrinsic: vector-x]\n"
                           "  [value: 1]"),
         },
         {
             string_static("vector_y(1)"),
-            string_static("[op-unary: vector-y]\n"
+            string_static("[intrinsic: vector-y]\n"
                           "  [value: 1]"),
         },
         {
             string_static("vector_z(1)"),
-            string_static("[op-unary: vector-z]\n"
+            string_static("[intrinsic: vector-z]\n"
                           "  [value: 1]"),
         },
 
@@ -97,103 +97,103 @@ spec(read) {
         // Unary expressions.
         {
             string_static("-42"),
-            string_static("[op-unary: negate]\n"
+            string_static("[intrinsic: negate]\n"
                           "  [value: 42]"),
         },
         {
             string_static("!true"),
-            string_static("[op-unary: invert]\n"
+            string_static("[intrinsic: invert]\n"
                           "  [value: true]"),
         },
 
         // Binary expressions.
         {
             string_static("null == 42"),
-            string_static("[op-binary: equal]\n"
+            string_static("[intrinsic: equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null != 42"),
-            string_static("[op-binary: not-equal]\n"
+            string_static("[intrinsic: not-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("$hello != null"),
-            string_static("[op-binary: not-equal]\n"
+            string_static("[intrinsic: not-equal]\n"
                           "  [mem-load: $3944927369]\n"
                           "  [value: null]"),
         },
         {
             string_static("null < 42"),
-            string_static("[op-binary: less]\n"
+            string_static("[intrinsic: less]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null <= 42"),
-            string_static("[op-binary: less-or-equal]\n"
+            string_static("[intrinsic: less-or-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null > 42"),
-            string_static("[op-binary: greater]\n"
+            string_static("[intrinsic: greater]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null >= 42"),
-            string_static("[op-binary: greater-or-equal]\n"
+            string_static("[intrinsic: greater-or-equal]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null + 42"),
-            string_static("[op-binary: add]\n"
+            string_static("[intrinsic: add]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null - 42"),
-            string_static("[op-binary: sub]\n"
+            string_static("[intrinsic: sub]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null * 42"),
-            string_static("[op-binary: mul]\n"
+            string_static("[intrinsic: mul]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null / 42"),
-            string_static("[op-binary: div]\n"
+            string_static("[intrinsic: div]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("null % 42"),
-            string_static("[op-binary: mod]\n"
+            string_static("[intrinsic: mod]\n"
                           "  [value: null]\n"
                           "  [value: 42]"),
         },
         {
             string_static("true && false"),
-            string_static("[op-binary: logic-and]\n"
+            string_static("[intrinsic: logic-and]\n"
                           "  [value: true]\n"
                           "  [value: false]"),
         },
         {
             string_static("true || false"),
-            string_static("[op-binary: logic-or]\n"
+            string_static("[intrinsic: logic-or]\n"
                           "  [value: true]\n"
                           "  [value: false]"),
         },
         {
             string_static("null ?? true"),
-            string_static("[op-binary: null-coalescing]\n"
+            string_static("[intrinsic: null-coalescing]\n"
                           "  [value: null]\n"
                           "  [value: true]"),
         },
@@ -201,21 +201,21 @@ spec(read) {
         // Ternary expressions.
         {
             string_static("true ? 1 : 2"),
-            string_static("[op-ternary: select]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("1 > 2 ? 1 + 2 : 3 + 4"),
-            string_static("[op-ternary: select]\n"
-                          "  [op-binary: greater]\n"
+            string_static("[intrinsic: select]\n"
+                          "  [intrinsic: greater]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
-                          "  [op-binary: add]\n"
+                          "  [intrinsic: add]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
-                          "  [op-binary: add]\n"
+                          "  [intrinsic: add]\n"
                           "    [value: 3]\n"
                           "    [value: 4]"),
         },
@@ -224,42 +224,42 @@ spec(read) {
         {
             string_static("$hello += 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: add]\n"
+                          "  [intrinsic: add]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
         {
             string_static("$hello -= 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: sub]\n"
+                          "  [intrinsic: sub]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
         {
             string_static("$hello *= 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: mul]\n"
+                          "  [intrinsic: mul]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
         {
             string_static("$hello /= 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: div]\n"
+                          "  [intrinsic: div]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
         {
             string_static("$hello %= 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: mod]\n"
+                          "  [intrinsic: mod]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
         {
             string_static("$hello ?\?= 42"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: null-coalescing]\n"
+                          "  [intrinsic: null-coalescing]\n"
                           "    [mem-load: $3944927369]\n"
                           "    [value: 42]"),
         },
@@ -267,54 +267,54 @@ spec(read) {
         // Compound expressions.
         {
             string_static("-42 + 1"),
-            string_static("[op-binary: add]\n"
-                          "  [op-unary: negate]\n"
+            string_static("[intrinsic: add]\n"
+                          "  [intrinsic: negate]\n"
                           "    [value: 42]\n"
                           "  [value: 1]"),
         },
         {
             string_static("--42"),
-            string_static("[op-unary: negate]\n"
-                          "  [op-unary: negate]\n"
+            string_static("[intrinsic: negate]\n"
+                          "  [intrinsic: negate]\n"
                           "    [value: 42]"),
         },
         {
             string_static("---42"),
-            string_static("[op-unary: negate]\n"
-                          "  [op-unary: negate]\n"
-                          "    [op-unary: negate]\n"
+            string_static("[intrinsic: negate]\n"
+                          "  [intrinsic: negate]\n"
+                          "    [intrinsic: negate]\n"
                           "      [value: 42]"),
         },
         {
             string_static("-(42 + 1)"),
-            string_static("[op-unary: negate]\n"
-                          "  [op-binary: add]\n"
+            string_static("[intrinsic: negate]\n"
+                          "  [intrinsic: add]\n"
                           "    [value: 42]\n"
                           "    [value: 1]"),
         },
         {
             string_static("1 != 42 > 2"),
-            string_static("[op-binary: not-equal]\n"
+            string_static("[intrinsic: not-equal]\n"
                           "  [value: 1]\n"
-                          "  [op-binary: greater]\n"
+                          "  [intrinsic: greater]\n"
                           "    [value: 42]\n"
                           "    [value: 2]"),
         },
         {
             string_static("null != 1 + 2 + 3"),
-            string_static("[op-binary: not-equal]\n"
+            string_static("[intrinsic: not-equal]\n"
                           "  [value: null]\n"
-                          "  [op-binary: add]\n"
-                          "    [op-binary: add]\n"
+                          "  [intrinsic: add]\n"
+                          "    [intrinsic: add]\n"
                           "      [value: 1]\n"
                           "      [value: 2]\n"
                           "    [value: 3]"),
         },
         {
             string_static("(null != 1) + 2 + 3"),
-            string_static("[op-binary: add]\n"
-                          "  [op-binary: add]\n"
-                          "    [op-binary: not-equal]\n"
+            string_static("[intrinsic: add]\n"
+                          "  [intrinsic: add]\n"
+                          "    [intrinsic: not-equal]\n"
                           "      [value: null]\n"
                           "      [value: 1]\n"
                           "    [value: 2]\n"
@@ -322,16 +322,16 @@ spec(read) {
         },
         {
             string_static("1 != (42 > 2)"),
-            string_static("[op-binary: not-equal]\n"
+            string_static("[intrinsic: not-equal]\n"
                           "  [value: 1]\n"
-                          "  [op-binary: greater]\n"
+                          "  [intrinsic: greater]\n"
                           "    [value: 42]\n"
                           "    [value: 2]"),
         },
         {
             string_static("(1 != 42) > 2"),
-            string_static("[op-binary: greater]\n"
-                          "  [op-binary: not-equal]\n"
+            string_static("[intrinsic: greater]\n"
+                          "  [intrinsic: not-equal]\n"
                           "    [value: 1]\n"
                           "    [value: 42]\n"
                           "  [value: 2]"),
@@ -339,17 +339,17 @@ spec(read) {
         {
             string_static("$hello = 1 + 2"),
             string_static("[mem-store: $3944927369]\n"
-                          "  [op-binary: add]\n"
+                          "  [intrinsic: add]\n"
                           "    [value: 1]\n"
                           "    [value: 2]"),
         },
         {
             string_static("1 * 2 + 2 / 4"),
-            string_static("[op-binary: add]\n"
-                          "  [op-binary: mul]\n"
+            string_static("[intrinsic: add]\n"
+                          "  [intrinsic: mul]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
-                          "  [op-binary: div]\n"
+                          "  [intrinsic: div]\n"
                           "    [value: 2]\n"
                           "    [value: 4]"),
         },
@@ -357,14 +357,14 @@ spec(read) {
             string_static("$hello = $world = 1 + 2"),
             string_static("[mem-store: $3944927369]\n"
                           "  [mem-store: $4293346878]\n"
-                          "    [op-binary: add]\n"
+                          "    [intrinsic: add]\n"
                           "      [value: 1]\n"
                           "      [value: 2]"),
         },
         {
             string_static("true || {$a = 1; false}; $a"),
             string_static("[block]\n"
-                          "  [op-binary: logic-or]\n"
+                          "  [intrinsic: logic-or]\n"
                           "    [value: true]\n"
                           "    [block]\n"
                           "      [mem-store: $3645546703]\n"

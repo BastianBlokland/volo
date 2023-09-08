@@ -20,26 +20,9 @@ typedef struct {
 } ScriptExprMemStore;
 
 typedef struct {
-  ScriptOpNullary op;
-} ScriptExprOpNullary;
-
-typedef struct {
-  ScriptExpr    arg1;
-  ScriptOpUnary op;
-} ScriptExprOpUnary;
-
-typedef struct {
-  ScriptExpr     arg1;
-  ScriptExpr     arg2;
-  ScriptOpBinary op;
-} ScriptExprOpBinary;
-
-typedef struct {
-  ScriptExpr      arg1;
-  ScriptExpr      arg2;
-  ScriptExpr      arg3;
-  ScriptOpTernary op;
-} ScriptExprOpTernary;
+  ScriptExprSet   argSet;
+  ScriptIntrinsic intrinsic;
+} ScriptExprIntrinsic;
 
 typedef struct {
   ScriptExprSet exprSet;
@@ -52,10 +35,7 @@ typedef struct {
     ScriptExprValue     data_value;
     ScriptExprMemLoad   data_mem_load;
     ScriptExprMemStore  data_mem_store;
-    ScriptExprOpNullary data_op_nullary;
-    ScriptExprOpUnary   data_op_unary;
-    ScriptExprOpBinary  data_op_binary;
-    ScriptExprOpTernary data_op_ternary;
+    ScriptExprIntrinsic data_intrinsic;
     ScriptExprBlock     data_block;
   };
 } ScriptExprData;

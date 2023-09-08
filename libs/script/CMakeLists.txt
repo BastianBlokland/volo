@@ -11,7 +11,6 @@ add_library(lib_script STATIC
   src/intrinsic.c
   src/lex.c
   src/mem.c
-  src/operation.c
   src/read.c
   src/result.c
   src/val.c

@@ -13,11 +13,12 @@ typedef struct {
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
 
 INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const ScriptExpr expr) {
-  return &dynarray_begin_t(&ctx->doc->exprData, ScriptExprData)[expr];
+  return dynarray_begin_t(&ctx->doc->exprData, ScriptExprData) + expr;
 }
 
-INLINE_HINT static const ScriptExpr* expr_set_data(const ScriptDoc* doc, const ScriptExprSet set) {
-  return dynarray_at_t(&doc->exprSets, set, ScriptExpr);
+INLINE_HINT static const ScriptExpr*
+expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet set) {
+  return dynarray_begin_t(&ctx->doc->exprSets, ScriptExpr) + set;
 }
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
@@ -34,115 +35,82 @@ INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const Script
   return val;
 }
 
-INLINE_HINT static ScriptVal eval_op_nul(ScriptEvalContext* ctx, const ScriptExprOpNullary* expr) {
-  (void)ctx;
-
-  switch (expr->op) {
-  case ScriptOpNullary_Random:
+INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprIntrinsic* expr) {
+  const ScriptExpr* args = expr_set_data(ctx, expr->argSet);
+  switch (expr->intrinsic) {
+  case ScriptIntrinsic_Random:
     return script_val_random();
-  case ScriptOpNullary_Count:
+  case ScriptIntrinsic_Negate:
+    return script_val_neg(eval(ctx, args[0]));
+  case ScriptIntrinsic_Invert:
+    return script_val_inv(eval(ctx, args[0]));
+  case ScriptIntrinsic_Normalize:
+    return script_val_norm(eval(ctx, args[0]));
+  case ScriptIntrinsic_Magnitude:
+    return script_val_mag(eval(ctx, args[0]));
+  case ScriptIntrinsic_VectorX:
+    return script_val_vector_x(eval(ctx, args[0]));
+  case ScriptIntrinsic_VectorY:
+    return script_val_vector_y(eval(ctx, args[0]));
+  case ScriptIntrinsic_VectorZ:
+    return script_val_vector_z(eval(ctx, args[0]));
+  case ScriptIntrinsic_RoundDown:
+    return script_val_round_down(eval(ctx, args[0]));
+  case ScriptIntrinsic_RoundNearest:
+    return script_val_round_nearest(eval(ctx, args[0]));
+  case ScriptIntrinsic_RoundUp:
+    return script_val_round_up(eval(ctx, args[0]));
+  case ScriptIntrinsic_Equal:
+    return script_bool(script_val_equal(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_NotEqual:
+    return script_bool(!script_val_equal(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_Less:
+    return script_bool(script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_LessOrEqual:
+    return script_bool(!script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_Greater:
+    return script_bool(script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_GreaterOrEqual:
+    return script_bool(!script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
+  case ScriptIntrinsic_LogicAnd:
+    return script_bool(script_truthy(eval(ctx, args[0])) && script_truthy(eval(ctx, args[1])));
+  case ScriptIntrinsic_LogicOr:
+    return script_bool(script_truthy(eval(ctx, args[0])) || script_truthy(eval(ctx, args[1])));
+  case ScriptIntrinsic_NullCoalescing: {
+    const ScriptVal a = eval(ctx, args[0]);
+    return script_val_has(a) ? a : eval(ctx, args[1]);
+  }
+  case ScriptIntrinsic_Add:
+    return script_val_add(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Sub:
+    return script_val_sub(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Mul:
+    return script_val_mul(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Div:
+    return script_val_div(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Mod:
+    return script_val_mod(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Distance:
+    return script_val_dist(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_Angle:
+    return script_val_angle(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_RandomBetween:
+    return script_val_random_between(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_ComposeVector3:
+    return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
+  case ScriptIntrinsic_Select: {
+    const ScriptVal condition = eval(ctx, args[0]);
+    return script_truthy(condition) ? eval(ctx, args[1]) : eval(ctx, args[2]);
+  }
+  case ScriptIntrinsic_Count:
     break;
   }
-  diag_assert_fail("Invalid nullary operation");
-  UNREACHABLE
-}
-
-INLINE_HINT static ScriptVal eval_op_una(ScriptEvalContext* ctx, const ScriptExprOpUnary* expr) {
-  const ScriptVal val = eval(ctx, expr->arg1);
-
-  switch (expr->op) {
-  case ScriptOpUnary_Negate:
-    return script_val_neg(val);
-  case ScriptOpUnary_Invert:
-    return script_val_inv(val);
-  case ScriptOpUnary_Normalize:
-    return script_val_norm(val);
-  case ScriptOpUnary_Magnitude:
-    return script_val_mag(val);
-  case ScriptOpUnary_VectorX:
-    return script_val_vector_x(val);
-  case ScriptOpUnary_VectorY:
-    return script_val_vector_y(val);
-  case ScriptOpUnary_VectorZ:
-    return script_val_vector_z(val);
-  case ScriptOpUnary_RoundDown:
-    return script_val_round_down(val);
-  case ScriptOpUnary_RoundNearest:
-    return script_val_round_nearest(val);
-  case ScriptOpUnary_RoundUp:
-    return script_val_round_up(val);
-  case ScriptOpUnary_Count:
-    break;
-  }
-  diag_assert_fail("Invalid unary operation");
-  UNREACHABLE
-}
-
-INLINE_HINT static ScriptVal eval_op_bin(ScriptEvalContext* ctx, const ScriptExprOpBinary* expr) {
-  const ScriptVal a = eval(ctx, expr->arg1);
-  switch (expr->op) {
-  case ScriptOpBinary_Equal:
-    return script_bool(script_val_equal(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_NotEqual:
-    return script_bool(!script_val_equal(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_Less:
-    return script_bool(script_val_less(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_LessOrEqual:
-    return script_bool(!script_val_greater(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_Greater:
-    return script_bool(script_val_greater(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_GreaterOrEqual:
-    return script_bool(!script_val_less(a, eval(ctx, expr->arg2)));
-  case ScriptOpBinary_LogicAnd:
-    return script_bool(script_truthy(a) && script_truthy(eval(ctx, expr->arg2)));
-  case ScriptOpBinary_LogicOr:
-    return script_bool(script_truthy(a) || script_truthy(eval(ctx, expr->arg2)));
-  case ScriptOpBinary_NullCoalescing:
-    return script_val_has(a) ? a : eval(ctx, expr->arg2);
-  case ScriptOpBinary_Add:
-    return script_val_add(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Sub:
-    return script_val_sub(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Mul:
-    return script_val_mul(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Div:
-    return script_val_div(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Mod:
-    return script_val_mod(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Distance:
-    return script_val_dist(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Angle:
-    return script_val_angle(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_RandomBetween:
-    return script_val_random_between(a, eval(ctx, expr->arg2));
-  case ScriptOpBinary_Count:
-    break;
-  }
-  diag_assert_fail("Invalid binary operation");
-  UNREACHABLE
-}
-
-INLINE_HINT static ScriptVal eval_op_ter(ScriptEvalContext* ctx, const ScriptExprOpTernary* expr) {
-  switch (expr->op) {
-  case ScriptOpTernary_ComposeVector3: {
-    const ScriptVal valX = eval(ctx, expr->arg1);
-    const ScriptVal valY = eval(ctx, expr->arg2);
-    const ScriptVal valZ = eval(ctx, expr->arg3);
-    return script_val_compose_vector3(valX, valY, valZ);
-  }
-  case ScriptOpTernary_Select: {
-    const ScriptVal condition = eval(ctx, expr->arg1);
-    return script_truthy(condition) ? eval(ctx, expr->arg2) : eval(ctx, expr->arg3);
-  }
-  case ScriptOpTernary_Count:
-    break;
-  }
-  diag_assert_fail("Invalid ternary operation");
+  diag_assert_fail("Invalid intrinsic");
   UNREACHABLE
 }
 
 INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExprBlock* expr) {
-  const ScriptExpr* exprs = expr_set_data(ctx->doc, expr->exprSet);
+  const ScriptExpr* exprs = expr_set_data(ctx, expr->exprSet);
 
   // NOTE: Blocks need at least one expression.
   ScriptVal ret;
@@ -160,17 +128,10 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
     return eval_mem_load(ctx, &expr_data(ctx, expr)->data_mem_load);
   case ScriptExprType_MemStore:
     return eval_mem_store(ctx, &expr_data(ctx, expr)->data_mem_store);
-  case ScriptExprType_OpNullary:
-    return eval_op_nul(ctx, &expr_data(ctx, expr)->data_op_nullary);
-  case ScriptExprType_OpUnary:
-    return eval_op_una(ctx, &expr_data(ctx, expr)->data_op_unary);
-  case ScriptExprType_OpBinary:
-    return eval_op_bin(ctx, &expr_data(ctx, expr)->data_op_binary);
-  case ScriptExprType_OpTernary:
-    return eval_op_ter(ctx, &expr_data(ctx, expr)->data_op_ternary);
-  case ScriptExprType_Block: {
+  case ScriptExprType_Intrinsic:
+    return eval_intr(ctx, &expr_data(ctx, expr)->data_intrinsic);
+  case ScriptExprType_Block:
     return eval_block(ctx, &expr_data(ctx, expr)->data_block);
-  }
   case ScriptExprType_Count:
     break;
   }

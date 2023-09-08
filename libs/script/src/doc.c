@@ -49,7 +49,7 @@ script_doc_expr_set_add(ScriptDoc* doc, const ScriptExpr exprs[], const u32 coun
 }
 
 static const ScriptExpr* script_doc_expr_set_data(const ScriptDoc* doc, const ScriptExprSet set) {
-  return dynarray_at_t(&doc->exprSets, set, ScriptExpr);
+  return dynarray_begin_t(&doc->exprSets, ScriptExpr) + set;
 }
 
 ScriptDoc* script_create(Allocator* alloc) {
@@ -115,45 +115,14 @@ ScriptExpr script_add_mem_store(ScriptDoc* doc, const StringHash key, const Scri
       });
 }
 
-ScriptExpr script_add_op_nullary(ScriptDoc* doc, const ScriptOpNullary op) {
+ScriptExpr script_add_intrinsic(ScriptDoc* doc, const ScriptIntrinsic i, const ScriptExpr args[]) {
+  const u32           argCount = script_intrinsic_arg_count(i);
+  const ScriptExprSet argSet   = script_doc_expr_set_add(doc, args, argCount);
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
-          .type            = ScriptExprType_OpNullary,
-          .data_op_nullary = {.op = op},
-      });
-}
-
-ScriptExpr script_add_op_unary(ScriptDoc* doc, const ScriptExpr arg1, const ScriptOpUnary op) {
-  return script_doc_expr_add(
-      doc,
-      (ScriptExprData){
-          .type          = ScriptExprType_OpUnary,
-          .data_op_unary = {.arg1 = arg1, .op = op},
-      });
-}
-
-ScriptExpr script_add_op_binary(
-    ScriptDoc* doc, const ScriptExpr arg1, const ScriptExpr arg2, const ScriptOpBinary op) {
-  return script_doc_expr_add(
-      doc,
-      (ScriptExprData){
-          .type           = ScriptExprType_OpBinary,
-          .data_op_binary = {.arg1 = arg1, .arg2 = arg2, .op = op},
-      });
-}
-
-ScriptExpr script_add_op_ternary(
-    ScriptDoc*            doc,
-    const ScriptExpr      arg1,
-    const ScriptExpr      arg2,
-    const ScriptExpr      arg3,
-    const ScriptOpTernary op) {
-  return script_doc_expr_add(
-      doc,
-      (ScriptExprData){
-          .type            = ScriptExprType_OpTernary,
-          .data_op_ternary = {.arg1 = arg1, .arg2 = arg2, .arg3 = arg3, .op = op},
+          .type           = ScriptExprType_Intrinsic,
+          .data_intrinsic = {.argSet = argSet, .intrinsic = i},
       });
 }
 
@@ -181,10 +150,7 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
     return;
   case ScriptExprType_Value:
   case ScriptExprType_MemLoad:
-  case ScriptExprType_OpNullary:
-  case ScriptExprType_OpUnary:
-  case ScriptExprType_OpBinary:
-  case ScriptExprType_OpTernary:
+  case ScriptExprType_Intrinsic:
   case ScriptExprType_Block:
     return;
   case ScriptExprType_Count:
@@ -214,23 +180,18 @@ void script_expr_visit(
   switch (data->type) {
   case ScriptExprType_Value:
   case ScriptExprType_MemLoad:
-  case ScriptExprType_OpNullary:
     return; // No children.
   case ScriptExprType_MemStore:
     script_expr_visit(doc, data->data_mem_store.val, ctx, visitor);
     return;
-  case ScriptExprType_OpUnary:
-    script_expr_visit(doc, data->data_op_unary.arg1, ctx, visitor);
+  case ScriptExprType_Intrinsic: {
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->data_intrinsic.argSet);
+    const u32         argCount = script_intrinsic_arg_count(data->data_intrinsic.intrinsic);
+    for (u32 i = 0; i != argCount; ++i) {
+      script_expr_visit(doc, args[i], ctx, visitor);
+    }
     return;
-  case ScriptExprType_OpBinary:
-    script_expr_visit(doc, data->data_op_binary.arg1, ctx, visitor);
-    script_expr_visit(doc, data->data_op_binary.arg2, ctx, visitor);
-    return;
-  case ScriptExprType_OpTernary:
-    script_expr_visit(doc, data->data_op_ternary.arg1, ctx, visitor);
-    script_expr_visit(doc, data->data_op_ternary.arg2, ctx, visitor);
-    script_expr_visit(doc, data->data_op_ternary.arg3, ctx, visitor);
-    return;
+  }
   case ScriptExprType_Block: {
     const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
     for (u32 i = 0; i != data->data_block.exprCount; ++i) {
@@ -272,24 +233,15 @@ void script_expr_str_write(
     fmt_write(str, "[mem-store: ${}]", fmt_int(data->data_mem_store.key));
     script_expr_str_write_child(doc, data->data_mem_store.val, indent + 1, str);
     return;
-  case ScriptExprType_OpNullary:
-    fmt_write(str, "[op-nullary: {}]", script_op_nullary_fmt(data->data_op_nullary.op));
+  case ScriptExprType_Intrinsic: {
+    fmt_write(str, "[intrinsic: {}]", script_intrinsic_fmt(data->data_intrinsic.intrinsic));
+    const ScriptExpr* args     = script_doc_expr_set_data(doc, data->data_block.exprSet);
+    const u32         argCount = script_intrinsic_arg_count(data->data_intrinsic.intrinsic);
+    for (u32 i = 0; i != argCount; ++i) {
+      script_expr_str_write_child(doc, args[i], indent + 1, str);
+    }
     return;
-  case ScriptExprType_OpUnary:
-    fmt_write(str, "[op-unary: {}]", script_op_unary_fmt(data->data_op_unary.op));
-    script_expr_str_write_child(doc, data->data_op_unary.arg1, indent + 1, str);
-    return;
-  case ScriptExprType_OpBinary:
-    fmt_write(str, "[op-binary: {}]", script_op_binary_fmt(data->data_op_binary.op));
-    script_expr_str_write_child(doc, data->data_op_binary.arg1, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_op_binary.arg2, indent + 1, str);
-    return;
-  case ScriptExprType_OpTernary:
-    fmt_write(str, "[op-ternary: {}]", script_op_ternary_fmt(data->data_op_ternary.op));
-    script_expr_str_write_child(doc, data->data_op_ternary.arg1, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_op_ternary.arg2, indent + 1, str);
-    script_expr_str_write_child(doc, data->data_op_ternary.arg3, indent + 1, str);
-    return;
+  }
   case ScriptExprType_Block: {
     fmt_write(str, "[block]");
     const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);

@@ -1,7 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "core_types.h"
-#include "script_operation.h"
+#include "script_intrinsic.h"
 #include "script_val.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -19,10 +19,7 @@ typedef enum {
   ScriptExprType_Value,
   ScriptExprType_MemLoad,
   ScriptExprType_MemStore,
-  ScriptExprType_OpNullary,
-  ScriptExprType_OpUnary,
-  ScriptExprType_OpBinary,
-  ScriptExprType_OpTernary,
+  ScriptExprType_Intrinsic,
   ScriptExprType_Block,
 
   ScriptExprType_Count,
@@ -51,10 +48,7 @@ void script_destroy(ScriptDoc*);
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);
 ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
-ScriptExpr script_add_op_nullary(ScriptDoc*, ScriptOpNullary);
-ScriptExpr script_add_op_unary(ScriptDoc*, ScriptExpr, ScriptOpUnary);
-ScriptExpr script_add_op_binary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptOpBinary);
-ScriptExpr script_add_op_ternary(ScriptDoc*, ScriptExpr, ScriptExpr, ScriptExpr, ScriptOpTernary);
+ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
 
 /**
