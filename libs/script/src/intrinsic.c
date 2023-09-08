@@ -36,7 +36,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RandomBetween:
     return 2;
   case ScriptIntrinsic_ComposeVector3:
-  case ScriptIntrinsic_Select:
+  case ScriptIntrinsic_If:
     return 3;
   case ScriptIntrinsic_Count:
     break;
@@ -77,7 +77,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("angle"),
       string_static("random-between"),
       string_static("compose-vector3"),
-      string_static("select"),
+      string_static("if"),
   };
   ASSERT(array_elems(g_names) == ScriptIntrinsic_Count, "Incorrect number of names");
   return g_names[i];

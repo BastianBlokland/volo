@@ -98,10 +98,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_val_random_between(eval(ctx, args[0]), eval(ctx, args[1]));
   case ScriptIntrinsic_ComposeVector3:
     return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
-  case ScriptIntrinsic_Select: {
-    const ScriptVal condition = eval(ctx, args[0]);
-    return script_truthy(condition) ? eval(ctx, args[1]) : eval(ctx, args[2]);
-  }
+  case ScriptIntrinsic_If:
+    return script_truthy(eval(ctx, args[0])) ? eval(ctx, args[1]) : eval(ctx, args[2]);
   case ScriptIntrinsic_Count:
     break;
   }

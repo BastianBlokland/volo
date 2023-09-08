@@ -109,6 +109,13 @@ static String script_lex_identifier(String str, ScriptToken* out) {
     return str;
   }
 
+  if (string_eq(identifier, string_lit("if"))) {
+    return out->type = ScriptTokenType_If, string_consume(str, end);
+  }
+  if (string_eq(identifier, string_lit("else"))) {
+    return out->type = ScriptTokenType_Else, string_consume(str, end);
+  }
+
   out->type           = ScriptTokenType_Identifier;
   out->val_identifier = string_hash(identifier);
   return string_consume(str, end);
@@ -313,6 +320,10 @@ String script_token_str_scratch(const ScriptToken* token) {
     return fmt_write_scratch("${}", fmt_int(token->val_identifier, .base = 16));
   case ScriptTokenType_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
+  case ScriptTokenType_If:
+    return string_lit("if");
+  case ScriptTokenType_Else:
+    return string_lit("else");
   case ScriptTokenType_Error:
     return script_error_str(token->val_error);
   case ScriptTokenType_End:

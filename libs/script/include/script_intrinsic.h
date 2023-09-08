@@ -31,7 +31,7 @@ typedef enum {
   ScriptIntrinsic_Angle,
   ScriptIntrinsic_RandomBetween,
   ScriptIntrinsic_ComposeVector3,
-  ScriptIntrinsic_Select,
+  ScriptIntrinsic_If,
 
   ScriptIntrinsic_Count,
 } ScriptIntrinsic;

@@ -16,6 +16,7 @@ static const String g_errorStrs[] = {
     string_static("UnterminatedArgumentList"),
     string_static("BlockSizeExceedsMaximum"),
     string_static("ArgumentCountExceedsMaximum"),
+    string_static("InvalidConditionCountForIf"),
     string_static("MissingColonInSelectExpression"),
     string_static("UnexpectedTokenAfterExpression"),
 };

@@ -94,6 +94,32 @@ spec(read) {
         {string_static("((42.1337))"), string_static("[value: 42.1337]")},
         {string_static("(($hello))"), string_static("[mem-load: $3944927369]")},
 
+        // If expressions.
+        {
+            string_static("if(true) 2"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [value: 2]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("if(true) 2 else 3"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
+        },
+        {
+            string_static("if(false) 2 else if(true) 3"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: false]\n"
+                          "  [value: 2]\n"
+                          "  [intrinsic: if]\n"
+                          "    [value: true]\n"
+                          "    [value: 3]\n"
+                          "    [value: null]"),
+        },
+
         // Unary expressions.
         {
             string_static("-42"),
@@ -201,14 +227,14 @@ spec(read) {
         // Ternary expressions.
         {
             string_static("true ? 1 : 2"),
-            string_static("[intrinsic: select]\n"
+            string_static("[intrinsic: if]\n"
                           "  [value: true]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("1 > 2 ? 1 + 2 : 3 + 4"),
-            string_static("[intrinsic: select]\n"
+            string_static("[intrinsic: if]\n"
                           "  [intrinsic: greater]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
@@ -478,6 +504,12 @@ spec(read) {
         {string_static("{1;"), ScriptError_UnterminatedScope},
         {string_static("{1;2"), ScriptError_UnterminatedScope},
         {string_static("{1;2;"), ScriptError_UnterminatedScope},
+        {string_static("if"), ScriptError_InvalidConditionCountForIf},
+        {string_static("if("), ScriptError_UnterminatedArgumentList},
+        {string_static("if()"), ScriptError_InvalidConditionCountForIf},
+        {string_static("if(1,2)"), ScriptError_InvalidConditionCountForIf},
+        {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
+        {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
