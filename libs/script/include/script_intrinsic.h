@@ -37,6 +37,11 @@ typedef enum {
 } ScriptIntrinsic;
 
 /**
+ * Return how many arguments an intrinsic takes.
+ */
+u32 script_intrinsic_arg_count(ScriptIntrinsic);
+
+/**
  * Get a textual representation of the given intrinsic.
  */
 String script_intrinsic_str(ScriptIntrinsic);

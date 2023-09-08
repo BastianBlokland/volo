@@ -2,6 +2,49 @@
 #include "core_diag.h"
 #include "script_intrinsic.h"
 
+u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
+  switch (i) {
+  case ScriptIntrinsic_Random:
+    return 0;
+  case ScriptIntrinsic_Negate:
+  case ScriptIntrinsic_Invert:
+  case ScriptIntrinsic_Normalize:
+  case ScriptIntrinsic_Magnitude:
+  case ScriptIntrinsic_VectorX:
+  case ScriptIntrinsic_VectorY:
+  case ScriptIntrinsic_VectorZ:
+  case ScriptIntrinsic_RoundDown:
+  case ScriptIntrinsic_RoundNearest:
+  case ScriptIntrinsic_RoundUp:
+    return 1;
+  case ScriptIntrinsic_Equal:
+  case ScriptIntrinsic_NotEqual:
+  case ScriptIntrinsic_Less:
+  case ScriptIntrinsic_LessOrEqual:
+  case ScriptIntrinsic_Greater:
+  case ScriptIntrinsic_GreaterOrEqual:
+  case ScriptIntrinsic_LogicAnd:
+  case ScriptIntrinsic_LogicOr:
+  case ScriptIntrinsic_NullCoalescing:
+  case ScriptIntrinsic_Add:
+  case ScriptIntrinsic_Sub:
+  case ScriptIntrinsic_Mul:
+  case ScriptIntrinsic_Div:
+  case ScriptIntrinsic_Mod:
+  case ScriptIntrinsic_Distance:
+  case ScriptIntrinsic_Angle:
+  case ScriptIntrinsic_RandomBetween:
+    return 2;
+  case ScriptIntrinsic_ComposeVector3:
+  case ScriptIntrinsic_Select:
+    return 3;
+  case ScriptIntrinsic_Count:
+    break;
+  }
+  diag_assert_fail("Unknown intrinsic type");
+  UNREACHABLE
+}
+
 String script_intrinsic_str(const ScriptIntrinsic i) {
   diag_assert(i < ScriptIntrinsic_Count);
   static const String g_names[] = {
