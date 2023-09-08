@@ -4,6 +4,7 @@
 #define script_constants_max 15
 
 typedef u32 ScriptValId;
+typedef u32 ScriptExprSet;
 
 typedef struct {
   ScriptValId valId;
@@ -41,7 +42,8 @@ typedef struct {
 } ScriptExprOpTernary;
 
 typedef struct {
-  u32 blockIndex, blockSize;
+  ScriptExprSet exprSet;
+  u32           exprCount;
 } ScriptExprBlock;
 
 typedef struct {
@@ -64,9 +66,9 @@ typedef struct {
 } ScriptConstant;
 
 struct sScriptDoc {
-  DynArray       exprData;   // ScriptExprData[]
-  DynArray       blockExprs; // ScriptExpr[]
-  DynArray       values;     // ScriptVal[]
+  DynArray       exprData; // ScriptExprData[]
+  DynArray       exprSets; // ScriptExpr[]
+  DynArray       values;   // ScriptVal[]
   ScriptConstant constants[script_constants_max];
   Allocator*     alloc;
 };
@@ -75,11 +77,6 @@ struct sScriptDoc {
  * Add new expressions.
  */
 ScriptExpr script_add_value_id(ScriptDoc*, ScriptValId);
-
-/**
- * Retrieve a pointer to a block of expressions.
- */
-const ScriptExpr* script_doc_block_exprs(const ScriptDoc*, u32 index);
 
 /**
  * Lookup a constant by name.

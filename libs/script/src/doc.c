@@ -41,13 +41,24 @@ static void script_doc_constant_add(ScriptDoc* doc, const String name, const Scr
   diag_crash_msg("Script constants count exceeded");
 }
 
+static ScriptExprSet
+script_doc_expr_set_add(ScriptDoc* doc, const ScriptExpr exprs[], const u32 count) {
+  const ScriptExprSet set = (ScriptExprSet)doc->exprSets.size;
+  mem_cpy(dynarray_push(&doc->exprSets, count), mem_create(exprs, sizeof(ScriptExpr) * count));
+  return set;
+}
+
+static const ScriptExpr* script_doc_expr_set_data(const ScriptDoc* doc, const ScriptExprSet set) {
+  return dynarray_at_t(&doc->exprSets, set, ScriptExpr);
+}
+
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
   *doc           = (ScriptDoc){
-      .exprData   = dynarray_create_t(alloc, ScriptExprData, 64),
-      .blockExprs = dynarray_create_t(alloc, ScriptExpr, 32),
-      .values     = dynarray_create_t(alloc, ScriptVal, 32),
-      .alloc      = alloc,
+      .exprData = dynarray_create_t(alloc, ScriptExprData, 64),
+      .exprSets = dynarray_create_t(alloc, ScriptExpr, 32),
+      .values   = dynarray_create_t(alloc, ScriptVal, 32),
+      .alloc    = alloc,
   };
 
   // Register build-in constants.
@@ -69,7 +80,7 @@ ScriptDoc* script_create(Allocator* alloc) {
 
 void script_destroy(ScriptDoc* doc) {
   dynarray_destroy(&doc->exprData);
-  dynarray_destroy(&doc->blockExprs);
+  dynarray_destroy(&doc->exprSets);
   dynarray_destroy(&doc->values);
   alloc_free_t(doc->alloc, doc);
 }
@@ -149,16 +160,12 @@ ScriptExpr script_add_op_ternary(
 ScriptExpr script_add_block(ScriptDoc* doc, const ScriptExpr exprs[], const u32 exprCount) {
   diag_assert_msg(exprCount, "Zero sized blocks are not supported");
 
-  const u32 blockIndex = (u32)doc->blockExprs.size;
-  mem_cpy(
-      dynarray_push(&doc->blockExprs, exprCount),
-      mem_create(exprs, sizeof(ScriptExpr) * exprCount));
-
+  const ScriptExprSet set = script_doc_expr_set_add(doc, exprs, exprCount);
   return script_doc_expr_add(
       doc,
       (ScriptExprData){
           .type       = ScriptExprType_Block,
-          .data_block = {.blockIndex = blockIndex, .blockSize = exprCount},
+          .data_block = {.exprSet = set, .exprCount = exprCount},
       });
 }
 
@@ -225,9 +232,9 @@ void script_expr_visit(
     script_expr_visit(doc, data->data_op_ternary.arg3, ctx, visitor);
     return;
   case ScriptExprType_Block: {
-    const ScriptExpr* blockExprs = script_doc_block_exprs(doc, data->data_block.blockIndex);
-    for (u32 i = 0; i != data->data_block.blockSize; ++i) {
-      script_expr_visit(doc, blockExprs[i], ctx, visitor);
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
+    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+      script_expr_visit(doc, exprs[i], ctx, visitor);
     }
     return;
   }
@@ -285,9 +292,9 @@ void script_expr_str_write(
     return;
   case ScriptExprType_Block: {
     fmt_write(str, "[block]");
-    const ScriptExpr* blockExprs = script_doc_block_exprs(doc, data->data_block.blockIndex);
-    for (u32 i = 0; i != data->data_block.blockSize; ++i) {
-      script_expr_str_write_child(doc, blockExprs[i], indent + 1, str);
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
+    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+      script_expr_str_write_child(doc, exprs[i], indent + 1, str);
     }
     return;
   }
@@ -317,10 +324,6 @@ ScriptExpr script_add_value_id(ScriptDoc* doc, const ScriptValId valId) {
           .type       = ScriptExprType_Value,
           .data_value = {.valId = valId},
       });
-}
-
-const ScriptExpr* script_doc_block_exprs(const ScriptDoc* doc, const u32 index) {
-  return dynarray_at_t(&doc->blockExprs, index, ScriptExpr);
 }
 
 ScriptValId script_doc_constant_lookup(const ScriptDoc* doc, const StringHash nameHash) {

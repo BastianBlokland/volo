@@ -16,6 +16,10 @@ INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const
   return &dynarray_begin_t(&ctx->doc->exprData, ScriptExprData)[expr];
 }
 
+INLINE_HINT static const ScriptExpr* expr_set_data(const ScriptDoc* doc, const ScriptExprSet set) {
+  return dynarray_at_t(&doc->exprSets, set, ScriptExpr);
+}
+
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
   return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
 }
@@ -138,12 +142,12 @@ INLINE_HINT static ScriptVal eval_op_ter(ScriptEvalContext* ctx, const ScriptExp
 }
 
 INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExprBlock* expr) {
-  const ScriptExpr* blockExprs = script_doc_block_exprs(ctx->doc, expr->blockIndex);
+  const ScriptExpr* exprs = expr_set_data(ctx->doc, expr->exprSet);
 
   // NOTE: Blocks need at least one expression.
   ScriptVal ret;
-  for (u32 i = 0; i != expr->blockSize; ++i) {
-    ret = eval(ctx, blockExprs[i]);
+  for (u32 i = 0; i != expr->exprCount; ++i) {
+    ret = eval(ctx, exprs[i]);
   }
   return ret;
 }
