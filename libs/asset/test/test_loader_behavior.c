@@ -84,7 +84,7 @@ static const struct {
         .text = string_static("{\n"
                               "\"$type\": \"AssetAiNode_Condition\",\n"
                               "\"$name\": \"Hello\",\n"
-                              "\"script\": \"\"\n"
+                              "\"script\": \"~\"\n"
                               "}"),
     },
     {
@@ -99,7 +99,7 @@ static const struct {
         .id   = string_static("malformed-execute.bt"),
         .text = string_static("{\n"
                               "\"$type\": \"AssetAiNode_Execute\",\n"
-                              "\"script\": \"\"\n"
+                              "\"script\": \"~\"\n"
                               "}"),
     },
 };
