@@ -329,9 +329,8 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return b2;
   }
 
-  const ScriptIntrinsic intr       = ScriptIntrinsic_Select;
-  const ScriptExpr      intrArgs[] = {condition, b1.expr, b2.expr};
-  return script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
+  const ScriptExpr intrArgs[] = {condition, b1.expr, b2.expr};
+  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
