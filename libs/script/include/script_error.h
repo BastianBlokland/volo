@@ -15,6 +15,7 @@ typedef enum {
   ScriptError_UnterminatedArgumentList,
   ScriptError_BlockSizeExceedsMaximum,
   ScriptError_ArgumentCountExceedsMaximum,
+  ScriptError_InvalidConditionCountForIf,
   ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
 

@@ -296,7 +296,7 @@ static ScriptReadResult read_expr_constant(ScriptReadContext* ctx, const StringH
 static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringHash identifier) {
   ScriptExpr             args[script_args_max];
   const ScriptArgsResult argsRes = read_args(ctx, args);
-  if (argsRes.type == ScriptResult_Fail) {
+  if (UNLIKELY(argsRes.type == ScriptResult_Fail)) {
     return script_err(argsRes.error);
   }
 
@@ -310,6 +310,45 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
     return script_expr(script_add_intrinsic(ctx->doc, func->intr, args));
   }
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
+}
+
+static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
+  ScriptToken token;
+  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+    return script_err(ScriptError_InvalidConditionCountForIf);
+  }
+
+  ScriptExpr             conditions[script_args_max];
+  const ScriptArgsResult conditionRes = read_args(ctx, conditions);
+  if (UNLIKELY(conditionRes.type == ScriptResult_Fail)) {
+    return script_err(conditionRes.error);
+  }
+  if (UNLIKELY(conditionRes.argCount != 1)) {
+    return script_err(ScriptError_InvalidConditionCountForIf);
+  }
+
+  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(b1.type == ScriptResult_Fail)) {
+    return b1;
+  }
+
+  ScriptExpr   b2Expr;
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_Else) {
+    ctx->input = remInput; // Consume the else keyword.
+
+    const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_None);
+    if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+      return b2;
+    }
+    b2Expr = b2.expr;
+  } else {
+    b2Expr = script_add_value(ctx->doc, script_null());
+  }
+
+  const ScriptExpr intrArgs[] = {conditions[0], b1.expr, b2Expr};
+  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
@@ -338,19 +377,24 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
 
   switch (token.type) {
-    /**
-     * Parenthesized expression.
-     */
+  /**
+   * Parenthesized expression.
+   */
   case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
-    /**
-     * Scope.
-     */
+  /**
+   * Scope.
+   */
   case ScriptTokenType_CurlyOpen:
     return read_expr_block(ctx, ScriptBlockType_Scope);
-    /**
-     * Identifiers.
-     */
+  /**
+   * Keywords.
+   */
+  case ScriptTokenType_If:
+    return read_expr_if(ctx);
+  /**
+   * Identifiers.
+   */
   case ScriptTokenType_Identifier: {
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken);
