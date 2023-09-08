@@ -101,6 +101,8 @@ spec(lex) {
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
         {string_static("$"), tok_err(KeyEmpty)},
 
+        {string_static("if"), tok_simple(If)},
+
         {string_static("&"), tok_err(InvalidChar)},
         {string_static("|"), tok_err(InvalidChar)},
         {string_static("@"), tok_err(InvalidChar)},

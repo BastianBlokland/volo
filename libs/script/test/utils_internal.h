@@ -6,7 +6,6 @@
 // clang-format off
 
 #define tok_simple(_TYPE_) (ScriptToken){.type = ScriptTokenType_##_TYPE_}
-#define tok_null(void)     (ScriptToken){.type = ScriptTokenType_Null}
 #define tok_number(_VAL_)  (ScriptToken){.type = ScriptTokenType_Number, .val_number = (_VAL_)}
 #define tok_bool(_VAL_)    (ScriptToken){.type = ScriptTokenType_Bool, .val_bool = (_VAL_)}
 #define tok_id(_VAL_)      (ScriptToken){.type = ScriptTokenType_Identifier, .val_identifier = string_hash(_VAL_)}
