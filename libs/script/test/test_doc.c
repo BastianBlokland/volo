@@ -45,79 +45,71 @@ spec(doc) {
         "  [value: 42]");
   }
 
-  it("can create basic nullary operation expressions") {
-    check_expr_str_lit(
-        doc, script_add_op_nullary(doc, ScriptOpNullary_Random), "[op-nullary: random]");
-  }
-
-  it("can create basic unary operation expressions") {
+  it("can create basic intrinsic expressions") {
     check_expr_str_lit(
         doc,
-        script_add_op_unary(doc, script_add_value(doc, script_number(42)), ScriptOpUnary_Negate),
-        "[op-unary: negate]\n"
-        "  [value: 42]");
-  }
-
-  it("can create basic binary operation expressions") {
-    check_expr_str_lit(
-        doc,
-        script_add_op_binary(
+        script_add_intrinsic(
             doc,
-            script_add_value(doc, script_number(1)),
-            script_add_value(doc, script_number(2)),
-            ScriptOpBinary_Greater),
-        "[op-binary: greater]\n"
-        "  [value: 1]\n"
-        "  [value: 2]");
-  }
-
-  it("can create basic ternary operation expressions") {
-    check_expr_str_lit(
-        doc,
-        script_add_op_ternary(
-            doc,
-            script_add_value(doc, script_number(1)),
-            script_add_value(doc, script_number(2)),
-            script_add_value(doc, script_number(3)),
-            ScriptOpTernary_ComposeVector3),
-        "[op-ternary: compose-vector3]\n"
+            ScriptIntrinsic_ComposeVector3,
+            (const ScriptExpr[]){
+                script_add_value(doc, script_number(1)),
+                script_add_value(doc, script_number(2)),
+                script_add_value(doc, script_number(3)),
+            }),
+        "[intrinsic: compose-vector3]\n"
         "  [value: 1]\n"
         "  [value: 2]\n"
         "  [value: 3]");
   }
 
-  it("can create nested operation expressions") {
+  it("can create nested intrinsic expressions") {
     check_expr_str_lit(
         doc,
-        script_add_op_binary(
+        script_add_intrinsic(
             doc,
-            script_add_op_binary(
-                doc,
-                script_add_value(doc, script_null()),
-                script_add_value(doc, script_vector3_lit(1, 2, 3)),
-                ScriptOpBinary_Equal),
-            script_add_op_unary(
-                doc, script_add_value(doc, script_number(42)), ScriptOpUnary_Negate),
-            ScriptOpBinary_Greater),
-        "[op-binary: greater]\n"
-        "  [op-binary: equal]\n"
+            ScriptIntrinsic_Greater,
+            (const ScriptExpr[]){
+                script_add_intrinsic(
+                    doc,
+                    ScriptIntrinsic_Equal,
+                    (const ScriptExpr[]){
+                        script_add_value(doc, script_null()),
+                        script_add_value(doc, script_vector3_lit(1, 2, 3)),
+                    }),
+                script_add_intrinsic(
+                    doc,
+                    ScriptIntrinsic_Negate,
+                    (const ScriptExpr[]){
+                        script_add_value(doc, script_number(42)),
+                    }),
+            }),
+        "[intrinsic: greater]\n"
+        "  [intrinsic: equal]\n"
         "    [value: null]\n"
         "    [value: 1, 2, 3]\n"
-        "  [op-unary: negate]\n"
+        "  [intrinsic: negate]\n"
         "    [value: 42]");
   }
 
   it("can visit expressions") {
-    const ScriptExpr expr = script_add_op_binary(
+    const ScriptExpr expr = script_add_intrinsic(
         doc,
-        script_add_op_binary(
-            doc,
-            script_add_value(doc, script_null()),
-            script_add_value(doc, script_vector3_lit(1, 2, 3)),
-            ScriptOpBinary_Equal),
-        script_add_op_unary(doc, script_add_value(doc, script_number(42)), ScriptOpUnary_Negate),
-        ScriptOpBinary_Greater);
-
+        ScriptIntrinsic_Greater,
+        (const ScriptExpr[]){
+            script_add_intrinsic(
+                doc,
+                ScriptIntrinsic_Equal,
+                (const ScriptExpr[]){
+                    script_add_value(doc, script_null()),
+                    script_add_value(doc, script_vector3_lit(1, 2, 3)),
+                }),
+            script_add_intrinsic(
+                doc,
+                ScriptIntrinsic_Negate,
+                (const ScriptExpr[]){
+                    script_add_value(doc, script_number(42)),
+                }),
+        });
     CountVisitorContext ctx = {0};
     script_expr_visit(doc, expr, &ctx, &test_doc_count_visitor);
     check_eq_int(ctx.count, 6);
@@ -142,7 +134,7 @@ spec(doc) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult readRes;
-      script_read_all(doc, g_testData[i].input, &readRes);
+      script_read(doc, g_testData[i].input, &readRes);
       check_require(readRes.type == ScriptResult_Success);
 
       check(script_expr_readonly(doc, readRes.expr) == g_testData[i].readonly);

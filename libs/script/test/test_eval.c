@@ -27,6 +27,7 @@ spec(eval) {
       ScriptVal expected;
     } testData[] = {
         // Literal values.
+        {string_static(""), script_null()},
         {string_static("null"), script_null()},
         {string_static("42.1337"), script_number(42.1337)},
         {string_static("true"), script_bool(true)},
@@ -118,17 +119,17 @@ spec(eval) {
         {string_static("false || true"), script_bool(true)},
         {string_static("true || false"), script_bool(true)},
         {string_static("true || true"), script_bool(true)},
-        {string_static("false && ($a = 1; false); $a"), script_null()},
-        {string_static("true && ($b = 2; false); $b"), script_number(2)},
-        {string_static("false || ($c = 3; false); $c"), script_number(3)},
-        {string_static("true || ($d = 4; false); $d"), script_null()},
+        {string_static("false && {$a = 1; false}; $a"), script_null()},
+        {string_static("true && {$b = 2; false}; $b"), script_number(2)},
+        {string_static("false || {$c = 3; false}; $c"), script_number(3)},
+        {string_static("true || {$d = 4; false}; $d"), script_null()},
 
         // Condition expressions.
         {string_static("null ?? null"), script_null()},
         {string_static("null ?? true"), script_bool(true)},
         {string_static("false ?? true"), script_bool(false)},
-        {string_static("null ?? ($i = 10; false); $i"), script_number(10)},
-        {string_static("1 ?? ($j = 11; false); $j"), script_null()},
+        {string_static("null ?? {$i = 10; false}; $i"), script_number(10)},
+        {string_static("1 ?? {$j = 11; false}; $j"), script_null()},
         {string_static("true ? 42 : 1337"), script_number(42)},
         {string_static("false ? 42 : 1337"), script_number(1337)},
         {string_static("2 > 1 ? 42 : 1337"), script_number(42)},
@@ -137,7 +138,7 @@ spec(eval) {
         {string_static("(false ? $m = 44 : 0); $m"), script_null()},
         {string_static("(false ? 0 : $n = 55); $n"), script_number(55)},
 
-        // Group expressions.
+        // Blocks.
         {string_static("1; 2; 3"), script_number(3)},
         {string_static("1; 2; 3;"), script_number(3)},
         {string_static("$e = 1; $e + 41"), script_number(42)},
@@ -150,7 +151,7 @@ spec(eval) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       ScriptReadResult readRes;
-      script_read_all(doc, testData[i].input, &readRes);
+      script_read(doc, testData[i].input, &readRes);
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
@@ -166,7 +167,7 @@ spec(eval) {
 
   it("can store memory values") {
     ScriptReadResult readRes;
-    script_read_all(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
+    script_read(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     script_eval(doc, mem, readRes.expr);

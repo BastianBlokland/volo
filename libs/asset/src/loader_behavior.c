@@ -205,7 +205,7 @@ static AssetAiNodeSequence build_node_sequence(BuildContext* ctx, const AssetAiN
 
 static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
   ScriptReadResult readRes;
-  script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
+  script_read(ctx->scriptDoc, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     log_e("Invalid condition script", log_param("error", script_error_fmt(readRes.error)));
@@ -221,7 +221,7 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 
 static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNodeDef* def) {
   ScriptReadResult readRes;
-  script_read_all(ctx->scriptDoc, def->data_condition.script, &readRes);
+  script_read(ctx->scriptDoc, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     log_e("Invalid execute script", log_param("error", script_error_fmt(readRes.error)));

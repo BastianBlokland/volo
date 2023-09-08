@@ -2,12 +2,12 @@
 #include "core_diag.h"
 #include "core_thread.h"
 #include "script_lex.h"
-#include "script_operation.h"
 #include "script_read.h"
 
 #include "doc_internal.h"
 
 #define script_depth_max 25
+#define script_block_size_max 128
 #define script_args_max 10
 
 #define script_err(_ERR_)                                                                          \
@@ -17,31 +17,29 @@
   (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
 
 typedef struct {
-  String     name;
-  StringHash nameHash; // NOTE: Initialized at runtime.
-  u32        argCount;
-  u32        opType; // ScriptOpNullary / ScriptOpUnary / ScriptOpBinary / ScriptOpTernary
+  String          name;
+  StringHash      nameHash; // NOTE: Initialized at runtime.
+  ScriptIntrinsic intr;
 } ScriptFunction;
 
-static ScriptFunction g_scriptReadFuncs[] = {
-    {.name = string_static("vector"), .argCount = 3, .opType = ScriptOpTernary_ComposeVector3},
-    {.name = string_static("vector_x"), .argCount = 1, .opType = ScriptOpUnary_VectorX},
-    {.name = string_static("vector_y"), .argCount = 1, .opType = ScriptOpUnary_VectorY},
-    {.name = string_static("vector_z"), .argCount = 1, .opType = ScriptOpUnary_VectorZ},
-    {.name = string_static("distance"), .argCount = 2, .opType = ScriptOpBinary_Distance},
-    {.name = string_static("distance"), .argCount = 1, .opType = ScriptOpUnary_Magnitude},
-    {.name = string_static("normalize"), .argCount = 1, .opType = ScriptOpUnary_Normalize},
-    {.name = string_static("angle"), .argCount = 2, .opType = ScriptOpBinary_Angle},
-    {.name = string_static("random"), .argCount = 0, .opType = ScriptOpNullary_Random},
-    {.name = string_static("random"), .argCount = 2, .opType = ScriptOpBinary_RandomBetween},
-    {.name = string_static("round_down"), .argCount = 1, .opType = ScriptOpUnary_RoundDown},
-    {.name = string_static("round_nearest"), .argCount = 1, .opType = ScriptOpUnary_RoundNearest},
-    {.name = string_static("round_up"), .argCount = 1, .opType = ScriptOpUnary_RoundUp},
+static ScriptFunction g_scriptIntrinsicFuncs[] = {
+    {.name = string_static("vector"), .intr = ScriptIntrinsic_ComposeVector3},
+    {.name = string_static("vector_x"), .intr = ScriptIntrinsic_VectorX},
+    {.name = string_static("vector_y"), .intr = ScriptIntrinsic_VectorY},
+    {.name = string_static("vector_z"), .intr = ScriptIntrinsic_VectorZ},
+    {.name = string_static("distance"), .intr = ScriptIntrinsic_Distance},
+    {.name = string_static("distance"), .intr = ScriptIntrinsic_Magnitude},
+    {.name = string_static("normalize"), .intr = ScriptIntrinsic_Normalize},
+    {.name = string_static("angle"), .intr = ScriptIntrinsic_Angle},
+    {.name = string_static("random"), .intr = ScriptIntrinsic_Random},
+    {.name = string_static("random"), .intr = ScriptIntrinsic_RandomBetween},
+    {.name = string_static("round_down"), .intr = ScriptIntrinsic_RoundDown},
+    {.name = string_static("round_nearest"), .intr = ScriptIntrinsic_RoundNearest},
+    {.name = string_static("round_up"), .intr = ScriptIntrinsic_RoundUp},
 };
 
 typedef enum {
   OpPrecedence_None,
-  OpPrecedence_Grouping,
   OpPrecedence_Assignment,
   OpPrecedence_Conditional,
   OpPrecedence_Logical,
@@ -75,77 +73,73 @@ static OpPrecedence op_precedence(const ScriptTokenType type) {
   case ScriptTokenType_QMark:
   case ScriptTokenType_QMarkQMark:
     return OpPrecedence_Conditional;
-  case ScriptTokenType_SemiColon:
-    return OpPrecedence_Grouping;
   default:
     return OpPrecedence_None;
   }
 }
 
-static ScriptOpUnary token_op_unary(const ScriptTokenType type) {
+static ScriptIntrinsic token_op_unary(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_Minus:
-    return ScriptOpUnary_Negate;
+    return ScriptIntrinsic_Negate;
   case ScriptTokenType_Bang:
-    return ScriptOpUnary_Invert;
+    return ScriptIntrinsic_Invert;
   default:
     diag_assert_fail("Invalid unary operation token");
     UNREACHABLE
   }
 }
 
-static ScriptOpBinary token_op_binary(const ScriptTokenType type) {
+static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_EqEq:
-    return ScriptOpBinary_Equal;
+    return ScriptIntrinsic_Equal;
   case ScriptTokenType_BangEq:
-    return ScriptOpBinary_NotEqual;
+    return ScriptIntrinsic_NotEqual;
   case ScriptTokenType_Le:
-    return ScriptOpBinary_Less;
+    return ScriptIntrinsic_Less;
   case ScriptTokenType_LeEq:
-    return ScriptOpBinary_LessOrEqual;
+    return ScriptIntrinsic_LessOrEqual;
   case ScriptTokenType_Gt:
-    return ScriptOpBinary_Greater;
+    return ScriptIntrinsic_Greater;
   case ScriptTokenType_GtEq:
-    return ScriptOpBinary_GreaterOrEqual;
+    return ScriptIntrinsic_GreaterOrEqual;
   case ScriptTokenType_Plus:
-    return ScriptOpBinary_Add;
+    return ScriptIntrinsic_Add;
   case ScriptTokenType_Minus:
-    return ScriptOpBinary_Sub;
+    return ScriptIntrinsic_Sub;
   case ScriptTokenType_Star:
-    return ScriptOpBinary_Mul;
+    return ScriptIntrinsic_Mul;
   case ScriptTokenType_Slash:
-    return ScriptOpBinary_Div;
+    return ScriptIntrinsic_Div;
   case ScriptTokenType_Percent:
-    return ScriptOpBinary_Mod;
-  case ScriptTokenType_SemiColon:
-    return ScriptOpBinary_RetRight;
+    return ScriptIntrinsic_Mod;
   case ScriptTokenType_AmpAmp:
-    return ScriptOpBinary_LogicAnd;
+    return ScriptIntrinsic_LogicAnd;
   case ScriptTokenType_PipePipe:
-    return ScriptOpBinary_LogicOr;
+    return ScriptIntrinsic_LogicOr;
   case ScriptTokenType_QMarkQMark:
-    return ScriptOpBinary_NullCoalescing;
+    return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
   }
 }
 
-static ScriptOpBinary token_op_binary_modify(const ScriptTokenType type) {
+static ScriptIntrinsic token_op_binary_modify(const ScriptTokenType type) {
   switch (type) {
   case ScriptTokenType_PlusEq:
-    return ScriptOpBinary_Add;
+    return ScriptIntrinsic_Add;
   case ScriptTokenType_MinusEq:
-    return ScriptOpBinary_Sub;
+    return ScriptIntrinsic_Sub;
   case ScriptTokenType_StarEq:
-    return ScriptOpBinary_Mul;
+    return ScriptIntrinsic_Mul;
   case ScriptTokenType_SlashEq:
-    return ScriptOpBinary_Div;
+    return ScriptIntrinsic_Div;
   case ScriptTokenType_PercentEq:
-    return ScriptOpBinary_Mod;
+    return ScriptIntrinsic_Mod;
   case ScriptTokenType_QMarkQMarkEq:
-    return ScriptOpBinary_NullCoalescing;
+    return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary modify operation token");
     UNREACHABLE
@@ -158,13 +152,68 @@ typedef struct {
   u32        recursionDepth;
 } ScriptReadContext;
 
-static bool read_at_end(const ScriptReadContext* ctx) {
-  ScriptToken token;
-  script_lex(ctx->input, null, &token);
-  return token.type == ScriptTokenType_End;
-}
-
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
+
+typedef enum {
+  ScriptBlockType_Root,
+  ScriptBlockType_Scope,
+} ScriptBlockType;
+
+/**
+ * NOTE: For scope block the caller is expected to consume the opening curly brace.
+ */
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBlockType type) {
+  ScriptToken token;
+  ScriptExpr  exprs[script_block_size_max];
+  u32         exprCount = 0;
+
+  script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_CurlyClose || token.type == ScriptTokenType_End) {
+    // Empty scope.
+    goto BlockEnd;
+  }
+
+BlockNext:
+  if (UNLIKELY(exprCount == script_block_size_max)) {
+    return script_err(ScriptError_BlockSizeExceedsMaximum);
+  }
+  const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(arg.type == ScriptResult_Fail)) {
+    return script_err(arg.error);
+  }
+  exprs[exprCount++] = arg.expr;
+
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_SemiColon) {
+    ctx->input = remInput; // Consume the semi.
+
+    script_lex(ctx->input, null, &token);
+    if (token.type == ScriptTokenType_End) {
+      ctx->input = string_empty;
+      goto BlockEnd;
+    }
+    if (type == ScriptBlockType_Scope && token.type == ScriptTokenType_CurlyClose) {
+      goto BlockEnd;
+    }
+    goto BlockNext;
+  }
+
+BlockEnd:
+  if (type == ScriptBlockType_Scope) {
+    ctx->input = script_lex(ctx->input, null, &token);
+    if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
+      return script_err(ScriptError_UnterminatedScope);
+    }
+  }
+  switch (exprCount) {
+  case 0:
+    return script_expr(script_add_value(ctx->doc, script_null()));
+  case 1:
+    return script_expr(exprs[0]);
+  default:
+    return script_expr(script_add_block(ctx->doc, exprs, exprCount));
+  }
+}
 
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
@@ -204,7 +253,7 @@ static ScriptArgsResult read_args(ScriptReadContext* ctx, ScriptExpr out[script_
   u32         count = 0;
 
   script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_ParenClose) {
+  if (token.type == ScriptTokenType_ParenClose || token.type == ScriptTokenType_End) {
     // Empty argument list.
     goto ArgEnd;
   }
@@ -251,28 +300,20 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
     return script_err(argsRes.error);
   }
 
-  array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
-    if (func->nameHash != identifier || argsRes.argCount != func->argCount) {
+  array_for_t(g_scriptIntrinsicFuncs, ScriptFunction, func) {
+    if (func->nameHash != identifier) {
       continue;
     }
-    switch (func->argCount) {
-    case 0:
-      return script_expr(script_add_op_nullary(ctx->doc, func->opType));
-    case 1:
-      return script_expr(script_add_op_unary(ctx->doc, args[0], func->opType));
-    case 2:
-      return script_expr(script_add_op_binary(ctx->doc, args[0], args[1], func->opType));
-    case 3:
-      return script_expr(script_add_op_ternary(ctx->doc, args[0], args[1], args[2], func->opType));
-    default:
-      diag_crash_msg("Unsupported function argument count ({})", fmt_int(func->argCount));
+    if (argsRes.argCount != script_intrinsic_arg_count(func->intr)) {
+      continue;
     }
+    return script_expr(script_add_intrinsic(ctx->doc, func->intr, args));
   }
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_Grouping);
+  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -283,13 +324,14 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
 
-  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_Grouping);
+  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(b2.type == ScriptResult_Fail)) {
     return b2;
   }
 
-  const ScriptOpTernary op = ScriptOpTernary_Select;
-  return script_expr(script_add_op_ternary(ctx->doc, condition, b1.expr, b2.expr, op));
+  const ScriptIntrinsic intr       = ScriptIntrinsic_Select;
+  const ScriptExpr      intrArgs[] = {condition, b1.expr, b2.expr};
+  return script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
 }
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
@@ -297,11 +339,16 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
 
   switch (token.type) {
-  /**
-   * Parenthesized expression.
-   */
+    /**
+     * Parenthesized expression.
+     */
   case ScriptTokenType_ParenOpen:
     return read_expr_paren(ctx);
+    /**
+     * Scope.
+     */
+  case ScriptTokenType_CurlyOpen:
+    return read_expr_block(ctx, ScriptBlockType_Scope);
     /**
      * Identifiers.
      */
@@ -323,8 +370,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     if (UNLIKELY(val.type == ScriptResult_Fail)) {
       return val;
     }
-    const ScriptOpUnary op = token_op_unary(token.type);
-    return script_expr(script_add_op_unary(ctx->doc, val.expr, op));
+    const ScriptIntrinsic intr       = token_op_unary(token.type);
+    const ScriptExpr      intrArgs[] = {val.expr};
+    return script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
   }
   /**
    * Literals.
@@ -357,10 +405,11 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
         return val;
       }
-      const ScriptExpr     loadExpr = script_add_mem_load(ctx->doc, token.val_key);
-      const ScriptOpBinary op       = token_op_binary_modify(nextToken.type);
-      const ScriptExpr     opExpr   = script_add_op_binary(ctx->doc, loadExpr, val.expr, op);
-      return script_expr(script_add_mem_store(ctx->doc, token.val_key, opExpr));
+      const ScriptExpr      loadExpr   = script_add_mem_load(ctx->doc, token.val_key);
+      const ScriptIntrinsic itr        = token_op_binary_modify(nextToken.type);
+      const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
+      const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
+      return script_expr(script_add_mem_store(ctx->doc, token.val_key, itrExpr));
     }
     default:
       return script_expr(script_add_mem_load(ctx->doc, token.val_key));
@@ -417,13 +466,6 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       }
       res = script_expr(selectExpr.expr);
     } break;
-    case ScriptTokenType_SemiColon:
-      // Expressions are allowed to be ended with semi-colons.
-      if (read_at_end(ctx)) {
-        ctx->input = string_empty;
-        return res;
-      }
-      // Fallthrough.
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
     case ScriptTokenType_Le:
@@ -442,8 +484,9 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;
       }
-      const ScriptOpBinary op = token_op_binary(nextToken.type);
-      res                     = script_expr(script_add_op_binary(ctx->doc, res.expr, rhs.expr, op));
+      const ScriptIntrinsic intr       = token_op_binary(nextToken.type);
+      const ScriptExpr      intrArgs[] = {res.expr, rhs.expr};
+      res = script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
     } break;
     default:
       diag_assert_fail("Invalid operator token");
@@ -462,7 +505,7 @@ static void script_read_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_init) {
-    array_for_t(g_scriptReadFuncs, ScriptFunction, func) {
+    array_for_t(g_scriptIntrinsicFuncs, ScriptFunction, func) {
       func->nameHash = string_hash(func->name);
     }
     g_init = true;
@@ -470,25 +513,14 @@ static void script_read_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-String script_read_expr(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
   script_read_init();
 
   ScriptReadContext ctx = {
       .doc   = doc,
       .input = str,
   };
-  *res = read_expr(&ctx, OpPrecedence_None);
-  return ctx.input;
-}
-
-void script_read_all(ScriptDoc* doc, const String str, ScriptReadResult* res) {
-  script_read_init();
-
-  ScriptReadContext ctx = {
-      .doc   = doc,
-      .input = str,
-  };
-  *res = read_expr(&ctx, OpPrecedence_None);
+  *res = read_expr_block(&ctx, ScriptBlockType_Root);
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);

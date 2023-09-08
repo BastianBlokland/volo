@@ -4,6 +4,7 @@
 #define script_constants_max 15
 
 typedef u32 ScriptValId;
+typedef u32 ScriptExprSet;
 
 typedef struct {
   ScriptValId valId;
@@ -19,26 +20,14 @@ typedef struct {
 } ScriptExprMemStore;
 
 typedef struct {
-  ScriptOpNullary op;
-} ScriptExprOpNullary;
+  ScriptExprSet   argSet;
+  ScriptIntrinsic intrinsic;
+} ScriptExprIntrinsic;
 
 typedef struct {
-  ScriptExpr    arg1;
-  ScriptOpUnary op;
-} ScriptExprOpUnary;
-
-typedef struct {
-  ScriptExpr     arg1;
-  ScriptExpr     arg2;
-  ScriptOpBinary op;
-} ScriptExprOpBinary;
-
-typedef struct {
-  ScriptExpr      arg1;
-  ScriptExpr      arg2;
-  ScriptExpr      arg3;
-  ScriptOpTernary op;
-} ScriptExprOpTernary;
+  ScriptExprSet exprSet;
+  u32           exprCount;
+} ScriptExprBlock;
 
 typedef struct {
   ScriptExprType type;
@@ -46,10 +35,8 @@ typedef struct {
     ScriptExprValue     data_value;
     ScriptExprMemLoad   data_mem_load;
     ScriptExprMemStore  data_mem_store;
-    ScriptExprOpNullary data_op_nullary;
-    ScriptExprOpUnary   data_op_unary;
-    ScriptExprOpBinary  data_op_binary;
-    ScriptExprOpTernary data_op_ternary;
+    ScriptExprIntrinsic data_intrinsic;
+    ScriptExprBlock     data_block;
   };
 } ScriptExprData;
 
@@ -59,8 +46,9 @@ typedef struct {
 } ScriptConstant;
 
 struct sScriptDoc {
-  DynArray       exprs;  // ScriptExprData[]
-  DynArray       values; // ScriptVal[]
+  DynArray       exprData; // ScriptExprData[]
+  DynArray       exprSets; // ScriptExpr[]
+  DynArray       values;   // ScriptVal[]
   ScriptConstant constants[script_constants_max];
   Allocator*     alloc;
 };
