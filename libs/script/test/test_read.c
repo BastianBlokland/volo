@@ -640,5 +640,20 @@ spec(read) {
     dynstring_destroy(&str);
   }
 
+  it("fails when using too many variables") {
+    DynString str = dynstring_create(g_alloc_scratch, 1024);
+    for (u32 i = 0; i != (script_var_count + 1); ++i) {
+      dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
+    }
+
+    ScriptReadResult res;
+    script_read(doc, dynstring_view(&str), &res);
+
+    check_require(res.type == ScriptResult_Fail);
+    check_eq_int(res.error, ScriptError_VariableLimitExceeded);
+
+    dynstring_destroy(&str);
+  }
+
   teardown() { script_destroy(doc); }
 }
