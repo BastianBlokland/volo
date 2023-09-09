@@ -599,6 +599,7 @@ spec(read) {
         {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
         {string_static("var"), ScriptError_VariableIdentifierMissing},
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var random"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},

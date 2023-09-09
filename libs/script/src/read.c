@@ -63,6 +63,15 @@ static void script_builtin_func_add(const String id, const ScriptIntrinsic intr)
   };
 }
 
+static bool script_builtin_func_exists(const StringHash id) {
+  for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
+    if (g_scriptBuiltinFuncs[i].idHash == id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, const u32 argc) {
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     if (g_scriptBuiltinFuncs[i].idHash == id && g_scriptBuiltinFuncs[i].argCount == argc) {
@@ -466,6 +475,9 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
     return script_err(ScriptError_VariableIdentifierConflicts);
   }
   if (script_var_lookup(ctx, token.val_identifier)) {
+    return script_err(ScriptError_VariableIdentifierConflicts);
+  }
+  if (script_builtin_func_exists(token.val_identifier)) {
     return script_err(ScriptError_VariableIdentifierConflicts);
   }
 
