@@ -201,8 +201,7 @@ static void repl_edit_submit(ReplState* state) {
 }
 
 static void repl_edit_render(const ReplState* state) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
-  DynString buffer    = dynstring_create_over(bufferMem);
+  DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All); // Clear line.
   tty_write_set_cursor_hor_sequence(&buffer, 0);            // Move cursor to beginning of line.
