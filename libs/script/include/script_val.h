@@ -12,6 +12,7 @@ typedef enum {
   ScriptType_Bool,
   ScriptType_Vector3,
   ScriptType_Entity,
+  ScriptType_String,
 
   ScriptType_Count,
 } ScriptType;
@@ -25,6 +26,7 @@ typedef union {
   bool        unsafeBool;
   GeoVector   unsafeVector;
   EcsEntityId unsafeEntity;
+  StringHash  unsafeStringHash;
 } ScriptVal;
 
 ASSERT(sizeof(ScriptVal) == 16, "Expected ScriptVal's size to be 128 bits");
@@ -45,6 +47,7 @@ ScriptVal script_vector3(GeoVector);
 ScriptVal script_vector3_lit(f32 x, f32 y, f32 z);
 ScriptVal script_entity(EcsEntityId);
 ScriptVal script_entity_or_null(EcsEntityId);
+ScriptVal script_string(StringHash);
 ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
@@ -54,6 +57,7 @@ f64          script_get_number(ScriptVal, f64 fallback);
 bool         script_get_bool(ScriptVal, bool fallback);
 GeoVector    script_get_vector3(ScriptVal, GeoVector fallback);
 EcsEntityId  script_get_entity(ScriptVal, EcsEntityId fallback);
+StringHash   script_get_string(ScriptVal, StringHash fallback);
 TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
 
 /**

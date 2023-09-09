@@ -189,6 +189,21 @@ static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
   return false;
 }
 
+static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
+  const StringHash valStrHash = script_get_string(*value, 0);
+  if (!valStrHash) {
+    ui_label(canvas, string_lit("\"\""));
+    return false;
+  }
+  const String str = stringtable_lookup(g_stringtable, valStrHash);
+  if (string_is_empty(str)) {
+    ui_label(canvas, fmt_write_scratch("#{}", fmt_int(valStrHash, .base = 16)));
+    return false;
+  }
+  ui_label(canvas, fmt_write_scratch("\"{}\"", fmt_text(str)));
+  return false;
+}
+
 static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
@@ -202,6 +217,8 @@ static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
     return memory_draw_vector3(canvas, value);
   case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
+  case ScriptType_String:
+    return memory_draw_string(canvas, value);
   case ScriptType_Count:
     break;
   }
