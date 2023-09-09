@@ -1,3 +1,4 @@
+#include "core_annotation.h"
 #include "core_diag.h"
 #include "script_eval.h"
 #include "script_mem.h"
@@ -129,7 +130,7 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   return ret;
 }
 
-static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
+NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
