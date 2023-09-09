@@ -474,7 +474,18 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
     return script_err(ScriptError_VariableLimitExceeded);
   }
 
-  const ScriptExpr valExpr = script_add_value(ctx->doc, script_null());
+  ScriptExpr   valExpr;
+  const String remInput = script_lex(ctx->input, null, &token);
+  if (token.type == ScriptTokenType_Eq) {
+    ctx->input                 = remInput; // Consume the '=' token.
+    const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
+    if (UNLIKELY(res.type == ScriptResult_Fail)) {
+      return script_err(res.error);
+    }
+    valExpr = res.expr;
+  } else {
+    valExpr = script_add_value(ctx->doc, script_null());
+  }
   return script_expr(script_add_var_store(ctx->doc, varId, valExpr));
 }
 
