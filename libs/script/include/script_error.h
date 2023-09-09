@@ -5,6 +5,7 @@ typedef enum {
   ScriptError_InvalidChar,
   ScriptError_InvalidUtf8,
   ScriptError_KeyEmpty,
+  ScriptError_UnterminatedString,
   ScriptError_RecursionLimitExceeded,
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,

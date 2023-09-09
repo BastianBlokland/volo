@@ -6,6 +6,7 @@ static const String g_errorStrs[] = {
     string_static("InvalidChar"),
     string_static("InvalidUtf8"),
     string_static("KeyEmpty"),
+    string_static("UnterminatedString"),
     string_static("RecursionLimitExceeded"),
     string_static("MissingPrimaryExpression"),
     string_static("InvalidPrimaryExpression"),
