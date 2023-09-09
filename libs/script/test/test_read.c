@@ -462,6 +462,13 @@ spec(read) {
                           "  [value: null]"),
         },
         {
+            string_static("var a; a"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-load: 0]"),
+        },
+        {
             string_static("var a = 42"),
             string_static("[var-store: 0]\n"
                           "  [value: 42]"),
