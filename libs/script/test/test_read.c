@@ -502,6 +502,22 @@ spec(read) {
                           "  [var-store: 0]\n"
                           "    [value: 4]"),
         },
+        {
+            string_static("var a = 42; {a}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 42]\n"
+                          "  [var-load: 0]"),
+        },
+        {
+            string_static("var a = 42; {a * a}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 42]\n"
+                          "  [intrinsic: mul]\n"
+                          "    [var-load: 0]\n"
+                          "    [var-load: 0]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
@@ -559,6 +575,12 @@ spec(read) {
         {string_static("if(1,2)"), ScriptError_InvalidConditionCountForIf},
         {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
         {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
+        {string_static("var"), ScriptError_VariableIdentifierMissing},
+        {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var a ="), ScriptError_MissingPrimaryExpression},
+        {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
