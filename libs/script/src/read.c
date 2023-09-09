@@ -578,7 +578,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_None);
+  const ScriptReadResult b1 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -589,7 +589,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
 
-  const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_None);
+  const ScriptReadResult b2 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
   if (UNLIKELY(b2.type == ScriptResult_Fail)) {
     return b2;
   }
