@@ -17,7 +17,19 @@ typedef enum {
   ReplFlags_None         = 0,
   ReplFlags_OutputTokens = 1 << 0,
   ReplFlags_OutputAst    = 1 << 1,
+  ReplFlags_OutputStats  = 1 << 2,
 } ReplFlags;
+
+typedef struct {
+  u32 exprs[ScriptExprType_Count];
+  u32 exprsTotal;
+} ReplScriptStats;
+
+static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  ReplScriptStats* stats = ctx;
+  ++stats->exprs[script_expr_type(doc, expr)];
+  ++stats->exprsTotal;
+}
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
@@ -30,7 +42,7 @@ static void repl_output_error(const String message) {
   repl_output(text);
 }
 
-static void repl_output_debug_tokens(String text) {
+static void repl_output_tokens(String text) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -49,8 +61,22 @@ static void repl_output_debug_tokens(String text) {
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_debug_ast(const ScriptDoc* script, const ScriptExpr expr) {
+static void repl_output_ast(const ScriptDoc* script, const ScriptExpr expr) {
   repl_output(fmt_write_scratch("{}\n", script_expr_fmt(script, expr)));
+}
+
+static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
+  ReplScriptStats stats = {0};
+  script_expr_visit(script, expr, &stats, repl_script_collect_stats);
+
+  // clang-format off
+  repl_output(fmt_write_scratch("Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprType_Value])));
+  repl_output(fmt_write_scratch("Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_MemLoad])));
+  repl_output(fmt_write_scratch("Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore])));
+  repl_output(fmt_write_scratch("Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic])));
+  repl_output(fmt_write_scratch("Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block])));
+  repl_output(fmt_write_scratch("Expr total:     {}\n", fmt_int(stats.exprsTotal)));
+  // clang-format on
 }
 
 static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
@@ -146,7 +172,7 @@ static void repl_edit_submit(ReplState* state) {
   state->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(state->editBuffer));
 
   if (state->flags & ReplFlags_OutputTokens) {
-    repl_output_debug_tokens(dynstring_view(state->editBuffer));
+    repl_output_tokens(dynstring_view(state->editBuffer));
   }
 
   ScriptDoc*       script = script_create(g_alloc_heap);
@@ -155,7 +181,10 @@ static void repl_edit_submit(ReplState* state) {
 
   if (res.type == ScriptResult_Success) {
     if (state->flags & ReplFlags_OutputAst) {
-      repl_output_debug_ast(script, res.expr);
+      repl_output_ast(script, res.expr);
+    }
+    if (state->flags & ReplFlags_OutputStats) {
+      repl_output_stats(script, res.expr);
     }
     const ScriptVal value = script_eval(script, state->scriptMem, res.expr);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
@@ -284,7 +313,7 @@ Stop:
   return 0;
 }
 
-static CliId g_tokensFlag, g_astFlag, g_helpFlag;
+static CliId g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Script ReadEvalPrintLoop utility."));
@@ -295,10 +324,14 @@ void app_cli_configure(CliApp* app) {
   g_astFlag = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
   cli_register_desc(app, g_astFlag, string_lit("Ouput the abstract-syntax-tree expressions."));
 
+  g_statsFlag = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
+  cli_register_desc(app, g_statsFlag, string_lit("Ouput script statistics."));
+
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
   cli_register_exclusions(app, g_helpFlag, g_tokensFlag);
   cli_register_exclusions(app, g_helpFlag, g_astFlag);
+  cli_register_exclusions(app, g_helpFlag, g_statsFlag);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -313,6 +346,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   if (cli_parse_provided(invoc, g_astFlag)) {
     flags |= ReplFlags_OutputAst;
+  }
+  if (cli_parse_provided(invoc, g_statsFlag)) {
+    flags |= ReplFlags_OutputStats;
   }
 
   return repl_run_interactive(flags);
