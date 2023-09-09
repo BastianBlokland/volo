@@ -56,9 +56,28 @@ static bool script_is_word_seperator(const u8 c) {
   }
 }
 
+static bool script_is_string_end(const u8 c) {
+  switch (c) {
+  case '\0':
+  case '\n':
+  case '\r':
+  case '"':
+    return true;
+  default:
+    return false;
+  }
+}
+
 static u32 script_scan_word_end(const String str) {
   u32 end = 0;
   for (; end < str.size && !script_is_word_seperator(*string_at(str, end)); ++end)
+    ;
+  return end;
+}
+
+static u32 script_scan_string_end(const String str) {
+  u32 end = 0;
+  for (; end < str.size && !script_is_string_end(*string_at(str, end)); ++end)
     ;
   return end;
 }
@@ -97,6 +116,28 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
   out->type    = ScriptTokenType_Key;
   out->val_key = keyHash;
   return string_consume(str, end);
+}
+
+static String script_lex_string(String str, StringTable* stringtable, ScriptToken* out) {
+  diag_assert(*string_begin(str) == '"');
+  str = string_consume(str, 1); // Skip the leading '"'.
+
+  const u32 end = script_scan_string_end(str);
+  if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
+    *out = script_token_err(ScriptError_UnterminatedString);
+    return str;
+  }
+
+  const String val = string_slice(str, 0, end);
+  if (UNLIKELY(!utf8_validate(val))) {
+    *out = script_token_err(ScriptError_InvalidUtf8);
+    return str;
+  }
+  const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
+
+  out->type       = ScriptTokenType_String;
+  out->val_string = valHash;
+  return string_consume(str, end + 1); // + 1 for the closing '"'.
 }
 
 static String script_lex_identifier(String str, ScriptToken* out) {
@@ -216,6 +257,8 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       return script_lex_number_positive(str, out);
     case '$':
       return script_lex_key(str, stringtable, out);
+    case '"':
+      return script_lex_string(str, stringtable, out);
     case ' ':
     case '\n':
     case '\r':
@@ -245,6 +288,8 @@ bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
     return a->val_identifier == b->val_identifier;
   case ScriptTokenType_Key:
     return a->val_key == b->val_key;
+  case ScriptTokenType_String:
+    return a->val_string == b->val_string;
   case ScriptTokenType_Error:
     return a->val_error == b->val_error;
   default:
@@ -317,9 +362,11 @@ String script_token_str_scratch(const ScriptToken* token) {
   case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
   case ScriptTokenType_Identifier:
-    return fmt_write_scratch("${}", fmt_int(token->val_identifier, .base = 16));
+    return fmt_write_scratch("{}", fmt_int(token->val_identifier, .base = 16));
   case ScriptTokenType_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
+  case ScriptTokenType_String:
+    return fmt_write_scratch("#{}", fmt_int(token->val_string, .base = 16));
   case ScriptTokenType_If:
     return string_lit("if");
   case ScriptTokenType_Else:

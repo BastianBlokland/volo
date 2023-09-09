@@ -189,6 +189,11 @@ static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
   return false;
 }
 
+static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
+  ui_label(canvas, script_val_str_scratch(*value));
+  return false;
+}
+
 static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
@@ -202,6 +207,8 @@ static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
     return memory_draw_vector3(canvas, value);
   case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
+  case ScriptType_String:
+    return memory_draw_string(canvas, value);
   case ScriptType_Count:
     break;
   }

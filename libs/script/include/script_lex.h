@@ -36,6 +36,7 @@ typedef enum {
   ScriptTokenType_Number,       // 42.1337
   ScriptTokenType_Identifier,   // foo
   ScriptTokenType_Key,          // $bar
+  ScriptTokenType_String,       // "Hello World"
   ScriptTokenType_If,           // if
   ScriptTokenType_Else,         // else
   ScriptTokenType_Error,        //
@@ -48,6 +49,7 @@ typedef struct {
     f64         val_number;
     StringHash  val_identifier;
     StringHash  val_key;
+    StringHash  val_string;
     ScriptError val_error;
   };
 } ScriptToken;

@@ -23,6 +23,10 @@ spec(val) {
 
     check_eq_int(script_type(script_time(time_seconds(2))), ScriptType_Number);
     check_eq_int(script_get_time(script_time(time_seconds(2)), 0), time_seconds(2));
+
+    const ScriptVal str = script_string(string_hash_lit("Hello World"));
+    check_eq_int(script_type(str), ScriptType_String);
+    check(script_get_string(str, 0) == string_hash_lit("Hello World"));
   }
 
   it("clears the w component of vector3's") {
@@ -53,6 +57,10 @@ spec(val) {
 
     check(script_get_entity(script_entity(0x1), 0x2) == 0x1);
     check(script_get_entity(script_null(), 0x2) == 0x2);
+
+    const ScriptVal str = script_string(string_hash_lit("Hello World"));
+    check(script_get_string(str, 42) == string_hash_lit("Hello World"));
+    check(script_get_string(script_null(), 42) == 42);
   }
 
   it("can test if a value is truthy") {
@@ -62,7 +70,8 @@ spec(val) {
     check(!script_truthy(script_bool(false)));
     check(script_truthy(script_vector3_lit(1, 2, 0)));
     check(script_truthy(script_entity(u64_lit(0x42) << 32)));
-    check(!script_truthy(script_entity(0x0)));
+    check(script_truthy(script_entity(0x0)));
+    check(script_truthy(script_string(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is falsy") {
@@ -72,7 +81,8 @@ spec(val) {
     check(script_falsy(script_bool(false)));
     check(!script_falsy(script_vector3_lit(1, 2, 0)));
     check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
-    check(script_falsy(script_entity(0x0)));
+    check(!script_falsy(script_entity(0x0)));
+    check(!script_falsy(script_string(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is not null") {
@@ -93,6 +103,7 @@ spec(val) {
     check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
     check_eq_string(script_val_type_str(ScriptType_Vector3), string_lit("vector3"));
     check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
+    check_eq_string(script_val_type_str(ScriptType_String), string_lit("string"));
   }
 
   it("can create a textual representation of a value") {
@@ -111,6 +122,7 @@ spec(val) {
         {script_time(time_hour), string_lit("3600")},
         {script_time(time_milliseconds(500)), string_lit("0.5")},
         {script_time(time_milliseconds(42)), string_lit("0.042")},
+        {script_string(string_hash_lit("Hello World")), string_lit("#F185CECD")},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -146,6 +158,18 @@ spec(val) {
         {script_entity(1), script_entity(2), .expected = false},
 
         {script_number(1), script_bool(true), .expected = false},
+
+        {script_string(string_hash_lit("A")), script_null(), .expected = false},
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("A")),
+            .expected = true,
+        },
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = false,
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -184,6 +208,12 @@ spec(val) {
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
 
         {script_number(1), script_bool(true), .expected = false},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = false,
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -226,6 +256,12 @@ spec(val) {
         {script_time(time_seconds(1)), script_time(time_seconds(1)), .expected = false},
 
         {script_number(1), script_bool(true), .expected = false},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = false,
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -251,6 +287,7 @@ spec(val) {
         {script_bool(true), .expected = script_null()},
         {script_vector3_lit(1, 2, 3), .expected = script_vector3_lit(-1, -2, -3)},
         {script_time(time_seconds(2)), .expected = script_time(time_seconds(-2))},
+        {script_string(string_hash_lit("A")), .expected = script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -270,6 +307,7 @@ spec(val) {
         {script_bool(false), .expected = script_bool(true)},
         {script_vector3_lit(1, 2, 3), .expected = script_bool(false)},
         {script_time(time_seconds(2)), .expected = script_bool(false)},
+        {script_string(string_hash_lit("A")), .expected = script_bool(false)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -306,6 +344,12 @@ spec(val) {
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -342,6 +386,12 @@ spec(val) {
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -380,6 +430,12 @@ spec(val) {
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -418,6 +474,12 @@ spec(val) {
         {.a = script_time(time_seconds(1)), .b = script_null(), .expected = script_null()},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -459,6 +521,12 @@ spec(val) {
         {.a        = script_vector3_lit(4, 6, 6),
          .b        = script_number(4),
          .expected = script_vector3_lit(0, 2, 2)},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -503,6 +571,12 @@ spec(val) {
          .expected = script_time(time_seconds(8))},
 
         {.a = script_entity(0x1), .b = script_entity(0x2), .expected = script_null()},
+
+        {
+            script_string(string_hash_lit("A")),
+            script_string(string_hash_lit("B")),
+            .expected = script_null(),
+        },
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

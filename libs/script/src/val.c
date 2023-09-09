@@ -4,14 +4,12 @@
 #include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "core_stringtable.h"
 #include "core_time.h"
 #include "script_val.h"
 
 /**
  * ScriptVal's are 128bit values with 128bit alignment.
- *
- * Values are stored using a simple scheme where the type-tag is stored after the value payload.
- * In the future more compact representations can be explored.
  *
  * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
  * |---------|---------------|---------------|------------|--------------|
@@ -20,6 +18,7 @@
  * | Bool    | 0 / 1         | unused        | unused     | type tag (2) |
  * | Vector3 | f32 x         | f32 y         | f32 z      | type tag (3) |
  * | Entity  | lower 32 bits | upper 32 bits | unused     | type tag (4) |
+ * | String  | u32           | unused        | unused     | type tag (5) |
  *
  * NOTE: Assumes little-endian byte order.
  */
@@ -39,6 +38,10 @@ INLINE_HINT static GeoVector val_as_vector3(const ScriptVal value) {
 }
 
 INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) { return value.unsafeEntity; }
+
+INLINE_HINT static StringHash val_as_string(const ScriptVal value) {
+  return value.unsafeStringHash;
+}
 
 ScriptType script_type(const ScriptVal value) { return (ScriptType)value.data[3]; }
 
@@ -86,6 +89,13 @@ ScriptVal script_entity_or_null(const EcsEntityId entity) {
   return entity ? script_entity(entity) : script_null();
 }
 
+ScriptVal script_string(const StringHash str) {
+  ScriptVal result;
+  result.unsafeStringHash = str;
+  result.data[3]          = ScriptType_String;
+  return result;
+}
+
 ScriptVal script_time(const TimeDuration value) { return script_number(value / (f64)time_second); }
 
 f64 script_get_number(const ScriptVal value, const f64 fallback) {
@@ -104,6 +114,10 @@ EcsEntityId script_get_entity(const ScriptVal value, const EcsEntityId fallback)
   return script_type(value) == ScriptType_Entity ? val_as_entity(value) : fallback;
 }
 
+StringHash script_get_string(const ScriptVal value, const StringHash fallback) {
+  return script_type(value) == ScriptType_String ? val_as_string(value) : fallback;
+}
+
 TimeDuration script_get_time(const ScriptVal value, const TimeDuration fallback) {
   return script_type(value) == ScriptType_Number ? (TimeDuration)time_seconds(val_as_number(value))
                                                  : fallback;
@@ -114,13 +128,12 @@ bool script_truthy(const ScriptVal value) {
   case ScriptType_Null:
     return false;
   case ScriptType_Number:
+  case ScriptType_Vector3:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return true;
   case ScriptType_Bool:
     return val_as_bool(value);
-  case ScriptType_Vector3:
-    return true;
-  case ScriptType_Entity:
-    return ecs_entity_valid(val_as_entity(value));
   case ScriptType_Count:
     break;
   }
@@ -144,6 +157,7 @@ String script_val_type_str(const ScriptType type) {
       string_static("bool"),
       string_static("vector3"),
       string_static("entity"),
+      string_static("string"),
   };
   ASSERT(array_elems(g_names) == ScriptType_Count, "Incorrect number of names");
   return g_names[type];
@@ -168,6 +182,15 @@ void script_val_str_write(const ScriptVal value, DynString* str) {
   case ScriptType_Entity:
     format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
     return;
+  case ScriptType_String: {
+    const String valueString = stringtable_lookup(g_stringtable, val_as_string(value));
+    if (string_is_empty(valueString)) {
+      fmt_write(str, "#{}", fmt_int(val_as_string(value), .base = 16));
+    } else {
+      fmt_write(str, "\"{}\"", fmt_text(valueString));
+    }
+    return;
+  }
   case ScriptType_Count:
     break;
   }
@@ -206,6 +229,8 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   }
   case ScriptType_Entity:
     return val_as_entity(a) == val_as_entity(b);
+  case ScriptType_String:
+    return val_as_string(a) == val_as_string(b);
   case ScriptType_Count:
     break;
   }
@@ -219,6 +244,7 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_String:
     return false;
   case ScriptType_Number:
     return val_as_number(a) < val_as_number(b);
@@ -241,6 +267,7 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_String:
     return false;
   case ScriptType_Number:
     return val_as_number(a) > val_as_number(b);
@@ -260,17 +287,16 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_neg(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(-val_as_number(val));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vec = val_as_vector3_dirty_w(val);
     return script_vector3(geo_vector_mul(vec, -1.0f));
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -286,18 +312,17 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) + val_as_number(b));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_vector3(geo_vector_add(vecA, vecB));
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -311,18 +336,17 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) - val_as_number(b));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_vector3(geo_vector_sub(vecA, vecB));
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -333,12 +357,13 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_type(b) == ScriptType_Number ? script_number(val_as_number(a) * val_as_number(b))
                                                : script_null();
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     if (script_type(b) == ScriptType_Number) {
       const GeoVector vecA = val_as_vector3_dirty_w(a);
@@ -351,8 +376,6 @@ ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
     }
     return script_null();
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -363,12 +386,13 @@ ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_type(b) == ScriptType_Number ? script_number(val_as_number(a) / val_as_number(b))
                                                : script_null();
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     if (script_type(b) == ScriptType_Number) {
       const GeoVector vecA = val_as_vector3_dirty_w(a);
@@ -381,8 +405,6 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
     }
     return script_null();
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -393,13 +415,14 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_mod(const ScriptVal a, const ScriptVal b) {
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_type(b) == ScriptType_Number
                ? script_number(intrinsic_fmod_f64(val_as_number(a), val_as_number(b)))
                : script_null();
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     if (script_type(b) == ScriptType_Number) {
       const GeoVector vecA    = val_as_vector3_dirty_w(a);
@@ -419,8 +442,6 @@ ScriptVal script_val_mod(const ScriptVal a, const ScriptVal b) {
     }
     return script_null();
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -434,18 +455,17 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(math_abs(val_as_number(a) - val_as_number(b)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return script_number(geo_vector_mag(geo_vector_sub(vecA, vecB)));
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -462,15 +482,14 @@ ScriptVal script_val_norm(const ScriptVal val) {
 ScriptVal script_val_mag(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(math_abs(val_as_number(val)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3:
     return script_number(geo_vector_mag(val_as_vector3(val)));
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -492,11 +511,12 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
   }
   switch (script_type(a)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(rng_sample_range(g_rng, val_as_number(a), val_as_number(b)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3: {
     const GeoVector vecA = val_as_vector3_dirty_w(a);
     const GeoVector vecB = val_as_vector3_dirty_w(b);
@@ -505,8 +525,6 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
         rng_sample_range(g_rng, vecA.y, vecB.y),
         rng_sample_range(g_rng, vecA.z, vecB.z));
   }
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -517,15 +535,14 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
 ScriptVal script_val_round_down(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_down_f64(val_as_number(val)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3:
     return script_vector3(geo_vector_round_down(val_as_vector3_dirty_w(val)));
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -536,15 +553,14 @@ ScriptVal script_val_round_down(const ScriptVal val) {
 ScriptVal script_val_round_nearest(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_nearest_f64(val_as_number(val)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3:
     return script_vector3(geo_vector_round_nearest(val_as_vector3_dirty_w(val)));
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }
@@ -555,15 +571,14 @@ ScriptVal script_val_round_nearest(const ScriptVal val) {
 ScriptVal script_val_round_up(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Null:
+  case ScriptType_Bool:
+  case ScriptType_Entity:
+  case ScriptType_String:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_up_f64(val_as_number(val)));
-  case ScriptType_Bool:
-    return script_null();
   case ScriptType_Vector3:
     return script_vector3(geo_vector_round_up(val_as_vector3_dirty_w(val)));
-  case ScriptType_Entity:
-    return script_null();
   case ScriptType_Count:
     break;
   }

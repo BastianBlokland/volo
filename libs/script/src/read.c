@@ -422,6 +422,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Number:
     return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
+  case ScriptTokenType_String:
+    return script_expr(script_add_value(ctx->doc, script_string(token.val_string)));
   /**
    * Memory access.
    */

@@ -22,6 +22,9 @@ spec(lex) {
 
         {.a = tok_key_lit("HelloWorld"), .b = tok_key_lit("HelloWorld"), .expected = true},
         {.a = tok_key_lit("Hello"), .b = tok_key_lit("HelloWorld"), .expected = false},
+
+        {.a = tok_string_lit("HelloWorld"), .b = tok_string_lit("HelloWorld"), .expected = true},
+        {.a = tok_string_lit("Hello"), .b = tok_string_lit("HelloWorld"), .expected = false},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -100,6 +103,16 @@ spec(lex) {
         {string_static("$你好世界"), tok_key_lit("你好世界")},
         {string_static(" \t $héllo"), tok_key_lit("héllo")},
         {string_static("$"), tok_err(KeyEmpty)},
+
+        {string_static("\"\""), tok_string_lit("")},
+        {string_static("\"hello\""), tok_string_lit("hello")},
+        {string_static("\"héllo\""), tok_string_lit("héllo")},
+        {string_static("\"hello123\""), tok_string_lit("hello123")},
+        {string_static("\"123\""), tok_string_lit("123")},
+        {string_static("\"123 hello \""), tok_string_lit("123 hello ")},
+        {string_static("\"你好\t世界\""), tok_string_lit("你好\t世界")},
+        {string_static(" \t \"héllo\""), tok_string_lit("héllo")},
+        {string_static("\""), tok_err(UnterminatedString)},
 
         {string_static("if"), tok_simple(If)},
         {string_static("else"), tok_simple(Else)},

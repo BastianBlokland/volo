@@ -34,6 +34,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Error:
     return TtyFgColor_BrightRed;
   case ScriptTokenType_Number:
+  case ScriptTokenType_String:
     return TtyFgColor_Yellow;
   case ScriptTokenType_Identifier:
     return TtyFgColor_Magenta;
