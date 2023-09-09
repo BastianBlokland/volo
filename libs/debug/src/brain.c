@@ -190,17 +190,7 @@ static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
 }
 
 static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
-  const StringHash valStrHash = script_get_string(*value, 0);
-  if (!valStrHash) {
-    ui_label(canvas, string_lit("\"\""));
-    return false;
-  }
-  const String str = stringtable_lookup(g_stringtable, valStrHash);
-  if (string_is_empty(str)) {
-    ui_label(canvas, fmt_write_scratch("#{}", fmt_int(valStrHash, .base = 16)));
-    return false;
-  }
-  ui_label(canvas, fmt_write_scratch("\"{}\"", fmt_text(str)));
+  ui_label(canvas, script_val_str_scratch(*value));
   return false;
 }
 

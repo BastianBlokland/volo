@@ -4,6 +4,7 @@
 #include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "core_stringtable.h"
 #include "core_time.h"
 #include "script_val.h"
 
@@ -181,9 +182,15 @@ void script_val_str_write(const ScriptVal value, DynString* str) {
   case ScriptType_Entity:
     format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
     return;
-  case ScriptType_String:
-    fmt_write(str, "#{}", fmt_int(val_as_string(value), .base = 16));
+  case ScriptType_String: {
+    const String valueString = stringtable_lookup(g_stringtable, val_as_string(value));
+    if (string_is_empty(valueString)) {
+      fmt_write(str, "#{}", fmt_int(val_as_string(value), .base = 16));
+    } else {
+      fmt_write(str, "\"{}\"", fmt_text(valueString));
+    }
     return;
+  }
   case ScriptType_Count:
     break;
   }
