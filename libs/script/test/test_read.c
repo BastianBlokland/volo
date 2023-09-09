@@ -518,6 +518,21 @@ spec(read) {
                           "    [var-load: 0]\n"
                           "    [var-load: 0]"),
         },
+        {
+            string_static("var a = 1; { var b = 2; { var c = 3; a; b; c; } }"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 1]\n"
+                          "  [block]\n"
+                          "    [var-store: 1]\n"
+                          "      [value: 2]\n"
+                          "    [block]\n"
+                          "      [var-store: 2]\n"
+                          "        [value: 3]\n"
+                          "      [var-load: 0]\n"
+                          "      [var-load: 1]\n"
+                          "      [var-load: 2]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
