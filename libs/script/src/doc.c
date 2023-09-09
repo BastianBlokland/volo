@@ -17,7 +17,14 @@ static ScriptExprData* script_doc_expr_data(const ScriptDoc* doc, const ScriptEx
 }
 
 static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
-  const ScriptValId id                      = (ScriptValId)doc->values.size;
+  // Check if there is an existing identical value.
+  ScriptValId id = 0;
+  for (; id != doc->values.size; ++id) {
+    if (script_val_equal(val, dynarray_begin_t(&doc->values, ScriptVal)[id])) {
+      return id;
+    }
+  }
+  // If not: Register a new value
   *dynarray_push_t(&doc->values, ScriptVal) = val;
   return id;
 }
