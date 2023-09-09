@@ -15,6 +15,7 @@ static const String g_errorStrs[] = {
     string_static("InvalidPrimaryExpression"),
     string_static("NoVariableFoundForIdentifier"),
     string_static("NoFunctionFoundForIdentifier"),
+    string_static("IncorrectArgumentCountForBuiltinFunction"),
     string_static("UnclosedParenthesizedExpression"),
     string_static("UnterminatedScope"),
     string_static("UnterminatedArgumentList"),

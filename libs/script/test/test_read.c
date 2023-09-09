@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "script_error.h"
 #include "script_read.h"
 
 #include "utils_internal.h"
@@ -580,6 +581,7 @@ spec(read) {
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
         {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},
         {string_static("distance(1,"), ScriptError_MissingPrimaryExpression},
+        {string_static("distance(1,2,3)"), ScriptError_IncorrectArgumentCountForBuiltinFunction},
         {string_static("hello()"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(null)"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(1,2,3,4,5)"), ScriptError_NoFunctionFoundForIdentifier},

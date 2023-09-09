@@ -14,6 +14,7 @@ typedef enum {
   ScriptError_InvalidPrimaryExpression,
   ScriptError_NoVariableFoundForIdentifier,
   ScriptError_NoFunctionFoundForIdentifier,
+  ScriptError_IncorrectArgumentCountForBuiltinFunction,
   ScriptError_UnclosedParenthesizedExpression,
   ScriptError_UnterminatedScope,
   ScriptError_UnterminatedArgumentList,

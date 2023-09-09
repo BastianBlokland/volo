@@ -527,6 +527,9 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
   if (builtin) {
     return script_expr(script_add_intrinsic(ctx->doc, builtin->intr, args));
   }
+  if (script_builtin_func_exists(identifier)) {
+    return script_err(ScriptError_IncorrectArgumentCountForBuiltinFunction);
+  }
 
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
