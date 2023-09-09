@@ -119,6 +119,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
     return TtyFgColor_Green;
   case ScriptTokenType_If:
   case ScriptTokenType_Else:
+  case ScriptTokenType_Var:
     return TtyFgColor_Cyan;
   case ScriptTokenType_ParenOpen:
   case ScriptTokenType_ParenClose:
