@@ -10,7 +10,7 @@
 #define script_depth_max 25
 #define script_block_size_max 128
 #define script_args_max 10
-#define script_builtin_vars_max 32
+#define script_builtin_consts_max 32
 #define script_builtin_funcs_max 32
 
 #define script_err(_ERR_)                                                                          \
@@ -22,23 +22,23 @@
 typedef struct {
   StringHash idHash;
   ScriptVal  val;
-} ScriptBuiltinVar;
+} ScriptBuiltinConst;
 
-static ScriptBuiltinVar g_scriptBuiltinVars[script_builtin_vars_max];
-static u32              g_scriptBuiltinVarCount;
+static ScriptBuiltinConst g_scriptBuiltinConsts[script_builtin_consts_max];
+static u32                g_scriptBuiltinConstCount;
 
-static void script_builtin_var_add(const String id, const ScriptVal val) {
-  diag_assert(g_scriptBuiltinVarCount != script_builtin_vars_max);
-  g_scriptBuiltinVars[g_scriptBuiltinVarCount++] = (ScriptBuiltinVar){
+static void script_builtin_const_add(const String id, const ScriptVal val) {
+  diag_assert(g_scriptBuiltinConstCount != script_builtin_consts_max);
+  g_scriptBuiltinConsts[g_scriptBuiltinConstCount++] = (ScriptBuiltinConst){
       .idHash = string_hash(id),
       .val    = val,
   };
 }
 
-static const ScriptBuiltinVar* script_builtin_var_lookup(const StringHash id) {
-  for (u32 i = 0; i != g_scriptBuiltinVarCount; ++i) {
-    if (g_scriptBuiltinVars[i].idHash == id) {
-      return &g_scriptBuiltinVars[i];
+static const ScriptBuiltinConst* script_builtin_const_lookup(const StringHash id) {
+  for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
+    if (g_scriptBuiltinConsts[i].idHash == id) {
+      return &g_scriptBuiltinConsts[i];
     }
   }
   return null;
@@ -72,19 +72,19 @@ static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, 
 }
 
 static void script_builtin_init() {
-  // Builtin variables.
-  script_builtin_var_add(string_lit("null"), script_null());
-  script_builtin_var_add(string_lit("true"), script_bool(true));
-  script_builtin_var_add(string_lit("false"), script_bool(false));
-  script_builtin_var_add(string_lit("pi"), script_number(math_pi_f64));
-  script_builtin_var_add(string_lit("deg_to_rad"), script_number(math_deg_to_rad));
-  script_builtin_var_add(string_lit("rad_to_deg"), script_number(math_rad_to_deg));
-  script_builtin_var_add(string_lit("up"), script_vector3(geo_up));
-  script_builtin_var_add(string_lit("down"), script_vector3(geo_down));
-  script_builtin_var_add(string_lit("left"), script_vector3(geo_left));
-  script_builtin_var_add(string_lit("right"), script_vector3(geo_right));
-  script_builtin_var_add(string_lit("forward"), script_vector3(geo_forward));
-  script_builtin_var_add(string_lit("backward"), script_vector3(geo_backward));
+  // Builtin constants.
+  script_builtin_const_add(string_lit("null"), script_null());
+  script_builtin_const_add(string_lit("true"), script_bool(true));
+  script_builtin_const_add(string_lit("false"), script_bool(false));
+  script_builtin_const_add(string_lit("pi"), script_number(math_pi_f64));
+  script_builtin_const_add(string_lit("deg_to_rad"), script_number(math_deg_to_rad));
+  script_builtin_const_add(string_lit("rad_to_deg"), script_number(math_rad_to_deg));
+  script_builtin_const_add(string_lit("up"), script_vector3(geo_up));
+  script_builtin_const_add(string_lit("down"), script_vector3(geo_down));
+  script_builtin_const_add(string_lit("left"), script_vector3(geo_left));
+  script_builtin_const_add(string_lit("right"), script_vector3(geo_right));
+  script_builtin_const_add(string_lit("forward"), script_vector3(geo_forward));
+  script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
 
   // Builtin functions.
   script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
@@ -347,7 +347,7 @@ ArgEnd:
 }
 
 static ScriptReadResult read_expr_var(ScriptReadContext* ctx, const StringHash identifier) {
-  const ScriptBuiltinVar* builtin = script_builtin_var_lookup(identifier);
+  const ScriptBuiltinConst* builtin = script_builtin_const_lookup(identifier);
   if (builtin) {
     return script_expr(script_add_value(ctx->doc, builtin->val));
   }
