@@ -9,6 +9,7 @@
 #define script_depth_max 25
 #define script_block_size_max 128
 #define script_args_max 10
+#define script_builtin_funcs_max 32
 
 #define script_err(_ERR_)                                                                          \
   (ScriptReadResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
@@ -17,26 +18,48 @@
   (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
 
 typedef struct {
-  String          name;
-  StringHash      nameHash; // NOTE: Initialized at runtime.
+  StringHash      idHash;
+  u32             argCount;
   ScriptIntrinsic intr;
-} ScriptFunction;
+} ScriptBuiltinFunc;
 
-static ScriptFunction g_scriptIntrinsicFuncs[] = {
-    {.name = string_static("vector"), .intr = ScriptIntrinsic_ComposeVector3},
-    {.name = string_static("vector_x"), .intr = ScriptIntrinsic_VectorX},
-    {.name = string_static("vector_y"), .intr = ScriptIntrinsic_VectorY},
-    {.name = string_static("vector_z"), .intr = ScriptIntrinsic_VectorZ},
-    {.name = string_static("distance"), .intr = ScriptIntrinsic_Distance},
-    {.name = string_static("distance"), .intr = ScriptIntrinsic_Magnitude},
-    {.name = string_static("normalize"), .intr = ScriptIntrinsic_Normalize},
-    {.name = string_static("angle"), .intr = ScriptIntrinsic_Angle},
-    {.name = string_static("random"), .intr = ScriptIntrinsic_Random},
-    {.name = string_static("random"), .intr = ScriptIntrinsic_RandomBetween},
-    {.name = string_static("round_down"), .intr = ScriptIntrinsic_RoundDown},
-    {.name = string_static("round_nearest"), .intr = ScriptIntrinsic_RoundNearest},
-    {.name = string_static("round_up"), .intr = ScriptIntrinsic_RoundUp},
-};
+static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
+static u32               g_scriptBuiltinFuncCount;
+
+static void script_builtin_func_add(const String id, const ScriptIntrinsic intr) {
+  diag_assert(g_scriptBuiltinFuncCount != script_builtin_funcs_max);
+  g_scriptBuiltinFuncs[g_scriptBuiltinFuncCount++] = (ScriptBuiltinFunc){
+      .idHash   = string_hash(id),
+      .argCount = script_intrinsic_arg_count(intr),
+      .intr     = intr,
+  };
+}
+
+static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, const u32 argc) {
+  for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
+    if (g_scriptBuiltinFuncs[i].idHash == id && g_scriptBuiltinFuncs[i].argCount == argc) {
+      return &g_scriptBuiltinFuncs[i];
+    }
+  }
+  return null;
+}
+
+static void script_builtin_init() {
+  // Builtin functions.
+  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
+  script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
+  script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
+  script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
+  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
+  script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
+  script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
+  script_builtin_func_add(string_lit("angle"), ScriptIntrinsic_Angle);
+  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_Random);
+  script_builtin_func_add(string_lit("random"), ScriptIntrinsic_RandomBetween);
+  script_builtin_func_add(string_lit("round_down"), ScriptIntrinsic_RoundDown);
+  script_builtin_func_add(string_lit("round_nearest"), ScriptIntrinsic_RoundNearest);
+  script_builtin_func_add(string_lit("round_up"), ScriptIntrinsic_RoundUp);
+}
 
 typedef enum {
   OpPrecedence_None,
@@ -300,15 +323,11 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
     return script_err(argsRes.error);
   }
 
-  array_for_t(g_scriptIntrinsicFuncs, ScriptFunction, func) {
-    if (func->nameHash != identifier) {
-      continue;
-    }
-    if (argsRes.argCount != script_intrinsic_arg_count(func->intr)) {
-      continue;
-    }
-    return script_expr(script_add_intrinsic(ctx->doc, func->intr, args));
+  const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(identifier, argsRes.argCount);
+  if (builtin) {
+    return script_expr(script_add_intrinsic(ctx->doc, builtin->intr, args));
   }
+
   return script_err(ScriptError_NoFunctionFoundForIdentifier);
 }
 
@@ -550,9 +569,7 @@ static void script_read_init() {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_init) {
-    array_for_t(g_scriptIntrinsicFuncs, ScriptFunction, func) {
-      func->nameHash = string_hash(func->name);
-    }
+    script_builtin_init();
     g_init = true;
   }
   thread_spinlock_unlock(&g_initLock);
