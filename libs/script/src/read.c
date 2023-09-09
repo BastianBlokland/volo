@@ -330,14 +330,15 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 typedef enum {
-  ScriptScopeType_Implicit,
-  ScriptScopeType_Explicit,
-} ScriptScopeType;
+  ScriptScopeFlags_None     = 0,
+  ScriptScopeFlags_Explicit = 1 << 0,
+  ScriptScopeFlags_NonEmpty = 1 << 1,
+} ScriptScopeFlags;
 
 /**
  * NOTE: For an inner scope the caller is expected to consume the opening curly brace.
  */
-static ScriptReadResult read_expr_scope(ScriptReadContext* ctx, const ScriptScopeType type) {
+static ScriptReadResult read_expr_scope(ScriptReadContext* ctx, const ScriptScopeFlags flags) {
   ScriptToken token;
   ScriptExpr  exprs[script_block_size_max];
   u32         exprCount = 0;
@@ -372,7 +373,7 @@ BlockNext:
       ctx->input = string_empty;
       goto ScopeEnd;
     }
-    if (type == ScriptScopeType_Explicit && token.type == ScriptTokenType_CurlyClose) {
+    if (flags & ScriptScopeFlags_Explicit && token.type == ScriptTokenType_CurlyClose) {
       goto ScopeEnd;
     }
     goto BlockNext;
@@ -382,7 +383,7 @@ ScopeEnd:
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
 
-  if (type == ScriptScopeType_Explicit) {
+  if (flags & ScriptScopeFlags_Explicit) {
     ctx->input = script_lex(ctx->input, null, &token);
     if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
       return script_err(ScriptError_UnterminatedScope);
@@ -390,6 +391,9 @@ ScopeEnd:
   }
   switch (exprCount) {
   case 0:
+    if (flags & ScriptScopeFlags_NonEmpty) {
+      return script_err(ScriptError_MissingPrimaryExpression);
+    }
     return script_expr(script_add_value(ctx->doc, script_null()));
   case 1:
     return script_expr(exprs[0]);
@@ -550,7 +554,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
 
-  const ScriptReadResult b1 = read_expr(ctx, OpPrecedence_None);
+  const ScriptReadResult b1 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -560,7 +564,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
   if (token.type == ScriptTokenType_Else) {
     ctx->input = remInput; // Consume the else keyword.
 
-    const ScriptReadResult b2 = read_expr(ctx, OpPrecedence_None);
+    const ScriptReadResult b2 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
     if (UNLIKELY(b2.type == ScriptResult_Fail)) {
       return b2;
     }
@@ -608,7 +612,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Scope.
    */
   case ScriptTokenType_CurlyOpen:
-    return read_expr_scope(ctx, ScriptScopeType_Explicit);
+    return read_expr_scope(ctx, ScriptScopeFlags_Explicit);
   /**
    * Keywords.
    */
@@ -788,7 +792,7 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
       .input = str,
   };
   script_var_free_all(&ctx);
-  *res = read_expr_scope(&ctx, ScriptScopeType_Implicit);
+  *res = read_expr_scope(&ctx, ScriptScopeFlags_None);
 
   diag_assert(!ctx.scopeRoot);
 
