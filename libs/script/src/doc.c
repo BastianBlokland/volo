@@ -178,6 +178,8 @@ void script_expr_visit(
   UNREACHABLE
 }
 
+u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
+
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {
   dynstring_append_char(str, '\n');
   dynstring_append_chars(str, ' ', indent * 2);

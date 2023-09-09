@@ -56,6 +56,7 @@ ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount)
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
+u32            script_values_total(const ScriptDoc*);
 
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);

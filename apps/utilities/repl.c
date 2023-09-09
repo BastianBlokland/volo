@@ -76,6 +76,7 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   repl_output(fmt_write_scratch("Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic])));
   repl_output(fmt_write_scratch("Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block])));
   repl_output(fmt_write_scratch("Expr total:     {}\n", fmt_int(stats.exprsTotal)));
+  repl_output(fmt_write_scratch("Values total:   {}\n", fmt_int(script_values_total(script))));
   // clang-format on
 }
 
