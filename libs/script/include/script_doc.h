@@ -7,7 +7,7 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-#define script_var_count 32
+#define script_var_count 16
 
 typedef u8 ScriptVarId;
 
