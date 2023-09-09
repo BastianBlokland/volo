@@ -330,8 +330,8 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 typedef enum {
-  ScriptScopeType_Root,
-  ScriptScopeType_Inner,
+  ScriptScopeType_Implicit,
+  ScriptScopeType_Explicit,
 } ScriptScopeType;
 
 /**
@@ -372,7 +372,7 @@ BlockNext:
       ctx->input = string_empty;
       goto ScopeEnd;
     }
-    if (type == ScriptScopeType_Inner && token.type == ScriptTokenType_CurlyClose) {
+    if (type == ScriptScopeType_Explicit && token.type == ScriptTokenType_CurlyClose) {
       goto ScopeEnd;
     }
     goto BlockNext;
@@ -382,7 +382,7 @@ ScopeEnd:
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
 
-  if (type == ScriptScopeType_Inner) {
+  if (type == ScriptScopeType_Explicit) {
     ctx->input = script_lex(ctx->input, null, &token);
     if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
       return script_err(ScriptError_UnterminatedScope);
@@ -608,7 +608,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Scope.
    */
   case ScriptTokenType_CurlyOpen:
-    return read_expr_scope(ctx, ScriptScopeType_Inner);
+    return read_expr_scope(ctx, ScriptScopeType_Explicit);
   /**
    * Keywords.
    */
@@ -788,7 +788,7 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
       .input = str,
   };
   script_var_free_all(&ctx);
-  *res = read_expr_scope(&ctx, ScriptScopeType_Root);
+  *res = read_expr_scope(&ctx, ScriptScopeType_Implicit);
 
   diag_assert(!ctx.scopeRoot);
 
