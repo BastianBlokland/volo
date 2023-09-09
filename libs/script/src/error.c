@@ -10,7 +10,7 @@ static const String g_errorStrs[] = {
     string_static("RecursionLimitExceeded"),
     string_static("MissingPrimaryExpression"),
     string_static("InvalidPrimaryExpression"),
-    string_static("NoConstantFoundForIdentifier"),
+    string_static("NoVariableFoundForIdentifier"),
     string_static("NoFunctionFoundForIdentifier"),
     string_static("UnclosedParenthesizedExpression"),
     string_static("UnterminatedScope"),

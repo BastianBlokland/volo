@@ -470,10 +470,10 @@ spec(read) {
       String      input;
       ScriptError expected;
     } g_testData[] = {
-        {string_static("hello"), ScriptError_NoConstantFoundForIdentifier},
+        {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
-        {string_static("1 < hello"), ScriptError_NoConstantFoundForIdentifier},
+        {string_static("1 < hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},
         {string_static("("), ScriptError_MissingPrimaryExpression},
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
@@ -487,9 +487,9 @@ spec(read) {
         {string_static("1 ?"), ScriptError_MissingPrimaryExpression},
         {string_static("1?1"), ScriptError_MissingColonInSelectExpression},
         {string_static("1 ? 1"), ScriptError_MissingColonInSelectExpression},
-        {string_static("1 ? foo"), ScriptError_NoConstantFoundForIdentifier},
-        {string_static("1 ? 1 : foo"), ScriptError_NoConstantFoundForIdentifier},
-        {string_static("distance"), ScriptError_NoConstantFoundForIdentifier},
+        {string_static("1 ? foo"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ? 1 : foo"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("distance"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("distance("), ScriptError_UnterminatedArgumentList},
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
         {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},

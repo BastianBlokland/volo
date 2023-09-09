@@ -9,7 +9,7 @@ typedef enum {
   ScriptError_RecursionLimitExceeded,
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,
-  ScriptError_NoConstantFoundForIdentifier,
+  ScriptError_NoVariableFoundForIdentifier,
   ScriptError_NoFunctionFoundForIdentifier,
   ScriptError_UnclosedParenthesizedExpression,
   ScriptError_UnterminatedScope,

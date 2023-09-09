@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "script_lex.h"
 #include "script_read.h"
@@ -9,6 +10,7 @@
 #define script_depth_max 25
 #define script_block_size_max 128
 #define script_args_max 10
+#define script_builtin_vars_max 32
 #define script_builtin_funcs_max 32
 
 #define script_err(_ERR_)                                                                          \
@@ -16,6 +18,31 @@
 
 #define script_expr(_EXPR_)                                                                        \
   (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
+
+typedef struct {
+  StringHash idHash;
+  ScriptVal  val;
+} ScriptBuiltinVar;
+
+static ScriptBuiltinVar g_scriptBuiltinVars[script_builtin_vars_max];
+static u32              g_scriptBuiltinVarCount;
+
+static void script_builtin_var_add(const String id, const ScriptVal val) {
+  diag_assert(g_scriptBuiltinVarCount != script_builtin_vars_max);
+  g_scriptBuiltinVars[g_scriptBuiltinVarCount++] = (ScriptBuiltinVar){
+      .idHash = string_hash(id),
+      .val    = val,
+  };
+}
+
+static const ScriptBuiltinVar* script_builtin_var_lookup(const StringHash id) {
+  for (u32 i = 0; i != g_scriptBuiltinVarCount; ++i) {
+    if (g_scriptBuiltinVars[i].idHash == id) {
+      return &g_scriptBuiltinVars[i];
+    }
+  }
+  return null;
+}
 
 typedef struct {
   StringHash      idHash;
@@ -45,6 +72,20 @@ static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id, 
 }
 
 static void script_builtin_init() {
+  // Builtin variables.
+  script_builtin_var_add(string_lit("null"), script_null());
+  script_builtin_var_add(string_lit("true"), script_bool(true));
+  script_builtin_var_add(string_lit("false"), script_bool(false));
+  script_builtin_var_add(string_lit("pi"), script_number(math_pi_f64));
+  script_builtin_var_add(string_lit("deg_to_rad"), script_number(math_deg_to_rad));
+  script_builtin_var_add(string_lit("rad_to_deg"), script_number(math_rad_to_deg));
+  script_builtin_var_add(string_lit("up"), script_vector3(geo_up));
+  script_builtin_var_add(string_lit("down"), script_vector3(geo_down));
+  script_builtin_var_add(string_lit("left"), script_vector3(geo_left));
+  script_builtin_var_add(string_lit("right"), script_vector3(geo_right));
+  script_builtin_var_add(string_lit("forward"), script_vector3(geo_forward));
+  script_builtin_var_add(string_lit("backward"), script_vector3(geo_backward));
+
   // Builtin functions.
   script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
   script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
@@ -305,12 +346,12 @@ ArgEnd:
   return script_args_success(count);
 }
 
-static ScriptReadResult read_expr_constant(ScriptReadContext* ctx, const StringHash identifier) {
-  const ScriptValId constValId = script_doc_constant_lookup(ctx->doc, identifier);
-  if (LIKELY(!sentinel_check(constValId))) {
-    return script_expr(script_add_value_id(ctx->doc, constValId));
+static ScriptReadResult read_expr_var(ScriptReadContext* ctx, const StringHash identifier) {
+  const ScriptBuiltinVar* builtin = script_builtin_var_lookup(identifier);
+  if (builtin) {
+    return script_expr(script_add_value(ctx->doc, builtin->val));
   }
-  return script_err(ScriptError_NoConstantFoundForIdentifier);
+  return script_err(ScriptError_NoVariableFoundForIdentifier);
 }
 
 /**
@@ -421,7 +462,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       ctx->input = remInput; // Consume the opening parenthesis.
       return read_expr_function(ctx, token.val_identifier);
     }
-    return read_expr_constant(ctx, token.val_identifier);
+    return read_expr_var(ctx, token.val_identifier);
   }
   /**
    * Unary operators.
