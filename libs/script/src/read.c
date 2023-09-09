@@ -494,7 +494,7 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
   const String remInput = script_lex(ctx->input, null, &token);
   if (token.type == ScriptTokenType_Eq) {
     ctx->input                 = remInput; // Consume the '=' token.
-    const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
+    const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
     if (UNLIKELY(res.type == ScriptResult_Fail)) {
       return script_err(res.error);
     }
