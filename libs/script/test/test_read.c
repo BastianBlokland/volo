@@ -454,6 +454,54 @@ spec(read) {
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
+
+        // Variables.
+        {
+            string_static("var a"),
+            string_static("[var-store: 0]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("var a = 42"),
+            string_static("[var-store: 0]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("var a = 1; var b = 2; var c = 3; var d = 4"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 1]\n"
+                          "  [var-store: 1]\n"
+                          "    [value: 2]\n"
+                          "  [var-store: 2]\n"
+                          "    [value: 3]\n"
+                          "  [var-store: 3]\n"
+                          "    [value: 4]"),
+        },
+        {
+            string_static("{var a = 1}; {var b = 2}; {var c = 3}; {var d = 4}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 1]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 2]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 3]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 4]"),
+        },
+        {
+            string_static("{var a = 1}; {var a = 2}; {var a = 3}; {var a = 4}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 1]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 2]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 3]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 4]"),
+        },
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
