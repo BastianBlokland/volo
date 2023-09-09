@@ -74,6 +74,26 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
       });
 }
 
+ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptVarId var) {
+  diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type          = ScriptExprType_VarLoad,
+          .data_var_load = {.var = var},
+      });
+}
+
+ScriptExpr script_add_var_store(ScriptDoc* doc, const ScriptVarId var, const ScriptExpr val) {
+  diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type           = ScriptExprType_VarStore,
+          .data_var_store = {.var = var, .val = val},
+      });
+}
+
 ScriptExpr script_add_mem_load(ScriptDoc* doc, const StringHash key) {
   diag_assert_msg(key, "Empty key is not valid");
   return script_doc_expr_add(
@@ -128,6 +148,8 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
     *isReadonly = false;
     return;
   case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_VarStore: // NOTE: Variables are volatile so are considered readonly.
   case ScriptExprType_MemLoad:
   case ScriptExprType_Intrinsic:
   case ScriptExprType_Block:
@@ -158,8 +180,12 @@ void script_expr_visit(
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
   switch (data->type) {
   case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
   case ScriptExprType_MemLoad:
     return; // No children.
+  case ScriptExprType_VarStore:
+    script_expr_visit(doc, data->data_var_store.val, ctx, visitor);
+    return;
   case ScriptExprType_MemStore:
     script_expr_visit(doc, data->data_mem_store.val, ctx, visitor);
     return;
@@ -206,6 +232,13 @@ void script_expr_str_write(
     fmt_write(str, "[value: ");
     script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
     fmt_write(str, "]");
+    return;
+  case ScriptExprType_VarLoad:
+    fmt_write(str, "[var-load: {}]", fmt_int(data->data_var_load.var));
+    return;
+  case ScriptExprType_VarStore:
+    fmt_write(str, "[var-store: {}]", fmt_int(data->data_var_store.var));
+    script_expr_str_write_child(doc, data->data_var_store.val, indent + 1, str);
     return;
   case ScriptExprType_MemLoad:
     fmt_write(str, "[mem-load: ${}]", fmt_int(data->data_mem_load.key));

@@ -9,6 +9,15 @@ typedef struct {
 } ScriptExprValue;
 
 typedef struct {
+  ScriptVarId var;
+} ScriptExprVarLoad;
+
+typedef struct {
+  ScriptVarId var;
+  ScriptExpr  val;
+} ScriptExprVarStore;
+
+typedef struct {
   StringHash key;
 } ScriptExprMemLoad;
 
@@ -31,6 +40,8 @@ typedef struct {
   ScriptExprType type;
   union {
     ScriptExprValue     data_value;
+    ScriptExprVarLoad   data_var_load;
+    ScriptExprVarStore  data_var_store;
     ScriptExprMemLoad   data_mem_load;
     ScriptExprMemStore  data_mem_store;
     ScriptExprIntrinsic data_intrinsic;

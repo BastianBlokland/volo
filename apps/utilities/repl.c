@@ -71,6 +71,8 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
 
   // clang-format off
   repl_output(fmt_write_scratch("Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprType_Value])));
+  repl_output(fmt_write_scratch("Expr var-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_VarLoad])));
+  repl_output(fmt_write_scratch("Expr var-store: {}\n", fmt_int(stats.exprs[ScriptExprType_VarStore])));
   repl_output(fmt_write_scratch("Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_MemLoad])));
   repl_output(fmt_write_scratch("Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore])));
   repl_output(fmt_write_scratch("Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic])));

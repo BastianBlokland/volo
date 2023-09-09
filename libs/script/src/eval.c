@@ -8,6 +8,7 @@
 typedef struct {
   const ScriptDoc* doc;
   ScriptMem*       m;
+  ScriptVal        vars[script_var_count];
 } ScriptEvalContext;
 
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
@@ -23,6 +24,16 @@ expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet set) {
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
   return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
+}
+
+INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptExprVarLoad* expr) {
+  return ctx->vars[expr->var];
+}
+
+INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExprVarStore* exp) {
+  const ScriptVal val = eval(ctx, exp->val);
+  ctx->vars[exp->var] = val;
+  return val;
 }
 
 INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExprMemLoad* expr) {
@@ -122,6 +133,10 @@ static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
+  case ScriptExprType_VarLoad:
+    return eval_var_load(ctx, &expr_data(ctx, expr)->data_var_load);
+  case ScriptExprType_VarStore:
+    return eval_var_store(ctx, &expr_data(ctx, expr)->data_var_store);
   case ScriptExprType_MemLoad:
     return eval_mem_load(ctx, &expr_data(ctx, expr)->data_mem_load);
   case ScriptExprType_MemStore:

@@ -7,6 +7,10 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+#define script_var_count 32
+
+typedef u8 ScriptVarId;
+
 /**
  * Definition of a Script Document for storing script expressions.
  */
@@ -17,6 +21,8 @@ typedef struct sScriptDoc ScriptDoc;
  */
 typedef enum {
   ScriptExprType_Value,
+  ScriptExprType_VarLoad,
+  ScriptExprType_VarStore,
   ScriptExprType_MemLoad,
   ScriptExprType_MemStore,
   ScriptExprType_Intrinsic,
@@ -46,6 +52,8 @@ void script_destroy(ScriptDoc*);
  * Add new expressions.
  */
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);
+ScriptExpr script_add_var_load(ScriptDoc*, ScriptVarId);
+ScriptExpr script_add_var_store(ScriptDoc*, ScriptVarId, ScriptExpr val);
 ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
 ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
