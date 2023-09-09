@@ -317,7 +317,7 @@ String script_token_str_scratch(const ScriptToken* token) {
   case ScriptTokenType_Number:
     return fmt_write_scratch("{}", fmt_float(token->val_number));
   case ScriptTokenType_Identifier:
-    return fmt_write_scratch("${}", fmt_int(token->val_identifier, .base = 16));
+    return fmt_write_scratch("{}", fmt_int(token->val_identifier, .base = 16));
   case ScriptTokenType_Key:
     return fmt_write_scratch("${}", fmt_int(token->val_key, .base = 16));
   case ScriptTokenType_If:
