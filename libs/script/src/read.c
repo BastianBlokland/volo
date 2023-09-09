@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
@@ -211,38 +212,144 @@ static ScriptIntrinsic token_op_binary_modify(const ScriptTokenType type) {
 }
 
 typedef struct {
-  ScriptDoc* doc;
-  String     input;
-  u32        recursionDepth;
+  StringHash  id;
+  ScriptVarId varSlot;
+} ScriptVarMeta;
+
+typedef struct sScriptScope {
+  ScriptVarMeta        vars[script_var_count];
+  struct sScriptScope* next;
+} ScriptScope;
+
+typedef struct {
+  ScriptDoc*   doc;
+  String       input;
+  ScriptScope* scopeRoot;
+  u8           varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
+  u32          recursionDepth;
 } ScriptReadContext;
+
+static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
+  const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
+  if (UNLIKELY(sentinel_check(index))) {
+    return false;
+  }
+  bitset_clear(mem_var(ctx->varAvailability), index);
+  *out = (ScriptVarId)index;
+  return true;
+}
+
+static void script_var_free(ScriptReadContext* ctx, const ScriptVarId var) {
+  diag_assert(!bitset_test(mem_var(ctx->varAvailability), var));
+  bitset_set(mem_var(ctx->varAvailability), var);
+}
+
+static void script_var_free_all(ScriptReadContext* ctx) {
+  bitset_set_all(mem_var(ctx->varAvailability), script_var_count);
+}
+
+static ScriptScope* script_scope_head(ScriptReadContext* ctx) { return ctx->scopeRoot; }
+static ScriptScope* script_scope_tail(ScriptReadContext* ctx) {
+  ScriptScope* scope = ctx->scopeRoot;
+  for (; scope && scope->next; scope = scope->next)
+    ;
+  return scope;
+}
+
+static void script_scope_push(ScriptReadContext* ctx, ScriptScope* scope) {
+  ScriptScope* oldTail = script_scope_tail(ctx);
+  if (oldTail) {
+    oldTail->next = scope;
+  } else {
+    ctx->scopeRoot = scope;
+  }
+}
+
+static void script_scope_pop(ScriptReadContext* ctx) {
+  ScriptScope* scope = script_scope_tail(ctx);
+  diag_assert(scope);
+
+  // Remove the scope from the scope list.
+  if (scope == ctx->scopeRoot) {
+    ctx->scopeRoot = null;
+  } else {
+    ScriptScope* newTail = ctx->scopeRoot;
+    for (; newTail->next != scope; newTail = newTail->next)
+      ;
+    newTail->next = null;
+  }
+
+  // Free all the variables that the scope declared.
+  for (u32 i = 0; i != script_var_count; ++i) {
+    if (scope->vars[i].id) {
+      script_var_free(ctx, scope->vars[i].varSlot);
+    }
+  }
+}
+
+static bool script_var_declare(ScriptReadContext* ctx, const StringHash id, ScriptVarId* out) {
+  ScriptScope* scope = script_scope_tail(ctx);
+  diag_assert(scope);
+
+  for (u32 i = 0; i != script_var_count; ++i) {
+    if (scope->vars[i].id) {
+      continue; // Var already in use.
+    }
+    if (!script_var_alloc(ctx, out)) {
+      return false;
+    }
+    scope->vars[i] = (ScriptVarMeta){.id = id, .varSlot = *out};
+    return true;
+  }
+  return false;
+}
+
+static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const StringHash id) {
+  for (ScriptScope* scope = script_scope_head(ctx); scope; scope = scope->next) {
+    for (u32 i = 0; i != script_var_count; ++i) {
+      if (scope->vars[i].id == id) {
+        return &scope->vars[i];
+      }
+      if (!scope->vars[i].id) {
+        break;
+      }
+    }
+  }
+  return null;
+}
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 typedef enum {
-  ScriptBlockType_Root,
-  ScriptBlockType_Scope,
-} ScriptBlockType;
+  ScriptScopeType_Root,
+  ScriptScopeType_Inner,
+} ScriptScopeType;
 
 /**
- * NOTE: For scope block the caller is expected to consume the opening curly brace.
+ * NOTE: For an inner scope the caller is expected to consume the opening curly brace.
  */
-static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBlockType type) {
+static ScriptReadResult read_expr_scope(ScriptReadContext* ctx, const ScriptScopeType type) {
   ScriptToken token;
   ScriptExpr  exprs[script_block_size_max];
   u32         exprCount = 0;
 
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
   script_lex(ctx->input, null, &token);
   if (token.type == ScriptTokenType_CurlyClose || token.type == ScriptTokenType_End) {
     // Empty scope.
-    goto BlockEnd;
+    goto ScopeEnd;
   }
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
+    script_scope_pop(ctx);
     return script_err(ScriptError_BlockSizeExceedsMaximum);
   }
   const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(arg.type == ScriptResult_Fail)) {
+    script_scope_pop(ctx);
     return script_err(arg.error);
   }
   exprs[exprCount++] = arg.expr;
@@ -254,16 +361,19 @@ BlockNext:
     script_lex(ctx->input, null, &token);
     if (token.type == ScriptTokenType_End) {
       ctx->input = string_empty;
-      goto BlockEnd;
+      goto ScopeEnd;
     }
-    if (type == ScriptBlockType_Scope && token.type == ScriptTokenType_CurlyClose) {
-      goto BlockEnd;
+    if (type == ScriptScopeType_Inner && token.type == ScriptTokenType_CurlyClose) {
+      goto ScopeEnd;
     }
     goto BlockNext;
   }
 
-BlockEnd:
-  if (type == ScriptBlockType_Scope) {
+ScopeEnd:
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
+
+  if (type == ScriptScopeType_Inner) {
     ctx->input = script_lex(ctx->input, null, &token);
     if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
       return script_err(ScriptError_UnterminatedScope);
@@ -346,10 +456,36 @@ ArgEnd:
   return script_args_success(count);
 }
 
-static ScriptReadResult read_expr_var(ScriptReadContext* ctx, const StringHash identifier) {
+static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
+  ScriptToken token;
+  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
+    return script_err(ScriptError_VariableIdentifierMissing);
+  }
+  if (script_builtin_const_lookup(token.val_identifier)) {
+    return script_err(ScriptError_VariableIdentifierConflicts);
+  }
+  if (script_var_lookup(ctx, token.val_identifier)) {
+    return script_err(ScriptError_VariableIdentifierConflicts);
+  }
+
+  ScriptVarId varId;
+  if (!script_var_declare(ctx, token.val_identifier, &varId)) {
+    return script_err(ScriptError_VariableLimitExceeded);
+  }
+
+  const ScriptExpr valExpr = script_add_value(ctx->doc, script_null());
+  return script_expr(script_add_var_store(ctx->doc, varId, valExpr));
+}
+
+static ScriptReadResult read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier) {
   const ScriptBuiltinConst* builtin = script_builtin_const_lookup(identifier);
   if (builtin) {
     return script_expr(script_add_value(ctx->doc, builtin->val));
+  }
+  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  if (var) {
+    return script_expr(script_add_var_load(ctx->doc, var->varSlot));
   }
   return script_err(ScriptError_NoVariableFoundForIdentifier);
 }
@@ -446,12 +582,14 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Scope.
    */
   case ScriptTokenType_CurlyOpen:
-    return read_expr_block(ctx, ScriptBlockType_Scope);
+    return read_expr_scope(ctx, ScriptScopeType_Inner);
   /**
    * Keywords.
    */
   case ScriptTokenType_If:
     return read_expr_if(ctx);
+  case ScriptTokenType_Var:
+    return read_expr_var_declare(ctx);
   /**
    * Identifiers.
    */
@@ -462,7 +600,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       ctx->input = remInput; // Consume the opening parenthesis.
       return read_expr_function(ctx, token.val_identifier);
     }
-    return read_expr_var(ctx, token.val_identifier);
+    return read_expr_var_lookup(ctx, token.val_identifier);
   }
   /**
    * Unary operators.
@@ -623,7 +761,10 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
       .doc   = doc,
       .input = str,
   };
-  *res = read_expr_block(&ctx, ScriptBlockType_Root);
+  script_var_free_all(&ctx);
+  *res = read_expr_scope(&ctx, ScriptScopeType_Root);
+
+  diag_assert(!ctx.scopeRoot);
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);
