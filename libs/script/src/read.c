@@ -388,6 +388,10 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
 
+  if (UNLIKELY(res.type == ScriptResult_Fail)) {
+    return res;
+  }
+
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
     return script_err(ScriptError_UnterminatedScope);
