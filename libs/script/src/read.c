@@ -188,10 +188,6 @@ static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
     return ScriptIntrinsic_Div;
   case ScriptTokenType_Percent:
     return ScriptIntrinsic_Mod;
-  case ScriptTokenType_AmpAmp:
-    return ScriptIntrinsic_LogicAnd;
-  case ScriptTokenType_PipePipe:
-    return ScriptIntrinsic_LogicOr;
   case ScriptTokenType_QMarkQMark:
     return ScriptIntrinsic_NullCoalescing;
   default:
@@ -600,6 +596,26 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
   return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
+static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const ScriptExpr lhs) {
+  const ScriptReadResult rhs = read_expr(ctx, OpPrecedence_Logical);
+  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
+    return rhs;
+  }
+  const ScriptExpr falseExpr  = script_add_value(ctx->doc, script_bool(false));
+  const ScriptExpr intrArgs[] = {lhs, rhs.expr, falseExpr};
+  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+}
+
+static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptExpr lhs) {
+  const ScriptReadResult rhs = read_expr(ctx, OpPrecedence_Logical);
+  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
+    return rhs;
+  }
+  const ScriptExpr trueExpr   = script_add_value(ctx->doc, script_bool(true));
+  const ScriptExpr intrArgs[] = {lhs, trueExpr, rhs.expr};
+  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+}
+
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
@@ -749,8 +765,6 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Star:
     case ScriptTokenType_Slash:
     case ScriptTokenType_Percent:
-    case ScriptTokenType_AmpAmp:
-    case ScriptTokenType_PipePipe:
     case ScriptTokenType_QMarkQMark: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
@@ -760,6 +774,12 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       const ScriptExpr      intrArgs[] = {res.expr, rhs.expr};
       res = script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
     } break;
+    case ScriptTokenType_AmpAmp:
+      res = read_expr_logic_and(ctx, res.expr);
+      break;
+    case ScriptTokenType_PipePipe:
+      res = read_expr_logic_or(ctx, res.expr);
+      break;
     default:
       diag_assert_fail("Invalid operator token");
       UNREACHABLE

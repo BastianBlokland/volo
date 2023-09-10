@@ -84,10 +84,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_bool(script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
   case ScriptIntrinsic_GreaterOrEqual:
     return script_bool(!script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_LogicAnd:
-    return script_bool(script_truthy(eval(ctx, args[0])) && script_truthy(eval(ctx, args[1])));
-  case ScriptIntrinsic_LogicOr:
-    return script_bool(script_truthy(eval(ctx, args[0])) || script_truthy(eval(ctx, args[1])));
   case ScriptIntrinsic_NullCoalescing: {
     const ScriptVal a = eval(ctx, args[0]);
     return script_val_has(a) ? a : eval(ctx, args[1]);

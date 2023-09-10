@@ -223,15 +223,35 @@ spec(read) {
         },
         {
             string_static("true && false"),
-            string_static("[intrinsic: logic-and]\n"
+            string_static("[intrinsic: if]\n"
                           "  [value: true]\n"
+                          "  [value: false]\n"
+                          "  [value: false]"),
+        },
+        {
+            string_static("true && 2 * 4"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [intrinsic: mul]\n"
+                          "    [value: 2]\n"
+                          "    [value: 4]\n"
                           "  [value: false]"),
         },
         {
             string_static("true || false"),
-            string_static("[intrinsic: logic-or]\n"
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
                           "  [value: true]\n"
                           "  [value: false]"),
+        },
+        {
+            string_static("true || 2 * 4"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [value: true]\n"
+                          "  [intrinsic: mul]\n"
+                          "    [value: 2]\n"
+                          "    [value: 4]"),
         },
         {
             string_static("null ?? true"),
@@ -406,7 +426,8 @@ spec(read) {
         {
             string_static("true || {$a = 1; false}; $a"),
             string_static("[block]\n"
-                          "  [intrinsic: logic-or]\n"
+                          "  [intrinsic: if]\n"
+                          "    [value: true]\n"
                           "    [value: true]\n"
                           "    [block]\n"
                           "      [mem-store: $3645546703]\n"
@@ -573,6 +594,8 @@ spec(read) {
     } g_testData[] = {
         {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 &&"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ||"), ScriptError_MissingPrimaryExpression},
         {string_static("1 <"), ScriptError_MissingPrimaryExpression},
         {string_static("1 < hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static(")"), ScriptError_InvalidPrimaryExpression},

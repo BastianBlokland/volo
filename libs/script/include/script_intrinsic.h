@@ -19,8 +19,6 @@ typedef enum {
   ScriptIntrinsic_LessOrEqual,
   ScriptIntrinsic_Greater,
   ScriptIntrinsic_GreaterOrEqual,
-  ScriptIntrinsic_LogicAnd,
-  ScriptIntrinsic_LogicOr,
   ScriptIntrinsic_NullCoalescing,
   ScriptIntrinsic_Add,
   ScriptIntrinsic_Sub,
