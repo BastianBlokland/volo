@@ -537,6 +537,29 @@ static ScriptReadResult read_expr_var_assign(ScriptReadContext* ctx, const Strin
   return script_expr(script_add_var_store(ctx->doc, var->varSlot, res.expr));
 }
 
+static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
+  const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
+  if (UNLIKELY(val.type == ScriptResult_Fail)) {
+    return val;
+  }
+  return script_expr(script_add_mem_store(ctx->doc, key, val.expr));
+}
+
+static ScriptReadResult
+read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptTokenType type) {
+  const bool             newScope = type == ScriptTokenType_QMarkQMarkEq;
+  const ScriptReadResult val      = newScope ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
+                                             : read_expr(ctx, OpPrecedence_Assignment);
+  if (UNLIKELY(val.type == ScriptResult_Fail)) {
+    return val;
+  }
+  const ScriptExpr      loadExpr   = script_add_mem_load(ctx->doc, key);
+  const ScriptIntrinsic itr        = token_op_binary_modify(type);
+  const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
+  const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
+  return script_expr(script_add_mem_store(ctx->doc, key, itrExpr));
+}
+
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
@@ -708,33 +731,17 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken);
     switch (nextToken.type) {
-    case ScriptTokenType_Eq: {
-      ctx->input                 = remInput; // Consume the 'nextToken'.
-      const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
-      if (UNLIKELY(val.type == ScriptResult_Fail)) {
-        return val;
-      }
-      return script_expr(script_add_mem_store(ctx->doc, token.val_key, val.expr));
-    }
+    case ScriptTokenType_Eq:
+      ctx->input = remInput; // Consume the 'nextToken'.
+      return read_expr_mem_store(ctx, token.val_key);
     case ScriptTokenType_PlusEq:
     case ScriptTokenType_MinusEq:
     case ScriptTokenType_StarEq:
     case ScriptTokenType_SlashEq:
     case ScriptTokenType_PercentEq:
-    case ScriptTokenType_QMarkQMarkEq: {
-      ctx->input                 = remInput; // Consume the 'nextToken'.
-      const ScriptReadResult val = nextToken.type == ScriptTokenType_QMarkQMarkEq
-                                       ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
-                                       : read_expr(ctx, OpPrecedence_Assignment);
-      if (UNLIKELY(val.type == ScriptResult_Fail)) {
-        return val;
-      }
-      const ScriptExpr      loadExpr   = script_add_mem_load(ctx->doc, token.val_key);
-      const ScriptIntrinsic itr        = token_op_binary_modify(nextToken.type);
-      const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
-      const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
-      return script_expr(script_add_mem_store(ctx->doc, token.val_key, itrExpr));
-    }
+    case ScriptTokenType_QMarkQMarkEq:
+      ctx->input = remInput; // Consume the 'nextToken'.
+      return read_expr_mem_modify(ctx, token.val_key, nextToken.type);
     default:
       return script_expr(script_add_mem_load(ctx->doc, token.val_key));
     }
