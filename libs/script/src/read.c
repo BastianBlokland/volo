@@ -597,7 +597,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
 }
 
 static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr(ctx, OpPrecedence_Logical);
+  const ScriptReadResult rhs = read_expr_scope_single(ctx);
   if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
     return rhs;
   }
@@ -607,7 +607,7 @@ static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const Script
 }
 
 static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr(ctx, OpPrecedence_Logical);
+  const ScriptReadResult rhs = read_expr_scope_single(ctx);
   if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
     return rhs;
   }
