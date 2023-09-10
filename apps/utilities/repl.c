@@ -140,7 +140,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   return TtyFgColor_Default;
 }
 
-static void repl_exec(ScriptMem* scriptMem, const ReplFlags flags, const String input) {
+static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
@@ -156,7 +156,7 @@ static void repl_exec(ScriptMem* scriptMem, const ReplFlags flags, const String 
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, scriptMem, res.expr);
+    const ScriptVal value = script_eval(script, mem, res.expr);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
     repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
@@ -169,7 +169,7 @@ typedef struct {
   ReplFlags  flags;
   String     editPrevText;
   DynString* editBuffer;
-  ScriptMem* scriptMem;
+  ScriptMem* mem;
 } ReplEditor;
 
 static bool repl_edit_empty(const ReplEditor* editor) {
@@ -206,7 +206,7 @@ static void repl_edit_submit(ReplEditor* editor) {
   string_maybe_free(g_alloc_heap, editor->editPrevText);
   editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
-  repl_exec(editor->scriptMem, editor->flags, dynstring_view(editor->editBuffer));
+  repl_exec(editor->mem, editor->flags, dynstring_view(editor->editBuffer));
 
   dynstring_clear(editor->editBuffer);
 }
@@ -283,19 +283,14 @@ static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
   return true; // Keep running.
 }
 
-static i32 repl_edit_run(const ReplFlags flags) {
-  if (!tty_isatty(g_file_stdin) || !tty_isatty(g_file_stdout)) {
-    file_write_sync(g_file_stderr, string_lit("ERROR: REPL has to be ran interactively\n"));
-    return 1;
-  }
-
+static i32 repl_run_interactive(const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 32);
   DynString editBuffer = dynstring_create(g_alloc_heap, 128);
 
   ReplEditor editor = {
       .flags      = flags,
       .editBuffer = &editBuffer,
-      .scriptMem  = script_mem_create(g_alloc_heap),
+      .mem        = script_mem_create(g_alloc_heap),
   };
 
   tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
@@ -323,14 +318,30 @@ Stop:
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
   string_maybe_free(g_alloc_heap, editor.editPrevText);
-  script_mem_destroy(editor.scriptMem);
+  script_mem_destroy(editor.mem);
+  return 0;
+}
+
+static i32 repl_run_file(File* file, const ReplFlags flags) {
+  DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
+  file_read_to_end_sync(file, &readBuffer);
+
+  ScriptMem* mem = script_mem_create(g_alloc_heap);
+  repl_exec(mem, flags, dynstring_view(&readBuffer));
+  script_mem_destroy(mem);
+
+  dynstring_destroy(&readBuffer);
   return 0;
 }
 
 static CliId g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Script ReadEvalPrintLoop utility."));
+  static const String g_desc =
+      string_static("Script ReadEvalPrintLoop utility.\n\n"
+                    "Input is read from stdin, interactive mode is enabled when stdin is a tty.");
+
+  cli_app_register_desc(app, g_desc);
 
   g_tokensFlag = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
   cli_register_desc(app, g_tokensFlag, string_lit("Ouput the tokens."));
@@ -365,5 +376,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_OutputStats;
   }
 
-  return repl_edit_run(flags);
+  if (!tty_isatty(g_file_stdout)) {
+    // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
+    file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream\n"));
+    return 1;
+  }
+
+  if (tty_isatty(g_file_stdin)) {
+    return repl_run_interactive(flags);
+  }
+  return repl_run_file(g_file_stdin, flags);
 }
