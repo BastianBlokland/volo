@@ -188,8 +188,6 @@ static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
     return ScriptIntrinsic_Div;
   case ScriptTokenType_Percent:
     return ScriptIntrinsic_Mod;
-  case ScriptTokenType_QMarkQMark:
-    return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -616,6 +614,15 @@ static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptE
   return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
+static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const ScriptExpr lhs) {
+  const ScriptReadResult rhs = read_expr_scope_single(ctx);
+  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
+    return rhs;
+  }
+  const ScriptExpr intrArgs[] = {lhs, rhs.expr};
+  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_NullCoalescing, intrArgs));
+}
+
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token);
@@ -764,8 +771,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Minus:
     case ScriptTokenType_Star:
     case ScriptTokenType_Slash:
-    case ScriptTokenType_Percent:
-    case ScriptTokenType_QMarkQMark: {
+    case ScriptTokenType_Percent: {
       const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;
@@ -779,6 +785,9 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       break;
     case ScriptTokenType_PipePipe:
       res = read_expr_logic_or(ctx, res.expr);
+      break;
+    case ScriptTokenType_QMarkQMark:
+      res = read_expr_null_coalescing(ctx, res.expr);
       break;
     default:
       diag_assert_fail("Invalid operator token");

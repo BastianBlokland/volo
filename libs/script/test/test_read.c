@@ -642,6 +642,7 @@ spec(read) {
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ?? var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("var"), ScriptError_VariableIdentifierMissing},
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
         {string_static("var random"), ScriptError_VariableIdentifierConflicts},
