@@ -488,11 +488,6 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
     return script_err(ScriptError_VariableIdentifierConflicts);
   }
 
-  ScriptVarId varId;
-  if (!script_var_declare(ctx, token.val_identifier, &varId)) {
-    return script_err(ScriptError_VariableLimitExceeded);
-  }
-
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
     const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
@@ -503,6 +498,12 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
   } else {
     valExpr = script_add_value(ctx->doc, script_null());
   }
+
+  ScriptVarId varId;
+  if (!script_var_declare(ctx, token.val_identifier, &varId)) {
+    return script_err(ScriptError_VariableLimitExceeded);
+  }
+
   return script_expr(script_add_var_store(ctx->doc, varId, valExpr));
 }
 

@@ -649,6 +649,7 @@ spec(read) {
         {string_static("var random"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
+        {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
     };
