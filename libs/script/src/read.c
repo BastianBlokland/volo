@@ -696,7 +696,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_PercentEq:
     case ScriptTokenType_QMarkQMarkEq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
-      const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
+      const ScriptReadResult val = nextToken.type == ScriptTokenType_QMarkQMarkEq
+                                       ? read_expr_scope_single(ctx)
+                                       : read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
         return val;
       }
@@ -817,9 +819,9 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc       = doc,
-            .input     = str,
-            .scopeRoot = &scopeRoot,
+      .doc       = doc,
+      .input     = str,
+      .scopeRoot = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
