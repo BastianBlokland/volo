@@ -498,6 +498,14 @@ spec(read) {
                           "  [value: null]"),
         },
         {
+            string_static("var a; a = 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 42]"),
+        },
+        {
             string_static("var a; a"),
             string_static("[block]\n"
                           "  [var-store: 0]\n"
@@ -651,6 +659,8 @@ spec(read) {
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
         {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("b ="), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
     };

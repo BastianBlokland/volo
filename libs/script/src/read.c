@@ -523,6 +523,20 @@ static ScriptReadResult read_expr_var_lookup(ScriptReadContext* ctx, const Strin
   return script_err(ScriptError_NoVariableFoundForIdentifier);
 }
 
+static ScriptReadResult read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier) {
+  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  if (UNLIKELY(!var)) {
+    return script_err(ScriptError_NoVariableFoundForIdentifier);
+  }
+
+  const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
+  if (UNLIKELY(res.type == ScriptResult_Fail)) {
+    return script_err(res.error);
+  }
+
+  return script_expr(script_add_var_store(ctx->doc, var->varSlot, res.expr));
+}
+
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
@@ -656,6 +670,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_Identifier: {
     if (read_consume_if(ctx, ScriptTokenType_ParenOpen)) {
       return read_expr_function(ctx, token.val_identifier);
+    }
+    if (read_consume_if(ctx, ScriptTokenType_Eq)) {
+      return read_expr_var_assign(ctx, token.val_identifier);
     }
     return read_expr_var_lookup(ctx, token.val_identifier);
   }
