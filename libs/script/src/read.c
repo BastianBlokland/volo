@@ -668,13 +668,18 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Identifiers.
    */
   case ScriptTokenType_Identifier: {
-    if (read_consume_if(ctx, ScriptTokenType_ParenOpen)) {
+    ScriptToken  nextToken;
+    const String remInput = script_lex(ctx->input, null, &nextToken);
+    switch (nextToken.type) {
+    case ScriptTokenType_ParenOpen:
+      ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_function(ctx, token.val_identifier);
-    }
-    if (read_consume_if(ctx, ScriptTokenType_Eq)) {
+    case ScriptTokenType_Eq:
+      ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_var_assign(ctx, token.val_identifier);
+    default:
+      return read_expr_var_lookup(ctx, token.val_identifier);
     }
-    return read_expr_var_lookup(ctx, token.val_identifier);
   }
   /**
    * Unary operators.
