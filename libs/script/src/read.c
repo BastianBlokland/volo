@@ -318,16 +318,40 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
   return null;
 }
 
+static ScriptToken read_peek(ScriptReadContext* ctx) {
+  ScriptToken token;
+  script_lex(ctx->input, null, &token);
+  return token;
+}
+
+static ScriptToken read_consume(ScriptReadContext* ctx) {
+  ScriptToken token;
+  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  return token;
+}
+
+static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) {
+  ScriptToken  token;
+  const String rem = script_lex(ctx->input, g_stringtable, &token);
+  if (token.type == type) {
+    ctx->input = rem;
+    return true;
+  }
+  return false;
+}
+
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
-static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
-  ScriptToken token;
-  ScriptExpr  exprs[script_block_size_max];
-  u32         exprCount = 0;
+static bool read_is_block_end(const ScriptTokenType type) {
+  return type == ScriptTokenType_End || type == ScriptTokenType_CurlyClose;
+}
 
-  script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_End || token.type == ScriptTokenType_CurlyClose) {
-    goto BlockEnd;
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
+  ScriptExpr exprs[script_block_size_max];
+  u32        exprCount = 0;
+
+  if (read_is_block_end(read_peek(ctx).type)) {
+    goto BlockEnd; // Empty block.
   }
 
 BlockNext:
@@ -340,12 +364,8 @@ BlockNext:
   }
   exprs[exprCount++] = arg.expr;
 
-  const String remInput = script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_SemiColon) {
-    ctx->input = remInput; // Consume the semi.
-
-    script_lex(ctx->input, null, &token);
-    if (token.type == ScriptTokenType_End || token.type == ScriptTokenType_CurlyClose) {
+  if (read_consume_if(ctx, ScriptTokenType_SemiColon)) {
+    if (read_is_block_end(read_peek(ctx).type)) {
       goto BlockEnd;
     }
     goto BlockNext;
@@ -374,8 +394,7 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
 
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, null, &token);
+  const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
     return script_err(ScriptError_UnterminatedScope);
   }
@@ -403,8 +422,7 @@ static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
     return res;
   }
-  ScriptToken closeToken;
-  ctx->input = script_lex(ctx->input, null, &closeToken);
+  const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
     return script_err(ScriptError_UnclosedParenthesizedExpression);
   }
@@ -425,17 +443,18 @@ typedef struct {
 #define script_args_err(_ERR_)                                                                     \
   (ScriptArgsResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
 
+static bool read_is_args_end(const ScriptTokenType type) {
+  return type == ScriptTokenType_End || type == ScriptTokenType_ParenClose;
+}
+
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static ScriptArgsResult read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
-  ScriptToken token;
-  u32         count = 0;
+  u32 count = 0;
 
-  script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_ParenClose || token.type == ScriptTokenType_End) {
-    // Empty argument list.
-    goto ArgEnd;
+  if (read_is_args_end(read_peek(ctx).type)) {
+    goto ArgEnd; // Empty argument list.
   }
 
 ArgNext:
@@ -448,23 +467,20 @@ ArgNext:
   }
   out[count++] = arg.expr;
 
-  const String remInput = script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_Comma) {
-    ctx->input = remInput; // Consume the comma.
+  if (read_consume_if(ctx, ScriptTokenType_Comma)) {
     goto ArgNext;
   }
 
-ArgEnd:
-  ctx->input = script_lex(ctx->input, null, &token);
-  if (UNLIKELY(token.type != ScriptTokenType_ParenClose)) {
+ArgEnd:;
+  const ScriptToken endToken = read_consume(ctx);
+  if (UNLIKELY(endToken.type != ScriptTokenType_ParenClose)) {
     return script_args_err(ScriptError_UnterminatedArgumentList);
   }
   return script_args_success(count);
 }
 
 static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
     return script_err(ScriptError_VariableIdentifierMissing);
   }
@@ -483,10 +499,8 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
     return script_err(ScriptError_VariableLimitExceeded);
   }
 
-  ScriptExpr   valExpr;
-  const String remInput = script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_Eq) {
-    ctx->input                 = remInput; // Consume the '=' token.
+  ScriptExpr valExpr;
+  if (read_consume_if(ctx, ScriptTokenType_Eq)) {
     const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
     if (UNLIKELY(res.type == ScriptResult_Fail)) {
       return script_err(res.error);
@@ -532,8 +546,7 @@ static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringH
 }
 
 static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
@@ -552,11 +565,8 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
     return b1;
   }
 
-  ScriptExpr   b2Expr;
-  const String remInput = script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_Else) {
-    ctx->input = remInput; // Consume the else keyword.
-
+  ScriptExpr b2Expr;
+  if (read_consume_if(ctx, ScriptTokenType_Else)) {
     const ScriptReadResult b2 = read_expr_scope_single(ctx);
     if (UNLIKELY(b2.type == ScriptResult_Fail)) {
       return b2;
@@ -576,8 +586,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return b1;
   }
 
-  ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
@@ -617,10 +626,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Identifiers.
    */
   case ScriptTokenType_Identifier: {
-    ScriptToken  nextToken;
-    const String remInput = script_lex(ctx->input, null, &nextToken);
-    if (nextToken.type == ScriptTokenType_ParenOpen) {
-      ctx->input = remInput; // Consume the opening parenthesis.
+    if (read_consume_if(ctx, ScriptTokenType_ParenOpen)) {
       return read_expr_function(ctx, token.val_identifier);
     }
     return read_expr_var_lookup(ctx, token.val_identifier);
@@ -790,9 +796,8 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   *res = read_expr_block(&ctx);
 
-  ScriptToken token;
-  script_lex(ctx.input, null, &token);
-  if (UNLIKELY(res->type == ScriptResult_Success && token.type != ScriptTokenType_End)) {
+  const ScriptToken endToken = read_peek(&ctx);
+  if (UNLIKELY(res->type == ScriptResult_Success && endToken.type != ScriptTokenType_End)) {
     *res = script_err(ScriptError_UnexpectedTokenAfterExpression);
   }
 }
