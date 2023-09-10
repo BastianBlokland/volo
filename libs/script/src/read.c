@@ -260,33 +260,24 @@ static void script_var_free_all(ScriptReadContext* ctx) {
 static ScriptScope* script_scope_head(ScriptReadContext* ctx) { return ctx->scopeRoot; }
 static ScriptScope* script_scope_tail(ScriptReadContext* ctx) {
   ScriptScope* scope = ctx->scopeRoot;
-  for (; scope && scope->next; scope = scope->next)
+  for (; scope->next; scope = scope->next)
     ;
   return scope;
 }
 
 static void script_scope_push(ScriptReadContext* ctx, ScriptScope* scope) {
-  ScriptScope* oldTail = script_scope_tail(ctx);
-  if (oldTail) {
-    oldTail->next = scope;
-  } else {
-    ctx->scopeRoot = scope;
-  }
+  script_scope_tail(ctx)->next = scope;
 }
 
 static void script_scope_pop(ScriptReadContext* ctx) {
   ScriptScope* scope = script_scope_tail(ctx);
-  diag_assert(scope);
+  diag_assert(scope && scope != ctx->scopeRoot);
 
   // Remove the scope from the scope list.
-  if (scope == ctx->scopeRoot) {
-    ctx->scopeRoot = null;
-  } else {
-    ScriptScope* newTail = ctx->scopeRoot;
-    for (; newTail->next != scope; newTail = newTail->next)
-      ;
-    newTail->next = null;
-  }
+  ScriptScope* newTail = ctx->scopeRoot;
+  for (; newTail->next != scope; newTail = newTail->next)
+    ;
+  newTail->next = null;
 
   // Free all the variables that the scope declared.
   for (u32 i = 0; i != script_var_count; ++i) {
@@ -329,37 +320,22 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
-typedef enum {
-  ScriptScopeFlags_None     = 0,
-  ScriptScopeFlags_Explicit = 1 << 0,
-  ScriptScopeFlags_NonEmpty = 1 << 1,
-} ScriptScopeFlags;
-
-/**
- * NOTE: For an inner scope the caller is expected to consume the opening curly brace.
- */
-static ScriptReadResult read_expr_scope(ScriptReadContext* ctx, const ScriptScopeFlags flags) {
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
   ScriptToken token;
   ScriptExpr  exprs[script_block_size_max];
   u32         exprCount = 0;
 
-  ScriptScope scope = {0};
-  script_scope_push(ctx, &scope);
-
   script_lex(ctx->input, null, &token);
-  if (token.type == ScriptTokenType_CurlyClose || token.type == ScriptTokenType_End) {
-    // Empty scope.
-    goto ScopeEnd;
+  if (token.type == ScriptTokenType_End || token.type == ScriptTokenType_CurlyClose) {
+    goto BlockEnd;
   }
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    script_scope_pop(ctx);
     return script_err(ScriptError_BlockSizeExceedsMaximum);
   }
   const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(arg.type == ScriptResult_Fail)) {
-    script_scope_pop(ctx);
     return script_err(arg.error);
   }
   exprs[exprCount++] = arg.expr;
@@ -369,37 +345,54 @@ BlockNext:
     ctx->input = remInput; // Consume the semi.
 
     script_lex(ctx->input, null, &token);
-    if (token.type == ScriptTokenType_End) {
-      ctx->input = string_empty;
-      goto ScopeEnd;
-    }
-    if (flags & ScriptScopeFlags_Explicit && token.type == ScriptTokenType_CurlyClose) {
-      goto ScopeEnd;
+    if (token.type == ScriptTokenType_End || token.type == ScriptTokenType_CurlyClose) {
+      goto BlockEnd;
     }
     goto BlockNext;
   }
 
-ScopeEnd:
-  diag_assert(&scope == script_scope_tail(ctx));
-  script_scope_pop(ctx);
-
-  if (flags & ScriptScopeFlags_Explicit) {
-    ctx->input = script_lex(ctx->input, null, &token);
-    if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
-      return script_err(ScriptError_UnterminatedScope);
-    }
-  }
+BlockEnd:
   switch (exprCount) {
   case 0:
-    if (flags & ScriptScopeFlags_NonEmpty) {
-      return script_err(ScriptError_MissingPrimaryExpression);
-    }
     return script_expr(script_add_value(ctx->doc, script_null()));
   case 1:
     return script_expr(exprs[0]);
   default:
     return script_expr(script_add_block(ctx->doc, exprs, exprCount));
   }
+}
+
+/**
+ * NOTE: Caller is expected to consume the opening curly-brace.
+ */
+static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
+  const ScriptReadResult res = read_expr_block(ctx);
+
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
+
+  ScriptToken token;
+  ctx->input = script_lex(ctx->input, null, &token);
+  if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
+    return script_err(ScriptError_UnterminatedScope);
+  }
+
+  return res;
+}
+
+static ScriptReadResult read_expr_scope_single(ScriptReadContext* ctx) {
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
+  const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
+
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
+
+  return res;
 }
 
 /**
@@ -554,7 +547,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
 
-  const ScriptReadResult b1 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
+  const ScriptReadResult b1 = read_expr_scope_single(ctx);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -564,7 +557,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
   if (token.type == ScriptTokenType_Else) {
     ctx->input = remInput; // Consume the else keyword.
 
-    const ScriptReadResult b2 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
+    const ScriptReadResult b2 = read_expr_scope_single(ctx);
     if (UNLIKELY(b2.type == ScriptResult_Fail)) {
       return b2;
     }
@@ -578,7 +571,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptReadResult b1 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
+  const ScriptReadResult b1 = read_expr_scope_single(ctx);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -589,7 +582,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
 
-  const ScriptReadResult b2 = read_expr_scope(ctx, ScriptScopeFlags_NonEmpty);
+  const ScriptReadResult b2 = read_expr_scope_single(ctx);
   if (UNLIKELY(b2.type == ScriptResult_Fail)) {
     return b2;
   }
@@ -612,7 +605,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Scope.
    */
   case ScriptTokenType_CurlyOpen:
-    return read_expr_scope(ctx, ScriptScopeFlags_Explicit);
+    return read_expr_scope_block(ctx);
   /**
    * Keywords.
    */
@@ -787,14 +780,15 @@ static void script_read_init() {
 void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
   script_read_init();
 
-  ScriptReadContext ctx = {
-      .doc   = doc,
-      .input = str,
+  ScriptScope       scopeRoot = {0};
+  ScriptReadContext ctx       = {
+            .doc       = doc,
+            .input     = str,
+            .scopeRoot = &scopeRoot,
   };
   script_var_free_all(&ctx);
-  *res = read_expr_scope(&ctx, ScriptScopeFlags_None);
 
-  diag_assert(!ctx.scopeRoot);
+  *res = read_expr_block(&ctx);
 
   ScriptToken token;
   script_lex(ctx.input, null, &token);
