@@ -396,11 +396,11 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
   return res;
 }
 
-static ScriptReadResult read_expr_scope_single(ScriptReadContext* ctx) {
+static ScriptReadResult read_expr_scope_single(ScriptReadContext* ctx, const OpPrecedence prec) {
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
 
-  const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
+  const ScriptReadResult res = read_expr(ctx, prec);
 
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
@@ -555,14 +555,14 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
 
-  const ScriptReadResult b1 = read_expr_scope_single(ctx);
+  const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
 
   ScriptExpr b2Expr;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
-    const ScriptReadResult b2 = read_expr_scope_single(ctx);
+    const ScriptReadResult b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
     if (UNLIKELY(b2.type == ScriptResult_Fail)) {
       return b2;
     }
@@ -576,7 +576,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptReadResult b1 = read_expr_scope_single(ctx);
+  const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
   }
@@ -586,7 +586,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
     return script_err(ScriptError_MissingColonInSelectExpression);
   }
 
-  const ScriptReadResult b2 = read_expr_scope_single(ctx);
+  const ScriptReadResult b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(b2.type == ScriptResult_Fail)) {
     return b2;
   }
@@ -596,7 +596,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
 }
 
 static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx);
+  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
   if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
     return rhs;
   }
@@ -606,7 +606,7 @@ static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const Script
 }
 
 static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx);
+  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
   if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
     return rhs;
   }
@@ -616,7 +616,7 @@ static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptE
 }
 
 static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx);
+  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
   if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
     return rhs;
   }
@@ -698,7 +698,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_QMarkQMarkEq: {
       ctx->input                 = remInput; // Consume the 'nextToken'.
       const ScriptReadResult val = nextToken.type == ScriptTokenType_QMarkQMarkEq
-                                       ? read_expr_scope_single(ctx)
+                                       ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
                                        : read_expr(ctx, OpPrecedence_Assignment);
       if (UNLIKELY(val.type == ScriptResult_Fail)) {
         return val;
