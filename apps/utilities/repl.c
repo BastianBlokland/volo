@@ -334,14 +334,16 @@ static i32 repl_run_file(File* file, const ReplFlags flags) {
   return 0;
 }
 
-static CliId g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
+static CliId g_fileArg, g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
-  static const String g_desc =
-      string_static("Script ReadEvalPrintLoop utility.\n\n"
-                    "Input is read from stdin, interactive mode is enabled when stdin is a tty.");
-
+  static const String g_desc = string_static("Execute a script from a file or stdin "
+                                             "(interactive when stdin is a tty).");
   cli_app_register_desc(app, g_desc);
+
+  g_fileArg = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
+  cli_register_desc(app, g_fileArg, string_lit("File to execute (default: stdin)."));
+  cli_register_validator(app, g_fileArg, cli_validate_file_regular);
 
   g_tokensFlag = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
   cli_register_desc(app, g_tokensFlag, string_lit("Ouput the tokens."));
@@ -354,6 +356,7 @@ void app_cli_configure(CliApp* app) {
 
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_helpFlag, g_fileArg);
   cli_register_exclusions(app, g_helpFlag, g_tokensFlag);
   cli_register_exclusions(app, g_helpFlag, g_astFlag);
   cli_register_exclusions(app, g_helpFlag, g_statsFlag);
@@ -378,10 +381,21 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   if (!tty_isatty(g_file_stdout)) {
     // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
-    file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream\n"));
+    file_write_sync(g_file_stderr, string_lit("ERROR: REPL needs a tty output stream.\n"));
     return 1;
   }
 
+  const CliParseValues fileArg = cli_parse_values(invoc, g_fileArg);
+  if (fileArg.count) {
+    File* file;
+    if (file_create(g_alloc_heap, fileArg.values[0], FileMode_Open, FileAccess_Read, &file)) {
+      file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open file.\n"));
+      return 1;
+    }
+    const i32 runRes = repl_run_file(file, flags);
+    file_destroy(file);
+    return runRes;
+  }
   if (tty_isatty(g_file_stdin)) {
     return repl_run_interactive(flags);
   }
