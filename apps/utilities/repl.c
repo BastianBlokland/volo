@@ -140,6 +140,31 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   return TtyFgColor_Default;
 }
 
+static void repl_exec(ScriptMem* scriptMem, const ReplFlags flags, const String input) {
+  if (flags & ReplFlags_OutputTokens) {
+    repl_output_tokens(input);
+  }
+
+  ScriptDoc*       script = script_create(g_alloc_heap);
+  ScriptReadResult res;
+  script_read(script, input, &res);
+
+  if (res.type == ScriptResult_Success) {
+    if (flags & ReplFlags_OutputAst) {
+      repl_output_ast(script, res.expr);
+    }
+    if (flags & ReplFlags_OutputStats) {
+      repl_output_stats(script, res.expr);
+    }
+    const ScriptVal value = script_eval(script, scriptMem, res.expr);
+    repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
+  } else {
+    repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
+  }
+
+  script_destroy(script);
+}
+
 typedef struct {
   ReplFlags  flags;
   String     editPrevText;
@@ -181,28 +206,8 @@ static void repl_edit_submit(ReplEditor* editor) {
   string_maybe_free(g_alloc_heap, editor->editPrevText);
   editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
-  if (editor->flags & ReplFlags_OutputTokens) {
-    repl_output_tokens(dynstring_view(editor->editBuffer));
-  }
+  repl_exec(editor->scriptMem, editor->flags, dynstring_view(editor->editBuffer));
 
-  ScriptDoc*       script = script_create(g_alloc_heap);
-  ScriptReadResult res;
-  script_read(script, dynstring_view(editor->editBuffer), &res);
-
-  if (res.type == ScriptResult_Success) {
-    if (editor->flags & ReplFlags_OutputAst) {
-      repl_output_ast(script, res.expr);
-    }
-    if (editor->flags & ReplFlags_OutputStats) {
-      repl_output_stats(script, res.expr);
-    }
-    const ScriptVal value = script_eval(script, editor->scriptMem, res.expr);
-    repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
-  } else {
-    repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
-  }
-
-  script_destroy(script);
   dynstring_clear(editor->editBuffer);
 }
 
