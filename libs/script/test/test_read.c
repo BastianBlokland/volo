@@ -112,6 +112,20 @@ spec(read) {
                           "  [value: 3]"),
         },
         {
+            string_static("if(true) {2} else {3}"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
+        },
+        {
+            string_static("if(true) {} else {}"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [value: null]"),
+        },
+        {
             string_static("if(false) 2 else if(true) 3"),
             string_static("[intrinsic: if]\n"
                           "  [value: false]\n"
@@ -599,7 +613,9 @@ spec(read) {
         {string_static("if(1,2)"), ScriptError_InvalidConditionCountForIf},
         {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
         {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
+        {string_static("if(1) 1; 2 else 3"), ScriptError_UnexpectedTokenAfterExpression},
         {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("var"), ScriptError_VariableIdentifierMissing},
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
