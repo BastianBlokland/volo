@@ -23,8 +23,6 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual:
-  case ScriptIntrinsic_LogicAnd:
-  case ScriptIntrinsic_LogicOr:
   case ScriptIntrinsic_NullCoalescing:
   case ScriptIntrinsic_Add:
   case ScriptIntrinsic_Sub:
@@ -65,8 +63,6 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("less-or-equal"),
       string_static("greater"),
       string_static("greater-or-equal"),
-      string_static("logic-and"),
-      string_static("logic-or"),
       string_static("null-coalescing"),
       string_static("add"),
       string_static("sub"),

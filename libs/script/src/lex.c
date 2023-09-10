@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -6,6 +7,17 @@
 
 #define script_token_err(_ERR_)                                                                    \
   (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
+
+typedef struct {
+  String          id;
+  ScriptTokenType token;
+} ScriptLexKeyword;
+
+static const ScriptLexKeyword g_lexKeywords[] = {
+    {.id = string_static("if"), .token = ScriptTokenType_If},
+    {.id = string_static("else"), .token = ScriptTokenType_Else},
+    {.id = string_static("var"), .token = ScriptTokenType_Var},
+};
 
 static bool script_is_word_start(const u8 c) {
   // Either ascii letter or start of non-ascii utf8 character.
@@ -150,11 +162,10 @@ static String script_lex_identifier(String str, ScriptToken* out) {
     return str;
   }
 
-  if (string_eq(identifier, string_lit("if"))) {
-    return out->type = ScriptTokenType_If, string_consume(str, end);
-  }
-  if (string_eq(identifier, string_lit("else"))) {
-    return out->type = ScriptTokenType_Else, string_consume(str, end);
+  array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
+    if (string_eq(identifier, keyword->id)) {
+      return out->type = keyword->token, string_consume(str, end);
+    }
   }
 
   out->type           = ScriptTokenType_Identifier;
@@ -371,6 +382,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("if");
   case ScriptTokenType_Else:
     return string_lit("else");
+  case ScriptTokenType_Var:
+    return string_lit("var");
   case ScriptTokenType_Error:
     return script_error_str(token->val_error);
   case ScriptTokenType_End:

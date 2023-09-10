@@ -53,13 +53,18 @@ spec(eval) {
         {string_static("vector_y(vector(1, true, 3))"), script_null()},
         {string_static("vector_z(vector(1, true, 3))"), script_null()},
 
-        // Memory loads.
+        // Variable access.
+        {string_static("var i"), script_null()},
+        {string_static("var i = 42"), script_number(42)},
+        {string_static("var i; i"), script_null()},
+        {string_static("var i = 42; i"), script_number(42)},
+        {string_static("{var i = 42}; var i = 1; i"), script_number(1)},
+
+        // Memory access.
         {string_static("$v1"), script_bool(true)},
         {string_static("$v2"), script_number(1337)},
         {string_static("$v3"), script_null()},
         {string_static("$non_existent"), script_null()},
-
-        // Memory stores.
         {string_static("$v4 = true"), script_bool(true)},
 
         // Arithmetic.

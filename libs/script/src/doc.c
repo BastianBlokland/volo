@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
-#include "core_math.h"
 
 #include "doc_internal.h"
 
@@ -18,7 +17,14 @@ static ScriptExprData* script_doc_expr_data(const ScriptDoc* doc, const ScriptEx
 }
 
 static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
-  const ScriptValId id                      = (ScriptValId)doc->values.size;
+  // Check if there is an existing identical value.
+  ScriptValId id = 0;
+  for (; id != doc->values.size; ++id) {
+    if (script_val_equal(val, dynarray_begin_t(&doc->values, ScriptVal)[id])) {
+      return id;
+    }
+  }
+  // If not: Register a new value
   *dynarray_push_t(&doc->values, ScriptVal) = val;
   return id;
 }
@@ -26,19 +32,6 @@ static ScriptValId script_doc_val_add(ScriptDoc* doc, const ScriptVal val) {
 static ScriptVal script_doc_val_data(const ScriptDoc* doc, const ScriptValId id) {
   diag_assert_msg(id < doc->values.size, "Out of bounds ScriptValId");
   return *dynarray_at_t(&doc->values, id, ScriptVal);
-}
-
-static void script_doc_constant_add(ScriptDoc* doc, const String name, const ScriptVal val) {
-  const StringHash  nameHash = string_hash(name);
-  const ScriptValId valId    = script_doc_val_add(doc, val);
-
-  array_for_t(doc->constants, ScriptConstant, constant) {
-    if (!constant->nameHash) {
-      *constant = (ScriptConstant){.nameHash = nameHash, .valId = valId};
-      return;
-    }
-  }
-  diag_crash_msg("Script constants count exceeded");
 }
 
 static ScriptExprSet
@@ -54,27 +47,13 @@ static const ScriptExpr* script_doc_expr_set_data(const ScriptDoc* doc, const Sc
 
 ScriptDoc* script_create(Allocator* alloc) {
   ScriptDoc* doc = alloc_alloc_t(alloc, ScriptDoc);
-  *doc           = (ScriptDoc){
+
+  *doc = (ScriptDoc){
       .exprData = dynarray_create_t(alloc, ScriptExprData, 64),
       .exprSets = dynarray_create_t(alloc, ScriptExpr, 32),
       .values   = dynarray_create_t(alloc, ScriptVal, 32),
       .alloc    = alloc,
   };
-
-  // Register build-in constants.
-  script_doc_constant_add(doc, string_lit("null"), script_null());
-  script_doc_constant_add(doc, string_lit("true"), script_bool(true));
-  script_doc_constant_add(doc, string_lit("false"), script_bool(false));
-  script_doc_constant_add(doc, string_lit("pi"), script_number(math_pi_f64));
-  script_doc_constant_add(doc, string_lit("deg_to_rad"), script_number(math_deg_to_rad));
-  script_doc_constant_add(doc, string_lit("rad_to_deg"), script_number(math_rad_to_deg));
-  script_doc_constant_add(doc, string_lit("up"), script_vector3(geo_up));
-  script_doc_constant_add(doc, string_lit("down"), script_vector3(geo_down));
-  script_doc_constant_add(doc, string_lit("left"), script_vector3(geo_left));
-  script_doc_constant_add(doc, string_lit("right"), script_vector3(geo_right));
-  script_doc_constant_add(doc, string_lit("forward"), script_vector3(geo_forward));
-  script_doc_constant_add(doc, string_lit("backward"), script_vector3(geo_backward));
-
   return doc;
 }
 
@@ -92,6 +71,26 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
       (ScriptExprData){
           .type       = ScriptExprType_Value,
           .data_value = {.valId = valId},
+      });
+}
+
+ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptVarId var) {
+  diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type          = ScriptExprType_VarLoad,
+          .data_var_load = {.var = var},
+      });
+}
+
+ScriptExpr script_add_var_store(ScriptDoc* doc, const ScriptVarId var, const ScriptExpr val) {
+  diag_assert_msg(var < script_var_count, "Out of bounds script variable");
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type           = ScriptExprType_VarStore,
+          .data_var_store = {.var = var, .val = val},
       });
 }
 
@@ -149,6 +148,8 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
     *isReadonly = false;
     return;
   case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_VarStore: // NOTE: Variables are volatile so are considered readonly.
   case ScriptExprType_MemLoad:
   case ScriptExprType_Intrinsic:
   case ScriptExprType_Block:
@@ -179,8 +180,12 @@ void script_expr_visit(
   const ScriptExprData* data = script_doc_expr_data(doc, expr);
   switch (data->type) {
   case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
   case ScriptExprType_MemLoad:
     return; // No children.
+  case ScriptExprType_VarStore:
+    script_expr_visit(doc, data->data_var_store.val, ctx, visitor);
+    return;
   case ScriptExprType_MemStore:
     script_expr_visit(doc, data->data_mem_store.val, ctx, visitor);
     return;
@@ -206,6 +211,8 @@ void script_expr_visit(
   UNREACHABLE
 }
 
+u32 script_values_total(const ScriptDoc* doc) { return (u32)doc->values.size; }
+
 static void script_expr_str_write_sep(const u32 indent, DynString* str) {
   dynstring_append_char(str, '\n');
   dynstring_append_chars(str, ' ', indent * 2);
@@ -225,6 +232,13 @@ void script_expr_str_write(
     fmt_write(str, "[value: ");
     script_val_str_write(script_doc_val_data(doc, data->data_value.valId), str);
     fmt_write(str, "]");
+    return;
+  case ScriptExprType_VarLoad:
+    fmt_write(str, "[var-load: {}]", fmt_int(data->data_var_load.var));
+    return;
+  case ScriptExprType_VarStore:
+    fmt_write(str, "[var-store: {}]", fmt_int(data->data_var_store.var));
+    script_expr_str_write_child(doc, data->data_var_store.val, indent + 1, str);
     return;
   case ScriptExprType_MemLoad:
     fmt_write(str, "[mem-load: ${}]", fmt_int(data->data_mem_load.key));
@@ -267,24 +281,4 @@ String script_expr_str_scratch(const ScriptDoc* doc, const ScriptExpr expr) {
   const String res = dynstring_view(&str);
   dynstring_destroy(&str);
   return res;
-}
-
-ScriptExpr script_add_value_id(ScriptDoc* doc, const ScriptValId valId) {
-  return script_doc_expr_add(
-      doc,
-      (ScriptExprData){
-          .type       = ScriptExprType_Value,
-          .data_value = {.valId = valId},
-      });
-}
-
-ScriptValId script_doc_constant_lookup(const ScriptDoc* doc, const StringHash nameHash) {
-  diag_assert_msg(nameHash, "Constant name cannot be empty");
-
-  array_for_t(doc->constants, ScriptConstant, constant) {
-    if (constant->nameHash == nameHash) {
-      return constant->valId;
-    }
-  }
-  return sentinel_u32;
 }

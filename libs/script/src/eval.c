@@ -1,3 +1,4 @@
+#include "core_annotation.h"
 #include "core_diag.h"
 #include "script_eval.h"
 #include "script_mem.h"
@@ -8,6 +9,7 @@
 typedef struct {
   const ScriptDoc* doc;
   ScriptMem*       m;
+  ScriptVal        vars[script_var_count];
 } ScriptEvalContext;
 
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
@@ -23,6 +25,16 @@ expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet set) {
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
   return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
+}
+
+INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptExprVarLoad* expr) {
+  return ctx->vars[expr->var];
+}
+
+INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExprVarStore* exp) {
+  const ScriptVal val = eval(ctx, exp->val);
+  ctx->vars[exp->var] = val;
+  return val;
 }
 
 INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptExprMemLoad* expr) {
@@ -72,10 +84,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_bool(script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
   case ScriptIntrinsic_GreaterOrEqual:
     return script_bool(!script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_LogicAnd:
-    return script_bool(script_truthy(eval(ctx, args[0])) && script_truthy(eval(ctx, args[1])));
-  case ScriptIntrinsic_LogicOr:
-    return script_bool(script_truthy(eval(ctx, args[0])) || script_truthy(eval(ctx, args[1])));
   case ScriptIntrinsic_NullCoalescing: {
     const ScriptVal a = eval(ctx, args[0]);
     return script_val_has(a) ? a : eval(ctx, args[1]);
@@ -118,10 +126,14 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   return ret;
 }
 
-static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
+NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
     return eval_value(ctx, &expr_data(ctx, expr)->data_value);
+  case ScriptExprType_VarLoad:
+    return eval_var_load(ctx, &expr_data(ctx, expr)->data_var_load);
+  case ScriptExprType_VarStore:
+    return eval_var_store(ctx, &expr_data(ctx, expr)->data_var_store);
   case ScriptExprType_MemLoad:
     return eval_mem_load(ctx, &expr_data(ctx, expr)->data_mem_load);
   case ScriptExprType_MemStore:

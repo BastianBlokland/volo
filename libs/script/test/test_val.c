@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_array.h"
+#include "core_stringtable.h"
 #include "core_time.h"
 #include "script_val.h"
 
@@ -122,8 +123,11 @@ spec(val) {
         {script_time(time_hour), string_lit("3600")},
         {script_time(time_milliseconds(500)), string_lit("0.5")},
         {script_time(time_milliseconds(42)), string_lit("0.042")},
-        {script_string(string_hash_lit("Hello World")), string_lit("#F185CECD")},
+        {script_string(string_hash_lit("Hello World")), string_lit("\"Hello World\"")},
     };
+
+    // NOTE: Normally we expect the script lexer to register the strings.
+    stringtable_add(g_stringtable, string_lit("Hello World"));
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       check_eq_string(script_val_str_scratch(testData[i].value), testData[i].expected);

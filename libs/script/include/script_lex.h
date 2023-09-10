@@ -39,6 +39,7 @@ typedef enum {
   ScriptTokenType_String,       // "Hello World"
   ScriptTokenType_If,           // if
   ScriptTokenType_Else,         // else
+  ScriptTokenType_Var,          // var
   ScriptTokenType_Error,        //
   ScriptTokenType_End,          // \0
 } ScriptTokenType;
