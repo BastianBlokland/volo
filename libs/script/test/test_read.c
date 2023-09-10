@@ -282,7 +282,69 @@ spec(read) {
                           "    [value: 4]"),
         },
 
-        // Modify expressions.
+        // Variable modify expressions.
+        {
+            string_static("var a; a += 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: add]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+        {
+            string_static("var a; a -= 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: sub]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+        {
+            string_static("var a; a *= 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: mul]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+        {
+            string_static("var a; a /= 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: div]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+        {
+            string_static("var a; a %= 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: mod]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+        {
+            string_static("var a; a ?\?= 42"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: null-coalescing]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 42]"),
+        },
+
+        // Memory modify expressions.
         {
             string_static("$hello += 42"),
             string_static("[mem-store: $3944927369]\n"
@@ -652,6 +714,7 @@ spec(read) {
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ?? var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("$test \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var a; a \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("var i; { var i = 99 }"), ScriptError_VariableIdentifierConflicts},
         {string_static("var"), ScriptError_VariableIdentifierMissing},
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
@@ -663,13 +726,16 @@ spec(read) {
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("a += 1"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var a; a +="), ScriptError_MissingPrimaryExpression},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
       script_read(doc, g_testData[i].input, &res);
 
-      check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
+      check_require_msg(
+          res.type == ScriptResult_Fail, "Read succeeded [{}]", fmt_text(g_testData[i].input));
       check_msg(
           res.error == g_testData[i].expected,
           "{} == {} [{}]",

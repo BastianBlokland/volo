@@ -537,6 +537,27 @@ static ScriptReadResult read_expr_var_assign(ScriptReadContext* ctx, const Strin
   return script_expr(script_add_var_store(ctx->doc, var->varSlot, res.expr));
 }
 
+static ScriptReadResult read_expr_var_modify(
+    ScriptReadContext* ctx, const StringHash identifier, const ScriptTokenType type) {
+  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  if (UNLIKELY(!var)) {
+    return script_err(ScriptError_NoVariableFoundForIdentifier);
+  }
+
+  const bool             newScope = type == ScriptTokenType_QMarkQMarkEq;
+  const ScriptReadResult val      = newScope ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
+                                             : read_expr(ctx, OpPrecedence_Assignment);
+  if (UNLIKELY(val.type == ScriptResult_Fail)) {
+    return val;
+  }
+
+  const ScriptExpr      loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
+  const ScriptIntrinsic itr        = token_op_binary_modify(type);
+  const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
+  const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
+  return script_expr(script_add_var_store(ctx->doc, var->varSlot, itrExpr));
+}
+
 static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
   const ScriptReadResult val = read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(val.type == ScriptResult_Fail)) {
@@ -700,6 +721,14 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_var_assign(ctx, token.val_identifier);
+    case ScriptTokenType_PlusEq:
+    case ScriptTokenType_MinusEq:
+    case ScriptTokenType_StarEq:
+    case ScriptTokenType_SlashEq:
+    case ScriptTokenType_PercentEq:
+    case ScriptTokenType_QMarkQMarkEq:
+      ctx->input = remInput; // Consume the 'nextToken'.
+      return read_expr_var_modify(ctx, token.val_key, nextToken.type);
     default:
       return read_expr_var_lookup(ctx, token.val_identifier);
     }
