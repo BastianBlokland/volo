@@ -43,7 +43,7 @@ static void repl_output_error(const String message) {
 }
 
 static void repl_output_tokens(String text) {
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   for (;;) {
@@ -69,17 +69,23 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   ReplScriptStats stats = {0};
   script_expr_visit(script, expr, &stats, repl_script_collect_stats);
 
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
   // clang-format off
-  repl_output(fmt_write_scratch("Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprType_Value])));
-  repl_output(fmt_write_scratch("Expr var-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_VarLoad])));
-  repl_output(fmt_write_scratch("Expr var-store: {}\n", fmt_int(stats.exprs[ScriptExprType_VarStore])));
-  repl_output(fmt_write_scratch("Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_MemLoad])));
-  repl_output(fmt_write_scratch("Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore])));
-  repl_output(fmt_write_scratch("Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic])));
-  repl_output(fmt_write_scratch("Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block])));
-  repl_output(fmt_write_scratch("Expr total:     {}\n", fmt_int(stats.exprsTotal)));
-  repl_output(fmt_write_scratch("Values total:   {}\n", fmt_int(script_values_total(script))));
+  fmt_write(&buffer, "Expr value:     {}\n", fmt_int(stats.exprs[ScriptExprType_Value]));
+  fmt_write(&buffer, "Expr var-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_VarLoad]));
+  fmt_write(&buffer, "Expr var-store: {}\n", fmt_int(stats.exprs[ScriptExprType_VarStore]));
+  fmt_write(&buffer, "Expr mem-load:  {}\n", fmt_int(stats.exprs[ScriptExprType_MemLoad]));
+  fmt_write(&buffer, "Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore]));
+  fmt_write(&buffer, "Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic]));
+  fmt_write(&buffer, "Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block]));
+  fmt_write(&buffer, "Expr total:     {}\n", fmt_int(stats.exprsTotal));
+  fmt_write(&buffer, "Values total:   {}\n", fmt_int(script_values_total(script)));
   // clang-format on
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
 }
 
 static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
