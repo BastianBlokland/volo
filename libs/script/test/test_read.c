@@ -135,6 +135,28 @@ spec(read) {
                           "    [value: 3]\n"
                           "    [value: null]"),
         },
+        {
+            string_static("if(var i = 42) { i } else { i }"),
+            string_static("[intrinsic: if]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 42]\n"
+                          "  [var-load: 0]\n"
+                          "  [var-load: 0]"),
+        },
+        {
+            string_static("if(var i = 1) i; if(var i = 2) i"),
+            string_static("[block]\n"
+                          "  [intrinsic: if]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 1]\n"
+                          "    [var-load: 0]\n"
+                          "    [value: null]\n"
+                          "  [intrinsic: if]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 2]\n"
+                          "    [var-load: 0]\n"
+                          "    [value: null]"),
+        },
 
         // Unary expressions.
         {
@@ -709,6 +731,7 @@ spec(read) {
         {string_static("if(1) 1; 2 else 3"), ScriptError_UnexpectedTokenAfterExpression},
         {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},

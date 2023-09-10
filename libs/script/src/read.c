@@ -608,17 +608,24 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
 
+  // NOTE: Add a new scope so variables defined in the condition are only available in the branches.
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
   ScriptExpr             conditions[script_args_max];
   const ScriptArgsResult conditionRes = read_args(ctx, conditions);
   if (UNLIKELY(conditionRes.type == ScriptResult_Fail)) {
+    script_scope_pop(ctx);
     return script_err(conditionRes.error);
   }
   if (UNLIKELY(conditionRes.argCount != 1)) {
+    script_scope_pop(ctx);
     return script_err(ScriptError_InvalidConditionCountForIf);
   }
 
   const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
+    script_scope_pop(ctx);
     return b1;
   }
 
@@ -626,12 +633,16 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
     const ScriptReadResult b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
     if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+      script_scope_pop(ctx);
       return b2;
     }
     b2Expr = b2.expr;
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
   }
+
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {conditions[0], b1.expr, b2Expr};
   return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
@@ -882,9 +893,9 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc       = doc,
-      .input     = str,
-      .scopeRoot = &scopeRoot,
+            .doc       = doc,
+            .input     = str,
+            .scopeRoot = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
