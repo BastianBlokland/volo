@@ -145,68 +145,68 @@ typedef struct {
   String     editPrevText;
   DynString* editBuffer;
   ScriptMem* scriptMem;
-} ReplState;
+} ReplEditor;
 
-static bool repl_edit_empty(const ReplState* state) {
-  return string_is_empty(dynstring_view(state->editBuffer));
+static bool repl_edit_empty(const ReplEditor* editor) {
+  return string_is_empty(dynstring_view(editor->editBuffer));
 }
 
-static void repl_edit_prev(const ReplState* state) {
-  if (!string_is_empty(state->editPrevText)) {
-    dynstring_clear(state->editBuffer);
-    dynstring_append(state->editBuffer, state->editPrevText);
+static void repl_edit_prev(const ReplEditor* editor) {
+  if (!string_is_empty(editor->editPrevText)) {
+    dynstring_clear(editor->editBuffer);
+    dynstring_append(editor->editBuffer, editor->editPrevText);
   }
 }
 
-static void repl_edit_clear(const ReplState* state) { dynstring_clear(state->editBuffer); }
+static void repl_edit_clear(const ReplEditor* editor) { dynstring_clear(editor->editBuffer); }
 
-static void repl_edit_insert(const ReplState* state, const Unicode cp) {
-  utf8_cp_write(state->editBuffer, cp);
+static void repl_edit_insert(const ReplEditor* editor, const Unicode cp) {
+  utf8_cp_write(editor->editBuffer, cp);
 }
 
-static void repl_edit_delete(const ReplState* state) {
+static void repl_edit_delete(const ReplEditor* editor) {
   // Delete the last utf8 code-point.
-  String str = dynstring_view(state->editBuffer);
+  String str = dynstring_view(editor->editBuffer);
   for (usize i = str.size; i-- > 0;) {
     if (!utf8_contchar(*string_at(str, i))) {
-      dynstring_erase_chars(state->editBuffer, i, str.size - i);
+      dynstring_erase_chars(editor->editBuffer, i, str.size - i);
       return;
     }
   }
 }
 
-static void repl_edit_submit(ReplState* state) {
+static void repl_edit_submit(ReplEditor* editor) {
   repl_output(string_lit("\n")); // Preserve the input line.
 
-  string_maybe_free(g_alloc_heap, state->editPrevText);
-  state->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(state->editBuffer));
+  string_maybe_free(g_alloc_heap, editor->editPrevText);
+  editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
-  if (state->flags & ReplFlags_OutputTokens) {
-    repl_output_tokens(dynstring_view(state->editBuffer));
+  if (editor->flags & ReplFlags_OutputTokens) {
+    repl_output_tokens(dynstring_view(editor->editBuffer));
   }
 
   ScriptDoc*       script = script_create(g_alloc_heap);
   ScriptReadResult res;
-  script_read(script, dynstring_view(state->editBuffer), &res);
+  script_read(script, dynstring_view(editor->editBuffer), &res);
 
   if (res.type == ScriptResult_Success) {
-    if (state->flags & ReplFlags_OutputAst) {
+    if (editor->flags & ReplFlags_OutputAst) {
       repl_output_ast(script, res.expr);
     }
-    if (state->flags & ReplFlags_OutputStats) {
+    if (editor->flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, state->scriptMem, res.expr);
+    const ScriptVal value = script_eval(script, editor->scriptMem, res.expr);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
     repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
   }
 
   script_destroy(script);
-  dynstring_clear(state->editBuffer);
+  dynstring_clear(editor->editBuffer);
 }
 
-static void repl_edit_render(const ReplState* state) {
+static void repl_edit_render(const ReplEditor* editor) {
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
 
   tty_write_clear_line_sequence(&buffer, TtyClearMode_All); // Clear line.
@@ -219,7 +219,7 @@ static void repl_edit_render(const ReplState* state) {
   tty_write_style_sequence(&buffer, ttystyle());
 
   // Render edit text.
-  String      editText = dynstring_view(state->editBuffer);
+  String      editText = dynstring_view(editor->editBuffer);
   ScriptToken token;
   for (;;) {
     const String remText   = script_lex(editText, null, &token);
@@ -250,35 +250,35 @@ static void repl_edit_render_cleanup() {
   dynstring_destroy(&buffer);
 }
 
-static bool repl_update(ReplState* state, TtyInputToken* input) {
+static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
   switch (input->type) {
   case TtyInputType_Interrupt:
     return false; // Stop.
   case TtyInputType_KeyEscape:
-    repl_edit_clear(state);
+    repl_edit_clear(editor);
     break;
   case TtyInputType_Text:
-    repl_edit_insert(state, input->val_text);
+    repl_edit_insert(editor, input->val_text);
     break;
   case TtyInputType_KeyBackspace:
-    repl_edit_delete(state);
+    repl_edit_delete(editor);
     break;
   case TtyInputType_KeyUp:
-    repl_edit_prev(state);
+    repl_edit_prev(editor);
     break;
   case TtyInputType_Accept:
-    if (!repl_edit_empty(state)) {
-      repl_edit_submit(state);
+    if (!repl_edit_empty(editor)) {
+      repl_edit_submit(editor);
     }
     break;
   default:
     break;
   }
-  repl_edit_render(state);
+  repl_edit_render(editor);
   return true; // Keep running.
 }
 
-static i32 repl_run_interactive(const ReplFlags flags) {
+static i32 repl_edit_run(const ReplFlags flags) {
   if (!tty_isatty(g_file_stdin) || !tty_isatty(g_file_stdout)) {
     file_write_sync(g_file_stderr, string_lit("ERROR: REPL has to be ran interactively\n"));
     return 1;
@@ -287,14 +287,14 @@ static i32 repl_run_interactive(const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 32);
   DynString editBuffer = dynstring_create(g_alloc_heap, 128);
 
-  ReplState state = {
+  ReplEditor editor = {
       .flags      = flags,
       .editBuffer = &editBuffer,
       .scriptMem  = script_mem_create(g_alloc_heap),
   };
 
   tty_opts_set(g_file_stdin, TtyOpts_NoEcho | TtyOpts_NoBuffer | TtyOpts_NoSignals);
-  repl_edit_render(&state);
+  repl_edit_render(&editor);
 
   while (tty_read(g_file_stdin, &readBuffer, TtyReadFlags_None)) {
     String        readStr = dynstring_view(&readBuffer);
@@ -304,7 +304,7 @@ static i32 repl_run_interactive(const ReplFlags flags) {
       if (input.type == TtyInputType_End) {
         break;
       }
-      if (!repl_update(&state, &input)) {
+      if (!repl_edit_update(&editor, &input)) {
         goto Stop;
       }
     }
@@ -317,8 +317,8 @@ Stop:
 
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&editBuffer);
-  string_maybe_free(g_alloc_heap, state.editPrevText);
-  script_mem_destroy(state.scriptMem);
+  string_maybe_free(g_alloc_heap, editor.editPrevText);
+  script_mem_destroy(editor.scriptMem);
   return 0;
 }
 
@@ -360,5 +360,5 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_OutputStats;
   }
 
-  return repl_run_interactive(flags);
+  return repl_edit_run(flags);
 }
