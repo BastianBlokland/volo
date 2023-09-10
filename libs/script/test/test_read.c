@@ -661,10 +661,10 @@ spec(read) {
       check_require_msg(res.type == ScriptResult_Fail, "Read succeeded (index: {})", fmt_int(i));
       check_msg(
           res.error == g_testData[i].expected,
-          "{} == {} (index: {})",
+          "{} == {} [{}]",
           script_error_fmt(res.error),
           script_error_fmt(g_testData[i].expected),
-          fmt_int(i));
+          fmt_text(g_testData[i].input));
     }
   }
 
