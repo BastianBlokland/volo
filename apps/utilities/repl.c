@@ -334,6 +334,20 @@ static i32 repl_run_file(File* file, const ReplFlags flags) {
   return 0;
 }
 
+static i32 repl_run_path(const String path, const ReplFlags flags) {
+  File*      file;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+    const String err = file_result_str(fileRes);
+    const String msg = fmt_write_scratch("ERROR: Failed to open file: {}\n", fmt_text(err));
+    file_write_sync(g_file_stderr, msg);
+    return 1;
+  }
+  const i32 runRes = repl_run_file(file, flags);
+  file_destroy(file);
+  return runRes;
+}
+
 static CliId g_fileArg, g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
@@ -387,14 +401,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_fileArg);
   if (fileArg.count) {
-    File* file;
-    if (file_create(g_alloc_heap, fileArg.values[0], FileMode_Open, FileAccess_Read, &file)) {
-      file_write_sync(g_file_stderr, string_lit("ERROR: Failed to open file.\n"));
-      return 1;
-    }
-    const i32 runRes = repl_run_file(file, flags);
-    file_destroy(file);
-    return runRes;
+    return repl_run_path(fileArg.values[0], flags);
   }
   if (tty_isatty(g_file_stdin)) {
     return repl_run_interactive(flags);
