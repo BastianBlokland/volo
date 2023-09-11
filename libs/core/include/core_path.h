@@ -80,7 +80,8 @@ String path_parent(String);
  * path is compatible with the underlying filesystem.
  * Return false if there was no canonical form possible.
  */
-bool path_canonize(DynString*, String path);
+bool   path_canonize(DynString*, String path);
+String path_canonize_scratch(String path);
 
 /**
  * Append a new segment to a path. Will insert a '/' separator if required.
