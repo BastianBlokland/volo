@@ -33,9 +33,9 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void repl_output_error(const String message) {
+static void repl_output_error_with_newline(const String message) {
   const String text = fmt_write_scratch(
-      "{}ERROR: {}{}",
+      "{}ERROR: {}{}\n",
       fmt_ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold),
       fmt_text(message),
       fmt_ttystyle());
@@ -159,7 +159,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     const ScriptVal value = script_eval(script, mem, res.expr);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
-    repl_output_error(fmt_write_scratch("{}\n", fmt_text(script_error_str(res.error))));
+    repl_output_error_with_newline(script_error_str(res.error));
   }
 
   script_destroy(script);
