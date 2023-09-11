@@ -4,6 +4,8 @@
 #include "core_file_monitor.h"
 #include "core_format.h"
 #include "core_path.h"
+#include "core_thread.h"
+#include "core_time.h"
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_eval.h"
@@ -340,7 +342,14 @@ static i32 repl_run_file(File* file, const ReplFlags flags) {
 static i32 repl_run_path(const String path, const ReplFlags flags) {
   File*      file;
   FileResult fileRes;
-  if ((fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file))) {
+  u32        fileLockedRetries = 0;
+
+Retry:
+  fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file);
+  if (fileRes == FileResult_Locked && fileLockedRetries++ < 10) {
+    thread_sleep(time_milliseconds(100));
+    goto Retry;
+  } else if (fileRes != FileResult_Success) {
     const String err = file_result_str(fileRes);
     const String msg = fmt_write_scratch("ERROR: Failed to open file: {}\n", fmt_text(err));
     file_write_sync(g_file_stderr, msg);
