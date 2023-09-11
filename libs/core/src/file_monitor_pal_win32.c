@@ -84,7 +84,8 @@ static u64 monitor_file_id_from_handle(const HANDLE handle) {
   return ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow;
 }
 
-static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String path, u64* outId) {
+static FileMonitorResult
+monitor_query_file(FileMonitor* monitor, const String path, u64* outId, usize* outSize) {
   const String          pathAbs = path_build_scratch(monitor->rootPath, path);
   const FileAccessFlags access  = FileAccess_None;
   File*                 file;
@@ -92,7 +93,8 @@ static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String p
   if ((res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file))) {
     return monitor_result_from_file_result(res);
   }
-  *outId = monitor_file_id_from_handle(file->handle);
+  *outId   = monitor_file_id_from_handle(file->handle);
+  *outSize = file_stat_sync(file).size;
   file_destroy(file);
   return FileMonitorResult_Success;
 }
@@ -226,9 +228,13 @@ Begin:
     const String path = winutils_from_widestr_scratch(event->FileName, pathNumWideChars);
 
     u64               fileId;
+    usize             fileSize;
     FileMonitorResult res;
-    if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+    if ((res = monitor_query_file(monitor, path, &fileId, &fileSize))) {
       continue; // Skip event; Unable to open file (could have been deleted since).
+    }
+    if (!fileSize) {
+      continue; // Skip event; Empty file, most likely a truncate that will be followed by a write.
     }
     FileWatch* watch = monitor_watch_by_file(monitor, fileId);
     if (!watch) {
@@ -300,8 +306,9 @@ FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, co
   }
 
   u64               fileId;
+  usize             fileSize;
   FileMonitorResult res;
-  if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+  if ((res = monitor_query_file(monitor, path, &fileId, &fileSize)) != FileMonitorResult_Success) {
     return res;
   }
 
