@@ -1,8 +1,24 @@
+#include "core_diag.h"
+#include "core_thread.h"
+
 #include "init_internal.h"
 #include "signal_internal.h"
 
-void signal_init() { signal_pal_setup_handlers(); }
+static i32 g_signalInterceptActive;
 
-bool signal_is_received(Signal sig) { return signal_pal_is_received(sig); }
+void signal_intercept_enable() {
+  i32 expectedActive = false;
+  if (thread_atomic_compare_exchange_i32(&g_signalInterceptActive, &expectedActive, true)) {
+    signal_pal_setup_handlers();
+  }
+}
 
-void signal_reset(Signal sig) { signal_pal_reset(sig); }
+bool signal_is_received(Signal sig) {
+  diag_assert_msg(g_signalInterceptActive, "Signal interception is not active");
+  return signal_pal_is_received(sig);
+}
+
+void signal_reset(Signal sig) {
+  diag_assert_msg(g_signalInterceptActive, "Signal interception is not active");
+  signal_pal_reset(sig);
+}

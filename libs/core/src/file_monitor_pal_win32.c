@@ -20,9 +20,10 @@
  */
 #define monitor_min_interval time_milliseconds(10)
 
-typedef enum {
-  FileMonitorFlags_ReadPending = 1 << 0,
-} FileMonitorFlags;
+// Internal flags.
+enum {
+  FileMonitorFlags_ReadPending = 1 << (FileMonitorFlags_Count + 0),
+};
 
 typedef struct {
   String     path;
@@ -83,7 +84,8 @@ static u64 monitor_file_id_from_handle(const HANDLE handle) {
   return ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow;
 }
 
-static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String path, u64* outId) {
+static FileMonitorResult
+monitor_query_file(FileMonitor* monitor, const String path, u64* outId, usize* outSize) {
   const String          pathAbs = path_build_scratch(monitor->rootPath, path);
   const FileAccessFlags access  = FileAccess_None;
   File*                 file;
@@ -91,7 +93,8 @@ static FileMonitorResult monitor_query_file(FileMonitor* monitor, const String p
   if ((res = file_create(g_alloc_scratch, pathAbs, FileMode_Open, access, &file))) {
     return monitor_result_from_file_result(res);
   }
-  *outId = monitor_file_id_from_handle(file->handle);
+  *outId   = monitor_file_id_from_handle(file->handle);
+  *outSize = file_stat_sync(file).size;
   file_destroy(file);
   return FileMonitorResult_Success;
 }
@@ -179,8 +182,9 @@ static void monitor_read_begin_locked(FileMonitor* monitor) {
 static bool monitor_read_observe_locked(FileMonitor* monitor) {
   diag_assert(!monitor->bufferRemaining.size);
 
-  DWORD bytesRead;
-  if (!GetOverlappedResult(monitor->rootHandle, &monitor->rootOverlapped, &bytesRead, false)) {
+  const bool wait = (monitor->flags & FileMonitorFlags_Blocking) != 0;
+  DWORD      bytesRead;
+  if (!GetOverlappedResult(monitor->rootHandle, &monitor->rootOverlapped, &bytesRead, wait)) {
     const DWORD err = GetLastError();
     if (LIKELY(err == ERROR_IO_INCOMPLETE)) {
       return false; // No data available.
@@ -224,9 +228,13 @@ Begin:
     const String path = winutils_from_widestr_scratch(event->FileName, pathNumWideChars);
 
     u64               fileId;
+    usize             fileSize;
     FileMonitorResult res;
-    if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+    if ((res = monitor_query_file(monitor, path, &fileId, &fileSize))) {
       continue; // Skip event; Unable to open file (could have been deleted since).
+    }
+    if (!fileSize) {
+      continue; // Skip event; Empty file, most likely a truncate that will be followed by a write.
     }
     FileWatch* watch = monitor_watch_by_file(monitor, fileId);
     if (!watch) {
@@ -255,7 +263,7 @@ Begin:
   goto Begin;
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMonitorFlags flags) {
   const String rootPathAbs = path_build_scratch(rootPath);
 
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
@@ -263,6 +271,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
   *monitor = (FileMonitor){
       .alloc                 = alloc,
       .mutex                 = thread_mutex_create(alloc),
+      .flags                 = flags,
       .watches               = dynarray_create_t(alloc, FileWatch, 64),
       .rootPath              = string_dup(alloc, rootPathAbs),
       .rootHandle            = monitor_open_root(rootPathAbs),
@@ -297,8 +306,9 @@ FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, co
   }
 
   u64               fileId;
+  usize             fileSize;
   FileMonitorResult res;
-  if ((res = monitor_query_file(monitor, path, &fileId)) != FileMonitorResult_Success) {
+  if ((res = monitor_query_file(monitor, path, &fileId, &fileSize)) != FileMonitorResult_Success) {
     return res;
   }
 

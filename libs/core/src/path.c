@@ -153,6 +153,17 @@ bool path_canonize(DynString* str, String path) {
   return success;
 }
 
+String path_canonize_scratch(const String path) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, path_pal_max_size, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  path_canonize(&str, path);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
 void path_append(DynString* str, const String path) {
   if (str->size && !path_ends_with_seperator(dynstring_view(str))) {
     dynstring_append_char(str, '/');
