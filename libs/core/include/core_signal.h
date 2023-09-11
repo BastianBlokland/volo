@@ -2,13 +2,20 @@
 #include "core_types.h"
 
 typedef enum {
-  Signal_Interupt = 0,
+  Signal_Interrupt = 0,
 
   Signal_Count,
 } Signal;
 
 /**
+ * Enable signal interception.
+ * NOTE: This suppresses the default system signal handling.
+ */
+void signal_intercept_enable();
+
+/**
  * Check if the current process has received a signal.
+ * NOTE: Requires interception to be enabled by calling 'signal_intercept_enable()'.
  */
 bool signal_is_received(Signal);
 

@@ -7,14 +7,14 @@
 
 static i32 g_signalStates[Signal_Count];
 
-static void SYS_DECL signal_pal_interupt_handler(int signal) {
-  thread_atomic_store_i32(&g_signalStates[Signal_Interupt], 1);
+static void SYS_DECL signal_pal_interrupt_handler(int signal) {
+  thread_atomic_store_i32(&g_signalStates[Signal_Interrupt], 1);
   (void)signal;
 }
 
-static void signal_pal_setup_interupt_handler() {
+static void signal_pal_setup_interrupt_handler() {
   struct sigaction action = (struct sigaction){
-      .sa_handler = signal_pal_interupt_handler,
+      .sa_handler = signal_pal_interrupt_handler,
       .sa_flags   = SA_RESTART,
   };
   sigemptyset(&action.sa_mask);
@@ -25,7 +25,7 @@ static void signal_pal_setup_interupt_handler() {
   }
 }
 
-void signal_pal_setup_handlers() { signal_pal_setup_interupt_handler(); }
+void signal_pal_setup_handlers() { signal_pal_setup_interrupt_handler(); }
 
 bool signal_pal_is_received(Signal sig) { return thread_atomic_load_i32(&g_signalStates[sig]); }
 

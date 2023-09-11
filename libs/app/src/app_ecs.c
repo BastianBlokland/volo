@@ -1,6 +1,7 @@
 #include "app_cli.h"
 #include "app_ecs.h"
 #include "core_alloc.h"
+#include "core_signal.h"
 #include "core_thread.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
@@ -17,6 +18,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   log_i("Application startup", log_param("pid", fmt_int(g_thread_pid)));
+
+  // Enable custom signal handling, used for graceful shutdown on interrupt.
+  signal_intercept_enable();
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   app_ecs_register(def, invoc);

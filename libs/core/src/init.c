@@ -27,7 +27,6 @@ void core_init() {
   if (!g_intialized) {
     file_init();
     tty_init();
-    signal_init();
     path_init();
   }
 

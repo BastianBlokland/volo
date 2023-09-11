@@ -9,7 +9,6 @@ void alloc_init(void);
 void file_init(void);
 void float_init(void);
 void path_init(void);
-void signal_init(void);
 void thread_init(void);
 void time_init(void);
 void tty_init(void);

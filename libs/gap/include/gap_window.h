@@ -29,16 +29,16 @@ typedef enum {
  * Configuration flags for setting up the desired window behaviour.
  */
 typedef enum {
-  GapWindowFlags_None            = 0,
-  GapWindowFlags_CloseOnInterupt = 1 << 0,
-  GapWindowFlags_CloseOnRequest  = 1 << 1,
-  GapWindowFlags_CursorHide      = 1 << 2,
-  GapWindowFlags_CursorLock      = 1 << 3,
-  GapWindowFlags_CursorConfine   = 1 << 4,
-  GapWindowFlags_DefaultTitle    = 1 << 5,
+  GapWindowFlags_None             = 0,
+  GapWindowFlags_CloseOnInterrupt = 1 << 0,
+  GapWindowFlags_CloseOnRequest   = 1 << 1,
+  GapWindowFlags_CursorHide       = 1 << 2,
+  GapWindowFlags_CursorLock       = 1 << 3,
+  GapWindowFlags_CursorConfine    = 1 << 4,
+  GapWindowFlags_DefaultTitle     = 1 << 5,
 
   GapWindowFlags_Default =
-      GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_DefaultTitle,
+      GapWindowFlags_CloseOnInterrupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_DefaultTitle,
 } GapWindowFlags;
 
 typedef enum {
