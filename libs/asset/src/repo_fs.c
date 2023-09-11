@@ -215,7 +215,7 @@ AssetRepo* asset_repo_create_fs(String rootPath) {
               .query        = asset_repo_fs_query,
           },
       .rootPath = string_dup(g_alloc_heap, rootPath),
-      .monitor  = file_monitor_create(g_alloc_heap, rootPath),
+      .monitor  = file_monitor_create(g_alloc_heap, rootPath, FileMonitorFlags_None),
   };
 
   return (AssetRepo*)repo;

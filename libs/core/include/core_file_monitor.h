@@ -35,6 +35,17 @@ typedef enum {
   FileMonitorResult_Count,
 } FileMonitorResult;
 
+typedef enum {
+  FileMonitorFlags_None = 0,
+
+  /**
+   * When this is set 'file_monitor_poll()' will block until an event is available.
+   */
+  FileMonitorFlags_Blocking = 1 << 0,
+
+  FileMonitorFlags_Count = 1,
+} FileMonitorFlags;
+
 /**
  * Return a textual representation of the given FileMonitorResult.
  */
@@ -44,7 +55,7 @@ String file_monitor_result_str(FileMonitorResult);
  * Create a new file-monitor.
  * Destroy using 'file_monitor_destroy()'.
  */
-FileMonitor* file_monitor_create(Allocator*, String rootPath);
+FileMonitor* file_monitor_create(Allocator*, String rootPath, FileMonitorFlags);
 
 /**
  * Destroy a file-monitor.

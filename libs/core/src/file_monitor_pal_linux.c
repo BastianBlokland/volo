@@ -13,9 +13,10 @@
 #define monitor_inotifyMask IN_CLOSE_WRITE
 #define monitor_event_size (sizeof(struct inotify_event) + NAME_MAX + 1)
 
-typedef enum {
-  FileMonitorFlags_RootDirectoryInaccessible = 1 << 0,
-} FileMonitorFlags;
+// Internal flags.
+enum {
+  FileMonitorFlags_RootDirectoryInaccessible = 1 << (FileMonitorFlags_Count + 0),
+};
 
 typedef struct {
   int    wd;
@@ -129,15 +130,18 @@ static bool file_monitor_poll_locked(FileMonitor* monitor, FileMonitorEvent* out
   return false; // No event was valid.
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMonitorFlags flags) {
   const String rootPathAbs = path_build_scratch(rootPath);
 
-  const int fd = inotify_init1(IN_NONBLOCK);
+  int inotifyFlags = 0;
+  if (!(flags & FileMonitorFlags_Blocking)) {
+    inotifyFlags |= IN_NONBLOCK;
+  }
+  const int fd = inotify_init1(inotifyFlags);
   if (fd == -1) {
     diag_crash_msg("inotify_init() failed: {}", fmt_int(errno));
   }
 
-  FileMonitorFlags flags = 0;
   /**
    * Stat the root-path for more consistent error messages across platforms.
    */

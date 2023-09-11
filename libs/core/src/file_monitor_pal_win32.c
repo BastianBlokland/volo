@@ -20,9 +20,10 @@
  */
 #define monitor_min_interval time_milliseconds(10)
 
-typedef enum {
-  FileMonitorFlags_ReadPending = 1 << 0,
-} FileMonitorFlags;
+// Internal flags.
+enum {
+  FileMonitorFlags_ReadPending = 1 << (FileMonitorFlags_Count + 0),
+};
 
 typedef struct {
   String     path;
@@ -179,8 +180,9 @@ static void monitor_read_begin_locked(FileMonitor* monitor) {
 static bool monitor_read_observe_locked(FileMonitor* monitor) {
   diag_assert(!monitor->bufferRemaining.size);
 
-  DWORD bytesRead;
-  if (!GetOverlappedResult(monitor->rootHandle, &monitor->rootOverlapped, &bytesRead, false)) {
+  const bool wait = (monitor->flags & FileMonitorFlags_Blocking) != 0;
+  DWORD      bytesRead;
+  if (!GetOverlappedResult(monitor->rootHandle, &monitor->rootOverlapped, &bytesRead, wait)) {
     const DWORD err = GetLastError();
     if (LIKELY(err == ERROR_IO_INCOMPLETE)) {
       return false; // No data available.
@@ -255,7 +257,7 @@ Begin:
   goto Begin;
 }
 
-FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
+FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath, FileMonitorFlags flags) {
   const String rootPathAbs = path_build_scratch(rootPath);
 
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
@@ -263,6 +265,7 @@ FileMonitor* file_monitor_create(Allocator* alloc, const String rootPath) {
   *monitor = (FileMonitor){
       .alloc                 = alloc,
       .mutex                 = thread_mutex_create(alloc),
+      .flags                 = flags,
       .watches               = dynarray_create_t(alloc, FileWatch, 64),
       .rootPath              = string_dup(alloc, rootPathAbs),
       .rootHandle            = monitor_open_root(rootPathAbs),
