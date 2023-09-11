@@ -32,7 +32,7 @@ macro(set_linux_defines)
 endmacro(set_linux_defines)
 
 #
-# Set linux windows defines
+# Set windows specific defines
 #
 macro(set_win32_defines)
   message(STATUS "Configuring win32 platform defines")
