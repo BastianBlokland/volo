@@ -1,7 +1,9 @@
 #include "app_cli.h"
 #include "core_alloc.h"
 #include "core_file.h"
+#include "core_file_monitor.h"
 #include "core_format.h"
+#include "core_path.h"
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_eval.h"
@@ -15,9 +17,10 @@
 
 typedef enum {
   ReplFlags_None         = 0,
-  ReplFlags_OutputTokens = 1 << 0,
-  ReplFlags_OutputAst    = 1 << 1,
-  ReplFlags_OutputStats  = 1 << 2,
+  ReplFlags_Watch        = 1 << 0,
+  ReplFlags_OutputTokens = 1 << 1,
+  ReplFlags_OutputAst    = 1 << 2,
+  ReplFlags_OutputStats  = 1 << 3,
 } ReplFlags;
 
 typedef struct {
@@ -348,7 +351,41 @@ static i32 repl_run_path(const String path, const ReplFlags flags) {
   return runRes;
 }
 
-static CliId g_fileArg, g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
+static i32 repl_run_watch(const String path, const ReplFlags flags) {
+  i32 res = 0;
+
+  // Compute the absolute parent path and the canonized relative path, this is needed to support
+  // paths that start with '../'.
+  const String pathAbs      = string_dup(g_alloc_heap, path_build_scratch(path));
+  const String parentAbs    = path_parent(pathAbs);
+  const String pathRelCanon = string_dup(g_alloc_heap, path_canonize_scratch(path));
+
+  const FileMonitorFlags monFlags = FileMonitorFlags_Blocking;
+  FileMonitor*           mon      = file_monitor_create(g_alloc_heap, parentAbs, monFlags);
+
+  FileMonitorResult monRes;
+  if ((monRes = file_monitor_watch(mon, pathRelCanon, 0))) {
+    const String err = file_monitor_result_str(monRes);
+    const String msg = fmt_write_scratch("ERROR: Failed to watch path: {}\n", fmt_text(err));
+    file_write_sync(g_file_stderr, msg);
+    res = 1;
+    goto Ret;
+  }
+
+  FileMonitorEvent evt;
+  do {
+    repl_output(string_lit("--- Change detected ---\n"));
+    res = repl_run_path(path, flags);
+  } while (file_monitor_poll(mon, &evt));
+
+Ret:
+  string_free(g_alloc_heap, pathAbs);
+  string_free(g_alloc_heap, pathRelCanon);
+  file_monitor_destroy(mon);
+  return res;
+}
+
+static CliId g_fileArg, g_watchFlag, g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
 
 void app_cli_configure(CliApp* app) {
   static const String g_desc = string_static("Execute a script from a file or stdin "
@@ -358,6 +395,9 @@ void app_cli_configure(CliApp* app) {
   g_fileArg = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
   cli_register_desc(app, g_fileArg, string_lit("File to execute (default: stdin)."));
   cli_register_validator(app, g_fileArg, cli_validate_file_regular);
+
+  g_watchFlag = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
+  cli_register_desc(app, g_watchFlag, string_lit("Reevaluate the script when the file changes."));
 
   g_tokensFlag = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
   cli_register_desc(app, g_tokensFlag, string_lit("Ouput the tokens."));
@@ -371,6 +411,7 @@ void app_cli_configure(CliApp* app) {
   g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
   cli_register_exclusions(app, g_helpFlag, g_fileArg);
+  cli_register_exclusions(app, g_helpFlag, g_watchFlag);
   cli_register_exclusions(app, g_helpFlag, g_tokensFlag);
   cli_register_exclusions(app, g_helpFlag, g_astFlag);
   cli_register_exclusions(app, g_helpFlag, g_statsFlag);
@@ -383,6 +424,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   ReplFlags flags = ReplFlags_None;
+  if (cli_parse_provided(invoc, g_watchFlag)) {
+    flags |= ReplFlags_Watch;
+  }
   if (cli_parse_provided(invoc, g_tokensFlag)) {
     flags |= ReplFlags_OutputTokens;
   }
@@ -401,6 +445,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_fileArg);
   if (fileArg.count) {
+    if (flags & ReplFlags_Watch) {
+      return repl_run_watch(fileArg.values[0], flags);
+    }
     return repl_run_path(fileArg.values[0], flags);
   }
   if (tty_isatty(g_file_stdin)) {
