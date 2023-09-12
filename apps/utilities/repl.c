@@ -468,8 +468,8 @@ static i32 repl_run_watch(const String path, const ReplFlags flags) {
 
   FileMonitorEvent evt;
   do {
-    repl_output(string_lit("--- Change detected ---\n"));
     res = repl_run_path(path, flags);
+    repl_output(string_lit("--- Waiting for change ---\n"));
   } while (file_monitor_poll(mon, &evt));
 
 Ret:
