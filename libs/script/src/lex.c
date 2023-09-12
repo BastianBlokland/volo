@@ -304,7 +304,6 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     case '\n':
     case '\r':
     case '\t':
-    case '\0':
       str = string_consume(str, 1); // Skip whitespace.
       continue;
     default:
