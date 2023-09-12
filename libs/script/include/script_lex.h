@@ -40,6 +40,7 @@ typedef enum {
   ScriptTokenType_If,           // if
   ScriptTokenType_Else,         // else
   ScriptTokenType_Var,          // var
+  ScriptTokenType_Comment,      // /* Hello */ or // World
   ScriptTokenType_Error,        //
   ScriptTokenType_End,          // \0
 } ScriptTokenType;
@@ -55,6 +56,11 @@ typedef struct {
   };
 } ScriptToken;
 
+typedef enum {
+  ScriptLexFlags_None,
+  ScriptLexFlags_IncludeComments = 1 << 0,
+} ScriptLexFlags;
+
 /**
  * Read a single scripts token.
  * Returns the remaining input.
@@ -62,7 +68,7 @@ typedef struct {
  *
  * NOTE: StringTable can optionally provided to store the text representations of keys.
  */
-String script_lex(String, StringTable*, ScriptToken*);
+String script_lex(String, StringTable*, ScriptToken*, ScriptLexFlags);
 
 /**
  * Test if two tokens are equal.

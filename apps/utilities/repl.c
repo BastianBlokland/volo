@@ -53,7 +53,7 @@ static void repl_output_tokens(String text) {
 
   for (;;) {
     ScriptToken token;
-    text = script_lex(text, null, &token);
+    text = script_lex(text, null, &token, ScriptLexFlags_IncludeComments);
     if (token.type == ScriptTokenType_End) {
       break;
     }
@@ -134,6 +134,8 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Else:
   case ScriptTokenType_Var:
     return TtyFgColor_Cyan;
+  case ScriptTokenType_Comment:
+    return TtyFgColor_BrightBlack;
   case ScriptTokenType_ParenOpen:
   case ScriptTokenType_ParenClose:
   case ScriptTokenType_CurlyOpen:
@@ -232,7 +234,7 @@ static void repl_edit_render(const ReplEditor* editor) {
   String      editText = dynstring_view(editor->editBuffer);
   ScriptToken token;
   for (;;) {
-    const String remText   = script_lex(editText, null, &token);
+    const String remText   = script_lex(editText, null, &token, ScriptLexFlags_IncludeComments);
     const usize  tokenSize = editText.size - remText.size;
     const String tokenText = string_slice(editText, 0, tokenSize);
     tty_write_style_sequence(&buffer, ttystyle(.fgColor = repl_token_color(token.type)));

@@ -144,7 +144,7 @@ spec(lex) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       ScriptToken  token;
-      const String rem = script_lex(testData[i].input, null, &token);
+      const String rem = script_lex(testData[i].input, null, &token, ScriptLexFlags_None);
 
       check_msg(string_is_empty(rem), "Unexpected remaining input: '{}'", fmt_text(rem));
       check_msg(
@@ -154,5 +154,28 @@ spec(lex) {
           script_token_fmt(&testData[i].expected),
           fmt_text(testData[i].input));
     }
+  }
+
+  it("can optionally include comment tokens") {
+    ScriptToken token;
+    String      str = string_lit("42 // Hello \n/* World */ 42 /* More */");
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_Number);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_Comment);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_Comment);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_Number);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_Comment);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
+    check(token.type == ScriptTokenType_End);
   }
 }
