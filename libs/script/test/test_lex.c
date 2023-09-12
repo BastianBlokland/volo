@@ -134,6 +134,12 @@ spec(lex) {
         {string_static("  // Hello World \t"), tok_end()},
         {string_static("// Hello World\n42"), tok_number(42)},
         {string_static("// Hello World\r\n42"), tok_number(42)},
+        {string_static("/* Hello World */"), tok_end()},
+        {string_static("/* Hello World +1*\n\"!@%&\n*\"#%^*/"), tok_end()},
+        {string_static("  /* Hello World */\t"), tok_end()},
+        {string_static("/* Hello World"), tok_end()},
+        {string_static("/* Hello World*"), tok_end()},
+        {string_static("/* Hello World\r\n*/42"), tok_number(42)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
