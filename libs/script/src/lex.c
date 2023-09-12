@@ -25,7 +25,7 @@ static bool script_is_word_start(const u8 c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c >= g_utf8Start;
 }
 
-static bool script_is_word_seperator(const u8 c) {
+static bool script_is_word_separator(const u8 c) {
   switch (c) {
   case '\0':
   case '\t':
@@ -82,16 +82,32 @@ static bool script_is_string_end(const u8 c) {
 
 static u32 script_scan_word_end(const String str) {
   u32 end = 0;
-  for (; end < str.size && !script_is_word_seperator(*string_at(str, end)); ++end)
+  for (; end != str.size && !script_is_word_separator(*string_at(str, end)); ++end)
     ;
   return end;
 }
 
 static u32 script_scan_string_end(const String str) {
   u32 end = 0;
-  for (; end < str.size && !script_is_string_end(*string_at(str, end)); ++end)
+  for (; end != str.size && !script_is_string_end(*string_at(str, end)); ++end)
     ;
   return end;
+}
+
+static u32 script_scan_line_end(const String str) {
+  u32 end = 0;
+  for (; end != str.size && *string_at(str, end) != '\n'; ++end)
+    ;
+  return end;
+}
+
+static u32 script_scan_block_comment_end(const String str) {
+  for (u32 i = 0; (i + 1) < str.size; ++i) {
+    if (*string_at(str, i) == '*' && *string_at(str, i + 1) == '/') {
+      return i + 2;
+    }
+  }
+  return (u32)str.size;
 }
 
 static String script_consume_word_or_char(const String str) {
@@ -173,7 +189,7 @@ static String script_lex_identifier(String str, ScriptToken* out) {
   return string_consume(str, end);
 }
 
-String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
+String script_lex(String str, StringTable* stringtable, ScriptToken* out, const ScriptLexFlags fl) {
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
     switch (c) {
@@ -230,6 +246,20 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
       if (script_peek(str, 1) == '=') {
         return out->type = ScriptTokenType_SlashEq, string_consume(str, 2);
       }
+      if (script_peek(str, 1) == '/') {
+        str = string_consume(str, script_scan_line_end(str)); // Consume line comment.
+        if (fl & ScriptLexFlags_IncludeComments) {
+          return out->type = ScriptTokenType_Comment, str;
+        }
+        continue;
+      }
+      if (script_peek(str, 1) == '*') {
+        str = string_consume(str, script_scan_block_comment_end(str)); // Consume block comment.
+        if (fl & ScriptLexFlags_IncludeComments) {
+          return out->type = ScriptTokenType_Comment, str;
+        }
+        continue;
+      }
       return out->type = ScriptTokenType_Slash, string_consume(str, 1);
     case '%':
       if (script_peek(str, 1) == '=') {
@@ -274,7 +304,6 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '\n':
     case '\r':
     case '\t':
-    case '\0':
       str = string_consume(str, 1); // Skip whitespace.
       continue;
     default:
@@ -384,6 +413,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("else");
   case ScriptTokenType_Var:
     return string_lit("var");
+  case ScriptTokenType_Comment:
+    return string_lit("comment");
   case ScriptTokenType_Error:
     return script_error_str(token->val_error);
   case ScriptTokenType_End:

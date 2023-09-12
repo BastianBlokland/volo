@@ -314,19 +314,19 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
 
 static ScriptToken read_peek(ScriptReadContext* ctx) {
   ScriptToken token;
-  script_lex(ctx->input, null, &token);
+  script_lex(ctx->input, null, &token, ScriptLexFlags_None);
   return token;
 }
 
 static ScriptToken read_consume(ScriptReadContext* ctx) {
   ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
   return token;
 }
 
 static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) {
   ScriptToken  token;
-  const String rem = script_lex(ctx->input, g_stringtable, &token);
+  const String rem = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
   if (token.type == type) {
     ctx->input = rem;
     return true;
@@ -699,7 +699,7 @@ static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const 
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token);
+  ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
 
   switch (token.type) {
   /**
@@ -724,7 +724,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Identifier: {
     ScriptToken  nextToken;
-    const String remInput = script_lex(ctx->input, null, &nextToken);
+    const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.type) {
     case ScriptTokenType_ParenOpen:
       ctx->input = remInput; // Consume the 'nextToken'.
@@ -769,7 +769,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_Key: {
     ScriptToken  nextToken;
-    const String remInput = script_lex(ctx->input, null, &nextToken);
+    const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.type) {
     case ScriptTokenType_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
@@ -814,7 +814,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
    */
   while (true) {
     ScriptToken  nextToken;
-    const String remInput = script_lex(ctx->input, g_stringtable, &nextToken);
+    const String remInput = script_lex(ctx->input, g_stringtable, &nextToken, ScriptLexFlags_None);
 
     const OpPrecedence opPrecedence = op_precedence(nextToken.type);
     if (!opPrecedence || opPrecedence <= minPrecedence) {
