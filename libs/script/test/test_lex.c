@@ -129,6 +129,11 @@ spec(lex) {
         {string_static("\r"), tok_end()},
         {string_static("\0"), tok_end()},
         {string_static(" \t\n\r"), tok_end()},
+        {string_static("// Hello World"), tok_end()},
+        {string_static("// Hello World +1\"!@%&*\"#%^*"), tok_end()},
+        {string_static("  // Hello World \t"), tok_end()},
+        {string_static("// Hello World\n42"), tok_number(42)},
+        {string_static("// Hello World\r\n42"), tok_number(42)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

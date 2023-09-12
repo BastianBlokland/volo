@@ -82,14 +82,21 @@ static bool script_is_string_end(const u8 c) {
 
 static u32 script_scan_word_end(const String str) {
   u32 end = 0;
-  for (; end < str.size && !script_is_word_seperator(*string_at(str, end)); ++end)
+  for (; end != str.size && !script_is_word_seperator(*string_at(str, end)); ++end)
     ;
   return end;
 }
 
 static u32 script_scan_string_end(const String str) {
   u32 end = 0;
-  for (; end < str.size && !script_is_string_end(*string_at(str, end)); ++end)
+  for (; end != str.size && !script_is_string_end(*string_at(str, end)); ++end)
+    ;
+  return end;
+}
+
+static u32 script_scan_line_end(const String str) {
+  u32 end = 0;
+  for (; end != str.size && *string_at(str, end) != '\n'; ++end)
     ;
   return end;
 }
@@ -229,6 +236,10 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out) {
     case '/':
       if (script_peek(str, 1) == '=') {
         return out->type = ScriptTokenType_SlashEq, string_consume(str, 2);
+      }
+      if (script_peek(str, 1) == '/') {
+        str = string_consume(str, script_scan_line_end(str)); // Skip line.
+        continue;
       }
       return out->type = ScriptTokenType_Slash, string_consume(str, 1);
     case '%':
