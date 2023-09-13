@@ -229,7 +229,7 @@ typedef struct {
 typedef u32 ScriptPos;
 
 static ScriptPos script_pos(ScriptReadContext* ctx) {
-  return (ScriptPos)(ctx->input.ptr - ctx->inputTotal.ptr);
+  return (ScriptPos)(ctx->inputTotal.size - ctx->input.size);
 }
 
 static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
@@ -340,9 +340,9 @@ static ScriptReadResult read_success(const ScriptExpr expr) {
 
 static ScriptReadResult
 read_error(ScriptReadContext* ctx, const ScriptError err, const ScriptPos posStart) {
-  const ScriptPos posEnd = script_pos(ctx);
-  (void)posStart;
-  (void)posEnd;
+  const String text        = string_slice(ctx->inputTotal, posStart, script_pos(ctx) - posStart);
+  const String textTrimmed = script_lex_trim(text);
+  (void)textTrimmed;
   return (ScriptReadResult){.type = ScriptResult_Fail, .error = err};
 }
 
