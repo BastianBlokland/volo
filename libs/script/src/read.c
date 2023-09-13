@@ -255,7 +255,7 @@ static ScriptPos script_marker_to_pos(ScriptReadContext* ctx, const ScriptMarker
       ++pos;
       break;
     default:
-      pos += math_max(utf8_cp_bytes_from_first(ch), 1);
+      pos += (u32)math_max(utf8_cp_bytes_from_first(ch), 1);
       ++column;
     }
   }
