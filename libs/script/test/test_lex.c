@@ -179,4 +179,28 @@ spec(lex) {
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
     check(token.type == ScriptTokenType_End);
   }
+
+  it("can trim until the next token") {
+    const struct {
+      String input, expected;
+    } testData[] = {
+        {string_static(""), string_static("")},
+        {string_static("   "), string_static("")},
+        {string_static("+"), string_static("+")},
+        {string_static(" +"), string_static("+")},
+        {string_static("    +"), string_static("+")},
+        {string_static("  \t \t \r\n  \n +"), string_static("+")},
+        {string_static("  \t \t \r\n  \n +   "), string_static("+   ")},
+        {string_static("/ Hello World"), string_static("/ Hello World")},
+        {string_static("// Hello World"), string_static("")},
+        {string_static("/* Hello World"), string_static("")},
+        {string_static("/* Hello World */"), string_static("")},
+        {string_static("/* Hello World */ +"), string_static("+")},
+    };
+
+    for (u32 i = 0; i != array_elems(testData); ++i) {
+      const String rem = script_lex_trim(testData[i].input);
+      check_eq_string(rem, testData[i].expected);
+    }
+  }
 }
