@@ -317,6 +317,34 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
   return out->type = ScriptTokenType_End, string_empty;
 }
 
+String script_lex_trim(String str) {
+  while (!string_is_empty(str)) {
+    const u8 c = string_begin(str)[0];
+    switch (c) {
+    case '/': {
+      if (script_peek(str, 1) == '/') {
+        str = string_consume(str, script_scan_line_end(str)); // Skip line comment.
+        continue;
+      }
+      if (script_peek(str, 1) == '*') {
+        str = string_consume(str, script_scan_block_comment_end(str)); // Skip block comment.
+        continue;
+      }
+      return str;
+    }
+    case ' ':
+    case '\n':
+    case '\r':
+    case '\t':
+      str = string_consume(str, 1); // Skip whitespace.
+      continue;
+    default:
+      return str;
+    }
+  }
+  return string_empty;
+}
+
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   if (a->type != b->type) {
     return false;

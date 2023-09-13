@@ -71,6 +71,11 @@ typedef enum {
 String script_lex(String, StringTable*, ScriptToken*, ScriptLexFlags);
 
 /**
+ * Consume any whitespace until the next token.
+ */
+String script_lex_trim(String);
+
+/**
  * Test if two tokens are equal.
  */
 bool script_token_equal(const ScriptToken*, const ScriptToken*);

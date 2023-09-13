@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_utf8.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -13,12 +14,6 @@
 #define script_args_max 10
 #define script_builtin_consts_max 32
 #define script_builtin_funcs_max 32
-
-#define script_err(_ERR_)                                                                          \
-  (ScriptReadResult) { .type = ScriptResult_Fail, .error = (_ERR_) }
-
-#define script_expr(_EXPR_)                                                                        \
-  (ScriptReadResult) { .type = ScriptResult_Success, .expr = (_EXPR_) }
 
 typedef struct {
   StringHash idHash;
@@ -226,11 +221,46 @@ typedef struct sScriptScope {
 
 typedef struct {
   ScriptDoc*   doc;
-  String       input;
+  String       input, inputTotal;
   ScriptScope* scopeRoot;
   u8           varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
   u32          recursionDepth;
 } ScriptReadContext;
+
+typedef u32 ScriptMarker;
+
+static ScriptMarker script_marker(ScriptReadContext* ctx) {
+  return (ScriptMarker)(ctx->inputTotal.size - ctx->input.size);
+}
+
+static ScriptMarker script_marker_trim(ScriptReadContext* ctx, const ScriptMarker marker) {
+  const String text        = string_consume(ctx->inputTotal, marker);
+  const String textTrimmed = script_lex_trim(text);
+  return (ScriptMarker)(ctx->inputTotal.size - textTrimmed.size);
+}
+
+static ScriptPos script_marker_to_pos(ScriptReadContext* ctx, const ScriptMarker marker) {
+  diag_assert(marker <= ctx->inputTotal.size);
+  u32 pos  = 0;
+  u16 line = 1, column = 1;
+  while (pos < marker) {
+    const u8 ch = *string_at(ctx->inputTotal, pos);
+    switch (ch) {
+    case '\n':
+      ++pos;
+      ++line;
+      column = 1;
+      break;
+    case '\r':
+      ++pos;
+      break;
+    default:
+      pos += (u32)math_max(utf8_cp_bytes_from_first(ch), 1);
+      ++column;
+    }
+  }
+  return (ScriptPos){.line = line, .column = column};
+}
 
 static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
   const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
@@ -334,6 +364,22 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
   return false;
 }
 
+static ScriptReadResult read_success(const ScriptExpr expr) {
+  return (ScriptReadResult){.type = ScriptResult_Success, .expr = expr};
+}
+
+static ScriptReadResult
+read_error(ScriptReadContext* ctx, const ScriptError err, const ScriptMarker start) {
+  const ScriptMarker startTrimmed = script_marker_trim(ctx, start);
+  const ScriptMarker end          = script_marker(ctx);
+  return (ScriptReadResult){
+      .type       = ScriptResult_Fail,
+      .error      = err,
+      .errorStart = script_marker_to_pos(ctx, startTrimmed),
+      .errorEnd   = script_marker_to_pos(ctx, end),
+  };
+}
+
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static bool read_is_block_end(const ScriptTokenType type) {
@@ -341,6 +387,8 @@ static bool read_is_block_end(const ScriptTokenType type) {
 }
 
 static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
+  const ScriptMarker start = script_marker(ctx);
+
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
 
@@ -350,11 +398,11 @@ static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    return script_err(ScriptError_BlockSizeExceedsMaximum);
+    return read_error(ctx, ScriptError_BlockSizeExceedsMaximum, start);
   }
   const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(arg.type == ScriptResult_Fail)) {
-    return script_err(arg.error);
+    return read_error(ctx, arg.error, start);
   }
   exprs[exprCount++] = arg.expr;
 
@@ -368,11 +416,11 @@ BlockNext:
 BlockEnd:
   switch (exprCount) {
   case 0:
-    return script_expr(script_add_value(ctx->doc, script_null()));
+    return read_success(script_add_value(ctx->doc, script_null()));
   case 1:
-    return script_expr(exprs[0]);
+    return read_success(exprs[0]);
   default:
-    return script_expr(script_add_block(ctx->doc, exprs, exprCount));
+    return read_success(script_add_block(ctx->doc, exprs, exprCount));
   }
 }
 
@@ -380,6 +428,8 @@ BlockEnd:
  * NOTE: Caller is expected to consume the opening curly-brace.
  */
 static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
+  const ScriptMarker start = script_marker(ctx);
+
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
 
@@ -394,7 +444,7 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
-    return script_err(ScriptError_UnterminatedScope);
+    return read_error(ctx, ScriptError_UnterminatedScope, start);
   }
 
   return res;
@@ -415,14 +465,14 @@ static ScriptReadResult read_expr_scope_single(ScriptReadContext* ctx, const OpP
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
-static ScriptReadResult read_expr_paren(ScriptReadContext* ctx) {
+static ScriptReadResult read_expr_paren(ScriptReadContext* ctx, const ScriptMarker start) {
   const ScriptReadResult res = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
     return res;
   }
   const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
-    return script_err(ScriptError_UnclosedParenthesizedExpression);
+    return read_error(ctx, ScriptError_UnclosedParenthesizedExpression, start);
   }
   return res;
 }
@@ -477,26 +527,26 @@ ArgEnd:;
   return script_args_success(count);
 }
 
-static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
+static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx, const ScriptMarker start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    return script_err(ScriptError_VariableIdentifierMissing);
+    return read_error(ctx, ScriptError_VariableIdentifierMissing, start);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    return script_err(ScriptError_VariableIdentifierConflicts);
+    return read_error(ctx, ScriptError_VariableIdentifierConflicts, start);
   }
   if (script_var_lookup(ctx, token.val_identifier)) {
-    return script_err(ScriptError_VariableIdentifierConflicts);
+    return read_error(ctx, ScriptError_VariableIdentifierConflicts, start);
   }
   if (script_builtin_func_exists(token.val_identifier)) {
-    return script_err(ScriptError_VariableIdentifierConflicts);
+    return read_error(ctx, ScriptError_VariableIdentifierConflicts, start);
   }
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
     const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
     if (UNLIKELY(res.type == ScriptResult_Fail)) {
-      return script_err(res.error);
+      return read_error(ctx, res.error, start);
     }
     valExpr = res.expr;
   } else {
@@ -505,43 +555,48 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptVarId varId;
   if (!script_var_declare(ctx, token.val_identifier, &varId)) {
-    return script_err(ScriptError_VariableLimitExceeded);
+    return read_error(ctx, ScriptError_VariableLimitExceeded, start);
   }
 
-  return script_expr(script_add_var_store(ctx->doc, varId, valExpr));
+  return read_success(script_add_var_store(ctx->doc, varId, valExpr));
 }
 
-static ScriptReadResult read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier) {
+static ScriptReadResult read_expr_var_lookup(
+    ScriptReadContext* ctx, const StringHash identifier, const ScriptMarker start) {
   const ScriptBuiltinConst* builtin = script_builtin_const_lookup(identifier);
   if (builtin) {
-    return script_expr(script_add_value(ctx->doc, builtin->val));
+    return read_success(script_add_value(ctx->doc, builtin->val));
   }
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (var) {
-    return script_expr(script_add_var_load(ctx->doc, var->varSlot));
+    return read_success(script_add_var_load(ctx->doc, var->varSlot));
   }
-  return script_err(ScriptError_NoVariableFoundForIdentifier);
+  return read_error(ctx, ScriptError_NoVariableFoundForIdentifier, start);
 }
 
-static ScriptReadResult read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier) {
+static ScriptReadResult read_expr_var_assign(
+    ScriptReadContext* ctx, const StringHash identifier, const ScriptMarker start) {
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    return script_err(ScriptError_NoVariableFoundForIdentifier);
+    return read_error(ctx, ScriptError_NoVariableFoundForIdentifier, start);
   }
 
   const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
-    return script_err(res.error);
+    return read_error(ctx, res.error, start);
   }
 
-  return script_expr(script_add_var_store(ctx->doc, var->varSlot, res.expr));
+  return read_success(script_add_var_store(ctx->doc, var->varSlot, res.expr));
 }
 
 static ScriptReadResult read_expr_var_modify(
-    ScriptReadContext* ctx, const StringHash identifier, const ScriptTokenType type) {
+    ScriptReadContext*    ctx,
+    const StringHash      identifier,
+    const ScriptTokenType type,
+    const ScriptMarker    start) {
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    return script_err(ScriptError_NoVariableFoundForIdentifier);
+    return read_error(ctx, ScriptError_NoVariableFoundForIdentifier, start);
   }
 
   const bool             newScope = type == ScriptTokenType_QMarkQMarkEq;
@@ -555,7 +610,7 @@ static ScriptReadResult read_expr_var_modify(
   const ScriptIntrinsic itr        = token_op_binary_modify(type);
   const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
   const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
-  return script_expr(script_add_var_store(ctx->doc, var->varSlot, itrExpr));
+  return read_success(script_add_var_store(ctx->doc, var->varSlot, itrExpr));
 }
 
 static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
@@ -563,7 +618,7 @@ static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const String
   if (UNLIKELY(val.type == ScriptResult_Fail)) {
     return val;
   }
-  return script_expr(script_add_mem_store(ctx->doc, key, val.expr));
+  return read_success(script_add_mem_store(ctx->doc, key, val.expr));
 }
 
 static ScriptReadResult
@@ -578,34 +633,35 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
   const ScriptIntrinsic itr        = token_op_binary_modify(type);
   const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
   const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
-  return script_expr(script_add_mem_store(ctx->doc, key, itrExpr));
+  return read_success(script_add_mem_store(ctx->doc, key, itrExpr));
 }
 
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
-static ScriptReadResult read_expr_function(ScriptReadContext* ctx, const StringHash identifier) {
+static ScriptReadResult
+read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const ScriptMarker start) {
   ScriptExpr             args[script_args_max];
   const ScriptArgsResult argsRes = read_args(ctx, args);
   if (UNLIKELY(argsRes.type == ScriptResult_Fail)) {
-    return script_err(argsRes.error);
+    return read_error(ctx, argsRes.error, start);
   }
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(identifier, argsRes.argCount);
   if (builtin) {
-    return script_expr(script_add_intrinsic(ctx->doc, builtin->intr, args));
+    return read_success(script_add_intrinsic(ctx->doc, builtin->intr, args));
   }
   if (script_builtin_func_exists(identifier)) {
-    return script_err(ScriptError_IncorrectArgumentCountForBuiltinFunction);
+    return read_error(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, start);
   }
 
-  return script_err(ScriptError_NoFunctionFoundForIdentifier);
+  return read_error(ctx, ScriptError_NoFunctionFoundForIdentifier, start);
 }
 
-static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
+static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return script_err(ScriptError_InvalidConditionCountForIf);
+    return read_error(ctx, ScriptError_InvalidConditionCountForIf, start);
   }
 
   // NOTE: Add a new scope so variables defined in the condition are only available in the branches.
@@ -616,11 +672,11 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
   const ScriptArgsResult conditionRes = read_args(ctx, conditions);
   if (UNLIKELY(conditionRes.type == ScriptResult_Fail)) {
     script_scope_pop(ctx);
-    return script_err(conditionRes.error);
+    return read_error(ctx, conditionRes.error, start);
   }
   if (UNLIKELY(conditionRes.argCount != 1)) {
     script_scope_pop(ctx);
-    return script_err(ScriptError_InvalidConditionCountForIf);
+    return read_error(ctx, ScriptError_InvalidConditionCountForIf, start);
   }
 
   const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
@@ -645,10 +701,12 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx) {
   script_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {conditions[0], b1.expr, b2Expr};
-  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
+  const ScriptMarker start = script_marker(ctx);
+
   const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     return b1;
@@ -656,7 +714,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
-    return script_err(ScriptError_MissingColonInSelectExpression);
+    return read_error(ctx, ScriptError_MissingColonInSelectExpression, start);
   }
 
   const ScriptReadResult b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
@@ -665,7 +723,7 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
   }
 
   const ScriptExpr intrArgs[] = {condition, b1.expr, b2.expr};
-  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const ScriptExpr lhs) {
@@ -675,7 +733,7 @@ static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const Script
   }
   const ScriptExpr falseExpr  = script_add_value(ctx->doc, script_bool(false));
   const ScriptExpr intrArgs[] = {lhs, rhs.expr, falseExpr};
-  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptExpr lhs) {
@@ -685,7 +743,7 @@ static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptE
   }
   const ScriptExpr trueExpr   = script_add_value(ctx->doc, script_bool(true));
   const ScriptExpr intrArgs[] = {lhs, trueExpr, rhs.expr};
-  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
 }
 
 static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const ScriptExpr lhs) {
@@ -694,10 +752,12 @@ static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const 
     return rhs;
   }
   const ScriptExpr intrArgs[] = {lhs, rhs.expr};
-  return script_expr(script_add_intrinsic(ctx->doc, ScriptIntrinsic_NullCoalescing, intrArgs));
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_NullCoalescing, intrArgs));
 }
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
+  const ScriptMarker start = script_marker(ctx);
+
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
 
@@ -706,7 +766,7 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Parenthesized expression.
    */
   case ScriptTokenType_ParenOpen:
-    return read_expr_paren(ctx);
+    return read_expr_paren(ctx, start);
   /**
    * Scope.
    */
@@ -716,9 +776,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    * Keywords.
    */
   case ScriptTokenType_If:
-    return read_expr_if(ctx);
+    return read_expr_if(ctx, start);
   case ScriptTokenType_Var:
-    return read_expr_var_declare(ctx);
+    return read_expr_var_declare(ctx, start);
   /**
    * Identifiers.
    */
@@ -728,10 +788,10 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     switch (nextToken.type) {
     case ScriptTokenType_ParenOpen:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_function(ctx, token.val_identifier);
+      return read_expr_function(ctx, token.val_identifier, start);
     case ScriptTokenType_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_var_assign(ctx, token.val_identifier);
+      return read_expr_var_assign(ctx, token.val_identifier, start);
     case ScriptTokenType_PlusEq:
     case ScriptTokenType_MinusEq:
     case ScriptTokenType_StarEq:
@@ -739,9 +799,9 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenType_PercentEq:
     case ScriptTokenType_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
-      return read_expr_var_modify(ctx, token.val_key, nextToken.type);
+      return read_expr_var_modify(ctx, token.val_key, nextToken.type, start);
     default:
-      return read_expr_var_lookup(ctx, token.val_identifier);
+      return read_expr_var_lookup(ctx, token.val_identifier, start);
     }
   }
   /**
@@ -755,15 +815,15 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     }
     const ScriptIntrinsic intr       = token_op_unary(token.type);
     const ScriptExpr      intrArgs[] = {val.expr};
-    return script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
+    return read_success(script_add_intrinsic(ctx->doc, intr, intrArgs));
   }
   /**
    * Literals.
    */
   case ScriptTokenType_Number:
-    return script_expr(script_add_value(ctx->doc, script_number(token.val_number)));
+    return read_success(script_add_value(ctx->doc, script_number(token.val_number)));
   case ScriptTokenType_String:
-    return script_expr(script_add_value(ctx->doc, script_string(token.val_string)));
+    return read_success(script_add_value(ctx->doc, script_string(token.val_string)));
   /**
    * Memory access.
    */
@@ -783,25 +843,25 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
       ctx->input = remInput; // Consume the 'nextToken'.
       return read_expr_mem_modify(ctx, token.val_key, nextToken.type);
     default:
-      return script_expr(script_add_mem_load(ctx->doc, token.val_key));
+      return read_success(script_add_mem_load(ctx->doc, token.val_key));
     }
   }
   /**
    * Lex errors.
    */
   case ScriptTokenType_Error:
-    return script_err(token.val_error);
+    return read_error(ctx, token.val_error, start);
   case ScriptTokenType_End:
-    return script_err(ScriptError_MissingPrimaryExpression);
+    return read_error(ctx, ScriptError_MissingPrimaryExpression, start);
   default:
-    return script_err(ScriptError_InvalidPrimaryExpression);
+    return read_error(ctx, ScriptError_InvalidPrimaryExpression, start);
   }
 }
 
 static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    return script_err(ScriptError_RecursionLimitExceeded);
+    return read_error(ctx, ScriptError_RecursionLimitExceeded, script_marker(ctx));
   }
 
   ScriptReadResult res = read_expr_primary(ctx);
@@ -835,7 +895,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       if (UNLIKELY(selectExpr.type == ScriptResult_Fail)) {
         return selectExpr;
       }
-      res = script_expr(selectExpr.expr);
+      res = read_success(selectExpr.expr);
     } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
@@ -854,7 +914,7 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
       }
       const ScriptIntrinsic intr       = token_op_binary(nextToken.type);
       const ScriptExpr      intrArgs[] = {res.expr, rhs.expr};
-      res = script_expr(script_add_intrinsic(ctx->doc, intr, intrArgs));
+      res = read_success(script_add_intrinsic(ctx->doc, intr, intrArgs));
     } break;
     case ScriptTokenType_AmpAmp:
       res = read_expr_logic_and(ctx, res.expr);
@@ -893,16 +953,18 @@ void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc       = doc,
-            .input     = str,
-            .scopeRoot = &scopeRoot,
+      .doc        = doc,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
   *res = read_expr_block(&ctx);
 
-  const ScriptToken endToken = read_peek(&ctx);
+  const ScriptMarker endMarker = script_marker(&ctx);
+  const ScriptToken  endToken  = read_peek(&ctx);
   if (UNLIKELY(res->type == ScriptResult_Success && endToken.type != ScriptTokenType_End)) {
-    *res = script_err(ScriptError_UnexpectedTokenAfterExpression);
+    *res = read_error(&ctx, ScriptError_UnexpectedTokenAfterExpression, endMarker);
   }
 }
