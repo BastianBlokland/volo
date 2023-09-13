@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_utf8.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -232,6 +233,35 @@ static ScriptMarker script_marker(ScriptReadContext* ctx) {
   return (ScriptMarker)(ctx->inputTotal.size - ctx->input.size);
 }
 
+static ScriptMarker script_marker_trim(ScriptReadContext* ctx, const ScriptMarker marker) {
+  const String text        = string_consume(ctx->inputTotal, marker);
+  const String textTrimmed = script_lex_trim(text);
+  return (ScriptMarker)(ctx->inputTotal.size - textTrimmed.size);
+}
+
+static ScriptPos script_marker_to_pos(ScriptReadContext* ctx, const ScriptMarker marker) {
+  diag_assert(marker <= ctx->inputTotal.size);
+  u32 pos  = 0;
+  u16 line = 1, column = 1;
+  while (pos < marker) {
+    const u8 ch = *string_at(ctx->inputTotal, pos);
+    switch (ch) {
+    case '\n':
+      ++pos;
+      ++line;
+      column = 1;
+      break;
+    case '\r':
+      ++pos;
+      break;
+    default:
+      pos += math_max(utf8_cp_bytes_from_first(ch), 1);
+      ++column;
+    }
+  }
+  return (ScriptPos){.line = line, .column = column};
+}
+
 static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
   const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
   if (UNLIKELY(sentinel_check(index))) {
@@ -340,9 +370,14 @@ static ScriptReadResult read_success(const ScriptExpr expr) {
 
 static ScriptReadResult
 read_error(ScriptReadContext* ctx, const ScriptError err, const ScriptMarker start) {
-  (void)ctx;
-  (void)start;
-  return (ScriptReadResult){.type = ScriptResult_Fail, .error = err};
+  const ScriptMarker startTrimmed = script_marker_trim(ctx, start);
+  const ScriptMarker end          = script_marker(ctx);
+  return (ScriptReadResult){
+      .type       = ScriptResult_Fail,
+      .error      = err,
+      .errorStart = script_marker_to_pos(ctx, startTrimmed),
+      .errorEnd   = script_marker_to_pos(ctx, end),
+  };
 }
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);

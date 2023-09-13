@@ -3,6 +3,10 @@
 #include "script_error.h"
 #include "script_result.h"
 
+typedef struct {
+  u16 line, column;
+} ScriptPos;
+
 /**
  * Result of parsing a script expression.
  * If 'type == ScriptResult_Success' then 'expr' contains an expression in the provided ScriptDoc.
@@ -11,8 +15,11 @@
 typedef struct {
   ScriptResult type;
   union {
-    ScriptExpr  expr;
-    ScriptError error;
+    ScriptExpr expr;
+    struct {
+      ScriptError error;
+      ScriptPos   errorStart, errorEnd;
+    };
   };
 } ScriptReadResult;
 
