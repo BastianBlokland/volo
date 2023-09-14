@@ -20,7 +20,7 @@ typedef enum {
 /**
  * Type-erased script value.
  */
-typedef union {
+typedef union uScriptVal {
   ALIGNAS(16) u32 data[4];
   f64         unsafeNumber;
   bool        unsafeBool;
