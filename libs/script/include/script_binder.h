@@ -4,16 +4,21 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-typedef u32 ScriptBindSlot;
+// Forward declare from 'script_val.h'.
+typedef union uScriptVal ScriptVal;
+
+typedef u32 ScriptBinderSlot;
+
+typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptVal* args, usize argCount);
 
 /**
- * Table of native functions to bind.
+ * Table of native bound functions.
  */
 typedef struct sScriptBinder ScriptBinder;
 
 /**
  * Create a new ScriptBinder instance.
- * Destroy using 'script_mem_destroy()'.
+ * Destroy using 'script_binder_destroy()'.
  */
 ScriptBinder* script_binder_create(Allocator*);
 
@@ -23,21 +28,29 @@ ScriptBinder* script_binder_create(Allocator*);
 void script_binder_destroy(ScriptBinder*);
 
 /**
- * Declare a function to bind.
- * Pre-condition: Binder has not been prepared.
+ * Bind a new function.
+ * NOTE: Passing a null function is supported if the binder is only used for lookups.
+ * Pre-condition: Binder has not been build.
  */
-void script_binder_declare(ScriptBinder*, StringHash name);
+void script_binder_bind(ScriptBinder*, StringHash name, ScriptBinderFunc);
 
 /**
- * Prepare the binder for linking.
- * NOTE: No more declarations can be made after calling this.
- * Pre-condition: Binder has not been prepared.
+ * Build the binder for lookups and execution.
+ * NOTE: No more bindings can be added after calling this.
+ * Pre-condition: Binder has not been build.
  */
-void script_binder_prepare(ScriptBinder*);
+void script_binder_build(ScriptBinder*);
 
 /**
- * Lookup a declaration by name.
- * NOTE: Returns sentinel_u32 if no declaration was found with the given name.
- * Pre-condition: Binder has been prepared.
+ * Lookup a function by name.
+ * NOTE: Returns sentinel_u32 if no function was found with the given name.
+ * Pre-condition: Binder has been build.
  */
-ScriptBindSlot script_binder_lookup(const ScriptBinder*, StringHash name);
+ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
+
+/**
+ * Execute a bound function.
+ * Pre-condition: Binder has been build.
+ */
+ScriptVal script_binder_exec(
+    const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptVal* args, usize argCount);
