@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_search.h"
 #include "core_sort.h"
@@ -43,6 +44,17 @@ void script_binder_build(ScriptBinder* binder) {
 
   sort_quicksort_t(binder->names, binder->names + binder->count, StringHash, compare_stringhash);
   binder->flags |= ScriptBinderFlags_Build;
+}
+
+ScriptBinderSignature script_binder_sig(ScriptBinder* binder) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
+
+  u32 funcNameHash = 42;
+  for (u32 i = 0; i != binder->count; ++i) {
+    funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
+  }
+
+  return (ScriptBinderSignature)((u64)funcNameHash | ((u64)binder->count << 32u));
 }
 
 ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash name) {

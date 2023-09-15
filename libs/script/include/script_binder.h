@@ -8,6 +8,7 @@ typedef struct sAllocator Allocator;
 typedef union uScriptVal ScriptVal;
 
 typedef u32 ScriptBinderSlot;
+typedef u64 ScriptBinderSignature;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptVal* args, usize argCount);
 
@@ -40,6 +41,13 @@ void script_binder_bind(ScriptBinder*, StringHash name, ScriptBinderFunc);
  * Pre-condition: Binder has not been build.
  */
 void script_binder_build(ScriptBinder*);
+
+/**
+ * Compute a signature for the binder.
+ * Binders with the same signature are compatible.
+ * Pre-condition: Binder has been build.
+ */
+ScriptBinderSignature script_binder_sig(ScriptBinder*);
 
 /**
  * Lookup a function by name.
