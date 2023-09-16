@@ -189,20 +189,25 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptVal* args, const usize a
   return args[argCount - 1];
 }
 
+static const ScriptBinder* repl_bind_init() {
+  static ScriptBinder* g_binder;
+  if (!g_binder) {
+    g_binder = script_binder_create(g_alloc_persist);
+    script_binder_bind(g_binder, string_hash_lit("print"), &repl_bind_print);
+    script_binder_build(g_binder);
+  }
+  return g_binder;
+}
+
 static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
 
-  ScriptBinder* binder = script_binder_create(g_alloc_heap);
-  script_binder_bind(binder, string_hash_lit("print"), repl_bind_print);
-  script_binder_build(binder);
-
   ScriptDoc* script = script_create(g_alloc_heap);
 
-  void*            bindCtx = null;
   ScriptReadResult res;
-  script_read(script, binder, input, &res);
+  script_read(script, repl_bind_init(), input, &res);
 
   if (res.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {
@@ -211,14 +216,13 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, mem, res.expr, binder, bindCtx);
+    const ScriptVal value = script_eval(script, mem, res.expr, repl_bind_init(), null);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
     repl_output_result_error(&res);
   }
 
   script_destroy(script);
-  script_binder_destroy(binder);
 }
 
 typedef struct {
