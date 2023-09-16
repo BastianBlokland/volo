@@ -137,6 +137,18 @@ ScriptExpr script_add_block(ScriptDoc* doc, const ScriptExpr exprs[], const u32 
       });
 }
 
+ScriptExpr script_add_extern(
+    ScriptDoc* doc, const ScriptBinderSlot func, const ScriptExpr args[], const u32 argCount) {
+
+  const ScriptExprSet argSet = script_doc_expr_set_add(doc, args, argCount);
+  return script_doc_expr_add(
+      doc,
+      (ScriptExprData){
+          .type        = ScriptExprType_Extern,
+          .data_extern = {.func = func, .argSet = argSet, .argCount = argCount},
+      });
+}
+
 ScriptExprType script_expr_type(const ScriptDoc* doc, const ScriptExpr expr) {
   return script_doc_expr_data(doc, expr)->type;
 }
@@ -145,6 +157,7 @@ static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const Scrip
   bool* isReadonly = ctx;
   switch (script_doc_expr_data(doc, expr)->type) {
   case ScriptExprType_MemStore:
+  case ScriptExprType_Extern:
     *isReadonly = false;
     return;
   case ScriptExprType_Value:
@@ -201,6 +214,13 @@ void script_expr_visit(
     const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
     for (u32 i = 0; i != data->data_block.exprCount; ++i) {
       script_expr_visit(doc, exprs[i], ctx, visitor);
+    }
+    return;
+  }
+  case ScriptExprType_Extern: {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
+    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+      script_expr_visit(doc, args[i], ctx, visitor);
     }
     return;
   }
@@ -261,6 +281,14 @@ void script_expr_str_write(
     const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
     for (u32 i = 0; i != data->data_block.exprCount; ++i) {
       script_expr_str_write_child(doc, exprs[i], indent + 1, str);
+    }
+    return;
+  }
+  case ScriptExprType_Extern: {
+    fmt_write(str, "[extern: {}]", fmt_int(data->data_extern.func));
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
+    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+      script_expr_str_write_child(doc, args[i], indent + 1, str);
     }
     return;
   }

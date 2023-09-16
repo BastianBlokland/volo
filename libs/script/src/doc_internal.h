@@ -40,6 +40,12 @@ typedef struct {
 } ScriptExprBlock;
 
 typedef struct {
+  ScriptBinderSlot func;
+  ScriptExprSet    argSet;
+  u32              argCount;
+} ScriptExprExtern;
+
+typedef struct {
   ScriptExprType type;
   union {
     ScriptExprValue     data_value;
@@ -49,6 +55,7 @@ typedef struct {
     ScriptExprMemStore  data_mem_store;
     ScriptExprIntrinsic data_intrinsic;
     ScriptExprBlock     data_block;
+    ScriptExprExtern    data_extern;
   };
 } ScriptExprData;
 
