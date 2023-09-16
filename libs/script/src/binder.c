@@ -9,7 +9,7 @@
 #define script_binder_max_funcs 64
 
 typedef enum {
-  ScriptBinderFlags_Build = 1 << 0,
+  ScriptBinderFlags_Finalized = 1 << 0,
 } ScriptBinderFlags;
 
 struct sScriptBinder {
@@ -23,7 +23,7 @@ struct sScriptBinder {
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
   *binder              = (ScriptBinder){
-      .alloc = alloc,
+                   .alloc = alloc,
   };
   return binder;
 }
@@ -32,7 +32,7 @@ void script_binder_destroy(ScriptBinder* binder) { alloc_free_t(binder->alloc, b
 
 void script_binder_declare(
     ScriptBinder* binder, const StringHash name, const ScriptBinderFunc func) {
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Build), "Binder already build");
+  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   binder->names[binder->count] = name;
@@ -40,15 +40,15 @@ void script_binder_declare(
   ++binder->count;
 }
 
-void script_binder_build(ScriptBinder* binder) {
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Build), "Binder already build");
+void script_binder_finalize(ScriptBinder* binder) {
+  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
 
   sort_quicksort_t(binder->names, binder->names + binder->count, StringHash, compare_stringhash);
-  binder->flags |= ScriptBinderFlags_Build;
+  binder->flags |= ScriptBinderFlags_Finalized;
 }
 
 ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   u32 funcNameHash = 42;
   for (u32 i = 0; i != binder->count; ++i) {
@@ -59,7 +59,7 @@ ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
 }
 
 ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash name) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
       binder->names, binder->names + binder->count, StringHash, compare_stringhash, &name);
@@ -73,7 +73,7 @@ ScriptVal script_binder_exec(
     void*                  ctx,
     const ScriptVal*       args,
     const usize            argCount) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
   return binder->funcs[func](ctx, args, argCount);
 }
