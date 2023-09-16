@@ -155,13 +155,14 @@ spec(eval) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      ScriptBinder*    binder = null;
+      ScriptBinder*    binder  = null;
+      void*            bindCtx = null;
       ScriptReadResult readRes;
       script_read(doc, binder, testData[i].input, &readRes);
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
+      const ScriptVal evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
       check_msg(
           script_val_equal(evalRes, testData[i].expected),
           "{} == {} ({})",
@@ -172,12 +173,13 @@ spec(eval) {
   }
 
   it("can store memory values") {
-    ScriptBinder*    binder = null;
+    ScriptBinder*    binder  = null;
+    void*            bindCtx = null;
     ScriptReadResult readRes;
     script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
-    script_eval(doc, mem, readRes.expr);
+    script_eval(doc, mem, readRes.expr, binder, bindCtx);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));

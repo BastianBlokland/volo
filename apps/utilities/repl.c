@@ -168,8 +168,9 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     repl_output_tokens(input);
   }
 
-  ScriptDoc*       script = script_create(g_alloc_heap);
-  ScriptBinder*    binder = null;
+  ScriptDoc*       script  = script_create(g_alloc_heap);
+  ScriptBinder*    binder  = null;
+  void*            bindCtx = null;
   ScriptReadResult res;
   script_read(script, binder, input, &res);
 
@@ -180,7 +181,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, mem, res.expr);
+    const ScriptVal value = script_eval(script, mem, res.expr, binder, bindCtx);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
     repl_output_result_error(&res);

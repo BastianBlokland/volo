@@ -1,5 +1,6 @@
 #include "core_annotation.h"
 #include "core_diag.h"
+#include "script_binder.h"
 #include "script_eval.h"
 #include "script_mem.h"
 #include "script_val.h"
@@ -7,9 +8,11 @@
 #include "doc_internal.h"
 
 typedef struct {
-  const ScriptDoc* doc;
-  ScriptMem*       m;
-  ScriptVal        vars[script_var_count];
+  const ScriptDoc*    doc;
+  ScriptMem*          m;
+  const ScriptBinder* binder;
+  void*               bindCtx;
+  ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
 static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
@@ -126,6 +129,15 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   return ret;
 }
 
+INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExprExtern* expr) {
+  const ScriptExpr* argExprs = expr_set_data(ctx, expr->argSet);
+  ScriptVal*        args     = mem_stack(sizeof(ScriptVal) * expr->argCount).ptr;
+  for (u32 i = 0; i != expr->argCount; ++i) {
+    args[i] = eval(ctx, argExprs[i]);
+  }
+  return script_binder_exec(ctx->binder, expr->func, ctx->bindCtx, args, expr->argCount);
+}
+
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {
   switch (script_expr_type(ctx->doc, expr)) {
   case ScriptExprType_Value:
@@ -142,6 +154,8 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
     return eval_intr(ctx, &expr_data(ctx, expr)->data_intrinsic);
   case ScriptExprType_Block:
     return eval_block(ctx, &expr_data(ctx, expr)->data_block);
+  case ScriptExprType_Extern:
+    return eval_extern(ctx, &expr_data(ctx, expr)->data_extern);
   case ScriptExprType_Count:
     break;
   }
@@ -149,10 +163,20 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
   UNREACHABLE
 }
 
-ScriptVal script_eval(const ScriptDoc* doc, ScriptMem* m, const ScriptExpr expr) {
+ScriptVal script_eval(
+    const ScriptDoc*    doc,
+    ScriptMem*          m,
+    const ScriptExpr    expr,
+    const ScriptBinder* binder,
+    void*               bindCtx) {
+  if (binder) {
+    diag_assert_msg(script_binder_sig(binder) == doc->binderSignature, "Incompatible binder");
+  }
   ScriptEvalContext ctx = {
-      .doc = doc,
-      .m   = m,
+      .doc     = doc,
+      .m       = m,
+      .binder  = binder,
+      .bindCtx = bindCtx,
   };
   return eval(&ctx, expr);
 }
