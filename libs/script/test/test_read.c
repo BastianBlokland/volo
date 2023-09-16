@@ -671,8 +671,9 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
       check_expr_str(doc, res.expr, g_testData[i].expect);
@@ -754,8 +755,9 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require_msg(
           res.type == ScriptResult_Fail, "Read succeeded [{}]", fmt_text(g_testData[i].input));
@@ -769,15 +771,17 @@ spec(read) {
   }
 
   it("can read all input") {
+    ScriptBinder*    binder = null;
     ScriptReadResult res;
-    script_read(doc, string_lit("1  "), &res);
+    script_read(doc, binder, string_lit("1  "), &res);
 
     check_require(res.type == ScriptResult_Success);
   }
 
   it("fails when read-all finds additional tokens after the expression") {
+    ScriptBinder*    binder = null;
     ScriptReadResult res;
-    script_read(doc, string_lit("1 1"), &res);
+    script_read(doc, binder, string_lit("1 1"), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check(res.error == ScriptError_UnexpectedTokenAfterExpression);
@@ -787,8 +791,9 @@ spec(read) {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
+    ScriptBinder*    binder = null;
     ScriptReadResult res;
-    script_read(doc, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check_eq_int(res.error, ScriptError_RecursionLimitExceeded);
@@ -802,8 +807,9 @@ spec(read) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }
 
+    ScriptBinder*    binder = null;
     ScriptReadResult res;
-    script_read(doc, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check_eq_int(res.error, ScriptError_VariableLimitExceeded);
@@ -824,8 +830,9 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require(res.type == ScriptResult_Fail);
       check_eq_int(res.errorStart.line, g_testData[i].startLine);

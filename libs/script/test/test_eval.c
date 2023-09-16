@@ -155,8 +155,9 @@ spec(eval) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
+      ScriptBinder*    binder = null;
       ScriptReadResult readRes;
-      script_read(doc, testData[i].input, &readRes);
+      script_read(doc, binder, testData[i].input, &readRes);
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
@@ -171,8 +172,9 @@ spec(eval) {
   }
 
   it("can store memory values") {
+    ScriptBinder*    binder = null;
     ScriptReadResult readRes;
-    script_read(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
+    script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     script_eval(doc, mem, readRes.expr);

@@ -169,8 +169,9 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
   }
 
   ScriptDoc*       script = script_create(g_alloc_heap);
+  ScriptBinder*    binder = null;
   ScriptReadResult res;
-  script_read(script, input, &res);
+  script_read(script, binder, input, &res);
 
   if (res.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {

@@ -46,7 +46,7 @@ void script_binder_build(ScriptBinder* binder) {
   binder->flags |= ScriptBinderFlags_Build;
 }
 
-ScriptBinderSignature script_binder_sig(ScriptBinder* binder) {
+ScriptBinderSignature script_binder_sig(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
 
   u32 funcNameHash = 42;

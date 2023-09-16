@@ -47,7 +47,7 @@ void script_binder_build(ScriptBinder*);
  * Binders with the same signature are compatible.
  * Pre-condition: Binder has been build.
  */
-ScriptBinderSignature script_binder_sig(ScriptBinder*);
+ScriptBinderSignature script_binder_sig(const ScriptBinder*);
 
 /**
  * Lookup a function by name.

@@ -1,6 +1,9 @@
 #pragma once
 #include "script_doc.h"
 
+// Forward declare from 'script_binder.h'.
+typedef u64 ScriptBinderSignature;
+
 typedef u32 ScriptValId;
 typedef u32 ScriptExprSet;
 
@@ -50,8 +53,9 @@ typedef struct {
 } ScriptExprData;
 
 struct sScriptDoc {
-  DynArray   exprData; // ScriptExprData[]
-  DynArray   exprSets; // ScriptExpr[]
-  DynArray   values;   // ScriptVal[]
-  Allocator* alloc;
+  DynArray              exprData; // ScriptExprData[]
+  DynArray              exprSets; // ScriptExpr[]
+  DynArray              values;   // ScriptVal[]
+  Allocator*            alloc;
+  ScriptBinderSignature binderSignature;
 };
