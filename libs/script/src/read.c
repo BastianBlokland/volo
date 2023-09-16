@@ -657,6 +657,13 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
     return read_error(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, start);
   }
 
+  if (ctx->binder) {
+    const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, identifier);
+    if (!sentinel_check(externFunc)) {
+      return read_success(script_add_extern(ctx->doc, externFunc, args, argsRes.argCount));
+    }
+  }
+
   return read_error(ctx, ScriptError_NoFunctionFoundForIdentifier, start);
 }
 
