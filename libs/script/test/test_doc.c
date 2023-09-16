@@ -133,8 +133,9 @@ spec(doc) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
       ScriptReadResult readRes;
-      script_read(doc, g_testData[i].input, &readRes);
+      script_read(doc, binder, g_testData[i].input, &readRes);
       check_require(readRes.type == ScriptResult_Success);
 
       check(script_expr_readonly(doc, readRes.expr) == g_testData[i].readonly);

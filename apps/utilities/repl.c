@@ -8,6 +8,7 @@
 #include "core_time.h"
 #include "core_tty.h"
 #include "core_utf8.h"
+#include "script_binder.h"
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
@@ -101,6 +102,7 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   fmt_write(&buffer, "Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore]));
   fmt_write(&buffer, "Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic]));
   fmt_write(&buffer, "Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block]));
+  fmt_write(&buffer, "Expr extern:    {}\n", fmt_int(stats.exprs[ScriptExprType_Extern]));
   fmt_write(&buffer, "Expr total:     {}\n", fmt_int(stats.exprsTotal));
   fmt_write(&buffer, "Values total:   {}\n", fmt_int(script_values_total(script)));
   // clang-format on
@@ -163,14 +165,49 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   return TtyFgColor_Default;
 }
 
+static ScriptVal repl_bind_print(void* ctx, const ScriptVal* args, const usize argCount) {
+  (void)ctx;
+  if (!argCount) {
+    repl_output(string_lit("\n"));
+    return script_null();
+  }
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != argCount; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_str_write(args[i], &buffer);
+  }
+  dynstring_append_char(&buffer, '\n');
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+
+  return args[argCount - 1];
+}
+
+static const ScriptBinder* repl_bind_init() {
+  static ScriptBinder* g_binder;
+  if (!g_binder) {
+    g_binder = script_binder_create(g_alloc_persist);
+    script_binder_declare(g_binder, string_hash_lit("print"), &repl_bind_print);
+    script_binder_finalize(g_binder);
+  }
+  return g_binder;
+}
+
 static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
 
-  ScriptDoc*       script = script_create(g_alloc_heap);
+  ScriptDoc* script = script_create(g_alloc_heap);
+
   ScriptReadResult res;
-  script_read(script, input, &res);
+  script_read(script, repl_bind_init(), input, &res);
 
   if (res.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {
@@ -179,7 +216,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, mem, res.expr);
+    const ScriptVal value = script_eval(script, mem, res.expr, repl_bind_init(), null);
     repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
   } else {
     repl_output_result_error(&res);

@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "core_utf8.h"
+#include "script_binder.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -220,11 +221,12 @@ typedef struct sScriptScope {
 } ScriptScope;
 
 typedef struct {
-  ScriptDoc*   doc;
-  String       input, inputTotal;
-  ScriptScope* scopeRoot;
-  u8           varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
-  u32          recursionDepth;
+  ScriptDoc*          doc;
+  const ScriptBinder* binder;
+  String              input, inputTotal;
+  ScriptScope*        scopeRoot;
+  u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
+  u32                 recursionDepth;
 } ScriptReadContext;
 
 typedef u32 ScriptMarker;
@@ -541,6 +543,9 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx, const Scri
   if (script_builtin_func_exists(token.val_identifier)) {
     return read_error(ctx, ScriptError_VariableIdentifierConflicts, start);
   }
+  if (ctx->binder && !sentinel_check(script_binder_lookup(ctx->binder, token.val_identifier))) {
+    return read_error(ctx, ScriptError_VariableIdentifierConflicts, start);
+  }
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
@@ -653,6 +658,13 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
   }
   if (script_builtin_func_exists(identifier)) {
     return read_error(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, start);
+  }
+
+  if (ctx->binder) {
+    const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, identifier);
+    if (!sentinel_check(externFunc)) {
+      return read_success(script_add_extern(ctx->doc, externFunc, args, argsRes.argCount));
+    }
   }
 
   return read_error(ctx, ScriptError_NoFunctionFoundForIdentifier, start);
@@ -934,6 +946,14 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
   return res;
 }
 
+static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
+  const ScriptBinderSignature signature = script_binder_sig(binder);
+  if (doc->binderSignature && doc->binderSignature != signature) {
+    diag_assert_fail("ScriptDoc was already used with a different (and incompatible binder)");
+  }
+  doc->binderSignature = signature;
+}
+
 static void script_read_init() {
   static bool           g_init;
   static ThreadSpinLock g_initLock;
@@ -948,12 +968,18 @@ static void script_read_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-void script_read(ScriptDoc* doc, const String str, ScriptReadResult* res) {
+void script_read(
+    ScriptDoc* doc, const ScriptBinder* binder, const String str, ScriptReadResult* res) {
   script_read_init();
+
+  if (binder) {
+    script_link_binder(doc, binder);
+  }
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
       .doc        = doc,
+      .binder     = binder,
       .input      = str,
       .inputTotal = str,
       .scopeRoot  = &scopeRoot,

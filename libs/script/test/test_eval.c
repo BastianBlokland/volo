@@ -2,15 +2,42 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_math.h"
+#include "script_binder.h"
 #include "script_eval.h"
 #include "script_mem.h"
 #include "script_read.h"
 
 #include "utils_internal.h"
 
+typedef struct {
+  u32 counter;
+} ScriptEvalTestCtx;
+
+static ScriptVal test_increase_counter(void* ctx, const ScriptVal* args, const usize argCount) {
+  (void)args;
+  (void)argCount;
+
+  ScriptEvalTestCtx* typedCtx = ctx;
+  ++typedCtx->counter;
+  return script_null();
+}
+
+static ScriptVal test_return_null(void* ctx, const ScriptVal* args, const usize argCount) {
+  (void)ctx;
+  (void)args;
+  (void)argCount;
+  return script_null();
+}
+
+static ScriptVal test_return_first(void* ctx, const ScriptVal* args, const usize argCount) {
+  (void)ctx;
+  return argCount ? args[0] : script_null();
+}
+
 spec(eval) {
-  ScriptDoc* doc = null;
-  ScriptMem* mem = null;
+  ScriptDoc*    doc    = null;
+  ScriptMem*    mem    = null;
+  ScriptBinder* binder = null;
 
   setup() {
     doc = script_create(g_alloc_heap);
@@ -19,6 +46,12 @@ spec(eval) {
     script_mem_set(mem, string_hash_lit("v1"), script_bool(true));
     script_mem_set(mem, string_hash_lit("v2"), script_number(1337));
     script_mem_set(mem, string_hash_lit("v3"), script_null());
+
+    binder = script_binder_create(g_alloc_heap);
+    script_binder_declare(binder, string_hash_lit("test_return_null"), test_return_null);
+    script_binder_declare(binder, string_hash_lit("test_return_first"), test_return_first);
+    script_binder_declare(binder, string_hash_lit("test_increase_counter"), test_increase_counter);
+    script_binder_finalize(binder);
   }
 
   it("can evaluate expressions") {
@@ -152,15 +185,21 @@ spec(eval) {
         // Compound expressions.
         {string_static("1 + 2 == 4 - 1"), script_bool(true)},
         {string_static("1 + (2 == 4) - 1"), script_null()},
+
+        // External functions.
+        {string_static("test_return_null()"), script_null()},
+        {string_static("test_return_first(42)"), script_number(42)},
+        {string_static("test_return_first(1,2,3)"), script_number(1)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
+      void*            bindCtx = null;
       ScriptReadResult readRes;
-      script_read(doc, testData[i].input, &readRes);
+      script_read(doc, binder, testData[i].input, &readRes);
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptVal evalRes = script_eval(doc, mem, readRes.expr);
+      const ScriptVal evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
       check_msg(
           script_val_equal(evalRes, testData[i].expected),
           "{} == {} ({})",
@@ -171,18 +210,35 @@ spec(eval) {
   }
 
   it("can store memory values") {
+    void*            bindCtx = null;
     ScriptReadResult readRes;
-    script_read(doc, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
+    script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
-    script_eval(doc, mem, readRes.expr);
+    script_eval(doc, mem, readRes.expr, binder, bindCtx);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
   }
 
+  it("can modify the context") {
+    ScriptEvalTestCtx ctx = {0};
+
+    ScriptReadResult readRes;
+    script_read(
+        doc,
+        binder,
+        string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
+        &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    script_eval(doc, mem, readRes.expr, binder, &ctx);
+    check_eq_int(ctx.counter, 3);
+  }
+
   teardown() {
     script_destroy(doc);
     script_mem_destroy(mem);
+    script_binder_destroy(binder);
   }
 }

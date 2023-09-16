@@ -9,7 +9,10 @@ AiResult ai_node_execute_eval(const AiEvalContext* ctx, const AssetAiNodeId node
   diag_assert(ctx->scriptDoc);
 
   const ScriptExpr expr = def->data_execute.scriptExpr;
-  script_eval(ctx->scriptDoc, ctx->memory, expr);
+
+  ScriptBinder* binder  = null;
+  void*         bindCtx = null;
+  script_eval(ctx->scriptDoc, ctx->memory, expr, binder, bindCtx);
 
   return AiResult_Success;
 }

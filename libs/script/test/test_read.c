@@ -1,15 +1,24 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "script_binder.h"
 #include "script_error.h"
 #include "script_read.h"
 
 #include "utils_internal.h"
 
 spec(read) {
-  ScriptDoc* doc = null;
+  ScriptDoc*    doc    = null;
+  ScriptBinder* binder = null;
 
-  setup() { doc = script_create(g_alloc_heap); }
+  setup() {
+    doc = script_create(g_alloc_heap);
+
+    binder = script_binder_create(g_alloc_heap);
+    script_binder_declare(binder, string_hash_lit("bind_test_1"), null);
+    script_binder_declare(binder, string_hash_lit("bind_test_2"), null);
+    script_binder_finalize(binder);
+  }
 
   it("can parse expressions") {
     static const struct {
@@ -88,6 +97,19 @@ spec(read) {
             string_static("vector_z(1)"),
             string_static("[intrinsic: vector-z]\n"
                           "  [value: 1]"),
+        },
+
+        // External functions.
+        {
+            string_static("bind_test_1()"),
+            string_static("[extern: 1]"),
+        },
+        {
+            string_static("bind_test_1(1, 2, 3)"),
+            string_static("[extern: 1]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
         },
 
         // Parenthesized expressions.
@@ -672,7 +694,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
       check_expr_str(doc, res.expr, g_testData[i].expect);
@@ -738,10 +760,13 @@ spec(read) {
         {string_static("1 ?? var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("$test \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("var a; a \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("random"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("bind_test_1"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("var i; { var i = 99 }"), ScriptError_VariableIdentifierConflicts},
         {string_static("var"), ScriptError_VariableIdentifierMissing},
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
         {string_static("var random"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var bind_test_1"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
         {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
@@ -755,7 +780,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require_msg(
           res.type == ScriptResult_Fail, "Read succeeded [{}]", fmt_text(g_testData[i].input));
@@ -770,14 +795,14 @@ spec(read) {
 
   it("can read all input") {
     ScriptReadResult res;
-    script_read(doc, string_lit("1  "), &res);
+    script_read(doc, binder, string_lit("1  "), &res);
 
     check_require(res.type == ScriptResult_Success);
   }
 
   it("fails when read-all finds additional tokens after the expression") {
     ScriptReadResult res;
-    script_read(doc, string_lit("1 1"), &res);
+    script_read(doc, binder, string_lit("1 1"), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check(res.error == ScriptError_UnexpectedTokenAfterExpression);
@@ -788,7 +813,7 @@ spec(read) {
     dynstring_append_chars(&str, '(', 100);
 
     ScriptReadResult res;
-    script_read(doc, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check_eq_int(res.error, ScriptError_RecursionLimitExceeded);
@@ -803,7 +828,7 @@ spec(read) {
     }
 
     ScriptReadResult res;
-    script_read(doc, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), &res);
 
     check_require(res.type == ScriptResult_Fail);
     check_eq_int(res.error, ScriptError_VariableLimitExceeded);
@@ -825,7 +850,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptReadResult res;
-      script_read(doc, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, &res);
 
       check_require(res.type == ScriptResult_Fail);
       check_eq_int(res.errorStart.line, g_testData[i].startLine);
@@ -835,5 +860,8 @@ spec(read) {
     }
   }
 
-  teardown() { script_destroy(doc); }
+  teardown() {
+    script_destroy(doc);
+    script_binder_destroy(binder);
+  }
 }

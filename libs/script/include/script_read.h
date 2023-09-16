@@ -3,6 +3,9 @@
 #include "script_error.h"
 #include "script_result.h"
 
+// Forward declare from 'core_binder.h'.
+typedef struct sScriptBinder ScriptBinder;
+
 typedef struct {
   u16 line, column;
 } ScriptPos;
@@ -28,4 +31,4 @@ typedef struct {
  *
  * Pre-condition: res != null.
  */
-void script_read(ScriptDoc*, String, ScriptReadResult* res);
+void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptReadResult* res);

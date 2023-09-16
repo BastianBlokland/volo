@@ -7,6 +7,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'script_binder.h'.
+typedef u32 ScriptBinderSlot;
+
 #define script_var_count 16
 
 typedef u8 ScriptVarId;
@@ -27,6 +30,7 @@ typedef enum {
   ScriptExprType_MemStore,
   ScriptExprType_Intrinsic,
   ScriptExprType_Block,
+  ScriptExprType_Extern,
 
   ScriptExprType_Count,
 } ScriptExprType;
@@ -58,6 +62,7 @@ ScriptExpr script_add_mem_load(ScriptDoc*, StringHash key);
 ScriptExpr script_add_mem_store(ScriptDoc*, StringHash key, ScriptExpr val);
 ScriptExpr script_add_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptExpr args[]);
 ScriptExpr script_add_block(ScriptDoc*, const ScriptExpr exprs[], u32 exprCount);
+ScriptExpr script_add_extern(ScriptDoc*, ScriptBinderSlot, const ScriptExpr args[], u32 argCount);
 
 /**
  * Query expression data.
