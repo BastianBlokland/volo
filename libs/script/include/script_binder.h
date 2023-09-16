@@ -29,11 +29,11 @@ ScriptBinder* script_binder_create(Allocator*);
 void script_binder_destroy(ScriptBinder*);
 
 /**
- * Bind a new function.
+ * Declare a new function.
  * NOTE: Passing a null function is supported if the binder is only used for lookups.
  * Pre-condition: Binder has not been build.
  */
-void script_binder_bind(ScriptBinder*, StringHash name, ScriptBinderFunc);
+void script_binder_declare(ScriptBinder*, StringHash name, ScriptBinderFunc);
 
 /**
  * Build the binder for lookups and execution.

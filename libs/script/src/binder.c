@@ -30,9 +30,10 @@ ScriptBinder* script_binder_create(Allocator* alloc) {
 
 void script_binder_destroy(ScriptBinder* binder) { alloc_free_t(binder->alloc, binder); }
 
-void script_binder_bind(ScriptBinder* binder, const StringHash name, const ScriptBinderFunc func) {
+void script_binder_declare(
+    ScriptBinder* binder, const StringHash name, const ScriptBinderFunc func) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Build), "Binder already build");
-  diag_assert_msg(binder->count < script_binder_max_funcs, "Bound function count exceeds max");
+  diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   binder->names[binder->count] = name;
   binder->funcs[binder->count] = func;
