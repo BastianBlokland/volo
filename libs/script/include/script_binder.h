@@ -10,7 +10,7 @@ typedef union uScriptVal ScriptVal;
 typedef u32 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
-typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptVal* args, usize argCount);
+typedef ScriptVal (*ScriptBinderFunc)(void* ctx, const ScriptVal* args, usize argCount);
 
 /**
  * Table of native bound functions.
@@ -61,4 +61,4 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
  * Pre-condition: Binder has been build.
  */
 ScriptVal script_binder_exec(
-    const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptVal* args, usize argCount);
+    const ScriptBinder*, ScriptBinderSlot func, void* ctx, const ScriptVal* args, usize argCount);

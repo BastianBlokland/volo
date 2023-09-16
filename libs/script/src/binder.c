@@ -70,7 +70,7 @@ ScriptVal script_binder_exec(
     const ScriptBinder*    binder,
     const ScriptBinderSlot func,
     void*                  ctx,
-    ScriptVal*             args,
+    const ScriptVal*       args,
     const usize            argCount) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Build, "Binder has not been build");
   diag_assert(func < binder->count);
