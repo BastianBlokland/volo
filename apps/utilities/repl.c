@@ -102,6 +102,7 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   fmt_write(&buffer, "Expr mem-store: {}\n", fmt_int(stats.exprs[ScriptExprType_MemStore]));
   fmt_write(&buffer, "Expr intrinsic: {}\n", fmt_int(stats.exprs[ScriptExprType_Intrinsic]));
   fmt_write(&buffer, "Expr block:     {}\n", fmt_int(stats.exprs[ScriptExprType_Block]));
+  fmt_write(&buffer, "Expr extern:    {}\n", fmt_int(stats.exprs[ScriptExprType_Extern]));
   fmt_write(&buffer, "Expr total:     {}\n", fmt_int(stats.exprsTotal));
   fmt_write(&buffer, "Values total:   {}\n", fmt_int(script_values_total(script)));
   // clang-format on
