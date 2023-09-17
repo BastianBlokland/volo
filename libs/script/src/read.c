@@ -384,17 +384,25 @@ read_error(ScriptReadContext* ctx, const ScriptError err, const ScriptMarker sta
 
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
-static bool read_is_block_end(const ScriptTokenType type) {
-  return type == ScriptTokenType_End || type == ScriptTokenType_CurlyClose;
+typedef enum {
+  ScriptBlockType_Implicit,
+  ScriptBlockType_Explicit,
+} ScriptBlockType;
+
+static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlockType blockType) {
+  if (blockType == ScriptBlockType_Explicit && tokenType == ScriptTokenType_CurlyClose) {
+    return true;
+  }
+  return tokenType == ScriptTokenType_End;
 }
 
-static ScriptReadResult read_expr_block(ScriptReadContext* ctx) {
+static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
   const ScriptMarker start = script_marker(ctx);
 
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
 
-  if (read_is_block_end(read_peek(ctx).type)) {
+  if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
   }
 
@@ -408,10 +416,9 @@ BlockNext:
   }
   exprs[exprCount++] = arg.expr;
 
-  if (read_consume_if(ctx, ScriptTokenType_SemiColon)) {
-    if (read_is_block_end(read_peek(ctx).type)) {
-      goto BlockEnd;
-    }
+  read_consume_if(ctx, ScriptTokenType_SemiColon); // Exprs are optionally separated by semi's.
+
+  if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
   }
 
@@ -435,7 +442,7 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
 
-  const ScriptReadResult res = read_expr_block(ctx);
+  const ScriptReadResult res = read_expr_block(ctx, ScriptBlockType_Explicit);
 
   diag_assert(&scope == script_scope_tail(ctx));
   script_scope_pop(ctx);
@@ -1014,19 +1021,17 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
-  *res = read_expr_block(&ctx);
+  *res = read_expr_block(&ctx, ScriptBlockType_Implicit);
 
-  const ScriptMarker endMarker = script_marker(&ctx);
-  const ScriptToken  endToken  = read_peek(&ctx);
-  if (UNLIKELY(res->type == ScriptResult_Success && endToken.type != ScriptTokenType_End)) {
-    *res = read_error(&ctx, ScriptError_UnexpectedTokenAfterExpression, endMarker);
+  if (res->type == ScriptResult_Success) {
+    diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
 }

@@ -179,6 +179,16 @@ spec(read) {
                           "    [var-load: 0]\n"
                           "    [value: null]"),
         },
+        {
+            string_static("if(true) {} var i"),
+            string_static("[block]\n"
+                          "  [intrinsic: if]\n"
+                          "    [value: true]\n"
+                          "    [value: null]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]"),
+        },
 
         // While expressions.
         {
@@ -625,6 +635,12 @@ spec(read) {
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
+        {
+            string_static("{1 2}"),
+            string_static("[block]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
 
         // Variables.
         {
@@ -735,6 +751,8 @@ spec(read) {
       String      input;
       ScriptError expected;
     } g_testData[] = {
+        {string_static("}"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 }"), ScriptError_InvalidPrimaryExpression},
         {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 &&"), ScriptError_MissingPrimaryExpression},
@@ -779,7 +797,7 @@ spec(read) {
         {string_static("if(1,2)"), ScriptError_InvalidConditionCount},
         {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
         {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
-        {string_static("if(1) 1; 2 else 3"), ScriptError_UnexpectedTokenAfterExpression},
+        {string_static("if(1) 1; 2 else 3"), ScriptError_InvalidPrimaryExpression},
         {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
         {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
@@ -833,14 +851,6 @@ spec(read) {
     script_read(doc, binder, string_lit("1  "), &res);
 
     check_require(res.type == ScriptResult_Success);
-  }
-
-  it("fails when read finds additional tokens after the expression") {
-    ScriptReadResult res;
-    script_read(doc, binder, string_lit("1 1"), &res);
-
-    check_require(res.type == ScriptResult_Fail);
-    check(res.error == ScriptError_UnexpectedTokenAfterExpression);
   }
 
   it("fails when recursing too deep") {
