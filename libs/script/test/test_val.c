@@ -66,23 +66,40 @@ spec(val) {
 
   it("can test if a value is truthy") {
     check(!script_truthy(script_null()));
+
+    check(!script_truthy(script_number(0)));
+    check(!script_truthy(script_number(-0.0)));
     check(script_truthy(script_number(42)));
-    check(script_truthy(script_bool(true)));
+
     check(!script_truthy(script_bool(false)));
+    check(script_truthy(script_bool(true)));
+
+    check(!script_truthy(script_vector3_lit(0, 0, 0)));
     check(script_truthy(script_vector3_lit(1, 2, 0)));
+
+    check(!script_truthy(script_entity(0x0)));
     check(script_truthy(script_entity(u64_lit(0x42) << 32)));
-    check(script_truthy(script_entity(0x0)));
+
+    check(!script_truthy(script_string(0)));
     check(script_truthy(script_string(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is falsy") {
     check(script_falsy(script_null()));
+
+    check(script_falsy(script_number(0)));
     check(!script_falsy(script_number(42)));
-    check(!script_falsy(script_bool(true)));
+
     check(script_falsy(script_bool(false)));
+    check(!script_falsy(script_bool(true)));
+
+    check(script_falsy(script_vector3_lit(0, 0, 0)));
     check(!script_falsy(script_vector3_lit(1, 2, 0)));
+
+    check(script_falsy(script_entity(0x0)));
     check(!script_falsy(script_entity(u64_lit(0x42) << 32)));
-    check(!script_falsy(script_entity(0x0)));
+
+    check(script_falsy(script_string(0)));
     check(!script_falsy(script_string(string_hash_lit("Hello World"))));
   }
 

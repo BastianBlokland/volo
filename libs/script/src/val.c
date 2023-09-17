@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
@@ -128,12 +129,15 @@ bool script_truthy(const ScriptVal value) {
   case ScriptType_Null:
     return false;
   case ScriptType_Number:
-  case ScriptType_Vector3:
-  case ScriptType_Entity:
-  case ScriptType_String:
-    return true;
+    return val_as_number(value) != 0;
   case ScriptType_Bool:
     return val_as_bool(value);
+  case ScriptType_Vector3:
+    return geo_vector_mag_sqr(val_as_vector3(value)) > f32_epsilon;
+  case ScriptType_Entity:
+    return ecs_entity_valid(val_as_entity(value));
+  case ScriptType_String:
+    return val_as_string(value) != 0;
   case ScriptType_Count:
     break;
   }
