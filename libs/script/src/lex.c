@@ -17,6 +17,7 @@ static const ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("if"), .token = ScriptTokenType_If},
     {.id = string_static("else"), .token = ScriptTokenType_Else},
     {.id = string_static("var"), .token = ScriptTokenType_Var},
+    {.id = string_static("while"), .token = ScriptTokenType_While},
 };
 
 static bool script_is_word_start(const u8 c) {
@@ -441,6 +442,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("else");
   case ScriptTokenType_Var:
     return string_lit("var");
+  case ScriptTokenType_While:
+    return string_lit("while");
   case ScriptTokenType_Comment:
     return string_lit("comment");
   case ScriptTokenType_Error:

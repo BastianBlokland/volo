@@ -190,6 +190,16 @@ spec(eval) {
         {string_static("test_return_null()"), script_null()},
         {string_static("test_return_first(42)"), script_number(42)},
         {string_static("test_return_first(1,2,3)"), script_number(1)},
+
+        // Loops.
+        {
+            string_static("var i = 0;"
+                          "while(i < 10) {"
+                          "  i += 1"
+                          "}"),
+            script_number(10),
+        },
+        {string_static("while(false) {}"), script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

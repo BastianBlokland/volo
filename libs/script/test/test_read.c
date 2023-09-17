@@ -120,18 +120,11 @@ spec(read) {
 
         // If expressions.
         {
-            string_static("if(true) 2"),
+            string_static("if(true) {2}"),
             string_static("[intrinsic: if]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: null]"),
-        },
-        {
-            string_static("if(true) 2 else 3"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
-                          "  [value: 2]\n"
-                          "  [value: 3]"),
         },
         {
             string_static("if(true) {2} else {3}"),
@@ -148,7 +141,7 @@ spec(read) {
                           "  [value: null]"),
         },
         {
-            string_static("if(false) 2 else if(true) 3"),
+            string_static("if(false) {2} else if(true) {3}"),
             string_static("[intrinsic: if]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
@@ -158,7 +151,17 @@ spec(read) {
                           "    [value: null]"),
         },
         {
-            string_static("if(var i = 42) { i } else { i }"),
+            string_static("if(false) {2} else if(true) {3} else {4}"),
+            string_static("[intrinsic: if]\n"
+                          "  [value: false]\n"
+                          "  [value: 2]\n"
+                          "  [intrinsic: if]\n"
+                          "    [value: true]\n"
+                          "    [value: 3]\n"
+                          "    [value: 4]"),
+        },
+        {
+            string_static("if(var i = 42) {i} else {i}"),
             string_static("[intrinsic: if]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
@@ -166,7 +169,7 @@ spec(read) {
                           "  [var-load: 0]"),
         },
         {
-            string_static("if(var i = 1) i; if(var i = 2) i"),
+            string_static("if(var i = 1) {i} if(var i = 2) {i}"),
             string_static("[block]\n"
                           "  [intrinsic: if]\n"
                           "    [var-store: 0]\n"
@@ -178,6 +181,45 @@ spec(read) {
                           "      [value: 2]\n"
                           "    [var-load: 0]\n"
                           "    [value: null]"),
+        },
+        {
+            string_static("if(true) {} var i"),
+            string_static("[block]\n"
+                          "  [intrinsic: if]\n"
+                          "    [value: true]\n"
+                          "    [value: null]\n"
+                          "    [value: null]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: null]"),
+        },
+
+        // While expressions.
+        {
+            string_static("var i = 0;"
+                          "while(i < 10) {"
+                          "  bind_test_1(i);"
+                          "  i += 1;"
+                          "}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 0]\n"
+                          "  [intrinsic: while]\n"
+                          "    [intrinsic: less]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 10]\n"
+                          "    [block]\n"
+                          "      [extern: 1]\n"
+                          "        [var-load: 0]\n"
+                          "      [var-store: 0]\n"
+                          "        [intrinsic: add]\n"
+                          "          [var-load: 0]\n"
+                          "          [value: 1]"),
+        },
+        {
+            string_static("while(true) { bind_test_1() }"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [extern: 1]"),
         },
 
         // Unary expressions.
@@ -267,31 +309,27 @@ spec(read) {
         },
         {
             string_static("true && false"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: logic-and]\n"
                           "  [value: true]\n"
-                          "  [value: false]\n"
                           "  [value: false]"),
         },
         {
             string_static("true && 2 * 4"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: logic-and]\n"
                           "  [value: true]\n"
                           "  [intrinsic: mul]\n"
                           "    [value: 2]\n"
-                          "    [value: 4]\n"
-                          "  [value: false]"),
+                          "    [value: 4]"),
         },
         {
             string_static("true || false"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
+            string_static("[intrinsic: logic-or]\n"
                           "  [value: true]\n"
                           "  [value: false]"),
         },
         {
             string_static("true || 2 * 4"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
+            string_static("[intrinsic: logic-or]\n"
                           "  [value: true]\n"
                           "  [intrinsic: mul]\n"
                           "    [value: 2]\n"
@@ -307,14 +345,14 @@ spec(read) {
         // Ternary expressions.
         {
             string_static("true ? 1 : 2"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("1 > 2 ? 1 + 2 : 3 + 4"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [intrinsic: greater]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"
@@ -532,8 +570,7 @@ spec(read) {
         {
             string_static("true || {$a = 1; false}; $a"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
-                          "    [value: true]\n"
+                          "  [intrinsic: logic-or]\n"
                           "    [value: true]\n"
                           "    [block]\n"
                           "      [mem-store: $3645546703]\n"
@@ -585,6 +622,10 @@ spec(read) {
             string_static("[value: 1]"),
         },
         {
+            string_static("{1;}"),
+            string_static("[value: 1]"),
+        },
+        {
             string_static("{1; 2}"),
             string_static("[block]\n"
                           "  [value: 1]\n"
@@ -592,6 +633,12 @@ spec(read) {
         },
         {
             string_static("{1; 2;}"),
+            string_static("[block]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]"),
+        },
+        {
+            string_static("{1; 2}"),
             string_static("[block]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
@@ -696,7 +743,8 @@ spec(read) {
       ScriptReadResult res;
       script_read(doc, binder, g_testData[i].input, &res);
 
-      check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
+      check_require_msg(
+          res.type == ScriptResult_Success, "Read failed [{}]", fmt_text(g_testData[i].input));
       check_expr_str(doc, res.expr, g_testData[i].expect);
     }
   }
@@ -706,6 +754,9 @@ spec(read) {
       String      input;
       ScriptError expected;
     } g_testData[] = {
+        {string_static("}"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 }"), ScriptError_MissingSemicolon},
+        {string_static("1 1"), ScriptError_MissingSemicolon},
         {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 &&"), ScriptError_MissingPrimaryExpression},
@@ -717,9 +768,9 @@ spec(read) {
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("!"), ScriptError_MissingPrimaryExpression},
-        {string_static(";"), ScriptError_InvalidPrimaryExpression},
-        {string_static("1 ; ;"), ScriptError_InvalidPrimaryExpression},
-        {string_static("1;;"), ScriptError_InvalidPrimaryExpression},
+        {string_static(";"), ScriptError_ExtraneousSemicolon},
+        {string_static("1 ; ;"), ScriptError_ExtraneousSemicolon},
+        {string_static("1;;"), ScriptError_ExtraneousSemicolon},
         {string_static("?"), ScriptError_InvalidPrimaryExpression},
         {string_static("1?"), ScriptError_MissingPrimaryExpression},
         {string_static("1 ?"), ScriptError_MissingPrimaryExpression},
@@ -739,21 +790,29 @@ spec(read) {
         {string_static("hello(1 + 2 + 4, 5 + 6 + 7)"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(1,2,3,4,5,6,7,8,9,10)"), ScriptError_NoFunctionFoundForIdentifier},
         {string_static("hello(1,2,3,4,5,6,7,8,9,10,"), ScriptError_ArgumentCountExceedsMaximum},
-        {string_static("{"), ScriptError_UnterminatedScope},
-        {string_static("{1"), ScriptError_UnterminatedScope},
-        {string_static("{1;"), ScriptError_UnterminatedScope},
-        {string_static("{1;2"), ScriptError_UnterminatedScope},
-        {string_static("{1;2;"), ScriptError_UnterminatedScope},
-        {string_static("if"), ScriptError_InvalidConditionCountForIf},
+        {string_static("{"), ScriptError_UnterminatedBlock},
+        {string_static("{1"), ScriptError_UnterminatedBlock},
+        {string_static("{1;"), ScriptError_UnterminatedBlock},
+        {string_static("{1;2"), ScriptError_UnterminatedBlock},
+        {string_static("{1;2;"), ScriptError_UnterminatedBlock},
+        {string_static("if"), ScriptError_InvalidConditionCount},
         {string_static("if("), ScriptError_UnterminatedArgumentList},
-        {string_static("if()"), ScriptError_InvalidConditionCountForIf},
-        {string_static("if(1,2)"), ScriptError_InvalidConditionCountForIf},
-        {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
-        {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
-        {string_static("if(1) 1; 2 else 3"), ScriptError_UnexpectedTokenAfterExpression},
-        {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
-        {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
-        {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if()"), ScriptError_InvalidConditionCount},
+        {string_static("if(1,2)"), ScriptError_InvalidConditionCount},
+        {string_static("if(1)"), ScriptError_BlockExpected},
+        {string_static("if(1) 1"), ScriptError_BlockExpected},
+        {string_static("if(1) {1} else"), ScriptError_BlockOrIfExpected},
+        {string_static("if(1) {1}; 2 else 3"), ScriptError_ExtraneousSemicolon},
+        {string_static("if(1) {var i = 42} else {i}"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(1) {2}; else {2}"), ScriptError_ExtraneousSemicolon},
+        {string_static("if(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("while"), ScriptError_InvalidConditionCount},
+        {string_static("while("), ScriptError_UnterminatedArgumentList},
+        {string_static("while()"), ScriptError_InvalidConditionCount},
+        {string_static("while(1,2)"), ScriptError_InvalidConditionCount},
+        {string_static("while(1)"), ScriptError_BlockExpected},
+        {string_static("while(1) 1"), ScriptError_BlockExpected},
+        {string_static("while(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
@@ -798,14 +857,6 @@ spec(read) {
     script_read(doc, binder, string_lit("1  "), &res);
 
     check_require(res.type == ScriptResult_Success);
-  }
-
-  it("fails when read-all finds additional tokens after the expression") {
-    ScriptReadResult res;
-    script_read(doc, binder, string_lit("1 1"), &res);
-
-    check_require(res.type == ScriptResult_Fail);
-    check(res.error == ScriptError_UnexpectedTokenAfterExpression);
   }
 
   it("fails when recursing too deep") {

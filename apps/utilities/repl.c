@@ -20,10 +20,11 @@
 
 typedef enum {
   ReplFlags_None         = 0,
-  ReplFlags_Watch        = 1 << 0,
-  ReplFlags_OutputTokens = 1 << 1,
-  ReplFlags_OutputAst    = 1 << 2,
-  ReplFlags_OutputStats  = 1 << 3,
+  ReplFlags_NoEval       = 1 << 0,
+  ReplFlags_Watch        = 1 << 1,
+  ReplFlags_OutputTokens = 1 << 2,
+  ReplFlags_OutputAst    = 1 << 3,
+  ReplFlags_OutputStats  = 1 << 4,
 } ReplFlags;
 
 typedef struct {
@@ -151,6 +152,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_If:
   case ScriptTokenType_Else:
   case ScriptTokenType_Var:
+  case ScriptTokenType_While:
     return TtyFgColor_Cyan;
   case ScriptTokenType_Comment:
     return TtyFgColor_BrightBlack;
@@ -216,8 +218,10 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
     if (flags & ReplFlags_OutputStats) {
       repl_output_stats(script, res.expr);
     }
-    const ScriptVal value = script_eval(script, mem, res.expr, repl_bind_init(), null);
-    repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
+    if (!(flags & ReplFlags_NoEval)) {
+      const ScriptVal value = script_eval(script, mem, res.expr, repl_bind_init(), null);
+      repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
+    }
   } else {
     repl_output_result_error(&res);
   }
@@ -449,55 +453,62 @@ Ret:
   return res;
 }
 
-static CliId g_fileArg, g_watchFlag, g_tokensFlag, g_astFlag, g_statsFlag, g_helpFlag;
+static CliId g_optFile, g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   static const String g_desc = string_static("Execute a script from a file or stdin "
                                              "(interactive when stdin is a tty).");
   cli_app_register_desc(app, g_desc);
 
-  g_fileArg = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
-  cli_register_desc(app, g_fileArg, string_lit("File to execute (default: stdin)."));
-  cli_register_validator(app, g_fileArg, cli_validate_file_regular);
+  g_optFile = cli_register_arg(app, string_lit("file"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optFile, string_lit("File to execute (default: stdin)."));
+  cli_register_validator(app, g_optFile, cli_validate_file_regular);
 
-  g_watchFlag = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
-  cli_register_desc(app, g_watchFlag, string_lit("Reevaluate the script when the file changes."));
+  g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
+  cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
 
-  g_tokensFlag = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
-  cli_register_desc(app, g_tokensFlag, string_lit("Ouput the tokens."));
+  g_optWatch = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
+  cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
 
-  g_astFlag = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
-  cli_register_desc(app, g_astFlag, string_lit("Ouput the abstract-syntax-tree expressions."));
+  g_optTokens = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
+  cli_register_desc(app, g_optTokens, string_lit("Ouput the tokens."));
 
-  g_statsFlag = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
-  cli_register_desc(app, g_statsFlag, string_lit("Ouput script statistics."));
+  g_optAst = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
+  cli_register_desc(app, g_optAst, string_lit("Ouput the abstract-syntax-tree expressions."));
 
-  g_helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
-  cli_register_desc(app, g_helpFlag, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_helpFlag, g_fileArg);
-  cli_register_exclusions(app, g_helpFlag, g_watchFlag);
-  cli_register_exclusions(app, g_helpFlag, g_tokensFlag);
-  cli_register_exclusions(app, g_helpFlag, g_astFlag);
-  cli_register_exclusions(app, g_helpFlag, g_statsFlag);
+  g_optStats = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
+  cli_register_desc(app, g_optStats, string_lit("Ouput script statistics."));
+
+  g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
+  cli_register_exclusions(app, g_optHelp, g_optFile);
+  cli_register_exclusions(app, g_optHelp, g_optNoEval);
+  cli_register_exclusions(app, g_optHelp, g_optWatch);
+  cli_register_exclusions(app, g_optHelp, g_optTokens);
+  cli_register_exclusions(app, g_optHelp, g_optAst);
+  cli_register_exclusions(app, g_optHelp, g_optStats);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  if (cli_parse_provided(invoc, g_helpFlag)) {
+  if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_file_stdout);
     return 0;
   }
 
   ReplFlags flags = ReplFlags_None;
-  if (cli_parse_provided(invoc, g_watchFlag)) {
+  if (cli_parse_provided(invoc, g_optNoEval)) {
+    flags |= ReplFlags_NoEval;
+  }
+  if (cli_parse_provided(invoc, g_optWatch)) {
     flags |= ReplFlags_Watch;
   }
-  if (cli_parse_provided(invoc, g_tokensFlag)) {
+  if (cli_parse_provided(invoc, g_optTokens)) {
     flags |= ReplFlags_OutputTokens;
   }
-  if (cli_parse_provided(invoc, g_astFlag)) {
+  if (cli_parse_provided(invoc, g_optAst)) {
     flags |= ReplFlags_OutputAst;
   }
-  if (cli_parse_provided(invoc, g_statsFlag)) {
+  if (cli_parse_provided(invoc, g_optStats)) {
     flags |= ReplFlags_OutputStats;
   }
 
@@ -507,7 +518,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 1;
   }
 
-  const CliParseValues fileArg = cli_parse_values(invoc, g_fileArg);
+  const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
     if (flags & ReplFlags_Watch) {
       return repl_run_watch(fileArg.values[0], flags);
