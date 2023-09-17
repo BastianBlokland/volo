@@ -710,12 +710,24 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 
   ScriptExpr b2Expr;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
-    const ScriptReadResult b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
-    if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+    if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
+      const ScriptReadResult b2 = read_expr_scope_block(ctx);
+      if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+        script_scope_pop(ctx);
+        return b2;
+      }
+      b2Expr = b2.expr;
+    } else if (read_consume_if(ctx, ScriptTokenType_If)) {
+      const ScriptReadResult b2 = read_expr_if(ctx, start);
+      if (UNLIKELY(b2.type == ScriptResult_Fail)) {
+        script_scope_pop(ctx);
+        return b2;
+      }
+      b2Expr = b2.expr;
+    } else {
       script_scope_pop(ctx);
-      return b2;
+      return read_error(ctx, ScriptError_ScopeOrIfExpected, start);
     }
-    b2Expr = b2.expr;
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
   }
