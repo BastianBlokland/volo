@@ -184,6 +184,12 @@ static ScriptIntrinsic token_op_binary(const ScriptTokenType type) {
     return ScriptIntrinsic_Div;
   case ScriptTokenType_Percent:
     return ScriptIntrinsic_Mod;
+  case ScriptTokenType_AmpAmp:
+    return ScriptIntrinsic_LogicAnd;
+  case ScriptTokenType_PipePipe:
+    return ScriptIntrinsic_LogicOr;
+  case ScriptTokenType_QMarkQMark:
+    return ScriptIntrinsic_NullCoalescing;
   default:
     diag_assert_fail("Invalid binary operation token");
     UNREACHABLE
@@ -207,6 +213,17 @@ static ScriptIntrinsic token_op_binary_modify(const ScriptTokenType type) {
   default:
     diag_assert_fail("Invalid binary modify operation token");
     UNREACHABLE
+  }
+}
+
+static bool token_intr_rhs_scope(const ScriptIntrinsic intr) {
+  switch (intr) {
+  case ScriptIntrinsic_LogicAnd:
+  case ScriptIntrinsic_LogicOr:
+  case ScriptIntrinsic_NullCoalescing:
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -611,17 +628,17 @@ static ScriptReadResult read_expr_var_modify(
     return read_error(ctx, ScriptError_NoVariableFoundForIdentifier, start);
   }
 
-  const bool             newScope = type == ScriptTokenType_QMarkQMarkEq;
-  const ScriptReadResult val      = newScope ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
-                                             : read_expr(ctx, OpPrecedence_Assignment);
+  const ScriptIntrinsic  intr = token_op_binary_modify(type);
+  const ScriptReadResult val  = token_intr_rhs_scope(intr)
+                                    ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
+                                    : read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(val.type == ScriptResult_Fail)) {
     return val;
   }
 
-  const ScriptExpr      loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
-  const ScriptIntrinsic intr       = token_op_binary_modify(type);
-  const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
-  const ScriptExpr      intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
+  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
+  const ScriptExpr intrArgs[] = {loadExpr, val.expr};
+  const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
   return read_success(script_add_var_store(ctx->doc, var->varSlot, intrExpr));
 }
 
@@ -635,16 +652,16 @@ static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const String
 
 static ScriptReadResult
 read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptTokenType type) {
-  const bool             newScope = type == ScriptTokenType_QMarkQMarkEq;
-  const ScriptReadResult val      = newScope ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
-                                             : read_expr(ctx, OpPrecedence_Assignment);
+  const ScriptIntrinsic  intr = token_op_binary_modify(type);
+  const ScriptReadResult val  = token_intr_rhs_scope(intr)
+                                    ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
+                                    : read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(val.type == ScriptResult_Fail)) {
     return val;
   }
-  const ScriptExpr      loadExpr   = script_add_mem_load(ctx->doc, key);
-  const ScriptIntrinsic intr       = token_op_binary_modify(type);
-  const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
-  const ScriptExpr      intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
+  const ScriptExpr loadExpr   = script_add_mem_load(ctx->doc, key);
+  const ScriptExpr intrArgs[] = {loadExpr, val.expr};
+  const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
   return read_success(script_add_mem_store(ctx->doc, key, intrExpr));
 }
 
@@ -797,35 +814,6 @@ static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExp
 
   const ScriptExpr intrArgs[] = {condition, b1.expr, b2.expr};
   return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
-}
-
-static ScriptReadResult read_expr_logic_and(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
-  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
-    return rhs;
-  }
-  const ScriptExpr falseExpr  = script_add_value(ctx->doc, script_bool(false));
-  const ScriptExpr intrArgs[] = {lhs, rhs.expr, falseExpr};
-  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
-}
-
-static ScriptReadResult read_expr_logic_or(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
-  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
-    return rhs;
-  }
-  const ScriptExpr trueExpr   = script_add_value(ctx->doc, script_bool(true));
-  const ScriptExpr intrArgs[] = {lhs, trueExpr, rhs.expr};
-  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
-}
-
-static ScriptReadResult read_expr_null_coalescing(ScriptReadContext* ctx, const ScriptExpr lhs) {
-  const ScriptReadResult rhs = read_expr_scope_single(ctx, OpPrecedence_Logical);
-  if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
-    return rhs;
-  }
-  const ScriptExpr intrArgs[] = {lhs, rhs.expr};
-  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_NullCoalescing, intrArgs));
 }
 
 static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
@@ -982,24 +970,20 @@ static ScriptReadResult read_expr(ScriptReadContext* ctx, const OpPrecedence min
     case ScriptTokenType_Minus:
     case ScriptTokenType_Star:
     case ScriptTokenType_Slash:
-    case ScriptTokenType_Percent: {
-      const ScriptReadResult rhs = read_expr(ctx, opPrecedence);
+    case ScriptTokenType_Percent:
+    case ScriptTokenType_AmpAmp:
+    case ScriptTokenType_PipePipe:
+    case ScriptTokenType_QMarkQMark: {
+      const ScriptIntrinsic  intr = token_op_binary(nextToken.type);
+      const ScriptReadResult rhs  = token_intr_rhs_scope(intr)
+                                        ? read_expr_scope_single(ctx, opPrecedence)
+                                        : read_expr(ctx, opPrecedence);
       if (UNLIKELY(rhs.type == ScriptResult_Fail)) {
         return rhs;
       }
-      const ScriptIntrinsic intr       = token_op_binary(nextToken.type);
-      const ScriptExpr      intrArgs[] = {res.expr, rhs.expr};
-      res = read_success(script_add_intrinsic(ctx->doc, intr, intrArgs));
+      const ScriptExpr intrArgs[] = {res.expr, rhs.expr};
+      res                         = read_success(script_add_intrinsic(ctx->doc, intr, intrArgs));
     } break;
-    case ScriptTokenType_AmpAmp:
-      res = read_expr_logic_and(ctx, res.expr);
-      break;
-    case ScriptTokenType_PipePipe:
-      res = read_expr_logic_or(ctx, res.expr);
-      break;
-    case ScriptTokenType_QMarkQMark:
-      res = read_expr_null_coalescing(ctx, res.expr);
-      break;
     default:
       diag_assert_fail("Invalid operator token");
       UNREACHABLE

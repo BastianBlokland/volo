@@ -114,6 +114,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     }
     return ret;
   }
+  case ScriptIntrinsic_LogicAnd:
+    return script_bool(script_truthy(eval(ctx, args[0])) && script_truthy(eval(ctx, args[1])));
+  case ScriptIntrinsic_LogicOr:
+    return script_bool(script_truthy(eval(ctx, args[0])) || script_truthy(eval(ctx, args[1])));
   case ScriptIntrinsic_ComposeVector3:
     return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
   case ScriptIntrinsic_If:

@@ -309,31 +309,27 @@ spec(read) {
         },
         {
             string_static("true && false"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: logic-and]\n"
                           "  [value: true]\n"
-                          "  [value: false]\n"
                           "  [value: false]"),
         },
         {
             string_static("true && 2 * 4"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: logic-and]\n"
                           "  [value: true]\n"
                           "  [intrinsic: mul]\n"
                           "    [value: 2]\n"
-                          "    [value: 4]\n"
-                          "  [value: false]"),
+                          "    [value: 4]"),
         },
         {
             string_static("true || false"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
+            string_static("[intrinsic: logic-or]\n"
                           "  [value: true]\n"
                           "  [value: false]"),
         },
         {
             string_static("true || 2 * 4"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
+            string_static("[intrinsic: logic-or]\n"
                           "  [value: true]\n"
                           "  [intrinsic: mul]\n"
                           "    [value: 2]\n"
@@ -574,8 +570,7 @@ spec(read) {
         {
             string_static("true || {$a = 1; false}; $a"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
-                          "    [value: true]\n"
+                          "  [intrinsic: logic-or]\n"
                           "    [value: true]\n"
                           "    [block]\n"
                           "      [mem-store: $3645546703]\n"
