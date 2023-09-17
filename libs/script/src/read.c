@@ -744,7 +744,11 @@ static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMark
     return read_error(ctx, ScriptError_InvalidConditionCount, start);
   }
 
-  const ScriptReadResult body = read_expr_scope_single(ctx, OpPrecedence_Conditional);
+  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
+    script_scope_pop(ctx);
+    return read_error(ctx, ScriptError_ScopeExpected, start);
+  }
+  const ScriptReadResult body = read_expr_scope_block(ctx);
   if (UNLIKELY(body.type == ScriptResult_Fail)) {
     script_scope_pop(ctx);
     return body;
@@ -1021,11 +1025,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

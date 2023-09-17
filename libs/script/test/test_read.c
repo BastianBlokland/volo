@@ -213,7 +213,7 @@ spec(read) {
                           "          [value: 1]"),
         },
         {
-            string_static("while(true) bind_test_1()"),
+            string_static("while(true) { bind_test_1() }"),
             string_static("[intrinsic: while]\n"
                           "  [value: true]\n"
                           "  [extern: 1]"),
@@ -741,7 +741,8 @@ spec(read) {
       ScriptReadResult res;
       script_read(doc, binder, g_testData[i].input, &res);
 
-      check_require_msg(res.type == ScriptResult_Success, "Failed to read: {}", fmt_int(i));
+      check_require_msg(
+          res.type == ScriptResult_Success, "Read failed [{}]", fmt_text(g_testData[i].input));
       check_expr_str(doc, res.expr, g_testData[i].expect);
     }
   }
@@ -805,7 +806,8 @@ spec(read) {
         {string_static("while("), ScriptError_UnterminatedArgumentList},
         {string_static("while()"), ScriptError_InvalidConditionCount},
         {string_static("while(1,2)"), ScriptError_InvalidConditionCount},
-        {string_static("while(1)"), ScriptError_MissingPrimaryExpression},
+        {string_static("while(1)"), ScriptError_ScopeExpected},
+        {string_static("while(1) 1"), ScriptError_ScopeExpected},
         {string_static("while(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
