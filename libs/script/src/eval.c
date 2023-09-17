@@ -107,6 +107,13 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_val_angle(eval(ctx, args[0]), eval(ctx, args[1]));
   case ScriptIntrinsic_RandomBetween:
     return script_val_random_between(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_While: {
+    ScriptVal ret = script_null();
+    while (script_truthy(eval(ctx, args[0]))) {
+      ret = eval(ctx, args[1]);
+    }
+    return ret;
+  }
   case ScriptIntrinsic_ComposeVector3:
     return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
   case ScriptIntrinsic_If:

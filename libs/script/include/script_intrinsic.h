@@ -28,6 +28,7 @@ typedef enum {
   ScriptIntrinsic_Distance,
   ScriptIntrinsic_Angle,
   ScriptIntrinsic_RandomBetween,
+  ScriptIntrinsic_While,
   ScriptIntrinsic_ComposeVector3,
   ScriptIntrinsic_If,
 

@@ -32,6 +32,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Distance:
   case ScriptIntrinsic_Angle:
   case ScriptIntrinsic_RandomBetween:
+  case ScriptIntrinsic_While:
     return 2;
   case ScriptIntrinsic_ComposeVector3:
   case ScriptIntrinsic_If:
@@ -72,6 +73,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("distance"),
       string_static("angle"),
       string_static("random-between"),
+      string_static("while"),
       string_static("compose-vector3"),
       string_static("if"),
   };
