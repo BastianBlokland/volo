@@ -453,7 +453,7 @@ static ScriptReadResult read_expr_scope_block(ScriptReadContext* ctx) {
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
-    return read_error(ctx, ScriptError_UnterminatedScope, start);
+    return read_error(ctx, ScriptError_UnterminatedBlock, start);
   }
 
   return res;
@@ -700,7 +700,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
-    return read_error(ctx, ScriptError_ScopeExpected, start);
+    return read_error(ctx, ScriptError_BlockExpected, start);
   }
   const ScriptReadResult b1 = read_expr_scope_block(ctx);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
@@ -726,7 +726,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
       b2Expr = b2.expr;
     } else {
       script_scope_pop(ctx);
-      return read_error(ctx, ScriptError_ScopeOrIfExpected, start);
+      return read_error(ctx, ScriptError_BlockOrIfExpected, start);
     }
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
@@ -762,7 +762,7 @@ static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMark
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
-    return read_error(ctx, ScriptError_ScopeExpected, start);
+    return read_error(ctx, ScriptError_BlockExpected, start);
   }
   const ScriptReadResult body = read_expr_scope_block(ctx);
   if (UNLIKELY(body.type == ScriptResult_Fail)) {
