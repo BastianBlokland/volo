@@ -345,14 +345,14 @@ spec(read) {
         // Ternary expressions.
         {
             string_static("true ? 1 : 2"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
         {
             string_static("1 > 2 ? 1 + 2 : 3 + 4"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [intrinsic: greater]\n"
                           "    [value: 1]\n"
                           "    [value: 2]\n"

@@ -121,6 +121,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   case ScriptIntrinsic_ComposeVector3:
     return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
   case ScriptIntrinsic_If:
+  case ScriptIntrinsic_Select:
     return script_truthy(eval(ctx, args[0])) ? eval(ctx, args[1]) : eval(ctx, args[2]);
   case ScriptIntrinsic_Count:
     break;
