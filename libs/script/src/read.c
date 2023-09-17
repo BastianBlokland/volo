@@ -946,6 +946,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Lex errors.
    */
+  case ScriptTokenType_SemiColon:
+    return read_error(ctx, ScriptError_ExtraneousSemicolon, start);
   case ScriptTokenType_Error:
     return read_error(ctx, token.val_error, start);
   case ScriptTokenType_End:
