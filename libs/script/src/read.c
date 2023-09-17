@@ -698,7 +698,11 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
     return read_error(ctx, ScriptError_InvalidConditionCount, start);
   }
 
-  const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
+  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
+    script_scope_pop(ctx);
+    return read_error(ctx, ScriptError_ScopeExpected, start);
+  }
+  const ScriptReadResult b1 = read_expr_scope_block(ctx);
   if (UNLIKELY(b1.type == ScriptResult_Fail)) {
     script_scope_pop(ctx);
     return b1;

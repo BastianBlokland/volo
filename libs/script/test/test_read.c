@@ -120,21 +120,14 @@ spec(read) {
 
         // If expressions.
         {
-            string_static("if(true) 2"),
+            string_static("if(true) { 2 }"),
             string_static("[intrinsic: if]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: null]"),
         },
         {
-            string_static("if(true) 2 else 3"),
-            string_static("[intrinsic: if]\n"
-                          "  [value: true]\n"
-                          "  [value: 2]\n"
-                          "  [value: 3]"),
-        },
-        {
-            string_static("if(true) {2} else {3}"),
+            string_static("if(true) { 2 } else 3"),
             string_static("[intrinsic: if]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
@@ -148,7 +141,7 @@ spec(read) {
                           "  [value: null]"),
         },
         {
-            string_static("if(false) 2 else if(true) 3"),
+            string_static("if(false) {2} else if(true) { 3 }"),
             string_static("[intrinsic: if]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
@@ -166,7 +159,7 @@ spec(read) {
                           "  [var-load: 0]"),
         },
         {
-            string_static("if(var i = 1) i; if(var i = 2) i"),
+            string_static("if(var i = 1) { i }; if(var i = 2) { i }"),
             string_static("[block]\n"
                           "  [intrinsic: if]\n"
                           "    [var-store: 0]\n"
@@ -796,11 +789,12 @@ spec(read) {
         {string_static("if("), ScriptError_UnterminatedArgumentList},
         {string_static("if()"), ScriptError_InvalidConditionCount},
         {string_static("if(1,2)"), ScriptError_InvalidConditionCount},
-        {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
-        {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
-        {string_static("if(1) 1; 2 else 3"), ScriptError_InvalidPrimaryExpression},
-        {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
-        {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
+        {string_static("if(1)"), ScriptError_ScopeExpected},
+        {string_static("if(1) 1"), ScriptError_ScopeExpected},
+        {string_static("if(1) {1} else"), ScriptError_MissingPrimaryExpression},
+        {string_static("if(1) {1}; 2 else 3"), ScriptError_InvalidPrimaryExpression},
+        {string_static("if(1) {var i = 42} else {i}"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(1) {2}; else {2}"), ScriptError_InvalidPrimaryExpression},
         {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("while"), ScriptError_InvalidConditionCount},
         {string_static("while("), ScriptError_UnterminatedArgumentList},
