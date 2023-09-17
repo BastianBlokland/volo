@@ -619,10 +619,10 @@ static ScriptReadResult read_expr_var_modify(
   }
 
   const ScriptExpr      loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
-  const ScriptIntrinsic itr        = token_op_binary_modify(type);
+  const ScriptIntrinsic intr       = token_op_binary_modify(type);
   const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
-  const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
-  return read_success(script_add_var_store(ctx->doc, var->varSlot, itrExpr));
+  const ScriptExpr      intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
+  return read_success(script_add_var_store(ctx->doc, var->varSlot, intrExpr));
 }
 
 static ScriptReadResult read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
@@ -642,10 +642,10 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
     return val;
   }
   const ScriptExpr      loadExpr   = script_add_mem_load(ctx->doc, key);
-  const ScriptIntrinsic itr        = token_op_binary_modify(type);
+  const ScriptIntrinsic intr       = token_op_binary_modify(type);
   const ScriptExpr      intrArgs[] = {loadExpr, val.expr};
-  const ScriptExpr      itrExpr    = script_add_intrinsic(ctx->doc, itr, intrArgs);
-  return read_success(script_add_mem_store(ctx->doc, key, itrExpr));
+  const ScriptExpr      intrExpr   = script_add_intrinsic(ctx->doc, intr, intrArgs);
+  return read_success(script_add_mem_store(ctx->doc, key, intrExpr));
 }
 
 /**
