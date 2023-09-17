@@ -180,6 +180,35 @@ spec(read) {
                           "    [value: null]"),
         },
 
+        // While expressions.
+        {
+            string_static("var i = 0;"
+                          "while(i < 10) {"
+                          "  bind_test_1(i);"
+                          "  i += 1;"
+                          "}"),
+            string_static("[block]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 0]\n"
+                          "  [intrinsic: while]\n"
+                          "    [intrinsic: less]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 10]\n"
+                          "    [block]\n"
+                          "      [extern: 1]\n"
+                          "        [var-load: 0]\n"
+                          "      [var-store: 0]\n"
+                          "        [intrinsic: add]\n"
+                          "          [var-load: 0]\n"
+                          "          [value: 1]"),
+        },
+        {
+            string_static("while(true) bind_test_1()"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [extern: 1]"),
+        },
+
         // Unary expressions.
         {
             string_static("-42"),
@@ -744,16 +773,22 @@ spec(read) {
         {string_static("{1;"), ScriptError_UnterminatedScope},
         {string_static("{1;2"), ScriptError_UnterminatedScope},
         {string_static("{1;2;"), ScriptError_UnterminatedScope},
-        {string_static("if"), ScriptError_InvalidConditionCountForIf},
+        {string_static("if"), ScriptError_InvalidConditionCount},
         {string_static("if("), ScriptError_UnterminatedArgumentList},
-        {string_static("if()"), ScriptError_InvalidConditionCountForIf},
-        {string_static("if(1,2)"), ScriptError_InvalidConditionCountForIf},
+        {string_static("if()"), ScriptError_InvalidConditionCount},
+        {string_static("if(1,2)"), ScriptError_InvalidConditionCount},
         {string_static("if(1)"), ScriptError_MissingPrimaryExpression},
         {string_static("if(1) 1 else"), ScriptError_MissingPrimaryExpression},
         {string_static("if(1) 1; 2 else 3"), ScriptError_UnexpectedTokenAfterExpression},
         {string_static("if(1) var i = 42 else i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("if(1) 2; else 2;"), ScriptError_InvalidPrimaryExpression},
         {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("while"), ScriptError_InvalidConditionCount},
+        {string_static("while("), ScriptError_UnterminatedArgumentList},
+        {string_static("while()"), ScriptError_InvalidConditionCount},
+        {string_static("while(1,2)"), ScriptError_InvalidConditionCount},
+        {string_static("while(1)"), ScriptError_MissingPrimaryExpression},
+        {string_static("while(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
@@ -800,7 +835,7 @@ spec(read) {
     check_require(res.type == ScriptResult_Success);
   }
 
-  it("fails when read-all finds additional tokens after the expression") {
+  it("fails when read finds additional tokens after the expression") {
     ScriptReadResult res;
     script_read(doc, binder, string_lit("1 1"), &res);
 

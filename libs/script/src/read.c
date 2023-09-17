@@ -673,7 +673,7 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
 static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_error(ctx, ScriptError_InvalidConditionCountForIf, start);
+    return read_error(ctx, ScriptError_InvalidConditionCount, start);
   }
 
   // NOTE: Add a new scope so variables defined in the condition are only available in the branches.
@@ -688,7 +688,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
   }
   if (UNLIKELY(conditionRes.argCount != 1)) {
     script_scope_pop(ctx);
-    return read_error(ctx, ScriptError_InvalidConditionCountForIf, start);
+    return read_error(ctx, ScriptError_InvalidConditionCount, start);
   }
 
   const ScriptReadResult b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
@@ -714,6 +714,40 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 
   const ScriptExpr intrArgs[] = {conditions[0], b1.expr, b2Expr};
   return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs));
+}
+
+static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMarker start) {
+  const ScriptToken token = read_consume(ctx);
+  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+    return read_error(ctx, ScriptError_InvalidConditionCount, start);
+  }
+
+  // NOTE: Add a new scope so variables defined in the condition are only available in the body.
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
+  ScriptExpr             conditions[script_args_max];
+  const ScriptArgsResult conditionRes = read_args(ctx, conditions);
+  if (UNLIKELY(conditionRes.type == ScriptResult_Fail)) {
+    script_scope_pop(ctx);
+    return read_error(ctx, conditionRes.error, start);
+  }
+  if (UNLIKELY(conditionRes.argCount != 1)) {
+    script_scope_pop(ctx);
+    return read_error(ctx, ScriptError_InvalidConditionCount, start);
+  }
+
+  const ScriptReadResult body = read_expr_scope_single(ctx, OpPrecedence_Conditional);
+  if (UNLIKELY(body.type == ScriptResult_Fail)) {
+    script_scope_pop(ctx);
+    return body;
+  }
+
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
+
+  const ScriptExpr intrArgs[] = {conditions[0], body.expr};
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_While, intrArgs));
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
@@ -789,6 +823,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenType_If:
     return read_expr_if(ctx, start);
+  case ScriptTokenType_While:
+    return read_expr_while(ctx, start);
   case ScriptTokenType_Var:
     return read_expr_var_declare(ctx, start);
   /**

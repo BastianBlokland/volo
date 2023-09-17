@@ -21,7 +21,7 @@ static const String g_errorStrs[] = {
     string_static("Unterminated argument list"),
     string_static("Block size exceeds maximum"),
     string_static("Argument count exceeds maximum"),
-    string_static("Invalid condition count for if expression"),
+    string_static("Invalid condition count"),
     string_static("Missing colon in select expression"),
     string_static("Unexpected token after expression"),
 };
