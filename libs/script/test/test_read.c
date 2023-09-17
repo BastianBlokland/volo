@@ -169,7 +169,7 @@ spec(read) {
                           "  [var-load: 0]"),
         },
         {
-            string_static("if(var i = 1) {i}; if(var i = 2) {i}"),
+            string_static("if(var i = 1) {i} if(var i = 2) {i}"),
             string_static("[block]\n"
                           "  [intrinsic: if]\n"
                           "    [var-store: 0]\n"
@@ -622,6 +622,10 @@ spec(read) {
             string_static("[value: 1]"),
         },
         {
+            string_static("{1;}"),
+            string_static("[value: 1]"),
+        },
+        {
             string_static("{1; 2}"),
             string_static("[block]\n"
                           "  [value: 1]\n"
@@ -634,7 +638,7 @@ spec(read) {
                           "  [value: 2]"),
         },
         {
-            string_static("{1 2}"),
+            string_static("{1; 2}"),
             string_static("[block]\n"
                           "  [value: 1]\n"
                           "  [value: 2]"),
@@ -751,7 +755,8 @@ spec(read) {
       ScriptError expected;
     } g_testData[] = {
         {string_static("}"), ScriptError_InvalidPrimaryExpression},
-        {string_static("1 }"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 }"), ScriptError_MissingSemicolon},
+        {string_static("1 1"), ScriptError_MissingSemicolon},
         {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("<"), ScriptError_InvalidPrimaryExpression},
         {string_static("1 &&"), ScriptError_MissingPrimaryExpression},
@@ -800,14 +805,14 @@ spec(read) {
         {string_static("if(1) {1}; 2 else 3"), ScriptError_InvalidPrimaryExpression},
         {string_static("if(1) {var i = 42} else {i}"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("if(1) {2}; else {2}"), ScriptError_InvalidPrimaryExpression},
-        {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("while"), ScriptError_InvalidConditionCount},
         {string_static("while("), ScriptError_UnterminatedArgumentList},
         {string_static("while()"), ScriptError_InvalidConditionCount},
         {string_static("while(1,2)"), ScriptError_InvalidConditionCount},
         {string_static("while(1)"), ScriptError_BlockExpected},
         {string_static("while(1) 1"), ScriptError_BlockExpected},
-        {string_static("while(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("while(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},

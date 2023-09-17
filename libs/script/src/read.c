@@ -399,6 +399,32 @@ read_error(ScriptReadContext* ctx, const ScriptError err, const ScriptMarker sta
   };
 }
 
+static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr expr) {
+  switch (script_expr_type(ctx->doc, expr)) {
+  case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_VarStore:
+  case ScriptExprType_MemLoad:
+  case ScriptExprType_MemStore:
+  case ScriptExprType_Extern:
+    return true;
+  case ScriptExprType_Block:
+    return false;
+  case ScriptExprType_Intrinsic: {
+    const ScriptExprData* data = dynarray_at_t(&ctx->doc->exprData, expr, ScriptExprData);
+    const ScriptIntrinsic intr = data->data_intrinsic.intrinsic;
+    if (intr == ScriptIntrinsic_If || intr == ScriptIntrinsic_While) {
+      return false;
+    }
+    return true;
+  }
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Invalid expr");
+  UNREACHABLE
+}
+
 static ScriptReadResult read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 typedef enum {
@@ -414,7 +440,7 @@ static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlock
 }
 
 static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
-  const ScriptMarker start = script_marker(ctx);
+  const ScriptMarker blockStart = script_marker(ctx);
 
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
@@ -425,16 +451,24 @@ static ScriptReadResult read_expr_block(ScriptReadContext* ctx, const ScriptBloc
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    return read_error(ctx, ScriptError_BlockSizeExceedsMaximum, start);
+    return read_error(ctx, ScriptError_BlockSizeExceedsMaximum, blockStart);
   }
-  const ScriptReadResult arg = read_expr(ctx, OpPrecedence_None);
-  if (UNLIKELY(arg.type == ScriptResult_Fail)) {
-    return read_error(ctx, arg.error, start);
+  const ScriptMarker     exprStart = script_marker(ctx);
+  const ScriptReadResult exprRes   = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(exprRes.type == ScriptResult_Fail)) {
+    return read_error(ctx, exprRes.error, exprStart);
   }
-  exprs[exprCount++] = arg.expr;
+  exprs[exprCount++] = exprRes.expr;
 
-  read_consume_if(ctx, ScriptTokenType_SemiColon); // Exprs are optionally separated by semi's.
-
+  if (read_is_block_end(read_peek(ctx).type, blockType)) {
+    goto BlockEnd;
+  }
+  if (read_require_separation(ctx, exprRes.expr)) {
+    const ScriptMarker separatorStart = script_marker(ctx);
+    if (!read_consume_if(ctx, ScriptTokenType_SemiColon)) {
+      return read_error(ctx, ScriptError_MissingSemicolon, separatorStart);
+    }
+  }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
   }

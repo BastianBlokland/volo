@@ -19,6 +19,7 @@ typedef enum {
   ScriptError_UnterminatedBlock,
   ScriptError_UnterminatedArgumentList,
   ScriptError_BlockSizeExceedsMaximum,
+  ScriptError_MissingSemicolon,
   ScriptError_ArgumentCountExceedsMaximum,
   ScriptError_InvalidConditionCount,
   ScriptError_BlockExpected,
