@@ -456,7 +456,7 @@ BlockNext:
   const ScriptMarker     exprStart = script_marker(ctx);
   const ScriptReadResult exprRes   = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(exprRes.type == ScriptResult_Fail)) {
-    return read_error(ctx, exprRes.error, exprStart);
+    return exprRes;
   }
   exprs[exprCount++] = exprRes.expr;
 
@@ -464,9 +464,8 @@ BlockNext:
     goto BlockEnd;
   }
   if (read_require_separation(ctx, exprRes.expr)) {
-    const ScriptMarker separatorStart = script_marker(ctx);
     if (!read_consume_if(ctx, ScriptTokenType_SemiColon)) {
-      return read_error(ctx, ScriptError_MissingSemicolon, separatorStart);
+      return read_error(ctx, ScriptError_MissingSemicolon, exprStart);
     }
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -609,7 +608,7 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx, const Scri
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
     const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
     if (UNLIKELY(res.type == ScriptResult_Fail)) {
-      return read_error(ctx, res.error, start);
+      return res;
     }
     valExpr = res.expr;
   } else {
@@ -646,7 +645,7 @@ static ScriptReadResult read_expr_var_assign(
 
   const ScriptReadResult res = read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(res.type == ScriptResult_Fail)) {
-    return read_error(ctx, res.error, start);
+    return res;
   }
 
   return read_success(script_add_var_store(ctx->doc, var->varSlot, res.expr));
