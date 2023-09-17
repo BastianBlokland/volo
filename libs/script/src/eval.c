@@ -7,6 +7,8 @@
 
 #include "doc_internal.h"
 
+#define script_loop_itr_max 1000
+
 typedef struct {
   const ScriptDoc*    doc;
   ScriptMem*          m;
@@ -108,8 +110,12 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   case ScriptIntrinsic_RandomBetween:
     return script_val_random_between(eval(ctx, args[0]), eval(ctx, args[1]));
   case ScriptIntrinsic_While: {
-    ScriptVal ret = script_null();
+    ScriptVal ret  = script_null();
+    u32       itrs = 0;
     while (script_truthy(eval(ctx, args[0]))) {
+      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
+        return script_null(); // TODO: Raise a runtime error instead?
+      }
       ret = eval(ctx, args[1]);
     }
     return ret;
