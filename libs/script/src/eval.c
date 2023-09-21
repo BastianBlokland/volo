@@ -11,7 +11,8 @@
 
 typedef enum {
   ScriptEvalSignal_None              = 0,
-  ScriptEvalSignal_LoopLimitExceeded = 1 << 0,
+  ScriptEvalSignal_AssertionFailed   = 1 << 0,
+  ScriptEvalSignal_LoopLimitExceeded = 1 << 1,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -93,6 +94,12 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_val_round_nearest(eval(ctx, args[0]));
   case ScriptIntrinsic_RoundUp:
     return script_val_round_up(eval(ctx, args[0]));
+  case ScriptIntrinsic_Assert: {
+    if (script_falsy(eval(ctx, args[0]))) {
+      ctx->signal |= ScriptEvalSignal_AssertionFailed;
+    }
+    return script_null();
+  }
   case ScriptIntrinsic_Equal: {
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_bool(script_val_equal(arg0, eval(ctx, args[1])));
@@ -250,9 +257,13 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
 }
 
 static ScriptResult script_result_type(const ScriptEvalContext* ctx) {
+  if (UNLIKELY(ctx->signal & ScriptEvalSignal_AssertionFailed)) {
+    return ScriptResult_AssertionFailed;
+  }
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
     return ScriptResult_LoopInterationLimitExceeded;
   }
+  diag_assert_msg(!ctx->signal, "Unhandled signal");
   return ScriptResult_Success;
 }
 

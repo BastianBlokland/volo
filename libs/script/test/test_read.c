@@ -98,6 +98,11 @@ spec(read) {
             string_static("[intrinsic: vector-z]\n"
                           "  [value: 1]"),
         },
+        {
+            string_static("assert(1)"),
+            string_static("[intrinsic: assert]\n"
+                          "  [value: 1]"),
+        },
 
         // External functions.
         {

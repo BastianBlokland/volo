@@ -200,6 +200,9 @@ spec(eval) {
             script_number(10),
         },
         {string_static("while(false) {}"), script_null()},
+
+        // Other.
+        {string_static("assert(1)"), script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -249,6 +252,23 @@ spec(eval) {
     check_eq_int(ctx.counter, 3);
   }
 
+  it("stops execution after a runtime-error") {
+    ScriptEvalTestCtx ctx = {0};
+
+    ScriptReadResult readRes;
+    script_read(
+        doc,
+        binder,
+        string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
+        &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
+    check(evalRes.type == ScriptResult_AssertionFailed);
+    check_eq_int(ctx.counter, 1);
+    check_eq_val(evalRes.val, script_null());
+  }
+
   it("limits loop iterations") {
     void*            bindCtx = null;
     ScriptReadResult readRes;
@@ -257,23 +277,6 @@ spec(eval) {
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
     check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
-    check_eq_val(evalRes.val, script_null());
-  }
-
-  it("stops execution after a runtime-error") {
-    ScriptEvalTestCtx ctx = {0};
-
-    ScriptReadResult readRes;
-    script_read(
-        doc,
-        binder,
-        string_lit("test_increase_counter(); while(true) {} test_increase_counter()"),
-        &readRes);
-    check_require(readRes.type == ScriptResult_Success);
-
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
-    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
-    check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
 

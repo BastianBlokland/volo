@@ -106,6 +106,7 @@ static void script_builtin_init() {
   script_builtin_func_add(string_lit("round_down"), ScriptIntrinsic_RoundDown);
   script_builtin_func_add(string_lit("round_nearest"), ScriptIntrinsic_RoundNearest);
   script_builtin_func_add(string_lit("round_up"), ScriptIntrinsic_RoundUp);
+  script_builtin_func_add(string_lit("assert"), ScriptIntrinsic_Assert);
 }
 
 typedef enum {
