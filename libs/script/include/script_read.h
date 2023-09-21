@@ -1,6 +1,5 @@
 #pragma once
 #include "script_doc.h"
-#include "script_error.h"
 #include "script_result.h"
 
 // Forward declare from 'core_binder.h'.
@@ -13,15 +12,14 @@ typedef struct {
 /**
  * Result of parsing a script expression.
  * If 'type == ScriptResult_Success' then 'expr' contains an expression in the provided ScriptDoc.
- * else 'error' contains the reason why parsing failed.
+ * else the error information is populated.
  */
 typedef struct {
   ScriptResult type;
   union {
     ScriptExpr expr;
     struct {
-      ScriptError error;
-      ScriptPos   errorStart, errorEnd;
+      ScriptPos errorStart, errorEnd;
     };
   };
 } ScriptReadResult;

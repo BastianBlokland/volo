@@ -16,6 +16,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RoundDown:
   case ScriptIntrinsic_RoundNearest:
   case ScriptIntrinsic_RoundUp:
+  case ScriptIntrinsic_Assert:
     return 1;
   case ScriptIntrinsic_Equal:
   case ScriptIntrinsic_NotEqual:
@@ -61,6 +62,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("round-down"),
       string_static("round-nearest"),
       string_static("round-up"),
+      string_static("assert"),
       string_static("equal"),
       string_static("not-equal"),
       string_static("less"),

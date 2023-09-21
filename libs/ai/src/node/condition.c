@@ -8,8 +8,10 @@ AiResult ai_node_condition_eval(const AiEvalContext* ctx, const AssetAiNodeId no
   diag_assert(def->type == AssetAiNode_Condition);
   diag_assert(ctx->scriptDoc);
 
-  const ScriptExpr expr  = def->data_condition.scriptExpr;
-  const ScriptVal  value = script_eval_readonly(ctx->scriptDoc, ctx->memory, expr);
+  const ScriptExpr       expr = def->data_condition.scriptExpr;
+  const ScriptEvalResult res  = script_eval_readonly(ctx->scriptDoc, ctx->memory, expr);
 
-  return script_truthy(value) ? AiResult_Success : AiResult_Failure;
+  // TODO: Handle evaluation runtime errors.
+
+  return script_truthy(res.val) ? AiResult_Success : AiResult_Failure;
 }

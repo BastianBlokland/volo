@@ -209,7 +209,7 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    log_e("Invalid condition script", log_param("error", script_error_fmt(readRes.error)));
+    log_e("Invalid condition script", log_param("error", script_result_fmt(readRes.type)));
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
   }
@@ -226,7 +226,7 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
   script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    log_e("Invalid execute script", log_param("error", script_error_fmt(readRes.error)));
+    log_e("Invalid execute script", log_param("error", script_result_fmt(readRes.type)));
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeExecute){.scriptExpr = sentinel_u32};
   }

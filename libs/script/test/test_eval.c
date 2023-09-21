@@ -200,6 +200,9 @@ spec(eval) {
             script_number(10),
         },
         {string_static("while(false) {}"), script_null()},
+
+        // Other.
+        {string_static("assert(1)"), script_null()},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
@@ -209,11 +212,12 @@ spec(eval) {
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptVal evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+      const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+      check(evalRes.type == ScriptResult_Success);
       check_msg(
-          script_val_equal(evalRes, testData[i].expected),
+          script_val_equal(evalRes.val, testData[i].expected),
           "{} == {} ({})",
-          script_val_fmt(evalRes),
+          script_val_fmt(evalRes.val),
           script_val_fmt(testData[i].expected),
           fmt_text(testData[i].input));
     }
@@ -225,7 +229,8 @@ spec(eval) {
     script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
-    script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    check(evalRes.type == ScriptResult_Success);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
@@ -242,8 +247,37 @@ spec(eval) {
         &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
-    script_eval(doc, mem, readRes.expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
+    check(evalRes.type == ScriptResult_Success);
     check_eq_int(ctx.counter, 3);
+  }
+
+  it("stops execution after a runtime-error") {
+    ScriptEvalTestCtx ctx = {0};
+
+    ScriptReadResult readRes;
+    script_read(
+        doc,
+        binder,
+        string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
+        &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
+    check(evalRes.type == ScriptResult_AssertionFailed);
+    check_eq_int(ctx.counter, 1);
+    check_eq_val(evalRes.val, script_null());
+  }
+
+  it("limits loop iterations") {
+    void*            bindCtx = null;
+    ScriptReadResult readRes;
+    script_read(doc, binder, string_lit("while(true) {}"), &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
+    check_eq_val(evalRes.val, script_null());
   }
 
   teardown() {

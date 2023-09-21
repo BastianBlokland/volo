@@ -10,9 +10,12 @@ AiResult ai_node_execute_eval(const AiEvalContext* ctx, const AssetAiNodeId node
 
   const ScriptExpr expr = def->data_execute.scriptExpr;
 
-  ScriptBinder* binder  = null;
-  void*         bindCtx = null;
-  script_eval(ctx->scriptDoc, ctx->memory, expr, binder, bindCtx);
+  ScriptBinder*    binder  = null;
+  void*            bindCtx = null;
+  ScriptEvalResult evalRes = script_eval(ctx->scriptDoc, ctx->memory, expr, binder, bindCtx);
+
+  (void)evalRes;
+  // TODO: Handle evaluation runtime errors.
 
   return AiResult_Success;
 }

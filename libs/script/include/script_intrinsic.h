@@ -13,6 +13,7 @@ typedef enum {
   ScriptIntrinsic_RoundDown,
   ScriptIntrinsic_RoundNearest,
   ScriptIntrinsic_RoundUp,
+  ScriptIntrinsic_Assert,
   ScriptIntrinsic_Equal,
   ScriptIntrinsic_NotEqual,
   ScriptIntrinsic_Less,
