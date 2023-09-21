@@ -778,6 +778,7 @@ spec(read) {
         {string_static("1 ? 1"), ScriptError_MissingColonInSelectExpression},
         {string_static("1 ? foo"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? 1 : foo"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ? 1 : 1 2"), ScriptError_MissingSemicolon},
         {string_static("distance"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("distance("), ScriptError_UnterminatedArgumentList},
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
