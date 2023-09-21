@@ -56,7 +56,7 @@ static void repl_output_read_error(const ScriptReadResult* res) {
       fmt_int(res->errorStart.column),
       fmt_int(res->errorEnd.line),
       fmt_int(res->errorEnd.column),
-      fmt_text(script_error_str(res->error)));
+      fmt_text(script_result_str(res->type)));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -74,7 +74,7 @@ static void repl_output_runtime_error(const ScriptEvalResult* res) {
 
   tty_write_style_sequence(&buffer, styleErr);
 
-  fmt_write(&buffer, "Runtime error: {}", fmt_text(script_error_str(res->type)));
+  fmt_write(&buffer, "Runtime error: {}", fmt_text(script_result_str(res->type)));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');

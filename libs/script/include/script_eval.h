@@ -1,6 +1,6 @@
 #pragma once
 #include "script_doc.h"
-#include "script_error.h"
+#include "script_result.h"
 
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
@@ -9,8 +9,8 @@ typedef struct sScriptMem ScriptMem;
 typedef struct sScriptBinder ScriptBinder;
 
 typedef struct {
-  ScriptError type;
-  ScriptVal   val;
+  ScriptResult type;
+  ScriptVal    val;
 } ScriptEvalResult;
 
 /**

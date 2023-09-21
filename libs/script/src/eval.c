@@ -249,11 +249,11 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
   UNREACHABLE
 }
 
-static ScriptError script_result_type(const ScriptEvalContext* ctx) {
+static ScriptResult script_result_type(const ScriptEvalContext* ctx) {
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
-    return ScriptError_LoopInterationLimitExceeded;
+    return ScriptResult_LoopInterationLimitExceeded;
   }
-  return ScriptError_Success;
+  return ScriptResult_Success;
 }
 
 ScriptEvalResult script_eval(

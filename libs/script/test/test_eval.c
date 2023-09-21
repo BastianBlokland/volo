@@ -210,7 +210,7 @@ spec(eval) {
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
       const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
-      check(evalRes.type == ScriptError_Success);
+      check(evalRes.type == ScriptResult_Success);
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
           "{} == {} ({})",
@@ -227,7 +227,7 @@ spec(eval) {
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
-    check(evalRes.type == ScriptError_Success);
+    check(evalRes.type == ScriptResult_Success);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
@@ -245,7 +245,7 @@ spec(eval) {
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
-    check(evalRes.type == ScriptError_Success);
+    check(evalRes.type == ScriptResult_Success);
     check_eq_int(ctx.counter, 3);
   }
 
@@ -256,7 +256,7 @@ spec(eval) {
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
-    check(evalRes.type == ScriptError_LoopInterationLimitExceeded);
+    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 
@@ -272,7 +272,7 @@ spec(eval) {
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
-    check(evalRes.type == ScriptError_LoopInterationLimitExceeded);
+    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
