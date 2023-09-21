@@ -40,7 +40,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void repl_output_result_error(const ScriptReadResult* res) {
+static void repl_output_read_error(const ScriptReadResult* res) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -57,6 +57,24 @@ static void repl_output_result_error(const ScriptReadResult* res) {
       fmt_int(res->errorEnd.line),
       fmt_int(res->errorEnd.column),
       fmt_text(script_error_str(res->error)));
+
+  tty_write_style_sequence(&buffer, styleDefault);
+  dynstring_append_char(&buffer, '\n');
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}
+
+static void repl_output_runtime_error(const ScriptEvalResult* res) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
+  const TtyStyle styleDefault = ttystyle();
+
+  tty_write_style_sequence(&buffer, styleErr);
+
+  fmt_write(&buffer, "Runtime error: {}", fmt_text(script_error_str(res->type)));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -208,22 +226,27 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
 
   ScriptDoc* script = script_create(g_alloc_heap);
 
-  ScriptReadResult res;
-  script_read(script, repl_bind_init(), input, &res);
+  ScriptReadResult readRes;
+  script_read(script, repl_bind_init(), input, &readRes);
 
-  if (res.type == ScriptResult_Success) {
+  if (readRes.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {
-      repl_output_ast(script, res.expr);
+      repl_output_ast(script, readRes.expr);
     }
     if (flags & ReplFlags_OutputStats) {
-      repl_output_stats(script, res.expr);
+      repl_output_stats(script, readRes.expr);
     }
     if (!(flags & ReplFlags_NoEval)) {
-      const ScriptVal value = script_eval(script, mem, res.expr, repl_bind_init(), null);
-      repl_output(fmt_write_scratch("{}\n", script_val_fmt(value)));
+      const ScriptExpr       expr    = readRes.expr;
+      const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
+      if (evalRes.type == ScriptResult_Success) {
+        repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
+      } else {
+        repl_output_runtime_error(&evalRes);
+      }
     }
   } else {
-    repl_output_result_error(&res);
+    repl_output_read_error(&readRes);
   }
 
   script_destroy(script);

@@ -1,7 +1,8 @@
 #pragma once
 #include "core_string.h"
 
-typedef enum {
+typedef enum eScriptError {
+  ScriptError_Success,
   ScriptError_InvalidChar,
   ScriptError_InvalidUtf8,
   ScriptError_KeyEmpty,
@@ -27,6 +28,7 @@ typedef enum {
   ScriptError_BlockOrIfExpected,
   ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
+  ScriptError_LoopInterationLimitExceeded,
 
   ScriptError_Count,
 } ScriptError;

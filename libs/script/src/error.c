@@ -3,6 +3,7 @@
 #include "script_error.h"
 
 static const String g_errorStrs[] = {
+    string_static("Success"),
     string_static("Invalid character"),
     string_static("Invalid Utf8 text"),
     string_static("Key cannot be empty"),
@@ -28,6 +29,7 @@ static const String g_errorStrs[] = {
     string_static("Block or if expected"),
     string_static("Missing colon in select expression"),
     string_static("Unexpected token after expression"),
+    string_static("Loop iteration limit exceeded"),
 };
 
 ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");

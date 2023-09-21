@@ -9,24 +9,29 @@
 
 #define script_loop_itr_max 1000
 
+typedef enum {
+  ScriptEvalSignal_None              = 0,
+  ScriptEvalSignal_LoopLimitExceeded = 1 << 0,
+} ScriptEvalSignal;
+
 typedef struct {
   const ScriptDoc*    doc;
   ScriptMem*          m;
   const ScriptBinder* binder;
   void*               bindCtx;
+  ScriptEvalSignal    signal;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
-
-static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
 
 INLINE_HINT static const ScriptExprData* expr_data(ScriptEvalContext* ctx, const ScriptExpr expr) {
   return dynarray_begin_t(&ctx->doc->exprData, ScriptExprData) + expr;
 }
 
-INLINE_HINT static const ScriptExpr*
-expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet set) {
-  return dynarray_begin_t(&ctx->doc->exprSets, ScriptExpr) + set;
+INLINE_HINT static const ScriptExpr* expr_set_data(ScriptEvalContext* ctx, const ScriptExprSet s) {
+  return dynarray_begin_t(&ctx->doc->exprSets, ScriptExpr) + s;
 }
+
+static ScriptVal eval(ScriptEvalContext*, ScriptExpr);
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExprValue* expr) {
   return dynarray_begin_t(&ctx->doc->values, ScriptVal)[expr->valId];
@@ -38,7 +43,9 @@ INLINE_HINT static ScriptVal eval_var_load(ScriptEvalContext* ctx, const ScriptE
 
 INLINE_HINT static ScriptVal eval_var_store(ScriptEvalContext* ctx, const ScriptExprVarStore* exp) {
   const ScriptVal val = eval(ctx, exp->val);
-  ctx->vars[exp->var] = val;
+  if (LIKELY(!ctx->signal)) {
+    ctx->vars[exp->var] = val;
+  }
   return val;
 }
 
@@ -48,12 +55,21 @@ INLINE_HINT static ScriptVal eval_mem_load(ScriptEvalContext* ctx, const ScriptE
 
 INLINE_HINT static ScriptVal eval_mem_store(ScriptEvalContext* ctx, const ScriptExprMemStore* exp) {
   const ScriptVal val = eval(ctx, exp->val);
-  script_mem_set(ctx->m, exp->key, val);
+  if (LIKELY(!ctx->signal)) {
+    script_mem_set(ctx->m, exp->key, val);
+  }
   return val;
 }
 
 INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprIntrinsic* expr) {
   const ScriptExpr* args = expr_set_data(ctx, expr->argSet);
+
+#define EVAL_ARG_WITH_INTERRUPT(_NUM_)                                                             \
+  const ScriptVal arg##_NUM_ = eval(ctx, args[_NUM_]);                                             \
+  if (UNLIKELY(ctx->signal)) {                                                                     \
+    return arg##_NUM_;                                                                             \
+  }
+
   switch (expr->intrinsic) {
   case ScriptIntrinsic_Random:
     return script_val_random();
@@ -77,61 +93,107 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_val_round_nearest(eval(ctx, args[0]));
   case ScriptIntrinsic_RoundUp:
     return script_val_round_up(eval(ctx, args[0]));
-  case ScriptIntrinsic_Equal:
-    return script_bool(script_val_equal(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_NotEqual:
-    return script_bool(!script_val_equal(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_Less:
-    return script_bool(script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_LessOrEqual:
-    return script_bool(!script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_Greater:
-    return script_bool(script_val_greater(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_GreaterOrEqual:
-    return script_bool(!script_val_less(eval(ctx, args[0]), eval(ctx, args[1])));
-  case ScriptIntrinsic_NullCoalescing: {
-    const ScriptVal a = eval(ctx, args[0]);
-    return script_val_has(a) ? a : eval(ctx, args[1]);
+  case ScriptIntrinsic_Equal: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(script_val_equal(arg0, eval(ctx, args[1])));
   }
-  case ScriptIntrinsic_Add:
-    return script_val_add(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Sub:
-    return script_val_sub(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Mul:
-    return script_val_mul(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Div:
-    return script_val_div(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Mod:
-    return script_val_mod(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Distance:
-    return script_val_dist(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_Angle:
-    return script_val_angle(eval(ctx, args[0]), eval(ctx, args[1]));
-  case ScriptIntrinsic_RandomBetween:
-    return script_val_random_between(eval(ctx, args[0]), eval(ctx, args[1]));
+  case ScriptIntrinsic_NotEqual: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(!script_val_equal(arg0, eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_Less: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(script_val_less(arg0, eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_LessOrEqual: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(!script_val_greater(arg0, eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_Greater: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(script_val_greater(arg0, eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_GreaterOrEqual: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(!script_val_less(arg0, eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_NullCoalescing: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_has(arg0) ? arg0 : eval(ctx, args[1]);
+  }
+  case ScriptIntrinsic_Add: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_add(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Sub: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_sub(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Mul: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_mul(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Div: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_div(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Mod: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_mod(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Distance: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_dist(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_Angle: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_angle(arg0, eval(ctx, args[1]));
+  }
+  case ScriptIntrinsic_RandomBetween: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_random_between(arg0, eval(ctx, args[1]));
+  }
   case ScriptIntrinsic_While: {
     ScriptVal ret  = script_null();
     u32       itrs = 0;
-    while (script_truthy(eval(ctx, args[0]))) {
-      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
-        return script_null(); // TODO: Raise a runtime error instead?
+    for (;;) {
+      EVAL_ARG_WITH_INTERRUPT(0);
+      if (script_falsy(arg0) || UNLIKELY(ctx->signal)) {
+        break;
       }
-      ret = eval(ctx, args[1]);
+      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
+        ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
+        break;
+      }
+      EVAL_ARG_WITH_INTERRUPT(1);
+      ret = arg1;
     }
     return ret;
   }
-  case ScriptIntrinsic_LogicAnd:
-    return script_bool(script_truthy(eval(ctx, args[0])) && script_truthy(eval(ctx, args[1])));
-  case ScriptIntrinsic_LogicOr:
-    return script_bool(script_truthy(eval(ctx, args[0])) || script_truthy(eval(ctx, args[1])));
-  case ScriptIntrinsic_ComposeVector3:
-    return script_val_compose_vector3(eval(ctx, args[0]), eval(ctx, args[1]), eval(ctx, args[2]));
+  case ScriptIntrinsic_LogicAnd: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(script_truthy(arg0) && script_truthy(eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_LogicOr: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
+  }
+  case ScriptIntrinsic_ComposeVector3: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
+    return script_val_compose_vector3(arg0, arg1, eval(ctx, args[2]));
+  }
   case ScriptIntrinsic_If:
-  case ScriptIntrinsic_Select:
-    return script_truthy(eval(ctx, args[0])) ? eval(ctx, args[1]) : eval(ctx, args[2]);
+  case ScriptIntrinsic_Select: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_truthy(arg0) ? eval(ctx, args[1]) : eval(ctx, args[2]);
+  }
   case ScriptIntrinsic_Count:
     break;
   }
+
+#undef EVAL_ARG_WITH_INTERRUPT
+
   diag_assert_fail("Invalid intrinsic");
   UNREACHABLE
 }
@@ -143,6 +205,9 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
   ScriptVal ret;
   for (u32 i = 0; i != expr->exprCount; ++i) {
     ret = eval(ctx, exprs[i]);
+    if (UNLIKELY(ctx->signal)) {
+      break;
+    }
   }
   return ret;
 }
@@ -152,6 +217,9 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   ScriptVal*        args     = mem_stack(sizeof(ScriptVal) * expr->argCount).ptr;
   for (u32 i = 0; i != expr->argCount; ++i) {
     args[i] = eval(ctx, argExprs[i]);
+    if (UNLIKELY(ctx->signal)) {
+      return script_null();
+    }
   }
   return script_binder_exec(ctx->binder, expr->func, ctx->bindCtx, args, expr->argCount);
 }
@@ -181,7 +249,14 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
   UNREACHABLE
 }
 
-ScriptVal script_eval(
+static ScriptError script_result_type(const ScriptEvalContext* ctx) {
+  if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
+    return ScriptError_LoopInterationLimitExceeded;
+  }
+  return ScriptError_Success;
+}
+
+ScriptEvalResult script_eval(
     const ScriptDoc*    doc,
     ScriptMem*          m,
     const ScriptExpr    expr,
@@ -196,14 +271,23 @@ ScriptVal script_eval(
       .binder  = binder,
       .bindCtx = bindCtx,
   };
-  return eval(&ctx, expr);
+
+  ScriptEvalResult res;
+  res.val  = eval(&ctx, expr);
+  res.type = script_result_type(&ctx);
+  return res;
 }
 
-ScriptVal script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr expr) {
+ScriptEvalResult
+script_eval_readonly(const ScriptDoc* doc, const ScriptMem* m, const ScriptExpr expr) {
   diag_assert(script_expr_readonly(doc, expr));
   ScriptEvalContext ctx = {
       .doc = doc,
       .m   = (ScriptMem*)m, // NOTE: Safe as long as the readonly invariant is maintained.
   };
-  return eval(&ctx, expr);
+
+  ScriptEvalResult res;
+  res.val  = eval(&ctx, expr);
+  res.type = script_result_type(&ctx);
+  return res;
 }
