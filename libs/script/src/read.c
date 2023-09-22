@@ -419,11 +419,14 @@ static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr exp
     return false;
   case ScriptExprType_Intrinsic: {
     const ScriptExprData* data = dynarray_at_t(&ctx->doc->exprData, expr, ScriptExprData);
-    const ScriptIntrinsic intr = data->data_intrinsic.intrinsic;
-    if (intr == ScriptIntrinsic_If || intr == ScriptIntrinsic_While) {
+    switch (data->data_intrinsic.intrinsic) {
+    case ScriptIntrinsic_If:
+    case ScriptIntrinsic_While:
+    case ScriptIntrinsic_For:
       return false;
+    default:
+      return true;
     }
-    return true;
   }
   case ScriptExprType_Count:
     break;
