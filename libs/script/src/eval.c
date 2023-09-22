@@ -172,7 +172,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     ScriptVal ret  = script_null();
     u32       itrs = 0;
     for (;;) {
-      EVAL_ARG_WITH_INTERRUPT(0);
+      EVAL_ARG_WITH_INTERRUPT(0); // Condition.
       if (script_falsy(arg0) || UNLIKELY(ctx->signal)) {
         break;
       }
@@ -180,8 +180,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
         ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
         break;
       }
-
-      ret = eval(ctx, args[1]);
+      ret = eval(ctx, args[1]); // Body.
       if (ctx->signal & ScriptEvalSignal_Continue) {
         ctx->signal &= ~ScriptEvalSignal_Continue;
       }
@@ -209,6 +208,31 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   case ScriptIntrinsic_Select: {
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_truthy(arg0) ? eval(ctx, args[1]) : eval(ctx, args[2]);
+  }
+  case ScriptIntrinsic_For: {
+    EVAL_ARG_WITH_INTERRUPT(0); // Setup.
+    ScriptVal ret  = script_null();
+    u32       itrs = 0;
+    for (;;) {
+      EVAL_ARG_WITH_INTERRUPT(1); // Condition.
+      if (script_falsy(arg1) || UNLIKELY(ctx->signal)) {
+        break;
+      }
+      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
+        ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
+        break;
+      }
+      ret = eval(ctx, args[3]); // Body.
+      if (ctx->signal & ScriptEvalSignal_Continue) {
+        ctx->signal &= ~ScriptEvalSignal_Continue;
+      }
+      if (ctx->signal) {
+        ctx->signal &= ~ScriptEvalSignal_Break;
+        break;
+      }
+      EVAL_ARG_WITH_INTERRUPT(2); // Increment.
+    }
+    return ret;
   }
   case ScriptIntrinsic_Count:
     break;

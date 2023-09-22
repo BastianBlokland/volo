@@ -24,6 +24,8 @@ typedef enum eScriptResult {
   ScriptResult_ExtraneousSemicolon,
   ScriptResult_ArgumentCountExceedsMaximum,
   ScriptResult_InvalidConditionCount,
+  ScriptResult_InvalidWhileLoop,
+  ScriptResult_InvalidForLoop,
   ScriptResult_BlockExpected,
   ScriptResult_BlockOrIfExpected,
   ScriptResult_MissingColonInSelectExpression,

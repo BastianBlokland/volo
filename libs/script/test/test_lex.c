@@ -118,6 +118,7 @@ spec(lex) {
         {string_static("else"), tok_simple(Else)},
         {string_static("var"), tok_simple(Var)},
         {string_static("while"), tok_simple(While)},
+        {string_static("for"), tok_simple(For)},
         {string_static("continue"), tok_simple(Continue)},
         {string_static("break"), tok_simple(Break)},
 

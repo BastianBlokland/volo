@@ -239,6 +239,90 @@ spec(read) {
                           "  [intrinsic: continue]"),
         },
 
+        // For expressions.
+        {
+            string_static("for(;;) {}"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("for(;;) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(var i = 0;;) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 0]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(;42;) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: 42]\n"
+                          "  [value: null]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(;;42) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: true]\n"
+                          "  [value: 42]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(var i = 0; i != 10;) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 0]\n"
+                          "  [intrinsic: not-equal]\n"
+                          "    [var-load: 0]\n"
+                          "    [value: 10]\n"
+                          "  [value: null]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(var i = 0; i != 10; i += 1) { bind_test_1() }"),
+            string_static("[intrinsic: for]\n"
+                          "  [var-store: 0]\n"
+                          "    [value: 0]\n"
+                          "  [intrinsic: not-equal]\n"
+                          "    [var-load: 0]\n"
+                          "    [value: 10]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: add]\n"
+                          "      [var-load: 0]\n"
+                          "      [value: 1]\n"
+                          "  [extern: 1]"),
+        },
+        {
+            string_static("for(;;) { break }"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [intrinsic: break]"),
+        },
+        {
+            string_static("for(;;) { continue }"),
+            string_static("[intrinsic: for]\n"
+                          "  [value: null]\n"
+                          "  [value: true]\n"
+                          "  [value: null]\n"
+                          "  [intrinsic: continue]"),
+        },
+
         // Unary expressions.
         {
             string_static("-42"),
@@ -824,13 +908,25 @@ spec(read) {
         {string_static("if(1) {var i = 42} else {i}"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("if(1) {2}; else {2}"), ScriptResult_ExtraneousSemicolon},
         {string_static("if(var i = 42) {} i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("while"), ScriptResult_InvalidConditionCount},
+        {string_static("while"), ScriptResult_InvalidWhileLoop},
         {string_static("while("), ScriptResult_UnterminatedArgumentList},
-        {string_static("while()"), ScriptResult_InvalidConditionCount},
-        {string_static("while(1,2)"), ScriptResult_InvalidConditionCount},
+        {string_static("while()"), ScriptResult_InvalidWhileLoop},
+        {string_static("while(1,2)"), ScriptResult_InvalidWhileLoop},
         {string_static("while(1)"), ScriptResult_BlockExpected},
         {string_static("while(1) 1"), ScriptResult_BlockExpected},
         {string_static("while(var i = 42) {} i"), ScriptResult_NoVariableFoundForIdentifier},
+        {string_static("for"), ScriptResult_InvalidForLoop},
+        {string_static("for("), ScriptResult_MissingPrimaryExpression},
+        {string_static("for()"), ScriptResult_InvalidPrimaryExpression},
+        {string_static("for(1,2)"), ScriptResult_InvalidForLoop},
+        {string_static("for(1)"), ScriptResult_InvalidForLoop},
+        {string_static("for(1 1) 1"), ScriptResult_InvalidForLoop},
+        {string_static("for(1;)"), ScriptResult_InvalidPrimaryExpression},
+        {string_static("for(;;;)"), ScriptResult_ExtraneousSemicolon},
+        {string_static("for(;;"), ScriptResult_MissingPrimaryExpression},
+        {string_static("for(;;1"), ScriptResult_InvalidForLoop},
+        {string_static("for(var i = 0;;) 1"), ScriptResult_BlockExpected},
+        {string_static("for(var i = 0;;) {} i"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},

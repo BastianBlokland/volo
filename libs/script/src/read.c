@@ -419,11 +419,14 @@ static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr exp
     return false;
   case ScriptExprType_Intrinsic: {
     const ScriptExprData* data = dynarray_at_t(&ctx->doc->exprData, expr, ScriptExprData);
-    const ScriptIntrinsic intr = data->data_intrinsic.intrinsic;
-    if (intr == ScriptIntrinsic_If || intr == ScriptIntrinsic_While) {
+    switch (data->data_intrinsic.intrinsic) {
+    case ScriptIntrinsic_If:
+    case ScriptIntrinsic_While:
+    case ScriptIntrinsic_For:
       return false;
+    default:
+      return true;
     }
-    return true;
   }
   case ScriptExprType_Count:
     break;
@@ -737,29 +740,24 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
     return read_error(ctx, ScriptResult_InvalidConditionCount, start);
   }
 
-  // NOTE: Add a new scope so variables defined in the condition are only available in the branches.
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
 
   ScriptExpr             conditions[script_args_max];
   const ScriptArgsResult conditionRes = read_args(ctx, conditions);
   if (UNLIKELY(conditionRes.type != ScriptResult_Success)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, conditionRes.type, start);
+    return script_scope_pop(ctx), read_error(ctx, conditionRes.type, start);
   }
   if (UNLIKELY(conditionRes.argCount != 1)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, ScriptResult_InvalidConditionCount, start);
+    return script_scope_pop(ctx), read_error(ctx, ScriptResult_InvalidConditionCount, start);
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, ScriptResult_BlockExpected, start);
+    return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockExpected, start);
   }
   const ScriptReadResult b1 = read_expr_scope_block(ctx);
   if (UNLIKELY(b1.type != ScriptResult_Success)) {
-    script_scope_pop(ctx);
-    return b1;
+    return script_scope_pop(ctx), b1;
   }
 
   ScriptExpr b2Expr;
@@ -767,20 +765,17 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       const ScriptReadResult b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
-        script_scope_pop(ctx);
-        return b2;
+        return script_scope_pop(ctx), b2;
       }
       b2Expr = b2.expr;
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
       const ScriptReadResult b2 = read_expr_if(ctx, start);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
-        script_scope_pop(ctx);
-        return b2;
+        return script_scope_pop(ctx), b2;
       }
       b2Expr = b2.expr;
     } else {
-      script_scope_pop(ctx);
-      return read_error(ctx, ScriptResult_BlockOrIfExpected, start);
+      return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockOrIfExpected, start);
     }
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
@@ -796,27 +791,23 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMarker start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_error(ctx, ScriptResult_InvalidConditionCount, start);
+    return read_error(ctx, ScriptResult_InvalidWhileLoop, start);
   }
 
-  // NOTE: Add a new scope so variables defined in the condition are only available in the body.
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
 
   ScriptExpr             conditions[script_args_max];
   const ScriptArgsResult conditionRes = read_args(ctx, conditions);
   if (UNLIKELY(conditionRes.type != ScriptResult_Success)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, conditionRes.type, start);
+    return script_scope_pop(ctx), read_error(ctx, conditionRes.type, start);
   }
   if (UNLIKELY(conditionRes.argCount != 1)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, ScriptResult_InvalidConditionCount, start);
+    return script_scope_pop(ctx), read_error(ctx, ScriptResult_InvalidWhileLoop, start);
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
-    script_scope_pop(ctx);
-    return read_error(ctx, ScriptResult_BlockExpected, start);
+    return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockExpected, start);
   }
 
   ctx->flags |= ScriptReadFlags_InsideLoop;
@@ -824,8 +815,7 @@ static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMark
   ctx->flags &= ~ScriptReadFlags_InsideLoop;
 
   if (UNLIKELY(body.type != ScriptResult_Success)) {
-    script_scope_pop(ctx);
-    return body;
+    return script_scope_pop(ctx), body;
   }
 
   diag_assert(&scope == script_scope_tail(ctx));
@@ -833,6 +823,76 @@ static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMark
 
   const ScriptExpr intrArgs[] = {conditions[0], body.expr};
   return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_While, intrArgs));
+}
+
+typedef enum {
+  ReadIfComp_Setup,
+  ReadIfComp_Condition,
+  ReadIfComp_Increment,
+} ReadIfComp;
+
+static ScriptReadResult read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp comp) {
+  static const ScriptTokenType g_endTokens[] = {
+      [ReadIfComp_Setup]     = ScriptTokenType_SemiColon,
+      [ReadIfComp_Condition] = ScriptTokenType_SemiColon,
+      [ReadIfComp_Increment] = ScriptTokenType_ParenClose,
+  };
+  const ScriptMarker start = script_marker(ctx);
+  ScriptReadResult   res;
+  if (read_peek(ctx).type == g_endTokens[comp]) {
+    const ScriptVal skipVal = comp == ReadIfComp_Condition ? script_bool(true) : script_null();
+    res                     = read_success(script_add_value(ctx->doc, skipVal));
+  } else {
+    res = read_expr(ctx, OpPrecedence_None);
+    if (UNLIKELY(res.type != ScriptResult_Success)) {
+      return res;
+    }
+  }
+  if (!read_consume_if(ctx, g_endTokens[comp])) {
+    return read_error(ctx, ScriptResult_InvalidForLoop, start);
+  }
+  return res;
+}
+
+static ScriptReadResult read_expr_for(ScriptReadContext* ctx, const ScriptMarker start) {
+  const ScriptToken token = read_consume(ctx);
+  if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
+    return read_error(ctx, ScriptResult_InvalidForLoop, start);
+  }
+
+  ScriptScope scope = {0};
+  script_scope_push(ctx, &scope);
+
+  const ScriptReadResult setupExprRes = read_expr_for_comp(ctx, ReadIfComp_Setup);
+  if (UNLIKELY(setupExprRes.type != ScriptResult_Success)) {
+    return script_scope_pop(ctx), setupExprRes;
+  }
+  const ScriptReadResult condExprRes = read_expr_for_comp(ctx, ReadIfComp_Condition);
+  if (UNLIKELY(condExprRes.type != ScriptResult_Success)) {
+    return script_scope_pop(ctx), condExprRes;
+  }
+  const ScriptReadResult incrExprRes = read_expr_for_comp(ctx, ReadIfComp_Increment);
+  if (UNLIKELY(incrExprRes.type != ScriptResult_Success)) {
+    return script_scope_pop(ctx), incrExprRes;
+  }
+
+  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
+    return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockExpected, start);
+  }
+
+  ctx->flags |= ScriptReadFlags_InsideLoop;
+  const ScriptReadResult body = read_expr_scope_block(ctx);
+  ctx->flags &= ~ScriptReadFlags_InsideLoop;
+
+  if (UNLIKELY(body.type != ScriptResult_Success)) {
+    return script_scope_pop(ctx), body;
+  }
+
+  diag_assert(&scope == script_scope_tail(ctx));
+  script_scope_pop(ctx);
+
+  const ScriptExpr intrArgs[] = {setupExprRes.expr, condExprRes.expr, incrExprRes.expr, body.expr};
+  return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_For, intrArgs));
 }
 
 static ScriptReadResult read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
@@ -881,6 +941,8 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
     return read_expr_while(ctx, start);
+  case ScriptTokenType_For:
+    return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
     return read_expr_var_declare(ctx, start);
   case ScriptTokenType_Continue:
