@@ -215,7 +215,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     u32       itrs = 0;
     for (;;) {
       EVAL_ARG_WITH_INTERRUPT(1); // Condition.
-      if (script_falsy(arg0) || UNLIKELY(ctx->signal)) {
+      if (script_falsy(arg1) || UNLIKELY(ctx->signal)) {
         break;
       }
       if (UNLIKELY(itrs++ == script_loop_itr_max)) {
