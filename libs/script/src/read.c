@@ -874,6 +874,10 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_while(ctx, start);
   case ScriptTokenType_Var:
     return read_expr_var_declare(ctx, start);
+  case ScriptTokenType_Continue:
+    return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null));
+  case ScriptTokenType_Break:
+    return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null));
   /**
    * Identifiers.
    */
@@ -1059,11 +1063,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

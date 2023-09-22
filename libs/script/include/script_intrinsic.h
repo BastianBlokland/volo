@@ -2,6 +2,8 @@
 #include "core_string.h"
 
 typedef enum {
+  ScriptIntrinsic_Continue,
+  ScriptIntrinsic_Break,
   ScriptIntrinsic_Random,
   ScriptIntrinsic_Negate,
   ScriptIntrinsic_Invert,

@@ -11,8 +11,10 @@
 
 typedef enum {
   ScriptEvalSignal_None              = 0,
-  ScriptEvalSignal_AssertionFailed   = 1 << 0,
-  ScriptEvalSignal_LoopLimitExceeded = 1 << 1,
+  ScriptEvalSignal_Continue          = 1 << 0,
+  ScriptEvalSignal_Break             = 1 << 1,
+  ScriptEvalSignal_AssertionFailed   = 1 << 2,
+  ScriptEvalSignal_LoopLimitExceeded = 1 << 3,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -72,6 +74,12 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   }
 
   switch (expr->intrinsic) {
+  case ScriptIntrinsic_Continue:
+    ctx->signal |= ScriptEvalSignal_Continue;
+    return script_null();
+  case ScriptIntrinsic_Break:
+    ctx->signal |= ScriptEvalSignal_Break;
+    return script_null();
   case ScriptIntrinsic_Random:
     return script_val_random();
   case ScriptIntrinsic_Negate:
@@ -172,8 +180,15 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
         ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
         break;
       }
-      EVAL_ARG_WITH_INTERRUPT(1);
-      ret = arg1;
+
+      ret = eval(ctx, args[1]);
+      if (ctx->signal & ScriptEvalSignal_Continue) {
+        ctx->signal &= ~ScriptEvalSignal_Continue;
+      }
+      if (ctx->signal) {
+        ctx->signal &= ~ScriptEvalSignal_Break;
+        break;
+      }
     }
     return ret;
   }
