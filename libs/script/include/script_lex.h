@@ -41,6 +41,8 @@ typedef enum {
   ScriptTokenType_Else,         // else
   ScriptTokenType_Var,          // var
   ScriptTokenType_While,        // while
+  ScriptTokenType_Continue,     // continue
+  ScriptTokenType_Break,        // break
   ScriptTokenType_Comment,      // /* Hello */ or // World
   ScriptTokenType_Error,        //
   ScriptTokenType_End,          // \0

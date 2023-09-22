@@ -238,13 +238,18 @@ typedef struct sScriptScope {
   struct sScriptScope* next;
 } ScriptScope;
 
+typedef enum {
+  ScriptReadFlags_InsideLoop = 1 << 0,
+} ScriptReadFlags;
+
 typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
   String              input, inputTotal;
   ScriptScope*        scopeRoot;
+  ScriptReadFlags     flags : 16;
+  u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
-  u32                 recursionDepth;
 } ScriptReadContext;
 
 typedef u32 ScriptMarker;
@@ -813,7 +818,11 @@ static ScriptReadResult read_expr_while(ScriptReadContext* ctx, const ScriptMark
     script_scope_pop(ctx);
     return read_error(ctx, ScriptResult_BlockExpected, start);
   }
+
+  ctx->flags |= ScriptReadFlags_InsideLoop;
   const ScriptReadResult body = read_expr_scope_block(ctx);
+  ctx->flags &= ~ScriptReadFlags_InsideLoop;
+
   if (UNLIKELY(body.type != ScriptResult_Success)) {
     script_scope_pop(ctx);
     return body;
@@ -874,6 +883,16 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_while(ctx, start);
   case ScriptTokenType_Var:
     return read_expr_var_declare(ctx, start);
+  case ScriptTokenType_Continue:
+    if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
+      return read_error(ctx, ScriptResult_NotValidOutsideLoopBody, start);
+    }
+    return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null));
+  case ScriptTokenType_Break:
+    if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
+      return read_error(ctx, ScriptResult_NotValidOutsideLoopBody, start);
+    }
+    return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null));
   /**
    * Identifiers.
    */
@@ -1059,11 +1078,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

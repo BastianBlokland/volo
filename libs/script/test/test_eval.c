@@ -200,6 +200,26 @@ spec(eval) {
             script_number(10),
         },
         {string_static("while(false) {}"), script_null()},
+        {
+            string_static("var i = 0;"
+                          "while(true) {"
+                          "  if((i += 1) == 10) {"
+                          "    break"
+                          "  }"
+                          "} i"),
+            script_number(10),
+        },
+        {
+            string_static("var i = 0;"
+                          "var j = 0;"
+                          "while((i += 1) < 10) {"
+                          "  if(i % 2 == 0) {"
+                          "    continue"
+                          "  }"
+                          "  j += 1"
+                          "} j"),
+            script_number(5),
+        },
 
         // Other.
         {string_static("assert(1)"), script_null()},

@@ -4,6 +4,8 @@
 
 u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   switch (i) {
+  case ScriptIntrinsic_Continue:
+  case ScriptIntrinsic_Break:
   case ScriptIntrinsic_Random:
     return 0;
   case ScriptIntrinsic_Negate:
@@ -51,6 +53,8 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
 String script_intrinsic_str(const ScriptIntrinsic i) {
   diag_assert(i < ScriptIntrinsic_Count);
   static const String g_names[] = {
+      string_static("continue"),
+      string_static("break"),
       string_static("random"),
       string_static("negate"),
       string_static("invert"),
