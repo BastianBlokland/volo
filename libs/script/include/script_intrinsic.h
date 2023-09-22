@@ -37,6 +37,7 @@ typedef enum {
   ScriptIntrinsic_ComposeVector3,
   ScriptIntrinsic_If,
   ScriptIntrinsic_Select,
+  ScriptIntrinsic_For,
 
   ScriptIntrinsic_Count,
 } ScriptIntrinsic;

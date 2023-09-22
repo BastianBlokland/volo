@@ -43,6 +43,8 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_If:
   case ScriptIntrinsic_Select:
     return 3;
+  case ScriptIntrinsic_For:
+    return 4;
   case ScriptIntrinsic_Count:
     break;
   }
@@ -88,6 +90,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("compose-vector3"),
       string_static("if"),
       string_static("select"),
+      string_static("for"),
   };
   ASSERT(array_elems(g_names) == ScriptIntrinsic_Count, "Incorrect number of names");
   return g_names[i];
