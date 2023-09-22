@@ -849,7 +849,7 @@ static ScriptReadResult read_expr_for_comp(ScriptReadContext* ctx, const ReadIfC
     }
   }
   if (!read_consume_if(ctx, g_endTokens[comp])) {
-    return script_scope_pop(ctx), read_error(ctx, ScriptResult_InvalidForLoop, start);
+    return read_error(ctx, ScriptResult_InvalidForLoop, start);
   }
   return res;
 }
