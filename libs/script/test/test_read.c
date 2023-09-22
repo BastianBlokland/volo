@@ -226,6 +226,18 @@ spec(read) {
                           "  [value: true]\n"
                           "  [extern: 1]"),
         },
+        {
+            string_static("while(true) { break }"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [intrinsic: break]"),
+        },
+        {
+            string_static("while(true) { continue }"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [intrinsic: continue]"),
+        },
 
         // Unary expressions.
         {
@@ -841,6 +853,8 @@ spec(read) {
         {string_static("{var a}; a"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("a += 1"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("var a; a +="), ScriptResult_MissingPrimaryExpression},
+        {string_static("continue"), ScriptResult_NotValidOutsideLoop},
+        {string_static("break"), ScriptResult_NotValidOutsideLoop},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

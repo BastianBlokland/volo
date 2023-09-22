@@ -28,6 +28,7 @@ typedef enum eScriptResult {
   ScriptResult_BlockOrIfExpected,
   ScriptResult_MissingColonInSelectExpression,
   ScriptResult_UnexpectedTokenAfterExpression,
+  ScriptResult_NotValidOutsideLoop,
   ScriptResult_AssertionFailed,
   ScriptResult_LoopInterationLimitExceeded,
 
