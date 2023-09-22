@@ -220,6 +220,34 @@ spec(eval) {
                           "} j"),
             script_number(5),
         },
+        {
+            string_static("for(var i = 0; i != 10; i += 1) {}"),
+            script_null(),
+        },
+        {
+            string_static("var i = 0; for(; i != 10; i += 1) {} i"),
+            script_number(10),
+        },
+        {string_static("for(;false;) {}"), script_null()},
+        {
+            string_static("var i = 0;"
+                          "for(;; i += 1) {"
+                          "  if(i == 10) {"
+                          "    break"
+                          "  }"
+                          "} i"),
+            script_number(10),
+        },
+        {
+            string_static("var j = 0;"
+                          "for(var i = 0; i != 10; i += 1) {"
+                          "  if(i % 2 == 0) {"
+                          "    continue"
+                          "  }"
+                          "  j += 1"
+                          "} j"),
+            script_number(5),
+        },
 
         // Other.
         {string_static("assert(1)"), script_null()},
@@ -289,10 +317,21 @@ spec(eval) {
     check_eq_val(evalRes.val, script_null());
   }
 
-  it("limits loop iterations") {
+  it("limits while loop iterations") {
     void*            bindCtx = null;
     ScriptReadResult readRes;
     script_read(doc, binder, string_lit("while(true) {}"), &readRes);
+    check_require(readRes.type == ScriptResult_Success);
+
+    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
+    check_eq_val(evalRes.val, script_null());
+  }
+
+  it("limits for loop iterations") {
+    void*            bindCtx = null;
+    ScriptReadResult readRes;
+    script_read(doc, binder, string_lit("for(;;) {}"), &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
