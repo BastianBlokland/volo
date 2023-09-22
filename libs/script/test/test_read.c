@@ -853,8 +853,10 @@ spec(read) {
         {string_static("{var a}; a"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("a += 1"), ScriptResult_NoVariableFoundForIdentifier},
         {string_static("var a; a +="), ScriptResult_MissingPrimaryExpression},
-        {string_static("continue"), ScriptResult_NotValidOutsideLoop},
-        {string_static("break"), ScriptResult_NotValidOutsideLoop},
+        {string_static("continue"), ScriptResult_NotValidOutsideLoopBody},
+        {string_static("break"), ScriptResult_NotValidOutsideLoopBody},
+        {string_static("while(continue) {}"), ScriptResult_NotValidOutsideLoopBody},
+        {string_static("while(break) {}"), ScriptResult_NotValidOutsideLoopBody},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

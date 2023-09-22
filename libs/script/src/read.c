@@ -885,12 +885,12 @@ static ScriptReadResult read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_var_declare(ctx, start);
   case ScriptTokenType_Continue:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_error(ctx, ScriptResult_NotValidOutsideLoop, start);
+      return read_error(ctx, ScriptResult_NotValidOutsideLoopBody, start);
     }
     return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null));
   case ScriptTokenType_Break:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_error(ctx, ScriptResult_NotValidOutsideLoop, start);
+      return read_error(ctx, ScriptResult_NotValidOutsideLoopBody, start);
     }
     return read_success(script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null));
   /**

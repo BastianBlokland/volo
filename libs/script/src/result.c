@@ -29,7 +29,7 @@ static const String g_errorStrs[] = {
     string_static("Block or if expected"),
     string_static("Missing colon in select expression"),
     string_static("Unexpected token after expression"),
-    string_static("Not valid outside a loop"),
+    string_static("Not valid outside a loop body"),
     string_static("Assertion failed"),
     string_static("Loop iteration limit exceeded"),
 };
