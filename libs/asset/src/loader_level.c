@@ -91,19 +91,20 @@ ecs_module_init(asset_level_module) {
   ecs_register_system(LevelUnloadAssetSys, ecs_view_id(LevelUnloadView));
 }
 
-void asset_load_lvl(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_level(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  AssetLevel     lvl;
+  AssetLevel     level;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataLevelMeta, mem_var(lvl), &readRes);
+  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataLevelMeta, mem_var(level), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetLevelComp, .level = lvl);
+  ecs_world_add_t(world, entity, AssetLevelComp, .level = level);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 
@@ -119,8 +120,8 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   String       idWithExtScratch = id;
   const String ext              = path_extension(id);
   if (string_is_empty(ext)) {
-    idWithExtScratch = fmt_write_scratch("{}.lvl", fmt_text(id));
-  } else if (!string_eq(ext, string_lit("lvl"))) {
+    idWithExtScratch = fmt_write_scratch("{}.level", fmt_text(id));
+  } else if (!string_eq(ext, string_lit("level"))) {
     log_w(
         "Level cannot be saved",
         log_param("id", fmt_text(id)),

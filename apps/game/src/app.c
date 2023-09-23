@@ -32,7 +32,7 @@
 #include "hud_internal.h"
 #include "prefs_internal.h"
 
-static const String g_appLevel = string_static("levels/default.lvl");
+static const String g_appLevel = string_static("levels/default.level");
 
 typedef enum {
   AppMode_Normal,

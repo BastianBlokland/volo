@@ -21,7 +21,7 @@
 *.ftx linguist-language=JSON
 *.graphic linguist-language=JSON
 *.imp linguist-language=JSON
-*.lvl linguist-language=JSON
+*.level linguist-language=JSON
 *.pfb linguist-language=JSON
 *.pme linguist-language=JSON
 *.prefs linguist-language=JSON
