@@ -1,0 +1,22 @@
+{
+  "name": "volo",
+  "displayName": "volo",
+  "description": "Ide support for the Volo engine",
+  "contributes": {
+    "languages": [
+      {
+        "id": "volo-script",
+        "aliases": [ "Script" ],
+        "extensions": [ ".script" ],
+        "configuration": "./script-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "volo-script",
+        "scopeName": "source.volo",
+        "path": "./syntaxes/script.tmLanguage.json"
+      }
+    ]
+  }
+}

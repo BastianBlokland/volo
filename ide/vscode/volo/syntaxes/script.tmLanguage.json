@@ -1,0 +1,296 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "volo-script",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#import"
+    },
+    {
+      "include": "#type_declaration"
+    },
+    {
+      "include": "#function_declaration"
+    },
+    {
+      "include": "#code"
+    }
+  ],
+  "repository": {
+    "arg_initializer": {
+      "patterns": [
+        {
+          "begin": "= ",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.other.source.novus"
+            }
+          },
+          "end": "(?=\\,|\\))",
+          "name": "meta.initializer.source.novus",
+          "patterns": [
+            {
+              "include": "#code"
+            }
+          ]
+        }
+      ]
+    },
+    "buildin_type": {
+      "patterns": [
+        {
+          "match": "\\b(int|long|float|bool|string|char|sys_stream|sys_process|sys_iowatcher|function|action|future|lazy|lazy_action)\\b",
+          "name": "keyword.other.buildin.source.novus"
+        },
+        {
+          "match": "#-?[0-9]+\\b",
+          "name": "keyword.other.staticint.source.novus"
+        }
+      ]
+    },
+    "code": {
+      "patterns": [
+        {
+          "include": "#lambda_declaration"
+        },
+        {
+          "include": "#function_calls"
+        },
+        {
+          "include": "#constants"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#buildin_type"
+        },
+        {
+          "include": "#generic_args"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "begin": "//",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.comment.source.novus"
+            }
+          },
+          "end": "$\\n?",
+          "name": "comment.line.double-slash.source.novus"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "match": "\\b(true|false)\\b",
+          "name": "constant.language.source.novus"
+        },
+        {
+          "match": "[0-9_]*\\.[0-9_]+\\b",
+          "name": "constant.numeric.float.source.novus"
+        },
+        {
+          "match": "\\b(([0-9_]+)|(0(x|X)[0-9a-fA-F_]+)|(0(b|B)[01_]*))\\b",
+          "name": "constant.numeric.int.source.novus"
+        },
+        {
+          "match": "\\b(([0-9_]+(l|L))|(0(x|X)[0-9a-fA-F_]*(l|L))|(0(b|B)[01_]*(l|L)))\\b",
+          "name": "constant.numeric.long.source.novus"
+        },
+        {
+          "match": "'\\\\?.'",
+          "name": "constant.character.source.novus"
+        },
+        {
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.source.novus"
+            }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.source.novus"
+            }
+          },
+          "name": "string.quoted.double.source.novus",
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.source.novus"
+            }
+          ]
+        }
+      ]
+    },
+    "function_calls": {
+      "patterns": [
+        {
+          "begin": "(fork\\s+)?(lazy\\s+)?([a-zA-Z0-9_]+)\\s*(?=(\\{[a-zA-Z0-9_, ]+\\})?\\s*\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.fork.source.novus"
+            },
+            "2": {
+              "name": "keyword.other.lazy.source.novus"
+            },
+            "3": {
+              "name": "support.function.source.novus"
+            }
+          },
+          "end": "\\)",
+          "name": "meta.function.call.source.novus",
+          "patterns": [
+            {
+              "include": "#code"
+            }
+          ]
+        }
+      ]
+    },
+    "function_declaration": {
+      "patterns": [
+        {
+          "begin": "\\b(fun|act)\\s+((?:(?:noinline|implicit)\\s+)*)(.+?)\\s*(?=\\{|\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.function.source.novus"
+            },
+            "2": {
+              "name": "keyword.other.modifiers.source.novus"
+            },
+            "3": {
+              "name": "entity.name.function.source.novus"
+            }
+          },
+          "end": "\\)",
+          "name": "meta.function.declaration.source.novus",
+          "patterns": [
+            {
+              "include": "#generic_args"
+            },
+            {
+              "include": "#buildin_type"
+            },
+            {
+              "include": "#arg_initializer"
+            }
+          ]
+        }
+      ]
+    },
+    "generic_args": {
+      "patterns": [
+        {
+          "begin": "{",
+          "beginCaptures": {
+            "0": {
+              "name": "keyword.other.source.novus"
+            }
+          },
+          "end": "}",
+          "endCaptures": {
+            "0": {
+              "name": "keyword.other.source.novus"
+            }
+          },
+          "name": "meta.generic_args.source.novus",
+          "patterns": [
+            {
+              "include": "#generic_args"
+            },
+            {
+              "include": "#buildin_type"
+            }
+          ]
+        }
+      ]
+    },
+    "import": {
+      "patterns": [
+        {
+          "begin": "^(import)\\s+\"",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.import.source.novus"
+            }
+          },
+          "end": "\"",
+          "name": "meta.import.source.novus"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "(\\b(if|else)\\b)|(\\?(?!\\?))|(\\:(?!\\:))",
+          "name": "keyword.control.source.novus"
+        },
+        {
+          "match": "((\\b(is|as)\\b)|(\\+\\+)|(\\-\\-)|(\\&\\&)|(\\|\\|)|(\\<\\<)|(\\>\\>)|(\\<\\=)|(\\>\\=)|(\\=\\=)|(\\!\\=)|(\\:\\:)|(\\?\\?)|\\+|\\-|\\*|(\\/(?!\\/))|\\^|\\~|\\%|\\&|\\!|\\<|\\>)",
+          "name": "keyword.operator.source.novus"
+        }
+      ]
+    },
+    "lambda_declaration": {
+      "patterns": [
+        {
+          "begin": "\\s*\\b(impure)?\\s*(lambda)\\s*\\(",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.impure.source.novus"
+            },
+            "2": {
+              "name": "keyword.other.lambda.source.novus"
+            }
+          },
+          "end": "\\)",
+          "name": "meta.lambda.declaration.source.novus",
+          "patterns": [
+            {
+              "include": "#generic_args"
+            },
+            {
+              "include": "#buildin_type"
+            }
+          ]
+        }
+      ]
+    },
+    "type_declaration": {
+      "patterns": [
+        {
+          "begin": "\\b(struct|union|enum)\\s+(.\\w*)\\b",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.type.source.novus"
+            },
+            "2": {
+              "name": "entity.name.type.source.novus"
+            }
+          },
+          "end": "=|$",
+          "name": "meta.type.declaration.source.novus",
+          "patterns": [
+            {
+              "include": "#generic_args"
+            },
+            {
+              "include": "#buildin_type"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scopeName": "source.novus",
+  "uuid": "4E3F51D5-1E08-48C3-9CA3-84769D3E9EAC"
+}
