@@ -26,7 +26,7 @@ typedef enum {
   AssetFormat_Ttf,
   AssetFormat_Vfx,
   AssetFormat_Wav,
-  AssetFormat_Wea,
+  AssetFormat_Weapons,
 
   AssetFormat_Count,
 } AssetFormat;

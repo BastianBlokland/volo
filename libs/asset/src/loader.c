@@ -82,8 +82,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Wav: {
     RET_LOADER(wav);
   }
-  case AssetFormat_Wea: {
-    RET_LOADER(wea);
+  case AssetFormat_Weapons: {
+    RET_LOADER(weapons);
   }
   case AssetFormat_Count:
     break;

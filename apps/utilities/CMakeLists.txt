@@ -23,7 +23,7 @@ add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/pro.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/ptx.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/vfx.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/wea.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/weapons.schema.json"
   VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")

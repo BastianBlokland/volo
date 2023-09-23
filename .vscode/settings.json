@@ -29,7 +29,7 @@
     "*.pro": "json",
     "*.ptx": "json",
     "*.vfx": "json",
-    "*.wea": "json",
+    "*.weapons": "json",
   },
   "files.exclude": {
     ".cache": true,
@@ -49,7 +49,7 @@
     { "fileMatch": [ "*.pro" ], "url": "./assets/schemas/pro.schema.json" },
     { "fileMatch": [ "*.ptx" ], "url": "./assets/schemas/ptx.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
-    { "fileMatch": [ "*.wea" ], "url": "./assets/schemas/wea.schema.json" }
+    { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
   ],
   "json.format.keepLines": true,
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
