@@ -31,8 +31,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Gltf: {
     RET_LOADER(gltf);
   }
-  case AssetFormat_Gra: {
-    RET_LOADER(gra);
+  case AssetFormat_Graphic: {
+    RET_LOADER(graphic);
   }
   case AssetFormat_Imp: {
     RET_LOADER(imp);

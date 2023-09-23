@@ -83,11 +83,13 @@ static AssetManagerComp* debug_grid_asset_manager(EcsWorld* world) {
 }
 
 static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
+  static const String g_graphic = string_static("graphics/debug/grid.graphic");
+
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
 
   RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_None);
-  rend_draw_set_graphic(draw, asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
+  rend_draw_set_graphic(draw, asset_lookup(world, assets, g_graphic));
   rend_draw_set_camera_filter(draw, entity);
 
   ecs_world_add_t(

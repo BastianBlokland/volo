@@ -12,7 +12,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("dcl"),
       string_static("ftx"),
       string_static("gltf"),
-      string_static("gra"),
+      string_static("graphic"),
       string_static("imp"),
       string_static("lvl"),
       string_static("obj"),

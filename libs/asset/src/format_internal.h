@@ -9,7 +9,7 @@ typedef enum {
   AssetFormat_Dcl,
   AssetFormat_Ftx,
   AssetFormat_Gltf,
-  AssetFormat_Gra,
+  AssetFormat_Graphic,
   AssetFormat_Imp,
   AssetFormat_Lvl,
   AssetFormat_Obj,

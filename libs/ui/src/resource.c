@@ -7,8 +7,8 @@
 #include "resource_internal.h"
 
 static const String g_uiGlobalFont         = string_static("fonts/ui.ftx");
-static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.gra");
-static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.gra");
+static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.graphic");
+static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.graphic");
 static const String g_uiSoundClick         = string_static("external/sound/click-02.wav");
 static const String g_uiSoundClickAlt      = string_static("external/sound/click-03.wav");
 
