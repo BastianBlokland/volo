@@ -997,7 +997,7 @@ void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId camer
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
   const EcsEntityId indicatorRingDraw = hud_indicator_draw_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.gra"));
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"));
 
   ecs_world_add_t(
       world,

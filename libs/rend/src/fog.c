@@ -12,7 +12,7 @@
 
 #include "fog_internal.h"
 
-static const String g_fogVisionGraphic = string_static("graphics/fog_vision.gra");
+static const String g_fogVisionGraphic = string_static("graphics/fog_vision.graphic");
 static const f32    g_worldHeight      = 100.0f;
 
 ecs_comp_define(RendFogComp) {

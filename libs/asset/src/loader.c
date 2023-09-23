@@ -10,11 +10,11 @@ AssetLoader asset_loader(const AssetFormat format) {
   return &asset_loader_name(_NAME_)
 
   switch (format) {
-  case AssetFormat_Atl: {
-    RET_LOADER(atl);
+  case AssetFormat_Atlas: {
+    RET_LOADER(atlas);
   }
-  case AssetFormat_Atx: {
-    RET_LOADER(atx);
+  case AssetFormat_ArrayTex: {
+    RET_LOADER(arraytex);
   }
   case AssetFormat_Bin: {
     RET_LOADER(raw);
@@ -22,41 +22,41 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Bt: {
     RET_LOADER(bt);
   }
-  case AssetFormat_Dcl: {
-    RET_LOADER(dcl);
+  case AssetFormat_Decal: {
+    RET_LOADER(decal);
   }
-  case AssetFormat_Ftx: {
-    RET_LOADER(ftx);
+  case AssetFormat_FontTex: {
+    RET_LOADER(fonttex);
   }
   case AssetFormat_Gltf: {
     RET_LOADER(gltf);
   }
-  case AssetFormat_Gra: {
-    RET_LOADER(gra);
+  case AssetFormat_Graphic: {
+    RET_LOADER(graphic);
   }
-  case AssetFormat_Imp: {
-    RET_LOADER(imp);
+  case AssetFormat_Inputs: {
+    RET_LOADER(inputs);
   }
-  case AssetFormat_Lvl: {
-    RET_LOADER(lvl);
+  case AssetFormat_Level: {
+    RET_LOADER(level);
   }
   case AssetFormat_Obj: {
     RET_LOADER(obj);
   }
-  case AssetFormat_Pfb: {
-    RET_LOADER(pfb);
+  case AssetFormat_Prefabs: {
+    RET_LOADER(prefabs);
   }
-  case AssetFormat_Pme: {
-    RET_LOADER(pme);
+  case AssetFormat_ProcMesh: {
+    RET_LOADER(procmesh);
   }
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);
   }
-  case AssetFormat_Pro: {
-    RET_LOADER(pro);
+  case AssetFormat_Products: {
+    RET_LOADER(products);
   }
-  case AssetFormat_Ptx: {
-    RET_LOADER(ptx);
+  case AssetFormat_ProcTex: {
+    RET_LOADER(proctex);
   }
   case AssetFormat_R16: {
     RET_LOADER(r16);
@@ -82,8 +82,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Wav: {
     RET_LOADER(wav);
   }
-  case AssetFormat_Wea: {
-    RET_LOADER(wea);
+  case AssetFormat_Weapons: {
+    RET_LOADER(weapons);
   }
   case AssetFormat_Count:
     break;

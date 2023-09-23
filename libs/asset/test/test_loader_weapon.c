@@ -18,13 +18,13 @@ static const struct {
   usize          weaponCount;
 } g_testData[] = {
     {
-        .id          = string_static("empty.wea"),
+        .id          = string_static("empty.weapons"),
         .text        = string_static("{\"weapons\": []}"),
         .weapons     = {0},
         .weaponCount = 0,
     },
     {
-        .id   = string_static("single.wea"),
+        .id   = string_static("single.weapons"),
         .text = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
@@ -45,7 +45,7 @@ static const struct {
         .weaponCount = 1,
     },
     {
-        .id   = string_static("multi.wea"),
+        .id   = string_static("multi.weapons"),
         .text = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
@@ -78,7 +78,7 @@ static const struct {
         .weaponCount = 2,
     },
     {
-        .id          = string_static("effect-vfx.wea"),
+        .id          = string_static("effect-vfx.weapons"),
         .text        = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
@@ -108,11 +108,11 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid-json.wea"),
+        .id   = string_static("invalid-json.weapons"),
         .text = string_static("Hello World"),
     },
     {
-        .id   = string_static("duplicate-weapon-name.wea"),
+        .id   = string_static("duplicate-weapon-name.weapons"),
         .text = string_static("{ \"weapons\": [ {"
                               "      \"name\": \"Pistol\","
                               "      \"intervalMin\": 1,"
@@ -189,12 +189,12 @@ spec(loader_weapon) {
   }
 
   it("can unload weapon-map assets") {
-    const AssetMemRecord record = {.id = string_lit("test.wea"), .data = g_testData[1].text};
+    const AssetMemRecord record = {.id = string_lit("test.weapons"), .data = g_testData[1].text};
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.wea"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.weapons"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/shape_mesh.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/shape.frag.spv"
+    }
+  ],
+  "meshId": "meshes/debug/shape_box.procmesh",
+  "renderOrder": 150,
+  "topology": "Triangles",
+  "rasterizer": "Lines",
+  "lineWidth": 1,
+  "blend": "Alpha",
+  "depth": "Always",
+  "cull": "None"
+}

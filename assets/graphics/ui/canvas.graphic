@@ -1,0 +1,24 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/ui/canvas.vert.spv"
+    },
+    {
+      "shaderId": "shaders/ui/canvas.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "fonts/ui.fonttex",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "vertexCount": 6,
+  "renderOrder": 0,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}

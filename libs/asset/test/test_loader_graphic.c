@@ -8,7 +8,7 @@
 
 static const AssetMemRecord g_testData[] = {
     {
-        .id   = string_static("test.gra"),
+        .id   = string_static("test.graphic"),
         .data = string_static("{"
                               "  \"shaders\": [{ "
                               "    \"shaderId\": \"test.spv\","
@@ -45,7 +45,7 @@ static const AssetMemRecord g_testData[] = {
 
 static const AssetMemRecord g_errorTestData[] = {
     {
-        .id   = string_static("mesh_and_vertex_count.gra"),
+        .id   = string_static("mesh_and_vertex_count.graphic"),
         .data = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
@@ -60,7 +60,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "}"),
     },
     {
-        .id   = string_static("empty_mesh.gra"),
+        .id   = string_static("empty_mesh.graphic"),
         .data = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
@@ -104,7 +104,7 @@ spec(loader_graphic) {
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.gra"));
+    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.graphic"));
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -145,7 +145,7 @@ spec(loader_graphic) {
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.gra"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.graphic"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

@@ -1,0 +1,12 @@
+{
+  "type": "Cube",
+  "mipmaps": false,
+  "textures": [
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex"
+  ]
+}

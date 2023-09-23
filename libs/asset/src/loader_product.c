@@ -357,7 +357,8 @@ ecs_module_init(asset_product_module) {
   ecs_register_system(UnloadProductAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_pro(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_products(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetProductLoadComp, .src = src);
 }

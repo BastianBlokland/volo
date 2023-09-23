@@ -1,4 +1,4 @@
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -120,16 +120,16 @@ typedef struct {
 ASSERT(sizeof(UiDrawMetaData) == 832, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  const UiSettingsComp* settings;
-  const AssetFtxComp*   font;
-  UiRendererComp*       renderer;
-  RendDrawComp*         draw;
-  UiCanvasComp*         canvas;
-  UiRect                clipRects[ui_canvas_clip_rects_max];
-  u32                   clipRectCount;
+  const UiSettingsComp*   settings;
+  const AssetFontTexComp* font;
+  UiRendererComp*         renderer;
+  RendDrawComp*           draw;
+  UiCanvasComp*           canvas;
+  UiRect                  clipRects[ui_canvas_clip_rects_max];
+  u32                     clipRectCount;
 } UiRenderState;
 
-static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
+static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFontTexComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
       .canvasRes = geo_vector(
@@ -289,7 +289,7 @@ ecs_view_define(SoundGlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
   ecs_access_write(SndMixerComp);
 }
-ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
+ecs_view_define(FontTexView) { ecs_access_read(AssetFontTexComp); }
 ecs_view_define(WindowView) {
   ecs_access_write(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
@@ -299,9 +299,9 @@ ecs_view_define(WindowView) {
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
-static const AssetFtxComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
-  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FtxView), entity);
-  return itr ? ecs_view_read_t(itr, AssetFtxComp) : null;
+static const AssetFontTexComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
+  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FontTexView), entity);
+  return itr ? ecs_view_read_t(itr, AssetFontTexComp) : null;
 }
 
 ecs_system_define(UiCanvasInputSys) {
@@ -425,7 +425,7 @@ ecs_system_define(UiRenderSys) {
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
   InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const AssetFtxComp* font = ui_global_font(world, ui_resource_font(globalRes));
+  const AssetFontTexComp* font = ui_global_font(world, ui_resource_font(globalRes));
   if (!font) {
     return; // Global font not loaded yet.
   }
@@ -591,7 +591,7 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_view(DrawView);
   ecs_register_view(RenderGlobalView);
   ecs_register_view(SoundGlobalView);
-  ecs_register_view(FtxView);
+  ecs_register_view(FontTexView);
   ecs_register_view(WindowView);
 
   ecs_register_system(UiCanvasInputSys, ecs_view_id(CanvasView), ecs_view_id(WindowView));
@@ -599,7 +599,7 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_system(
       UiRenderSys,
       ecs_view_id(RenderGlobalView),
-      ecs_view_id(FtxView),
+      ecs_view_id(FontTexView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
       ecs_view_id(DrawView));

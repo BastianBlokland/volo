@@ -506,7 +506,8 @@ ecs_module_init(asset_weapon_module) {
   ecs_register_system(UnloadWeaponAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_wea(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_weapons(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetWeaponLoadComp, .src = src);
 }

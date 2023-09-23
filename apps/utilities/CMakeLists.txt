@@ -9,21 +9,21 @@ target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
 add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atl.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atx.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/arraytex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/bt.btschema"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/bt.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/dcl.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/ftx.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/gra.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/imp.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/lvl.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/pfb.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/pme.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/pro.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/ptx.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/decal.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/fonttex.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/graphic.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/inputs.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/level.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/prefabs.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/procmesh.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/products.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/proctex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/vfx.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/wea.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/weapons.schema.json"
   VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")

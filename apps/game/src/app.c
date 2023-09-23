@@ -32,7 +32,7 @@
 #include "hud_internal.h"
 #include "prefs_internal.h"
 
-static const String g_appLevel = string_static("levels/default.lvl");
+static const String g_appLevel = string_static("levels/default.level");
 
 typedef enum {
   AppMode_Normal,
@@ -611,17 +611,17 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   app_ambiance_create(world, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
-  input_resource_load_map(inputResource, string_lit("global/app-input.imp"));
-  input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
-  input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
+  input_resource_load_map(inputResource, string_lit("global/app.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/game.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/debug.inputs"));
 
   scene_level_load(world, asset_lookup(world, assets, g_appLevel));
-  scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
-  scene_weapon_init(world, string_lit("global/game-weapons.wea"));
-  scene_product_init(world, string_lit("global/game-products.pro"));
+  scene_prefab_init(world, string_lit("global/game.prefabs"));
+  scene_weapon_init(world, string_lit("global/game.weapons"));
+  scene_product_init(world, string_lit("global/game.products"));
   scene_terrain_init(
       world,
-      string_lit("graphics/scene/terrain.gra"),
+      string_lit("graphics/scene/terrain.graphic"),
       string_lit("external/terrain/terrain_3_height.r16"));
 }
 

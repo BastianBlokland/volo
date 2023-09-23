@@ -12,10 +12,10 @@ ecs_comp_define(VfxDrawDecalComp);
 ecs_comp_define(VfxDrawParticleComp);
 
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
-    [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.gra"),
-    [VfxDrawType_DecalDebug]         = string_static("graphics/vfx/decal_debug.gra"),
-    [VfxDrawType_ParticleForward]    = string_static("graphics/vfx/particle_forward.gra"),
-    [VfxDrawType_ParticleDistortion] = string_static("graphics/vfx/particle_distortion.gra"),
+    [VfxDrawType_Decal]              = string_static("graphics/vfx/decal.graphic"),
+    [VfxDrawType_DecalDebug]         = string_static("graphics/vfx/decal_debug.graphic"),
+    [VfxDrawType_ParticleForward]    = string_static("graphics/vfx/particle_forward.graphic"),
+    [VfxDrawType_ParticleDistortion] = string_static("graphics/vfx/particle_distortion.graphic"),
 };
 
 // clang-format off

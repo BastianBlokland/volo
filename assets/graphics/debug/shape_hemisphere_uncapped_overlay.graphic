@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/shape_mesh.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/shape.frag.spv"
+    }
+  ],
+  "meshId": "meshes/debug/shape_hemisphere_uncapped.procmesh",
+  "renderOrder": 162,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "AlwaysNoWrite",
+  "cull": "Back"
+}

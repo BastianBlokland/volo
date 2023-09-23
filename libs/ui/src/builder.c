@@ -29,15 +29,15 @@ typedef struct {
 } UiBuildContainer;
 
 typedef struct {
-  const UiBuildCtx*   ctx;
-  const AssetFtxComp* font;
-  UiRect              rectStack[ui_build_rect_stack_max];
-  u32                 rectStackCount;
-  UiBuildStyle        styleStack[ui_build_style_stack_max];
-  u32                 styleStackCount;
-  UiBuildContainer    containerStack[ui_build_container_stack_max];
-  u32                 containerStackCount;
-  UiBuildHover        hover;
+  const UiBuildCtx*       ctx;
+  const AssetFontTexComp* font;
+  UiRect                  rectStack[ui_build_rect_stack_max];
+  u32                     rectStackCount;
+  UiBuildStyle            styleStack[ui_build_style_stack_max];
+  u32                     styleStackCount;
+  UiBuildContainer        containerStack[ui_build_container_stack_max];
+  u32                     containerStackCount;
+  UiBuildHover            hover;
 } UiBuildState;
 
 static bool ui_is_overlay(const UiLayer layer) {
@@ -165,7 +165,7 @@ static void ui_build_glyph(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp, style.variation);
+  const AssetFontTexChar* ch = asset_fonttex_lookup(state->font, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }

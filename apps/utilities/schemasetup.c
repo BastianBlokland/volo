@@ -2,7 +2,7 @@
 #include "asset_atlas.h"
 #include "asset_behavior.h"
 #include "asset_decal.h"
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "asset_graphic.h"
 #include "asset_inputmap.h"
 #include "asset_level.h"
@@ -39,21 +39,21 @@ typedef struct {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("atl.schema.json"), .source = asset_atlas_datareg,       .writer = data_jsonschema_write},
-    {.pattern = string_static("atx.schema.json"), .source = asset_texture_atx_datareg, .writer = data_jsonschema_write},
-    {.pattern = string_static("bt.btschema"),     .source = asset_behavior_datareg,    .writer = data_treeschema_write},
-    {.pattern = string_static("bt.schema.json"),  .source = asset_behavior_datareg,    .writer = data_jsonschema_write},
-    {.pattern = string_static("dcl.schema.json"), .source = asset_decal_datareg,       .writer = data_jsonschema_write},
-    {.pattern = string_static("ftx.schema.json"), .source = asset_ftx_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("gra.schema.json"), .source = asset_graphic_datareg,     .writer = data_jsonschema_write},
-    {.pattern = string_static("imp.schema.json"), .source = asset_inputmap_datareg,    .writer = data_jsonschema_write},
-    {.pattern = string_static("lvl.schema.json"), .source = asset_level_datareg,       .writer = data_jsonschema_write},
-    {.pattern = string_static("pfb.schema.json"), .source = asset_prefab_datareg,      .writer = data_jsonschema_write},
-    {.pattern = string_static("pme.schema.json"), .source = asset_mesh_pme_datareg,    .writer = data_jsonschema_write},
-    {.pattern = string_static("ptx.schema.json"), .source = asset_texture_ptx_datareg, .writer = data_jsonschema_write},
-    {.pattern = string_static("vfx.schema.json"), .source = asset_vfx_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("wea.schema.json"), .source = asset_weapon_datareg,      .writer = data_jsonschema_write},
-    {.pattern = string_static("pro.schema.json"), .source = asset_product_datareg,     .writer = data_jsonschema_write},
+    {.pattern = string_static("atlas.schema.json"),    .source = asset_atlas_datareg,         .writer = data_jsonschema_write},
+    {.pattern = string_static("arraytex.schema.json"), .source = asset_texture_array_datareg, .writer = data_jsonschema_write},
+    {.pattern = string_static("bt.btschema"),          .source = asset_behavior_datareg,      .writer = data_treeschema_write},
+    {.pattern = string_static("bt.schema.json"),       .source = asset_behavior_datareg,      .writer = data_jsonschema_write},
+    {.pattern = string_static("decal.schema.json"),    .source = asset_decal_datareg,         .writer = data_jsonschema_write},
+    {.pattern = string_static("fonttex.schema.json"),  .source = asset_fonttex_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("graphic.schema.json"),  .source = asset_graphic_datareg,       .writer = data_jsonschema_write},
+    {.pattern = string_static("inputs.schema.json"),   .source = asset_inputmap_datareg,      .writer = data_jsonschema_write},
+    {.pattern = string_static("level.schema.json"),    .source = asset_level_datareg,         .writer = data_jsonschema_write},
+    {.pattern = string_static("prefabs.schema.json"),  .source = asset_prefab_datareg,        .writer = data_jsonschema_write},
+    {.pattern = string_static("procmesh.schema.json"), .source = asset_mesh_proc_datareg,     .writer = data_jsonschema_write},
+    {.pattern = string_static("proctex.schema.json"),  .source = asset_texture_proc_datareg,  .writer = data_jsonschema_write},
+    {.pattern = string_static("vfx.schema.json"),      .source = asset_vfx_datareg,           .writer = data_jsonschema_write},
+    {.pattern = string_static("weapons.schema.json"),  .source = asset_weapon_datareg,        .writer = data_jsonschema_write},
+    {.pattern = string_static("products.schema.json"), .source = asset_product_datareg,       .writer = data_jsonschema_write},
 };
 // clang-format on
 

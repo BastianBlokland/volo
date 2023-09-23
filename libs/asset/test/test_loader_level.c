@@ -13,13 +13,13 @@ static const struct {
   usize            objectCount;
 } g_testData[] = {
     {
-        .id          = string_static("empty.lvl"),
+        .id          = string_static("empty.level"),
         .text        = string_static("{\"objects\": []}"),
         .objects     = {0},
         .objectCount = 0,
     },
     {
-        .id   = string_static("single.lvl"),
+        .id   = string_static("single.level"),
         .text = string_static("{ \"objects\": [ {"
                               "      \"prefab\": \"Unit\","
                               "      \"faction\": \"A\","
@@ -45,7 +45,7 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid-json.lvl"),
+        .id   = string_static("invalid-json.level"),
         .text = string_static("Hello World"),
     },
 };
@@ -112,12 +112,12 @@ spec(loader_level) {
   }
 
   it("can unload level assets") {
-    const AssetMemRecord record = {.id = string_lit("test.lvl"), .data = g_testData[1].text};
+    const AssetMemRecord record = {.id = string_lit("test.level"), .data = g_testData[1].text};
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.lvl"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.level"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

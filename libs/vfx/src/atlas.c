@@ -8,9 +8,9 @@
 #include "atlas_internal.h"
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
-    [VfxAtlasType_Particle]    = string_static("textures/vfx/particle.atl"),
-    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/decal_color.atl"),
-    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/decal_normal.atl"),
+    [VfxAtlasType_Particle]    = string_static("textures/vfx/particle.atlas"),
+    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/decal_color.atlas"),
+    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/decal_normal.atlas"),
 };
 
 static const String g_vfxAtlasTypeNames[] = {

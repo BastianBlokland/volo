@@ -62,9 +62,9 @@ typedef struct {
 
 // clang-format off
 static const String g_lightGraphics[RendLightDraw_Count] = {
-    [RendLightType_Directional + RendLightVariation_Normal] = string_static("graphics/light/light_directional.gra"),
-    [RendLightType_Point       + RendLightVariation_Normal] = string_static("graphics/light/light_point.gra"),
-    [RendLightType_Point       + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.gra"),
+    [RendLightType_Directional + RendLightVariation_Normal] = string_static("graphics/light/light_directional.graphic"),
+    [RendLightType_Point       + RendLightVariation_Normal] = string_static("graphics/light/light_point.graphic"),
+    [RendLightType_Point       + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.graphic"),
 };
 // clang-format on
 

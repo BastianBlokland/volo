@@ -1,0 +1,42 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/fullscreen.vert.spv"
+    },
+    {
+      "shaderId": "shaders/ambient.frag.spv",
+      "overrides": [
+        {
+          "name": "specIrradianceMips",
+          "binding": 1,
+          "value": 5
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/game/env_diff_irradiance.arraytex",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    },
+    {
+      "textureId": "textures/game/env_spec_irradiance.arraytex",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "mipBlending": true
+    },
+    {
+      "textureId": "textures/game/env_brdf_integration.proctex",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "vertexCount": 3,
+  "renderOrder": -100,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "GreaterNoWrite",
+  "cull": "None"
+}

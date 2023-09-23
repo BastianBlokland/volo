@@ -9,7 +9,7 @@
 // clang-format off
 
 static const String g_tooltipFilter     = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
-static const String g_levelQueryPattern = string_static("levels/*.lvl");
+static const String g_levelQueryPattern = string_static("levels/*.level");
 
 // clang-format on
 
