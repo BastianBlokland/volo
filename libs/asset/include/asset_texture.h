@@ -89,4 +89,4 @@ GeoColor asset_texture_at(const AssetTextureComp*, u32 layer, usize index);
 GeoColor asset_texture_sample(const AssetTextureComp*, f32 x, f32 y, u32 layer);
 
 AssetDataReg asset_texture_ptx_datareg(void);
-AssetDataReg asset_texture_atx_datareg(void);
+AssetDataReg asset_texture_array_datareg(void);

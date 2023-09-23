@@ -21,12 +21,12 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/game/env_diff_irradiance.atx",
+      "textureId": "textures/game/env_diff_irradiance.arraytex",
       "wrap": "Clamp",
       "filter": "Linear"
     },
     {
-      "textureId": "textures/game/env_spec_irradiance.atx",
+      "textureId": "textures/game/env_spec_irradiance.arraytex",
       "wrap": "Clamp",
       "filter": "Linear",
       "mipBlending": true

@@ -16,15 +16,11 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-/**
- * ArrayTeXture - Creates multi-layer textures by combining other textures.
- */
-
-#define atx_max_textures 100
-#define atx_max_layers 256
-#define atx_max_size 2048
-#define atx_max_generates_per_tick 1
-#define atx_spec_irradiance_mips 5
+#define arraytex_max_textures 100
+#define arraytex_max_layers 256
+#define arraytex_max_size 2048
+#define arraytex_max_generates_per_tick 1
+#define arraytex_spec_irradiance_mips 5
 
 static const GeoQuat g_cubeFaceRot[] = {
     {0, 0.7071068f, 0, 0.7071068f},  // Forward to right.
@@ -36,26 +32,26 @@ static const GeoQuat g_cubeFaceRot[] = {
 };
 
 static DataReg* g_dataReg;
-static DataMeta g_dataAtxDefMeta;
+static DataMeta g_dataArrayTexDefMeta;
 
 typedef enum {
-  AtxType_Array,
-  AtxType_Cube,
-  AtxType_CubeDiffIrradiance,
-  AtxType_CubeSpecIrradiance,
-} AtxType;
+  ArrayTexType_Array,
+  ArrayTexType_Cube,
+  ArrayTexType_CubeDiffIrradiance,
+  ArrayTexType_CubeSpecIrradiance,
+} ArrayTexType;
 
 typedef struct {
-  AtxType type;
-  bool    mipmaps;
-  u32     sizeX, sizeY;
+  ArrayTexType type;
+  bool         mipmaps;
+  u32          sizeX, sizeY;
   struct {
     String* values;
     usize   count;
   } textures;
-} AtxDef;
+} ArrayTexDef;
 
-static void atx_datareg_init() {
+static void arraytex_datareg_init() {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;
@@ -65,85 +61,85 @@ static void atx_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_enum_t(reg, AtxType);
-    data_reg_const_t(reg, AtxType, Array);
-    data_reg_const_t(reg, AtxType, Cube);
-    data_reg_const_t(reg, AtxType, CubeDiffIrradiance);
-    data_reg_const_t(reg, AtxType, CubeSpecIrradiance);
+    data_reg_enum_t(reg, ArrayTexType);
+    data_reg_const_t(reg, ArrayTexType, Array);
+    data_reg_const_t(reg, ArrayTexType, Cube);
+    data_reg_const_t(reg, ArrayTexType, CubeDiffIrradiance);
+    data_reg_const_t(reg, ArrayTexType, CubeSpecIrradiance);
 
-    data_reg_struct_t(reg, AtxDef);
-    data_reg_field_t(reg, AtxDef, type, t_AtxType);
-    data_reg_field_t(reg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AtxDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AtxDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_struct_t(reg, ArrayTexDef);
+    data_reg_field_t(reg, ArrayTexDef, type, t_ArrayTexType);
+    data_reg_field_t(reg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
-    g_dataAtxDefMeta = data_meta_t(t_AtxDef);
-    g_dataReg        = reg;
+    g_dataArrayTexDefMeta = data_meta_t(t_ArrayTexDef);
+    g_dataReg             = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
 
-ecs_comp_define(AssetAtxLoadComp) {
-  AtxDef   def;
-  DynArray textures; // EcsEntityId[].
+ecs_comp_define(AssetArrayLoadComp) {
+  ArrayTexDef def;
+  DynArray    textures; // EcsEntityId[].
 };
 
-static void ecs_destruct_atx_load_comp(void* data) {
-  AssetAtxLoadComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataAtxDefMeta, mem_var(comp->def));
+static void ecs_destruct_arraytex_load_comp(void* data) {
+  AssetArrayLoadComp* comp = data;
+  data_destroy(g_dataReg, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
 typedef enum {
-  AtxError_None = 0,
-  AtxError_NoTextures,
-  AtxError_TooManyTextures,
-  AtxError_TooManyLayers,
-  AtxError_SizeTooBig,
-  AtxError_InvalidTexture,
-  AtxError_MismatchType,
-  AtxError_MismatchChannels,
-  AtxError_MismatchEncoding,
-  AtxError_MismatchSize,
-  AtxError_InvalidCubeAspect,
-  AtxError_UnsupportedInputTypeForResampling,
-  AtxError_InvalidCubeTextureCount,
-  AtxError_InvalidCubeIrradianceInputType,
+  ArrayTexError_None = 0,
+  ArrayTexError_NoTextures,
+  ArrayTexError_TooManyTextures,
+  ArrayTexError_TooManyLayers,
+  ArrayTexError_SizeTooBig,
+  ArrayTexError_InvalidTexture,
+  ArrayTexError_MismatchType,
+  ArrayTexError_MismatchChannels,
+  ArrayTexError_MismatchEncoding,
+  ArrayTexError_MismatchSize,
+  ArrayTexError_InvalidCubeAspect,
+  ArrayTexError_UnsupportedInputTypeForResampling,
+  ArrayTexError_InvalidCubeTextureCount,
+  ArrayTexError_InvalidCubeIrradianceInputType,
 
-  AtxError_Count,
-} AtxError;
+  ArrayTexError_Count,
+} ArrayTexError;
 
-static String atx_error_str(const AtxError err) {
+static String arraytex_error_str(const ArrayTexError err) {
   static const String g_msgs[] = {
       string_static("None"),
-      string_static("Atx does not specify any textures"),
-      string_static("Atx specifies more textures then are supported"),
-      string_static("Atx specifies more layers then are supported"),
-      string_static("Atx specifies a size larger then is supported"),
-      string_static("Atx specifies an invalid texture"),
-      string_static("Atx textures have different types"),
-      string_static("Atx textures have different channel counts"),
-      string_static("Atx textures have different encodings"),
-      string_static("Atx textures have different sizes"),
-      string_static("Atx cube / cube-irradiance needs to be square"),
-      string_static("Atx resampling is only supported for rgba 8bit input textures"),
-      string_static("Atx cube / cube-irradiance needs 6 textures"),
-      string_static("Atx cube-irradiance needs rgba 8bit input textures"),
+      string_static("ArrayTex does not specify any textures"),
+      string_static("ArrayTex specifies more textures then are supported"),
+      string_static("ArrayTex specifies more layers then are supported"),
+      string_static("ArrayTex specifies a size larger then is supported"),
+      string_static("ArrayTex specifies an invalid texture"),
+      string_static("ArrayTex textures have different types"),
+      string_static("ArrayTex textures have different channel counts"),
+      string_static("ArrayTex textures have different encodings"),
+      string_static("ArrayTex textures have different sizes"),
+      string_static("ArrayTex cube / cube-irradiance needs to be square"),
+      string_static("ArrayTex resampling is only supported for rgba 8bit input textures"),
+      string_static("ArrayTex cube / cube-irradiance needs 6 textures"),
+      string_static("ArrayTex cube-irradiance needs rgba 8bit input textures"),
   };
-  ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
+  ASSERT(array_elems(g_msgs) == ArrayTexError_Count, "Incorrect number of array-error messages");
   return g_msgs[err];
 }
 
-static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
+static AssetTextureFlags arraytex_texture_flags(const ArrayTexDef* def, const bool srgb) {
   AssetTextureFlags flags = 0;
   switch (def->type) {
-  case AtxType_Array:
+  case ArrayTexType_Array:
     break;
-  case AtxType_Cube:
-  case AtxType_CubeDiffIrradiance:
-  case AtxType_CubeSpecIrradiance:
+  case ArrayTexType_Cube:
+  case ArrayTexType_CubeDiffIrradiance:
+  case ArrayTexType_CubeSpecIrradiance:
     flags |= AssetTextureFlags_CubeMap;
     break;
   }
@@ -156,51 +152,51 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   return flags;
 }
 
-static bool atx_output_cube(const AtxDef* def) {
+static bool arraytex_output_cube(const ArrayTexDef* def) {
   switch (def->type) {
-  case AtxType_Array:
+  case ArrayTexType_Array:
     return false;
-  case AtxType_Cube:
-  case AtxType_CubeDiffIrradiance:
-  case AtxType_CubeSpecIrradiance:
+  case ArrayTexType_Cube:
+  case ArrayTexType_CubeDiffIrradiance:
+  case ArrayTexType_CubeSpecIrradiance:
     return true;
   }
   diag_crash();
 }
 
-static u32 atx_output_mips(const AtxDef* def) {
+static u32 arraytex_output_mips(const ArrayTexDef* def) {
   switch (def->type) {
-  case AtxType_Array:
-  case AtxType_Cube:
-  case AtxType_CubeDiffIrradiance:
+  case ArrayTexType_Array:
+  case ArrayTexType_Cube:
+  case ArrayTexType_CubeDiffIrradiance:
     return 1;
-  case AtxType_CubeSpecIrradiance:
-    return atx_spec_irradiance_mips;
+  case ArrayTexType_CubeSpecIrradiance:
+    return arraytex_spec_irradiance_mips;
   }
   diag_crash();
 }
 
-static bool atx_output_irradiance(const AtxDef* def) {
+static bool arraytex_output_irradiance(const ArrayTexDef* def) {
   switch (def->type) {
-  case AtxType_Array:
-  case AtxType_Cube:
+  case ArrayTexType_Array:
+  case ArrayTexType_Cube:
     return false;
-  case AtxType_CubeDiffIrradiance:
-  case AtxType_CubeSpecIrradiance:
+  case ArrayTexType_CubeDiffIrradiance:
+  case ArrayTexType_CubeSpecIrradiance:
     return true;
   }
   diag_crash();
 }
 
-struct AtxCubePoint {
+typedef struct {
   u32 face;
   f32 coordX, coordY;
-};
+} CubePoint;
 
-static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
-  struct AtxCubePoint res;
-  float               scale;
-  const GeoVector     dirAbs = geo_vector_abs(dir);
+static CubePoint arraytex_cube_lookup(const GeoVector dir) {
+  CubePoint       res;
+  float           scale;
+  const GeoVector dirAbs = geo_vector_abs(dir);
   if (dirAbs.z >= dirAbs.x && dirAbs.z >= dirAbs.y) {
     res.face   = dir.z < 0.0f ? 5 : 4;
     scale      = 0.5f / dirAbs.z;
@@ -222,7 +218,7 @@ static struct AtxCubePoint atx_cube_lookup(const GeoVector dir) {
   return res;
 }
 
-static AssetTexturePixelB4 atx_color_to_b4(const GeoColor color) {
+static AssetTexturePixelB4 arraytex_color_to_b4(const GeoColor color) {
   static const f32 g_u8MaxPlusOneRoundDown = 255.999f;
   return (AssetTexturePixelB4){
       .r = (u8)(color.r * g_u8MaxPlusOneRoundDown),
@@ -232,8 +228,8 @@ static AssetTexturePixelB4 atx_color_to_b4(const GeoColor color) {
   };
 }
 
-static GeoColor atx_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
-  struct AtxCubePoint     point = atx_cube_lookup(dir);
+static GeoColor arraytex_sample_cube(const AssetTextureComp** textures, const GeoVector dir) {
+  CubePoint               point = arraytex_cube_lookup(dir);
   const AssetTextureComp* tex   = textures[point.face];
   return asset_texture_sample(tex, point.coordX, point.coordY, 0);
 }
@@ -242,7 +238,8 @@ static GeoColor atx_sample_cube(const AssetTextureComp** textures, const GeoVect
  * Copy all pixel data to the output.
  * NOTE: Requires all input textures as well as the output textures to have matching sizes.
  */
-static void atx_write_simple(const AtxDef* def, const AssetTextureComp** textures, Mem dest) {
+static void
+arraytex_write_simple(const ArrayTexDef* def, const AssetTextureComp** textures, Mem dest) {
   for (usize i = 0; i != def->textures.count; ++i) {
     const Mem texMem = asset_texture_data(textures[i]);
     mem_cpy(dest, texMem);
@@ -255,8 +252,8 @@ static void atx_write_simple(const AtxDef* def, const AssetTextureComp** texture
  * Sample all pixels on all textures from the input textures.
  * NOTE: Supports differently sized input and output textures.
  */
-static void atx_write_resample(
-    const AtxDef*            def,
+static void arraytex_write_resample(
+    const ArrayTexDef*       def,
     const AssetTextureComp** textures,
     const u32                width,
     const u32                height,
@@ -278,7 +275,7 @@ static void atx_write_resample(
         if (srgb) {
           color = geo_color_linear_to_srgb(color);
         }
-        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(color);
+        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(color);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -319,7 +316,7 @@ static GeoVector importance_sample_ggx(const u32 index, const u32 count, const f
  * Takes samples from a hemisphere pointing in the given direction and combines the radiance.
  */
 static GeoColor
-atx_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVector fwd) {
+arraytex_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVector fwd) {
   const GeoQuat rot = geo_quat_look(fwd, geo_up);
 
   static const f32 g_sampleDelta = 0.075f;
@@ -338,7 +335,7 @@ atx_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVector 
 
       // Convert the spherical coordinates to cartesian coordinates in tangent space.
       const GeoVector tangentDir = geo_vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
-      const GeoColor  radiance   = atx_sample_cube(textures, geo_quat_rotate(rot, tangentDir));
+      const GeoColor  radiance   = arraytex_sample_cube(textures, geo_quat_rotate(rot, tangentDir));
 
       // Add the contribution of the sample.
       irradiance = geo_color_add(irradiance, geo_color_mul(radiance, cosTheta * sinTheta));
@@ -353,8 +350,8 @@ atx_diff_irradiance_convolve(const AssetTextureComp** textures, const GeoVector 
  * Generate a diffuse irradiance map.
  * NOTE: Supports differently sized input and output textures.
  */
-static void atx_write_diff_irradiance_b4(
-    const AtxDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
+static void arraytex_write_diff_irradiance_b4(
+    const ArrayTexDef* def, const AssetTextureComp** textures, const u32 size, Mem dest) {
   const f32 invSize = 1.0f / size;
   for (usize faceIdx = 0; faceIdx != def->textures.count; ++faceIdx) {
     for (u32 y = 0; y != size; ++y) {
@@ -364,9 +361,9 @@ static void atx_write_diff_irradiance_b4(
 
         const GeoVector posLocal   = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
         const GeoVector dir        = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
-        const GeoColor  irradiance = atx_diff_irradiance_convolve(textures, dir);
+        const GeoColor  irradiance = arraytex_diff_irradiance_convolve(textures, dir);
 
-        *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(irradiance);
+        *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irradiance);
         dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
       }
     }
@@ -378,7 +375,7 @@ static void atx_write_diff_irradiance_b4(
  * Compute filtered specular irradiance for the specular lobe orientated in the given normal.
  * https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
  */
-static GeoColor atx_spec_irradiance_convolve(
+static GeoColor arraytex_spec_irradiance_convolve(
     const AssetTextureComp** textures,
     const GeoVector          normal,
     const GeoVector*         samples,
@@ -395,7 +392,7 @@ static GeoColor atx_spec_irradiance_convolve(
     const f32       nDotL    = math_max(geo_vector_dot(normal, lightDir), 0.0);
 
     if (nDotL > 0.0f) {
-      const GeoColor radiance = atx_sample_cube(textures, lightDir);
+      const GeoColor radiance = arraytex_sample_cube(textures, lightDir);
       irradiance              = geo_color_add(irradiance, geo_color_mul(radiance, nDotL));
       totalWeight += nDotL;
     }
@@ -409,8 +406,8 @@ static GeoColor atx_spec_irradiance_convolve(
  * Lowest mip represents roughness == 0 and the highest represents roughness == 1.
  * NOTE: Supports differently sized input and output textures.
  */
-static void atx_write_spec_irradiance_b4(
-    const AtxDef*              def,
+static void arraytex_write_spec_irradiance_b4(
+    const ArrayTexDef*         def,
     const AssetTextureComp**   textures,
     const AssetTextureType     type,
     const AssetTextureChannels channels,
@@ -418,16 +415,16 @@ static void atx_write_spec_irradiance_b4(
     Mem                        dest) {
   // Mip 0 represents a perfect mirror so we can just copy the source.
   const usize mip0Size = asset_texture_req_size(type, channels, size, size, 6, 1);
-  atx_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
+  arraytex_write_resample(def, textures, size, size, false, mem_slice(dest, 0, mip0Size));
   dest = mem_consume(dest, mip0Size);
 
   // Other mip-levels represent rougher specular irradiance so we convolve the incoming radiance.
-  static const u32 g_sampleCounts[atx_spec_irradiance_mips] = {0, 64, 128, 256, 512};
+  static const u32 g_sampleCounts[arraytex_spec_irradiance_mips] = {0, 64, 128, 256, 512};
   GeoVector        samples[512];
-  for (u32 mipLevel = 1; mipLevel != atx_spec_irradiance_mips; ++mipLevel) {
+  for (u32 mipLevel = 1; mipLevel != arraytex_spec_irradiance_mips; ++mipLevel) {
     const u32 mipSize     = math_max(size >> mipLevel, 1);
     const f32 invMipSize  = 1.0f / mipSize;
-    const f32 roughness   = mipLevel / (f32)(atx_spec_irradiance_mips - 1);
+    const f32 roughness   = mipLevel / (f32)(arraytex_spec_irradiance_mips - 1);
     const u32 sampleCount = g_sampleCounts[mipLevel];
 
     // Compute the sample points for this roughness.
@@ -444,9 +441,10 @@ static void atx_write_spec_irradiance_b4(
 
           const GeoVector posLocal = geo_vector(xFrac * 2.0f - 1.0f, yFrac * 2.0f - 1.0f, 1.0f);
           const GeoVector dir      = geo_quat_rotate(g_cubeFaceRot[faceIdx], posLocal);
-          const GeoColor  irr = atx_spec_irradiance_convolve(textures, dir, samples, sampleCount);
+          const GeoColor  irr =
+              arraytex_spec_irradiance_convolve(textures, dir, samples, sampleCount);
 
-          *((AssetTexturePixelB4*)dest.ptr) = atx_color_to_b4(irr);
+          *((AssetTexturePixelB4*)dest.ptr) = arraytex_color_to_b4(irr);
           dest                              = mem_consume(dest, sizeof(AssetTexturePixelB4));
         }
       }
@@ -455,11 +453,11 @@ static void atx_write_spec_irradiance_b4(
   diag_assert(!dest.size); // Verify we filled the entire output.
 }
 
-static void atx_generate(
-    const AtxDef*            def,
+static void arraytex_generate(
+    const ArrayTexDef*       def,
     const AssetTextureComp** textures,
     AssetTextureComp*        outTexture,
-    AtxError*                err) {
+    ArrayTexError*           err) {
 
   const AssetTextureType     type     = textures[0]->type;
   const AssetTextureChannels channels = textures[0]->channels;
@@ -468,34 +466,34 @@ static void atx_generate(
   const u32                  inHeight = textures[0]->height;
   u32                        layers   = math_max(1, textures[0]->layers);
 
-  const bool irradianceMap = atx_output_irradiance(def);
+  const bool irradianceMap = arraytex_output_irradiance(def);
   if (UNLIKELY(irradianceMap && type != AssetTextureType_U8)) {
     // TODO: Support hdr input texture for cube-irradiance maps.
-    *err = AtxError_InvalidCubeIrradianceInputType;
+    *err = ArrayTexError_InvalidCubeIrradianceInputType;
     return;
   }
 
   for (usize i = 1; i != def->textures.count; ++i) {
     if (UNLIKELY(textures[i]->type != type)) {
-      *err = AtxError_MismatchType;
+      *err = ArrayTexError_MismatchType;
       return;
     }
     if (UNLIKELY(textures[i]->channels != channels)) {
-      *err = AtxError_MismatchChannels;
+      *err = ArrayTexError_MismatchChannels;
       return;
     }
     if (UNLIKELY(inSrgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
-      *err = AtxError_MismatchEncoding;
+      *err = ArrayTexError_MismatchEncoding;
       return;
     }
     if (UNLIKELY(textures[i]->width != inWidth || textures[i]->height != inHeight)) {
-      *err = AtxError_MismatchSize;
+      *err = ArrayTexError_MismatchSize;
       return;
     }
     layers += math_max(1, textures[i]->layers);
   }
-  if (UNLIKELY(layers > atx_max_layers)) {
-    *err = AtxError_TooManyLayers;
+  if (UNLIKELY(layers > arraytex_max_layers)) {
+    *err = ArrayTexError_TooManyLayers;
     return;
   }
 
@@ -504,63 +502,63 @@ static void atx_generate(
   const bool needsResample = inWidth != outWidth || inHeight != outHeight;
   if (UNLIKELY(needsResample && (type != AssetTextureType_U8 || channels != 4))) {
     // TODO: Support resampling hdr input textures.
-    *err = AtxError_UnsupportedInputTypeForResampling;
+    *err = ArrayTexError_UnsupportedInputTypeForResampling;
     return;
   }
-  const bool isCubeMap = atx_output_cube(def);
+  const bool isCubeMap = arraytex_output_cube(def);
   if (UNLIKELY(isCubeMap && outWidth != outHeight)) {
-    *err = AtxError_InvalidCubeAspect;
+    *err = ArrayTexError_InvalidCubeAspect;
     return;
   }
   if (UNLIKELY(isCubeMap && layers != 6)) {
-    *err = AtxError_InvalidCubeTextureCount;
+    *err = ArrayTexError_InvalidCubeTextureCount;
     return;
   }
 
-  const u32   mips      = atx_output_mips(def);
+  const u32   mips      = arraytex_output_mips(def);
   const usize dataSize  = asset_texture_req_size(type, channels, outWidth, outHeight, layers, mips);
   const usize dataAlign = asset_texture_req_align(type, channels);
   const Mem   pixelsMem = alloc_alloc(g_alloc_heap, dataSize, dataAlign);
 
   bool outSrgb = irradianceMap ? false : inSrgb;
   switch (def->type) {
-  case AtxType_Array:
-  case AtxType_Cube:
+  case ArrayTexType_Array:
+  case ArrayTexType_Cube:
     if (needsResample) {
-      atx_write_resample(def, textures, outWidth, outHeight, outSrgb, pixelsMem);
+      arraytex_write_resample(def, textures, outWidth, outHeight, outSrgb, pixelsMem);
     } else {
-      atx_write_simple(def, textures, pixelsMem);
+      arraytex_write_simple(def, textures, pixelsMem);
     }
     break;
-  case AtxType_CubeDiffIrradiance:
-    atx_write_diff_irradiance_b4(def, textures, outWidth, pixelsMem);
+  case ArrayTexType_CubeDiffIrradiance:
+    arraytex_write_diff_irradiance_b4(def, textures, outWidth, pixelsMem);
     break;
-  case AtxType_CubeSpecIrradiance:
-    atx_write_spec_irradiance_b4(def, textures, type, channels, outWidth, pixelsMem);
+  case ArrayTexType_CubeSpecIrradiance:
+    arraytex_write_spec_irradiance_b4(def, textures, type, channels, outWidth, pixelsMem);
     break;
   }
 
   *outTexture = (AssetTextureComp){
       .type         = type,
       .channels     = channels,
-      .flags        = atx_texture_flags(def, outSrgb),
+      .flags        = arraytex_texture_flags(def, outSrgb),
       .pixelsRaw    = pixelsMem.ptr,
       .width        = outWidth,
       .height       = outHeight,
       .layers       = layers,
       .srcMipLevels = mips,
   };
-  *err = AtxError_None;
+  *err = ArrayTexError_None;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
+ecs_view_define(LoadView) { ecs_access_write(AssetArrayLoadComp); }
 ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
  * Acquire all textures.
  */
-ecs_system_define(AtxLoadAcquireSys) {
+ecs_system_define(ArrayTexLoadAcquireSys) {
   AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     return;
@@ -568,8 +566,8 @@ ecs_system_define(AtxLoadAcquireSys) {
   EcsView* loadView = ecs_world_view_t(world, LoadView);
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
+    const EcsEntityId   entity = ecs_view_entity(itr);
+    AssetArrayLoadComp* load   = ecs_view_write_t(itr, AssetArrayLoadComp);
 
     if (load->textures.size) {
       continue; // Already acquired textures.
@@ -590,16 +588,16 @@ ecs_system_define(AtxLoadAcquireSys) {
 /**
  * Update all active loads.
  */
-ecs_system_define(AtxLoadUpdateSys) {
+ecs_system_define(ArrayTexLoadUpdateSys) {
   EcsView*     loadView   = ecs_world_view_t(world, LoadView);
   EcsIterator* textureItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
 
   u32 numGenerates = 0;
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
-    AtxError          err;
+    const EcsEntityId   entity = ecs_view_entity(itr);
+    AssetArrayLoadComp* load   = ecs_view_write_t(itr, AssetArrayLoadComp);
+    ArrayTexError       err;
 
     if (!load->textures.size) {
       goto Next; // Textures not yet acquired.
@@ -612,21 +610,21 @@ ecs_system_define(AtxLoadUpdateSys) {
     for (usize i = 0; i != load->textures.size; ++i) {
       const EcsEntityId texAsset = *dynarray_at_t(&load->textures, i, EcsEntityId);
       if (ecs_world_has_t(world, texAsset, AssetFailedComp)) {
-        err = AtxError_InvalidTexture;
+        err = ArrayTexError_InvalidTexture;
         goto Error;
       }
       if (!ecs_world_has_t(world, texAsset, AssetLoadedComp)) {
         goto Next; // Wait for the texture to be loaded.
       }
       if (UNLIKELY(!ecs_view_maybe_jump(textureItr, texAsset))) {
-        err = AtxError_InvalidTexture;
+        err = ArrayTexError_InvalidTexture;
         goto Error;
       }
       textures[i] = ecs_view_read_t(textureItr, AssetTextureComp);
     }
 
     AssetTextureComp texture;
-    atx_generate(&load->def, textures, &texture, &err);
+    arraytex_generate(&load->def, textures, &texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
@@ -636,61 +634,62 @@ ecs_system_define(AtxLoadUpdateSys) {
     goto Cleanup;
 
   Error:
-    log_e("Failed to load Atx array-texture", log_param("error", fmt_text(atx_error_str(err))));
+    log_e("Failed to load array-texture", log_param("error", fmt_text(arraytex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    ecs_world_remove_t(world, entity, AssetAtxLoadComp);
+    ecs_world_remove_t(world, entity, AssetArrayLoadComp);
     dynarray_for_t(&load->textures, EcsEntityId, texAsset) { asset_release(world, *texAsset); }
 
   Next:
-    if (++numGenerates == atx_max_generates_per_tick) {
+    if (++numGenerates == arraytex_max_generates_per_tick) {
       break;
     }
     continue;
   }
 }
 
-ecs_module_init(asset_atx_module) {
-  atx_datareg_init();
+ecs_module_init(asset_arraytex_module) {
+  arraytex_datareg_init();
 
-  ecs_register_comp(AssetAtxLoadComp, .destructor = ecs_destruct_atx_load_comp);
+  ecs_register_comp(AssetArrayLoadComp, .destructor = ecs_destruct_arraytex_load_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
   ecs_register_view(TextureView);
 
-  ecs_register_system(AtxLoadAcquireSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
-  ecs_register_system(AtxLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
+  ecs_register_system(ArrayTexLoadAcquireSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(ArrayTexLoadUpdateSys, ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
-void asset_load_atx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_arraytex(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
   String         errMsg;
-  AtxDef         def;
+  ArrayTexDef    def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataAtxDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
     goto Error;
   }
   if (UNLIKELY(!def.textures.count)) {
-    errMsg = atx_error_str(AtxError_NoTextures);
+    errMsg = arraytex_error_str(ArrayTexError_NoTextures);
     goto Error;
   }
-  if (UNLIKELY(def.textures.count > atx_max_textures)) {
-    errMsg = atx_error_str(AtxError_TooManyTextures);
+  if (UNLIKELY(def.textures.count > arraytex_max_textures)) {
+    errMsg = arraytex_error_str(ArrayTexError_TooManyTextures);
     goto Error;
   }
-  if (UNLIKELY(def.sizeX > atx_max_size || def.sizeY > atx_max_size)) {
-    errMsg = atx_error_str(AtxError_SizeTooBig);
+  if (UNLIKELY(def.sizeX > arraytex_max_size || def.sizeY > arraytex_max_size)) {
+    errMsg = arraytex_error_str(ArrayTexError_SizeTooBig);
     goto Error;
   }
   array_ptr_for_t(def.textures, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
-      errMsg = atx_error_str(AtxError_InvalidTexture);
+      errMsg = arraytex_error_str(ArrayTexError_InvalidTexture);
       goto Error;
     }
   }
@@ -698,23 +697,23 @@ void asset_load_atx(EcsWorld* world, const String id, const EcsEntityId entity, 
   ecs_world_add_t(
       world,
       entity,
-      AssetAtxLoadComp,
+      AssetArrayLoadComp,
       .def      = def,
       .textures = dynarray_create_t(g_alloc_heap, EcsEntityId, def.textures.count));
   asset_repo_source_close(src);
   return;
 
 Error:
-  log_e("Failed to load atx texture", log_param("error", fmt_text(errMsg)));
+  log_e("Failed to load array texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataAtxDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_alloc_heap, g_dataArrayTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_texture_atx_datareg() {
-  atx_datareg_init();
+AssetDataReg asset_texture_array_datareg() {
+  arraytex_datareg_init();
   return (AssetDataReg){
       .registry = g_dataReg,
-      .typeMeta = g_dataAtxDefMeta,
+      .typeMeta = g_dataArrayTexDefMeta,
   };
 }

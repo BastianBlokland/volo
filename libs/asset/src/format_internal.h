@@ -3,7 +3,7 @@
 
 typedef enum {
   AssetFormat_Atlas,
-  AssetFormat_Atx,
+  AssetFormat_ArrayTex,
   AssetFormat_Bin,
   AssetFormat_Bt,
   AssetFormat_Dcl,

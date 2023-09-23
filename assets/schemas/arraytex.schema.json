@@ -1,14 +1,14 @@
 {
-  "title": "AtxDef",
-  "$ref": "#/$defs/AtxDef",
+  "title": "ArrayTexDef",
+  "$ref": "#/$defs/ArrayTexDef",
   "$defs": {
-    "AtxDef": {
+    "ArrayTexDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "type": {
-          "title": "AtxType",
-          "$ref": "#/$defs/AtxType"
+          "title": "ArrayTexType",
+          "$ref": "#/$defs/ArrayTexType"
         },
         "mipmaps": {
           "title": "bool",
@@ -46,7 +46,7 @@
         }
       ]
     },
-    "AtxType": {
+    "ArrayTexType": {
       "enum": [
         "Array",
         "Cube",

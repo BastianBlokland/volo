@@ -26,7 +26,7 @@ add_library(lib_asset STATIC
   src/loader_sound_wav.c
   src/loader_sound.c
   src/loader_texture_atlas.c
-  src/loader_texture_atx.c
+  src/loader_texture_array.c
   src/loader_texture_height.c
   src/loader_texture_ppm.c
   src/loader_texture_ptx.c

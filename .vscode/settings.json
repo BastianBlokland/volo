@@ -15,7 +15,7 @@
     "*.h": "c",
     "*.c": "c",
     "*.atlas": "json",
-    "*.atx": "json",
+    "*.arraytex": "json",
     "*.bt": "json",
     "*.btschema": "json",
     "*.dcl": "json",
@@ -37,7 +37,7 @@
   },
   "json.schemas": [
     { "fileMatch": [ "*.atlas" ], "url": "./assets/schemas/atlas.schema.json" },
-    { "fileMatch": [ "*.atx" ], "url": "./assets/schemas/atx.schema.json" },
+    { "fileMatch": [ "*.arraytex" ], "url": "./assets/schemas/arraytex.schema.json" },
     { "fileMatch": [ "*.bt" ], "url": "./assets/schemas/bt.schema.json" },
     { "fileMatch": [ "*.dcl" ], "url": "./assets/schemas/dcl.schema.json" },
     { "fileMatch": [ "*.ftx" ], "url": "./assets/schemas/ftx.schema.json" },

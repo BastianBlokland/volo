@@ -16,7 +16,7 @@
 *.vert linguist-language=GLSL
 *.frag linguist-language=GLSL
 *.atlas linguist-language=JSON
-*.atx linguist-language=JSON
+*.arraytex linguist-language=JSON
 *.dcl linguist-language=JSON
 *.ftx linguist-language=JSON
 *.graphic linguist-language=JSON

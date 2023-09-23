@@ -13,8 +13,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Atlas: {
     RET_LOADER(atlas);
   }
-  case AssetFormat_Atx: {
-    RET_LOADER(atx);
+  case AssetFormat_ArrayTex: {
+    RET_LOADER(arraytex);
   }
   case AssetFormat_Bin: {
     RET_LOADER(raw);
