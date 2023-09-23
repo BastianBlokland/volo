@@ -7,7 +7,7 @@
   "entries": [
     {
       "name": "glow",
-      "texture": "textures/glow.ptx"
+      "texture": "textures/glow.proctex"
     },
     {
       "name": "flash",

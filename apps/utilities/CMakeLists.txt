@@ -21,7 +21,7 @@ add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/prefabs.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/pme.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/products.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/ptx.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/proctex.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/vfx.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/weapons.schema.json"
   VERBATIM USES_TERMINAL)

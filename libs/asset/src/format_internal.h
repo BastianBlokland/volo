@@ -17,7 +17,7 @@ typedef enum {
   AssetFormat_Pme,
   AssetFormat_Ppm,
   AssetFormat_Products,
-  AssetFormat_Ptx,
+  AssetFormat_ProcTex,
   AssetFormat_R16,
   AssetFormat_R32,
   AssetFormat_Raw,

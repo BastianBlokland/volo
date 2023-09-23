@@ -26,6 +26,6 @@
 *.pme linguist-language=JSON
 *.prefs linguist-language=JSON
 *.products linguist-language=JSON
-*.ptx linguist-language=JSON
+*.proctex linguist-language=JSON
 *.vfx linguist-language=JSON
 *.weapons linguist-language=JSON

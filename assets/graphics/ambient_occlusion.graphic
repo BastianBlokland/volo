@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/ambient_occlusion_rot_noise.ptx",
+      "textureId": "textures/ambient_occlusion_rot_noise.proctex",
       "wrap": "Repeat",
       "filter": "Nearest"
     }

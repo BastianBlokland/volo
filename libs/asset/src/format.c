@@ -20,7 +20,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("pme"),
       string_static("ppm"),
       string_static("products"),
-      string_static("ptx"),
+      string_static("proctex"),
       string_static("r16"),
       string_static("r32"),
       string_static("raw"),

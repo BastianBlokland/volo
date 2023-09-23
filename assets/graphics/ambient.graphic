@@ -27,7 +27,7 @@
       "mipBlending": true
     },
     {
-      "textureId": "textures/game/env_brdf_integration.ptx",
+      "textureId": "textures/game/env_brdf_integration.proctex",
       "wrap": "Clamp",
       "filter": "Linear"
     }

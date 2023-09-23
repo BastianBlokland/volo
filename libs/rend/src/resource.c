@@ -27,7 +27,7 @@ typedef struct {
 
 // clang-format off
 static const RendResGlobalDef g_rendResGlobal[] = {
-    { .repoId = RvkRepositoryId_MissingTexture,                 .assetId = string_static("textures/missing.ptx"), .ignoreAssetChanges = true },
+    { .repoId = RvkRepositoryId_MissingTexture,                 .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true },
     { .repoId = RvkRepositoryId_MissingTextureCube,             .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true },
     { .repoId  = RvkRepositoryId_ShadowGraphic,                 .assetId = string_static("graphics/shadow.graphic") },
     { .repoId  = RvkRepositoryId_ShadowSkinnedGraphic,          .assetId = string_static("graphics/shadow_skinned.graphic") },

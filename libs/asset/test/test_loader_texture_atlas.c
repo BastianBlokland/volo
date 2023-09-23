@@ -8,7 +8,7 @@
 
 static const AssetMemRecord g_testData[] = {
     {
-        .id   = string_static("one.ptx"),
+        .id   = string_static("one.proctex"),
         .data = string_static("{"
                               "  \"type\": \"One\","
                               "  \"channels\": 1,"
@@ -27,8 +27,8 @@ static const AssetMemRecord g_testData[] = {
                               "  \"mipmaps\": true,"
                               "  \"srgb\": true,"
                               "  \"entries\": ["
-                              "    { \"name\": \"a\", \"texture\": \"one.ptx\"},"
-                              "    { \"name\": \"b\", \"texture\": \"one.ptx\"}"
+                              "    { \"name\": \"a\", \"texture\": \"one.proctex\"},"
+                              "    { \"name\": \"b\", \"texture\": \"one.proctex\"}"
                               "  ]"
                               "}"),
     },

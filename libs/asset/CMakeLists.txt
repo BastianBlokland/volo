@@ -29,7 +29,7 @@ add_library(lib_asset STATIC
   src/loader_texture_array.c
   src/loader_texture_height.c
   src/loader_texture_ppm.c
-  src/loader_texture_ptx.c
+  src/loader_texture_proc.c
   src/loader_texture_tga.c
   src/loader_texture.c
   src/loader_vfx.c

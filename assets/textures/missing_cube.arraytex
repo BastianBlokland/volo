@@ -2,11 +2,11 @@
   "type": "Cube",
   "mipmaps": false,
   "textures": [
-    "textures/missing.ptx",
-    "textures/missing.ptx",
-    "textures/missing.ptx",
-    "textures/missing.ptx",
-    "textures/missing.ptx",
-    "textures/missing.ptx"
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex",
+    "textures/missing.proctex"
   ]
 }

@@ -27,7 +27,7 @@
     "*.pme": "json",
     "*.prefs": "json",
     "*.products": "json",
-    "*.ptx": "json",
+    "*.proctex": "json",
     "*.vfx": "json",
     "*.weapons": "json",
   },
@@ -47,7 +47,7 @@
     { "fileMatch": [ "*.prefabs" ], "url": "./assets/schemas/prefabs.schema.json" },
     { "fileMatch": [ "*.pme" ], "url": "./assets/schemas/pme.schema.json" },
     { "fileMatch": [ "*.producs" ], "url": "./assets/schemas/products.schema.json" },
-    { "fileMatch": [ "*.ptx" ], "url": "./assets/schemas/ptx.schema.json" },
+    { "fileMatch": [ "*.proctex" ], "url": "./assets/schemas/proctex.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
   ],
