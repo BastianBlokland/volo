@@ -11,11 +11,11 @@ static const struct {
   String text;
 } g_testData[] = {
     {
-        .id   = string_static("empty.pro"),
+        .id   = string_static("empty.products"),
         .text = string_static("{\"sets\": []}"),
     },
     {
-        .id   = string_static("test.pro"),
+        .id   = string_static("test.products"),
         .text = string_static("{ \"sets\": [ {"
                               "      \"name\": \"A\","
                               "      \"products\": ["
@@ -39,11 +39,11 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid-json.pro"),
+        .id   = string_static("invalid-json.products"),
         .text = string_static("Hello World"),
     },
     {
-        .id   = string_static("duplicate-set-name.pro"),
+        .id   = string_static("duplicate-set-name.products"),
         .text = string_static("{ \"sets\": [ {"
                               "      \"name\": \"A\","
                               "      \"products\": ["
@@ -106,12 +106,12 @@ spec(loader_product) {
   }
 
   it("can unload product-map assets") {
-    const AssetMemRecord record = {.id = string_lit("empty.pro"), .data = g_testData[0].text};
+    const AssetMemRecord record = {.id = string_lit("empty.products"), .data = g_testData[0].text};
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("empty.pro"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("empty.products"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

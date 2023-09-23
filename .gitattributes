@@ -25,7 +25,7 @@
 *.pfb linguist-language=JSON
 *.pme linguist-language=JSON
 *.prefs linguist-language=JSON
-*.pro linguist-language=JSON
+*.products linguist-language=JSON
 *.ptx linguist-language=JSON
 *.vfx linguist-language=JSON
 *.weapons linguist-language=JSON

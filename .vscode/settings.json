@@ -26,7 +26,7 @@
     "*.pfb": "json",
     "*.pme": "json",
     "*.prefs": "json",
-    "*.pro": "json",
+    "*.products": "json",
     "*.ptx": "json",
     "*.vfx": "json",
     "*.weapons": "json",
@@ -46,7 +46,7 @@
     { "fileMatch": [ "*.level" ], "url": "./assets/schemas/level.schema.json" },
     { "fileMatch": [ "*.pfb" ], "url": "./assets/schemas/pfb.schema.json" },
     { "fileMatch": [ "*.pme" ], "url": "./assets/schemas/pme.schema.json" },
-    { "fileMatch": [ "*.pro" ], "url": "./assets/schemas/pro.schema.json" },
+    { "fileMatch": [ "*.producs" ], "url": "./assets/schemas/products.schema.json" },
     { "fileMatch": [ "*.ptx" ], "url": "./assets/schemas/ptx.schema.json" },
     { "fileMatch": [ "*.vfx" ], "url": "./assets/schemas/vfx.schema.json" },
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
