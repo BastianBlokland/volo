@@ -19,13 +19,13 @@ static const struct {
   usize          prefabCount;
 } g_testData[] = {
     {
-        .id          = string_static("empty.pfb"),
+        .id          = string_static("empty.prefabs"),
         .text        = string_static("{\"prefabs\": []}"),
         .prefabs     = {0},
         .prefabCount = 0,
     },
     {
-        .id   = string_static("single.pfb"),
+        .id   = string_static("single.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"Unit\","
                               "      \"traits\": []"
@@ -38,7 +38,7 @@ static const struct {
         .prefabCount = 1,
     },
     {
-        .id   = string_static("flags.pfb"),
+        .id   = string_static("flags.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"Unit\","
                               "      \"isInfantry\": true,"
@@ -52,7 +52,7 @@ static const struct {
         .prefabCount = 1,
     },
     {
-        .id   = string_static("multi.pfb"),
+        .id   = string_static("multi.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"UnitA\","
                               "      \"traits\": []"
@@ -69,7 +69,7 @@ static const struct {
         .prefabCount = 2,
     },
     {
-        .id   = string_static("trait-movement.pfb"),
+        .id   = string_static("trait-movement.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"Unit\","
                               "      \"traits\": [ {"
@@ -94,11 +94,11 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid-json.pfb"),
+        .id   = string_static("invalid-json.prefabs"),
         .text = string_static("Hello World"),
     },
     {
-        .id   = string_static("duplicate-prefab-name.pfb"),
+        .id   = string_static("duplicate-prefab-name.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"Unit\","
                               "      \"traits\": []"
@@ -109,7 +109,7 @@ static const struct {
                               "]}"),
     },
     {
-        .id   = string_static("duplicate-prefab-trait.pfb"),
+        .id   = string_static("duplicate-prefab-trait.prefabs"),
         .text = string_static("{ \"prefabs\": [ {"
                               "      \"name\": \"UnitA\","
                               "      \"traits\": [ {"
@@ -182,12 +182,12 @@ spec(loader_prefab) {
   }
 
   it("can unload prefab-map assets") {
-    const AssetMemRecord record = {.id = string_lit("test.pfb"), .data = g_testData[1].text};
+    const AssetMemRecord record = {.id = string_lit("test.prefabs"), .data = g_testData[1].text};
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.pfb"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.prefabs"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

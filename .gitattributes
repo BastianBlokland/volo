@@ -22,7 +22,7 @@
 *.graphic linguist-language=JSON
 *.inputs linguist-language=JSON
 *.level linguist-language=JSON
-*.pfb linguist-language=JSON
+*.prefabs linguist-language=JSON
 *.pme linguist-language=JSON
 *.prefs linguist-language=JSON
 *.products linguist-language=JSON

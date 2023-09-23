@@ -616,7 +616,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   input_resource_load_map(inputResource, string_lit("global/debug.inputs"));
 
   scene_level_load(world, asset_lookup(world, assets, g_appLevel));
-  scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));
+  scene_prefab_init(world, string_lit("global/game.prefabs"));
   scene_weapon_init(world, string_lit("global/game.weapons"));
   scene_product_init(world, string_lit("global/game.products"));
   scene_terrain_init(

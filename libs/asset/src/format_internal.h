@@ -13,7 +13,7 @@ typedef enum {
   AssetFormat_Inputs,
   AssetFormat_Level,
   AssetFormat_Obj,
-  AssetFormat_Pfb,
+  AssetFormat_Prefabs,
   AssetFormat_Pme,
   AssetFormat_Ppm,
   AssetFormat_Products,
