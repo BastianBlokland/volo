@@ -36,7 +36,7 @@ static const String g_testFontBase64 = string_static(
 
 static const AssetMemRecord g_testData[] = {
     {
-        .id   = string_static("test.ftx"),
+        .id   = string_static("test.fonttex"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
@@ -49,7 +49,7 @@ static const AssetMemRecord g_testData[] = {
 
 static const AssetMemRecord g_errorTestData[] = {
     {
-        .id   = string_static("no-font.ftx"),
+        .id   = string_static("no-font.fonttex"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
@@ -59,7 +59,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "}"),
     },
     {
-        .id   = string_static("empty-font.ftx"),
+        .id   = string_static("empty-font.fonttex"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
@@ -69,7 +69,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "}"),
     },
     {
-        .id   = string_static("missing-font.ftx"),
+        .id   = string_static("missing-font.fonttex"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
@@ -79,7 +79,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "}"),
     },
     {
-        .id   = string_static("non-pow2-size.ftx"),
+        .id   = string_static("non-pow2-size.fonttex"),
         .data = string_static("{"
                               "  \"size\": 42,"
                               "  \"glyphSize\": 32,"
@@ -89,7 +89,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "}"),
     },
     {
-        .id   = string_static("too-many-glyphs.ftx"),
+        .id   = string_static("too-many-glyphs.fonttex"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
@@ -102,16 +102,16 @@ static const AssetMemRecord g_errorTestData[] = {
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) {
-  ecs_access_read(AssetFtxComp);
+  ecs_access_read(AssetFontTexComp);
   ecs_access_read(AssetTextureComp);
 }
 
-ecs_module_init(loader_ftx_test_module) {
+ecs_module_init(loader_fonttex_test_module) {
   ecs_register_view(ManagerView);
   ecs_register_view(AssetView);
 }
 
-spec(loader_ftx) {
+spec(loader_fonttex) {
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
@@ -120,7 +120,7 @@ spec(loader_ftx) {
   setup() {
     def = ecs_def_create(g_alloc_heap);
     asset_register(def);
-    ecs_register_module(def, loader_ftx_test_module);
+    ecs_register_module(def, loader_fonttex_test_module);
 
     world  = ecs_world_create(g_alloc_heap, def);
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
@@ -128,7 +128,7 @@ spec(loader_ftx) {
     testFontData = string_dup(g_alloc_heap, base64_decode_scratch(g_testFontBase64));
   }
 
-  it("can load ftx assets") {
+  it("can load fonttex assets") {
     AssetMemRecord records[array_elems(g_testData) + 1] = {
         {.id = string_lit("font.ttf"), .data = testFontData},
     };
@@ -140,13 +140,13 @@ spec(loader_ftx) {
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.ftx"));
+    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.fonttex"));
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
 
     check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
-    const AssetFtxComp*     ftx = ecs_utils_read_t(world, AssetView, asset, AssetFtxComp);
+    const AssetFontTexComp* ftx = ecs_utils_read_t(world, AssetView, asset, AssetFontTexComp);
     const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
 
     check_require(ftx->characterCount == 2);
@@ -162,31 +162,31 @@ spec(loader_ftx) {
     check_eq_int(tex->height, 64);
   }
 
-  it("can unload ftx assets") {
+  it("can unload fonttex assets") {
     const AssetMemRecord records[] = {
         {.id = string_lit("font.ttf"), .data = testFontData},
-        {.id = string_lit("test.ftx"), .data = g_testData[0].data},
+        {.id = string_lit("test.fonttex"), .data = g_testData[0].data},
     };
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.ftx"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.fonttex"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);
 
-    check(ecs_world_has_t(world, asset, AssetFtxComp));
+    check(ecs_world_has_t(world, asset, AssetFontTexComp));
     check(ecs_world_has_t(world, asset, AssetTextureComp));
 
     asset_release(world, asset);
     asset_test_wait(runner);
 
-    check(!ecs_world_has_t(world, asset, AssetFtxComp));
+    check(!ecs_world_has_t(world, asset, AssetFontTexComp));
     check(!ecs_world_has_t(world, asset, AssetTextureComp));
   }
 
-  it("fails when loading invalid ftx files") {
+  it("fails when loading invalid fonttex files") {
     AssetMemRecord records[array_elems(g_errorTestData) + 1] = {
         {.id = string_lit("font.ttf"), .data = testFontData},
     };
@@ -203,7 +203,7 @@ spec(loader_ftx) {
       asset_test_wait(runner);
 
       check(ecs_world_has_t(world, asset, AssetFailedComp));
-      check(!ecs_world_has_t(world, asset, AssetFtxComp));
+      check(!ecs_world_has_t(world, asset, AssetFontTexComp));
       check(!ecs_world_has_t(world, asset, AssetTextureComp));
     }
   }

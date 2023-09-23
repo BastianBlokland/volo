@@ -3,7 +3,7 @@
 #include "asset_behavior.h"
 #include "asset_decal.h"
 #include "asset_font.h"
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "asset_graphic.h"
 #include "asset_inputmap.h"
 #include "asset_level.h"

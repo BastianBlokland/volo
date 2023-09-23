@@ -4,7 +4,7 @@
 #include "ecs_module.h"
 
 /**
- * FontTeXture is a combination of a sdf (signed-distance-field) texture-atlas and a mapping from
+ * FontTexture is a combination of a sdf (signed-distance-field) texture-atlas and a mapping from
  * unicode to glyph meta information.
  *
  * The texture atlas is a normal AssetTextureComp (from 'asset_texture.h') containing a signed
@@ -22,19 +22,19 @@ typedef struct {
   f32     offsetX, offsetY;
   f32     advance;
   f32     border; // Size of the sdf border.
-} AssetFtxChar;
+} AssetFontTexChar;
 
-ecs_comp_extern_public(AssetFtxComp) {
-  u32           glyphsPerDim;
-  f32           lineSpacing;
-  f32           baseline;   // How far glyphs can extend below the rectangle.
-  AssetFtxChar* characters; // Sorted on the unicode codepoint.
-  usize         characterCount;
+ecs_comp_extern_public(AssetFontTexComp) {
+  u32               glyphsPerDim;
+  f32               lineSpacing;
+  f32               baseline;   // How far glyphs can extend below the rectangle.
+  AssetFontTexChar* characters; // Sorted on the unicode codepoint.
+  usize             characterCount;
 };
 
 /**
  * Get a character based on a unicode codepoint.
  */
-const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode, u8 variation);
+const AssetFontTexChar* asset_fonttex_lookup(const AssetFontTexComp*, Unicode, u8 variation);
 
-AssetDataReg asset_ftx_datareg(void);
+AssetDataReg asset_fonttex_datareg(void);

@@ -2,7 +2,7 @@
 #include "asset_atlas.h"
 #include "asset_behavior.h"
 #include "asset_decal.h"
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "asset_graphic.h"
 #include "asset_inputmap.h"
 #include "asset_level.h"
@@ -44,7 +44,7 @@ static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("bt.btschema"),          .source = asset_behavior_datareg,      .writer = data_treeschema_write},
     {.pattern = string_static("bt.schema.json"),       .source = asset_behavior_datareg,      .writer = data_jsonschema_write},
     {.pattern = string_static("decal.schema.json"),    .source = asset_decal_datareg,         .writer = data_jsonschema_write},
-    {.pattern = string_static("ftx.schema.json"),      .source = asset_ftx_datareg,           .writer = data_jsonschema_write},
+    {.pattern = string_static("fonttex.schema.json"),  .source = asset_fonttex_datareg,       .writer = data_jsonschema_write},
     {.pattern = string_static("graphic.schema.json"),  .source = asset_graphic_datareg,       .writer = data_jsonschema_write},
     {.pattern = string_static("inputs.schema.json"),   .source = asset_inputmap_datareg,      .writer = data_jsonschema_write},
     {.pattern = string_static("level.schema.json"),    .source = asset_level_datareg,         .writer = data_jsonschema_write},

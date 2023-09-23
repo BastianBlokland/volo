@@ -1,5 +1,5 @@
 #include "asset_font.h"
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -19,19 +19,19 @@
 #include "repo_internal.h"
 
 /**
- * FontTeXture - Generates a sdf texture atlas and a character mapping based on a font file.
+ * FontTexture - Generates a sdf texture atlas and a character mapping based on a font file.
  */
 
-#define ftx_max_chars 1024
-#define ftx_max_size (1024 * 16)
-#define ftx_max_fonts 100
+#define fonttex_max_chars 1024
+#define fonttex_max_size (1024 * 16)
+#define fonttex_max_fonts 100
 
 static DataReg* g_dataReg;
-static DataMeta g_dataFtxDefMeta;
+static DataMeta g_dataFontTexDefMeta;
 
 typedef enum {
-  FtxGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
-} FtxGenFlags;
+  FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
+} FontTexGenFlags;
 
 typedef struct {
   String      id;
@@ -40,7 +40,7 @@ typedef struct {
   f32         yOffset;
   f32         spacing;
   String      characters;
-} FtxDefFont;
+} FontTexDefFont;
 
 typedef struct {
   u32 size, glyphSize;
@@ -48,12 +48,12 @@ typedef struct {
   f32 lineSpacing;
   f32 baseline;
   struct {
-    FtxDefFont* values;
-    usize       count;
+    FontTexDefFont* values;
+    usize           count;
   } fonts;
-} FtxDef;
+} FontTexDef;
 
-static void ftx_datareg_init() {
+static void fonttex_datareg_init() {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_dataReg)) {
     return;
@@ -63,78 +63,78 @@ static void ftx_datareg_init() {
     DataReg* reg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(reg, FtxDefFont);
-    data_reg_field_t(reg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FtxDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FtxDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(reg, FontTexDefFont);
+    data_reg_field_t(reg, FontTexDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FontTexDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FontTexDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FontTexDefFont, spacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FontTexDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    data_reg_struct_t(reg, FtxDef);
-    data_reg_field_t(reg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(reg, FtxDef, border, data_prim_t(u32));
-    data_reg_field_t(reg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(reg, FtxDef, baseline, data_prim_t(f32));
-    data_reg_field_t(reg, FtxDef, fonts, t_FtxDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_struct_t(reg, FontTexDef);
+    data_reg_field_t(reg, FontTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FontTexDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(reg, FontTexDef, border, data_prim_t(u32));
+    data_reg_field_t(reg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(reg, FontTexDef, baseline, data_prim_t(f32));
+    data_reg_field_t(reg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     // clang-format on
 
-    g_dataFtxDefMeta = data_meta_t(t_FtxDef);
-    g_dataReg        = reg;
+    g_dataFontTexDefMeta = data_meta_t(t_FontTexDef);
+    g_dataReg            = reg;
   }
   thread_spinlock_unlock(&g_initLock);
 }
 
-ecs_comp_define_public(AssetFtxComp);
+ecs_comp_define_public(AssetFontTexComp);
 
-ecs_comp_define(AssetFtxLoadComp) { FtxDef def; };
+ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 
-static void ecs_destruct_ftx_comp(void* data) {
-  AssetFtxComp* comp = data;
+static void ecs_destruct_fonttex_comp(void* data) {
+  AssetFontTexComp* comp = data;
   alloc_free_array_t(g_alloc_heap, comp->characters, comp->characterCount);
 }
 
-static void ecs_destruct_ftx_load_comp(void* data) {
-  AssetFtxLoadComp* comp = data;
-  data_destroy(g_dataReg, g_alloc_heap, g_dataFtxDefMeta, mem_var(comp->def));
+static void ecs_destruct_fonttex_load_comp(void* data) {
+  AssetFontTexLoadComp* comp = data;
+  data_destroy(g_dataReg, g_alloc_heap, g_dataFontTexDefMeta, mem_var(comp->def));
 }
 
 typedef enum {
-  FtxError_None = 0,
-  FtxError_FontInvalid,
-  FtxError_FontGlyphMissing,
-  FtxError_SizeNonPow2,
-  FtxError_SizeTooBig,
-  FtxError_GlyphSizeNonPow2,
-  FtxError_TooManyFonts,
-  FtxError_TooManyCharacters,
-  FtxError_TooManyGlyphs,
-  FtxError_InvalidUtf8,
+  FontTexError_None = 0,
+  FontTexError_FontInvalid,
+  FontTexError_FontGlyphMissing,
+  FontTexError_SizeNonPow2,
+  FontTexError_SizeTooBig,
+  FontTexError_GlyphSizeNonPow2,
+  FontTexError_TooManyFonts,
+  FontTexError_TooManyCharacters,
+  FontTexError_TooManyGlyphs,
+  FontTexError_InvalidUtf8,
 
-  FtxError_Count,
-} FtxError;
+  FontTexError_Count,
+} FontTexError;
 
-static String ftx_error_str(const FtxError err) {
+static String fonttex_error_str(const FontTexError err) {
   static const String g_msgs[] = {
       string_static("None"),
-      string_static("Ftx specifies an invalid font"),
-      string_static("Ftx source font is missing a glyph for the requested characters"),
-      string_static("Ftx specifies a non power-of-two texture size"),
-      string_static("Ftx specifies a texture size larger then is supported"),
-      string_static("Ftx specifies a non power-of-two glyph size"),
-      string_static("Ftx specifies more fonts then are supported"),
-      string_static("Ftx specifies more characters then are supported"),
-      string_static("Ftx requires more glyphs then fit at the requested size"),
-      string_static("Ftx specifies invalid utf8"),
+      string_static("FontTex specifies an invalid font"),
+      string_static("FontTex source font is missing a glyph for the requested characters"),
+      string_static("FontTex specifies a non power-of-two texture size"),
+      string_static("FontTex specifies a texture size larger then is supported"),
+      string_static("FontTex specifies a non power-of-two glyph size"),
+      string_static("FontTex specifies more fonts then are supported"),
+      string_static("FontTex specifies more characters then are supported"),
+      string_static("FontTex requires more glyphs then fit at the requested size"),
+      string_static("FontTex specifies invalid utf8"),
   };
-  ASSERT(array_elems(g_msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
+  ASSERT(array_elems(g_msgs) == FontTexError_Count, "Incorrect number of fonttex-error messages");
   return g_msgs[err];
 }
 
-static i8 ftx_compare_char_cp(const void* a, const void* b) {
-  const AssetFtxChar* charA  = a;
-  const AssetFtxChar* charB  = b;
-  const i8            result = charA->cp < charB->cp ? -1 : charA->cp > charB->cp ? 1 : 0;
+static i8 fonttex_compare_char_cp(const void* a, const void* b) {
+  const AssetFontTexChar* charA  = a;
+  const AssetFontTexChar* charB  = b;
+  const i8                result = charA->cp < charB->cp ? -1 : charA->cp > charB->cp ? 1 : 0;
   if (LIKELY(result != 0)) {
     return result;
   }
@@ -144,46 +144,46 @@ static i8 ftx_compare_char_cp(const void* a, const void* b) {
 typedef struct {
   u32                   cp;
   const AssetFontGlyph* glyph;
-} FtxDefChar;
+} FontTexDefChar;
 
-static u32 ftx_lookup_chars(
-    const AssetFontComp* font,
-    const FtxGenFlags    flags,
-    String               chars,
-    FtxDefChar           out[ftx_max_chars],
-    FtxError*            err) {
+static u32 fonttex_lookup_chars(
+    const AssetFontComp*  font,
+    const FontTexGenFlags flags,
+    String                chars,
+    FontTexDefChar        out[fonttex_max_chars],
+    FontTexError*         err) {
 
   u32 index = 0;
-  if (flags & FtxGenFlags_IncludeGlyph0) {
-    out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
+  if (flags & FontTexGenFlags_IncludeGlyph0) {
+    out[index++] = (FontTexDefChar){.cp = 0, .glyph = asset_font_missing(font)};
   }
 
   do {
     Unicode cp;
     chars = utf8_cp_read(chars, &cp);
-    if (UNLIKELY(index >= ftx_max_chars)) {
-      *err = FtxError_TooManyCharacters;
+    if (UNLIKELY(index >= fonttex_max_chars)) {
+      *err = FontTexError_TooManyCharacters;
       return 0;
     }
     if (UNLIKELY(!cp)) {
-      *err = FtxError_InvalidUtf8;
+      *err = FontTexError_InvalidUtf8;
       return 0;
     }
     const AssetFontGlyph* glyph = asset_font_lookup(font, cp);
     if (UNLIKELY(glyph == asset_font_missing(font))) {
-      *err = FtxError_FontGlyphMissing;
+      *err = FontTexError_FontGlyphMissing;
       return 0;
     }
-    out[index++] = (FtxDefChar){.cp = cp, .glyph = glyph};
+    out[index++] = (FontTexDefChar){.cp = cp, .glyph = glyph};
 
   } while (chars.size);
 
-  *err = FtxError_None;
+  *err = FontTexError_None;
   return index;
 }
 
-static void ftx_generate_glyph(
-    const FtxDef*         def,
+static void fonttex_generate_glyph(
+    const FontTexDef*     def,
     const AssetFontComp*  font,
     const AssetFontGlyph* glyph,
     const u32             index,
@@ -224,26 +224,26 @@ typedef struct {
   f32                  yOffset;
   f32                  spacing;
   String               characters;
-} FtxDefResolvedFont;
+} FontTexDefResolvedFont;
 
-static void ftx_generate_font(
-    const FtxDef*            def,
-    const FtxDefResolvedFont font,
-    const FtxGenFlags        flags,
-    u32                      maxGlyphs,
-    u16*                     nextGlyphIndex,
-    DynArray*                outChars, // AssetFtxChar[]
-    AssetTexturePixelB1*     outPixels,
-    FtxError*                err) {
+static void fonttex_generate_font(
+    const FontTexDef*            def,
+    const FontTexDefResolvedFont font,
+    const FontTexGenFlags        flags,
+    u32                          maxGlyphs,
+    u16*                         nextGlyphIndex,
+    DynArray*                    outChars, // AssetFtxChar[]
+    AssetTexturePixelB1*         outPixels,
+    FontTexError*                err) {
 
-  FtxDefChar inputChars[ftx_max_chars];
-  const u32  charCount = ftx_lookup_chars(font.data, flags, font.characters, inputChars, err);
+  FontTexDefChar inputChars[fonttex_max_chars];
+  const u32 charCount = fonttex_lookup_chars(font.data, flags, font.characters, inputChars, err);
   if (UNLIKELY(*err)) {
     return;
   }
 
   for (u32 i = 0; i != charCount; ++i) {
-    *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
+    *dynarray_push_t(outChars, AssetFontTexChar) = (AssetFontTexChar){
         .cp         = inputChars[i].cp,
         .variation  = font.variation,
         .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u16,
@@ -255,49 +255,49 @@ static void ftx_generate_font(
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(*nextGlyphIndex >= maxGlyphs || *nextGlyphIndex == u16_max)) {
-        *err = FtxError_TooManyGlyphs;
+        *err = FontTexError_TooManyGlyphs;
         return;
       }
-      ftx_generate_glyph(def, font.data, inputChars[i].glyph, (*nextGlyphIndex)++, outPixels);
+      fonttex_generate_glyph(def, font.data, inputChars[i].glyph, (*nextGlyphIndex)++, outPixels);
     }
   }
 }
 
-static void ftx_generate(
-    const FtxDef*             def,
-    const FtxDefResolvedFont* fonts,
-    const u32                 fontCount,
-    AssetFtxComp*             outFtx,
-    AssetTextureComp*         outTexture,
-    FtxError*                 err) {
+static void fonttex_generate(
+    const FontTexDef*             def,
+    const FontTexDefResolvedFont* fonts,
+    const u32                     fontCount,
+    AssetFontTexComp*             outFontTex,
+    AssetTextureComp*             outTexture,
+    FontTexError*                 err) {
 
   Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
   mem_set(pixelMem, 0xFF); // Initialize to the maximum distance away from a glyph.
 
   AssetTexturePixelB1* pixels = pixelMem.ptr;
-  DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
+  DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFontTexChar, 128);
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
   u16       nextGlyphIndex = 0;
   if (UNLIKELY(!maxGlyphs)) {
-    *err = FtxError_TooManyGlyphs;
+    *err = FontTexError_TooManyGlyphs;
     goto Error;
   }
 
   for (u32 i = 0; i != fontCount; ++i) {
-    const FtxGenFlags genFlags = i == 0 ? FtxGenFlags_IncludeGlyph0 : 0;
+    const FontTexGenFlags genFlags = i == 0 ? FontTexGenFlags_IncludeGlyph0 : 0;
 
-    ftx_generate_font(def, fonts[i], genFlags, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
+    fonttex_generate_font(def, fonts[i], genFlags, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
     if (UNLIKELY(*err)) {
       goto Error;
     }
   }
 
   // Sort the characters on the unicode codepoint.
-  dynarray_sort(&chars, ftx_compare_char_cp);
+  dynarray_sort(&chars, fonttex_compare_char_cp);
 
-  *outFtx = (AssetFtxComp){
+  *outFontTex = (AssetFontTexComp){
       .glyphsPerDim   = glyphsPerDim,
       .lineSpacing    = def->lineSpacing,
       .baseline       = def->baseline,
@@ -314,7 +314,7 @@ static void ftx_generate(
       .srcMipLevels = 1,
   };
   dynarray_destroy(&chars);
-  *err = FtxError_None;
+  *err = FontTexError_None;
   return;
 
 Error:
@@ -324,13 +324,13 @@ Error:
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(LoadView) { ecs_access_write(AssetFtxLoadComp); }
+ecs_view_define(LoadView) { ecs_access_write(AssetFontTexLoadComp); }
 ecs_view_define(FontView) { ecs_access_write(AssetFontComp); }
 
 /**
  * Update all active loads.
  */
-ecs_system_define(FtxLoadAssetSys) {
+ecs_system_define(FontTexLoadAssetSys) {
   AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     return;
@@ -339,31 +339,31 @@ ecs_system_define(FtxLoadAssetSys) {
   EcsIterator* fontItr  = ecs_view_itr(ecs_world_view_t(world, FontView));
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    AssetFtxLoadComp* load   = ecs_view_write_t(itr, AssetFtxLoadComp);
-    FtxError          err;
+    const EcsEntityId     entity = ecs_view_entity(itr);
+    AssetFontTexLoadComp* load   = ecs_view_write_t(itr, AssetFontTexLoadComp);
+    FontTexError          err;
 
-    const u32           fontCount = (u32)load->def.fonts.count;
-    FtxDefResolvedFont* fonts     = mem_stack(sizeof(FtxDefResolvedFont) * fontCount).ptr;
+    const u32               fontCount = (u32)load->def.fonts.count;
+    FontTexDefResolvedFont* fonts     = mem_stack(sizeof(FontTexDefResolvedFont) * fontCount).ptr;
     for (u32 i = 0; i != fontCount; ++i) {
-      FtxDefFont* defFont = &load->def.fonts.values[i];
+      FontTexDefFont* defFont = &load->def.fonts.values[i];
       if (!defFont->asset) {
         defFont->asset = asset_lookup(world, manager, defFont->id);
         asset_acquire(world, defFont->asset);
         asset_register_dep(world, entity, defFont->asset);
       }
       if (ecs_world_has_t(world, defFont->asset, AssetFailedComp)) {
-        err = FtxError_FontInvalid;
+        err = FontTexError_FontInvalid;
         goto Error;
       }
       if (!ecs_world_has_t(world, defFont->asset, AssetLoadedComp)) {
         goto Wait; // Wait for the font to load.
       }
       if (UNLIKELY(!ecs_view_maybe_jump(fontItr, defFont->asset))) {
-        err = FtxError_FontInvalid;
+        err = FontTexError_FontInvalid;
         goto Error;
       }
-      fonts[i] = (FtxDefResolvedFont){
+      fonts[i] = (FontTexDefResolvedFont){
           .data       = ecs_view_read_t(fontItr, AssetFontComp),
           .variation  = defFont->variation,
           .yOffset    = defFont->yOffset,
@@ -372,25 +372,25 @@ ecs_system_define(FtxLoadAssetSys) {
       };
     }
 
-    AssetFtxComp     ftx;
+    AssetFontTexComp ftx;
     AssetTextureComp texture;
-    ftx_generate(&load->def, fonts, fontCount, &ftx, &texture, &err);
+    fonttex_generate(&load->def, fonts, fontCount, &ftx, &texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
-    *ecs_world_add_t(world, entity, AssetFtxComp)     = ftx;
+    *ecs_world_add_t(world, entity, AssetFontTexComp) = ftx;
     *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
   Error:
-    log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(ftx_error_str(err))));
+    log_e("Failed to load font-texture", log_param("error", fmt_text(fonttex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    ecs_world_remove_t(world, entity, AssetFtxLoadComp);
-    array_ptr_for_t(load->def.fonts, FtxDefFont, font) {
+    ecs_world_remove_t(world, entity, AssetFontTexLoadComp);
+    array_ptr_for_t(load->def.fonts, FontTexDefFont, font) {
       if (font->asset) {
         asset_release(world, font->asset);
       }
@@ -401,92 +401,93 @@ ecs_system_define(FtxLoadAssetSys) {
   }
 }
 
-ecs_view_define(FtxUnloadView) {
-  ecs_access_with(AssetFtxComp);
+ecs_view_define(FontTexUnloadView) {
+  ecs_access_with(AssetFontTexComp);
   ecs_access_without(AssetLoadedComp);
 }
 
 /**
- * Remove any ftx-asset component for unloaded assets.
+ * Remove any fonttex-asset component for unloaded assets.
  */
-ecs_system_define(FtxUnloadAssetSys) {
-  EcsView* unloadView = ecs_world_view_t(world, FtxUnloadView);
+ecs_system_define(FontTexUnloadAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, FontTexUnloadView);
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, AssetFtxComp);
+    ecs_world_remove_t(world, entity, AssetFontTexComp);
   }
 }
 
-ecs_module_init(asset_ftx_module) {
-  ftx_datareg_init();
+ecs_module_init(asset_fonttex_module) {
+  fonttex_datareg_init();
 
-  ecs_register_comp(AssetFtxComp, .destructor = ecs_destruct_ftx_comp);
-  ecs_register_comp(AssetFtxLoadComp, .destructor = ecs_destruct_ftx_load_comp);
+  ecs_register_comp(AssetFontTexComp, .destructor = ecs_destruct_fonttex_comp);
+  ecs_register_comp(AssetFontTexLoadComp, .destructor = ecs_destruct_fonttex_load_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
   ecs_register_view(FontView);
-  ecs_register_view(FtxUnloadView);
+  ecs_register_view(FontTexUnloadView);
 
   ecs_register_system(
-      FtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(FontView));
+      FontTexLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(FontView));
 
-  ecs_register_system(FtxUnloadAssetSys, ecs_view_id(FtxUnloadView));
+  ecs_register_system(FontTexUnloadAssetSys, ecs_view_id(FontTexUnloadView));
 }
 
-void asset_load_ftx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_fonttex(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
   String         errMsg;
-  FtxDef         def;
+  FontTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataFtxDefMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataFontTexDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.size))) {
-    errMsg = ftx_error_str(FtxError_SizeNonPow2);
+    errMsg = fonttex_error_str(FontTexError_SizeNonPow2);
     goto Error;
   }
-  if (UNLIKELY(def.size > ftx_max_size)) {
-    errMsg = ftx_error_str(FtxError_SizeTooBig);
+  if (UNLIKELY(def.size > fonttex_max_size)) {
+    errMsg = fonttex_error_str(FontTexError_SizeTooBig);
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
-    errMsg = ftx_error_str(FtxError_GlyphSizeNonPow2);
+    errMsg = fonttex_error_str(FontTexError_GlyphSizeNonPow2);
     goto Error;
   }
-  if (UNLIKELY(def.fonts.count > ftx_max_fonts)) {
-    errMsg = ftx_error_str(FtxError_TooManyFonts);
+  if (UNLIKELY(def.fonts.count > fonttex_max_fonts)) {
+    errMsg = fonttex_error_str(FontTexError_TooManyFonts);
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetFtxLoadComp, .def = def);
+  ecs_world_add_t(world, entity, AssetFontTexLoadComp, .def = def);
   asset_repo_source_close(src);
   return;
 
 Error:
-  log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(errMsg)));
+  log_e("Failed to load font-texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_alloc_heap, g_dataFtxDefMeta, mem_var(def));
+  data_destroy(g_dataReg, g_alloc_heap, g_dataFontTexDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 
-const AssetFtxChar*
-asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp, const u8 variation) {
+const AssetFontTexChar*
+asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 variation) {
 
   /**
    * Binary scan to find a character with a matching code-point.
    * Looks for a character with the same variation otherwise variation 0 is returned.
    */
-  const AssetFtxChar* begin      = comp->characters;
-  const AssetFtxChar* end        = comp->characters + comp->characterCount;
-  const AssetFtxChar* matchingCp = null;
+  const AssetFontTexChar* begin      = comp->characters;
+  const AssetFontTexChar* end        = comp->characters + comp->characterCount;
+  const AssetFontTexChar* matchingCp = null;
   while (begin < end) {
-    const usize         elems  = end - begin;
-    const AssetFtxChar* middle = begin + (elems / 2);
+    const usize             elems  = end - begin;
+    const AssetFontTexChar* middle = begin + (elems / 2);
     if (middle->cp == cp) {
       if (middle->variation == variation) {
         return middle;
@@ -511,10 +512,10 @@ asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp, const u8 variation)
   return &comp->characters[0];
 }
 
-AssetDataReg asset_ftx_datareg() {
-  ftx_datareg_init();
+AssetDataReg asset_fonttex_datareg() {
+  fonttex_datareg_init();
   return (AssetDataReg){
       .registry = g_dataReg,
-      .typeMeta = g_dataFtxDefMeta,
+      .typeMeta = g_dataFontTexDefMeta,
   };
 }

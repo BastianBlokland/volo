@@ -10,7 +10,7 @@ add_library(lib_asset STATIC
   src/loader_decal.c
   src/loader_font_ttf.c
   src/loader_font.c
-  src/loader_ftx.c
+  src/loader_fonttex.c
   src/loader_graphic.c
   src/loader_inputmap.c
   src/loader_level.c
@@ -25,8 +25,8 @@ add_library(lib_asset STATIC
   src/loader_shader.c
   src/loader_sound_wav.c
   src/loader_sound.c
-  src/loader_texture_atlas.c
   src/loader_texture_array.c
+  src/loader_texture_atlas.c
   src/loader_texture_height.c
   src/loader_texture_ppm.c
   src/loader_texture_proc.c
@@ -50,7 +50,7 @@ add_executable(test_lib_asset
   test/config.c
   test/test_loader_behavior.c
   test/test_loader_font_ttf.c
-  test/test_loader_ftx.c
+  test/test_loader_fonttex.c
   test/test_loader_graphic.c
   test/test_loader_inputmap.c
   test/test_loader_level.c

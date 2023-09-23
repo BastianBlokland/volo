@@ -16,7 +16,7 @@
   ],
   "samplers": [
     {
-      "textureId": "fonts/ui.ftx",
+      "textureId": "fonts/ui.fonttex",
       "wrap": "Clamp",
       "filter": "Linear"
     }

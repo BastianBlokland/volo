@@ -1,16 +1,16 @@
 #pragma once
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "ui_canvas.h"
 #include "ui_rect.h"
 
 typedef struct {
-  const AssetFtxChar* ch;
-  UiVector            pos;
-  UiColor             color;
-  UiLayer             layer;
-  UiWeight            weight;
-  f32                 size;
-  u8                  outline;
+  const AssetFontTexChar* ch;
+  UiVector                pos;
+  UiColor                 color;
+  UiLayer                 layer;
+  UiWeight                weight;
+  f32                     size;
+  u8                      outline;
 } UiTextCharInfo;
 
 typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
@@ -35,7 +35,7 @@ typedef struct {
 } UiTextBuildResult;
 
 UiTextBuildResult ui_text_build(
-    const AssetFtxComp*,
+    const AssetFontTexComp*,
     UiFlags  flags,
     UiRect   totalRect,
     UiVector inputPos,

@@ -13,7 +13,7 @@
 #define ui_text_max_backgrounds 50
 
 typedef struct {
-  const AssetFtxComp*       font;
+  const AssetFontTexComp*   font;
   const String              totalText;
   const UiRect              rect;
   const f32                 fontSize;
@@ -74,20 +74,20 @@ static void ui_text_background_end(UiTextBackgroundCollector* collector, const f
 }
 
 static f32 ui_text_to_tabstop(
-    const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
-  const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
-  const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  return tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
+    const AssetFontTexComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
+  const f32 advance = asset_fonttex_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
+  const f32 tabSize = advance * ui_text_tab_size;
+  return tabSize - math_mod_f32(cursor + advance, tabSize);
 }
 
 static f32 ui_text_to_stop(
-    const AssetFtxComp* font,
-    const u8            stop,
-    const f32           cursor,
-    const f32           fontSize,
-    const u8            fontVariation) {
-  const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
-  return math_max(spaceAdvance * stop - cursor, 0);
+    const AssetFontTexComp* font,
+    const u8                stop,
+    const f32               cursor,
+    const f32               fontSize,
+    const u8                fontVariation) {
+  const f32 advance = asset_fonttex_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
+  return math_max(advance * stop - cursor, 0);
 }
 
 static bool ui_text_is_separator(const Unicode cp) {
@@ -108,7 +108,7 @@ static bool ui_text_is_separator(const Unicode cp) {
  * NOTE: Returns the remaining text that did not fit on the current line.
  */
 static String ui_text_line(
-    const AssetFtxComp*        font,
+    const AssetFontTexComp*    font,
     const UiFlags              flags,
     const String               text,
     const f32                  maxWidth,
@@ -190,7 +190,7 @@ static String ui_text_line(
       break;
     }
     default:
-      cursorConsumed.pixel += asset_ftx_lookup(font, cp, fontVariation)->advance * fontSize;
+      cursorConsumed.pixel += asset_fonttex_lookup(font, cp, fontVariation)->advance * fontSize;
       break;
     }
     if (cursorConsumed.pixel > maxWidth) {
@@ -297,8 +297,8 @@ static void ui_text_build_char(
     const usize       charIndex,
     const usize       nextCharIndex) {
 
-  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
-  const f32           advance = ch->advance * state->fontSize;
+  const AssetFontTexChar* ch      = asset_fonttex_lookup(state->font, cp, state->fontVariation);
+  const f32               advance = ch->advance * state->fontSize;
   ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
 
   if (!sentinel_check(ch->glyphIndex)) {
@@ -318,7 +318,7 @@ static void ui_text_build_char(
 }
 
 static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line, const u8 alpha) {
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVerticalBar, 0);
+  const AssetFontTexChar* ch = asset_fonttex_lookup(state->font, UiShape_CursorVerticalBar, 0);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
         state->userCtx,
@@ -418,8 +418,8 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
   const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
-                  .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
-                  .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
+      .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
+      .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
   };
   state->buildBackground(
       state->userCtx,
@@ -431,7 +431,7 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
 }
 
 UiTextBuildResult ui_text_build(
-    const AssetFtxComp*             font,
+    const AssetFontTexComp*         font,
     const UiFlags                   flags,
     const UiRect                    totalRect,
     const UiVector                  inputPosition,

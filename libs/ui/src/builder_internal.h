@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_ftx.h"
+#include "asset_fonttex.h"
 #include "ui_canvas.h"
 #include "ui_settings.h"
 
@@ -40,15 +40,15 @@ typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
 typedef struct {
-  const UiSettingsComp* settings;
-  const AssetFtxComp*   font;
-  UiId                  debugElem;
-  UiVector              canvasRes, inputPos;
-  void*                 userCtx;
-  UiOutputClipRectFunc  outputClipRect;
-  UiOutputGlyphFunc     outputGlyph;
-  UiOutputRect          outputRect;
-  UiOutputTextInfo      outputTextInfo;
+  const UiSettingsComp*   settings;
+  const AssetFontTexComp* font;
+  UiId                    debugElem;
+  UiVector                canvasRes, inputPos;
+  void*                   userCtx;
+  UiOutputClipRectFunc    outputClipRect;
+  UiOutputGlyphFunc       outputGlyph;
+  UiOutputRect            outputRect;
+  UiOutputTextInfo        outputTextInfo;
 } UiBuildCtx;
 
 typedef struct {

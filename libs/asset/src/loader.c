@@ -25,8 +25,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Decal: {
     RET_LOADER(decal);
   }
-  case AssetFormat_Ftx: {
-    RET_LOADER(ftx);
+  case AssetFormat_FontTex: {
+    RET_LOADER(fonttex);
   }
   case AssetFormat_Gltf: {
     RET_LOADER(gltf);

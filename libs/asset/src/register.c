@@ -3,12 +3,12 @@
 #include "ecs_def.h"
 
 void asset_register(EcsDef* def) {
-  ecs_register_module(def, asset_atlas_module);
   ecs_register_module(def, asset_arraytex_module);
+  ecs_register_module(def, asset_atlas_module);
   ecs_register_module(def, asset_behavior_module);
   ecs_register_module(def, asset_decal_module);
   ecs_register_module(def, asset_font_module);
-  ecs_register_module(def, asset_ftx_module);
+  ecs_register_module(def, asset_fonttex_module);
   ecs_register_module(def, asset_gltf_module);
   ecs_register_module(def, asset_graphic_module);
   ecs_register_module(def, asset_inputmap_module);

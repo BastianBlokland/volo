@@ -18,7 +18,7 @@
 *.atlas linguist-language=JSON
 *.arraytex linguist-language=JSON
 *.decal linguist-language=JSON
-*.ftx linguist-language=JSON
+*.fonttex linguist-language=JSON
 *.graphic linguist-language=JSON
 *.inputs linguist-language=JSON
 *.level linguist-language=JSON
