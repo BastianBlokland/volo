@@ -14,7 +14,7 @@ typedef enum {
   AssetFormat_Level,
   AssetFormat_Obj,
   AssetFormat_Prefabs,
-  AssetFormat_Pme,
+  AssetFormat_ProcMesh,
   AssetFormat_Ppm,
   AssetFormat_Products,
   AssetFormat_ProcTex,

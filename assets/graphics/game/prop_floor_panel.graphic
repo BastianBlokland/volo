@@ -28,7 +28,7 @@
       "anisotropy": "x2"
     }
   ],
-  "meshId": "meshes/game/floor_panel.pme",
+  "meshId": "meshes/game/floor_panel.procmesh",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

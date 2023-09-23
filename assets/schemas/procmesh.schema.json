@@ -1,18 +1,18 @@
 {
-  "title": "PmeDef",
-  "$ref": "#/$defs/PmeDef",
+  "title": "ProcMeshDef",
+  "$ref": "#/$defs/ProcMeshDef",
   "$defs": {
-    "PmeDef": {
+    "ProcMeshDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "type": {
-          "title": "PmeType",
-          "$ref": "#/$defs/PmeType"
+          "title": "ProcMeshType",
+          "$ref": "#/$defs/ProcMeshType"
         },
         "axis": {
-          "title": "PmeAxis",
-          "$ref": "#/$defs/PmeAxis"
+          "title": "ProcMeshAxis",
+          "$ref": "#/$defs/ProcMeshAxis"
         },
         "subdivisions": {
           "title": "u32",
@@ -55,12 +55,12 @@
         "bounds": {
           "anyOf": [
             {
-              "title": "PmeBounds",
-              "$ref": "#/$defs/PmeBounds"
+              "title": "ProcMeshBounds",
+              "$ref": "#/$defs/ProcMeshBounds"
             },
             {
               "const": null,
-              "title": "PmeBounds"
+              "title": "ProcMeshBounds"
             }
           ]
         }
@@ -76,7 +76,7 @@
         }
       ]
     },
-    "PmeType": {
+    "ProcMeshType": {
       "enum": [
         "Triangle",
         "Quad",
@@ -87,7 +87,7 @@
         "Hemisphere"
       ]
     },
-    "PmeAxis": {
+    "ProcMeshAxis": {
       "enum": [
         "Up",
         "Down",
@@ -97,7 +97,7 @@
         "Backward"
       ]
     },
-    "PmeBounds": {
+    "ProcMeshBounds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

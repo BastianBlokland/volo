@@ -7,7 +7,7 @@
       "shaderId": "shaders/fog_vision.frag.spv"
     }
   ],
-  "meshId": "meshes/sphere.pme",
+  "meshId": "meshes/sphere.procmesh",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

@@ -46,8 +46,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Prefabs: {
     RET_LOADER(prefabs);
   }
-  case AssetFormat_Pme: {
-    RET_LOADER(pme);
+  case AssetFormat_ProcMesh: {
+    RET_LOADER(procmesh);
   }
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);

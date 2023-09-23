@@ -7,7 +7,7 @@
       "shaderId": "shaders/light/light_point.frag.spv"
     }
   ],
-  "meshId": "meshes/light/light_point.pme",
+  "meshId": "meshes/light/light_point.procmesh",
   "renderOrder": -90,
   "topology": "Triangles",
   "rasterizer": "Fill",

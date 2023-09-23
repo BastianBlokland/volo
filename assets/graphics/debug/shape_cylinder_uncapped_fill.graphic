@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_cylinder_uncapped.pme",
+  "meshId": "meshes/debug/shape_cylinder_uncapped.procmesh",
   "renderOrder": 150,
   "topology": "Triangles",
   "rasterizer": "Fill",

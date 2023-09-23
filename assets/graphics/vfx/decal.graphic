@@ -21,7 +21,7 @@
       "anisotropy": "x4"
     }
   ],
-  "meshId": "meshes/vfx/decal_box.pme",
+  "meshId": "meshes/vfx/decal_box.procmesh",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "AlphaConstant",

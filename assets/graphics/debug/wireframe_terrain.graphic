@@ -14,7 +14,7 @@
       "filter": "Linear"
     }
   ],
-  "meshId": "meshes/scene/terrain_patch.pme",
+  "meshId": "meshes/scene/terrain_patch.procmesh",
   "renderOrder": 10,
   "topology": "Triangles",
   "rasterizer": "Lines",

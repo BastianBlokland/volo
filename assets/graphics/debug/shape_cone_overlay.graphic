@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_cone.pme",
+  "meshId": "meshes/debug/shape_cone.procmesh",
   "renderOrder": 161,
   "topology": "Triangles",
   "rasterizer": "Fill",

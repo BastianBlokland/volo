@@ -1,14 +1,14 @@
 {
-  "title": "PtxDef",
-  "$ref": "#/$defs/PtxDef",
+  "title": "ProcTexDef",
+  "$ref": "#/$defs/ProcTexDef",
   "$defs": {
-    "PtxDef": {
+    "ProcTexDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "type": {
-          "title": "PtxType",
-          "$ref": "#/$defs/PtxType"
+          "title": "ProcTexType",
+          "$ref": "#/$defs/ProcTexType"
         },
         "pixelType": {
           "title": "AssetTextureType",
@@ -58,7 +58,7 @@
         }
       ]
     },
-    "PtxType": {
+    "ProcTexType": {
       "enum": [
         "One",
         "Zero",

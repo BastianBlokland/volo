@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_box.pme",
+  "meshId": "meshes/debug/shape_box.procmesh",
   "renderOrder": 160,
   "topology": "Triangles",
   "rasterizer": "Fill",

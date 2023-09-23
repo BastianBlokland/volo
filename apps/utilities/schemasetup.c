@@ -49,7 +49,7 @@ static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("inputs.schema.json"),   .source = asset_inputmap_datareg,      .writer = data_jsonschema_write},
     {.pattern = string_static("level.schema.json"),    .source = asset_level_datareg,         .writer = data_jsonschema_write},
     {.pattern = string_static("prefabs.schema.json"),  .source = asset_prefab_datareg,        .writer = data_jsonschema_write},
-    {.pattern = string_static("pme.schema.json"),      .source = asset_mesh_pme_datareg,      .writer = data_jsonschema_write},
+    {.pattern = string_static("procmesh.schema.json"), .source = asset_mesh_proc_datareg,     .writer = data_jsonschema_write},
     {.pattern = string_static("proctex.schema.json"),  .source = asset_texture_proc_datareg,  .writer = data_jsonschema_write},
     {.pattern = string_static("vfx.schema.json"),      .source = asset_vfx_datareg,           .writer = data_jsonschema_write},
     {.pattern = string_static("weapons.schema.json"),  .source = asset_weapon_datareg,        .writer = data_jsonschema_write},

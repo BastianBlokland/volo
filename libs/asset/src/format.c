@@ -17,7 +17,7 @@ String asset_format_str(const AssetFormat fmt) {
       string_static("level"),
       string_static("obj"),
       string_static("prefabs"),
-      string_static("pme"),
+      string_static("procmesh"),
       string_static("ppm"),
       string_static("products"),
       string_static("proctex"),

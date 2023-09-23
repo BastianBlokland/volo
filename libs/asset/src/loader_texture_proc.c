@@ -368,7 +368,7 @@ Error:
   asset_repo_source_close(src);
 }
 
-AssetDataReg asset_texture_proctex_datareg() {
+AssetDataReg asset_texture_proc_datareg() {
   proctex_datareg_init();
   return (AssetDataReg){
       .registry = g_dataReg,

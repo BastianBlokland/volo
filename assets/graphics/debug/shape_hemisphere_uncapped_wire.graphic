@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_hemisphere_uncapped.pme",
+  "meshId": "meshes/debug/shape_hemisphere_uncapped.procmesh",
   "renderOrder": 152,
   "topology": "Triangles",
   "rasterizer": "Lines",

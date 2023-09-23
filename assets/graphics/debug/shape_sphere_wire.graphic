@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_sphere.pme",
+  "meshId": "meshes/debug/shape_sphere.procmesh",
   "renderOrder": 154,
   "topology": "Triangles",
   "rasterizer": "Lines",
