@@ -14,7 +14,7 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "*.atl": "json",
+    "*.atlas": "json",
     "*.atx": "json",
     "*.bt": "json",
     "*.btschema": "json",
@@ -36,7 +36,7 @@
     "assets/**/*.spv": true
   },
   "json.schemas": [
-    { "fileMatch": [ "*.atl" ], "url": "./assets/schemas/atl.schema.json" },
+    { "fileMatch": [ "*.atlas" ], "url": "./assets/schemas/atlas.schema.json" },
     { "fileMatch": [ "*.atx" ], "url": "./assets/schemas/atx.schema.json" },
     { "fileMatch": [ "*.bt" ], "url": "./assets/schemas/bt.schema.json" },
     { "fileMatch": [ "*.dcl" ], "url": "./assets/schemas/dcl.schema.json" },

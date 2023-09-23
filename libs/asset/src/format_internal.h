@@ -2,7 +2,7 @@
 #include "core_string.h"
 
 typedef enum {
-  AssetFormat_Atl,
+  AssetFormat_Atlas,
   AssetFormat_Atx,
   AssetFormat_Bin,
   AssetFormat_Bt,

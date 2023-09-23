@@ -10,8 +10,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   return &asset_loader_name(_NAME_)
 
   switch (format) {
-  case AssetFormat_Atl: {
-    RET_LOADER(atl);
+  case AssetFormat_Atlas: {
+    RET_LOADER(atlas);
   }
   case AssetFormat_Atx: {
     RET_LOADER(atx);

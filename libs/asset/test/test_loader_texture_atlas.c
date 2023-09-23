@@ -19,7 +19,7 @@ static const AssetMemRecord g_testData[] = {
                               "}"),
     },
     {
-        .id   = string_static("test.atl"),
+        .id   = string_static("test.atlas"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"entrySize\": 32,"
@@ -36,7 +36,7 @@ static const AssetMemRecord g_testData[] = {
 
 static const AssetMemRecord g_errorTestData[] = {
     {
-        .id   = string_static("no-entries.atl"),
+        .id   = string_static("no-entries.atlas"),
         .data = string_static("{"
                               "  \"size\": 64,"
                               "  \"entrySize\": 32,"
@@ -78,7 +78,7 @@ spec(loader_texture_atlas) {
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.atl"));
+    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.atlas"));
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -103,7 +103,7 @@ spec(loader_texture_atlas) {
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.atl"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.atlas"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

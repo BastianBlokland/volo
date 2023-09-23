@@ -15,7 +15,7 @@
 # Override linguist language detection for custom extensions.
 *.vert linguist-language=GLSL
 *.frag linguist-language=GLSL
-*.atl linguist-language=JSON
+*.atlas linguist-language=JSON
 *.atx linguist-language=JSON
 *.dcl linguist-language=JSON
 *.ftx linguist-language=JSON

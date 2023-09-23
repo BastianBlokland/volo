@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/vfx/particle.atl",
+      "textureId": "textures/vfx/particle.atlas",
       "wrap": "Clamp",
       "filter": "Linear"
     }

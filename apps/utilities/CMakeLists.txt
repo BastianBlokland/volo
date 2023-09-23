@@ -9,7 +9,7 @@ target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
 add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atl.schema.json"
+  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/atx.schema.json"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/bt.btschema"
   "$<TARGET_PROPERTY:volo_assets,path>/schemas/bt.schema.json"

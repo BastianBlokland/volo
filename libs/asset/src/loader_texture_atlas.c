@@ -17,10 +17,6 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-/**
- * ATLas - Creates atlas textures by combining other textures.
- */
-
 #define atlas_max_size (1024 * 16)
 
 static DataReg* g_dataReg;
@@ -362,7 +358,8 @@ ecs_module_init(asset_atlas_module) {
   ecs_register_system(AtlasUnloadAssetSys, ecs_view_id(AtlasUnloadView));
 }
 
-void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_atlas(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
   String         errMsg;

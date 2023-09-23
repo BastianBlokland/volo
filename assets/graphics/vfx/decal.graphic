@@ -9,13 +9,13 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/vfx/decal_color.atl",
+      "textureId": "textures/vfx/decal_color.atlas",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "textures/vfx/decal_normal.atl",
+      "textureId": "textures/vfx/decal_normal.atlas",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
