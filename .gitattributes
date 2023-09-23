@@ -17,7 +17,7 @@
 *.frag linguist-language=GLSL
 *.atlas linguist-language=JSON
 *.arraytex linguist-language=JSON
-*.dcl linguist-language=JSON
+*.decal linguist-language=JSON
 *.ftx linguist-language=JSON
 *.graphic linguist-language=JSON
 *.inputs linguist-language=JSON

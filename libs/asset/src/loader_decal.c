@@ -150,7 +150,8 @@ ecs_module_init(asset_decal_module) {
   ecs_register_system(DecalUnloadAssetSys, ecs_view_id(DecalUnloadView));
 }
 
-void asset_load_dcl(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_decal(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
   DecalDef       decalDef;

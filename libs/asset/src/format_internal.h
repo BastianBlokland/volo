@@ -6,7 +6,7 @@ typedef enum {
   AssetFormat_ArrayTex,
   AssetFormat_Bin,
   AssetFormat_Bt,
-  AssetFormat_Dcl,
+  AssetFormat_Decal,
   AssetFormat_Ftx,
   AssetFormat_Gltf,
   AssetFormat_Graphic,
