@@ -20,7 +20,7 @@
 *.dcl linguist-language=JSON
 *.ftx linguist-language=JSON
 *.graphic linguist-language=JSON
-*.imp linguist-language=JSON
+*.inputs linguist-language=JSON
 *.level linguist-language=JSON
 *.pfb linguist-language=JSON
 *.pme linguist-language=JSON

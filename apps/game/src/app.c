@@ -611,9 +611,9 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   app_ambiance_create(world, assets);
 
   InputResourceComp* inputResource = input_resource_init(world);
-  input_resource_load_map(inputResource, string_lit("global/app-input.imp"));
-  input_resource_load_map(inputResource, string_lit("global/game-input.imp"));
-  input_resource_load_map(inputResource, string_lit("global/debug-input.imp"));
+  input_resource_load_map(inputResource, string_lit("global/app.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/game.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/debug.inputs"));
 
   scene_level_load(world, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game-prefabs.pfb"));

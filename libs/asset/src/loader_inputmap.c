@@ -291,7 +291,8 @@ ecs_module_init(asset_inputmap_module) {
   ecs_register_system(InputMapUnloadAssetSys, ecs_view_id(InputMapUnloadView));
 }
 
-void asset_load_imp(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_inputs(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
   DynArray actions  = dynarray_create_t(g_alloc_heap, AssetInputAction, 64);
