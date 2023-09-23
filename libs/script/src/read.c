@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
@@ -1140,11 +1141,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
@@ -1153,4 +1154,28 @@ void script_read(
   if (res->type == ScriptResult_Success) {
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
+}
+
+void script_read_result_write(DynString* out, const ScriptDoc* doc, const ScriptReadResult* res) {
+  if (res->type == ScriptResult_Success) {
+    script_expr_str_write(doc, res->expr, 0, out);
+  } else {
+    fmt_write(
+        out,
+        "{}:{}-{}:{}: {}",
+        fmt_int(res->errorStart.line),
+        fmt_int(res->errorStart.column),
+        fmt_int(res->errorEnd.line),
+        fmt_int(res->errorEnd.column),
+        fmt_text(script_result_str(res->type)));
+  }
+}
+
+String script_read_result_scratch(const ScriptDoc* doc, const ScriptReadResult* res) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  script_read_result_write(&buffer, doc, res);
+
+  return dynstring_view(&buffer);
 }

@@ -40,7 +40,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void repl_output_read_error(const ScriptReadResult* res) {
+static void repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -49,14 +49,7 @@ static void repl_output_read_error(const ScriptReadResult* res) {
 
   tty_write_style_sequence(&buffer, styleErr);
 
-  fmt_write(
-      &buffer,
-      "{}:{}-{}:{}: {}",
-      fmt_int(res->errorStart.line),
-      fmt_int(res->errorStart.column),
-      fmt_int(res->errorEnd.line),
-      fmt_int(res->errorEnd.column),
-      fmt_text(script_result_str(res->type)));
+  script_read_result_write(&buffer, doc, res);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -249,7 +242,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
       }
     }
   } else {
-    repl_output_read_error(&readRes);
+    repl_output_read_error(script, &readRes);
   }
 
   script_destroy(script);
