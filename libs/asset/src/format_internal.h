@@ -21,6 +21,7 @@ typedef enum {
   AssetFormat_R16,
   AssetFormat_R32,
   AssetFormat_Raw,
+  AssetFormat_Script,
   AssetFormat_Spv,
   AssetFormat_Tga,
   AssetFormat_Ttf,

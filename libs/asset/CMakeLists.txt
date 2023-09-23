@@ -21,6 +21,7 @@ add_library(lib_asset STATIC
   src/loader_prefab.c
   src/loader_product.c
   src/loader_raw.c
+  src/loader_script.c
   src/loader_shader_spv.c
   src/loader_shader.c
   src/loader_sound_wav.c
