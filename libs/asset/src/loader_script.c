@@ -18,7 +18,10 @@ static void script_binder_init() {
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
+
     script_binder_declare(binder, string_hash_lit("print"), null);
+
+    script_binder_finalize(binder);
     g_scriptBinder = binder;
   }
   thread_spinlock_unlock(&g_initLock);
@@ -79,8 +82,8 @@ void asset_load_script(
 
 Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
+  script_destroy(doc);
 
 Cleanup:
-  script_destroy(doc);
   asset_repo_source_close(src);
 }

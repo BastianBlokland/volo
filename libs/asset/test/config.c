@@ -12,6 +12,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, loader_prefab);
   register_spec(check, loader_product);
   register_spec(check, loader_raw);
+  register_spec(check, loader_script);
   register_spec(check, loader_shader_spv);
   register_spec(check, loader_texture_atlas);
   register_spec(check, loader_texture_ppm);

@@ -60,6 +60,7 @@ add_executable(test_lib_asset
   test/test_loader_prefab.c
   test/test_loader_product.c
   test/test_loader_raw.c
+  test/test_loader_script.c
   test/test_loader_shader_spv.c
   test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
