@@ -1,12 +1,17 @@
 {
   "name": "volo",
+  "publisher": "bastianblokland",
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.42.0"
+  },
   "contributes": {
     "languages": [
       {
         "id": "volo-script",
-        "aliases": [ "Script" ],
+        "aliases": [ "Volo Script" ],
         "extensions": [ ".script" ],
         "configuration": "./script-configuration.json"
       }
@@ -14,8 +19,8 @@
     "grammars": [
       {
         "language": "volo-script",
-        "scopeName": "source.volo",
-        "path": "./syntaxes/script.tmLanguage.json"
+        "scopeName": "script",
+        "path": "./syntaxes/script.tmLanguage"
       }
     ]
   }
