@@ -29,6 +29,7 @@ add_library(lib_scene STATIC
   src/projectile.c
   src/register.c
   src/renderable.c
+  src/script.c
   src/selection.c
   src/sensor.c
   src/skeleton.c

@@ -25,6 +25,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_product_module);
   ecs_register_module(def, scene_projectile_module);
   ecs_register_module(def, scene_renderable_module);
+  ecs_register_module(def, scene_script_module);
   ecs_register_module(def, scene_selection_module);
   ecs_register_module(def, scene_sensor_module);
   ecs_register_module(def, scene_skeleton_module);

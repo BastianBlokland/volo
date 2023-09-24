@@ -1311,8 +1311,8 @@ static void inspector_vis_draw_navigation_grid(
 }
 
 ecs_comp_extern(SceneBrainComp);
+ecs_comp_extern(SceneScriptComp);
 ecs_comp_extern(SceneSoundComp);
-ecs_comp_extern(SceneSpawnerComp);
 
 static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
@@ -1321,7 +1321,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
   const bool                selected      = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
 
   Unicode icon = 0;
-  if (ecs_world_has_t(world, e, SceneSpawnerComp)) {
+  if (ecs_world_has_t(world, e, SceneScriptComp)) {
     icon = UiShape_Description;
   } else if (ecs_world_has_t(world, e, SceneBrainComp)) {
     icon = UiShape_Psychology;

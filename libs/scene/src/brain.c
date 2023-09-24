@@ -112,7 +112,7 @@ static void scene_brain_eval(
   }
 
   const AiResult res = ai_eval(&ctx, AssetAiNodeRoot);
-  if (res == AiResult_Failure) {
+  if (UNLIKELY(res == AiResult_Failure)) {
     log_w(
         "Brain behavior evaluated to 'failure'",
         log_param("entity", fmt_int(entity, .base = 16)),
