@@ -128,11 +128,11 @@ typedef struct {
 } AssetPrefabTraitCollision;
 
 typedef struct {
-  EcsEntityId script;
+  EcsEntityId scriptAsset;
 } AssetPrefabTraitScript;
 
 typedef struct {
-  EcsEntityId behavior;
+  EcsEntityId behaviorAsset;
 } AssetPrefabTraitBrain;
 
 typedef struct {

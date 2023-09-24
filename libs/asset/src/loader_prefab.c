@@ -579,12 +579,12 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Script:
       outTrait->data_script = (AssetPrefabTraitScript){
-          .script = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
+          .scriptAsset = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
       };
       break;
     case AssetPrefabTrait_Brain:
       outTrait->data_brain = (AssetPrefabTraitBrain){
-          .behavior = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
+          .behaviorAsset = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
       };
       break;
     case AssetPrefabTrait_Spawner:

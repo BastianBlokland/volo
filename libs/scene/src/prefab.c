@@ -323,7 +323,7 @@ static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
 }
 
 static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
-  scene_brain_add(w, e, t->behavior);
+  scene_brain_add(w, e, t->behaviorAsset);
   scene_knowledge_add(w, e);
 }
 
