@@ -170,9 +170,9 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId   entity         = ecs_view_entity(itr);
-    SceneScriptComp*    scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
-    SceneKnowledgeComp* knowledge      = ecs_view_write_t(itr, SceneKnowledgeComp);
+    const EcsEntityId      entity         = ecs_view_entity(itr);
+    const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
+    SceneKnowledgeComp*    knowledge      = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, scriptInstance->scriptAsset)) {
