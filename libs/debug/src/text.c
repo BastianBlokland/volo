@@ -12,12 +12,12 @@
 
 #define debug_text_transient_chunk_size (64 * usize_kibibyte)
 #define debug_text_transient_max 512
-#define debug_text_size 14
 
 typedef struct {
   GeoVector pos;
-  String    text;
   GeoColor  color;
+  String    text;
+  u16       fontSize;
 } DebugText3D;
 
 ecs_comp_define(DebugTextComp) {
@@ -112,13 +112,13 @@ ecs_system_define(DebugTextRenderSys) {
         }
         const UiVector canvasSize = ui_vector(0.2f, 0.1f);
         const UiRect   canvasRect = {
-              ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
-              canvasSize,
+            ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
+            canvasSize,
         };
         ui_style_color(canvas, debug_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);
         ui_canvas_draw_text(
-            canvas, entry->text, debug_text_size, UiAlign_MiddleCenter, UiFlags_None);
+            canvas, entry->text, entry->fontSize, UiAlign_MiddleCenter, UiFlags_None);
       }
     }
   }
@@ -161,7 +161,8 @@ DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
           alloc_chunked_create(g_alloc_page, alloc_bump_create, debug_text_transient_chunk_size));
 }
 
-void debug_text(DebugTextComp* comp, const GeoVector pos, const String text, const GeoColor color) {
+void debug_text_with_opts(
+    DebugTextComp* comp, const GeoVector pos, const String text, const DebugTextOpts* opts) {
   if (UNLIKELY(text.size > debug_text_transient_max)) {
     log_e(
         "Debug text size exceeds maximum",
@@ -174,8 +175,9 @@ void debug_text(DebugTextComp* comp, const GeoVector pos, const String text, con
   }
   // TODO: Report error when the transient allocator runs out of space.
   *dynarray_push_t(&comp->entries, DebugText3D) = (DebugText3D){
-      .pos   = pos,
-      .text  = string_dup(comp->allocTransient, text),
-      .color = color,
+      .pos      = pos,
+      .text     = string_dup(comp->allocTransient, text),
+      .fontSize = opts->fontSize,
+      .color    = opts->color,
   };
 }

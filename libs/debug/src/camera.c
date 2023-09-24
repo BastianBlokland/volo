@@ -278,7 +278,7 @@ static void debug_camera_draw_input_ray(
     if (ecs_view_maybe_jump(nameItr, hit.entity)) {
       const SceneNameComp* nameComp = ecs_view_read_t(nameItr, SceneNameComp);
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
-      debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name), geo_color_white);
+      debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
     }
   } else {
     const f32 terrainHitT = scene_terrain_intersect_ray(terrain, &ray, maxDist);
@@ -291,7 +291,7 @@ static void debug_camera_draw_input_ray(
       debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
 
       const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
-      debug_text(text, textPos, string_lit("terrain"), geo_color_white);
+      debug_text(text, textPos, string_lit("terrain"));
     }
   }
 }
