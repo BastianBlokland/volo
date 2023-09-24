@@ -408,6 +408,27 @@
           "additionalProperties": false,
           "properties": {
             "$type": {
+              "const": "AssetPrefabTrait_Script"
+            },
+            "$name": {
+              "type": "string"
+            },
+            "scriptId": {
+              "title": "String",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "$type",
+            "scriptId"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": {
               "const": "AssetPrefabTrait_Brain"
             },
             "$name": {
@@ -719,6 +740,10 @@
         {
           "label": "New AssetPrefabTrait_Collision",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"radius\": 1\n  }\n}"
+        },
+        {
+          "label": "New AssetPrefabTrait_Script",
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptId\": \"placeholder\"\n}"
         },
         {
           "label": "New AssetPrefabTrait_Brain",
