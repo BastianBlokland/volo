@@ -30,3 +30,9 @@ typedef struct {
  * Pre-condition: res != null.
  */
 void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptReadResult* res);
+
+/**
+ * Create a textual representation of the result.
+ */
+void   script_read_result_write(DynString*, const ScriptDoc*, const ScriptReadResult*);
+String script_read_result_scratch(const ScriptDoc*, const ScriptReadResult*);

@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "script-validate",
+      "command": "${workspaceFolder}/build/apps/utilities/app_repl",
+      "type": "shell",
+      "args": [ "-n", "${file}" ],
+      "problemMatcher": [ "$volo-repl" ]
+    }
+  ]
+}

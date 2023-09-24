@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
@@ -762,6 +763,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 
   ScriptExpr b2Expr;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
+    const ScriptMarker startElse = script_marker(ctx);
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       const ScriptReadResult b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
@@ -769,13 +771,13 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
       }
       b2Expr = b2.expr;
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
-      const ScriptReadResult b2 = read_expr_if(ctx, start);
+      const ScriptReadResult b2 = read_expr_if(ctx, startElse);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
         return script_scope_pop(ctx), b2;
       }
       b2Expr = b2.expr;
     } else {
-      return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockOrIfExpected, start);
+      return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockOrIfExpected, startElse);
     }
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
@@ -1153,4 +1155,28 @@ void script_read(
   if (res->type == ScriptResult_Success) {
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
+}
+
+void script_read_result_write(DynString* out, const ScriptDoc* doc, const ScriptReadResult* res) {
+  if (res->type == ScriptResult_Success) {
+    script_expr_str_write(doc, res->expr, 0, out);
+  } else {
+    fmt_write(
+        out,
+        "{}:{}-{}:{}: {}",
+        fmt_int(res->errorStart.line),
+        fmt_int(res->errorStart.column),
+        fmt_int(res->errorEnd.line),
+        fmt_int(res->errorEnd.column),
+        fmt_text(script_result_str(res->type)));
+  }
+}
+
+String script_read_result_scratch(const ScriptDoc* doc, const ScriptReadResult* res) {
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  script_read_result_write(&buffer, doc, res);
+
+  return dynstring_view(&buffer);
 }

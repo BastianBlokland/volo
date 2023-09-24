@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
 #include "core_format.h"
@@ -40,7 +41,8 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void repl_output_read_error(const ScriptReadResult* res) {
+static void
+repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -49,14 +51,11 @@ static void repl_output_read_error(const ScriptReadResult* res) {
 
   tty_write_style_sequence(&buffer, styleErr);
 
-  fmt_write(
-      &buffer,
-      "{}:{}-{}:{}: {}",
-      fmt_int(res->errorStart.line),
-      fmt_int(res->errorStart.column),
-      fmt_int(res->errorEnd.line),
-      fmt_int(res->errorEnd.column),
-      fmt_text(script_result_str(res->type)));
+  if (!string_is_empty(id)) {
+    dynstring_append(&buffer, id);
+    dynstring_append_char(&buffer, ':');
+  }
+  script_read_result_write(&buffer, doc, res);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -65,7 +64,7 @@ static void repl_output_read_error(const ScriptReadResult* res) {
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_runtime_error(const ScriptEvalResult* res) {
+static void repl_output_runtime_error(const ScriptEvalResult* res, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -74,7 +73,11 @@ static void repl_output_runtime_error(const ScriptEvalResult* res) {
 
   tty_write_style_sequence(&buffer, styleErr);
 
-  fmt_write(&buffer, "Runtime error: {}", fmt_text(script_result_str(res->type)));
+  if (!string_is_empty(id)) {
+    dynstring_append(&buffer, id);
+    dynstring_append(&buffer, string_lit(": "));
+  }
+  dynstring_append(&buffer, script_result_str(res->type));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -222,7 +225,7 @@ static const ScriptBinder* repl_bind_init() {
   return g_binder;
 }
 
-static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input) {
+static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input, const String id) {
   if (flags & ReplFlags_OutputTokens) {
     repl_output_tokens(input);
   }
@@ -245,11 +248,11 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input)
       if (evalRes.type == ScriptResult_Success) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
       } else {
-        repl_output_runtime_error(&evalRes);
+        repl_output_runtime_error(&evalRes, id);
       }
     }
   } else {
-    repl_output_read_error(&readRes);
+    repl_output_read_error(script, &readRes, id);
   }
 
   script_destroy(script);
@@ -296,7 +299,8 @@ static void repl_edit_submit(ReplEditor* editor) {
   string_maybe_free(g_alloc_heap, editor->editPrevText);
   editor->editPrevText = string_maybe_dup(g_alloc_heap, dynstring_view(editor->editBuffer));
 
-  repl_exec(editor->mem, editor->flags, dynstring_view(editor->editBuffer));
+  const String id = string_empty;
+  repl_exec(editor->mem, editor->flags, dynstring_view(editor->editBuffer), id);
 
   dynstring_clear(editor->editBuffer);
 }
@@ -412,25 +416,27 @@ Stop:
   return 0;
 }
 
-static i32 repl_run_file(File* file, const ReplFlags flags) {
+static i32 repl_run_file(File* file, const String id, const ReplFlags flags) {
   DynString readBuffer = dynstring_create(g_alloc_heap, 1 * usize_kibibyte);
   file_read_to_end_sync(file, &readBuffer);
 
   ScriptMem* mem = script_mem_create(g_alloc_heap);
-  repl_exec(mem, flags, dynstring_view(&readBuffer));
+  repl_exec(mem, flags, dynstring_view(&readBuffer), id);
   script_mem_destroy(mem);
 
   dynstring_destroy(&readBuffer);
   return 0;
 }
 
-static i32 repl_run_path(const String path, const ReplFlags flags) {
+static i32 repl_run_path(const String pathAbs, const ReplFlags flags) {
+  diag_assert(path_is_absolute(pathAbs));
+
   File*      file;
   FileResult fileRes;
   u32        fileLockedRetries = 0;
 
 Retry:
-  fileRes = file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file);
+  fileRes = file_create(g_alloc_heap, pathAbs, FileMode_Open, FileAccess_Read, &file);
   if (fileRes == FileResult_Locked && fileLockedRetries++ < 10) {
     thread_sleep(time_milliseconds(100));
     goto Retry;
@@ -440,25 +446,22 @@ Retry:
     file_write_sync(g_file_stderr, msg);
     return 1;
   }
-  const i32 runRes = repl_run_file(file, flags);
+
+  const String id     = pathAbs;
+  const i32    runRes = repl_run_file(file, id, flags);
   file_destroy(file);
   return runRes;
 }
 
-static i32 repl_run_watch(const String path, const ReplFlags flags) {
+static i32 repl_run_watch(const String pathAbs, const ReplFlags flags) {
+  diag_assert(path_is_absolute(pathAbs));
   i32 res = 0;
 
-  // Compute the absolute parent path and the canonized relative path, this is needed to support
-  // paths that start with '../'.
-  const String pathAbs      = string_dup(g_alloc_heap, path_build_scratch(path));
-  const String parentAbs    = path_parent(pathAbs);
-  const String pathRelCanon = string_dup(g_alloc_heap, path_canonize_scratch(path));
-
   const FileMonitorFlags monFlags = FileMonitorFlags_Blocking;
-  FileMonitor*           mon      = file_monitor_create(g_alloc_heap, parentAbs, monFlags);
+  FileMonitor*           mon = file_monitor_create(g_alloc_heap, path_parent(pathAbs), monFlags);
 
   FileMonitorResult monRes;
-  if ((monRes = file_monitor_watch(mon, pathRelCanon, 0))) {
+  if ((monRes = file_monitor_watch(mon, path_filename(pathAbs), 0))) {
     const String err = file_monitor_result_str(monRes);
     const String msg = fmt_write_scratch("ERROR: Failed to watch path: {}\n", fmt_text(err));
     file_write_sync(g_file_stderr, msg);
@@ -468,13 +471,11 @@ static i32 repl_run_watch(const String path, const ReplFlags flags) {
 
   FileMonitorEvent evt;
   do {
-    repl_output(string_lit("--- Change detected ---\n"));
-    res = repl_run_path(path, flags);
+    res = repl_run_path(pathAbs, flags);
+    repl_output(string_lit("--- Waiting for change ---\n"));
   } while (file_monitor_poll(mon, &evt));
 
 Ret:
-  string_free(g_alloc_heap, pathAbs);
-  string_free(g_alloc_heap, pathRelCanon);
   file_monitor_destroy(mon);
   return res;
 }
@@ -546,13 +547,15 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {
+    const String pathAbs = string_dup(g_alloc_persist, path_build_scratch(fileArg.values[0]));
     if (flags & ReplFlags_Watch) {
-      return repl_run_watch(fileArg.values[0], flags);
+      return repl_run_watch(pathAbs, flags);
     }
-    return repl_run_path(fileArg.values[0], flags);
+    return repl_run_path(pathAbs, flags);
   }
   if (tty_isatty(g_file_stdin)) {
     return repl_run_interactive(flags);
   }
-  return repl_run_file(g_file_stdin, flags);
+  const String id = string_empty;
+  return repl_run_file(g_file_stdin, id, flags);
 }
