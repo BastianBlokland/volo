@@ -189,13 +189,7 @@
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>!</string>
-					<key>name</key>
-					<string>keyword.operator.logical.script</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>=|\:</string>
+					<string>=</string>
 					<key>name</key>
 					<string>keyword.operator.assignment.script</string>
 				</dict>
