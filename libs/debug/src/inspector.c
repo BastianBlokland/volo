@@ -1338,8 +1338,8 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     utf8_cp_write(&textBuffer, icon);
 
     const String   str   = dynstring_view(&textBuffer);
-    const GeoColor color = selected ? geo_color_lime : geo_color_white;
-    debug_text(text, transformComp->position, str, .fontSize = 18, .color = color);
+    const GeoColor color = selected ? geo_color(0, 1, 0, 0.5f) : geo_color(1, 1, 1, 0.75f);
+    debug_text(text, transformComp->position, str, .fontSize = 20, .color = color);
   }
 }
 
