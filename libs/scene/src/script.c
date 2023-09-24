@@ -2,15 +2,68 @@
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "script_binder.h"
 #include "script_eval.h"
 #include "script_mem.h"
 
 #define scene_script_max_asset_loads 8
+
+typedef struct {
+  EcsEntityId entity;
+  String      scriptId;
+} SceneScriptBindCtx;
+
+static ScriptVal scene_script_bind_print(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+
+  if (!argCount) {
+    return script_null();
+  }
+
+  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != argCount; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_str_write(args[i], &buffer);
+  }
+  dynstring_append_char(&buffer, '\n');
+
+  log_i(
+      "script: {}",
+      log_param("message", fmt_text(dynstring_view(&buffer))),
+      log_param("entity", fmt_int(ctx->entity, .base = 16)),
+      log_param("script", fmt_text(ctx->scriptId)));
+
+  return args[argCount - 1];
+}
+
+static ScriptBinder* g_scriptBinder;
+
+static void script_binder_init() {
+  static ThreadSpinLock g_initLock;
+  if (LIKELY(g_scriptBinder)) {
+    return;
+  }
+  thread_spinlock_lock(&g_initLock);
+  if (!g_scriptBinder) {
+    ScriptBinder* binder = script_binder_create(g_alloc_persist);
+
+    script_binder_declare(binder, string_hash_lit("print"), scene_script_bind_print);
+
+    script_binder_finalize(binder);
+    g_scriptBinder = binder;
+  }
+  thread_spinlock_unlock(&g_initLock);
+}
 
 typedef enum {
   SceneScriptRes_ResourceAcquired  = 1 << 0,
@@ -88,21 +141,24 @@ static void scene_script_eval(
     return;
   }
 
-  const ScriptDoc* doc     = scriptAsset->doc;
-  const ScriptExpr expr    = scriptAsset->expr;
-  ScriptMem*       mem     = scene_knowledge_memory_mut(knowledge);
-  ScriptBinder*    binder  = null;
-  void*            bindCtx = null;
+  const ScriptDoc* doc  = scriptAsset->doc;
+  const ScriptExpr expr = scriptAsset->expr;
+  ScriptMem*       mem  = scene_knowledge_memory_mut(knowledge);
 
-  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
+  SceneScriptBindCtx ctx = {
+      .entity   = entity,
+      .scriptId = asset_id(scriptAssetComp),
+  };
+
+  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
 
   if (UNLIKELY(evalRes.type != ScriptResult_Success)) {
     const String err = script_result_str(evalRes.type);
     log_w(
         "Script execution failed",
+        log_param("error", fmt_text(err)),
         log_param("entity", fmt_int(entity, .base = 16)),
-        log_param("script", fmt_text(asset_id(scriptAssetComp))),
-        log_param("error", fmt_text(err)));
+        log_param("script", fmt_text(asset_id(scriptAssetComp))));
   }
 }
 
@@ -136,6 +192,8 @@ ecs_system_define(SceneScriptUpdateSys) {
 }
 
 ecs_module_init(scene_script_module) {
+  script_binder_init();
+
   ecs_register_comp(SceneScriptComp);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
