@@ -109,7 +109,7 @@ jobs:
     - name: test-msvc
       if: matrix.config.toolchain == 'msvc'
       run: |
-        ./scripts/env-win32.ps1                                           &&
+        ./ci/env-win32.ps1                                                &&
         cmake -B build -G 'NMake Makefiles' $($env:CMAKE_OPTS -split ' ') &&
         cd build                                                          &&
         nmake /C /K all test
