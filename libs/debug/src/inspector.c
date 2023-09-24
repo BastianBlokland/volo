@@ -45,6 +45,7 @@ typedef enum {
 } DebugInspectorTool;
 
 typedef enum {
+  DebugInspectorVis_Icon,
   DebugInspectorVis_Origin,
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
@@ -78,6 +79,7 @@ static const String g_toolNames[] = {
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
 static const String g_visNames[] = {
+    [DebugInspectorVis_Icon]            = string_static("Icon"),
     [DebugInspectorVis_Origin]          = string_static("Origin"),
     [DebugInspectorVis_Name]            = string_static("Name"),
     [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
@@ -755,10 +757,16 @@ static void inspector_panel_draw(
 }
 
 static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
-  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
-  return itr ? ecs_view_write_t(itr, DebugInspectorSettingsComp)
-             : ecs_world_add_t(world, ecs_world_global(world), DebugInspectorSettingsComp);
+  const EcsEntityId global = ecs_world_global(world);
+  EcsView*          view   = ecs_world_view_t(world, SettingsWriteView);
+  EcsIterator*      itr    = ecs_view_maybe_at(view, global);
+  if (itr) {
+    return ecs_view_write_t(itr, DebugInspectorSettingsComp);
+  }
+  u32 defaultVisFlags = 0;
+  defaultVisFlags |= 1 << DebugInspectorVis_Icon;
+
+  return ecs_world_add_t(world, global, DebugInspectorSettingsComp, .visFlags = defaultVisFlags);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
