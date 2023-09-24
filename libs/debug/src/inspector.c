@@ -1388,6 +1388,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
+  const bool debugLayerActive = input_layer_active(input, string_hash_lit("Debug"));
+
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
     for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
@@ -1421,7 +1423,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
     inspector_vis_draw_navigation_grid(shape, text, nav);
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
+  if (set->visFlags & (1 << DebugInspectorVis_Icon) && debugLayerActive) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
     }
