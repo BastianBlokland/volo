@@ -1,0 +1,28 @@
+## Syntax highlighting for the scripting language of the Volo engine.
+
+syntax "script" "\.script$"
+comment "//"
+
+# Constants.
+color magenta "\b(null|true|false|pi|rad_to_deg|deg_to_rad|up|down|left|right|forward|backward)\b"
+color green "(\.[0-9_]+)|([0-9_]+(\.[0-9_]+)?)\b"
+color yellow ""([^"]|\\")*""
+
+# Keywords.
+color red "\b(if|else|for|while|continue|break|var)\b"
+
+# Operators.
+color cyan "!|<|>|=|&|!|\||\?|\:|%|\*|/|\-|\+|="
+
+# Keys.
+color brightgreen "\$[a-zA-Z0-9_]+"
+
+# Seperators.
+color brightblack "\(|\)|\,|\;|\{|\}"
+
+# Comments.
+color brightblack "//.*"
+color brightblack "/\*.+\*/"
+
+# Trailing whitespace.
+color ,green "[[:space:]]+$"
