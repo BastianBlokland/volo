@@ -26,16 +26,13 @@ static ScriptVal scene_script_bind_print(void* ctxR, const ScriptVal* args, cons
     return script_null();
   }
 
-  Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
-  DynString buffer    = dynstring_create_over(bufferMem);
-
+  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
   for (usize i = 0; i != argCount; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
     script_val_str_write(args[i], &buffer);
   }
-  dynstring_append_char(&buffer, '\n');
 
   log_i(
       "script: {}",
