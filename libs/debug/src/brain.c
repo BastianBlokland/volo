@@ -19,7 +19,7 @@ typedef enum {
 
 static const String g_brainTabNames[] = {
     string_static("Evaluation"),
-    string_static("Settings"),
+    string_static("\uE8B8 Settings"),
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
@@ -116,7 +116,7 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
-static void evaluation_settings_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
+static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
   diag_assert(subject);
 
   SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
@@ -127,7 +127,7 @@ static void evaluation_settings_tab_draw(UiCanvasComp* canvas, EcsIterator* subj
 
   ui_table_next_row(canvas, &table);
   bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause eval:"));
+  ui_label(canvas, string_lit("Pause evaluation:"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseEval)) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
@@ -168,7 +168,7 @@ static void brain_panel_draw(
       evaluation_panel_tab_draw(canvas, panelComp, world, subject);
       break;
     case DebugBrainTab_Settings:
-      evaluation_settings_tab_draw(canvas, subject);
+      settings_panel_tab_draw(canvas, subject);
       break;
     }
   } else {
