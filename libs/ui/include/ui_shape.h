@@ -17,6 +17,7 @@
   X(0xE322, Memory)                                                                                \
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE3AE, Brush)                                                                                 \
+  X(0xE3EA, Grain)                                                                                 \
   X(0xE3F4, Image)                                                                                 \
   X(0xE405, MusicNote)                                                                             \
   X(0xE412, PhotoCamera)                                                                           \
