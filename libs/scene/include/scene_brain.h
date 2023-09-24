@@ -1,10 +1,6 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "script_val.h"
-
-// Forward declare from 'script_mem.h'.
-typedef struct sScriptMem ScriptMem;
 
 // Forward declare from 'ai_tracer_record.h'.
 typedef struct sAiTracerRecord AiTracerRecord;
@@ -18,14 +14,6 @@ typedef enum {
 } SceneBrainFlags;
 
 ecs_comp_extern(SceneBrainComp);
-
-/**
- * Query and update the brain's memory.
- */
-ScriptVal        scene_brain_get(const SceneBrainComp*, StringHash key);
-void             scene_brain_set(const SceneBrainComp*, StringHash key, ScriptVal);
-void             scene_brain_set_null(const SceneBrainComp*, StringHash key);
-const ScriptMem* scene_brain_memory(const SceneBrainComp*);
 
 /**
  * Get access to the brain's tracer for debug visualization purposes.

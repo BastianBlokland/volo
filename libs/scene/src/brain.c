@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_brain.h"
+#include "scene_knowledge.h"
 #include "scene_register.h"
 #include "script_mem.h"
 
@@ -18,7 +19,6 @@ typedef enum {
 
 ecs_comp_define(SceneBrainComp) {
   SceneBrainFlags flags;
-  ScriptMem*      memory;
   AiTracerRecord* tracer;
   EcsEntityId     behaviorAsset;
 };
@@ -27,7 +27,6 @@ ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
 
 static void ecs_destruct_brain_comp(void* data) {
   SceneBrainComp* brain = data;
-  script_mem_destroy(brain->memory);
   if (brain->tracer) {
     ai_tracer_record_destroy(brain->tracer);
   }
@@ -39,7 +38,10 @@ static void ecs_combine_behavior_resource(void* dataA, void* dataB) {
   a->flags |= b->flags;
 }
 
-ecs_view_define(BrainEntityView) { ecs_access_write(SceneBrainComp); }
+ecs_view_define(BrainEntityView) {
+  ecs_access_write(SceneBrainComp);
+  ecs_access_write(SceneKnowledgeComp);
+}
 ecs_view_define(BehaviorView) { ecs_access_read(AssetBehaviorComp); }
 ecs_view_define(BehaviorLoadView) { ecs_access_write(SceneBehaviorResourceComp); }
 
@@ -79,14 +81,17 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 }
 
 static void scene_brain_eval(
-    const EcsEntityId entity, SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
+    const EcsEntityId        entity,
+    SceneBrainComp*          brain,
+    SceneKnowledgeComp*      knowledge,
+    const AssetBehaviorComp* behavior) {
 
   if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
     return;
   }
 
   AiEvalContext ctx = {
-      .memory    = brain->memory,
+      .memory    = scene_knowledge_memory_mut(knowledge),
       .nodeDefs  = behavior->nodes,
       .nodeNames = behavior->nodeNames,
       .scriptDoc = behavior->scriptDoc,
@@ -115,13 +120,14 @@ ecs_system_define(SceneBrainUpdateSys) {
 
   u32 startedBehaviorLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(brainView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
+    const EcsEntityId   entity    = ecs_view_entity(itr);
+    SceneBrainComp*     brain     = ecs_view_write_t(itr, SceneBrainComp);
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     // Evaluate the brain if the behavior asset is loaded.
     if (ecs_view_maybe_jump(behaviorItr, brain->behaviorAsset)) {
       const AssetBehaviorComp* behavior = ecs_view_read_t(behaviorItr, AssetBehaviorComp);
-      scene_brain_eval(entity, brain, behavior);
+      scene_brain_eval(entity, brain, knowledge, behavior);
       continue;
     }
 
@@ -151,20 +157,6 @@ ecs_module_init(scene_brain_module) {
   ecs_parallel(SceneBrainUpdateSys, 4);
 }
 
-ScriptVal scene_brain_get(const SceneBrainComp* brain, const StringHash key) {
-  return script_mem_get(brain->memory, key);
-}
-
-void scene_brain_set(const SceneBrainComp* brain, const StringHash key, const ScriptVal value) {
-  script_mem_set(brain->memory, key, value);
-}
-
-void scene_brain_set_null(const SceneBrainComp* brain, const StringHash key) {
-  script_mem_set_null(brain->memory, key);
-}
-
-const ScriptMem* scene_brain_memory(const SceneBrainComp* brain) { return brain->memory; }
-
 const AiTracerRecord* scene_brain_tracer(const SceneBrainComp* brain) { return brain->tracer; }
 
 SceneBrainFlags scene_brain_flags(const SceneBrainComp* brain) { return brain->flags; }
@@ -187,10 +179,5 @@ SceneBrainComp*
 scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId behaviorAsset) {
   diag_assert(ecs_world_exists(world, behaviorAsset));
 
-  return ecs_world_add_t(
-      world,
-      entity,
-      SceneBrainComp,
-      .memory        = script_mem_create(g_alloc_heap),
-      .behaviorAsset = behaviorAsset);
+  return ecs_world_add_t(world, entity, SceneBrainComp, .behaviorAsset = behaviorAsset);
 }

@@ -161,35 +161,35 @@
       ]
     },
     {
-      "name": "DebugPanelBrain",
+      "name": "DebugPanelScript",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F7" }
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DebugPanelBrain",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DebugPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
       ]
     },
     {
-      "name": "DebugPanelCamera",
+      "name": "DebugPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }
       ]
     },
     {
-      "name": "DebugPanelGrid",
+      "name": "DebugPanelCamera",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F11" }

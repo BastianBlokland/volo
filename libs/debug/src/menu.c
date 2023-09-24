@@ -13,6 +13,7 @@
 #include "debug_menu.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
+#include "debug_script.h"
 #include "debug_sound.h"
 #include "debug_stats.h"
 #include "debug_time.h"
@@ -76,6 +77,12 @@ static const struct {
         .hotkeyName = string_static("DebugPanelAnimation"),
     },
     {
+        .name       = string_static("Script"),
+        .iconShape  = UiShape_Description,
+        .openFunc   = debug_script_panel_open,
+        .hotkeyName = string_static("DebugPanelScript"),
+    },
+    {
         .name       = string_static("Brain"),
         .iconShape  = UiShape_Psychology,
         .openFunc   = debug_brain_panel_open,
@@ -103,7 +110,6 @@ static const struct {
         .name      = string_static("Grid"),
         .iconShape = UiShape_Grid4x4,
         .openFunc  = debug_grid_panel_open,
-        .hotkeyName = string_static("DebugPanelGrid"),
     },
     {
         .name       = string_static("Renderer"),

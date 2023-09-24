@@ -20,6 +20,7 @@ add_library(lib_debug STATIC
   src/prefab.c
   src/register.c
   src/rend.c
+  src/script.c
   src/shape.c
   src/sound.c
   src/stats.c

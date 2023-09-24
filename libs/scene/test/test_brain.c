@@ -6,13 +6,10 @@
 #include "ecs.h"
 #include "ecs_utils.h"
 #include "scene_brain.h"
+#include "scene_knowledge.h"
 #include "scene_register.h"
 
 static const AssetMemRecord g_testBrainAssets[] = {
-    {
-        .id   = string_static("success.bt"),
-        .data = string_static("{ \"$type\": \"AssetAiNode_Success\" }"),
-    },
     {
         .id   = string_static("execute.bt"),
         .data = string_static("{\n"
@@ -29,7 +26,10 @@ static void scene_test_wait(EcsRunner* runner) {
   }
 }
 
-ecs_view_define(BrainView) { ecs_access_write(SceneBrainComp); }
+ecs_view_define(BrainView) {
+  ecs_access_write(SceneBrainComp);
+  ecs_access_write(SceneKnowledgeComp);
+}
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
 ecs_module_init(brain_test_module) {
@@ -58,33 +58,19 @@ spec(brain) {
     ecs_run_sync(runner);
   }
 
-  it("can get/set memory values") {
-    AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("success.bt"));
-
-    const EcsEntityId agent = ecs_world_entity_create(world);
-    SceneBrainComp*   brain = scene_brain_add(world, agent, behaviorAsset);
-
-    const StringHash knowledgeKey = string_hash_lit("test");
-
-    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_null()));
-
-    scene_brain_set(brain, knowledgeKey, script_bool(true));
-
-    check(script_val_equal(scene_brain_get(brain, knowledgeKey), script_bool(true)));
-  }
-
-  it("updates its memory through its behavior") {
+  it("updates its knowledge through its behavior") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("execute.bt"));
 
     const EcsEntityId agent = ecs_world_entity_create(world);
     scene_brain_add(world, agent, behaviorAsset);
+    scene_knowledge_add(world, agent);
 
     scene_test_wait(runner);
 
-    const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
-    const ScriptVal       value = scene_brain_get(brain, string_hash_lit("test"));
+    const SceneKnowledgeComp* know = ecs_utils_read_t(world, BrainView, agent, SceneKnowledgeComp);
+
+    const ScriptVal value = scene_knowledge_get(know, string_hash_lit("test"));
     check(script_val_equal(value, script_bool(true)));
   }
 

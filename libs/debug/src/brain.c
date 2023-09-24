@@ -1,46 +1,32 @@
 #include "ai_tracer_record.h"
 #include "asset_manager.h"
-#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_float.h"
-#include "core_stringtable.h"
 #include "debug_brain.h"
 #include "debug_register.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "scene_brain.h"
 #include "scene_selection.h"
-#include "script_mem.h"
 #include "ui.h"
 
 typedef enum {
   DebugBrainTab_Evaluation,
-  DebugBrainTab_Memory,
+  DebugBrainTab_Settings,
 
   DebugBrainTab_Count,
 } DebugBrainTab;
 
 static const String g_brainTabNames[] = {
     string_static("Evaluation"),
-    string_static("\uE322 Memory"),
+    string_static("Settings"),
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
-typedef struct {
-  StringHash key;
-  String     name;
-} DebugMemoryEntry;
-
 ecs_comp_define(DebugBrainPanelComp) {
   UiPanel      panel;
-  bool         hideEmptyMemory;
   UiScrollview scrollview;
 };
-
-static i8 memory_compare_entry_name(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
-}
 
 ecs_view_define(SubjectView) { ecs_access_write(SceneBrainComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -49,23 +35,12 @@ static void evaluation_options_draw(UiCanvasComp* canvas, EcsWorld* world, Scene
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-
-  bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause eval:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseEval)) {
-    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
-  }
-  ui_table_next_column(canvas, &table);
-
   const EcsEntityId behavior = scene_brain_behavior(brain);
   const String behaviorName  = asset_id(ecs_utils_read_t(world, AssetView, behavior, AssetComp));
-  ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(behaviorName)), .align = UiAlign_MiddleRight);
+  ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(behaviorName)));
 
   ui_layout_pop(canvas);
 }
@@ -141,91 +116,22 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
-static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
-  bool valBool = script_get_bool(*value, false);
-  if (ui_toggle(canvas, &valBool)) {
-    *value = script_bool(valBool);
-    return true;
+static void evaluation_settings_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
+  diag_assert(subject);
+
+  SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
+  ui_label(canvas, string_lit("Pause eval:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseEval)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
   }
-  return false;
-}
-
-static bool memory_draw_f64(UiCanvasComp* canvas, ScriptVal* value) {
-  f64 valNumber = script_get_number(*value, 0);
-  if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
-    *value = script_number(valNumber);
-    return true;
-  }
-  return false;
-}
-
-static bool memory_draw_vector3(UiCanvasComp* canvas, ScriptVal* value) {
-  static const f32 g_spacing = 10.0f;
-  const UiAlign    align     = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / 3, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 3, 0), UiBase_Absolute, Ui_X);
-
-  GeoVector vec3 = script_get_vector3(*value, geo_vector(0));
-
-  bool dirty = false;
-  for (u8 comp = 0; comp != 3; ++comp) {
-    f64 compVal = vec3.comps[comp];
-    if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
-      vec3.comps[comp] = (f32)compVal;
-      dirty            = true;
-    }
-    ui_layout_next(canvas, Ui_Right, g_spacing);
-  }
-  ui_layout_pop(canvas);
-
-  *value = script_vector3(vec3);
-  return dirty;
-}
-
-static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
-  const EcsEntityId valEntity = script_get_entity(*value, 0);
-  ui_label_entity(canvas, valEntity);
-  return false;
-}
-
-static bool memory_draw_string(UiCanvasComp* canvas, ScriptVal* value) {
-  ui_label(canvas, script_val_str_scratch(*value));
-  return false;
-}
-
-static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
-  switch (script_type(*value)) {
-  case ScriptType_Null:
-    ui_label(canvas, string_lit("< none >"));
-    return false;
-  case ScriptType_Number:
-    return memory_draw_f64(canvas, value);
-  case ScriptType_Bool:
-    return memory_draw_bool(canvas, value);
-  case ScriptType_Vector3:
-    return memory_draw_vector3(canvas, value);
-  case ScriptType_Entity:
-    return memory_draw_entity(canvas, value);
-  case ScriptType_String:
-    return memory_draw_string(canvas, value);
-  case ScriptType_Count:
-    break;
-  }
-  return false;
-}
-
-static void
-memory_options_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, SceneBrainComp* brain) {
-  ui_layout_push(canvas);
-
-  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 135);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 155);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 105);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
   bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
@@ -235,92 +141,13 @@ memory_options_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, SceneB
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseSensors);
   }
 
-  ui_table_next_column(canvas, &table);
+  ui_table_next_row(canvas, &table);
   bool pauseControllers = (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) != 0;
   ui_label(canvas, string_lit("Pause controllers:"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseControllers)) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseControllers);
   }
-
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("Hide empty:"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &panelComp->hideEmptyMemory);
-
-  ui_layout_pop(canvas);
-}
-
-static void
-memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
-  diag_assert(subject);
-
-  SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
-
-  memory_options_draw(canvas, panelComp, brain);
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
-
-  UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
-
-  ui_table_draw_header(
-      canvas,
-      &table,
-      (const UiTableColumnName[]){
-          {string_lit("Key"), string_lit("Memory key.")},
-          {string_lit("Type"), string_lit("Memory value type.")},
-          {string_lit("Value"), string_lit("Memory value.")},
-      });
-
-  // Collect the memory entries.
-  DynArray         entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
-  const ScriptMem* memory  = scene_brain_memory(brain);
-  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideEmptyMemory && !script_val_has(scene_brain_get(brain, itr.key))) {
-      continue;
-    }
-    *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
-        .key  = itr.key,
-        .name = string_is_empty(name) ? string_lit("<unnamed>") : name,
-    };
-  }
-
-  // Sort the memory entries.
-  dynarray_sort(&entries, memory_compare_entry_name);
-
-  // Draw the memory entries.
-  const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
-
-  if (entries.size) {
-    dynarray_for_t(&entries, DebugMemoryEntry, entry) {
-      ScriptVal value = scene_brain_get(brain, entry->key);
-
-      ui_table_next_row(canvas, &table);
-      ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
-
-      ui_label(canvas, entry->name, .selectable = true);
-      ui_table_next_column(canvas, &table);
-
-      ui_label(canvas, script_val_type_str(script_type(value)));
-      ui_table_next_column(canvas, &table);
-
-      if (memory_draw_value(canvas, &value)) {
-        scene_brain_set(brain, entry->key, value);
-      }
-    }
-  } else {
-    ui_label(canvas, string_lit("Memory empty."), .align = UiAlign_MiddleCenter);
-  }
-
-  dynarray_destroy(&entries);
-
-  ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_layout_container_pop(canvas);
 }
 
 static void brain_panel_draw(
@@ -340,8 +167,8 @@ static void brain_panel_draw(
     case DebugBrainTab_Evaluation:
       evaluation_panel_tab_draw(canvas, panelComp, world, subject);
       break;
-    case DebugBrainTab_Memory:
-      memory_panel_tab_draw(canvas, panelComp, subject);
+    case DebugBrainTab_Settings:
+      evaluation_settings_tab_draw(canvas, subject);
       break;
     }
   } else {
@@ -405,10 +232,6 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world,
-      panelEntity,
-      DebugBrainPanelComp,
-      .panel           = ui_panel(.size = ui_vector(750, 500)),
-      .hideEmptyMemory = true);
+      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(750, 500)));
   return panelEntity;
 }
