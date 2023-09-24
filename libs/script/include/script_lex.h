@@ -66,7 +66,7 @@ typedef enum {
 } ScriptLexFlags;
 
 /**
- * Read a single scripts token.
+ * Read a single script token.
  * Returns the remaining input.
  * The token is written to the output pointer.
  *
