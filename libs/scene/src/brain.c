@@ -42,7 +42,12 @@ ecs_view_define(BrainEntityView) {
   ecs_access_write(SceneBrainComp);
   ecs_access_write(SceneKnowledgeComp);
 }
-ecs_view_define(BehaviorView) { ecs_access_read(AssetBehaviorComp); }
+
+ecs_view_define(BehaviorView) {
+  ecs_access_read(AssetComp);
+  ecs_access_read(AssetBehaviorComp);
+}
+
 ecs_view_define(BehaviorLoadView) { ecs_access_write(SceneBehaviorResourceComp); }
 
 ecs_system_define(SceneBehaviorLoadSys) {
@@ -84,7 +89,8 @@ static void scene_brain_eval(
     const EcsEntityId        entity,
     SceneBrainComp*          brain,
     SceneKnowledgeComp*      knowledge,
-    const AssetBehaviorComp* behavior) {
+    const AssetBehaviorComp* behavior,
+    const AssetComp*         behaviorAsset) {
 
   if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
     return;
@@ -106,9 +112,11 @@ static void scene_brain_eval(
   }
 
   const AiResult res = ai_eval(&ctx, AssetAiNodeRoot);
-  if (res == AiResult_Failure) {
+  if (UNLIKELY(res == AiResult_Failure)) {
     log_w(
-        "Brain behavior evaluated to 'failure'", log_param("entity", fmt_int(entity, .base = 16)));
+        "Brain behavior evaluated to 'failure'",
+        log_param("entity", fmt_int(entity, .base = 16)),
+        log_param("behavior", fmt_text(asset_id(behaviorAsset))));
   }
 }
 
@@ -126,8 +134,9 @@ ecs_system_define(SceneBrainUpdateSys) {
 
     // Evaluate the brain if the behavior asset is loaded.
     if (ecs_view_maybe_jump(behaviorItr, brain->behaviorAsset)) {
-      const AssetBehaviorComp* behavior = ecs_view_read_t(behaviorItr, AssetBehaviorComp);
-      scene_brain_eval(entity, brain, knowledge, behavior);
+      const AssetBehaviorComp* behavior      = ecs_view_read_t(behaviorItr, AssetBehaviorComp);
+      const AssetComp*         behaviorAsset = ecs_view_read_t(behaviorItr, AssetComp);
+      scene_brain_eval(entity, brain, knowledge, behavior, behaviorAsset);
       continue;
     }
 

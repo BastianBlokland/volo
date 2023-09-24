@@ -111,6 +111,10 @@ typedef struct {
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
+  String scriptId;
+} AssetPrefabTraitScriptDef;
+
+typedef struct {
   String behaviorId;
 } AssetPrefabTraitBrainDef;
 
@@ -173,6 +177,7 @@ typedef struct {
     AssetPrefabTraitHealthDef     data_health;
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
+    AssetPrefabTraitScriptDef     data_script;
     AssetPrefabTraitBrainDef      data_brain;
     AssetPrefabTraitSpawnerDef    data_spawner;
     AssetPrefabTraitBlinkDef      data_blink;
@@ -290,6 +295,9 @@ static void prefab_datareg_init() {
     data_reg_field_t(reg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
     data_reg_field_t(reg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShapeDef);
 
+    data_reg_struct_t(reg, AssetPrefabTraitScriptDef);
+    data_reg_field_t(reg, AssetPrefabTraitScriptDef, scriptId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(reg, AssetPrefabTraitBrainDef);
     data_reg_field_t(reg, AssetPrefabTraitBrainDef, behaviorId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
@@ -345,6 +353,7 @@ static void prefab_datareg_init() {
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealthDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
+    data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Brain, data_brain, t_AssetPrefabTraitBrainDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Spawner, data_spawner, t_AssetPrefabTraitSpawnerDef);
     data_reg_choice_t(reg, AssetPrefabTraitDef, AssetPrefabTrait_Blink, data_blink, t_AssetPrefabTraitBlinkDef);
@@ -568,9 +577,14 @@ static void prefab_build(
           .shape      = prefab_build_shape(&traitDef->data_collision.shape),
       };
       break;
+    case AssetPrefabTrait_Script:
+      outTrait->data_script = (AssetPrefabTraitScript){
+          .scriptAsset = asset_lookup(ctx->world, manager, traitDef->data_script.scriptId),
+      };
+      break;
     case AssetPrefabTrait_Brain:
       outTrait->data_brain = (AssetPrefabTraitBrain){
-          .behavior = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
+          .behaviorAsset = asset_lookup(ctx->world, manager, traitDef->data_brain.behaviorId),
       };
       break;
     case AssetPrefabTrait_Spawner:
@@ -624,12 +638,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
-          .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = prefab_build_vec3(&traitDef->data_production.spawnPos),
+            .rallyPos        = prefab_build_vec3(&traitDef->data_production.rallyPos),
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:

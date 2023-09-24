@@ -7,18 +7,21 @@
 #include "debug_script.h"
 #include "ecs_utils.h"
 #include "scene_knowledge.h"
+#include "scene_script.h"
 #include "scene_selection.h"
 #include "script_mem.h"
 #include "ui.h"
 
 typedef enum {
   DebugScriptTab_Memory,
+  DebugScriptTab_Settings,
 
   DebugScriptTab_Count,
 } DebugScriptTab;
 
 static const String g_scriptTabNames[] = {
     string_static("\uE322 Memory"),
+    string_static("\uE8B8 Settings"),
 };
 ASSERT(array_elems(g_scriptTabNames) == DebugScriptTab_Count, "Incorrect number of names");
 
@@ -37,7 +40,10 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
-ecs_view_define(SubjectView) { ecs_access_write(SceneKnowledgeComp); }
+ecs_view_define(SubjectView) {
+  ecs_access_write(SceneKnowledgeComp);
+  ecs_access_maybe_write(SceneScriptComp);
+}
 
 static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
   bool valBool = script_get_bool(*value, false);
@@ -200,6 +206,28 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   ui_layout_container_pop(canvas);
 }
 
+static void settings_panel_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
+  diag_assert(subject);
+
+  SceneScriptComp* scriptInstance = ecs_view_write_t(subject, SceneScriptComp);
+  if (!scriptInstance) {
+    ui_label(canvas, string_lit("No settings available."), .align = UiAlign_MiddleCenter);
+    return;
+  }
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
+  ui_label(canvas, string_lit("Pause evaluation:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseEval)) {
+    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
+  }
+}
+
 static void
 script_panel_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
 
@@ -216,6 +244,9 @@ script_panel_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIter
     switch (panelComp->panel.activeTab) {
     case DebugScriptTab_Memory:
       memory_panel_tab_draw(canvas, panelComp, subject);
+      break;
+    case DebugScriptTab_Settings:
+      settings_panel_tab_draw(canvas, subject);
       break;
     }
   } else {

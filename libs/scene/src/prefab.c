@@ -26,6 +26,7 @@
 #include "scene_prefab.h"
 #include "scene_product.h"
 #include "scene_renderable.h"
+#include "scene_script.h"
 #include "scene_sound.h"
 #include "scene_spawner.h"
 #include "scene_status.h"
@@ -316,8 +317,13 @@ static void setup_collision(
   }
 }
 
+static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScript* t) {
+  scene_script_add(w, e, t->scriptAsset);
+  scene_knowledge_add(w, e);
+}
+
 static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
-  scene_brain_add(w, e, t->behavior);
+  scene_brain_add(w, e, t->behaviorAsset);
   scene_knowledge_add(w, e);
 }
 
@@ -439,6 +445,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Collision:
     setup_collision(w, e, s, p, &t->data_collision);
+    return;
+  case AssetPrefabTrait_Script:
+    setup_script(w, e, &t->data_script);
     return;
   case AssetPrefabTrait_Brain:
     setup_brain(w, e, &t->data_brain);

@@ -707,6 +707,12 @@
       ]
     },
     {
+      "name": "ScriptTest",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/test.script" }
+      ]
+    },
+    {
       "name": "ExplosionMedium", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
