@@ -763,6 +763,7 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
 
   ScriptExpr b2Expr;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
+    const ScriptMarker startElse = script_marker(ctx);
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       const ScriptReadResult b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
@@ -770,13 +771,13 @@ static ScriptReadResult read_expr_if(ScriptReadContext* ctx, const ScriptMarker 
       }
       b2Expr = b2.expr;
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
-      const ScriptReadResult b2 = read_expr_if(ctx, start);
+      const ScriptReadResult b2 = read_expr_if(ctx, startElse);
       if (UNLIKELY(b2.type != ScriptResult_Success)) {
         return script_scope_pop(ctx), b2;
       }
       b2Expr = b2.expr;
     } else {
-      return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockOrIfExpected, start);
+      return script_scope_pop(ctx), read_error(ctx, ScriptResult_BlockOrIfExpected, startElse);
     }
   } else {
     b2Expr = script_add_value(ctx->doc, script_null());
@@ -1141,11 +1142,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
