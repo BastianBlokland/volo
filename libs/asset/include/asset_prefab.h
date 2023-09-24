@@ -50,6 +50,7 @@ typedef enum {
   AssetPrefabTrait_Health,
   AssetPrefabTrait_Attack,
   AssetPrefabTrait_Collision,
+  AssetPrefabTrait_Script,
   AssetPrefabTrait_Brain,
   AssetPrefabTrait_Spawner,
   AssetPrefabTrait_Blink,
@@ -127,6 +128,10 @@ typedef struct {
 } AssetPrefabTraitCollision;
 
 typedef struct {
+  EcsEntityId script;
+} AssetPrefabTraitScript;
+
+typedef struct {
   EcsEntityId behavior;
 } AssetPrefabTraitBrain;
 
@@ -189,6 +194,7 @@ typedef struct {
     AssetPrefabTraitHealth     data_health;
     AssetPrefabTraitAttack     data_attack;
     AssetPrefabTraitCollision  data_collision;
+    AssetPrefabTraitScript     data_script;
     AssetPrefabTraitBrain      data_brain;
     AssetPrefabTraitSpawner    data_spawner;
     AssetPrefabTraitBlink      data_blink;

@@ -316,6 +316,12 @@ static void setup_collision(
   }
 }
 
+static void setup_script(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitScript* t) {
+  (void)w;
+  (void)e;
+  (void)t;
+}
+
 static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
   scene_brain_add(w, e, t->behavior);
   scene_knowledge_add(w, e);
@@ -439,6 +445,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Collision:
     setup_collision(w, e, s, p, &t->data_collision);
+    return;
+  case AssetPrefabTrait_Script:
+    setup_script(w, e, &t->data_script);
     return;
   case AssetPrefabTrait_Brain:
     setup_brain(w, e, &t->data_brain);
