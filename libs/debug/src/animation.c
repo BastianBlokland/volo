@@ -477,7 +477,7 @@ static void debug_draw_joint_names(
   for (u32 i = 0; i != jointCount; ++i) {
     const GeoVector  jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
     const StringHash jointName = scene_skeleton_joint_name(skeletonTemplate, i);
-    debug_text(text, jointPos, stringtable_lookup(g_stringtable, jointName), geo_color_white);
+    debug_text(text, jointPos, stringtable_lookup(g_stringtable, jointName));
   }
 }
 
@@ -491,7 +491,7 @@ static void debug_draw_skin_counts(
     const GeoVector jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
     const u32       skinCount = scene_skeleton_joint_skin_count(skeletonTemplate, i);
     const GeoColor  color     = skinCount ? geo_color_white : geo_color_red;
-    debug_text(text, jointPos, fmt_write_scratch("{}", fmt_int(skinCount)), color);
+    debug_text(text, jointPos, fmt_write_scratch("{}", fmt_int(skinCount)), .color = color);
   }
 }
 

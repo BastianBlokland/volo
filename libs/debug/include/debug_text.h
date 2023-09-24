@@ -11,7 +11,19 @@ ecs_comp_extern(DebugTextComp);
  */
 DebugTextComp* debug_text_create(EcsWorld*, EcsEntityId entity);
 
-/**
- * Draw primitives.
- */
-void debug_text(DebugTextComp*, GeoVector pos, String, GeoColor);
+typedef struct {
+  GeoColor color;
+  u16      fontSize;
+} DebugTextOpts;
+
+// clang-format off
+
+#define debug_text(_COMP_, _POS_, _STR_, ...) debug_text_with_opts((_COMP_), (_POS_), (_STR_),     \
+      &((DebugTextOpts){                                                                           \
+          .color      = geo_color_white,                                                           \
+          .fontSize   = 14,                                                                        \
+          __VA_ARGS__}))
+
+// clang-format on
+
+void debug_text_with_opts(DebugTextComp*, GeoVector pos, String, const DebugTextOpts*);

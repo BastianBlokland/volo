@@ -1141,7 +1141,8 @@ static void inspector_vis_draw_health(
   const GeoVector pos          = transform ? transform->position : geo_vector(0);
   const f32       healthPoints = scene_health_points(health);
   const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
-  debug_text(text, pos, fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0)), color);
+  const String    str = fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0));
+  debug_text(text, pos, str, .color = color);
 }
 
 static void inspector_vis_draw_target(
@@ -1176,7 +1177,7 @@ static void inspector_vis_draw_target(
       dynstring_clear(&textBuffer);
       format_write_f64(&textBuffer, itr->value, &formatOptsFloat);
 
-      debug_text(text, pos, dynstring_view(&textBuffer), color);
+      debug_text(text, pos, dynstring_view(&textBuffer), .color = color);
     }
   }
 }
@@ -1237,7 +1238,7 @@ static void inspector_vis_draw_subject(
   if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
-    debug_text(text, pos, name, geo_color_white);
+    debug_text(text, pos, name);
   }
   if (locoComp && set->visFlags & (1 << DebugInspectorVis_Locomotion)) {
     inspector_vis_draw_locomotion(shape, locoComp, transformComp, scaleComp);
@@ -1303,7 +1304,7 @@ static void inspector_vis_draw_navigation_grid(
       if (!blocked) {
         dynstring_clear(&textBuffer);
         format_write_u64(&textBuffer, island, &format_opts_int());
-        debug_text(text, pos, dynstring_view(&textBuffer), geo_color_white);
+        debug_text(text, pos, dynstring_view(&textBuffer));
       }
     }
   }
@@ -1315,12 +1316,9 @@ ecs_comp_extern(SceneSpawnerComp);
 
 static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
-  if (UNLIKELY(!transformComp)) {
-    return;
-  }
-  const SceneTagComp* tagComp  = ecs_view_read_t(subject, SceneTagComp);
-  const EcsEntityId   e        = ecs_view_entity(subject);
-  const bool          selected = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
+  const SceneTagComp*       tagComp       = ecs_view_read_t(subject, SceneTagComp);
+  const EcsEntityId         e             = ecs_view_entity(subject);
+  const bool                selected      = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
 
   Unicode icon = 0;
   if (ecs_world_has_t(world, e, SceneSpawnerComp)) {
@@ -1335,12 +1333,13 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     icon = UiShape_MusicNote;
   }
 
-  if (icon) {
+  if (icon && transformComp) {
     DynString textBuffer = dynstring_create_over(mem_stack(4));
     utf8_cp_write(&textBuffer, icon);
 
+    const String   str   = dynstring_view(&textBuffer);
     const GeoColor color = selected ? geo_color_lime : geo_color_white;
-    debug_text(text, transformComp->position, dynstring_view(&textBuffer), color);
+    debug_text(text, transformComp->position, str, .fontSize = 18, .color = color);
   }
 }
 
