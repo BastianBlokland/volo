@@ -17,6 +17,7 @@
 #include "scene_explosive.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
+#include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -317,6 +318,7 @@ static void setup_collision(
 
 static void setup_brain(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBrain* t) {
   scene_brain_add(w, e, t->behavior);
+  scene_knowledge_add(w, e);
 }
 
 static void setup_spawner(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitSpawner* t) {

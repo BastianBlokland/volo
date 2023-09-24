@@ -2,6 +2,7 @@
 #include "ecs_world.h"
 #include "scene_attack.h"
 #include "scene_brain.h"
+#include "scene_knowledge.h"
 #include "scene_nav.h"
 #include "scene_register.h"
 #include "scene_target.h"
@@ -16,54 +17,56 @@ static StringHash g_brainKeyNavTarget,
 // clang-format on
 
 ecs_view_define(BrainView) {
+  ecs_access_read(SceneBrainComp);
+  ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneAttackComp);
   ecs_access_maybe_write(SceneNavAgentComp);
   ecs_access_maybe_write(SceneTargetFinderComp);
-  ecs_access_write(SceneBrainComp);
 }
 
 ecs_system_define(SceneControllerUpdateSys) {
   EcsView* view = ecs_world_view_t(world, BrainView);
   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
-    SceneBrainComp* brain = ecs_view_write_t(itr, SceneBrainComp);
+    const SceneBrainComp* brain = ecs_view_read_t(itr, SceneBrainComp);
     if (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) {
       continue;
     }
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     SceneNavAgentComp* navAgent = ecs_view_write_t(itr, SceneNavAgentComp);
     if (navAgent) {
       // Start moving when the nav-target value is set.
-      const ScriptVal navTarget = scene_brain_get(brain, g_brainKeyNavTarget);
+      const ScriptVal navTarget = scene_knowledge_get(knowledge, g_brainKeyNavTarget);
       if (script_val_has(navTarget)) {
         if (script_type(navTarget) == ScriptType_Entity) {
           scene_nav_move_to_entity(navAgent, script_get_entity(navTarget, 0));
         } else {
           scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
         }
-        scene_brain_set_null(brain, g_brainKeyNavTarget);
+        scene_knowledge_set_null(knowledge, g_brainKeyNavTarget);
       }
 
       // Stop moving when nav-stop value is set.
-      if (script_val_has(scene_brain_get(brain, g_brainKeyNavStop))) {
+      if (script_val_has(scene_knowledge_get(knowledge, g_brainKeyNavStop))) {
         scene_nav_stop(navAgent);
-        scene_brain_set_null(brain, g_brainKeyNavTarget);
-        scene_brain_set_null(brain, g_brainKeyNavStop);
+        scene_knowledge_set_null(knowledge, g_brainKeyNavTarget);
+        scene_knowledge_set_null(knowledge, g_brainKeyNavStop);
       }
     }
 
     // Set target override.
     SceneTargetFinderComp* target = ecs_view_write_t(itr, SceneTargetFinderComp);
     if (target) {
-      const ScriptVal targetOverride = scene_brain_get(brain, g_brainKeyTargetOverride);
+      const ScriptVal targetOverride = scene_knowledge_get(knowledge, g_brainKeyTargetOverride);
       target->targetOverride         = script_get_entity(targetOverride, 0);
     }
 
     // Set attack target if we are not currently in the middle of firing.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack && !(attack->flags & SceneAttackFlags_Firing)) {
-      const ScriptVal attackTarget = scene_brain_get(brain, g_brainKeyAttackTarget);
+      const ScriptVal attackTarget = scene_knowledge_get(knowledge, g_brainKeyAttackTarget);
       attack->targetEntity         = script_get_entity(attackTarget, 0);
-      scene_brain_set_null(brain, g_brainKeyAttackTarget);
+      scene_knowledge_set_null(knowledge, g_brainKeyAttackTarget);
     }
   }
 }

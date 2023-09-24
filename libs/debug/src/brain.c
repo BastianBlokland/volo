@@ -10,6 +10,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "scene_brain.h"
+#include "scene_knowledge.h"
 #include "scene_selection.h"
 #include "script_mem.h"
 #include "ui.h"
@@ -42,7 +43,10 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
-ecs_view_define(SubjectView) { ecs_access_write(SceneBrainComp); }
+ecs_view_define(SubjectView) {
+  ecs_access_write(SceneBrainComp);
+  ecs_access_write(SceneKnowledgeComp);
+}
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 static void evaluation_options_draw(UiCanvasComp* canvas, EcsWorld* world, SceneBrainComp* brain) {
@@ -255,7 +259,9 @@ static void
 memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
   diag_assert(subject);
 
-  SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
+  SceneBrainComp*     brain     = ecs_view_write_t(subject, SceneBrainComp);
+  SceneKnowledgeComp* knowledge = ecs_view_write_t(subject, SceneKnowledgeComp);
+  ScriptMem*          memory    = scene_knowledge_memory_mut(knowledge);
 
   memory_options_draw(canvas, panelComp, brain);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
@@ -276,11 +282,10 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
       });
 
   // Collect the memory entries.
-  DynArray         entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
-  const ScriptMem* memory  = scene_brain_memory(brain);
+  DynArray entries = dynarray_create_t(g_alloc_scratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideEmptyMemory && !script_val_has(scene_brain_get(brain, itr.key))) {
+    if (panelComp->hideEmptyMemory && !script_val_has(script_mem_get(memory, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
@@ -298,7 +303,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
-      ScriptVal value = scene_brain_get(brain, entry->key);
+      ScriptVal value = script_mem_get(memory, entry->key);
 
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
@@ -310,7 +315,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsI
       ui_table_next_column(canvas, &table);
 
       if (memory_draw_value(canvas, &value)) {
-        scene_brain_set(brain, entry->key, value);
+        script_mem_set(memory, entry->key, value);
       }
     }
   } else {

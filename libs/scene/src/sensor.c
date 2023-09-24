@@ -5,6 +5,7 @@
 #include "scene_brain.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_knowledge.h"
 #include "scene_nav.h"
 #include "scene_register.h"
 #include "scene_target.h"
@@ -31,13 +32,14 @@ static StringHash g_brainKeyTime,
 ecs_view_define(SensorGlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(BrainView) {
+  ecs_access_read(SceneBrainComp);
+  ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_read(SceneAttackComp);
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_write(SceneBrainComp);
 }
 
 ecs_system_define(SceneSensorUpdateSys) {
@@ -50,43 +52,44 @@ ecs_system_define(SceneSensorUpdateSys) {
 
   EcsView* view = ecs_world_view_t(world, BrainView);
   for (EcsIterator* itr = ecs_view_itr_step(view, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
+    const EcsEntityId     entity = ecs_view_entity(itr);
+    const SceneBrainComp* brain  = ecs_view_read_t(itr, SceneBrainComp);
     if (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) {
       continue;
     }
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
 
-    scene_brain_set(brain, g_brainKeyTime, script_time(timeComp->time));
-    scene_brain_set(brain, g_brainKeyEntity, script_entity(entity));
+    scene_knowledge_set(knowledge, g_brainKeyTime, script_time(timeComp->time));
+    scene_knowledge_set(knowledge, g_brainKeyEntity, script_entity(entity));
 
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
     if (transform) {
-      scene_brain_set(brain, g_brainKeyPosition, script_vector3(transform->position));
+      scene_knowledge_set(knowledge, g_brainKeyPosition, script_vector3(transform->position));
     }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
-      scene_brain_set(brain, g_brainKeyHealth, script_number(health->norm));
+      scene_knowledge_set(knowledge, g_brainKeyHealth, script_number(health->norm));
     }
 
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
-      scene_brain_set(brain, g_brainKeyFaction, script_number(faction->id));
+      scene_knowledge_set(knowledge, g_brainKeyFaction, script_number(faction->id));
     }
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
       if (navAgent->flags & SceneNavAgent_Traveling) {
-        scene_brain_set_null(brain, g_brainKeyNavArrived);
+        scene_knowledge_set_null(knowledge, g_brainKeyNavArrived);
       } else {
-        scene_brain_set(brain, g_brainKeyNavArrived, script_vector3(navAgent->targetPos));
+        scene_knowledge_set(knowledge, g_brainKeyNavArrived, script_vector3(navAgent->targetPos));
       }
     }
 
     const SceneAttackComp* attack = ecs_view_read_t(itr, SceneAttackComp);
     if (attack) {
       const bool isAttacking = (attack->flags & SceneAttackFlags_Firing) != 0;
-      scene_brain_set(brain, g_brainKeyAttacking, script_bool(isAttacking));
+      scene_knowledge_set(knowledge, g_brainKeyAttacking, script_bool(isAttacking));
     }
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
@@ -94,16 +97,19 @@ ecs_system_define(SceneSensorUpdateSys) {
     if (target) {
       const bool los = (targetFinder->flags & SceneTarget_LineOfSight) != 0;
 
-      scene_brain_set(brain, g_brainKeyTargetRangeMax, script_number(targetFinder->distanceMax));
-      scene_brain_set(brain, g_brainKeyTargetEntity, script_entity(target));
-      scene_brain_set(brain, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
-      scene_brain_set(brain, g_brainKeyTargetDist, script_number(targetFinder->targetDistance));
-      scene_brain_set(brain, g_brainKeyTargetLos, script_bool(los));
+      scene_knowledge_set(
+          knowledge, g_brainKeyTargetRangeMax, script_number(targetFinder->distanceMax));
+      scene_knowledge_set(knowledge, g_brainKeyTargetEntity, script_entity(target));
+      scene_knowledge_set(
+          knowledge, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));
+      scene_knowledge_set(
+          knowledge, g_brainKeyTargetDist, script_number(targetFinder->targetDistance));
+      scene_knowledge_set(knowledge, g_brainKeyTargetLos, script_bool(los));
     } else {
-      scene_brain_set_null(brain, g_brainKeyTargetEntity);
-      scene_brain_set_null(brain, g_brainKeyTargetPos);
-      scene_brain_set_null(brain, g_brainKeyTargetDist);
-      scene_brain_set_null(brain, g_brainKeyTargetLos);
+      scene_knowledge_set_null(knowledge, g_brainKeyTargetEntity);
+      scene_knowledge_set_null(knowledge, g_brainKeyTargetPos);
+      scene_knowledge_set_null(knowledge, g_brainKeyTargetDist);
+      scene_knowledge_set_null(knowledge, g_brainKeyTargetLos);
     }
   }
 }
