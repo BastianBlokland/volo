@@ -9,8 +9,22 @@ static void ecs_destruct_knowledge_comp(void* data) {
   script_mem_destroy(brain->memory);
 }
 
+static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
+  SceneKnowledgeComp* compA = dataA;
+  SceneKnowledgeComp* compB = dataB;
+
+  ScriptMem* memA = compA->memory;
+  ScriptMem* memB = compB->memory;
+  for (ScriptMemItr itr = script_mem_begin(memB); itr.key; itr = script_mem_next(memB, itr)) {
+    script_mem_set(memA, itr.key, script_mem_get(memB, itr.key));
+  }
+}
+
 ecs_module_init(scene_knowledge_module) {
-  ecs_register_comp(SceneKnowledgeComp, .destructor = ecs_destruct_knowledge_comp);
+  ecs_register_comp(
+      SceneKnowledgeComp,
+      .destructor = ecs_destruct_knowledge_comp,
+      .combinator = ecs_combine_knowledge_comp);
 }
 
 ScriptVal scene_knowledge_get(const SceneKnowledgeComp* brain, const StringHash key) {
