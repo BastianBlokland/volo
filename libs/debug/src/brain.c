@@ -12,12 +12,14 @@
 
 typedef enum {
   DebugBrainTab_Evaluation,
+  DebugBrainTab_Settings,
 
   DebugBrainTab_Count,
 } DebugBrainTab;
 
 static const String g_brainTabNames[] = {
     string_static("Evaluation"),
+    string_static("Settings"),
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
@@ -33,43 +35,12 @@ static void evaluation_options_draw(UiCanvasComp* canvas, EcsWorld* world, Scene
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 135);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 155);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-
-  bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause eval:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseEval)) {
-    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
-  }
-
-  ui_table_next_column(canvas, &table);
-  bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
-  ui_label(canvas, string_lit("Pause sensors:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseSensors)) {
-    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseSensors);
-  }
-
-  ui_table_next_column(canvas, &table);
-  bool pauseControllers = (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) != 0;
-  ui_label(canvas, string_lit("Pause controllers:"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseControllers)) {
-    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseControllers);
-  }
-
-  ui_table_next_column(canvas, &table);
   const EcsEntityId behavior = scene_brain_behavior(brain);
   const String behaviorName  = asset_id(ecs_utils_read_t(world, AssetView, behavior, AssetComp));
-  ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(behaviorName)), .align = UiAlign_MiddleRight);
+  ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(behaviorName)));
 
   ui_layout_pop(canvas);
 }
@@ -145,6 +116,40 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
+static void evaluation_settings_tab_draw(UiCanvasComp* canvas, EcsIterator* subject) {
+  diag_assert(subject);
+
+  SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
+
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
+  ui_label(canvas, string_lit("Pause eval:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseEval)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
+  }
+
+  ui_table_next_row(canvas, &table);
+  bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
+  ui_label(canvas, string_lit("Pause sensors:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseSensors)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseSensors);
+  }
+
+  ui_table_next_row(canvas, &table);
+  bool pauseControllers = (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) != 0;
+  ui_label(canvas, string_lit("Pause controllers:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseControllers)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseControllers);
+  }
+}
+
 static void brain_panel_draw(
     UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsWorld* world, EcsIterator* subject) {
 
@@ -161,6 +166,9 @@ static void brain_panel_draw(
     switch (panelComp->panel.activeTab) {
     case DebugBrainTab_Evaluation:
       evaluation_panel_tab_draw(canvas, panelComp, world, subject);
+      break;
+    case DebugBrainTab_Settings:
+      evaluation_settings_tab_draw(canvas, subject);
       break;
     }
   } else {
@@ -224,6 +232,6 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(900, 500)));
+      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(750, 500)));
   return panelEntity;
 }
