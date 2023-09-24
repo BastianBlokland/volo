@@ -5,6 +5,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "core_utf8.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
 #include "debug_register.h"
@@ -1308,6 +1309,41 @@ static void inspector_vis_draw_navigation_grid(
   }
 }
 
+ecs_comp_extern(SceneBrainComp);
+ecs_comp_extern(SceneSoundComp);
+ecs_comp_extern(SceneSpawnerComp);
+
+static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIterator* subject) {
+  const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
+  if (UNLIKELY(!transformComp)) {
+    return;
+  }
+  const SceneTagComp* tagComp  = ecs_view_read_t(subject, SceneTagComp);
+  const EcsEntityId   e        = ecs_view_entity(subject);
+  const bool          selected = tagComp && (tagComp->tags & SceneTags_Selected) != 0;
+
+  Unicode icon = 0;
+  if (ecs_world_has_t(world, e, SceneSpawnerComp)) {
+    icon = UiShape_Description;
+  } else if (ecs_world_has_t(world, e, SceneBrainComp)) {
+    icon = UiShape_Psychology;
+  } else if (ecs_world_has_t(world, e, SceneVfxDecalComp)) {
+    icon = UiShape_Image;
+  } else if (ecs_world_has_t(world, e, SceneVfxSystemComp)) {
+    icon = UiShape_Grain;
+  } else if (ecs_world_has_t(world, e, SceneSoundComp)) {
+    icon = UiShape_MusicNote;
+  }
+
+  if (icon) {
+    DynString textBuffer = dynstring_create_over(mem_stack(4));
+    utf8_cp_write(&textBuffer, icon);
+
+    const GeoColor color = selected ? geo_color_lime : geo_color_white;
+    debug_text(text, transformComp->position, dynstring_view(&textBuffer), color);
+  }
+}
+
 ecs_system_define(DebugInspectorVisDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalVisDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -1384,6 +1420,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
     inspector_vis_draw_navigation_grid(shape, text, nav);
+  }
+  if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
+    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+      inspector_vis_draw_icon(world, text, itr);
+    }
   }
 }
 
