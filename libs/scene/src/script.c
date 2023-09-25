@@ -6,8 +6,10 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
+#include "scene_name.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_transform.h"
 #include "script_binder.h"
 #include "script_eval.h"
 #include "script_mem.h"
@@ -15,13 +17,28 @@
 #define scene_script_max_asset_loads 8
 
 typedef struct {
+  EcsWorld*   world;
   EcsEntityId entity;
   String      scriptId;
 } SceneScriptBindCtx;
 
-static ScriptVal scene_script_bind_print(void* ctxR, const ScriptVal* args, const usize argCount) {
-  SceneScriptBindCtx* ctx = ctxR;
+/**
+ * The following views are used by script bindings.
+ */
+ecs_view_define(ScriptTransformView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
 
+static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (argCount) {
+    return script_null(); // Invalid overload.
+  }
+  (void)args;
+  return script_entity(ctx->entity);
+}
+
+static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
   if (!argCount) {
     return script_null();
   }
@@ -43,6 +60,26 @@ static ScriptVal scene_script_bind_print(void* ctxR, const ScriptVal* args, cons
   return args[argCount - 1];
 }
 
+static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (argCount != 1) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptTransformView), e);
+  return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
+}
+
+static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (argCount != 1) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptNameView), e);
+  return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -54,7 +91,10 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
-    script_binder_declare(binder, string_hash_lit("print"), scene_script_bind_print);
+    script_binder_declare(binder, string_hash_lit("self"), scene_script_self);
+    script_binder_declare(binder, string_hash_lit("print"), scene_script_print);
+    script_binder_declare(binder, string_hash_lit("position"), scene_script_position);
+    script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -128,6 +168,7 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 }
 
 static void scene_script_eval(
+    EcsWorld*              world,
     const EcsEntityId      entity,
     const SceneScriptComp* scriptInstance,
     SceneKnowledgeComp*    knowledge,
@@ -143,6 +184,7 @@ static void scene_script_eval(
   ScriptMem*       mem  = scene_knowledge_memory_mut(knowledge);
 
   SceneScriptBindCtx ctx = {
+      .world    = world,
       .entity   = entity,
       .scriptId = asset_id(scriptAssetComp),
   };
@@ -175,7 +217,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     if (ecs_view_maybe_jump(resourceAssetItr, scriptInstance->scriptAsset)) {
       const AssetScriptComp* scriptAsset     = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
       const AssetComp*       scriptAssetComp = ecs_view_read_t(resourceAssetItr, AssetComp);
-      scene_script_eval(entity, scriptInstance, knowledge, scriptAsset, scriptAssetComp);
+      scene_script_eval(world, entity, scriptInstance, knowledge, scriptAsset, scriptAssetComp);
       continue;
     }
 
@@ -194,7 +236,6 @@ ecs_module_init(scene_script_module) {
   ecs_register_comp(SceneScriptComp);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
-  ecs_register_view(ScriptEntityView);
   ecs_register_view(ResourceAssetView);
   ecs_register_view(ResourceLoadView);
 
@@ -202,7 +243,11 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
   ecs_register_system(
-      SceneScriptUpdateSys, ecs_view_id(ScriptEntityView), ecs_view_id(ResourceAssetView));
+      SceneScriptUpdateSys,
+      ecs_register_view(ScriptTransformView),
+      ecs_register_view(ScriptNameView),
+      ecs_register_view(ScriptEntityView),
+      ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);

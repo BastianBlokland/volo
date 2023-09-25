@@ -19,7 +19,10 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
+    script_binder_declare(binder, string_hash_lit("self"), null);
     script_binder_declare(binder, string_hash_lit("print"), null);
+    script_binder_declare(binder, string_hash_lit("position"), null);
+    script_binder_declare(binder, string_hash_lit("name"), null);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;

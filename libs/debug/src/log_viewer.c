@@ -17,6 +17,7 @@ typedef struct {
   TimeReal  timestamp;
   LogLevel  lvl;
   SourceLoc srcLoc;
+  u32       counter;
   u32       length;
   u8        data[log_tracker_max_message_size];
 } DebugLogMessage;
@@ -34,6 +35,11 @@ typedef struct {
   DynArray       messages; // DebugLogMessage[], sorted on timestamp.
 } DebugLogSink;
 
+static bool debug_log_msg_is_dup(const DebugLogMessage* msg, const String newMsgText) {
+  const u32 length = math_min((u32)newMsgText.size, log_tracker_max_message_size);
+  return mem_eq(mem_create(msg->data, length), string_slice(newMsgText, 0, length));
+}
+
 static void debug_log_sink_write(
     LogSink*        sink,
     LogLevel        lvl,
@@ -41,19 +47,31 @@ static void debug_log_sink_write(
     TimeReal        timestamp,
     String          message,
     const LogParam* params) {
+  (void)params;
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
   thread_spinlock_lock(&debugSink->messagesLock);
   {
-    (void)params;
-    DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
-    msg->lvl             = lvl;
-    msg->srcLoc          = srcLoc;
-    msg->timestamp       = timestamp;
-    msg->length          = math_min((u32)message.size, log_tracker_max_message_size);
-    mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
+    bool duplicate = false;
+    if (debugSink->messages.size) {
+      DebugLogMessage* lastMsg = dynarray_end_t(&debugSink->messages, DebugLogMessage) - 1;
+      if (debug_log_msg_is_dup(lastMsg, message)) {
+        ++lastMsg->counter;
+        duplicate = true;
+      }
+    }
+
+    if (!duplicate) {
+      DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
+      msg->lvl             = lvl;
+      msg->srcLoc          = srcLoc;
+      msg->timestamp       = timestamp;
+      msg->counter         = 1;
+      msg->length          = math_min((u32)message.size, log_tracker_max_message_size);
+      mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
+    }
   }
   thread_spinlock_unlock(&debugSink->messagesLock);
 }
@@ -155,7 +173,14 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
 
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-  ui_canvas_draw_text(canvas, str, 15, UiAlign_MiddleLeft, UiFlags_None);
+
+  String text;
+  if (msg->counter > 1) {
+    text = fmt_write_scratch("x{} {}", fmt_int(msg->counter), fmt_text(str));
+  } else {
+    text = str;
+  }
+  ui_canvas_draw_text(canvas, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(canvas);
 
   ui_tooltip(
