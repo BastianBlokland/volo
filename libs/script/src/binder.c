@@ -16,7 +16,7 @@ typedef struct {
 static i8 script_binder_compare_key(const void* a, const void* b) {
   const StringHash nameA = *field_ptr(a, BinderSortKey, name);
   const StringHash nameB = *field_ptr(b, BinderSortKey, name);
-  return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+  return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
 }
 
 typedef enum {
