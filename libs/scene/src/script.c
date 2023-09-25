@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_knowledge.h"
+#include "scene_name.h"
 #include "scene_register.h"
 #include "scene_script.h"
 #include "scene_transform.h"
@@ -25,6 +26,7 @@ typedef struct {
  * The following views are used by script bindings.
  */
 ecs_view_define(ScriptTransformView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
 
 static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
@@ -68,6 +70,16 @@ static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const 
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
+static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (argCount != 1) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptNameView), e);
+  return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -82,6 +94,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("self"), scene_script_self);
     script_binder_declare(binder, string_hash_lit("print"), scene_script_print);
     script_binder_declare(binder, string_hash_lit("position"), scene_script_position);
+    script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -223,8 +236,6 @@ ecs_module_init(scene_script_module) {
   ecs_register_comp(SceneScriptComp);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
-  ecs_register_view(ScriptTransformView);
-  ecs_register_view(ScriptEntityView);
   ecs_register_view(ResourceAssetView);
   ecs_register_view(ResourceLoadView);
 
@@ -233,8 +244,9 @@ ecs_module_init(scene_script_module) {
 
   ecs_register_system(
       SceneScriptUpdateSys,
-      ecs_view_id(ScriptTransformView),
-      ecs_view_id(ScriptEntityView),
+      ecs_register_view(ScriptTransformView),
+      ecs_register_view(ScriptNameView),
+      ecs_register_view(ScriptEntityView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
