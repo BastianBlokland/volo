@@ -19,9 +19,14 @@ typedef struct {
   String      scriptId;
 } SceneScriptBindCtx;
 
+static ScriptVal scene_script_bind_self(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  (void)args;
+  return UNLIKELY(argCount) ? script_null() : script_entity(ctx->entity);
+}
+
 static ScriptVal scene_script_bind_print(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-
   if (!argCount) {
     return script_null();
   }
@@ -54,6 +59,7 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
+    script_binder_declare(binder, string_hash_lit("self"), scene_script_bind_self);
     script_binder_declare(binder, string_hash_lit("print"), scene_script_bind_print);
 
     script_binder_finalize(binder);
