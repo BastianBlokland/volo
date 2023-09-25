@@ -54,8 +54,6 @@ void script_binder_declare(
 void script_binder_finalize(ScriptBinder* binder) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
 
-  sort_quicksort_t(binder->names, binder->names + binder->count, StringHash, compare_stringhash);
-
   // Compute the binding order (sorted on the name-hash).
   BinderSortKey* keys = alloc_array_t(g_alloc_scratch, BinderSortKey, binder->count);
   for (u32 i = 0; i != binder->count; ++i) {
@@ -69,7 +67,7 @@ void script_binder_finalize(ScriptBinder* binder) {
     if (oldIndex != newIndex) {
       mem_swap(mem_var(binder->names[newIndex]), mem_var(binder->names[oldIndex]));
       mem_swap(mem_var(binder->funcs[newIndex]), mem_var(binder->funcs[oldIndex]));
-      keys[oldIndex].index = newIndex;
+      keys[oldIndex].index = oldIndex;
     }
   }
 
