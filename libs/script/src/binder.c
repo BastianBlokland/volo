@@ -61,14 +61,15 @@ void script_binder_finalize(ScriptBinder* binder) {
   }
   sort_quicksort_t(keys, keys + binder->count, BinderSortKey, script_binder_compare_key);
 
+  // Copy the old function pointers.
+  const usize       funcPtrSize = sizeof(ScriptBinderFunc) * binder->count;
+  ScriptBinderFunc* oldFuncs    = alloc_array_t(g_alloc_scratch, ScriptBinderFunc, binder->count);
+  mem_cpy(mem_create(oldFuncs, funcPtrSize), mem_create(binder->funcs, funcPtrSize));
+
   // Re-order the names and functions to match the binding order.
-  for (u32 newIndex = 0; newIndex != binder->count; ++newIndex) {
-    const u32 oldIndex = keys[newIndex].index;
-    if (oldIndex != newIndex) {
-      mem_swap(mem_var(binder->names[newIndex]), mem_var(binder->names[oldIndex]));
-      mem_swap(mem_var(binder->funcs[newIndex]), mem_var(binder->funcs[oldIndex]));
-      keys[oldIndex].index = oldIndex;
-    }
+  for (u32 i = 0; i != binder->count; ++i) {
+    binder->names[i] = keys[i].name;
+    binder->funcs[i] = oldFuncs[keys[i].index];
   }
 
   binder->flags |= ScriptBinderFlags_Finalized;
