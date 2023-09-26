@@ -30,7 +30,7 @@ ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
 
 static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount) {
+  if (UNLIKELY(argCount > 0)) {
     return script_null(); // Invalid overload.
   }
   (void)args;
@@ -39,8 +39,8 @@ static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usiz
 
 static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (!argCount) {
-    return script_null();
+  if (UNLIKELY(argCount == 0)) {
+    return script_null(); // Invalid overload.
   }
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
@@ -60,9 +60,18 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usi
   return args[argCount - 1];
 }
 
+static ScriptVal scene_script_exists(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount != 1 || script_type(args[0]) != ScriptType_Entity)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId e = script_get_entity(args[0], 0);
+  return script_bool(ecs_world_exists(ctx->world, e));
+}
+
 static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount != 1) {
+  if (UNLIKELY(argCount != 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
@@ -72,7 +81,7 @@ static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const 
 
 static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount != 1) {
+  if (UNLIKELY(argCount != 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
@@ -93,6 +102,7 @@ static void script_binder_init() {
 
     script_binder_declare(binder, string_hash_lit("self"), scene_script_self);
     script_binder_declare(binder, string_hash_lit("print"), scene_script_print);
+    script_binder_declare(binder, string_hash_lit("exists"), scene_script_exists);
     script_binder_declare(binder, string_hash_lit("position"), scene_script_position);
     script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
 
