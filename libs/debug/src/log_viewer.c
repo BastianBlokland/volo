@@ -58,6 +58,7 @@ static void debug_log_sink_write(
     if (debugSink->messages.size) {
       DebugLogMessage* lastMsg = dynarray_end_t(&debugSink->messages, DebugLogMessage) - 1;
       if (debug_log_msg_is_dup(lastMsg, message)) {
+        lastMsg->timestamp = timestamp;
         ++lastMsg->counter;
         duplicate = true;
       }
