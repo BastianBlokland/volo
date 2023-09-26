@@ -167,6 +167,20 @@ String script_val_type_str(const ScriptType type) {
   return g_names[type];
 }
 
+StringHash script_val_type_hash(const ScriptType type) {
+  diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
+  static const StringHash g_hashes[] = {
+      960167585,  // string_hash_lit("null")
+      1793145994, // string_hash_lit("number")
+      863051777,  // string_hash_lit("bool")
+      3297828905, // string_hash_lit("vector3")
+      3069697910, // string_hash_lit("entity")
+      3903872657, // string_hash_lit("string")
+  };
+  ASSERT(array_elems(g_hashes) == ScriptType_Count, "Incorrect number of hashes");
+  return g_hashes[type];
+}
+
 void script_val_str_write(const ScriptVal value, DynString* str) {
   switch (script_type(value)) {
   case ScriptType_Null:
