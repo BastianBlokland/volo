@@ -94,6 +94,7 @@ static void script_builtin_init() {
   script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
 
   // Builtin functions.
+  script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
   script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
   script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
   script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);

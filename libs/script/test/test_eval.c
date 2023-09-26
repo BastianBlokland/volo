@@ -75,6 +75,13 @@ spec(eval) {
         {string_static("forward"), script_vector3(geo_forward)},
         {string_static("backward"), script_vector3(geo_backward)},
 
+        // Type check.
+        {string_static("type(null)"), script_string(string_hash_lit("null"))},
+        {string_static("type(1)"), script_string(string_hash_lit("number"))},
+        {string_static("type(true)"), script_string(string_hash_lit("bool"))},
+        {string_static("type(vector(1,2,3))"), script_string(string_hash_lit("vector3"))},
+        {string_static("type(\"Hello\")"), script_string(string_hash_lit("string"))},
+
         // Conversions.
         {string_static("vector(1,2,3)"), script_vector3_lit(1, 2, 3)},
         {string_static("vector(1,true,3)"), script_null()},
