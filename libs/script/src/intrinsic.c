@@ -8,6 +8,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Break:
   case ScriptIntrinsic_Random:
     return 0;
+  case ScriptIntrinsic_Type:
   case ScriptIntrinsic_Negate:
   case ScriptIntrinsic_Invert:
   case ScriptIntrinsic_Normalize:
@@ -58,6 +59,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("continue"),
       string_static("break"),
       string_static("random"),
+      string_static("type"),
       string_static("negate"),
       string_static("invert"),
       string_static("normalize"),

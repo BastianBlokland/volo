@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_stringtable.h"
+#include "core_thread.h"
 #include "core_time.h"
 #include "script_val.h"
 
@@ -165,6 +166,24 @@ String script_val_type_str(const ScriptType type) {
   };
   ASSERT(array_elems(g_names) == ScriptType_Count, "Incorrect number of names");
   return g_names[type];
+}
+
+StringHash script_val_type_hash(const ScriptType type) {
+  diag_assert_msg(type < ScriptType_Count, "Invalid script value type: {}", fmt_int(type));
+  static StringHash     g_hashes[ScriptType_Count];
+  static bool           g_hashesInit;
+  static ThreadSpinLock g_hashesInitLock;
+  if (UNLIKELY(!g_hashesInit)) {
+    thread_spinlock_lock(&g_hashesInitLock);
+    if (!g_hashesInit) {
+      for (ScriptType t = 0; t != ScriptType_Count; ++t) {
+        g_hashes[t] = stringtable_add(g_stringtable, script_val_type_str(t));
+      }
+      g_hashesInit = true;
+    }
+    thread_spinlock_unlock(&g_hashesInitLock);
+  }
+  return g_hashes[type];
 }
 
 void script_val_str_write(const ScriptVal value, DynString* str) {

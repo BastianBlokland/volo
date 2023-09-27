@@ -71,9 +71,10 @@ ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 /**
  * Create a textual representation of a value.
  */
-String script_val_type_str(ScriptType);
-void   script_val_str_write(ScriptVal, DynString*);
-String script_val_str_scratch(ScriptVal);
+String     script_val_type_str(ScriptType);
+StringHash script_val_type_hash(ScriptType);
+void       script_val_str_write(ScriptVal, DynString*);
+String     script_val_str_scratch(ScriptVal);
 
 /**
  * Compare values.

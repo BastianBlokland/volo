@@ -161,3 +161,13 @@ ASSERT(false, "Unsupported compiler");
 #else
 #define SYS_DECL
 #endif
+
+/**
+ * Disable AddressSanitizer instrumentation on the given function.
+ * NOTE: Only use this to speedup very hot functions or exclude known issues.
+ */
+#if defined(VOLO_ASAN)
+#define NO_ASAN __attribute__((no_sanitize("address")))
+#else
+#define NO_ASAN
+#endif

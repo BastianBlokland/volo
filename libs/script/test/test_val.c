@@ -124,6 +124,15 @@ spec(val) {
     check_eq_string(script_val_type_str(ScriptType_String), string_lit("string"));
   }
 
+  it("can produce a hash for a value type") {
+    check_eq_int(script_val_type_hash(ScriptType_Null), string_hash_lit("null"));
+    check_eq_int(script_val_type_hash(ScriptType_Number), string_hash_lit("number"));
+    check_eq_int(script_val_type_hash(ScriptType_Bool), string_hash_lit("bool"));
+    check_eq_int(script_val_type_hash(ScriptType_Vector3), string_hash_lit("vector3"));
+    check_eq_int(script_val_type_hash(ScriptType_Entity), string_hash_lit("entity"));
+    check_eq_int(script_val_type_hash(ScriptType_String), string_hash_lit("string"));
+  }
+
   it("can create a textual representation of a value") {
     const struct {
       ScriptVal value;

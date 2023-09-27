@@ -146,12 +146,12 @@ static void scene_skeleton_init_from_templ(
     const bool isLowestLayer = i == tl->animCount - 1;
     const f32  startTime     = rng_sample_range(g_rng, 0, tl->anims->duration);
     layers[i]                = (SceneAnimLayer){
-                       .time     = startTime,
-                       .duration = tl->anims[i].duration,
-                       .speed    = 1.0f,
-                       .weight   = isLowestLayer ? 1.0f : 0.0f,
-                       .nameHash = tl->anims[i].nameHash,
-                       .flags    = SceneAnimFlags_Loop,
+        .time     = startTime,
+        .duration = tl->anims[i].duration,
+        .speed    = 1.0f,
+        .weight   = isLowestLayer ? 1.0f : 0.0f,
+        .nameHash = tl->anims[i].nameHash,
+        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
@@ -511,7 +511,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
           layer->time = layer->duration;
         }
       }
-      const f32 layerTimeNorm = layer->time / layer->duration;
+      const f32 layerTimeNorm = layer->duration > 0 ? (layer->time / layer->duration) : 0.0f;
       f32       layerWeight   = layer->weight;
       if (layer->flags & SceneAnimFlags_AutoFade) {
         layerWeight *= anim_compute_fade(layerTimeNorm, layer->flags);

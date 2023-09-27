@@ -59,7 +59,7 @@ void script_binder_finalize(ScriptBinder* binder) {
   for (u32 i = 0; i != binder->count; ++i) {
     keys[i] = (BinderSortKey){.name = binder->names[i], .index = i};
   }
-  sort_quicksort_t(keys, keys + binder->count, BinderSortKey, script_binder_compare_key);
+  sort_bubblesort_t(keys, keys + binder->count, BinderSortKey, script_binder_compare_key);
 
   // Copy the old function pointers.
   const usize       funcPtrSize = sizeof(ScriptBinderFunc) * binder->count;

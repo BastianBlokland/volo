@@ -46,7 +46,7 @@ spec(binder) {
     check_eq_int(script_binder_lookup(binder, 42), 4);
   }
 
-  focus_it("can execute bound functions") {
+  it("can execute bound functions") {
     script_binder_declare(binder, string_hash_lit("a"), test_bind_a);
     script_binder_declare(binder, string_hash_lit("b"), test_bind_b);
     script_binder_finalize(binder);

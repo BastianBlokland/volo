@@ -9,6 +9,7 @@
 #include "scene_name.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "script_binder.h"
 #include "script_eval.h"
@@ -27,10 +28,11 @@ typedef struct {
  */
 ecs_view_define(ScriptTransformView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
+ecs_view_define(ScriptTimeView) { ecs_access_read(SceneTimeComp); }
 
 static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount) {
+  if (UNLIKELY(argCount > 0)) {
     return script_null(); // Invalid overload.
   }
   (void)args;
@@ -39,8 +41,8 @@ static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usiz
 
 static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (!argCount) {
-    return script_null();
+  if (UNLIKELY(argCount == 0)) {
+    return script_null(); // Invalid overload.
   }
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
@@ -60,9 +62,18 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usi
   return args[argCount - 1];
 }
 
+static ScriptVal scene_script_exists(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount != 1 || script_type(args[0]) != ScriptType_Entity)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId e = script_get_entity(args[0], 0);
+  return script_bool(ecs_world_exists(ctx->world, e));
+}
+
 static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount != 1) {
+  if (UNLIKELY(argCount != 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
@@ -72,12 +83,46 @@ static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const 
 
 static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (argCount != 1) {
+  if (UNLIKELY(argCount != 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptNameView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+}
+
+static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount > 1)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId  g   = ecs_world_global(ctx->world);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptTimeView), g);
+  if (UNLIKELY(!itr)) {
+    return script_null(); // No global time comp found.
+  }
+  const SceneTimeComp* time = ecs_view_read_t(itr, SceneTimeComp);
+  if (argCount == 0) {
+    return script_time(time->time); // Overload with 0 args.
+  }
+  const StringHash clock = script_get_string(args[0], 0);
+  // TODO: Precompute these hashes.
+  if (clock == string_hash_lit("Time")) {
+    return script_time(time->time);
+  }
+  if (clock == string_hash_lit("RealTime")) {
+    return script_time(time->realTime);
+  }
+  if (clock == string_hash_lit("Delta")) {
+    return script_time(time->delta);
+  }
+  if (clock == string_hash_lit("RealDelta")) {
+    return script_time(time->realDelta);
+  }
+  if (clock == string_hash_lit("Ticks")) {
+    return script_number(time->ticks);
+  }
+  return script_null();
 }
 
 static ScriptBinder* g_scriptBinder;
@@ -93,8 +138,10 @@ static void script_binder_init() {
 
     script_binder_declare(binder, string_hash_lit("self"), scene_script_self);
     script_binder_declare(binder, string_hash_lit("print"), scene_script_print);
+    script_binder_declare(binder, string_hash_lit("exists"), scene_script_exists);
     script_binder_declare(binder, string_hash_lit("position"), scene_script_position);
     script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
+    script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -246,6 +293,7 @@ ecs_module_init(scene_script_module) {
       SceneScriptUpdateSys,
       ecs_register_view(ScriptTransformView),
       ecs_register_view(ScriptNameView),
+      ecs_register_view(ScriptTimeView),
       ecs_register_view(ScriptEntityView),
       ecs_view_id(ResourceAssetView));
 
