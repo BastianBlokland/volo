@@ -679,7 +679,7 @@ ScriptVal script_val_round_up(const ScriptVal val) {
   UNREACHABLE
 }
 
-ScriptVal script_val_compose_vector3(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
+ScriptVal script_val_vector3_compose(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
   if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
       script_type(z) != ScriptType_Number) {
     return script_null();

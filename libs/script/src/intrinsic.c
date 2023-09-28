@@ -40,7 +40,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_LogicAnd:
   case ScriptIntrinsic_LogicOr:
     return 2;
-  case ScriptIntrinsic_ComposeVector3:
+  case ScriptIntrinsic_Vector3Compose:
   case ScriptIntrinsic_If:
   case ScriptIntrinsic_Select:
     return 3;

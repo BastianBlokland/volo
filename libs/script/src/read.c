@@ -95,7 +95,7 @@ static void script_builtin_init() {
 
   // Builtin functions.
   script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
-  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
+  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_Vector3Compose);
   script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
   script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
   script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
@@ -1143,11 +1143,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

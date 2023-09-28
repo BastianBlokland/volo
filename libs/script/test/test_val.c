@@ -724,7 +724,7 @@ spec(val) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       const ScriptVal actual =
-          script_val_compose_vector3(testData[i].a, testData[i].b, testData[i].c);
+          script_val_vector3_compose(testData[i].a, testData[i].b, testData[i].c);
       check_eq_val(actual, testData[i].expected);
     }
   }
