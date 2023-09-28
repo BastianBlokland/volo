@@ -36,6 +36,7 @@ typedef enum {
   ScriptIntrinsic_LogicAnd,       // Args: lhs, rhs.
   ScriptIntrinsic_LogicOr,        // Args: lhs, rhs.
   ScriptIntrinsic_Vector3Compose, // Args: x, y, z.
+  ScriptIntrinsic_QuatFromEuler,  // Args: x, y, z.
   ScriptIntrinsic_If,             // Args: condition, if branch, else branch.
   ScriptIntrinsic_Select,         // Args: condition, if branch, else branch.
   ScriptIntrinsic_For,            // Args: setup, condition, increment, body.

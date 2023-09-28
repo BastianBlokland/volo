@@ -136,6 +136,7 @@ spec(eval) {
         {string_static("angle(up, down) == pi"), script_bool(true)},
         {string_static("up * 42"), script_vector3_lit(0, 42, 0)},
         {string_static("up * 42 / 42"), script_vector3(geo_up)},
+        {string_static("euler(0,0,0)"), script_quat(geo_quat_ident)},
         {string_static("round_down(1.6)"), script_number(1.0)},
         {string_static("round_down(1.0)"), script_number(1.0)},
         {string_static("round_up(1.0)"), script_number(1.0)},

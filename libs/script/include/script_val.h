@@ -114,6 +114,7 @@ ScriptVal script_val_vector3_compose(ScriptVal, ScriptVal, ScriptVal);
 ScriptVal script_val_vector_x(ScriptVal);
 ScriptVal script_val_vector_y(ScriptVal);
 ScriptVal script_val_vector_z(ScriptVal);
+ScriptVal script_val_quat_from_euler(ScriptVal, ScriptVal, ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

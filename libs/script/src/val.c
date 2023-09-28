@@ -554,9 +554,14 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
 }
 
 ScriptVal script_val_norm(const ScriptVal val) {
-  return script_type(val) == ScriptType_Vector3
-             ? script_vector3(geo_vector_norm(val_as_vector3(val)))
-             : script_null();
+  switch (script_type(val)) {
+  case ScriptType_Vector3:
+    return script_vector3(geo_vector_norm(val_as_vector3(val)));
+  case ScriptType_Quat:
+    return val; // NOTE: Quaternion script values are normalized on creation.
+  default:
+    return script_null();
+  }
 }
 
 ScriptVal script_val_mag(const ScriptVal val) {
@@ -700,4 +705,14 @@ ScriptVal script_val_vector_y(const ScriptVal val) {
 ScriptVal script_val_vector_z(const ScriptVal val) {
   return script_type(val) == ScriptType_Vector3 ? script_number(val_as_vector3_dirty_w(val).z)
                                                 : script_null();
+}
+
+ScriptVal script_val_quat_from_euler(const ScriptVal x, const ScriptVal y, const ScriptVal z) {
+  if (script_type(x) != ScriptType_Number || script_type(y) != ScriptType_Number ||
+      script_type(z) != ScriptType_Number) {
+    return script_null();
+  }
+  const GeoVector eulerAngles =
+      geo_vector((f32)val_as_number(x), (f32)val_as_number(y), (f32)val_as_number(z));
+  return script_quat(geo_quat_from_euler(eulerAngles));
 }

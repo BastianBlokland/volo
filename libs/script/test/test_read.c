@@ -67,7 +67,7 @@ spec(read) {
         },
         {
             string_static("vector(1, 2, 3)"),
-            string_static("[intrinsic: compose-vector3]\n"
+            string_static("[intrinsic: vector3-compose]\n"
                           "  [value: 1]\n"
                           "  [value: 2]\n"
                           "  [value: 3]"),
@@ -97,6 +97,13 @@ spec(read) {
             string_static("vector_z(1)"),
             string_static("[intrinsic: vector-z]\n"
                           "  [value: 1]"),
+        },
+        {
+            string_static("euler(1,2,3)"),
+            string_static("[intrinsic: quat-from-euler]\n"
+                          "  [value: 1]\n"
+                          "  [value: 2]\n"
+                          "  [value: 3]"),
         },
         {
             string_static("assert(1)"),
