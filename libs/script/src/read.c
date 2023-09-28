@@ -92,6 +92,7 @@ static void script_builtin_init() {
   script_builtin_const_add(string_lit("right"), script_vector3(geo_right));
   script_builtin_const_add(string_lit("forward"), script_vector3(geo_forward));
   script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
+  script_builtin_const_add(string_lit("quat_ident"), script_quat(geo_quat_ident));
 
   // Builtin functions.
   script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
