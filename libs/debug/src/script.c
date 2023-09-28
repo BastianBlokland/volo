@@ -94,25 +94,18 @@ static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
   const UiAlign    align     = UiAlign_MiddleLeft;
   ui_layout_push(canvas);
   ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
 
   GeoQuat quat = script_get_quat(*value, geo_quat_ident);
 
-  bool dirty = false;
   for (u8 comp = 0; comp != 4; ++comp) {
     f64 compVal = quat.comps[comp];
-    if (ui_numbox(canvas, &compVal, .min = -1.0f, .max = 1.0f)) {
-      quat.comps[comp] = (f32)compVal;
-      dirty            = true;
-    }
+    ui_numbox(canvas, &compVal);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
 
-  if (dirty) {
-    *value = script_quat(quat);
-  }
-  return dirty;
+  return false; // Does not support editing.
 }
 
 static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
