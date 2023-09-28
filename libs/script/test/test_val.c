@@ -19,7 +19,7 @@ spec(val) {
     check_eq_int(script_type(script_vector3_lit(1, 2, 3)), ScriptType_Vector3);
     check_eq_float(script_get_vector3(script_vector3_lit(1, 2, 3), geo_vector(0)).z, 3, 1e-6);
 
-    check_eq_int(script_type(script_quat(geo_quat_ident)), ScriptType_Quaternion);
+    check_eq_int(script_type(script_quat(geo_quat_ident)), ScriptType_Quat);
     const ScriptVal quatForwardToDown = script_quat(geo_quat_forward_to_down);
     check_eq_float(script_get_quat(quatForwardToDown, geo_quat_ident).x, 0.7071068f, 1e-6);
     check_eq_float(script_get_quat(quatForwardToDown, geo_quat_ident).y, 0, 1e-6);
@@ -142,7 +142,7 @@ spec(val) {
     check_eq_string(script_val_type_str(ScriptType_Number), string_lit("number"));
     check_eq_string(script_val_type_str(ScriptType_Bool), string_lit("bool"));
     check_eq_string(script_val_type_str(ScriptType_Vector3), string_lit("vector3"));
-    check_eq_string(script_val_type_str(ScriptType_Quaternion), string_lit("quaternion"));
+    check_eq_string(script_val_type_str(ScriptType_Quat), string_lit("quat"));
     check_eq_string(script_val_type_str(ScriptType_Entity), string_lit("entity"));
     check_eq_string(script_val_type_str(ScriptType_String), string_lit("string"));
   }
@@ -152,7 +152,7 @@ spec(val) {
     check_eq_int(script_val_type_hash(ScriptType_Number), string_hash_lit("number"));
     check_eq_int(script_val_type_hash(ScriptType_Bool), string_hash_lit("bool"));
     check_eq_int(script_val_type_hash(ScriptType_Vector3), string_hash_lit("vector3"));
-    check_eq_int(script_val_type_hash(ScriptType_Quaternion), string_hash_lit("quaternion"));
+    check_eq_int(script_val_type_hash(ScriptType_Quat), string_hash_lit("quat"));
     check_eq_int(script_val_type_hash(ScriptType_Entity), string_hash_lit("entity"));
     check_eq_int(script_val_type_hash(ScriptType_String), string_hash_lit("string"));
   }

@@ -11,7 +11,7 @@ typedef enum {
   ScriptType_Number,
   ScriptType_Bool,
   ScriptType_Vector3,
-  ScriptType_Quaternion,
+  ScriptType_Quat,
   ScriptType_Entity,
   ScriptType_String,
 

@@ -13,15 +13,15 @@
 /**
  * ScriptVal's are 128bit values with 128bit alignment.
  *
- * | Type       | Word 0        | Word 1        | Word 2     | Word 3       |
- * |------------|---------------|---------------|------------|--------------|
- * | null       | unused        | unused        | unused     | type tag (0) |
- * | number     | lower 32 bits | upper 32 bits | unused     | type tag (1) |
- * | Bool       | 0 / 1         | unused        | unused     | type tag (2) |
- * | Vector3    | f32 x         | f32 y         | f32 z      | type tag (3) |
- * | Quaternion | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
- * | Entity     | lower 32 bits | upper 32 bits | unused     | type tag (5) |
- * | String     | u32           | unused        | unused     | type tag (6) |
+ * | Type    | Word 0        | Word 1        | Word 2     | Word 3       |
+ * |---------|---------------|---------------|------------|--------------|
+ * | null    | unused        | unused        | unused     | type tag (0) |
+ * | number  | lower 32 bits | upper 32 bits | unused     | type tag (1) |
+ * | Bool    | 0 / 1         | unused        | unused     | type tag (2) |
+ * | Vector3 | f32 x         | f32 y         | f32 z      | type tag (3) |
+ * | Quat    | f32 q1        | f32 q2        | f32 q3     | type tag (4) |
+ * | Entity  | lower 32 bits | upper 32 bits | unused     | type tag (5) |
+ * | String  | u32           | unused        | unused     | type tag (6) |
  *
  * NOTE: Only unit quaternions are supported (as the 4th component is reconstructed).
  * NOTE: Assumes little-endian byte order.
@@ -92,7 +92,7 @@ ScriptVal script_vector3_lit(const f32 x, const f32 y, const f32 z) {
 ScriptVal script_quat(const GeoQuat q) {
   ScriptVal result;
   result.unsafeQuat = geo_quat_norm_or_ident(q);
-  result.data[3]    = ScriptType_Quaternion;
+  result.data[3]    = ScriptType_Quat;
   return result;
 }
 
@@ -129,7 +129,7 @@ GeoVector script_get_vector3(const ScriptVal value, const GeoVector fallback) {
 }
 
 GeoQuat script_get_quat(const ScriptVal value, const GeoQuat fallback) {
-  return script_type(value) == ScriptType_Quaternion ? val_as_quat(value) : fallback;
+  return script_type(value) == ScriptType_Quat ? val_as_quat(value) : fallback;
 }
 
 EcsEntityId script_get_entity(const ScriptVal value, const EcsEntityId fallback) {
@@ -155,7 +155,7 @@ bool script_truthy(const ScriptVal value) {
     return val_as_bool(value);
   case ScriptType_Vector3:
     return geo_vector_mag_sqr(val_as_vector3(value)) > f32_epsilon;
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return true; // Only unit quaternions are supported thus they are always truthy.
   case ScriptType_Entity:
     return ecs_entity_valid(val_as_entity(value));
@@ -183,7 +183,7 @@ String script_val_type_str(const ScriptType type) {
       string_static("number"),
       string_static("bool"),
       string_static("vector3"),
-      string_static("quaternion"),
+      string_static("quat"),
       string_static("entity"),
       string_static("string"),
   };
@@ -225,7 +225,7 @@ void script_val_str_write(const ScriptVal value, DynString* str) {
     format_write_arg(str, &fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z)));
     return;
   }
-  case ScriptType_Quaternion: {
+  case ScriptType_Quat: {
     const GeoQuat q = val_as_quat(value);
     format_write_arg(
         str, &fmt_list_lit(fmt_float(q.x), fmt_float(q.y), fmt_float(q.z), fmt_float(q.w)));
@@ -279,7 +279,7 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
     const GeoVector vecB = val_as_vector3_dirty_w(b);
     return geo_vector_equal3(vecA, vecB, g_vectorThreshold);
   }
-  case ScriptType_Quaternion: {
+  case ScriptType_Quat: {
     const GeoQuat qA = val_as_quat(a);
     const GeoQuat qB = val_as_quat(b);
     return math_abs(geo_quat_dot(qA, qB)) > 1.0f - 1e-4f;
@@ -302,7 +302,7 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
   switch (script_type(a)) {
   case ScriptType_Null:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return false;
   case ScriptType_Number:
     return val_as_number(a) < val_as_number(b);
@@ -326,7 +326,7 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   switch (script_type(a)) {
   case ScriptType_Null:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return false;
   case ScriptType_Number:
     return val_as_number(a) > val_as_number(b);
@@ -356,7 +356,7 @@ ScriptVal script_val_neg(const ScriptVal val) {
     const GeoVector vec = val_as_vector3_dirty_w(val);
     return script_vector3(geo_vector_mul(vec, -1.0f));
   }
-  case ScriptType_Quaternion: {
+  case ScriptType_Quat: {
     const GeoQuat q = val_as_quat(val);
     return script_quat(geo_quat_inverse(q));
   }
@@ -378,7 +378,7 @@ ScriptVal script_val_add(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) + val_as_number(b));
@@ -403,7 +403,7 @@ ScriptVal script_val_sub(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(val_as_number(a) - val_as_number(b));
@@ -441,13 +441,13 @@ ScriptVal script_val_mul(const ScriptVal a, const ScriptVal b) {
     }
     return script_null();
   }
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     if (script_type(b) == ScriptType_Vector3) {
       const GeoQuat   qA   = val_as_quat(a);
       const GeoVector vecB = val_as_vector3_dirty_w(b);
       return script_vector3(geo_quat_rotate(qA, vecB));
     }
-    if (script_type(b) == ScriptType_Quaternion) {
+    if (script_type(b) == ScriptType_Quat) {
       const GeoQuat qA = val_as_quat(a);
       const GeoQuat qB = val_as_quat(b);
       return script_quat(geo_quat_mul(qA, qB));
@@ -466,7 +466,7 @@ ScriptVal script_val_div(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_type(b) == ScriptType_Number ? script_number(val_as_number(a) / val_as_number(b))
@@ -496,7 +496,7 @@ ScriptVal script_val_mod(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_type(b) == ScriptType_Number
@@ -537,7 +537,7 @@ ScriptVal script_val_dist(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(math_abs(val_as_number(a) - val_as_number(b)));
@@ -565,7 +565,7 @@ ScriptVal script_val_mag(const ScriptVal val) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(math_abs(val_as_number(val)));
@@ -582,7 +582,7 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) == ScriptType_Vector3 && script_type(b) == ScriptType_Vector3) {
     return script_number(geo_vector_angle(val_as_vector3(a), val_as_vector3(b)));
   }
-  if (script_type(a) == ScriptType_Quaternion && script_type(b) == ScriptType_Quaternion) {
+  if (script_type(a) == ScriptType_Quat && script_type(b) == ScriptType_Quat) {
     const GeoQuat qA    = val_as_quat(a);
     const GeoQuat qB    = val_as_quat(b);
     const GeoQuat delta = geo_quat_from_to(qA, qB);
@@ -603,7 +603,7 @@ ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(rng_sample_range(g_rng, val_as_number(a), val_as_number(b)));
@@ -628,7 +628,7 @@ ScriptVal script_val_round_down(const ScriptVal val) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_down_f64(val_as_number(val)));
@@ -647,7 +647,7 @@ ScriptVal script_val_round_nearest(const ScriptVal val) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_nearest_f64(val_as_number(val)));
@@ -666,7 +666,7 @@ ScriptVal script_val_round_up(const ScriptVal val) {
   case ScriptType_Bool:
   case ScriptType_Entity:
   case ScriptType_String:
-  case ScriptType_Quaternion:
+  case ScriptType_Quat:
     return script_null();
   case ScriptType_Number:
     return script_number(math_round_up_f64(val_as_number(val)));
