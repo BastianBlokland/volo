@@ -9,13 +9,13 @@
 #define script_binder_max_funcs 64
 
 typedef struct {
-  StringHash name;
-  u32        index;
-} BinderSortKey;
+  StringHash       name;
+  ScriptBinderFunc func;
+} BinderSortEntry;
 
-static i8 script_binder_compare_key(const void* a, const void* b) {
-  const StringHash nameA = *field_ptr(a, BinderSortKey, name);
-  const StringHash nameB = *field_ptr(b, BinderSortKey, name);
+static i8 script_binder_compare_entry(const void* a, const void* b) {
+  const StringHash nameA = *field_ptr(a, BinderSortEntry, name);
+  const StringHash nameB = *field_ptr(b, BinderSortEntry, name);
   return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
 }
 
@@ -55,21 +55,16 @@ void script_binder_finalize(ScriptBinder* binder) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
 
   // Compute the binding order (sorted on the name-hash).
-  BinderSortKey* keys = alloc_array_t(g_alloc_scratch, BinderSortKey, binder->count);
+  BinderSortEntry* entries = alloc_array_t(g_alloc_scratch, BinderSortEntry, binder->count);
   for (u32 i = 0; i != binder->count; ++i) {
-    keys[i] = (BinderSortKey){.name = binder->names[i], .index = i};
+    entries[i] = (BinderSortEntry){.name = binder->names[i], .func = binder->funcs[i]};
   }
-  sort_bubblesort_t(keys, keys + binder->count, BinderSortKey, script_binder_compare_key);
-
-  // Copy the old function pointers.
-  const usize       funcPtrSize = sizeof(ScriptBinderFunc) * binder->count;
-  ScriptBinderFunc* oldFuncs    = alloc_array_t(g_alloc_scratch, ScriptBinderFunc, binder->count);
-  mem_cpy(mem_create(oldFuncs, funcPtrSize), mem_create(binder->funcs, funcPtrSize));
+  sort_bubblesort_t(entries, entries + binder->count, BinderSortEntry, script_binder_compare_entry);
 
   // Re-order the names and functions to match the binding order.
   for (u32 i = 0; i != binder->count; ++i) {
-    binder->names[i] = keys[i].name;
-    binder->funcs[i] = oldFuncs[keys[i].index];
+    binder->names[i] = entries[i].name;
+    binder->funcs[i] = entries[i].func;
   }
 
   binder->flags |= ScriptBinderFlags_Finalized;

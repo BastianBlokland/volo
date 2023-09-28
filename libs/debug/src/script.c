@@ -83,8 +83,29 @@ static bool memory_draw_vector3(UiCanvasComp* canvas, ScriptVal* value) {
   }
   ui_layout_pop(canvas);
 
-  *value = script_vector3(vec3);
+  if (dirty) {
+    *value = script_vector3(vec3);
+  }
   return dirty;
+}
+
+static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
+  static const f32 g_spacing = 10.0f;
+  const UiAlign    align     = UiAlign_MiddleLeft;
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
+
+  GeoQuat quat = script_get_quat(*value, geo_quat_ident);
+
+  for (u8 comp = 0; comp != 4; ++comp) {
+    f64 compVal = quat.comps[comp];
+    ui_numbox(canvas, &compVal);
+    ui_layout_next(canvas, Ui_Right, g_spacing);
+  }
+  ui_layout_pop(canvas);
+
+  return false; // Does not support editing.
 }
 
 static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
@@ -109,6 +130,8 @@ static bool memory_draw_value(UiCanvasComp* canvas, ScriptVal* value) {
     return memory_draw_bool(canvas, value);
   case ScriptType_Vector3:
     return memory_draw_vector3(canvas, value);
+  case ScriptType_Quat:
+    return memory_draw_quat(canvas, value);
   case ScriptType_Entity:
     return memory_draw_entity(canvas, value);
   case ScriptType_String:

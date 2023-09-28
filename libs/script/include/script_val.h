@@ -1,7 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "ecs_entity.h"
-#include "geo_vector.h"
+#include "geo_quat.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -11,6 +11,7 @@ typedef enum {
   ScriptType_Number,
   ScriptType_Bool,
   ScriptType_Vector3,
+  ScriptType_Quat,
   ScriptType_Entity,
   ScriptType_String,
 
@@ -25,6 +26,7 @@ typedef union uScriptVal {
   f64         unsafeNumber;
   bool        unsafeBool;
   GeoVector   unsafeVector;
+  GeoQuat     unsafeQuat;
   EcsEntityId unsafeEntity;
   StringHash  unsafeStringHash;
 } ScriptVal;
@@ -45,6 +47,7 @@ ScriptVal script_number(f64);
 ScriptVal script_bool(bool);
 ScriptVal script_vector3(GeoVector);
 ScriptVal script_vector3_lit(f32 x, f32 y, f32 z);
+ScriptVal script_quat(GeoQuat);
 ScriptVal script_entity(EcsEntityId);
 ScriptVal script_entity_or_null(EcsEntityId);
 ScriptVal script_string(StringHash);
@@ -56,6 +59,7 @@ ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 f64          script_get_number(ScriptVal, f64 fallback);
 bool         script_get_bool(ScriptVal, bool fallback);
 GeoVector    script_get_vector3(ScriptVal, GeoVector fallback);
+GeoQuat      script_get_quat(ScriptVal, GeoQuat fallback);
 EcsEntityId  script_get_entity(ScriptVal, EcsEntityId fallback);
 StringHash   script_get_string(ScriptVal, StringHash fallback);
 TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
@@ -106,10 +110,11 @@ ScriptVal script_val_round_up(ScriptVal);
 /**
  * Value conversions.
  */
-ScriptVal script_val_compose_vector3(ScriptVal, ScriptVal, ScriptVal);
+ScriptVal script_val_vector3_compose(ScriptVal, ScriptVal, ScriptVal);
 ScriptVal script_val_vector_x(ScriptVal);
 ScriptVal script_val_vector_y(ScriptVal);
 ScriptVal script_val_vector_z(ScriptVal);
+ScriptVal script_val_quat_from_euler(ScriptVal, ScriptVal, ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

@@ -201,10 +201,15 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
   }
-  case ScriptIntrinsic_ComposeVector3: {
+  case ScriptIntrinsic_Vector3Compose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
-    return script_val_compose_vector3(arg0, arg1, eval(ctx, args[2]));
+    return script_val_vector3_compose(arg0, arg1, eval(ctx, args[2]));
+  }
+  case ScriptIntrinsic_QuatFromEuler: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
+    return script_val_quat_from_euler(arg0, arg1, eval(ctx, args[2]));
   }
   case ScriptIntrinsic_If:
   case ScriptIntrinsic_Select: {

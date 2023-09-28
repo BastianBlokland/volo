@@ -50,13 +50,13 @@ spec(doc) {
         doc,
         script_add_intrinsic(
             doc,
-            ScriptIntrinsic_ComposeVector3,
+            ScriptIntrinsic_Vector3Compose,
             (const ScriptExpr[]){
                 script_add_value(doc, script_number(1)),
                 script_add_value(doc, script_number(2)),
                 script_add_value(doc, script_number(3)),
             }),
-        "[intrinsic: compose-vector3]\n"
+        "[intrinsic: vector3-compose]\n"
         "  [value: 1]\n"
         "  [value: 2]\n"
         "  [value: 3]");

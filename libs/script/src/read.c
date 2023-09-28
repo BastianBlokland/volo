@@ -92,13 +92,15 @@ static void script_builtin_init() {
   script_builtin_const_add(string_lit("right"), script_vector3(geo_right));
   script_builtin_const_add(string_lit("forward"), script_vector3(geo_forward));
   script_builtin_const_add(string_lit("backward"), script_vector3(geo_backward));
+  script_builtin_const_add(string_lit("quat_ident"), script_quat(geo_quat_ident));
 
   // Builtin functions.
   script_builtin_func_add(string_lit("type"), ScriptIntrinsic_Type);
-  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_ComposeVector3);
+  script_builtin_func_add(string_lit("vector"), ScriptIntrinsic_Vector3Compose);
   script_builtin_func_add(string_lit("vector_x"), ScriptIntrinsic_VectorX);
   script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
   script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
+  script_builtin_func_add(string_lit("euler"), ScriptIntrinsic_QuatFromEuler);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
   script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
@@ -1143,11 +1145,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
