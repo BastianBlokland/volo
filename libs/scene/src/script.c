@@ -27,6 +27,7 @@ typedef struct {
  * The following views are used by script bindings.
  */
 ecs_view_define(ScriptTransformView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(ScriptScaleView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(ScriptTimeView) { ecs_access_read(SceneTimeComp); }
 
@@ -91,6 +92,16 @@ static ScriptVal scene_script_rotation(void* ctxR, const ScriptVal* args, const 
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
+static ScriptVal scene_script_scale(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount != 1)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptScaleView), e);
+  return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
+}
+
 static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
   if (UNLIKELY(argCount != 1)) {
@@ -151,6 +162,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("exists"), scene_script_exists);
     script_binder_declare(binder, string_hash_lit("position"), scene_script_position);
     script_binder_declare(binder, string_hash_lit("rotation"), scene_script_rotation);
+    script_binder_declare(binder, string_hash_lit("scale"), scene_script_scale);
     script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
 
@@ -303,6 +315,7 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(
       SceneScriptUpdateSys,
       ecs_register_view(ScriptTransformView),
+      ecs_register_view(ScriptScaleView),
       ecs_register_view(ScriptNameView),
       ecs_register_view(ScriptTimeView),
       ecs_register_view(ScriptEntityView),
