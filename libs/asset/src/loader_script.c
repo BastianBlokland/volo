@@ -23,6 +23,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("print"), null);
     script_binder_declare(binder, string_hash_lit("exists"), null);
     script_binder_declare(binder, string_hash_lit("position"), null);
+    script_binder_declare(binder, string_hash_lit("rotation"), null);
     script_binder_declare(binder, string_hash_lit("name"), null);
     script_binder_declare(binder, string_hash_lit("time"), null);
 
