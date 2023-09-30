@@ -173,6 +173,18 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usi
   return script_entity(scene_prefab_spawn(ctx->world, &spec));
 }
 
+static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount != 1 || script_type(args[0]) != ScriptType_Entity)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId e = script_get_entity(args[0], 0);
+  if (ecs_world_exists(ctx->world, e)) {
+    ecs_world_entity_destroy(ctx->world, e);
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -193,6 +205,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
     script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
+    script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
