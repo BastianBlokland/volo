@@ -195,6 +195,7 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const us
   const EcsEntityId target = script_get_entity(args[1], 0);
   if (entity && target) {
     const StringHash jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0;
+    // NOTE: Will crash if the entity was already attached to something.
     if (jointName) {
       scene_attach_to_joint_name(ctx->world, entity, target, jointName);
     } else {
