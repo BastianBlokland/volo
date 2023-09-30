@@ -5,6 +5,7 @@
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_attachment.h"
 #include "scene_knowledge.h"
 #include "scene_name.h"
 #include "scene_prefab.h"
@@ -185,6 +186,19 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   return script_null();
 }
 
+static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 2)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId target = script_get_entity(args[1], 0);
+  if (entity && target) {
+    scene_attach_to_entity(ctx->world, entity, target);
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -206,6 +220,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
     script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
     script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
+    script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;

@@ -95,6 +95,10 @@ ecs_module_init(scene_attachment_module) {
   ecs_order(SceneAttachmentSys, SceneOrder_AttachmentUpdate);
 }
 
+void scene_attach_to_entity(EcsWorld* world, const EcsEntityId entity, const EcsEntityId target) {
+  ecs_world_add_t(world, entity, SceneAttachmentComp, .target = target, .jointIndex = sentinel_u32);
+}
+
 void scene_attach_to_joint(
     EcsWorld* world, const EcsEntityId entity, const EcsEntityId target, const u32 jointIndex) {
   ecs_world_add_t(
