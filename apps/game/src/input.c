@@ -115,7 +115,7 @@ static void input_indicator_attack(EcsWorld* world, const EcsEntityId target) {
           .faction  = SceneFaction_None,
           .rotation = geo_quat_ident});
 
-  ecs_world_add_t(world, effectEntity, SceneAttachmentComp, .target = target);
+  scene_attach_to_entity(world, effectEntity, target);
 }
 
 static void update_group_input(

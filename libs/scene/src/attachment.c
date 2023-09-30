@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attachment.h"
@@ -14,9 +15,9 @@ ecs_view_define(UpdateView) {
 }
 
 ecs_view_define(TargetView) {
+  ecs_access_maybe_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_read(SceneSkeletonComp);
+  ecs_access_maybe_read(SceneSkeletonComp);
   ecs_access_read(SceneTransformComp);
 }
 
@@ -32,18 +33,14 @@ ecs_system_define(SceneAttachmentSys) {
     SceneTransformComp*  trans  = ecs_view_write_t(itr, SceneTransformComp);
 
     if (UNLIKELY(!ecs_view_maybe_jump(targetItr, attach->target))) {
-      /**
-       * Target doesn't exist or is missing components.
-       * TODO: Consider how to handle this case.
-       */
-      continue;
+      continue; // Target does not exist or doesn't have a transform.
     }
 
     const SceneTransformComp* tgtTrans = ecs_view_read_t(targetItr, SceneTransformComp);
     const SceneScaleComp*     tgtScale = ecs_view_read_t(targetItr, SceneScaleComp);
     const SceneSkeletonComp*  tgtSkel  = ecs_view_read_t(targetItr, SceneSkeletonComp);
 
-    if (!tgtSkel->jointCount) {
+    if (!tgtSkel || !tgtSkel->jointCount) {
       trans->position = tgtTrans->position;
       trans->rotation = tgtTrans->rotation;
       continue;
@@ -52,6 +49,7 @@ ecs_system_define(SceneAttachmentSys) {
     if (UNLIKELY(sentinel_check(attach->jointIndex))) {
       // Joint index not known yet, attempt to query it from the skeleton template by name.
       const SceneRenderableComp* tgtRenderable = ecs_view_read_t(targetItr, SceneRenderableComp);
+      diag_assert(tgtRenderable); // A skeleton without a renderable is not valid.
       if (UNLIKELY(!ecs_view_maybe_jump(graphicItr, tgtRenderable->graphic))) {
         /**
          * Target's graphic is missing a skeleton-template component.
@@ -93,6 +91,10 @@ ecs_module_init(scene_attachment_module) {
       ecs_view_id(TargetGraphicView));
 
   ecs_order(SceneAttachmentSys, SceneOrder_AttachmentUpdate);
+}
+
+void scene_attach_to_entity(EcsWorld* world, const EcsEntityId entity, const EcsEntityId target) {
+  ecs_world_add_t(world, entity, SceneAttachmentComp, .target = target);
 }
 
 void scene_attach_to_joint(

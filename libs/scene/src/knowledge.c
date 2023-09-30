@@ -18,6 +18,8 @@ static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
   for (ScriptMemItr itr = script_mem_begin(memB); itr.key; itr = script_mem_next(memB, itr)) {
     script_mem_set(memA, itr.key, script_mem_get(memB, itr.key));
   }
+
+  script_mem_destroy(compB->memory);
 }
 
 ecs_module_init(scene_knowledge_module) {
