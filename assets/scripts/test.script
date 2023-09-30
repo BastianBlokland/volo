@@ -1,2 +1,8 @@
+var me = self();
+var now = time();
 
-print("Hello World")
+$nextSpawnTime ??= now + 5.0;
+if($nextSpawnTime <= now) {
+  $nextSpawnTime = null;
+  spawn("ExplosionMedium", position(me), rotation(me));
+}

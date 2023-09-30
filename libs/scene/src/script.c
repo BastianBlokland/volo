@@ -7,6 +7,7 @@
 #include "log_logger.h"
 #include "scene_knowledge.h"
 #include "scene_name.h"
+#include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
 #include "scene_time.h"
@@ -146,6 +147,32 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usiz
   return script_null();
 }
 
+static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 1)) {
+    return script_null(); // Invalid overload.
+  }
+  ScenePrefabSpec spec = {.faction = SceneFaction_None};
+  spec.prefabId        = script_get_string(args[0], 0);
+  if (UNLIKELY(!spec.prefabId)) {
+    return script_null(); // Invalid prefab-id.
+  }
+  if (argCount >= 2) {
+    spec.position = script_get_vector3(args[1], geo_vector(0));
+  }
+  if (argCount >= 3) {
+    spec.rotation = script_get_quat(args[2], geo_quat_ident);
+  } else {
+    spec.rotation = geo_quat_ident;
+  }
+  if (argCount >= 4) {
+    spec.scale = (f32)script_get_number(args[3], 1.0);
+  } else {
+    spec.scale = 1.0f;
+  }
+  return script_entity(scene_prefab_spawn(ctx->world, &spec));
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -165,6 +192,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("scale"), scene_script_scale);
     script_binder_declare(binder, string_hash_lit("name"), scene_script_name);
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
+    script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
