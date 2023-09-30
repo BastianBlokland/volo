@@ -103,6 +103,7 @@ typedef enum {
   DebugSysSortMode_Id,
   DebugSysSortMode_Name,
   DebugSysSortMode_Duration,
+  DebugSysSortMode_Order,
 
   DebugSysSortMode_Count,
 } DebugSysSortMode;
@@ -111,6 +112,7 @@ static const String g_sysSortModeNames[] = {
     string_static("Id"),
     string_static("Name"),
     string_static("Duration"),
+    string_static("Order"),
 };
 ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
 
@@ -188,6 +190,11 @@ static i8 sys_compare_info_name(const void* a, const void* b) {
 static i8 sys_compare_info_duration(const void* a, const void* b) {
   return compare_u64_reverse(
       field_ptr(a, DebugEcsSysInfo, duration), field_ptr(b, DebugEcsSysInfo, duration));
+}
+
+static i8 sys_compare_info_order(const void* a, const void* b) {
+  return compare_i32(
+      field_ptr(a, DebugEcsSysInfo, definedOrder), field_ptr(b, DebugEcsSysInfo, definedOrder));
 }
 
 static bool ecs_panel_filter(DebugEcsPanelComp* panelComp, const String name) {
@@ -573,6 +580,9 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     break;
   case DebugSysSortMode_Duration:
     dynarray_sort(&panelComp->systems, sys_compare_info_duration);
+    break;
+  case DebugSysSortMode_Order:
+    dynarray_sort(&panelComp->systems, sys_compare_info_order);
     break;
   case DebugSysSortMode_Count:
     break;
