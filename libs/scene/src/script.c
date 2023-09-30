@@ -194,7 +194,12 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const us
   const EcsEntityId entity = script_get_entity(args[0], 0);
   const EcsEntityId target = script_get_entity(args[1], 0);
   if (entity && target) {
-    scene_attach_to_entity(ctx->world, entity, target);
+    const StringHash jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0;
+    if (jointName) {
+      scene_attach_to_joint_name(ctx->world, entity, target, jointName);
+    } else {
+      scene_attach_to_entity(ctx->world, entity, target);
+    }
   }
   return script_null();
 }
