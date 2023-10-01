@@ -10,4 +10,6 @@ typedef struct sScriptEnum {
 } ScriptEnum;
 
 void script_enum_push(ScriptEnum*, String name, i32 value);
-i32  script_enum_lookup(const ScriptEnum*, StringHash nameHash, i32 value);
+
+i32        script_enum_lookup_value(const ScriptEnum*, StringHash nameHash, i32 fallback);
+StringHash script_enum_lookup_name(const ScriptEnum*, i32 value);

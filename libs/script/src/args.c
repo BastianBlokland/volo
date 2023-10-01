@@ -38,7 +38,7 @@ i32 script_arg_enum(const ScriptArgs args, const u32 i, const ScriptEnum* e, con
   if (!hash) {
     return fallback;
   }
-  return script_enum_lookup(e, hash, fallback);
+  return script_enum_lookup_value(e, hash, fallback);
 }
 
 ScriptVal script_arg_last_or_null(const ScriptArgs args) {
