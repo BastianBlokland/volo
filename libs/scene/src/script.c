@@ -212,10 +212,13 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type         = ScriptActionType_Destroy,
-      .data_destroy = {.entity = script_get_entity(args[0], 0)},
-  };
+  const EcsEntityId e = script_get_entity(args[0], 0);
+  if (e) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type         = ScriptActionType_Destroy,
+        .data_destroy = {.entity = e},
+    };
+  }
   return script_null();
 }
 
@@ -454,7 +457,7 @@ ecs_system_define(ScriptActionApplySys) {
       switch (action->type) {
       case ScriptActionType_Destroy: {
         const ScriptActionDestroy* data = &action->data_destroy;
-        if (data->entity && ecs_world_exists(world, data->entity)) {
+        if (ecs_world_exists(world, data->entity)) {
           ecs_world_entity_destroy(world, data->entity);
         }
       }
