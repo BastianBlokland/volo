@@ -21,6 +21,7 @@
 
 typedef enum {
   ScriptActionType_Teleport,
+  ScriptActionType_Attach,
 } ScriptActionType;
 
 typedef struct {
@@ -30,9 +31,16 @@ typedef struct {
 } ScriptActionTeleport;
 
 typedef struct {
+  EcsEntityId entity;
+  EcsEntityId target;
+  StringHash  jointName;
+} ScriptActionAttach;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionTeleport data_teleport;
+    ScriptActionAttach   data_attach;
   };
 } ScriptAction;
 
@@ -199,25 +207,6 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   return script_null();
 }
 
-static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const usize argCount) {
-  SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 2)) {
-    return script_null(); // Invalid overload.
-  }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
-  const EcsEntityId target = script_get_entity(args[1], 0);
-  if (entity && target) {
-    const StringHash jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0;
-    // NOTE: Will crash if the entity was already attached to something.
-    if (jointName) {
-      scene_attach_to_joint_name(ctx->world, entity, target, jointName);
-    } else {
-      scene_attach_to_entity(ctx->world, entity, target);
-    }
-  }
-  return script_null();
-}
-
 static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
   if (UNLIKELY(argCount < 3)) {
@@ -232,6 +221,27 @@ static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const 
               .rotation = script_get_quat(args[2], geo_quat_ident),
           },
   };
+  return script_null();
+}
+
+static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 2)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId target = script_get_entity(args[1], 0);
+  if (entity && target) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type = ScriptActionType_Attach,
+        .data_attach =
+            {
+                .entity    = entity,
+                .target    = target,
+                .jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0,
+            },
+    };
+  }
   return script_null();
 }
 
@@ -256,8 +266,8 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
     script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
     script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
-    script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
     script_binder_declare(binder, string_hash_lit("teleport"), scene_script_teleport);
+    script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -412,13 +422,23 @@ ecs_system_define(ScriptActionApplySys) {
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
-      case ScriptActionType_Teleport:
-        if (ecs_view_maybe_jump(transItr, action->data_teleport.entity)) {
+      case ScriptActionType_Teleport: {
+        const ScriptActionTeleport* data = &action->data_teleport;
+        if (ecs_view_maybe_jump(transItr, data->entity)) {
           SceneTransformComp* trans = ecs_view_write_t(transItr, SceneTransformComp);
-          trans->position           = action->data_teleport.position;
-          trans->rotation           = action->data_teleport.rotation;
+          trans->position           = data->position;
+          trans->rotation           = data->rotation;
         }
-        break;
+      } break;
+      case ScriptActionType_Attach: {
+        const ScriptActionAttach* data = &action->data_attach;
+        // NOTE: Will crash if the entity was already attached to something.
+        if (data->jointName) {
+          scene_attach_to_joint_name(world, data->entity, data->target, data->jointName);
+        } else {
+          scene_attach_to_entity(world, data->entity, data->target);
+        }
+      } break;
       }
     }
     dynarray_clear(&scriptInstance->actions);
