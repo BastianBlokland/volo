@@ -7,6 +7,7 @@
 #include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_knowledge.h"
+#include "scene_lifetime.h"
 #include "scene_name.h"
 #include "scene_prefab.h"
 #include "scene_register.h"
@@ -21,6 +22,7 @@
 
 typedef enum {
   ScriptActionType_Destroy,
+  ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
@@ -29,6 +31,11 @@ typedef enum {
 typedef struct {
   EcsEntityId entity;
 } ScriptActionDestroy;
+
+typedef struct {
+  EcsEntityId  entity;
+  TimeDuration delay;
+} ScriptActionDestroyAfter;
 
 typedef struct {
   EcsEntityId entity;
@@ -49,10 +56,11 @@ typedef struct {
 typedef struct {
   ScriptActionType type;
   union {
-    ScriptActionDestroy  data_destroy;
-    ScriptActionTeleport data_teleport;
-    ScriptActionAttach   data_attach;
-    ScriptActionDetach   data_detach;
+    ScriptActionDestroy      data_destroy;
+    ScriptActionDestroyAfter data_destroyAfter;
+    ScriptActionTeleport     data_teleport;
+    ScriptActionAttach       data_attach;
+    ScriptActionDetach       data_detach;
   };
 } ScriptAction;
 
@@ -222,6 +230,22 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   return script_null();
 }
 
+static ScriptVal
+scene_script_destroy_after(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 2)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  if (entity) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type              = ScriptActionType_DestroyAfter,
+        .data_destroyAfter = {.entity = entity, .delay = script_get_time(args[1], 0)},
+    };
+  }
+  return script_null();
+}
+
 static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
   if (UNLIKELY(argCount < 3)) {
@@ -299,6 +323,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("time"), scene_script_time);
     script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
     script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
+    script_binder_declare(binder, string_hash_lit("destroy_after"), scene_script_destroy_after);
     script_binder_declare(binder, string_hash_lit("teleport"), scene_script_teleport);
     script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
     script_binder_declare(binder, string_hash_lit("detach"), scene_script_detach);
@@ -463,7 +488,13 @@ ecs_system_define(ScriptActionApplySys) {
         if (ecs_world_exists(world, data->entity)) {
           ecs_world_entity_destroy(world, data->entity);
         }
-      }
+      } break;
+      case ScriptActionType_DestroyAfter: {
+        const ScriptActionDestroyAfter* data = &action->data_destroyAfter;
+        if (ecs_world_exists(world, data->entity)) {
+          ecs_world_add_t(world, data->entity, SceneLifetimeDurationComp, .duration = data->delay);
+        }
+      } break;
       case ScriptActionType_Teleport: {
         const ScriptActionTeleport* data = &action->data_teleport;
         if (ecs_view_maybe_jump(transItr, data->entity)) {
