@@ -122,6 +122,7 @@ static void action_push_detach(SceneScriptBindCtx* ctx, const ScriptActionDetach
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
+ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 
 static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock;
@@ -192,6 +193,17 @@ static ScriptVal scene_script_name(SceneScriptBindCtx* ctx, const ScriptArgs arg
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NameReadView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+}
+
+static ScriptVal scene_script_faction(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, FactionReadView), e);
+  if (itr) {
+    const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
+    const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
+    return factionName ? script_string(factionName) : script_null();
+  }
+  return script_null();
 }
 
 static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -325,6 +337,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("rotation"),      scene_script_rotation);
     scene_script_bind(b, string_hash_lit("scale"),         scene_script_scale);
     scene_script_bind(b, string_hash_lit("name"),          scene_script_name);
+    scene_script_bind(b, string_hash_lit("faction"),       scene_script_faction);
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
@@ -605,6 +618,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(TransformReadView),
       ecs_register_view(ScaleReadView),
       ecs_register_view(NameReadView),
+      ecs_register_view(FactionReadView),
       ecs_register_view(TimeReadView),
       ecs_view_id(ResourceAssetView));
 
