@@ -5,6 +5,7 @@ typedef enum {
   ScriptIntrinsic_Continue,       // Args: none.
   ScriptIntrinsic_Break,          // Args: none.
   ScriptIntrinsic_Random,         // Args: none.
+  ScriptIntrinsic_RandomCircleXZ, // Args: none.
   ScriptIntrinsic_Type,           // Args: value.
   ScriptIntrinsic_Negate,         // Args: value.
   ScriptIntrinsic_Invert,         // Args: value.

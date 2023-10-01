@@ -7,6 +7,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Continue:
   case ScriptIntrinsic_Break:
   case ScriptIntrinsic_Random:
+  case ScriptIntrinsic_RandomCircleXZ:
     return 0;
   case ScriptIntrinsic_Type:
   case ScriptIntrinsic_Negate:
@@ -60,6 +61,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("continue"),
       string_static("break"),
       string_static("random"),
+      string_static("random-circle-xz"),
       string_static("type"),
       string_static("negate"),
       string_static("invert"),

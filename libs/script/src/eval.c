@@ -82,6 +82,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     return script_null();
   case ScriptIntrinsic_Random:
     return script_val_random();
+  case ScriptIntrinsic_RandomCircleXZ:
+    return script_val_random_circle_xz();
   case ScriptIntrinsic_Type:
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Negate:
