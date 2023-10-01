@@ -599,6 +599,12 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
 
 ScriptVal script_val_random() { return script_number(rng_sample_f32(g_rng)); }
 
+ScriptVal script_val_random_circle_xz() {
+  const f32 r     = math_sqrt_f32(rng_sample_f32(g_rng));
+  const f32 theta = rng_sample_f32(g_rng) * 2.0f * math_pi_f32;
+  return script_vector3_lit(r * math_cos_f32(theta), 0, r * math_sin_f32(theta));
+}
+
 ScriptVal script_val_random_between(const ScriptVal a, const ScriptVal b) {
   if (script_type(a) != script_type(b)) {
     return script_null();
