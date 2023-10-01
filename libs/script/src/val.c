@@ -599,6 +599,8 @@ ScriptVal script_val_angle(const ScriptVal a, const ScriptVal b) {
 
 ScriptVal script_val_random() { return script_number(rng_sample_f32(g_rng)); }
 
+ScriptVal script_val_random_sphere() { return script_vector3(geo_vector_rand_in_sphere3(g_rng)); }
+
 ScriptVal script_val_random_circle_xz() {
   const f32 r     = math_sqrt_f32(rng_sample_f32(g_rng));
   const f32 theta = rng_sample_f32(g_rng) * 2.0f * math_pi_f32;
