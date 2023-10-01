@@ -22,6 +22,6 @@ GeoQuat      script_arg_quat(ScriptArgs, u32 i, GeoQuat fallback);
 EcsEntityId  script_arg_entity(ScriptArgs, u32 i, EcsEntityId fallback);
 StringHash   script_arg_string(ScriptArgs, u32 i, StringHash fallback);
 TimeDuration script_arg_time(ScriptArgs, u32 i, TimeDuration fallback);
-u32          script_arg_enum(ScriptArgs, u32 i, const ScriptEnum*);
+i32          script_arg_enum(ScriptArgs, u32 i, const ScriptEnum*, i32 fallback);
 
 ScriptVal script_arg_last_or_null(ScriptArgs);

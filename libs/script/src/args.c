@@ -1,4 +1,3 @@
-#include "core_sentinel.h"
 #include "script_args.h"
 #include "script_enum.h"
 #include "script_val.h"
@@ -31,15 +30,15 @@ TimeDuration script_arg_time(const ScriptArgs args, const u32 i, const TimeDurat
   return args.count > i ? script_get_time(args.values[i], fallback) : fallback;
 }
 
-u32 script_arg_enum(const ScriptArgs args, const u32 i, const ScriptEnum* e) {
+i32 script_arg_enum(const ScriptArgs args, const u32 i, const ScriptEnum* e, const i32 fallback) {
   if (args.count <= i) {
-    return sentinel_u32;
+    return fallback;
   }
   const StringHash hash = script_get_string(args.values[i], string_hash_invalid);
   if (!hash) {
-    return sentinel_u32;
+    return fallback;
   }
-  return script_enum_lookup(e, hash);
+  return script_enum_lookup_value(e, hash, fallback);
 }
 
 ScriptVal script_arg_last_or_null(const ScriptArgs args) {

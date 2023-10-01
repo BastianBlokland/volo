@@ -5,11 +5,11 @@
 
 typedef struct sScriptEnum {
   u32        count;
-  StringHash hashes[script_enum_max_entries];
+  StringHash nameHashes[script_enum_max_entries];
+  i32        values[script_enum_max_entries];
 } ScriptEnum;
 
-#define script_enum_push_lit(_ENUM_, _LIT_)                                                        \
-  script_enum_push((_ENUM_), string_hash(string_lit(_LIT_)))
+void script_enum_push(ScriptEnum*, String name, i32 value);
 
-void script_enum_push(ScriptEnum*, StringHash);
-u32  script_enum_lookup(const ScriptEnum*, StringHash);
+i32        script_enum_lookup_value(const ScriptEnum*, StringHash nameHash, i32 fallback);
+StringHash script_enum_lookup_name(const ScriptEnum*, i32 value);
