@@ -179,11 +179,11 @@ static ScriptVal scene_script_name(SceneScriptBindCtx* ctx, const ScriptArgs arg
 static ScriptEnum g_scriptClockEnum;
 
 static void scene_script_clock_enum_init() {
-  script_enum_push(&g_scriptClockEnum, string_lit("Time"));
-  script_enum_push(&g_scriptClockEnum, string_lit("RealTime"));
-  script_enum_push(&g_scriptClockEnum, string_lit("Delta"));
-  script_enum_push(&g_scriptClockEnum, string_lit("RealDelta"));
-  script_enum_push(&g_scriptClockEnum, string_lit("Ticks"));
+  script_enum_push(&g_scriptClockEnum, string_lit("Time"), 0);
+  script_enum_push(&g_scriptClockEnum, string_lit("RealTime"), 1);
+  script_enum_push(&g_scriptClockEnum, string_lit("Delta"), 2);
+  script_enum_push(&g_scriptClockEnum, string_lit("RealDelta"), 3);
+  script_enum_push(&g_scriptClockEnum, string_lit("Ticks"), 4);
 }
 
 static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -196,7 +196,7 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
   if (!args.count) {
     return script_time(time->time);
   }
-  switch (script_arg_enum(args, 0, &g_scriptClockEnum)) {
+  switch (script_arg_enum(args, 0, &g_scriptClockEnum, sentinel_i32)) {
   case 0:
     return script_time(time->time);
   case 1:
