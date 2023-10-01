@@ -2,10 +2,12 @@
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attachment.h"
+#include "scene_health.h"
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
@@ -29,6 +31,7 @@ typedef enum {
   ScriptActionType_Teleport,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
+  ScriptActionType_Damage,
 } ScriptActionType;
 
 typedef struct {
@@ -67,6 +70,11 @@ typedef struct {
 } ScriptActionDetach;
 
 typedef struct {
+  EcsEntityId entity;
+  f32         amount;
+} ScriptActionDamage;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionSpawn        data_spawn;
@@ -75,6 +83,7 @@ typedef struct {
     ScriptActionTeleport     data_teleport;
     ScriptActionAttach       data_attach;
     ScriptActionDetach       data_detach;
+    ScriptActionDamage       data_damage;
   };
 } ScriptAction;
 
@@ -119,6 +128,12 @@ static void action_push_detach(SceneScriptBindCtx* ctx, const ScriptActionDetach
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Detach;
   a->data_detach  = *d;
+}
+
+static void action_push_damage(SceneScriptBindCtx* ctx, const ScriptActionDamage* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Damage;
+  a->data_damage  = *d;
 }
 
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
@@ -344,6 +359,20 @@ static ScriptVal scene_script_detach(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
+static ScriptVal scene_script_damage(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  const f32         amount = (f32)script_arg_number(args, 1, 0.0f);
+  if (entity && amount > f32_epsilon) {
+    action_push_damage(
+        ctx,
+        &(ScriptActionDamage){
+            .entity = entity,
+            .amount = amount,
+        });
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(SceneScriptBindCtx* ctx, ScriptArgs);
@@ -383,6 +412,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
+    scene_script_bind(b, string_hash_lit("damage"),        scene_script_damage);
     // clang-format on
 
     script_binder_finalize(b);
@@ -530,11 +560,14 @@ ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
+ecs_view_define(DamageWriteView) { ecs_access_write(SceneDamageComp); }
 
 typedef struct {
   EcsWorld*    world;
+  EcsEntityId  instigator;
   EcsIterator* transItr;
   EcsIterator* attachItr;
+  EcsIterator* damageItr;
 } ActionContext;
 
 static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
@@ -599,18 +632,29 @@ static void script_action_detach(ActionContext* ctx, const ScriptActionDetach* a
   }
 }
 
-ecs_system_define(ScriptActionApplySys) {
-  EcsIterator* transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView));
-  EcsIterator* attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView));
+static void script_action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
+  if (ecs_view_maybe_jump(ctx->damageItr, a->entity)) {
+    SceneDamageComp* damageComp = ecs_view_write_t(ctx->damageItr, SceneDamageComp);
+    scene_health_damage_add(
+        damageComp,
+        &(SceneDamageInfo){
+            .instigator = ctx->instigator,
+            .amount     = a->amount,
+        });
+  }
+}
 
+ecs_system_define(ScriptActionApplySys) {
   ActionContext ctx = {
       .world     = world,
-      .transItr  = transItr,
-      .attachItr = attachItr,
+      .transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView)),
+      .attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView)),
+      .damageItr = ecs_view_itr(ecs_world_view_t(world, DamageWriteView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
   for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
+    ctx.instigator                  = ecs_view_entity(itr);
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
@@ -631,6 +675,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Detach:
         script_action_detach(&ctx, &action->data_detach);
+        break;
+      case ScriptActionType_Damage:
+        script_action_damage(&ctx, &action->data_damage);
         break;
       }
     }
@@ -668,7 +715,8 @@ ecs_module_init(scene_script_module) {
       ScriptActionApplySys,
       ecs_register_view(ScriptActionApplyView),
       ecs_register_view(TransformWriteView),
-      ecs_register_view(AttachmentWriteView));
+      ecs_register_view(AttachmentWriteView),
+      ecs_register_view(DamageWriteView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
