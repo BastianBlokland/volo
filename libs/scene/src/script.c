@@ -9,6 +9,7 @@
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
+#include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
@@ -125,10 +126,11 @@ ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 
-static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock;
+static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock, g_scriptEnumNavQuery;
 
-static void scene_script_enum_init_faction() {
+static void script_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
@@ -136,12 +138,18 @@ static void scene_script_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
 }
 
-static void scene_script_enum_init_clock() {
+static void script_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
   script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
   script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+}
+
+static void script_enum_init_nav_query() {
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -228,6 +236,32 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
     return script_time(time->realDelta);
   case 4:
     return script_number(time->ticks);
+  }
+  return script_null();
+}
+
+static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  g   = ecs_world_global(ctx->world);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavReadView), g);
+  if (UNLIKELY(!itr)) {
+    return script_null(); // No global navigation environment found.
+  }
+  const SceneNavEnvComp*    nav           = ecs_view_read_t(itr, SceneNavEnvComp);
+  const GeoVector           pos           = script_arg_vector3(args, 0, geo_vector(0));
+  GeoNavCell                cell          = scene_nav_at_position(nav, pos);
+  const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
+  if (args.count == 1) {
+    return script_vector3(scene_nav_position(nav, cell));
+  }
+  switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, sentinel_i32)) {
+  case 0:
+    return script_vector3(scene_nav_position(nav, cell));
+  case 1:
+    scene_nav_closest_unblocked_n(nav, cell, cellContainer);
+    return script_vector3(scene_nav_position(nav, cell));
+  case 2:
+    scene_nav_closest_free_n(nav, cell, cellContainer);
+    return script_vector3(scene_nav_position(nav, cell));
   }
   return script_null();
 }
@@ -328,8 +362,9 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* b = script_binder_create(g_alloc_persist);
 
-    scene_script_enum_init_faction();
-    scene_script_enum_init_clock();
+    script_enum_init_faction();
+    script_enum_init_clock();
+    script_enum_init_nav_query();
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
@@ -341,6 +376,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("name"),          scene_script_name);
     scene_script_bind(b, string_hash_lit("faction"),       scene_script_faction);
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
+    scene_script_bind(b, string_hash_lit("nav_query"),     scene_script_nav_query);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
@@ -622,6 +658,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(NameReadView),
       ecs_register_view(FactionReadView),
       ecs_register_view(TimeReadView),
+      ecs_register_view(NavReadView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
