@@ -5,7 +5,7 @@ $nextSpawnTime ??= now + 5.0;
 if($nextSpawnTime <= now) {
   $nextSpawnTime = null;
 
-  var spawnPos = nav_query(position(me));
+  var spawnPos = nav_query(position(me), "UnblockedCell");
   var spawnRot = rotation(me);
   var spawnScale = 1.0;
 

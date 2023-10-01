@@ -128,9 +128,9 @@ ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 
-static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock;
+static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock, g_scriptEnumNavQuery;
 
-static void scene_script_enum_init_faction() {
+static void script_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
@@ -138,12 +138,18 @@ static void scene_script_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
 }
 
-static void scene_script_enum_init_clock() {
+static void script_enum_init_clock() {
   script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
   script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
   script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
   script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
   script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+}
+
+static void script_enum_init_nav_query() {
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -240,10 +246,24 @@ static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArg
   if (UNLIKELY(!itr)) {
     return script_null(); // No global navigation environment found.
   }
-  const SceneNavEnvComp* nav      = ecs_view_read_t(itr, SceneNavEnvComp);
-  const GeoVector        basePos  = script_arg_vector3(args, 0, geo_vector(0));
-  const GeoNavCell       baseCell = scene_nav_at_position(nav, basePos);
-  return script_vector3(scene_nav_position(nav, baseCell));
+  const SceneNavEnvComp*    nav           = ecs_view_read_t(itr, SceneNavEnvComp);
+  const GeoVector           pos           = script_arg_vector3(args, 0, geo_vector(0));
+  GeoNavCell                cell          = scene_nav_at_position(nav, pos);
+  const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
+  if (args.count == 1) {
+    return script_vector3(scene_nav_position(nav, cell));
+  }
+  switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, sentinel_i32)) {
+  case 0:
+    return script_vector3(scene_nav_position(nav, cell));
+  case 1:
+    scene_nav_closest_unblocked_n(nav, cell, cellContainer);
+    return script_vector3(scene_nav_position(nav, cell));
+  case 2:
+    scene_nav_closest_free_n(nav, cell, cellContainer);
+    return script_vector3(scene_nav_position(nav, cell));
+  }
+  return script_null();
 }
 
 static ScriptVal scene_script_spawn(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -342,8 +362,9 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* b = script_binder_create(g_alloc_persist);
 
-    scene_script_enum_init_faction();
-    scene_script_enum_init_clock();
+    script_enum_init_faction();
+    script_enum_init_clock();
+    script_enum_init_nav_query();
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
