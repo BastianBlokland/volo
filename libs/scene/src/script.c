@@ -154,34 +154,34 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_exists(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  const EcsEntityId   e   = script_arg_entity(args, 0, 0);
+  const EcsEntityId   e   = script_arg_entity(args, 0, ecs_entity_invalid);
   return script_bool(e && ecs_world_exists(ctx->world, e));
 }
 
 static ScriptVal scene_script_position(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  const EcsEntityId   e   = script_arg_entity(args, 0, 0);
+  const EcsEntityId   e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
 static ScriptVal scene_script_rotation(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  const EcsEntityId   e   = script_arg_entity(args, 0, 0);
+  const EcsEntityId   e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
 static ScriptVal scene_script_scale(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  const EcsEntityId   e   = script_arg_entity(args, 0, 0);
+  const EcsEntityId   e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScaleReadView), e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
 static ScriptVal scene_script_name(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  const EcsEntityId   e   = script_arg_entity(args, 0, 0);
+  const EcsEntityId   e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NameReadView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
@@ -238,7 +238,7 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_destroy(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx    = ctxR;
-  const EcsEntityId   entity = script_arg_entity(args, 0, 0);
+  const EcsEntityId   entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
   }
@@ -247,7 +247,7 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_destroy_after(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx    = ctxR;
-  const EcsEntityId   entity = script_arg_entity(args, 0, 0);
+  const EcsEntityId   entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy_after(
         ctx,
@@ -262,7 +262,7 @@ static ScriptVal scene_script_destroy_after(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_teleport(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx    = ctxR;
-  const EcsEntityId   entity = script_arg_entity(args, 0, 0);
+  const EcsEntityId   entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_teleport(
         ctx,
@@ -277,8 +277,8 @@ static ScriptVal scene_script_teleport(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_attach(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx    = ctxR;
-  const EcsEntityId   entity = script_arg_entity(args, 0, 0);
-  const EcsEntityId   target = script_arg_entity(args, 1, 0);
+  const EcsEntityId   entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsEntityId   target = script_arg_entity(args, 1, ecs_entity_invalid);
   if (entity && target) {
     action_push_attach(
         ctx,
@@ -293,7 +293,7 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_detach(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx    = ctxR;
-  const EcsEntityId   entity = script_arg_entity(args, 0, 0);
+  const EcsEntityId   entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
   }

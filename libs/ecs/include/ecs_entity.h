@@ -26,6 +26,11 @@ typedef u64 EcsEntityId;
 #define ecs_entity_valid(_ENTITY_ID_) (ecs_entity_id_serial(_ENTITY_ID_) != 0)
 
 /**
+ * Invalid entity handle.
+ */
+#define ecs_entity_invalid ((EcsEntityId)0)
+
+/**
  * Compare two EcsEntityId's.
  * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
  */
