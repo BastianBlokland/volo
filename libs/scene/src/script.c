@@ -124,6 +124,24 @@ ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 
+static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock;
+
+static void scene_script_enum_init_faction() {
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionD"), SceneFaction_D);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
+}
+
+static void scene_script_enum_init_clock() {
+  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
+  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
+  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+}
+
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   (void)args;
   return script_entity(ctx->entity);
@@ -176,16 +194,6 @@ static ScriptVal scene_script_name(SceneScriptBindCtx* ctx, const ScriptArgs arg
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
-static ScriptEnum g_scriptClockEnum;
-
-static void scene_script_clock_enum_init() {
-  script_enum_push(&g_scriptClockEnum, string_lit("Time"), 0);
-  script_enum_push(&g_scriptClockEnum, string_lit("RealTime"), 1);
-  script_enum_push(&g_scriptClockEnum, string_lit("Delta"), 2);
-  script_enum_push(&g_scriptClockEnum, string_lit("RealDelta"), 3);
-  script_enum_push(&g_scriptClockEnum, string_lit("Ticks"), 4);
-}
-
 static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId  g   = ecs_world_global(ctx->world);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TimeReadView), g);
@@ -196,7 +204,7 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
   if (!args.count) {
     return script_time(time->time);
   }
-  switch (script_arg_enum(args, 0, &g_scriptClockEnum, sentinel_i32)) {
+  switch (script_arg_enum(args, 0, &g_scriptEnumClock, sentinel_i32)) {
   case 0:
     return script_time(time->time);
   case 1:
@@ -306,7 +314,8 @@ static void script_binder_init() {
   if (!g_scriptBinder) {
     ScriptBinder* b = script_binder_create(g_alloc_persist);
 
-    scene_script_clock_enum_init();
+    scene_script_enum_init_faction();
+    scene_script_enum_init_clock();
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
