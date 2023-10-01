@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId  entity;
-  EcsEntityId  owner; // If zero: Use the delay instead.
+  EcsEntityId  owner; // If zero: The delay is used instead.
   TimeDuration delay;
 } ScriptActionDestroyAfter;
 
