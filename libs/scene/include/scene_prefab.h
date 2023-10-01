@@ -54,3 +54,4 @@ typedef struct {
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
+void        scene_prefab_spawn_onto(EcsWorld*, const ScenePrefabSpec*, EcsEntityId);

@@ -605,3 +605,7 @@ EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
   ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
   return e;
 }
+
+void scene_prefab_spawn_onto(EcsWorld* world, const ScenePrefabSpec* spec, const EcsEntityId e) {
+  ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
+}

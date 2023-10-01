@@ -21,12 +21,21 @@
 #define scene_script_max_asset_loads 8
 
 typedef enum {
+  ScriptActionType_Spawn,
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
 } ScriptActionType;
+
+typedef struct {
+  EcsEntityId entity;
+  StringHash  prefabId;
+  f32         scale;
+  GeoVector   position;
+  GeoQuat     rotation;
+} ScriptActionSpawn;
 
 typedef struct {
   EcsEntityId entity;
@@ -57,6 +66,7 @@ typedef struct {
 typedef struct {
   ScriptActionType type;
   union {
+    ScriptActionSpawn        data_spawn;
     ScriptActionDestroy      data_destroy;
     ScriptActionDestroyAfter data_destroyAfter;
     ScriptActionTeleport     data_teleport;
@@ -195,25 +205,27 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usi
   if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
-  ScenePrefabSpec spec = {.faction = SceneFaction_None};
-  spec.prefabId        = script_get_string(args[0], 0);
-  if (UNLIKELY(!spec.prefabId)) {
+  const StringHash prefabId = script_get_string(args[0], 0);
+  if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  if (argCount >= 2) {
-    spec.position = script_get_vector3(args[1], geo_vector(0));
-  }
-  if (argCount >= 3) {
-    spec.rotation = script_get_quat(args[2], geo_quat_ident);
-  } else {
-    spec.rotation = geo_quat_ident;
-  }
-  if (argCount >= 4) {
-    spec.scale = (f32)script_get_number(args[3], 1.0);
-  } else {
-    spec.scale = 1.0f;
-  }
-  return script_entity(scene_prefab_spawn(ctx->world, &spec));
+  const GeoVector pos = argCount >= 2 ? script_get_vector3(args[1], geo_vector(0)) : geo_vector(0);
+  const GeoQuat   rot = argCount >= 3 ? script_get_quat(args[1], geo_quat_ident) : geo_quat_ident;
+  const f32       scale = argCount >= 4 ? (f32)script_get_number(args[3], 1.0) : 1.0f;
+
+  const EcsEntityId result                     = ecs_world_entity_create(ctx->world);
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_Spawn,
+      .data_spawn =
+          {
+              .entity   = result,
+              .prefabId = prefabId,
+              .position = pos,
+              .rotation = rot,
+              .scale    = scale,
+          },
+  };
+  return script_entity(result);
 }
 
 static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const usize argCount) {
@@ -486,53 +498,64 @@ typedef struct {
   EcsIterator* attachItr;
 } ActionContext;
 
-static void script_action_destroy(ActionContext* ctx, const ScriptActionDestroy* d) {
-  if (ecs_world_exists(ctx->world, d->entity)) {
-    ecs_world_entity_destroy(ctx->world, d->entity);
+static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
+  const ScenePrefabSpec spec = {
+      .prefabId = a->prefabId,
+      .faction  = SceneFaction_None,
+      .position = a->position,
+      .rotation = a->rotation,
+      .scale    = a->scale,
+  };
+  scene_prefab_spawn_onto(ctx->world, &spec, a->entity);
+}
+
+static void script_action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
+  if (ecs_world_exists(ctx->world, a->entity)) {
+    ecs_world_entity_destroy(ctx->world, a->entity);
   }
 }
 
-static void script_action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* d) {
-  if (ecs_world_exists(ctx->world, d->entity)) {
-    if (d->owner) {
-      ecs_world_add_t(ctx->world, d->entity, SceneLifetimeOwnerComp, .owners[0] = d->owner);
+static void script_action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* a) {
+  if (ecs_world_exists(ctx->world, a->entity)) {
+    if (a->owner) {
+      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeOwnerComp, .owners[0] = a->owner);
     } else {
-      ecs_world_add_t(ctx->world, d->entity, SceneLifetimeDurationComp, .duration = d->delay);
+      ecs_world_add_t(ctx->world, a->entity, SceneLifetimeDurationComp, .duration = a->delay);
     }
   }
 }
 
-static void script_action_teleport(ActionContext* ctx, const ScriptActionTeleport* d) {
-  if (ecs_view_maybe_jump(ctx->transItr, d->entity)) {
+static void script_action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
+  if (ecs_view_maybe_jump(ctx->transItr, a->entity)) {
     SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
-    trans->position           = d->position;
-    trans->rotation           = d->rotation;
+    trans->position           = a->position;
+    trans->rotation           = a->rotation;
   }
 }
 
-static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* d) {
+static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
   SceneAttachmentComp* attach;
-  if (ecs_view_maybe_jump(ctx->attachItr, d->entity)) {
+  if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
     attach = ecs_view_write_t(ctx->attachItr, SceneAttachmentComp);
   } else {
-    if (ecs_world_exists(ctx->world, d->entity)) {
+    if (ecs_world_exists(ctx->world, a->entity)) {
       // TODO: Crashes if there's two attachments for the same entity in the same frame.
-      attach = ecs_world_add_t(ctx->world, d->entity, SceneAttachmentComp);
+      attach = ecs_world_add_t(ctx->world, a->entity, SceneAttachmentComp);
     } else {
       return; // Entity does not exist.
     }
   }
-  attach->target = d->target;
-  if (d->jointName) {
-    attach->jointName  = d->jointName;
+  attach->target = a->target;
+  if (a->jointName) {
+    attach->jointName  = a->jointName;
     attach->jointIndex = sentinel_u32;
   } else {
     attach->jointIndex = 0;
   }
 }
 
-static void script_action_detach(ActionContext* ctx, const ScriptActionDetach* d) {
-  if (ecs_view_maybe_jump(ctx->attachItr, d->entity)) {
+static void script_action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
+  if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
     ecs_view_write_t(ctx->attachItr, SceneAttachmentComp)->target = 0;
   }
 }
@@ -552,6 +575,9 @@ ecs_system_define(ScriptActionApplySys) {
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
+      case ScriptActionType_Spawn:
+        script_action_spawn(&ctx, &action->data_spawn);
+        break;
       case ScriptActionType_Destroy:
         script_action_destroy(&ctx, &action->data_destroy);
         break;
