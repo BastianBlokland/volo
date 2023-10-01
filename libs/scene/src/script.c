@@ -480,67 +480,93 @@ ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
 
+typedef struct {
+  EcsWorld*    world;
+  EcsIterator* transItr;
+  EcsIterator* attachItr;
+} ActionContext;
+
+static void script_action_destroy(ActionContext* ctx, const ScriptActionDestroy* d) {
+  if (ecs_world_exists(ctx->world, d->entity)) {
+    ecs_world_entity_destroy(ctx->world, d->entity);
+  }
+}
+
+static void script_action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* d) {
+  if (ecs_world_exists(ctx->world, d->entity)) {
+    if (d->owner) {
+      ecs_world_add_t(ctx->world, d->entity, SceneLifetimeOwnerComp, .owners[0] = d->owner);
+    } else {
+      ecs_world_add_t(ctx->world, d->entity, SceneLifetimeDurationComp, .duration = d->delay);
+    }
+  }
+}
+
+static void script_action_teleport(ActionContext* ctx, const ScriptActionTeleport* d) {
+  if (ecs_view_maybe_jump(ctx->transItr, d->entity)) {
+    SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
+    trans->position           = d->position;
+    trans->rotation           = d->rotation;
+  }
+}
+
+static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* d) {
+  SceneAttachmentComp* attach;
+  if (ecs_view_maybe_jump(ctx->attachItr, d->entity)) {
+    attach = ecs_view_write_t(ctx->attachItr, SceneAttachmentComp);
+  } else {
+    if (ecs_world_exists(ctx->world, d->entity)) {
+      // TODO: Crashes if there's two attachments for the same entity in the same frame.
+      attach = ecs_world_add_t(ctx->world, d->entity, SceneAttachmentComp);
+    } else {
+      return; // Entity does not exist.
+    }
+  }
+  attach->target = d->target;
+  if (d->jointName) {
+    attach->jointName  = d->jointName;
+    attach->jointIndex = sentinel_u32;
+  } else {
+    attach->jointIndex = 0;
+  }
+}
+
+static void script_action_detach(ActionContext* ctx, const ScriptActionDetach* d) {
+  if (ecs_view_maybe_jump(ctx->attachItr, d->entity)) {
+    ecs_view_write_t(ctx->attachItr, SceneAttachmentComp)->target = 0;
+  }
+}
+
 ecs_system_define(ScriptActionApplySys) {
   EcsIterator* transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView));
   EcsIterator* attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView));
+
+  ActionContext ctx = {
+      .world     = world,
+      .transItr  = transItr,
+      .attachItr = attachItr,
+  };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
   for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
-      case ScriptActionType_Destroy: {
-        const ScriptActionDestroy* data = &action->data_destroy;
-        if (ecs_world_exists(world, data->entity)) {
-          ecs_world_entity_destroy(world, data->entity);
-        }
-      } break;
-      case ScriptActionType_DestroyAfter: {
-        const ScriptActionDestroyAfter* data = &action->data_destroyAfter;
-        if (!ecs_world_exists(world, data->entity)) {
-          break;
-        }
-        if (data->owner) {
-          ecs_world_add_t(world, data->entity, SceneLifetimeOwnerComp, .owners[0] = data->owner);
-        } else {
-          ecs_world_add_t(world, data->entity, SceneLifetimeDurationComp, .duration = data->delay);
-        }
-      } break;
-      case ScriptActionType_Teleport: {
-        const ScriptActionTeleport* data = &action->data_teleport;
-        if (ecs_view_maybe_jump(transItr, data->entity)) {
-          SceneTransformComp* trans = ecs_view_write_t(transItr, SceneTransformComp);
-          trans->position           = data->position;
-          trans->rotation           = data->rotation;
-        }
-      } break;
-      case ScriptActionType_Attach: {
-        const ScriptActionAttach* data = &action->data_attach;
-        SceneAttachmentComp*      attach;
-        if (ecs_view_maybe_jump(attachItr, data->entity)) {
-          attach = ecs_view_write_t(attachItr, SceneAttachmentComp);
-        } else {
-          if (ecs_world_exists(world, data->entity)) {
-            // TODO: Crashes if there's two attachments for the same entity in the same frame.
-            attach = ecs_world_add_t(world, data->entity, SceneAttachmentComp);
-          } else {
-            break; // Entity does not exist.
-          }
-        }
-        attach->target = data->target;
-        if (data->jointName) {
-          attach->jointName  = data->jointName;
-          attach->jointIndex = sentinel_u32;
-        } else {
-          attach->jointIndex = 0;
-        }
-      } break;
-      case ScriptActionType_Detach: {
-        const ScriptActionDetach* data = &action->data_detach;
-        if (ecs_view_maybe_jump(attachItr, data->entity)) {
-          ecs_view_write_t(attachItr, SceneAttachmentComp)->target = 0;
-        }
-      } break;
+      case ScriptActionType_Destroy:
+        script_action_destroy(&ctx, &action->data_destroy);
+        break;
+      case ScriptActionType_DestroyAfter:
+        script_action_destroy_after(&ctx, &action->data_destroyAfter);
+        break;
+      case ScriptActionType_Teleport:
+        script_action_teleport(&ctx, &action->data_teleport);
+        break;
+      case ScriptActionType_Attach:
+        script_action_attach(&ctx, &action->data_attach);
+        break;
+      case ScriptActionType_Detach:
+        script_action_detach(&ctx, &action->data_detach);
+        break;
       }
     }
     dynarray_clear(&scriptInstance->actions);
