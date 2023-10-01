@@ -82,6 +82,42 @@ typedef struct {
   DynArray*   actions; // ScriptAction[].
 } SceneScriptBindCtx;
 
+static void action_push_spawn(SceneScriptBindCtx* ctx, const ScriptActionSpawn* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Spawn;
+  a->data_spawn   = *d;
+}
+
+static void action_push_destroy(SceneScriptBindCtx* ctx, const ScriptActionDestroy* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Destroy;
+  a->data_destroy = *d;
+}
+
+static void action_push_destroy_after(SceneScriptBindCtx* ctx, const ScriptActionDestroyAfter* d) {
+  ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type              = ScriptActionType_DestroyAfter;
+  a->data_destroyAfter = *d;
+}
+
+static void action_push_teleport(SceneScriptBindCtx* ctx, const ScriptActionTeleport* d) {
+  ScriptAction* a  = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type          = ScriptActionType_Teleport;
+  a->data_teleport = *d;
+}
+
+static void action_push_attach(SceneScriptBindCtx* ctx, const ScriptActionAttach* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Attach;
+  a->data_attach  = *d;
+}
+
+static void action_push_detach(SceneScriptBindCtx* ctx, const ScriptActionDetach* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Detach;
+  a->data_detach  = *d;
+}
+
 /**
  * The following views are used by script bindings.
  */
@@ -213,18 +249,16 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usi
   const GeoQuat   rot = argCount >= 3 ? script_get_quat(args[1], geo_quat_ident) : geo_quat_ident;
   const f32       scale = argCount >= 4 ? (f32)script_get_number(args[3], 1.0) : 1.0f;
 
-  const EcsEntityId result                     = ecs_world_entity_create(ctx->world);
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_Spawn,
-      .data_spawn =
-          {
-              .entity   = result,
-              .prefabId = prefabId,
-              .position = pos,
-              .rotation = rot,
-              .scale    = scale,
-          },
-  };
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
+  action_push_spawn(
+      ctx,
+      &(ScriptActionSpawn){
+          .entity   = result,
+          .prefabId = prefabId,
+          .position = pos,
+          .rotation = rot,
+          .scale    = scale,
+      });
   return script_entity(result);
 }
 
@@ -235,10 +269,7 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   }
   const EcsEntityId entity = script_get_entity(args[0], 0);
   if (entity) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type         = ScriptActionType_Destroy,
-        .data_destroy = {.entity = entity},
-    };
+    action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
   }
   return script_null();
 }
@@ -251,15 +282,13 @@ scene_script_destroy_after(void* ctxR, const ScriptVal* args, const usize argCou
   }
   const EcsEntityId entity = script_get_entity(args[0], 0);
   if (entity) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type = ScriptActionType_DestroyAfter,
-        .data_destroyAfter =
-            {
-                .entity = entity,
-                .owner  = script_get_entity(args[1], 0),
-                .delay  = script_get_time(args[1], 0),
-            },
-    };
+    action_push_destroy_after(
+        ctx,
+        &(ScriptActionDestroyAfter){
+            .entity = entity,
+            .owner  = script_get_entity(args[1], 0),
+            .delay  = script_get_time(args[1], 0),
+        });
   }
   return script_null();
 }
@@ -271,15 +300,13 @@ static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const 
   }
   const EcsEntityId entity = script_get_entity(args[0], 0);
   if (entity) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type = ScriptActionType_Teleport,
-        .data_teleport =
-            {
-                .entity   = entity,
-                .position = script_get_vector3(args[1], geo_vector(0)),
-                .rotation = script_get_quat(args[2], geo_quat_ident),
-            },
-    };
+    action_push_teleport(
+        ctx,
+        &(ScriptActionTeleport){
+            .entity   = entity,
+            .position = script_get_vector3(args[1], geo_vector(0)),
+            .rotation = script_get_quat(args[2], geo_quat_ident),
+        });
   }
   return script_null();
 }
@@ -292,15 +319,13 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const us
   const EcsEntityId entity = script_get_entity(args[0], 0);
   const EcsEntityId target = script_get_entity(args[1], 0);
   if (entity && target) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type = ScriptActionType_Attach,
-        .data_attach =
-            {
-                .entity    = entity,
-                .target    = target,
-                .jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0,
-            },
-    };
+    action_push_attach(
+        ctx,
+        &(ScriptActionAttach){
+            .entity    = entity,
+            .target    = target,
+            .jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0,
+        });
   }
   return script_null();
 }
@@ -312,10 +337,7 @@ static ScriptVal scene_script_detach(void* ctxR, const ScriptVal* args, const us
   }
   const EcsEntityId entity = script_get_entity(args[0], 0);
   if (entity) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type        = ScriptActionType_Detach,
-        .data_detach = {.entity = entity},
-    };
+    action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
   }
   return script_null();
 }
