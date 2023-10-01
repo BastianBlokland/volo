@@ -140,6 +140,7 @@ ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
+ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 
@@ -226,6 +227,16 @@ static ScriptVal scene_script_faction(SceneScriptBindCtx* ctx, const ScriptArgs 
     const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
     return factionName ? script_string(factionName) : script_null();
+  }
+  return script_null();
+}
+
+static ScriptVal scene_script_health(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, HealthReadView), e);
+  if (itr) {
+    const SceneHealthComp* healthComp = ecs_view_read_t(itr, SceneHealthComp);
+    return script_number(scene_health_points(healthComp));
   }
   return script_null();
 }
@@ -404,6 +415,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("scale"),         scene_script_scale);
     scene_script_bind(b, string_hash_lit("name"),          scene_script_name);
     scene_script_bind(b, string_hash_lit("faction"),       scene_script_faction);
+    scene_script_bind(b, string_hash_lit("health"),        scene_script_health);
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
     scene_script_bind(b, string_hash_lit("nav_query"),     scene_script_nav_query);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
@@ -704,6 +716,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ScaleReadView),
       ecs_register_view(NameReadView),
       ecs_register_view(FactionReadView),
+      ecs_register_view(HealthReadView),
       ecs_register_view(TimeReadView),
       ecs_register_view(NavReadView),
       ecs_view_id(ResourceAssetView));
