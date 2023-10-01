@@ -28,6 +28,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("name"), null);
     script_binder_declare(binder, string_hash_lit("faction"), null);
     script_binder_declare(binder, string_hash_lit("time"), null);
+    script_binder_declare(binder, string_hash_lit("nav_query"), null);
     script_binder_declare(binder, string_hash_lit("spawn"), null);
     script_binder_declare(binder, string_hash_lit("destroy"), null);
     script_binder_declare(binder, string_hash_lit("destroy_after"), null);

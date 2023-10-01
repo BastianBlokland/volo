@@ -9,6 +9,7 @@
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_name.h"
+#include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_script.h"
@@ -125,6 +126,7 @@ ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 
 static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock;
 
@@ -230,6 +232,18 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
     return script_number(time->ticks);
   }
   return script_null();
+}
+
+static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  g   = ecs_world_global(ctx->world);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavReadView), g);
+  if (UNLIKELY(!itr)) {
+    return script_null(); // No global navigation environment found.
+  }
+  const SceneNavEnvComp* nav      = ecs_view_read_t(itr, SceneNavEnvComp);
+  const GeoVector        basePos  = script_arg_vector3(args, 0, geo_vector(0));
+  const GeoNavCell       baseCell = scene_nav_at_position(nav, basePos);
+  return script_vector3(scene_nav_position(nav, baseCell));
 }
 
 static ScriptVal scene_script_spawn(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -341,6 +355,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("name"),          scene_script_name);
     scene_script_bind(b, string_hash_lit("faction"),       scene_script_faction);
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
+    scene_script_bind(b, string_hash_lit("nav_query"),     scene_script_nav_query);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
@@ -622,6 +637,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(NameReadView),
       ecs_register_view(FactionReadView),
       ecs_register_view(TimeReadView),
+      ecs_register_view(NavReadView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);

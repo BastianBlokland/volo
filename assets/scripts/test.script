@@ -5,8 +5,10 @@ $nextSpawnTime ??= now + 5.0;
 if($nextSpawnTime <= now) {
   $nextSpawnTime = null;
 
+  var spawnPos = nav_query(position(me));
+  var spawnRot = rotation(me);
   var spawnScale = 1.0;
 
   destroy($instance);
-  $instance = spawn("ExplosionMedium", position(me), rotation(me), spawnScale, faction(me));
+  $instance = spawn("ExplosionMedium", spawnPos, spawnRot, spawnScale, faction(me));
 }
