@@ -478,8 +478,12 @@ ecs_system_define(ScriptActionApplySys) {
         if (ecs_view_maybe_jump(attachItr, data->entity)) {
           attach = ecs_view_write_t(attachItr, SceneAttachmentComp);
         } else {
-          // TODO: Crashes if there's two attachments for the same entity in the same frame.
-          attach = ecs_world_add_t(world, data->entity, SceneAttachmentComp);
+          if (ecs_world_exists(world, data->entity)) {
+            // TODO: Crashes if there's two attachments for the same entity in the same frame.
+            attach = ecs_world_add_t(world, data->entity, SceneAttachmentComp);
+          } else {
+            break; // Entity does not exist.
+          }
         }
         attach->target = data->target;
         if (data->jointName) {
