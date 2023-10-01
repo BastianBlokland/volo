@@ -119,9 +119,6 @@ static void action_push_detach(SceneScriptBindCtx* ctx, const ScriptActionDetach
   a->data_detach  = *d;
 }
 
-/**
- * The following views are used by script bindings.
- */
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
