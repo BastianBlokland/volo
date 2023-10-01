@@ -30,6 +30,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("spawn"), null);
     script_binder_declare(binder, string_hash_lit("destroy"), null);
     script_binder_declare(binder, string_hash_lit("attach"), null);
+    script_binder_declare(binder, string_hash_lit("teleport"), null);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;

@@ -19,26 +19,42 @@
 
 #define scene_script_max_asset_loads 8
 
+typedef enum {
+  ScriptActionType_Teleport,
+} ScriptActionType;
+
+typedef struct {
+  EcsEntityId entity;
+  GeoVector   position;
+  GeoQuat     rotation;
+} ScriptActionTeleport;
+
+typedef struct {
+  ScriptActionType type;
+  union {
+    ScriptActionTeleport data_teleport;
+  };
+} ScriptAction;
+
 typedef struct {
   EcsWorld*   world;
   EcsEntityId entity;
   String      scriptId;
+  DynArray*   actions; // ScriptAction[].
 } SceneScriptBindCtx;
 
 /**
  * The following views are used by script bindings.
  */
-ecs_view_define(ScriptTransformView) { ecs_access_read(SceneTransformComp); }
-ecs_view_define(ScriptScaleView) { ecs_access_read(SceneScaleComp); }
-ecs_view_define(ScriptNameView) { ecs_access_read(SceneNameComp); }
-ecs_view_define(ScriptTimeView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
+ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
+ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 
 static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount > 0)) {
-    return script_null(); // Invalid overload.
-  }
   (void)args;
+  (void)argCount;
   return script_entity(ctx->entity);
 }
 
@@ -67,7 +83,7 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usi
 
 static ScriptVal scene_script_exists(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1 || script_type(args[0]) != ScriptType_Entity)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId e = script_get_entity(args[0], 0);
@@ -76,51 +92,48 @@ static ScriptVal scene_script_exists(void* ctxR, const ScriptVal* args, const us
 
 static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptTransformView), e);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
 static ScriptVal scene_script_rotation(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptTransformView), e);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
 static ScriptVal scene_script_scale(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptScaleView), e);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScaleReadView), e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
 static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId  e   = script_get_entity(args[0], 0);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptNameView), e);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NameReadView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
 static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount > 1)) {
-    return script_null(); // Invalid overload.
-  }
-  const EcsEntityId  g   = ecs_world_global(ctx->world);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScriptTimeView), g);
+  const EcsEntityId   g   = ecs_world_global(ctx->world);
+  const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TimeReadView), g);
   if (UNLIKELY(!itr)) {
     return script_null(); // No global time comp found.
   }
@@ -176,11 +189,11 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usi
 
 static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const usize argCount) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount != 1 || script_type(args[0]) != ScriptType_Entity)) {
+  if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
   const EcsEntityId e = script_get_entity(args[0], 0);
-  if (ecs_world_exists(ctx->world, e)) {
+  if (e && ecs_world_exists(ctx->world, e)) {
     ecs_world_entity_destroy(ctx->world, e);
   }
   return script_null();
@@ -202,6 +215,23 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const us
       scene_attach_to_entity(ctx->world, entity, target);
     }
   }
+  return script_null();
+}
+
+static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 3)) {
+    return script_null(); // Invalid overload.
+  }
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type = ScriptActionType_Teleport,
+      .data_teleport =
+          {
+              .entity   = script_get_entity(args[0], 0),
+              .position = script_get_vector3(args[1], geo_vector(0)),
+              .rotation = script_get_quat(args[2], geo_quat_ident),
+          },
+  };
   return script_null();
 }
 
@@ -227,6 +257,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("spawn"), scene_script_spawn);
     script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
     script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
+    script_binder_declare(binder, string_hash_lit("teleport"), scene_script_teleport);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -242,9 +273,15 @@ typedef enum {
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags;
   EcsEntityId      scriptAsset;
+  DynArray         actions; // ScriptAction[].
 };
 
 ecs_comp_define(SceneScriptResourceComp) { SceneScriptResFlags flags; };
+
+static void ecs_destruct_script_instance(void* data) {
+  SceneScriptComp* scriptInstance = data;
+  dynarray_destroy(&scriptInstance->actions);
+}
 
 static void ecs_combine_script_resource(void* dataA, void* dataB) {
   SceneScriptResourceComp* a = dataA;
@@ -252,8 +289,8 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   a->flags |= b->flags;
 }
 
-ecs_view_define(ScriptEntityView) {
-  ecs_access_read(SceneScriptComp);
+ecs_view_define(ScriptUpdateView) {
+  ecs_access_write(SceneScriptComp);
   ecs_access_write(SceneKnowledgeComp);
 }
 
@@ -302,7 +339,7 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 static void scene_script_eval(
     EcsWorld*              world,
     const EcsEntityId      entity,
-    const SceneScriptComp* scriptInstance,
+    SceneScriptComp*       scriptInstance,
     SceneKnowledgeComp*    knowledge,
     const AssetScriptComp* scriptAsset,
     const AssetComp*       scriptAssetComp) {
@@ -319,6 +356,7 @@ static void scene_script_eval(
       .world    = world,
       .entity   = entity,
       .scriptId = asset_id(scriptAssetComp),
+      .actions  = &scriptInstance->actions,
   };
 
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
@@ -334,16 +372,16 @@ static void scene_script_eval(
 }
 
 ecs_system_define(SceneScriptUpdateSys) {
-  EcsView* scriptView        = ecs_world_view_t(world, ScriptEntityView);
+  EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
 
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId      entity         = ecs_view_entity(itr);
-    const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
-    SceneKnowledgeComp*    knowledge      = ecs_view_write_t(itr, SceneKnowledgeComp);
+    const EcsEntityId   entity         = ecs_view_entity(itr);
+    SceneScriptComp*    scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
+    SceneKnowledgeComp* knowledge      = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, scriptInstance->scriptAsset)) {
@@ -362,10 +400,35 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
+ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
+
+ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
+
+ecs_system_define(ScriptActionApplySys) {
+  EcsIterator* transItr = ecs_view_itr(ecs_world_view_t(world, TransformWriteView));
+
+  EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
+  for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
+    SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
+    dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
+      switch (action->type) {
+      case ScriptActionType_Teleport:
+        if (ecs_view_maybe_jump(transItr, action->data_teleport.entity)) {
+          SceneTransformComp* trans = ecs_view_write_t(transItr, SceneTransformComp);
+          trans->position           = action->data_teleport.position;
+          trans->rotation           = action->data_teleport.rotation;
+        }
+        break;
+      }
+    }
+    dynarray_clear(&scriptInstance->actions);
+  }
+}
+
 ecs_module_init(scene_script_module) {
   script_binder_init();
 
-  ecs_register_comp(SceneScriptComp);
+  ecs_register_comp(SceneScriptComp, .destructor = ecs_destruct_script_instance);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
   ecs_register_view(ResourceAssetView);
@@ -376,15 +439,22 @@ ecs_module_init(scene_script_module) {
 
   ecs_register_system(
       SceneScriptUpdateSys,
-      ecs_register_view(ScriptTransformView),
-      ecs_register_view(ScriptScaleView),
-      ecs_register_view(ScriptNameView),
-      ecs_register_view(ScriptTimeView),
-      ecs_register_view(ScriptEntityView),
+      ecs_register_view(ScriptUpdateView),
+      ecs_register_view(TransformReadView),
+      ecs_register_view(ScaleReadView),
+      ecs_register_view(NameReadView),
+      ecs_register_view(TimeReadView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);
+
+  ecs_register_system(
+      ScriptActionApplySys,
+      ecs_register_view(ScriptActionApplyView),
+      ecs_register_view(TransformWriteView));
+
+  ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
 
 SceneScriptFlags scene_script_flags(const SceneScriptComp* script) { return script->flags; }
@@ -407,5 +477,10 @@ SceneScriptComp*
 scene_script_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId scriptAsset) {
   diag_assert(ecs_world_exists(world, scriptAsset));
 
-  return ecs_world_add_t(world, entity, SceneScriptComp, .scriptAsset = scriptAsset);
+  return ecs_world_add_t(
+      world,
+      entity,
+      SceneScriptComp,
+      .scriptAsset = scriptAsset,
+      .actions     = dynarray_create_t(g_alloc_heap, ScriptAction, 0));
 }
