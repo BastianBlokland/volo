@@ -8,8 +8,5 @@ typedef struct sScriptEnum {
   StringHash hashes[script_enum_max_entries];
 } ScriptEnum;
 
-#define script_enum_push_lit(_ENUM_, _LIT_)                                                        \
-  script_enum_push((_ENUM_), string_hash(string_lit(_LIT_)))
-
-void script_enum_push(ScriptEnum*, StringHash);
+void script_enum_push(ScriptEnum*, String);
 u32  script_enum_lookup(const ScriptEnum*, StringHash);

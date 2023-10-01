@@ -179,11 +179,11 @@ static ScriptVal scene_script_name(SceneScriptBindCtx* ctx, const ScriptArgs arg
 static ScriptEnum g_scriptClockEnum;
 
 static void scene_script_clock_enum_init() {
-  script_enum_push_lit(&g_scriptClockEnum, "Time");
-  script_enum_push_lit(&g_scriptClockEnum, "RealTime");
-  script_enum_push_lit(&g_scriptClockEnum, "Delta");
-  script_enum_push_lit(&g_scriptClockEnum, "RealDelta");
-  script_enum_push_lit(&g_scriptClockEnum, "Ticks");
+  script_enum_push(&g_scriptClockEnum, string_lit("Time"));
+  script_enum_push(&g_scriptClockEnum, string_lit("RealTime"));
+  script_enum_push(&g_scriptClockEnum, string_lit("Delta"));
+  script_enum_push(&g_scriptClockEnum, string_lit("RealDelta"));
+  script_enum_push(&g_scriptClockEnum, string_lit("Ticks"));
 }
 
 static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
