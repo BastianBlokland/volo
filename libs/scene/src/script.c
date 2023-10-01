@@ -212,11 +212,11 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId e = script_get_entity(args[0], 0);
-  if (e) {
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  if (entity) {
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
         .type         = ScriptActionType_Destroy,
-        .data_destroy = {.entity = e},
+        .data_destroy = {.entity = entity},
     };
   }
   return script_null();
@@ -227,15 +227,18 @@ static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const 
   if (UNLIKELY(argCount < 3)) {
     return script_null(); // Invalid overload.
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_Teleport,
-      .data_teleport =
-          {
-              .entity   = script_get_entity(args[0], 0),
-              .position = script_get_vector3(args[1], geo_vector(0)),
-              .rotation = script_get_quat(args[2], geo_quat_ident),
-          },
-  };
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  if (entity) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type = ScriptActionType_Teleport,
+        .data_teleport =
+            {
+                .entity   = entity,
+                .position = script_get_vector3(args[1], geo_vector(0)),
+                .rotation = script_get_quat(args[2], geo_quat_ident),
+            },
+    };
+  }
   return script_null();
 }
 
