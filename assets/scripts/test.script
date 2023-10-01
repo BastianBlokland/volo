@@ -5,6 +5,8 @@ $nextSpawnTime ??= now + 5.0;
 if($nextSpawnTime <= now) {
   $nextSpawnTime = null;
 
+  var spawnScale = 1.0;
+
   destroy($instance);
-  $instance = spawn("ExplosionMedium", position(me), rotation(me));
+  $instance = spawn("ExplosionMedium", position(me), rotation(me), spawnScale, faction(me));
 }

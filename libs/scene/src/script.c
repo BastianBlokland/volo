@@ -31,11 +31,12 @@ typedef enum {
 } ScriptActionType;
 
 typedef struct {
-  EcsEntityId entity;
-  StringHash  prefabId;
-  f32         scale;
-  GeoVector   position;
-  GeoQuat     rotation;
+  EcsEntityId  entity;
+  StringHash   prefabId;
+  f32          scale;
+  SceneFaction faction;
+  GeoVector    position;
+  GeoQuat      rotation;
 } ScriptActionSpawn;
 
 typedef struct {
@@ -245,6 +246,7 @@ static ScriptVal scene_script_spawn(SceneScriptBindCtx* ctx, const ScriptArgs ar
           .position = script_arg_vector3(args, 1, geo_vector(0)),
           .rotation = script_arg_quat(args, 2, geo_quat_ident),
           .scale    = (f32)script_arg_number(args, 3, 1.0),
+          .faction  = script_arg_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None),
       });
   return script_entity(result);
 }
@@ -502,7 +504,7 @@ typedef struct {
 static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
   const ScenePrefabSpec spec = {
       .prefabId = a->prefabId,
-      .faction  = SceneFaction_None,
+      .faction  = a->faction,
       .position = a->position,
       .rotation = a->rotation,
       .scale    = a->scale,
