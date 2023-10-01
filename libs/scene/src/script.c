@@ -34,6 +34,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId  entity;
+  EcsEntityId  owner; // If zero: Use the delay instead.
   TimeDuration delay;
 } ScriptActionDestroyAfter;
 
@@ -239,8 +240,13 @@ scene_script_destroy_after(void* ctxR, const ScriptVal* args, const usize argCou
   const EcsEntityId entity = script_get_entity(args[0], 0);
   if (entity) {
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type              = ScriptActionType_DestroyAfter,
-        .data_destroyAfter = {.entity = entity, .delay = script_get_time(args[1], 0)},
+        .type = ScriptActionType_DestroyAfter,
+        .data_destroyAfter =
+            {
+                .entity = entity,
+                .owner  = script_get_entity(args[1], 0),
+                .delay  = script_get_time(args[1], 0),
+            },
     };
   }
   return script_null();
@@ -491,7 +497,12 @@ ecs_system_define(ScriptActionApplySys) {
       } break;
       case ScriptActionType_DestroyAfter: {
         const ScriptActionDestroyAfter* data = &action->data_destroyAfter;
-        if (ecs_world_exists(world, data->entity)) {
+        if (!ecs_world_exists(world, data->entity)) {
+          break;
+        }
+        if (data->owner) {
+          ecs_world_add_t(world, data->entity, SceneLifetimeOwnerComp, .owners[0] = data->owner);
+        } else {
           ecs_world_add_t(world, data->entity, SceneLifetimeDurationComp, .duration = data->delay);
         }
       } break;
