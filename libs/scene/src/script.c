@@ -15,6 +15,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "script_binder.h"
+#include "script_enum.h"
 #include "script_eval.h"
 #include "script_mem.h"
 
@@ -186,6 +187,16 @@ static ScriptVal scene_script_name(void* ctxR, const ScriptArgs args) {
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
+static ScriptEnum g_scriptClockEnum;
+
+static void scene_script_clock_enum_init() {
+  script_enum_push_lit(&g_scriptClockEnum, "Time");
+  script_enum_push_lit(&g_scriptClockEnum, "RealTime");
+  script_enum_push_lit(&g_scriptClockEnum, "Delta");
+  script_enum_push_lit(&g_scriptClockEnum, "RealDelta");
+  script_enum_push_lit(&g_scriptClockEnum, "Ticks");
+}
+
 static ScriptVal scene_script_time(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
   const EcsEntityId   g   = ecs_world_global(ctx->world);
@@ -194,24 +205,19 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptArgs args) {
     return script_null(); // No global time comp found.
   }
   const SceneTimeComp* time = ecs_view_read_t(itr, SceneTimeComp);
-  if (args.count == 0) {
-    return script_time(time->time); // Overload with 0 args.
-  }
-  const StringHash clock = script_arg_string(args, 0, string_hash_invalid);
-  // TODO: Precompute these hashes.
-  if (clock == string_hash_lit("Time")) {
+  if (!args.count) {
     return script_time(time->time);
   }
-  if (clock == string_hash_lit("RealTime")) {
+  switch (script_arg_enum(args, 0, &g_scriptClockEnum)) {
+  case 0:
+    return script_time(time->time);
+  case 1:
     return script_time(time->realTime);
-  }
-  if (clock == string_hash_lit("Delta")) {
+  case 2:
     return script_time(time->delta);
-  }
-  if (clock == string_hash_lit("RealDelta")) {
+  case 3:
     return script_time(time->realDelta);
-  }
-  if (clock == string_hash_lit("Ticks")) {
+  case 4:
     return script_number(time->ticks);
   }
   return script_null();
@@ -310,6 +316,8 @@ static void script_binder_init() {
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
     ScriptBinder* binder = script_binder_create(g_alloc_persist);
+
+    scene_script_clock_enum_init();
 
     script_binder_declare(binder, string_hash_lit("self"), scene_script_self);
     script_binder_declare(binder, string_hash_lit("print"), scene_script_print);

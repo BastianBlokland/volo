@@ -7,6 +7,9 @@
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
+// Forward declare from 'script_enum.h'.
+typedef struct sScriptEnum ScriptEnum;
+
 typedef struct {
   const ScriptVal* values;
   usize            count;
@@ -19,5 +22,6 @@ GeoQuat      script_arg_quat(ScriptArgs, u32 i, GeoQuat fallback);
 EcsEntityId  script_arg_entity(ScriptArgs, u32 i, EcsEntityId fallback);
 StringHash   script_arg_string(ScriptArgs, u32 i, StringHash fallback);
 TimeDuration script_arg_time(ScriptArgs, u32 i, TimeDuration fallback);
+u32          script_arg_enum(ScriptArgs, u32 i, const ScriptEnum*);
 
 ScriptVal script_arg_last_or_null(ScriptArgs);
