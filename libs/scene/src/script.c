@@ -20,10 +20,15 @@
 #define scene_script_max_asset_loads 8
 
 typedef enum {
+  ScriptActionType_Destroy,
   ScriptActionType_Teleport,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
 } ScriptActionType;
+
+typedef struct {
+  EcsEntityId entity;
+} ScriptActionDestroy;
 
 typedef struct {
   EcsEntityId entity;
@@ -44,6 +49,7 @@ typedef struct {
 typedef struct {
   ScriptActionType type;
   union {
+    ScriptActionDestroy  data_destroy;
     ScriptActionTeleport data_teleport;
     ScriptActionAttach   data_attach;
     ScriptActionDetach   data_detach;
@@ -206,10 +212,10 @@ static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const u
   if (UNLIKELY(argCount < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId e = script_get_entity(args[0], 0);
-  if (e && ecs_world_exists(ctx->world, e)) {
-    ecs_world_entity_destroy(ctx->world, e);
-  }
+  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+      .type         = ScriptActionType_Destroy,
+      .data_destroy = {.entity = script_get_entity(args[0], 0)},
+  };
   return script_null();
 }
 
@@ -446,6 +452,12 @@ ecs_system_define(ScriptActionApplySys) {
     SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
+      case ScriptActionType_Destroy: {
+        const ScriptActionDestroy* data = &action->data_destroy;
+        if (data->entity && ecs_world_exists(world, data->entity)) {
+          ecs_world_entity_destroy(world, data->entity);
+        }
+      }
       case ScriptActionType_Teleport: {
         const ScriptActionTeleport* data = &action->data_teleport;
         if (ecs_view_maybe_jump(transItr, data->entity)) {
