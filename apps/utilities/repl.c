@@ -191,9 +191,9 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   return TtyFgColor_Default;
 }
 
-static ScriptVal repl_bind_print(void* ctx, const ScriptVal* args, const usize argCount) {
+static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
   (void)ctx;
-  if (!argCount) {
+  if (!args.count) {
     repl_output(string_lit("\n"));
     return script_null();
   }
@@ -201,18 +201,18 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptVal* args, const usize a
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != argCount; ++i) {
+  for (usize i = 0; i != args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_str_write(args[i], &buffer);
+    script_val_str_write(args.values[i], &buffer);
   }
   dynstring_append_char(&buffer, '\n');
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 
-  return args[argCount - 1];
+  return args.values[args.count - 1];
 }
 
 static const ScriptBinder* repl_bind_init() {

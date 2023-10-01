@@ -266,15 +266,16 @@ INLINE_HINT static ScriptVal eval_block(ScriptEvalContext* ctx, const ScriptExpr
 }
 
 INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExprExtern* expr) {
-  const ScriptExpr* argExprs = expr_set_data(ctx, expr->argSet);
-  ScriptVal*        args     = mem_stack(sizeof(ScriptVal) * expr->argCount).ptr;
+  const ScriptExpr* argExprs  = expr_set_data(ctx, expr->argSet);
+  ScriptVal*        argValues = mem_stack(sizeof(ScriptVal) * expr->argCount).ptr;
   for (u32 i = 0; i != expr->argCount; ++i) {
-    args[i] = eval(ctx, argExprs[i]);
+    argValues[i] = eval(ctx, argExprs[i]);
     if (UNLIKELY(ctx->signal)) {
       return script_null();
     }
   }
-  return script_binder_exec(ctx->binder, expr->func, ctx->bindCtx, args, expr->argCount);
+  const ScriptArgs args = {.values = argValues, .count = expr->argCount};
+  return script_binder_exec(ctx->binder, expr->func, ctx->bindCtx, args);
 }
 
 NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr expr) {

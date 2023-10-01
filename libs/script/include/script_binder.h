@@ -1,5 +1,6 @@
 #pragma once
 #include "core_string.h"
+#include "script_args.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -10,7 +11,7 @@ typedef union uScriptVal ScriptVal;
 typedef u32 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
-typedef ScriptVal (*ScriptBinderFunc)(void* ctx, const ScriptVal* args, usize argCount);
+typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs);
 
 /**
  * Table of native bound functions.
@@ -60,5 +61,4 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
  * Execute a bound function.
  * Pre-condition: Binder has been finalized.
  */
-ScriptVal script_binder_exec(
-    const ScriptBinder*, ScriptBinderSlot func, void* ctx, const ScriptVal* args, usize argCount);
+ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptArgs);

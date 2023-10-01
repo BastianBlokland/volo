@@ -126,25 +126,24 @@ ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 
-static ScriptVal scene_script_self(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_self(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
   (void)args;
-  (void)argCount;
   return script_entity(ctx->entity);
 }
 
-static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_print(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount == 0)) {
+  if (UNLIKELY(args.count == 0)) {
     return script_null(); // Invalid overload.
   }
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
-  for (usize i = 0; i != argCount; ++i) {
+  for (usize i = 0; i != args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_str_write(args[i], &buffer);
+    script_val_str_write(args.values[i], &buffer);
   }
 
   log_i(
@@ -153,59 +152,59 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptVal* args, const usi
       log_param("entity", fmt_int(ctx->entity, .base = 16)),
       log_param("script", fmt_text(ctx->scriptId)));
 
-  return args[argCount - 1];
+  return args.values[args.count - 1];
 }
 
-static ScriptVal scene_script_exists(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_exists(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId e = script_get_entity(args[0], 0);
+  const EcsEntityId e = script_get_entity(args.values[0], 0);
   return script_bool(ecs_world_exists(ctx->world, e));
 }
 
-static ScriptVal scene_script_position(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_position(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsEntityId  e   = script_get_entity(args.values[0], 0);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
-static ScriptVal scene_script_rotation(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_rotation(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsEntityId  e   = script_get_entity(args.values[0], 0);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
-static ScriptVal scene_script_scale(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_scale(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsEntityId  e   = script_get_entity(args.values[0], 0);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScaleReadView), e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
-static ScriptVal scene_script_name(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_name(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId  e   = script_get_entity(args[0], 0);
+  const EcsEntityId  e   = script_get_entity(args.values[0], 0);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NameReadView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
-static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_time(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
   const EcsEntityId   g   = ecs_world_global(ctx->world);
   const EcsIterator*  itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TimeReadView), g);
@@ -213,10 +212,10 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usiz
     return script_null(); // No global time comp found.
   }
   const SceneTimeComp* time = ecs_view_read_t(itr, SceneTimeComp);
-  if (argCount == 0) {
+  if (args.count == 0) {
     return script_time(time->time); // Overload with 0 args.
   }
-  const StringHash clock = script_get_string(args[0], 0);
+  const StringHash clock = script_get_string(args.values[0], 0);
   // TODO: Precompute these hashes.
   if (clock == string_hash_lit("Time")) {
     return script_time(time->time);
@@ -236,18 +235,20 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptVal* args, const usiz
   return script_null();
 }
 
-static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_spawn(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const StringHash prefabId = script_get_string(args[0], 0);
+  const StringHash prefabId = script_get_string(args.values[0], 0);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  const GeoVector pos = argCount >= 2 ? script_get_vector3(args[1], geo_vector(0)) : geo_vector(0);
-  const GeoQuat   rot = argCount >= 3 ? script_get_quat(args[1], geo_quat_ident) : geo_quat_ident;
-  const f32       scale = argCount >= 4 ? (f32)script_get_number(args[3], 1.0) : 1.0f;
+  const GeoVector pos =
+      args.count >= 2 ? script_get_vector3(args.values[1], geo_vector(0)) : geo_vector(0);
+  const GeoQuat rot =
+      args.count >= 3 ? script_get_quat(args.values[1], geo_quat_ident) : geo_quat_ident;
+  const f32 scale = args.count >= 4 ? (f32)script_get_number(args.values[3], 1.0) : 1.0f;
 
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
   action_push_spawn(
@@ -262,80 +263,79 @@ static ScriptVal scene_script_spawn(void* ctxR, const ScriptVal* args, const usi
   return script_entity(result);
 }
 
-static ScriptVal scene_script_destroy(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_destroy(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId entity = script_get_entity(args.values[0], 0);
   if (entity) {
     action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
   }
   return script_null();
 }
 
-static ScriptVal
-scene_script_destroy_after(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_destroy_after(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 2)) {
+  if (UNLIKELY(args.count < 2)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId entity = script_get_entity(args.values[0], 0);
   if (entity) {
     action_push_destroy_after(
         ctx,
         &(ScriptActionDestroyAfter){
             .entity = entity,
-            .owner  = script_get_entity(args[1], 0),
-            .delay  = script_get_time(args[1], 0),
+            .owner  = script_get_entity(args.values[1], 0),
+            .delay  = script_get_time(args.values[1], 0),
         });
   }
   return script_null();
 }
 
-static ScriptVal scene_script_teleport(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_teleport(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 3)) {
+  if (UNLIKELY(args.count < 3)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId entity = script_get_entity(args.values[0], 0);
   if (entity) {
     action_push_teleport(
         ctx,
         &(ScriptActionTeleport){
             .entity   = entity,
-            .position = script_get_vector3(args[1], geo_vector(0)),
-            .rotation = script_get_quat(args[2], geo_quat_ident),
+            .position = script_get_vector3(args.values[1], geo_vector(0)),
+            .rotation = script_get_quat(args.values[2], geo_quat_ident),
         });
   }
   return script_null();
 }
 
-static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_attach(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 2)) {
+  if (UNLIKELY(args.count < 2)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
-  const EcsEntityId target = script_get_entity(args[1], 0);
+  const EcsEntityId entity = script_get_entity(args.values[0], 0);
+  const EcsEntityId target = script_get_entity(args.values[1], 0);
   if (entity && target) {
     action_push_attach(
         ctx,
         &(ScriptActionAttach){
             .entity    = entity,
             .target    = target,
-            .jointName = argCount >= 3 ? script_get_string(args[2], 0) : 0,
+            .jointName = args.count >= 3 ? script_get_string(args.values[2], 0) : 0,
         });
   }
   return script_null();
 }
 
-static ScriptVal scene_script_detach(void* ctxR, const ScriptVal* args, const usize argCount) {
+static ScriptVal scene_script_detach(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(argCount < 1)) {
+  if (UNLIKELY(args.count < 1)) {
     return script_null(); // Invalid overload.
   }
-  const EcsEntityId entity = script_get_entity(args[0], 0);
+  const EcsEntityId entity = script_get_entity(args.values[0], 0);
   if (entity) {
     action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
   }
