@@ -102,6 +102,7 @@ ScriptVal script_val_norm(ScriptVal);
 ScriptVal script_val_mag(ScriptVal);
 ScriptVal script_val_angle(ScriptVal, ScriptVal);
 ScriptVal script_val_random();
+ScriptVal script_val_random_sphere();
 ScriptVal script_val_random_circle_xz();
 ScriptVal script_val_random_between(ScriptVal, ScriptVal);
 ScriptVal script_val_round_down(ScriptVal);

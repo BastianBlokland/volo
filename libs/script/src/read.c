@@ -107,6 +107,7 @@ static void script_builtin_init() {
   script_builtin_func_add(string_lit("angle"), ScriptIntrinsic_Angle);
   script_builtin_func_add(string_lit("random"), ScriptIntrinsic_Random);
   script_builtin_func_add(string_lit("random"), ScriptIntrinsic_RandomBetween);
+  script_builtin_func_add(string_lit("random_sphere"), ScriptIntrinsic_RandomSphere);
   script_builtin_func_add(string_lit("random_circle_xz"), ScriptIntrinsic_RandomCircleXZ);
   script_builtin_func_add(string_lit("round_down"), ScriptIntrinsic_RoundDown);
   script_builtin_func_add(string_lit("round_nearest"), ScriptIntrinsic_RoundNearest);
