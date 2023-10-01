@@ -8,3 +8,5 @@ typedef struct {
   const ScriptVal* values;
   usize            count;
 } ScriptArgs;
+
+ScriptVal script_arg_last_or_null(ScriptArgs);

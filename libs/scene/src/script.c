@@ -134,9 +134,6 @@ static ScriptVal scene_script_self(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_print(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx = ctxR;
-  if (UNLIKELY(args.count == 0)) {
-    return script_null(); // Invalid overload.
-  }
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
   for (usize i = 0; i != args.count; ++i) {
@@ -152,7 +149,7 @@ static ScriptVal scene_script_print(void* ctxR, const ScriptArgs args) {
       log_param("entity", fmt_int(ctx->entity, .base = 16)),
       log_param("script", fmt_text(ctx->scriptId)));
 
-  return args.values[args.count - 1];
+  return script_arg_last_or_null(args);
 }
 
 static ScriptVal scene_script_exists(void* ctxR, const ScriptArgs args) {
