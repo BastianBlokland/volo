@@ -109,7 +109,7 @@ static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
 }
 
 static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
-  const EcsEntityId valEntity = script_get_entity(*value, 0);
+  const EcsEntityId valEntity = script_get_entity(*value, ecs_entity_invalid);
   ui_label_entity(canvas, valEntity);
   return false;
 }

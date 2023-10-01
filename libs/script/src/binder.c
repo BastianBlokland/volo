@@ -34,7 +34,7 @@ struct sScriptBinder {
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
   *binder              = (ScriptBinder){
-      .alloc = alloc,
+                   .alloc = alloc,
   };
   return binder;
 }
@@ -91,12 +91,8 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
 }
 
 ScriptVal script_binder_exec(
-    const ScriptBinder*    binder,
-    const ScriptBinderSlot func,
-    void*                  ctx,
-    const ScriptVal*       args,
-    const usize            argCount) {
+    const ScriptBinder* binder, const ScriptBinderSlot func, void* ctx, const ScriptArgs args) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
-  return binder->funcs[func](ctx, args, argCount);
+  return binder->funcs[func](ctx, args);
 }

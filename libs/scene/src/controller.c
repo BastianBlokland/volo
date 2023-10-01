@@ -39,7 +39,7 @@ ecs_system_define(SceneControllerUpdateSys) {
       const ScriptVal navTarget = scene_knowledge_get(knowledge, g_brainKeyNavTarget);
       if (script_val_has(navTarget)) {
         if (script_type(navTarget) == ScriptType_Entity) {
-          scene_nav_move_to_entity(navAgent, script_get_entity(navTarget, 0));
+          scene_nav_move_to_entity(navAgent, script_get_entity(navTarget, ecs_entity_invalid));
         } else {
           scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
         }
@@ -58,14 +58,14 @@ ecs_system_define(SceneControllerUpdateSys) {
     SceneTargetFinderComp* target = ecs_view_write_t(itr, SceneTargetFinderComp);
     if (target) {
       const ScriptVal targetOverride = scene_knowledge_get(knowledge, g_brainKeyTargetOverride);
-      target->targetOverride         = script_get_entity(targetOverride, 0);
+      target->targetOverride         = script_get_entity(targetOverride, ecs_entity_invalid);
     }
 
     // Set attack target if we are not currently in the middle of firing.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack && !(attack->flags & SceneAttackFlags_Firing)) {
       const ScriptVal attackTarget = scene_knowledge_get(knowledge, g_brainKeyAttackTarget);
-      attack->targetEntity         = script_get_entity(attackTarget, 0);
+      attack->targetEntity         = script_get_entity(attackTarget, ecs_entity_invalid);
       scene_knowledge_set_null(knowledge, g_brainKeyAttackTarget);
     }
   }

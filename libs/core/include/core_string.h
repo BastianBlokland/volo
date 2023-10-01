@@ -87,6 +87,7 @@ typedef enum {
  * Create a StringHash from a character literal.
  */
 #define string_hash_lit(_LIT_) string_hash(string_lit(_LIT_))
+#define string_hash_invalid ((StringHash)0)
 
 /**
  * Create a 32 bit hash of the given string.

@@ -7,18 +7,16 @@ typedef struct {
   u32 counterA, counterB;
 } ScriptBindTestCtx;
 
-static ScriptVal test_bind_a(void* ctx, const ScriptVal* args, const usize argCount) {
+static ScriptVal test_bind_a(void* ctx, const ScriptArgs args) {
   (void)args;
-  (void)argCount;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterA;
   return script_null();
 }
 
-static ScriptVal test_bind_b(void* ctx, const ScriptVal* args, const usize argCount) {
+static ScriptVal test_bind_b(void* ctx, const ScriptArgs args) {
   (void)args;
-  (void)argCount;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterB;
@@ -51,13 +49,14 @@ spec(binder) {
     script_binder_declare(binder, string_hash_lit("b"), test_bind_b);
     script_binder_finalize(binder);
 
-    ScriptBindTestCtx ctx = {0};
+    ScriptBindTestCtx ctx  = {0};
+    const ScriptArgs  args = {0};
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("a")), &ctx, null, 0);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("a")), &ctx, args);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 0);
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("b")), &ctx, null, 0);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash_lit("b")), &ctx, args);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 1);
   }
