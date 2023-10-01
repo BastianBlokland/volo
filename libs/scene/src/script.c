@@ -22,6 +22,7 @@
 typedef enum {
   ScriptActionType_Teleport,
   ScriptActionType_Attach,
+  ScriptActionType_Detach,
 } ScriptActionType;
 
 typedef struct {
@@ -37,10 +38,15 @@ typedef struct {
 } ScriptActionAttach;
 
 typedef struct {
+  EcsEntityId entity;
+} ScriptActionDetach;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionTeleport data_teleport;
     ScriptActionAttach   data_attach;
+    ScriptActionDetach   data_detach;
   };
 } ScriptAction;
 
@@ -245,6 +251,21 @@ static ScriptVal scene_script_attach(void* ctxR, const ScriptVal* args, const us
   return script_null();
 }
 
+static ScriptVal scene_script_detach(void* ctxR, const ScriptVal* args, const usize argCount) {
+  SceneScriptBindCtx* ctx = ctxR;
+  if (UNLIKELY(argCount < 1)) {
+    return script_null(); // Invalid overload.
+  }
+  const EcsEntityId entity = script_get_entity(args[0], 0);
+  if (entity) {
+    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
+        .type        = ScriptActionType_Detach,
+        .data_detach = {.entity = entity},
+    };
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 static void script_binder_init() {
@@ -268,6 +289,7 @@ static void script_binder_init() {
     script_binder_declare(binder, string_hash_lit("destroy"), scene_script_destroy);
     script_binder_declare(binder, string_hash_lit("teleport"), scene_script_teleport);
     script_binder_declare(binder, string_hash_lit("attach"), scene_script_attach);
+    script_binder_declare(binder, string_hash_lit("detach"), scene_script_detach);
 
     script_binder_finalize(binder);
     g_scriptBinder = binder;
@@ -413,9 +435,11 @@ ecs_system_define(SceneScriptUpdateSys) {
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
+ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
 
 ecs_system_define(ScriptActionApplySys) {
-  EcsIterator* transItr = ecs_view_itr(ecs_world_view_t(world, TransformWriteView));
+  EcsIterator* transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView));
+  EcsIterator* attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView));
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
   for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
@@ -432,11 +456,25 @@ ecs_system_define(ScriptActionApplySys) {
       } break;
       case ScriptActionType_Attach: {
         const ScriptActionAttach* data = &action->data_attach;
-        // NOTE: Will crash if the entity was already attached to something.
-        if (data->jointName) {
-          scene_attach_to_joint_name(world, data->entity, data->target, data->jointName);
+        SceneAttachmentComp*      attach;
+        if (ecs_view_maybe_jump(attachItr, data->entity)) {
+          attach = ecs_view_write_t(attachItr, SceneAttachmentComp);
         } else {
-          scene_attach_to_entity(world, data->entity, data->target);
+          // TODO: Crashes if there's two attachments for the same entity in the same frame.
+          attach = ecs_world_add_t(world, data->entity, SceneAttachmentComp);
+        }
+        attach->target = data->target;
+        if (data->jointName) {
+          attach->jointName  = data->jointName;
+          attach->jointIndex = sentinel_u32;
+        } else {
+          attach->jointIndex = 0;
+        }
+      } break;
+      case ScriptActionType_Detach: {
+        const ScriptActionDetach* data = &action->data_detach;
+        if (ecs_view_maybe_jump(attachItr, data->entity)) {
+          ecs_view_write_t(attachItr, SceneAttachmentComp)->target = 0;
         }
       } break;
       }
@@ -472,7 +510,8 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(
       ScriptActionApplySys,
       ecs_register_view(ScriptActionApplyView),
-      ecs_register_view(TransformWriteView));
+      ecs_register_view(TransformWriteView),
+      ecs_register_view(AttachmentWriteView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
