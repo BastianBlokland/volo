@@ -293,6 +293,13 @@ static ScriptVal scene_script_detach(SceneScriptBindCtx* ctx, const ScriptArgs a
 
 static ScriptBinder* g_scriptBinder;
 
+typedef ScriptVal (*SceneScriptBinderFunc)(SceneScriptBindCtx* ctx, ScriptArgs);
+
+static void scene_script_bind(ScriptBinder* b, const StringHash name, SceneScriptBinderFunc f) {
+  // NOTE: Func pointer cast is needed to type-erase the context type.
+  script_binder_declare(b, name, (ScriptBinderFunc)f);
+}
+
 static void script_binder_init() {
   static ThreadSpinLock g_initLock;
   if (LIKELY(g_scriptBinder)) {
@@ -305,20 +312,20 @@ static void script_binder_init() {
     scene_script_clock_enum_init();
 
     // clang-format off
-    script_binder_declare(b, string_hash_lit("self"),          (ScriptBinderFunc)&scene_script_self);
-    script_binder_declare(b, string_hash_lit("print"),         (ScriptBinderFunc)&scene_script_print);
-    script_binder_declare(b, string_hash_lit("exists"),        (ScriptBinderFunc)&scene_script_exists);
-    script_binder_declare(b, string_hash_lit("position"),      (ScriptBinderFunc)&scene_script_position);
-    script_binder_declare(b, string_hash_lit("rotation"),      (ScriptBinderFunc)&scene_script_rotation);
-    script_binder_declare(b, string_hash_lit("scale"),         (ScriptBinderFunc)&scene_script_scale);
-    script_binder_declare(b, string_hash_lit("name"),          (ScriptBinderFunc)&scene_script_name);
-    script_binder_declare(b, string_hash_lit("time"),          (ScriptBinderFunc)&scene_script_time);
-    script_binder_declare(b, string_hash_lit("spawn"),         (ScriptBinderFunc)&scene_script_spawn);
-    script_binder_declare(b, string_hash_lit("destroy"),       (ScriptBinderFunc)&scene_script_destroy);
-    script_binder_declare(b, string_hash_lit("destroy_after"), (ScriptBinderFunc)&scene_script_destroy_after);
-    script_binder_declare(b, string_hash_lit("teleport"),      (ScriptBinderFunc)&scene_script_teleport);
-    script_binder_declare(b, string_hash_lit("attach"),        (ScriptBinderFunc)&scene_script_attach);
-    script_binder_declare(b, string_hash_lit("detach"),        (ScriptBinderFunc)&scene_script_detach);
+    scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
+    scene_script_bind(b, string_hash_lit("print"),         scene_script_print);
+    scene_script_bind(b, string_hash_lit("exists"),        scene_script_exists);
+    scene_script_bind(b, string_hash_lit("position"),      scene_script_position);
+    scene_script_bind(b, string_hash_lit("rotation"),      scene_script_rotation);
+    scene_script_bind(b, string_hash_lit("scale"),         scene_script_scale);
+    scene_script_bind(b, string_hash_lit("name"),          scene_script_name);
+    scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
+    scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
+    scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
+    scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
+    scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
+    scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
+    scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
     // clang-format on
 
     script_binder_finalize(b);
