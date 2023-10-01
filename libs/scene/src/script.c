@@ -197,7 +197,7 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptArgs args) {
   if (args.count == 0) {
     return script_time(time->time); // Overload with 0 args.
   }
-  const StringHash clock = script_arg_string(args, 0, 0);
+  const StringHash clock = script_arg_string(args, 0, string_hash_invalid);
   // TODO: Precompute these hashes.
   if (clock == string_hash_lit("Time")) {
     return script_time(time->time);
@@ -219,7 +219,7 @@ static ScriptVal scene_script_time(void* ctxR, const ScriptArgs args) {
 
 static ScriptVal scene_script_spawn(void* ctxR, const ScriptArgs args) {
   SceneScriptBindCtx* ctx      = ctxR;
-  const StringHash    prefabId = script_arg_string(args, 0, 0);
+  const StringHash    prefabId = script_arg_string(args, 0, string_hash_invalid);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
