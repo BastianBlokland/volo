@@ -945,8 +945,6 @@ spec(read) {
         {string_static("var i; { var i = 99 }"), ScriptResult_VariableIdentifierConflicts},
         {string_static("var"), ScriptResult_VariableIdentifierMissing},
         {string_static("var pi"), ScriptResult_VariableIdentifierConflicts},
-        {string_static("var random"), ScriptResult_VariableIdentifierConflicts},
-        {string_static("var bind_test_1"), ScriptResult_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptResult_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptResult_MissingPrimaryExpression},
         {string_static("var a = a"), ScriptResult_NoVariableFoundForIdentifier},

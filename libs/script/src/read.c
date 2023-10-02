@@ -101,6 +101,7 @@ static void script_builtin_init() {
   script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
   script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
   script_builtin_func_add(string_lit("euler"), ScriptIntrinsic_QuatFromEuler);
+  script_builtin_func_add(string_lit("angle_axis"), ScriptIntrinsic_QuatFromAngleAxis);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
   script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
@@ -608,12 +609,6 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx, const Scri
     return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
   }
   if (script_var_lookup(ctx, token.val_identifier)) {
-    return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
-  }
-  if (script_builtin_func_exists(token.val_identifier)) {
-    return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
-  }
-  if (ctx->binder && !sentinel_check(script_binder_lookup(ctx->binder, token.val_identifier))) {
     return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
   }
 
@@ -1147,11 +1142,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

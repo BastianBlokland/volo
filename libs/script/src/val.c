@@ -724,3 +724,10 @@ ScriptVal script_val_quat_from_euler(const ScriptVal x, const ScriptVal y, const
       geo_vector((f32)val_as_number(x), (f32)val_as_number(y), (f32)val_as_number(z));
   return script_quat(geo_quat_from_euler(eulerAngles));
 }
+
+ScriptVal script_val_quat_from_angle_axis(const ScriptVal angle, const ScriptVal axis) {
+  if (script_type(angle) != ScriptType_Number || script_type(axis) != ScriptType_Vector3) {
+    return script_null();
+  }
+  return script_quat(geo_quat_angle_axis(val_as_vector3(axis), (f32)val_as_number(angle)));
+}

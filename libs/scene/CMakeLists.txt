@@ -34,7 +34,6 @@ add_library(lib_scene STATIC
   src/sensor.c
   src/skeleton.c
   src/sound.c
-  src/spawner.c
   src/status.c
   src/tag.c
   src/target.c

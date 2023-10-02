@@ -695,15 +695,7 @@
     {
       "name": "SpawnerInfantryEnemy",
       "traits": [
-        {
-          "$type": "AssetPrefabTrait_Spawner",
-          "prefabId": "InfantryEnemy",
-          "radius": 20,
-          "count": 150,
-          "maxInstances": 350,
-          "intervalMin": 20,
-          "intervalMax": 60
-        }
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/spawner.script" }
       ]
     },
     {
