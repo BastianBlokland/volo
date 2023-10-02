@@ -611,12 +611,6 @@ static ScriptReadResult read_expr_var_declare(ScriptReadContext* ctx, const Scri
   if (script_var_lookup(ctx, token.val_identifier)) {
     return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
   }
-  if (script_builtin_func_exists(token.val_identifier)) {
-    return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
-  }
-  if (ctx->binder && !sentinel_check(script_binder_lookup(ctx->binder, token.val_identifier))) {
-    return read_error(ctx, ScriptResult_VariableIdentifierConflicts, start);
-  }
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
