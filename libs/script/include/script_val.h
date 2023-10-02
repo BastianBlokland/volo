@@ -112,11 +112,12 @@ ScriptVal script_val_round_up(ScriptVal);
 /**
  * Value conversions.
  */
-ScriptVal script_val_vector3_compose(ScriptVal, ScriptVal, ScriptVal);
+ScriptVal script_val_vector3_compose(ScriptVal x, ScriptVal y, ScriptVal z);
 ScriptVal script_val_vector_x(ScriptVal);
 ScriptVal script_val_vector_y(ScriptVal);
 ScriptVal script_val_vector_z(ScriptVal);
-ScriptVal script_val_quat_from_euler(ScriptVal, ScriptVal, ScriptVal);
+ScriptVal script_val_quat_from_euler(ScriptVal x, ScriptVal y, ScriptVal z);
+ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
 
 /**
  * Create a formatting argument for a script value.

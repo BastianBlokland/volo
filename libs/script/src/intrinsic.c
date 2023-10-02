@@ -41,6 +41,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_While:
   case ScriptIntrinsic_LogicAnd:
   case ScriptIntrinsic_LogicOr:
+  case ScriptIntrinsic_QuatFromAngleAxis:
     return 2;
   case ScriptIntrinsic_Vector3Compose:
   case ScriptIntrinsic_QuatFromEuler:
@@ -94,6 +95,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       string_static("while"),
       string_static("logic-and"),
       string_static("logic-or"),
+      string_static("quat-from-angle-axis"),
       string_static("vector3-compose"),
       string_static("quat-from-euler"),
       string_static("if"),

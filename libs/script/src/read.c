@@ -101,6 +101,7 @@ static void script_builtin_init() {
   script_builtin_func_add(string_lit("vector_y"), ScriptIntrinsic_VectorY);
   script_builtin_func_add(string_lit("vector_z"), ScriptIntrinsic_VectorZ);
   script_builtin_func_add(string_lit("euler"), ScriptIntrinsic_QuatFromEuler);
+  script_builtin_func_add(string_lit("angle_axis"), ScriptIntrinsic_QuatFromAngleAxis);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Distance);
   script_builtin_func_add(string_lit("distance"), ScriptIntrinsic_Magnitude);
   script_builtin_func_add(string_lit("normalize"), ScriptIntrinsic_Normalize);
@@ -1147,11 +1148,11 @@ void script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 

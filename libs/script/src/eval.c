@@ -205,6 +205,10 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
   }
+  case ScriptIntrinsic_QuatFromAngleAxis: {
+    EVAL_ARG_WITH_INTERRUPT(0);
+    return script_val_quat_from_angle_axis(arg0, eval(ctx, args[1]));
+  }
   case ScriptIntrinsic_Vector3Compose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
