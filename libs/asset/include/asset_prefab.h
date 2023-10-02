@@ -52,7 +52,6 @@ typedef enum {
   AssetPrefabTrait_Collision,
   AssetPrefabTrait_Script,
   AssetPrefabTrait_Brain,
-  AssetPrefabTrait_Spawner,
   AssetPrefabTrait_Blink,
   AssetPrefabTrait_Taunt,
   AssetPrefabTrait_Location,
@@ -136,14 +135,6 @@ typedef struct {
 } AssetPrefabTraitBrain;
 
 typedef struct {
-  StringHash   prefabId;
-  f32          radius;
-  u32          count;
-  u32          maxInstances;
-  TimeDuration intervalMin, intervalMax;
-} AssetPrefabTraitSpawner;
-
-typedef struct {
   f32        frequency;
   StringHash effectPrefab; // Optional: 0 to disable.
 } AssetPrefabTraitBlink;
@@ -196,7 +187,6 @@ typedef struct {
     AssetPrefabTraitCollision  data_collision;
     AssetPrefabTraitScript     data_script;
     AssetPrefabTraitBrain      data_brain;
-    AssetPrefabTraitSpawner    data_spawner;
     AssetPrefabTraitBlink      data_blink;
     AssetPrefabTraitTaunt      data_taunt;
     AssetPrefabTraitLocation   data_location;
