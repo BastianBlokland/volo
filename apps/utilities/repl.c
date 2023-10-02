@@ -211,11 +211,38 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args) {
   return script_arg_last_or_null(args);
 }
 
+static ScriptVal repl_bind_dummy(void* ctx, const ScriptArgs args) {
+  (void)ctx;
+  (void)args;
+  return script_null();
+}
+
 static const ScriptBinder* repl_bind_init() {
   static ScriptBinder* g_binder;
   if (!g_binder) {
     g_binder = script_binder_create(g_alloc_persist);
     script_binder_declare(g_binder, string_hash_lit("print"), &repl_bind_print);
+
+    // NOTE: The following bindings are provided for compat with runtime scripts.
+    // TODO: Instead of duplicating the list here we should read it from a file.
+    script_binder_declare(g_binder, string_hash_lit("self"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("exists"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("position"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("rotation"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("scale"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("name"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("faction"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("health"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("time"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("nav_query"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("spawn"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("destroy"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("destroy_after"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("teleport"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("attach"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("detach"), repl_bind_dummy);
+    script_binder_declare(g_binder, string_hash_lit("damage"), repl_bind_dummy);
+
     script_binder_finalize(g_binder);
   }
   return g_binder;
