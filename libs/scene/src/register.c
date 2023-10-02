@@ -30,7 +30,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_sensor_module);
   ecs_register_module(def, scene_skeleton_module);
   ecs_register_module(def, scene_sound_module);
-  ecs_register_module(def, scene_spawner_module);
   ecs_register_module(def, scene_status_module);
   ecs_register_module(def, scene_tag_module);
   ecs_register_module(def, scene_target_module);
