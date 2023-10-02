@@ -11,8 +11,8 @@ if($nextWaveTime <= time()) {
   $nextWaveTime = null;
 
   var center      = position(self());
-  var faction_    = faction(self()) ?? "FactionB";
-  var scale_      = 1.0;
+  var faction     = faction(self()) ?? "FactionB";
+  var scale       = 1.0;
   var spawnCount  = round_nearest(random(spawnCountMin, spawnCountMax));
 
   for(var i = 0; i != spawnCount; i += 1) {
@@ -20,6 +20,6 @@ if($nextWaveTime <= time()) {
     var posUnblocked  = nav_query(pos, "UnblockedCell");
     var rot           = angle_axis(random() * pi * 2, up);
 
-    spawn(unitPrefab, posUnblocked, rot, scale_, faction_);
+    spawn(unitPrefab, posUnblocked, rot, scale, faction);
   }
 }
