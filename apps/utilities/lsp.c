@@ -59,6 +59,18 @@ static String lsp_read_until(ServerContext* ctx, const String pattern) {
   return string_empty;
 }
 
+static String lsp_read_sized(ServerContext* ctx, const usize size) {
+  while (ctx->status == ServerStatus_Running) {
+    const String text = dynstring_view(ctx->readBuffer);
+    if (text.size >= size) {
+      dynstring_erase_chars(ctx->readBuffer, 0, size);
+      return string_slice(text, 0, size);
+    }
+    lsp_read_chunk(ctx);
+  }
+  return string_empty;
+}
+
 static String lsp_header_lex_key(const String input, String* outKey) {
   const usize colonPos = string_find_first(input, string_lit(": "));
   if (sentinel_check(colonPos)) {
@@ -99,8 +111,9 @@ static i32 lsp_run_stdio() {
   };
 
   while (ctx.status == ServerStatus_Running) {
-    const LspHeader header = lsp_read_header(&ctx);
-    (void)header;
+    const LspHeader header  = lsp_read_header(&ctx);
+    const String    content = lsp_read_sized(&ctx, header.contentLength);
+    (void)content;
   }
 
   dynstring_destroy(&readBuffer);
