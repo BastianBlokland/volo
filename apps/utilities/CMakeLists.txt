@@ -38,3 +38,9 @@ target_link_libraries(app_repl PRIVATE lib_app_cli lib_script)
 configure_debuggable(app_repl)
 
 add_custom_target(run.repl COMMAND app_repl VERBATIM USES_TERMINAL)
+
+message(STATUS "> application: lsp")
+
+add_executable(app_lsp lsp.c)
+target_link_libraries(app_lsp PRIVATE lib_app_cli lib_script lib_json)
+configure_debuggable(app_lsp)
