@@ -22,3 +22,7 @@
 
 # Downloaded files.
 /assets/external/
+
+# Ide plugin build paths.
+/ide/vscode/volo/node_modules/
+/ide/vscode/volo/out/
