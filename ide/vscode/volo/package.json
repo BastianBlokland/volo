@@ -20,12 +20,13 @@
     "@types/node": "^16.18.34",
     "@types/vscode": "^1.75.1",
     "@vscode/vsce": "^2.21.1",
+    "esbuild": "^0.19.4",
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
     "package": "vsce package"
   },
   "contributes": {
