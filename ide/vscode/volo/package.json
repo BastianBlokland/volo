@@ -3,9 +3,28 @@
   "publisher": "bastianblokland",
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
-  "version": "0.0.1",
+  "license": "MIT",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bastianblokland/volo"
+  },
   "engines": {
-    "vscode": "^1.42.0"
+    "vscode": "^1.75.0"
+  },
+  "main": "./out/extension",
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.34",
+    "@types/vscode": "^1.75.1",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w"
   },
   "contributes": {
     "languages": [
