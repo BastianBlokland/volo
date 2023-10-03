@@ -229,7 +229,7 @@ spec(read) {
         {string_lit("\""), string_lit("UnterminatedString")},
         {string_lit("{1}"), string_lit("InvalidFieldName")},
         {string_lit("{,}"), string_lit("InvalidFieldName")},
-        {string_lit("{\"a\"1}"), string_lit("InvalidFieldSeperator")},
+        {string_lit("{\"a\"1}"), string_lit("InvalidFieldSeparator")},
         {string_lit("[,]"), string_lit("UnexpectedToken")},
         {string_lit("["), string_lit("Truncated")},
         {string_lit("{"), string_lit("Truncated")},
