@@ -1,9 +1,16 @@
 #include "app_cli.h"
 #include "core_file.h"
+#include "core_format.h"
+#include "core_path.h"
 
 /**
  * Language Server Protocol implementation for the Volo script language.
  */
+
+static i32 lsp_run_stdio() {
+  //
+  return 0;
+}
 
 static CliId g_optHelp, g_stdioFlag;
 
@@ -24,6 +31,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 0;
   }
 
-  file_write_sync(g_file_stdout, string_lit("Hello LSP\n"));
-  return 0;
+  if (cli_parse_provided(invoc, g_stdioFlag)) {
+    return lsp_run_stdio();
+  }
+
+  const String appName = path_filename(g_path_executable);
+  file_write_sync(
+      g_file_stderr,
+      fmt_write_scratch("{}: No communication method specified.\n", fmt_text(appName)));
+  return 1;
 }
