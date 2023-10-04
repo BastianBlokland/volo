@@ -35,6 +35,7 @@ typedef struct {
   LspStatus  status;
   DynString* readBuffer;
   usize      readCursor;
+  DynString* writeBuffer;
   JsonDoc*   jsonDoc; // Cleared between requests.
   File*      in;
   File*      out;
@@ -132,34 +133,68 @@ static LspHeader lsp_read_header(LspContext* ctx) {
   return result;
 }
 
-static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notification) {
-  (void)ctx;
-  (void)notification;
+static void lsp_send_json(LspContext* ctx, const JsonVal val) {
+  const JsonWriteOpts writeOpts = json_write_opts(.flags = JsonWriteFlags_None);
+  json_write(ctx->writeBuffer, ctx->jsonDoc, val, &writeOpts);
 
-  // TODO: Fail if non-initialized (error code: -32002).
+  // TODO: Add header
+  file_write_sync(ctx->out, dynstring_view(ctx->writeBuffer));
 }
 
-static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* request) {
-  if (UNLIKELY(sentinel_check(request->params))) {
+static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, const JsonVal val) {
+  const JsonVal response = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, response, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
+  json_add_field_lit(ctx->jsonDoc, response, "result", val);
+
+  JsonVal responseId;
+  switch (json_type(ctx->jsonDoc, req->id)) {
+  case JsonType_Number:
+    responseId = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, req->id));
+    break;
+  case JsonType_String:
+    responseId = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, req->id));
+    break;
+  default:
+    responseId = json_add_null(ctx->jsonDoc);
+  }
+  json_add_field_lit(ctx->jsonDoc, response, "id", responseId);
+
+  lsp_send_json(ctx, response);
+}
+
+static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
+  (void)ctx;
+  (void)notif;
+}
+
+static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* req) {
+  if (UNLIKELY(sentinel_check(req->params))) {
     goto MalformedRequest;
   }
-  if (UNLIKELY(json_type(ctx->jsonDoc, request->params) != JsonType_Object)) {
+  if (UNLIKELY(json_type(ctx->jsonDoc, req->params) != JsonType_Object)) {
     goto MalformedRequest;
   }
+
+  const JsonVal serverInfo    = json_add_object(ctx->jsonDoc);
+  const JsonVal serverName    = json_add_string_lit(ctx->jsonDoc, "Volo Language Server");
+  const JsonVal serverVersion = json_add_string_lit(ctx->jsonDoc, "0.1");
+  json_add_field_lit(ctx->jsonDoc, serverInfo, "name", serverName);
+  json_add_field_lit(ctx->jsonDoc, serverInfo, "version", serverVersion);
+
+  const JsonVal result = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, result, "serverInfo", serverInfo);
+
+  lsp_send_response_success(ctx, req, result);
+  return;
 
 MalformedRequest:
   ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
-static void lsp_handle_request(LspContext* ctx, const JRpcRequest* request) {
-  if (string_eq(request->method, string_lit("initialize"))) {
-    lsp_handle_request_initialize(ctx, request);
+static void lsp_handle_request(LspContext* ctx, const JRpcRequest* req) {
+  if (string_eq(req->method, string_lit("initialize"))) {
+    lsp_handle_request_initialize(ctx, req);
   }
-
-  (void)ctx;
-  (void)request;
-
-  // TODO: Fail if non-initialized (error code: -32002).
 }
 
 static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
@@ -201,15 +236,17 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
 }
 
 static i32 lsp_run_stdio() {
-  DynString readBuffer = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  JsonDoc*  jsonDoc    = json_create(g_alloc_heap, 1024);
+  DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
+  DynString writeBuffer = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
+  JsonDoc*  jsonDoc     = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
-      .status     = LspStatus_Running,
-      .readBuffer = &readBuffer,
-      .jsonDoc    = jsonDoc,
-      .in         = g_file_stdin,
-      .out        = g_file_stdout,
+      .status      = LspStatus_Running,
+      .readBuffer  = &readBuffer,
+      .writeBuffer = &writeBuffer,
+      .jsonDoc     = jsonDoc,
+      .in          = g_file_stdin,
+      .out         = g_file_stdout,
   };
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -228,11 +265,13 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
+    dynstring_clear(&writeBuffer);
     json_clear(jsonDoc);
   }
 
   json_destroy(jsonDoc);
   dynstring_destroy(&readBuffer);
+  dynstring_destroy(&writeBuffer);
 
   if (ctx.status != LspStatus_Shutdown) {
     lsp_output_err(g_lspStatusMessage[ctx.status]);
