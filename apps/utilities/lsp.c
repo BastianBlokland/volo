@@ -110,7 +110,7 @@ static void lsp_handle_jrpc(ServerContext* ctx, JsonDoc* jsonDoc, const JsonVal 
 }
 
 static i32 lsp_run_stdio() {
-  DynString readBuffer     = dynstring_create(g_alloc_heap, 4 * usize_kibibyte);
+  DynString readBuffer     = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
   JsonDoc*  contentJsonDoc = json_create(g_alloc_heap, 1024);
 
   ServerContext ctx = {
