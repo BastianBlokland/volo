@@ -110,8 +110,8 @@ static void lsp_handle_jrpc(ServerContext* ctx, JsonDoc* jsonDoc, const JsonVal 
 }
 
 static i32 lsp_run_stdio() {
-  DynString readBuffer     = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  JsonDoc*  contentJsonDoc = json_create(g_alloc_heap, 1024);
+  DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
+  JsonDoc*  contentJson = json_create(g_alloc_heap, 1024);
 
   ServerContext ctx = {
       .status     = ServerStatus_Running,
@@ -125,8 +125,8 @@ static i32 lsp_run_stdio() {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_clear(contentJsonDoc);
-    json_read(contentJsonDoc, content, &jsonResult);
+    json_clear(contentJson);
+    json_read(contentJson, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErrMsg = json_error_str(jsonResult.error);
       lsp_write_err(fmt_write_scratch("Json read failed: {}", fmt_text(jsonErrMsg)));
@@ -134,10 +134,10 @@ static i32 lsp_run_stdio() {
       break;
     }
 
-    lsp_handle_jrpc(&ctx, contentJsonDoc, jsonResult.val);
+    lsp_handle_jrpc(&ctx, contentJson, jsonResult.val);
   }
 
-  json_destroy(contentJsonDoc);
+  json_destroy(contentJson);
   dynstring_destroy(&readBuffer);
 
   if (ctx.status != ServerStatus_Shutdown) {
