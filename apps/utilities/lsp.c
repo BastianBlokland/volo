@@ -35,6 +35,7 @@ typedef struct {
   LspStatus  status;
   DynString* readBuffer;
   usize      readCursor;
+  JsonDoc*   jsonDoc; // Cleared between requests.
   File*      in;
   File*      out;
 } LspContext;
@@ -44,16 +45,14 @@ typedef struct {
 } LspHeader;
 
 typedef struct {
-  JsonDoc* doc;
-  String   method;
-  JsonVal  params; // Optional, sentinel_u32 if unused.
+  String  method;
+  JsonVal params; // Optional, sentinel_u32 if unused.
 } JRpcNotification;
 
 typedef struct {
-  JsonDoc* doc;
-  String   method;
-  JsonVal  params; // Optional, sentinel_u32 if unused.
-  JsonVal  id;
+  String  method;
+  JsonVal params; // Optional, sentinel_u32 if unused.
+  JsonVal id;
 } JRpcRequest;
 
 static void lsp_output_err(const String msg) {
@@ -144,7 +143,7 @@ static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* re
   if (UNLIKELY(sentinel_check(request->params))) {
     goto MalformedRequest;
   }
-  if (UNLIKELY(json_type(request->doc, request->params) != JsonType_Object)) {
+  if (UNLIKELY(json_type(ctx->jsonDoc, request->params) != JsonType_Object)) {
     goto MalformedRequest;
   }
 
@@ -163,39 +162,37 @@ static void lsp_handle_request(LspContext* ctx, const JRpcRequest* request) {
   // TODO: Fail if non-initialized (error code: -32002).
 }
 
-static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* doc, const JsonVal value) {
-  if (UNLIKELY(json_type(doc, value) != JsonType_Object)) {
+static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
+  if (UNLIKELY(json_type(ctx->jsonDoc, value) != JsonType_Object)) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
-  const JsonVal version = json_field(doc, value, string_lit("jsonrpc"));
-  if (UNLIKELY(sentinel_check(version) || json_type(doc, version) != JsonType_String)) {
+  const JsonVal version = json_field(ctx->jsonDoc, value, string_lit("jsonrpc"));
+  if (UNLIKELY(sentinel_check(version) || json_type(ctx->jsonDoc, version) != JsonType_String)) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
-  if (UNLIKELY(!string_eq(json_string(doc, version), string_lit("2.0")))) {
+  if (UNLIKELY(!string_eq(json_string(ctx->jsonDoc, version), string_lit("2.0")))) {
     ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
     return;
   }
-  const JsonVal method = json_field(doc, value, string_lit("method"));
-  if (UNLIKELY(sentinel_check(method) || json_type(doc, method) != JsonType_String)) {
+  const JsonVal method = json_field(ctx->jsonDoc, value, string_lit("method"));
+  if (UNLIKELY(sentinel_check(method) || json_type(ctx->jsonDoc, method) != JsonType_String)) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
-  const JsonVal params = json_field(doc, value, string_lit("params"));
-  const JsonVal id     = json_field(doc, value, string_lit("id"));
+  const JsonVal params = json_field(ctx->jsonDoc, value, string_lit("params"));
+  const JsonVal id     = json_field(ctx->jsonDoc, value, string_lit("id"));
 
   if (sentinel_check(id)) {
     const JRpcNotification notification = {
-        .doc    = doc,
-        .method = json_string(doc, method),
+        .method = json_string(ctx->jsonDoc, method),
         .params = params,
     };
     lsp_handle_notification(ctx, &notification);
   } else {
     const JRpcRequest request = {
-        .doc    = doc,
-        .method = json_string(doc, method),
+        .method = json_string(ctx->jsonDoc, method),
         .params = params,
         .id     = id,
     };
@@ -204,12 +201,13 @@ static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* doc, const JsonVal value) 
 }
 
 static i32 lsp_run_stdio() {
-  DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  JsonDoc*  contentJson = json_create(g_alloc_heap, 1024);
+  DynString readBuffer = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
+  JsonDoc*  jsonDoc    = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
       .status     = LspStatus_Running,
       .readBuffer = &readBuffer,
+      .jsonDoc    = jsonDoc,
       .in         = g_file_stdin,
       .out        = g_file_stdout,
   };
@@ -219,7 +217,7 @@ static i32 lsp_run_stdio() {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_read(contentJson, content, &jsonResult);
+    json_read(jsonDoc, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErrMsg = json_error_str(jsonResult.error);
       lsp_output_err(fmt_write_scratch("Json read failed: {}", fmt_text(jsonErrMsg)));
@@ -227,13 +225,13 @@ static i32 lsp_run_stdio() {
       break;
     }
 
-    lsp_handle_jrpc(&ctx, contentJson, jsonResult.val);
+    lsp_handle_jrpc(&ctx, jsonResult.val);
 
-    json_clear(contentJson);
     lsp_read_trim(&ctx);
+    json_clear(jsonDoc);
   }
 
-  json_destroy(contentJson);
+  json_destroy(jsonDoc);
   dynstring_destroy(&readBuffer);
 
   if (ctx.status != LspStatus_Shutdown) {
