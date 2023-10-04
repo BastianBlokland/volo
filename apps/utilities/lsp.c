@@ -14,15 +14,19 @@ typedef enum {
   LspStatus_Shutdown,
   LspStatus_ErrorReadFailed,
   LspStatus_ErrorInvalidJson,
+  LspStatus_ErrorInvalidJRpcMessage,
+  LspStatus_ErrorUnsupportedJRpcVersion,
 
   LspStatus_Count,
 } LspStatus;
 
 static const String g_lspStatusMessage[LspStatus_Count] = {
-    [LspStatus_Running]          = string_static("Running"),
-    [LspStatus_Shutdown]         = string_static("Shutdown"),
-    [LspStatus_ErrorReadFailed]  = string_static("Error: Read failed"),
-    [LspStatus_ErrorInvalidJson] = string_static("Error: Invalid json received"),
+    [LspStatus_Running]                     = string_static("Running"),
+    [LspStatus_Shutdown]                    = string_static("Shutdown"),
+    [LspStatus_ErrorReadFailed]             = string_static("Error: Read failed"),
+    [LspStatus_ErrorInvalidJson]            = string_static("Error: Invalid json received"),
+    [LspStatus_ErrorInvalidJRpcMessage]     = string_static("Error: Invalid jrpc message received"),
+    [LspStatus_ErrorUnsupportedJRpcVersion] = string_static("Error: Unsupported jrpc version"),
 };
 
 typedef struct {
@@ -36,6 +40,19 @@ typedef struct {
 typedef struct {
   usize contentLength;
 } LspHeader;
+
+typedef struct {
+  JsonDoc* doc;
+  String   method;
+  JsonVal  params; // Optional, sentinel_u32 if unused.
+} JRpcNotification;
+
+typedef struct {
+  JsonDoc* doc;
+  String   method;
+  JsonVal  params; // Optional, sentinel_u32 if unused.
+  JsonVal  id;
+} JRpcRequest;
 
 static void lsp_output_err(const String msg) {
   const String appName = path_filename(g_path_executable);
@@ -114,10 +131,54 @@ static LspHeader lsp_read_header(LspContext* ctx) {
   return result;
 }
 
-static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* jsonDoc, const JsonVal value) {
+static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notification) {
   (void)ctx;
-  (void)jsonDoc;
-  (void)value;
+  (void)notification;
+}
+
+static void lsp_handle_request(LspContext* ctx, const JRpcRequest* request) {
+  (void)ctx;
+  (void)request;
+}
+
+static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* doc, const JsonVal value) {
+  if (UNLIKELY(json_type(doc, value) != JsonType_Object)) {
+    ctx->status = LspStatus_ErrorInvalidJRpcMessage;
+    return;
+  }
+  const JsonVal version = json_field(doc, value, string_lit("jsonrpc"));
+  if (UNLIKELY(sentinel_check(version) || json_type(doc, version) != JsonType_String)) {
+    ctx->status = LspStatus_ErrorInvalidJRpcMessage;
+    return;
+  }
+  if (UNLIKELY(!string_eq(json_string(doc, version), string_lit("2.0")))) {
+    ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
+    return;
+  }
+  const JsonVal method = json_field(doc, value, string_lit("method"));
+  if (UNLIKELY(sentinel_check(method) || json_type(doc, method) != JsonType_String)) {
+    ctx->status = LspStatus_ErrorInvalidJRpcMessage;
+    return;
+  }
+  const JsonVal params = json_field(doc, value, string_lit("params"));
+  const JsonVal id     = json_field(doc, value, string_lit("id"));
+
+  if (sentinel_check(id)) {
+    const JRpcNotification notification = {
+        .doc    = doc,
+        .method = json_string(doc, method),
+        .params = params,
+    };
+    lsp_handle_notification(ctx, &notification);
+  } else {
+    const JRpcRequest request = {
+        .doc    = doc,
+        .method = json_string(doc, method),
+        .params = params,
+        .id     = id,
+    };
+    lsp_handle_request(ctx, &request);
+  }
 }
 
 static i32 lsp_run_stdio() {
