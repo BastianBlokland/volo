@@ -10,27 +10,27 @@
  */
 
 typedef enum {
-  ServerStatus_Running,
-  ServerStatus_Shutdown,
-  ServerStatus_ErrorReadFailed,
-  ServerStatus_ErrorInvalidJson,
+  LspStatus_Running,
+  LspStatus_Shutdown,
+  LspStatus_ErrorReadFailed,
+  LspStatus_ErrorInvalidJson,
 
-  ServerStatus_Count,
-} ServerStatus;
+  LspStatus_Count,
+} LspStatus;
 
-static const String g_serverStatusMessage[ServerStatus_Count] = {
-    [ServerStatus_Running]          = string_static("Running"),
-    [ServerStatus_Shutdown]         = string_static("Shutdown"),
-    [ServerStatus_ErrorReadFailed]  = string_static("Error: Read failed"),
-    [ServerStatus_ErrorInvalidJson] = string_static("Error: Invalid json received"),
+static const String g_lspStatusMessage[LspStatus_Count] = {
+    [LspStatus_Running]          = string_static("Running"),
+    [LspStatus_Shutdown]         = string_static("Shutdown"),
+    [LspStatus_ErrorReadFailed]  = string_static("Error: Read failed"),
+    [LspStatus_ErrorInvalidJson] = string_static("Error: Invalid json received"),
 };
 
 typedef struct {
-  ServerStatus status;
-  DynString*   readBuffer;
-  File*        in;
-  File*        out;
-} ServerContext;
+  LspStatus  status;
+  DynString* readBuffer;
+  File*      in;
+  File*      out;
+} LspContext;
 
 typedef struct {
   usize contentLength;
@@ -42,15 +42,15 @@ static void lsp_write_err(const String msg) {
   file_write_sync(g_file_stderr, text);
 }
 
-static void lsp_read_chunk(ServerContext* ctx) {
+static void lsp_read_chunk(LspContext* ctx) {
   const FileResult res = file_read_sync(ctx->in, ctx->readBuffer);
   if (UNLIKELY(res != FileResult_Success)) {
-    ctx->status = ServerStatus_ErrorReadFailed;
+    ctx->status = LspStatus_ErrorReadFailed;
   }
 }
 
-static String lsp_read_until(ServerContext* ctx, const String pattern) {
-  while (LIKELY(ctx->status == ServerStatus_Running)) {
+static String lsp_read_until(LspContext* ctx, const String pattern) {
+  while (LIKELY(ctx->status == LspStatus_Running)) {
     const String text = dynstring_view(ctx->readBuffer);
     const usize  pos  = string_find_first(text, pattern);
     if (!sentinel_check(pos)) {
@@ -62,8 +62,8 @@ static String lsp_read_until(ServerContext* ctx, const String pattern) {
   return string_empty;
 }
 
-static String lsp_read_sized(ServerContext* ctx, const usize size) {
-  while (LIKELY(ctx->status == ServerStatus_Running)) {
+static String lsp_read_sized(LspContext* ctx, const usize size) {
+  while (LIKELY(ctx->status == LspStatus_Running)) {
     const String text = dynstring_view(ctx->readBuffer);
     if (text.size >= size) {
       dynstring_erase_chars(ctx->readBuffer, 0, size);
@@ -84,10 +84,10 @@ static String lsp_header_lex_key(const String input, String* outKey) {
   return string_consume(input, colonPos + 2);
 }
 
-static LspHeader lsp_read_header(ServerContext* ctx) {
+static LspHeader lsp_read_header(LspContext* ctx) {
   LspHeader result = {0};
   String    input  = lsp_read_until(ctx, string_lit("\r\n\r\n"));
-  while (LIKELY(ctx->status == ServerStatus_Running)) {
+  while (LIKELY(ctx->status == LspStatus_Running)) {
     String key;
     input = lsp_header_lex_key(input, &key);
     if (string_is_empty(key)) {
@@ -103,7 +103,7 @@ static LspHeader lsp_read_header(ServerContext* ctx) {
   return result;
 }
 
-static void lsp_handle_jrpc(ServerContext* ctx, JsonDoc* jsonDoc, const JsonVal value) {
+static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* jsonDoc, const JsonVal value) {
   (void)ctx;
   (void)jsonDoc;
   (void)value;
@@ -113,14 +113,14 @@ static i32 lsp_run_stdio() {
   DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
   JsonDoc*  contentJson = json_create(g_alloc_heap, 1024);
 
-  ServerContext ctx = {
-      .status     = ServerStatus_Running,
+  LspContext ctx = {
+      .status     = LspStatus_Running,
       .readBuffer = &readBuffer,
       .in         = g_file_stdin,
       .out        = g_file_stdout,
   };
 
-  while (LIKELY(ctx.status == ServerStatus_Running)) {
+  while (LIKELY(ctx.status == LspStatus_Running)) {
     const LspHeader header  = lsp_read_header(&ctx);
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
@@ -130,7 +130,7 @@ static i32 lsp_run_stdio() {
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErrMsg = json_error_str(jsonResult.error);
       lsp_write_err(fmt_write_scratch("Json read failed: {}", fmt_text(jsonErrMsg)));
-      ctx.status = ServerStatus_ErrorInvalidJson;
+      ctx.status = LspStatus_ErrorInvalidJson;
       break;
     }
 
@@ -140,8 +140,8 @@ static i32 lsp_run_stdio() {
   json_destroy(contentJson);
   dynstring_destroy(&readBuffer);
 
-  if (ctx.status != ServerStatus_Shutdown) {
-    lsp_write_err(g_serverStatusMessage[ctx.status]);
+  if (ctx.status != LspStatus_Shutdown) {
+    lsp_write_err(g_lspStatusMessage[ctx.status]);
     return 1;
   }
   return 0;
