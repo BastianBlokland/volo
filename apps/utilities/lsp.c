@@ -16,6 +16,7 @@ typedef enum {
   LspStatus_ErrorInvalidJson,
   LspStatus_ErrorInvalidJRpcMessage,
   LspStatus_ErrorUnsupportedJRpcVersion,
+  LspStatus_ErrorMalformedRequest,
 
   LspStatus_Count,
 } LspStatus;
@@ -27,6 +28,7 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
     [LspStatus_ErrorInvalidJson]            = string_static("Error: Invalid json received"),
     [LspStatus_ErrorInvalidJRpcMessage]     = string_static("Error: Invalid jrpc message received"),
     [LspStatus_ErrorUnsupportedJRpcVersion] = string_static("Error: Unsupported jrpc version"),
+    [LspStatus_ErrorMalformedRequest]       = string_static("Error: Malformed request"),
 };
 
 typedef struct {
@@ -134,11 +136,31 @@ static LspHeader lsp_read_header(LspContext* ctx) {
 static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notification) {
   (void)ctx;
   (void)notification;
+
+  // TODO: Fail if non-initialized (error code: -32002).
+}
+
+static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* request) {
+  if (UNLIKELY(sentinel_check(request->params))) {
+    goto MalformedRequest;
+  }
+  if (UNLIKELY(json_type(request->doc, request->params) != JsonType_Object)) {
+    goto MalformedRequest;
+  }
+
+MalformedRequest:
+  ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
 static void lsp_handle_request(LspContext* ctx, const JRpcRequest* request) {
+  if (string_eq(request->method, string_lit("initialize"))) {
+    lsp_handle_request_initialize(ctx, request);
+  }
+
   (void)ctx;
   (void)request;
+
+  // TODO: Fail if non-initialized (error code: -32002).
 }
 
 static void lsp_handle_jrpc(LspContext* ctx, JsonDoc* doc, const JsonVal value) {
