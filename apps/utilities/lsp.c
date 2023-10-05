@@ -7,6 +7,9 @@
 
 /**
  * Language Server Protocol implementation for the Volo script language.
+ *
+ * Specification:
+ * https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
  */
 
 typedef enum {
