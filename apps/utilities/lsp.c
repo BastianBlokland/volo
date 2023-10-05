@@ -179,14 +179,23 @@ static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* re
     goto MalformedRequest;
   }
 
-  const JsonVal serverInfo    = json_add_object(ctx->jsonDoc);
+  const JsonVal capabilities = json_add_object(ctx->jsonDoc);
+
+  // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
+  const JsonVal positionEncoding = json_add_string_lit(ctx->jsonDoc, "utf-16");
+  const JsonVal textDocumentSync = json_add_number(ctx->jsonDoc, 1); // 'Full'.
+  json_add_field_lit(ctx->jsonDoc, capabilities, "positionEncoding", positionEncoding);
+  json_add_field_lit(ctx->jsonDoc, capabilities, "textDocumentSync", textDocumentSync);
+
+  const JsonVal info          = json_add_object(ctx->jsonDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jsonDoc, "Volo Language Server");
   const JsonVal serverVersion = json_add_string_lit(ctx->jsonDoc, "0.1");
-  json_add_field_lit(ctx->jsonDoc, serverInfo, "name", serverName);
-  json_add_field_lit(ctx->jsonDoc, serverInfo, "version", serverVersion);
+  json_add_field_lit(ctx->jsonDoc, info, "name", serverName);
+  json_add_field_lit(ctx->jsonDoc, info, "version", serverVersion);
 
   const JsonVal result = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, result, "serverInfo", serverInfo);
+  json_add_field_lit(ctx->jsonDoc, result, "capabilities", capabilities);
+  json_add_field_lit(ctx->jsonDoc, result, "serverInfo", info);
 
   lsp_send_response_success(ctx, req, result);
   return;
@@ -222,6 +231,8 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   }
   const JsonVal params = json_field(ctx->jsonDoc, value, string_lit("params"));
   const JsonVal id     = json_field(ctx->jsonDoc, value, string_lit("id"));
+
+  lsp_output_err(json_string(ctx->jsonDoc, method));
 
   if (sentinel_check(id)) {
     const JRpcNotification notification = {
