@@ -64,6 +64,18 @@ typedef struct {
   JsonVal id;
 } JRpcRequest;
 
+typedef struct {
+  i32    code;
+  String msg;
+} JRpcError;
+
+// clang-format off
+
+static const JRpcError g_jrpcErrorNotInitialized = {.code = -32002, .msg = string_static("Server not initialized")};
+static const JRpcError g_jrpcErrorMethodNotFound = {.code = -32601, .msg = string_static("Method not found")};
+
+// clang-format on
+
 static void lsp_output_err(const String msg) {
   const String appName = path_filename(g_path_executable);
   const String text    = fmt_write_scratch("{}: {}\n", fmt_text(appName), fmt_text(msg));
@@ -174,6 +186,31 @@ static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, c
   lsp_send_json(ctx, response);
 }
 
+static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, const JRpcError* err) {
+  const JsonVal errObj = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, errObj, "code", json_add_number(ctx->jsonDoc, err->code));
+  json_add_field_lit(ctx->jsonDoc, errObj, "message", json_add_string(ctx->jsonDoc, err->msg));
+
+  const JsonVal response = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, response, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
+  json_add_field_lit(ctx->jsonDoc, response, "error", errObj);
+
+  JsonVal responseId;
+  switch (json_type(ctx->jsonDoc, req->id)) {
+  case JsonType_Number:
+    responseId = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, req->id));
+    break;
+  case JsonType_String:
+    responseId = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, req->id));
+    break;
+  default:
+    responseId = json_add_null(ctx->jsonDoc);
+  }
+  json_add_field_lit(ctx->jsonDoc, response, "id", responseId);
+
+  lsp_send_json(ctx, response);
+}
+
 static void lsp_handle_notification_initialized(LspContext* ctx, const JRpcNotification* notif) {
   (void)notif;
   ctx->flags |= LspFlags_Initialized;
@@ -221,7 +258,15 @@ MalformedRequest:
 static void lsp_handle_request(LspContext* ctx, const JRpcRequest* req) {
   if (string_eq(req->method, string_lit("initialize"))) {
     lsp_handle_request_initialize(ctx, req);
+    return;
   }
+
+  if (UNLIKELY(!(ctx->flags & LspFlags_Initialized))) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorNotInitialized);
+    return;
+  }
+
+  lsp_send_response_error(ctx, req, &g_jrpcErrorMethodNotFound);
 }
 
 static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
