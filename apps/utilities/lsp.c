@@ -37,6 +37,7 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
 typedef enum {
   LspFlags_Initialized = 1 << 0,
   LspFlags_Shutdown    = 1 << 1,
+  LspFlags_Trace       = 1 << 2,
 } LspFlags;
 
 typedef struct {
@@ -265,6 +266,21 @@ static void lsp_handle_notification_exit(LspContext* ctx, const JRpcNotification
   ctx->status = LspStatus_Exit;
 }
 
+static void lsp_handle_notification_set_trace(LspContext* ctx, const JRpcNotification* notif) {
+  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+  const JsonVal traceValue = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
+  if (sentinel_check(traceValue) || json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
+    return; // TODO: Report error.
+  }
+  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
+    ctx->flags &= ~LspFlags_Trace;
+  } else {
+    ctx->flags |= LspFlags_Trace;
+  }
+}
+
 static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
   if (string_eq(notif->method, string_lit("initialized"))) {
     lsp_handle_notification_initialized(ctx, notif);
@@ -274,8 +290,14 @@ static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* not
     lsp_handle_notification_exit(ctx, notif);
     return;
   }
+  if (string_eq(notif->method, string_lit("$/setTrace"))) {
+    lsp_handle_notification_set_trace(ctx, notif);
+    return;
+  }
 
-  lsp_send_trace(ctx, fmt_write_scratch("Unhandled notification: {}", fmt_text(notif->method)));
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Unhandled notification: {}", fmt_text(notif->method)));
+  }
 }
 
 static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* req) {
