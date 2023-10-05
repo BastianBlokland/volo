@@ -14,7 +14,7 @@
 
 typedef enum {
   LspStatus_Running,
-  LspStatus_Shutdown,
+  LspStatus_Exit,
   LspStatus_ErrorReadFailed,
   LspStatus_ErrorInvalidJson,
   LspStatus_ErrorInvalidJRpcMessage,
@@ -26,7 +26,7 @@ typedef enum {
 
 static const String g_lspStatusMessage[LspStatus_Count] = {
     [LspStatus_Running]                     = string_static("Running"),
-    [LspStatus_Shutdown]                    = string_static("Shutdown"),
+    [LspStatus_Exit]                        = string_static("Exit"),
     [LspStatus_ErrorReadFailed]             = string_static("Error: Read failed"),
     [LspStatus_ErrorInvalidJson]            = string_static("Error: Invalid json received"),
     [LspStatus_ErrorInvalidJRpcMessage]     = string_static("Error: Invalid jrpc message received"),
@@ -216,9 +216,16 @@ static void lsp_handle_notification_initialized(LspContext* ctx, const JRpcNotif
   ctx->flags |= LspFlags_Initialized;
 }
 
+static void lsp_handle_notification_exit(LspContext* ctx, const JRpcNotification* notif) {
+  (void)notif;
+  ctx->status = LspStatus_Exit;
+}
+
 static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
   if (string_eq(notif->method, string_lit("initialized"))) {
     lsp_handle_notification_initialized(ctx, notif);
+  } else if (string_eq(notif->method, string_lit("exit"))) {
+    lsp_handle_notification_exit(ctx, notif);
   }
 }
 
@@ -346,7 +353,7 @@ static i32 lsp_run_stdio() {
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
 
-  if (ctx.status != LspStatus_Shutdown) {
+  if (ctx.status != LspStatus_Exit) {
     lsp_output_err(g_lspStatusMessage[ctx.status]);
     return 1;
   }
