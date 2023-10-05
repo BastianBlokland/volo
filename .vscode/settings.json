@@ -29,7 +29,7 @@
     "*.products": "json",
     "*.proctex": "json",
     "*.vfx": "json",
-    "*.weapons": "json",
+    "*.weapons": "json"
   },
   "files.exclude": {
     ".cache": true,
@@ -52,6 +52,7 @@
     { "fileMatch": [ "*.weapons" ], "url": "./assets/schemas/weapons.schema.json" }
   ],
   "json.format.keepLines": true,
+  "volo-lsp.trace.server": "messages",
   "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
   "glsllint.linkShader": false,
   "emeraldwalk.runonsave": {
