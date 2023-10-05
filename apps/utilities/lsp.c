@@ -184,6 +184,17 @@ static void lsp_send_notification(LspContext* ctx, const JRpcNotification* notif
   lsp_send_json(ctx, resp);
 }
 
+static void lsp_send_trace(LspContext* ctx, const String message) {
+  const JsonVal params = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, params, "message", json_add_string(ctx->jsonDoc, message));
+
+  const JRpcNotification notif = {
+      .method = string_lit("$/logTrace"),
+      .params = params,
+  };
+  lsp_send_notification(ctx, &notif);
+}
+
 static void lsp_send_log(LspContext* ctx, const LspMessageType type, const String message) {
   const JsonVal params = json_add_object(ctx->jsonDoc);
   json_add_field_lit(ctx->jsonDoc, params, "type", json_add_number(ctx->jsonDoc, type));
@@ -263,6 +274,8 @@ static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* not
     lsp_handle_notification_exit(ctx, notif);
     return;
   }
+
+  lsp_send_trace(ctx, fmt_write_scratch("Unhandled notification: {}", fmt_text(notif->method)));
 }
 
 static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* req) {
