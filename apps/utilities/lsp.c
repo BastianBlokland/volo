@@ -137,8 +137,12 @@ static void lsp_send_json(LspContext* ctx, const JsonVal val) {
   const JsonWriteOpts writeOpts = json_write_opts(.flags = JsonWriteFlags_None);
   json_write(ctx->writeBuffer, ctx->jsonDoc, val, &writeOpts);
 
-  // TODO: Add header
+  const usize  contentSize = ctx->writeBuffer->size;
+  const String headerText  = fmt_write_scratch("Content-Length: {}\r\n\r\n", fmt_int(contentSize));
+  dynstring_insert(ctx->writeBuffer, headerText, 0);
+
   file_write_sync(ctx->out, dynstring_view(ctx->writeBuffer));
+  dynstring_clear(ctx->writeBuffer);
 }
 
 static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, const JsonVal val) {
@@ -265,7 +269,6 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
-    dynstring_clear(&writeBuffer);
     json_clear(jsonDoc);
   }
 
