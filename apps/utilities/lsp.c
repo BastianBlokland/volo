@@ -301,25 +301,22 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
 }
 
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
-  if (string_eq(notif->method, string_lit("initialized"))) {
-    lsp_handle_notif_initialized(ctx, notif);
-    return;
-  }
-  if (string_eq(notif->method, string_lit("exit"))) {
-    lsp_handle_notif_exit(ctx, notif);
-    return;
-  }
-  if (string_eq(notif->method, string_lit("$/setTrace"))) {
-    lsp_handle_notif_set_trace(ctx, notif);
-    return;
-  }
-  if (string_eq(notif->method, string_lit("textDocument/didOpen"))) {
-    lsp_handle_notif_doc_did_open(ctx, notif);
-    return;
-  }
-  if (string_eq(notif->method, string_lit("textDocument/didChange"))) {
-    lsp_handle_notif_doc_did_change(ctx, notif);
-    return;
+  static const struct {
+    String method;
+    void (*handler)(LspContext*, const JRpcNotification*);
+  } g_handlers[] = {
+      {string_static("initialized"), lsp_handle_notif_initialized},
+      {string_static("exit"), lsp_handle_notif_exit},
+      {string_static("$/setTrace"), lsp_handle_notif_set_trace},
+      {string_static("textDocument/didOpen"), lsp_handle_notif_doc_did_open},
+      {string_static("textDocument/didChange"), lsp_handle_notif_doc_did_change},
+  };
+
+  for (u32 i = 0; i != array_elems(g_handlers); ++i) {
+    if (string_eq(notif->method, g_handlers[i].method)) {
+      g_handlers[i].handler(ctx, notif);
+      return;
+    }
   }
 
   if (ctx->flags & LspFlags_Trace) {
