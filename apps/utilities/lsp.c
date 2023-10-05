@@ -368,13 +368,19 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
 }
 
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
-  if (string_eq(req->method, string_lit("initialize"))) {
-    lsp_handle_req_initialize(ctx, req);
-    return;
-  }
-  if (string_eq(req->method, string_lit("shutdown"))) {
-    lsp_handle_req_shutdown(ctx, req);
-    return;
+  static const struct {
+    String method;
+    void (*handler)(LspContext*, const JRpcRequest*);
+  } g_handlers[] = {
+      {string_static("initialize"), lsp_handle_req_initialize},
+      {string_static("shutdown"), lsp_handle_req_shutdown},
+  };
+
+  for (u32 i = 0; i != array_elems(g_handlers); ++i) {
+    if (string_eq(req->method, g_handlers[i].method)) {
+      g_handlers[i].handler(ctx, req);
+      return;
+    }
   }
 
   if (UNLIKELY(!(ctx->flags & LspFlags_Initialized))) {
