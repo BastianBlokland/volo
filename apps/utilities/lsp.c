@@ -31,8 +31,13 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
     [LspStatus_ErrorMalformedRequest]       = string_static("Error: Malformed request"),
 };
 
+typedef enum {
+  LspFlags_Initialized = 1 << 0,
+} LspFlags;
+
 typedef struct {
   LspStatus  status;
+  LspFlags   flags;
   DynString* readBuffer;
   usize      readCursor;
   DynString* writeBuffer;
@@ -166,9 +171,15 @@ static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, c
   lsp_send_json(ctx, response);
 }
 
-static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
-  (void)ctx;
+static void lsp_handle_notification_initialized(LspContext* ctx, const JRpcNotification* notif) {
   (void)notif;
+  ctx->flags |= LspFlags_Initialized;
+}
+
+static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
+  if (string_eq(notif->method, string_lit("initialized"))) {
+    lsp_handle_notification_initialized(ctx, notif);
+  }
 }
 
 static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* req) {
