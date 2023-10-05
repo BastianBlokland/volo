@@ -36,6 +36,7 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
 
 typedef enum {
   LspFlags_Initialized = 1 << 0,
+  LspFlags_Shutdown    = 1 << 1,
 } LspFlags;
 
 typedef struct {
@@ -224,8 +225,11 @@ static void lsp_handle_notification_exit(LspContext* ctx, const JRpcNotification
 static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
   if (string_eq(notif->method, string_lit("initialized"))) {
     lsp_handle_notification_initialized(ctx, notif);
-  } else if (string_eq(notif->method, string_lit("exit"))) {
+    return;
+  }
+  if (string_eq(notif->method, string_lit("exit"))) {
     lsp_handle_notification_exit(ctx, notif);
+    return;
   }
 }
 
@@ -262,9 +266,18 @@ MalformedRequest:
   ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
+static void lsp_handle_request_shutdown(LspContext* ctx, const JRpcRequest* req) {
+  ctx->flags |= LspFlags_Shutdown;
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jsonDoc));
+}
+
 static void lsp_handle_request(LspContext* ctx, const JRpcRequest* req) {
   if (string_eq(req->method, string_lit("initialize"))) {
     lsp_handle_request_initialize(ctx, req);
+    return;
+  }
+  if (string_eq(req->method, string_lit("shutdown"))) {
+    lsp_handle_request_shutdown(ctx, req);
     return;
   }
 
