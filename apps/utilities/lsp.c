@@ -292,6 +292,16 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
     return; // TODO: Report error.
   }
+  const JsonVal textDocVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
+  if (sentinel_check(textDocVal) || json_type(ctx->jsonDoc, textDocVal) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+  const JsonVal textVal = json_field(ctx->jsonDoc, textDocVal, string_lit("text"));
+  if (sentinel_check(textVal) || json_type(ctx->jsonDoc, textVal) != JsonType_String) {
+    return; // TODO: Report error.
+  }
+
+  // TODO: Process script text.
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
