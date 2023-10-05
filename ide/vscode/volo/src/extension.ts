@@ -43,7 +43,7 @@ export function activate(context: ExtensionContext) {
     synchronize: {}
   };
 
-  client = new LanguageClient('volo-lsp', 'Volo Script Language Server', serverOptions, clientOptions);
+  client = new LanguageClient('volo-lsp', 'Volo Script', serverOptions, clientOptions);
   client.start();
 }
 
