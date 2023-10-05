@@ -85,6 +85,17 @@ static const JRpcError g_jrpcErrorMethodNotFound = {.code = -32601, .msg = strin
 
 // clang-format on
 
+static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
+  if (json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
+    return; // TODO: Report error.
+  }
+  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
+    ctx->flags &= ~LspFlags_Trace;
+  } else {
+    ctx->flags |= LspFlags_Trace;
+  }
+}
+
 static void lsp_output_err(const String msg) {
   const String appName = path_filename(g_path_executable);
   const String text    = fmt_write_scratch("{}: {}\n", fmt_text(appName), fmt_text(msg));
@@ -270,15 +281,11 @@ static void lsp_handle_notification_set_trace(LspContext* ctx, const JRpcNotific
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal traceValue = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
-  if (sentinel_check(traceValue) || json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
+  const JsonVal traceVal = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
+  if (sentinel_check(traceVal)) {
     return; // TODO: Report error.
   }
-  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
-    ctx->flags &= ~LspFlags_Trace;
-  } else {
-    ctx->flags |= LspFlags_Trace;
-  }
+  lsp_update_trace(ctx, traceVal);
 }
 
 static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
@@ -306,6 +313,11 @@ static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* re
   }
   if (UNLIKELY(json_type(ctx->jsonDoc, req->params) != JsonType_Object)) {
     goto MalformedRequest;
+  }
+
+  const JsonVal traceVal = json_field(ctx->jsonDoc, req->params, string_lit("trace"));
+  if (!sentinel_check(traceVal)) {
+    lsp_update_trace(ctx, traceVal);
   }
 
   const JsonVal capabilities = json_add_object(ctx->jsonDoc);
