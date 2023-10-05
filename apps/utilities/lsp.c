@@ -265,19 +265,19 @@ static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, con
   lsp_send_json(ctx, resp);
 }
 
-static void lsp_handle_notification_initialized(LspContext* ctx, const JRpcNotification* notif) {
+static void lsp_handle_notif_initialized(LspContext* ctx, const JRpcNotification* notif) {
   (void)notif;
   ctx->flags |= LspFlags_Initialized;
 
   lsp_send_log(ctx, LspMessageType_Info, string_lit("Server successfully initialized"));
 }
 
-static void lsp_handle_notification_exit(LspContext* ctx, const JRpcNotification* notif) {
+static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif) {
   (void)notif;
   ctx->status = LspStatus_Exit;
 }
 
-static void lsp_handle_notification_set_trace(LspContext* ctx, const JRpcNotification* notif) {
+static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
     return; // TODO: Report error.
   }
@@ -288,17 +288,37 @@ static void lsp_handle_notification_set_trace(LspContext* ctx, const JRpcNotific
   lsp_update_trace(ctx, traceVal);
 }
 
-static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* notif) {
+static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
+  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+}
+
+static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
+  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+}
+
+static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   if (string_eq(notif->method, string_lit("initialized"))) {
-    lsp_handle_notification_initialized(ctx, notif);
+    lsp_handle_notif_initialized(ctx, notif);
     return;
   }
   if (string_eq(notif->method, string_lit("exit"))) {
-    lsp_handle_notification_exit(ctx, notif);
+    lsp_handle_notif_exit(ctx, notif);
     return;
   }
   if (string_eq(notif->method, string_lit("$/setTrace"))) {
-    lsp_handle_notification_set_trace(ctx, notif);
+    lsp_handle_notif_set_trace(ctx, notif);
+    return;
+  }
+  if (string_eq(notif->method, string_lit("textDocument/didOpen"))) {
+    lsp_handle_notif_doc_did_open(ctx, notif);
+    return;
+  }
+  if (string_eq(notif->method, string_lit("textDocument/didChange"))) {
+    lsp_handle_notif_doc_did_change(ctx, notif);
     return;
   }
 
@@ -307,7 +327,7 @@ static void lsp_handle_notification(LspContext* ctx, const JRpcNotification* not
   }
 }
 
-static void lsp_handle_request_initialize(LspContext* ctx, const JRpcRequest* req) {
+static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(sentinel_check(req->params))) {
     goto MalformedRequest;
   }
@@ -345,18 +365,18 @@ MalformedRequest:
   ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
-static void lsp_handle_request_shutdown(LspContext* ctx, const JRpcRequest* req) {
+static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   ctx->flags |= LspFlags_Shutdown;
   lsp_send_response_success(ctx, req, json_add_null(ctx->jsonDoc));
 }
 
-static void lsp_handle_request(LspContext* ctx, const JRpcRequest* req) {
+static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   if (string_eq(req->method, string_lit("initialize"))) {
-    lsp_handle_request_initialize(ctx, req);
+    lsp_handle_req_initialize(ctx, req);
     return;
   }
   if (string_eq(req->method, string_lit("shutdown"))) {
-    lsp_handle_request_shutdown(ctx, req);
+    lsp_handle_req_shutdown(ctx, req);
     return;
   }
 
@@ -395,14 +415,14 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
         .method = json_string(ctx->jsonDoc, method),
         .params = params,
     };
-    lsp_handle_notification(ctx, &notification);
+    lsp_handle_notif(ctx, &notification);
   } else {
     const JRpcRequest request = {
         .method = json_string(ctx->jsonDoc, method),
         .params = params,
         .id     = id,
     };
-    lsp_handle_request(ctx, &request);
+    lsp_handle_req(ctx, &request);
   }
 }
 
