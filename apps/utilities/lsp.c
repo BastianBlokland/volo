@@ -49,7 +49,7 @@ typedef struct {
   DynString* readBuffer;
   usize      readCursor;
   DynString* writeBuffer;
-  JsonDoc*   jsonDoc; // Cleared between requests.
+  JsonDoc*   json; // Cleared between requests.
   File*      in;
   File*      out;
 } LspContext;
@@ -171,54 +171,54 @@ static LspHeader lsp_read_header(LspContext* ctx) {
 }
 
 static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
-  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_String) {
+  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_String) {
     return string_empty;
   }
-  return json_string(ctx->jsonDoc, val);
+  return json_string(ctx->json, val);
 }
 
 static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
-  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_Object) {
+  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_Object) {
     return sentinel_u32;
   }
-  return json_field(ctx->jsonDoc, val, fieldName);
+  return json_field(ctx->json, val, fieldName);
 }
 
 static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {
-  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_Array) {
+  if (sentinel_check(val) || json_type(ctx->json, val) != JsonType_Array) {
     return sentinel_u32;
   }
-  return json_elem(ctx->jsonDoc, val, index);
+  return json_elem(ctx->json, val, index);
 }
 
 static JsonVal lsp_position_to_json(LspContext* ctx, const LspPosition* pos) {
-  const JsonVal obj = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, obj, "line", json_add_number(ctx->jsonDoc, pos->line));
-  json_add_field_lit(ctx->jsonDoc, obj, "character", json_add_number(ctx->jsonDoc, pos->character));
+  const JsonVal obj = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, obj, "line", json_add_number(ctx->json, pos->line));
+  json_add_field_lit(ctx->json, obj, "character", json_add_number(ctx->json, pos->character));
   return obj;
 }
 
 static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
-  const JsonVal obj = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
-  json_add_field_lit(ctx->jsonDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
+  const JsonVal obj = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, obj, "start", lsp_position_to_json(ctx, &range->start));
+  json_add_field_lit(ctx->json, obj, "end", lsp_position_to_json(ctx, &range->end));
   return obj;
 }
 
 static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
-  diag_assert(json_type(ctx->jsonDoc, obj) == JsonType_Object);
+  diag_assert(json_type(ctx->json, obj) == JsonType_Object);
   JsonVal idCopy;
-  switch (json_type(ctx->jsonDoc, id)) {
+  switch (json_type(ctx->json, id)) {
   case JsonType_Number:
-    idCopy = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, id));
+    idCopy = json_add_number(ctx->json, json_number(ctx->json, id));
     break;
   case JsonType_String:
-    idCopy = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, id));
+    idCopy = json_add_string(ctx->json, json_string(ctx->json, id));
     break;
   default:
-    idCopy = json_add_null(ctx->jsonDoc);
+    idCopy = json_add_null(ctx->json);
   }
-  json_add_field_lit(ctx->jsonDoc, obj, "id", idCopy);
+  json_add_field_lit(ctx->json, obj, "id", idCopy);
 }
 
 static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
@@ -231,7 +231,7 @@ static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
 
 static void lsp_send_json(LspContext* ctx, const JsonVal val) {
   const JsonWriteOpts writeOpts = json_write_opts(.flags = JsonWriteFlags_None);
-  json_write(ctx->writeBuffer, ctx->jsonDoc, val, &writeOpts);
+  json_write(ctx->writeBuffer, ctx->json, val, &writeOpts);
 
   const usize  contentSize = ctx->writeBuffer->size;
   const String headerText  = fmt_write_scratch("Content-Length: {}\r\n\r\n", fmt_int(contentSize));
@@ -242,18 +242,18 @@ static void lsp_send_json(LspContext* ctx, const JsonVal val) {
 }
 
 static void lsp_send_notification(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal resp = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, resp, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
-  json_add_field_lit(ctx->jsonDoc, resp, "method", json_add_string(ctx->jsonDoc, notif->method));
+  const JsonVal resp = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
+  json_add_field_lit(ctx->json, resp, "method", json_add_string(ctx->json, notif->method));
   if (!sentinel_check(notif->params)) {
-    json_add_field_lit(ctx->jsonDoc, resp, "params", notif->params);
+    json_add_field_lit(ctx->json, resp, "params", notif->params);
   }
   lsp_send_json(ctx, resp);
 }
 
 static void lsp_send_trace(LspContext* ctx, const String message) {
-  const JsonVal params = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, params, "message", json_add_string(ctx->jsonDoc, message));
+  const JsonVal params = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, params, "message", json_add_string(ctx->json, message));
 
   const JRpcNotification notif = {
       .method = string_lit("$/logTrace"),
@@ -263,9 +263,9 @@ static void lsp_send_trace(LspContext* ctx, const String message) {
 }
 
 static void lsp_send_log(LspContext* ctx, const LspMessageType type, const String message) {
-  const JsonVal params = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, params, "type", json_add_number(ctx->jsonDoc, type));
-  json_add_field_lit(ctx->jsonDoc, params, "message", json_add_string(ctx->jsonDoc, message));
+  const JsonVal params = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, params, "type", json_add_number(ctx->json, type));
+  json_add_field_lit(ctx->json, params, "message", json_add_string(ctx->json, message));
 
   const JRpcNotification notif = {
       .method = string_lit("window/logMessage"),
@@ -276,17 +276,17 @@ static void lsp_send_log(LspContext* ctx, const LspMessageType type, const Strin
 
 static void lsp_send_diagnostics(
     LspContext* ctx, const String docUri, const LspDiagnostic values[], const usize count) {
-  const JsonVal diagArray = json_add_array(ctx->jsonDoc);
+  const JsonVal diagArray = json_add_array(ctx->json);
   for (u32 i = 0; i != count; ++i) {
-    const JsonVal diag = json_add_object(ctx->jsonDoc);
-    json_add_field_lit(ctx->jsonDoc, diag, "range", lsp_range_to_json(ctx, &values[i].range));
-    json_add_field_lit(ctx->jsonDoc, diag, "message", json_add_string(ctx->jsonDoc, values[i].msg));
-    json_add_elem(ctx->jsonDoc, diagArray, diag);
+    const JsonVal diag = json_add_object(ctx->json);
+    json_add_field_lit(ctx->json, diag, "range", lsp_range_to_json(ctx, &values[i].range));
+    json_add_field_lit(ctx->json, diag, "message", json_add_string(ctx->json, values[i].msg));
+    json_add_elem(ctx->json, diagArray, diag);
   }
 
-  const JsonVal params = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, params, "uri", json_add_string(ctx->jsonDoc, docUri));
-  json_add_field_lit(ctx->jsonDoc, params, "diagnostics", diagArray);
+  const JsonVal params = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, params, "uri", json_add_string(ctx->json, docUri));
+  json_add_field_lit(ctx->json, params, "diagnostics", diagArray);
 
   const JRpcNotification notif = {
       .method = string_lit("textDocument/publishDiagnostics"),
@@ -296,21 +296,21 @@ static void lsp_send_diagnostics(
 }
 
 static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, const JsonVal val) {
-  const JsonVal resp = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, resp, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
-  json_add_field_lit(ctx->jsonDoc, resp, "result", val);
+  const JsonVal resp = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
+  json_add_field_lit(ctx->json, resp, "result", val);
   lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
 
 static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, const JRpcError* err) {
-  const JsonVal errObj = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, errObj, "code", json_add_number(ctx->jsonDoc, err->code));
-  json_add_field_lit(ctx->jsonDoc, errObj, "message", json_add_string(ctx->jsonDoc, err->msg));
+  const JsonVal errObj = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, errObj, "code", json_add_number(ctx->json, err->code));
+  json_add_field_lit(ctx->json, errObj, "message", json_add_string(ctx->json, err->msg));
 
-  const JsonVal resp = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, resp, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
-  json_add_field_lit(ctx->jsonDoc, resp, "error", errObj);
+  const JsonVal resp = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, resp, "jsonrpc", json_add_string_lit(ctx->json, "2.0"));
+  json_add_field_lit(ctx->json, resp, "error", errObj);
   lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
@@ -425,25 +425,25 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
     lsp_update_trace(ctx, traceVal);
   }
 
-  const JsonVal docSyncOptions = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, docSyncOptions, "openClose", json_add_bool(ctx->jsonDoc, true));
-  json_add_field_lit(ctx->jsonDoc, docSyncOptions, "change", json_add_number(ctx->jsonDoc, 1));
+  const JsonVal docSyncOptions = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, docSyncOptions, "openClose", json_add_bool(ctx->json, true));
+  json_add_field_lit(ctx->json, docSyncOptions, "change", json_add_number(ctx->json, 1));
 
-  const JsonVal capabilities = json_add_object(ctx->jsonDoc);
+  const JsonVal capabilities = json_add_object(ctx->json);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
-  const JsonVal positionEncoding = json_add_string_lit(ctx->jsonDoc, "utf-16");
-  json_add_field_lit(ctx->jsonDoc, capabilities, "positionEncoding", positionEncoding);
-  json_add_field_lit(ctx->jsonDoc, capabilities, "textDocumentSync", docSyncOptions);
+  const JsonVal positionEncoding = json_add_string_lit(ctx->json, "utf-16");
+  json_add_field_lit(ctx->json, capabilities, "positionEncoding", positionEncoding);
+  json_add_field_lit(ctx->json, capabilities, "textDocumentSync", docSyncOptions);
 
-  const JsonVal info          = json_add_object(ctx->jsonDoc);
-  const JsonVal serverName    = json_add_string_lit(ctx->jsonDoc, "Volo Language Server");
-  const JsonVal serverVersion = json_add_string_lit(ctx->jsonDoc, "0.1");
-  json_add_field_lit(ctx->jsonDoc, info, "name", serverName);
-  json_add_field_lit(ctx->jsonDoc, info, "version", serverVersion);
+  const JsonVal info          = json_add_object(ctx->json);
+  const JsonVal serverName    = json_add_string_lit(ctx->json, "Volo Language Server");
+  const JsonVal serverVersion = json_add_string_lit(ctx->json, "0.1");
+  json_add_field_lit(ctx->json, info, "name", serverName);
+  json_add_field_lit(ctx->json, info, "version", serverVersion);
 
-  const JsonVal result = json_add_object(ctx->jsonDoc);
-  json_add_field_lit(ctx->jsonDoc, result, "capabilities", capabilities);
-  json_add_field_lit(ctx->jsonDoc, result, "serverInfo", info);
+  const JsonVal result = json_add_object(ctx->json);
+  json_add_field_lit(ctx->json, result, "capabilities", capabilities);
+  json_add_field_lit(ctx->json, result, "serverInfo", info);
 
   lsp_send_response_success(ctx, req, result);
   return;
@@ -451,7 +451,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   ctx->flags |= LspFlags_Shutdown;
-  lsp_send_response_success(ctx, req, json_add_null(ctx->jsonDoc));
+  lsp_send_response_success(ctx, req, json_add_null(ctx->json));
 }
 
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
@@ -496,13 +496,13 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
 static i32 lsp_run_stdio() {
   DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
   DynString writeBuffer = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
-  JsonDoc*  jsonDoc     = json_create(g_alloc_heap, 1024);
+  JsonDoc*  json        = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
       .status      = LspStatus_Running,
       .readBuffer  = &readBuffer,
       .writeBuffer = &writeBuffer,
-      .jsonDoc     = jsonDoc,
+      .json        = json,
       .in          = g_file_stdin,
       .out         = g_file_stdout,
   };
@@ -512,7 +512,7 @@ static i32 lsp_run_stdio() {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    json_read(jsonDoc, content, &jsonResult);
+    json_read(json, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       ctx.status = LspStatus_ErrorInvalidJson;
       break;
@@ -521,10 +521,10 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
-    json_clear(jsonDoc);
+    json_clear(json);
   }
 
-  json_destroy(jsonDoc);
+  json_destroy(json);
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
 
