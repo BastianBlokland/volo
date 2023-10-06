@@ -5,6 +5,7 @@
 #include "core_format.h"
 #include "core_path.h"
 #include "json.h"
+#include "script_binder.h"
 
 /**
  * Language Server Protocol implementation for the Volo script language.
@@ -44,14 +45,15 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  LspStatus  status;
-  LspFlags   flags;
-  DynString* readBuffer;
-  usize      readCursor;
-  DynString* writeBuffer;
-  JsonDoc*   json; // Cleared between requests.
-  File*      in;
-  File*      out;
+  LspStatus     status;
+  LspFlags      flags;
+  DynString*    readBuffer;
+  usize         readCursor;
+  DynString*    writeBuffer;
+  ScriptBinder* scriptBinder;
+  JsonDoc*      json; // Cleared between requests.
+  File*         in;
+  File*         out;
 } LspContext;
 
 typedef struct {
@@ -493,18 +495,47 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   }
 }
 
+static ScriptBinder* lsp_script_binder_create() {
+  ScriptBinder* binder = script_binder_create(g_alloc_persist);
+
+  // TODO: Instead of manually listing the supported bindings here we should read them from a file.
+  script_binder_declare(binder, string_hash_lit("print"), null);
+  script_binder_declare(binder, string_hash_lit("self"), null);
+  script_binder_declare(binder, string_hash_lit("exists"), null);
+  script_binder_declare(binder, string_hash_lit("position"), null);
+  script_binder_declare(binder, string_hash_lit("rotation"), null);
+  script_binder_declare(binder, string_hash_lit("scale"), null);
+  script_binder_declare(binder, string_hash_lit("name"), null);
+  script_binder_declare(binder, string_hash_lit("faction"), null);
+  script_binder_declare(binder, string_hash_lit("health"), null);
+  script_binder_declare(binder, string_hash_lit("time"), null);
+  script_binder_declare(binder, string_hash_lit("nav_query"), null);
+  script_binder_declare(binder, string_hash_lit("spawn"), null);
+  script_binder_declare(binder, string_hash_lit("destroy"), null);
+  script_binder_declare(binder, string_hash_lit("destroy_after"), null);
+  script_binder_declare(binder, string_hash_lit("teleport"), null);
+  script_binder_declare(binder, string_hash_lit("attach"), null);
+  script_binder_declare(binder, string_hash_lit("detach"), null);
+  script_binder_declare(binder, string_hash_lit("damage"), null);
+
+  script_binder_finalize(binder);
+  return binder;
+}
+
 static i32 lsp_run_stdio() {
-  DynString readBuffer  = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  DynString writeBuffer = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
-  JsonDoc*  json        = json_create(g_alloc_heap, 1024);
+  DynString     readBuffer   = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
+  DynString     writeBuffer  = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
+  ScriptBinder* scriptBinder = lsp_script_binder_create();
+  JsonDoc*      json         = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
-      .status      = LspStatus_Running,
-      .readBuffer  = &readBuffer,
-      .writeBuffer = &writeBuffer,
-      .json        = json,
-      .in          = g_file_stdin,
-      .out         = g_file_stdout,
+      .status       = LspStatus_Running,
+      .readBuffer   = &readBuffer,
+      .writeBuffer  = &writeBuffer,
+      .scriptBinder = scriptBinder,
+      .json         = json,
+      .in           = g_file_stdin,
+      .out          = g_file_stdout,
   };
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -524,6 +555,7 @@ static i32 lsp_run_stdio() {
     json_clear(json);
   }
 
+  script_binder_destroy(scriptBinder);
   json_destroy(json);
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
