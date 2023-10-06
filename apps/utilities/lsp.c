@@ -78,12 +78,10 @@ typedef struct {
   String msg;
 } JRpcError;
 
-// clang-format off
-
-static const JRpcError g_jrpcErrorNotInitialized = {.code = -32002, .msg = string_static("Server not initialized")};
-static const JRpcError g_jrpcErrorMethodNotFound = {.code = -32601, .msg = string_static("Method not found")};
-
-// clang-format on
+static const JRpcError g_jrpcErrorMethodNotFound = {
+    .code = -32601,
+    .msg  = string_static("Method not found"),
+};
 
 static void lsp_read_trim(LspContext* ctx) {
   dynstring_erase_chars(ctx->readBuffer, 0, ctx->readCursor);
@@ -156,11 +154,15 @@ static LspHeader lsp_read_header(LspContext* ctx) {
   return result;
 }
 
-static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
-  if (json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
-    return; // TODO: Report error.
+static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
+  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_String) {
+    return string_empty;
   }
-  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
+  return json_string(ctx->jsonDoc, val);
+}
+
+static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
+  if (string_eq(lsp_maybe_str(ctx, traceValue), string_lit("off"))) {
     ctx->flags &= ~LspFlags_Trace;
   } else {
     ctx->flags |= LspFlags_Trace;
@@ -276,9 +278,6 @@ static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* 
     return; // TODO: Report error.
   }
   const JsonVal traceVal = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
-  if (sentinel_check(traceVal)) {
-    return; // TODO: Report error.
-  }
   lsp_update_trace(ctx, traceVal);
 }
 
@@ -286,20 +285,20 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal textDocVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
-  if (sentinel_check(textDocVal) || json_type(ctx->jsonDoc, textDocVal) != JsonType_Object) {
+  const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
+  if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal uriVal = json_field(ctx->jsonDoc, textDocVal, string_lit("uri"));
-  if (sentinel_check(uriVal) || json_type(ctx->jsonDoc, uriVal) != JsonType_String) {
+  const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
+  if (string_is_empty(uri)) {
     return; // TODO: Report error.
   }
-  const JsonVal textVal = json_field(ctx->jsonDoc, textDocVal, string_lit("text"));
-  if (sentinel_check(textVal) || json_type(ctx->jsonDoc, textVal) != JsonType_String) {
+  const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("text")));
+  if (string_is_empty(text)) {
     return; // TODO: Report error.
   }
 
-  lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(json_string(ctx->jsonDoc, uriVal))));
+  lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(uri)));
   // TODO: Process script text.
 }
 
@@ -307,28 +306,28 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal textDocVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
-  if (sentinel_check(textDocVal) || json_type(ctx->jsonDoc, textDocVal) != JsonType_Object) {
+  const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
+  if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal uriVal = json_field(ctx->jsonDoc, textDocVal, string_lit("uri"));
-  if (sentinel_check(uriVal) || json_type(ctx->jsonDoc, uriVal) != JsonType_String) {
+  const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
+  if (string_is_empty(uri)) {
     return; // TODO: Report error.
   }
   const JsonVal changesVal = json_field(ctx->jsonDoc, notif->params, string_lit("contentChanges"));
   if (sentinel_check(changesVal) || json_type(ctx->jsonDoc, changesVal) != JsonType_Array) {
     return; // TODO: Report error.
   }
-  const JsonVal changeZeroVal = json_elem_begin(ctx->jsonDoc, changesVal);
-  if (sentinel_check(changeZeroVal) || json_type(ctx->jsonDoc, changeZeroVal) != JsonType_Object) {
+  const JsonVal changeVal = json_elem_begin(ctx->jsonDoc, changesVal);
+  if (sentinel_check(changeVal) || json_type(ctx->jsonDoc, changeVal) != JsonType_Object) {
     return; // TODO: Report error.
   }
-  const JsonVal textVal = json_field(ctx->jsonDoc, changeZeroVal, string_lit("text"));
-  if (sentinel_check(textVal) || json_type(ctx->jsonDoc, textVal) != JsonType_String) {
+  const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, changeVal, string_lit("text")));
+  if (string_is_empty(text)) {
     return; // TODO: Report error.
   }
 
-  lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(json_string(ctx->jsonDoc, uriVal))));
+  lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(uri)));
   // TODO: Process script text.
 }
 
@@ -416,12 +415,6 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       return;
     }
   }
-
-  if (UNLIKELY(!(ctx->flags & LspFlags_Initialized))) {
-    lsp_send_response_error(ctx, req, &g_jrpcErrorNotInitialized);
-    return;
-  }
-
   lsp_send_response_error(ctx, req, &g_jrpcErrorMethodNotFound);
 }
 
@@ -430,17 +423,13 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
-  const JsonVal version = json_field(ctx->jsonDoc, value, string_lit("jsonrpc"));
-  if (UNLIKELY(sentinel_check(version) || json_type(ctx->jsonDoc, version) != JsonType_String)) {
-    ctx->status = LspStatus_ErrorInvalidJRpcMessage;
-    return;
-  }
-  if (UNLIKELY(!string_eq(json_string(ctx->jsonDoc, version), string_lit("2.0")))) {
+  const String version = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, value, string_lit("jsonrpc")));
+  if (UNLIKELY(!string_eq(version, string_lit("2.0")))) {
     ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
     return;
   }
-  const JsonVal method = json_field(ctx->jsonDoc, value, string_lit("method"));
-  if (UNLIKELY(sentinel_check(method) || json_type(ctx->jsonDoc, method) != JsonType_String)) {
+  const String method = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, value, string_lit("method")));
+  if (UNLIKELY(string_is_empty(method))) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
@@ -448,18 +437,9 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   const JsonVal id     = json_field(ctx->jsonDoc, value, string_lit("id"));
 
   if (sentinel_check(id)) {
-    const JRpcNotification notification = {
-        .method = json_string(ctx->jsonDoc, method),
-        .params = params,
-    };
-    lsp_handle_notif(ctx, &notification);
+    lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
   } else {
-    const JRpcRequest request = {
-        .method = json_string(ctx->jsonDoc, method),
-        .params = params,
-        .id     = id,
-    };
-    lsp_handle_req(ctx, &request);
+    lsp_handle_req(ctx, &(JRpcRequest){.method = method, .params = params, .id = id});
   }
 }
 
