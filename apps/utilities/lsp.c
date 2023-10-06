@@ -339,6 +339,12 @@ Error:
   ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
+static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
+  (void)ctx;
+  (void)uri;
+  (void)text;
+}
+
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
   const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
@@ -346,8 +352,8 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   if (UNLIKELY(string_is_empty(uri) || string_is_empty(text))) {
     goto Error;
   }
-
-  lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(uri)));
+  lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
+  lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
 
 Error:
@@ -366,8 +372,8 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   if (UNLIKELY(string_is_empty(text))) {
     goto Error;
   }
-
-  lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(uri)));
+  lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
+  lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
 
 Error:
