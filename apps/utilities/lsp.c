@@ -85,17 +85,6 @@ static const JRpcError g_jrpcErrorMethodNotFound = {.code = -32601, .msg = strin
 
 // clang-format on
 
-static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
-  if (json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
-    return; // TODO: Report error.
-  }
-  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
-    ctx->flags &= ~LspFlags_Trace;
-  } else {
-    ctx->flags |= LspFlags_Trace;
-  }
-}
-
 static void lsp_read_trim(LspContext* ctx) {
   dynstring_erase_chars(ctx->readBuffer, 0, ctx->readCursor);
   ctx->readCursor = 0;
@@ -165,6 +154,17 @@ static LspHeader lsp_read_header(LspContext* ctx) {
     input                  = string_consume(input, sentinel_check(lineEndPos) ? 0 : lineEndPos + 1);
   }
   return result;
+}
+
+static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
+  if (json_type(ctx->jsonDoc, traceValue) != JsonType_String) {
+    return; // TODO: Report error.
+  }
+  if (string_eq(json_string(ctx->jsonDoc, traceValue), string_lit("off"))) {
+    ctx->flags &= ~LspFlags_Trace;
+  } else {
+    ctx->flags |= LspFlags_Trace;
+  }
 }
 
 static void lsp_send_json(LspContext* ctx, const JsonVal val) {
