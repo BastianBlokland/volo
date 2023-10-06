@@ -326,6 +326,20 @@ Error:
   ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
+static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotification* notif) {
+  const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto Error;
+  }
+
+  lsp_send_trace(ctx, fmt_write_scratch("Close: {}", fmt_text(uri)));
+  return;
+
+Error:
+  ctx->status = LspStatus_ErrorMalformedNotification;
+}
+
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
@@ -336,6 +350,7 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
       {string_static("$/setTrace"), lsp_handle_notif_set_trace},
       {string_static("textDocument/didOpen"), lsp_handle_notif_doc_did_open},
       {string_static("textDocument/didChange"), lsp_handle_notif_doc_did_change},
+      {string_static("textDocument/didClose"), lsp_handle_notif_doc_did_close},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
