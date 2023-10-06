@@ -96,12 +96,6 @@ static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
   }
 }
 
-static void lsp_output_err(const String msg) {
-  const String appName = path_filename(g_path_executable);
-  const String text    = fmt_write_scratch("{}: {}\n", fmt_text(appName), fmt_text(msg));
-  file_write_sync(g_file_stderr, text);
-}
-
 static void lsp_read_trim(LspContext* ctx) {
   dynstring_erase_chars(ctx->readBuffer, 0, ctx->readCursor);
   ctx->readCursor = 0;
@@ -476,8 +470,6 @@ static i32 lsp_run_stdio() {
     JsonResult jsonResult;
     json_read(jsonDoc, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
-      const String jsonErrMsg = json_error_str(jsonResult.error);
-      lsp_output_err(fmt_write_scratch("Json read failed: {}", fmt_text(jsonErrMsg)));
       ctx.status = LspStatus_ErrorInvalidJson;
       break;
     }
@@ -493,7 +485,8 @@ static i32 lsp_run_stdio() {
   dynstring_destroy(&writeBuffer);
 
   if (ctx.status != LspStatus_Exit) {
-    lsp_output_err(g_lspStatusMessage[ctx.status]);
+    const String errorMsg = g_lspStatusMessage[ctx.status];
+    file_write_sync(g_file_stderr, fmt_write_scratch("lsp: {}\n", fmt_text(errorMsg)));
     return 1;
   }
   return 0;
@@ -522,6 +515,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return lsp_run_stdio();
   }
 
-  lsp_output_err(string_lit("No communication method specified."));
+  file_write_sync(g_file_stderr, string_lit("lsp: No communication method specified.\n"));
   return 1;
 }
