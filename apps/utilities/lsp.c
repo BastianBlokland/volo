@@ -20,6 +20,7 @@ typedef enum {
   LspStatus_ErrorInvalidJson,
   LspStatus_ErrorInvalidJRpcMessage,
   LspStatus_ErrorUnsupportedJRpcVersion,
+  LspStatus_ErrorMalformedNotification,
   LspStatus_ErrorMalformedRequest,
 
   LspStatus_Count,
@@ -32,6 +33,7 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
     [LspStatus_ErrorInvalidJson]            = string_static("Error: Invalid json received"),
     [LspStatus_ErrorInvalidJRpcMessage]     = string_static("Error: Invalid jrpc message received"),
     [LspStatus_ErrorUnsupportedJRpcVersion] = string_static("Error: Unsupported jrpc version"),
+    [LspStatus_ErrorMalformedNotification]  = string_static("Error: Malformed notification"),
     [LspStatus_ErrorMalformedRequest]       = string_static("Error: Malformed request"),
 };
 
@@ -205,7 +207,6 @@ static void lsp_send_notification(LspContext* ctx, const JRpcNotification* notif
   if (!sentinel_check(notif->params)) {
     json_add_field_lit(ctx->jsonDoc, resp, "params", notif->params);
   }
-
   lsp_send_json(ctx, resp);
 }
 
@@ -266,60 +267,72 @@ static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif
 
 static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const JsonVal traceVal = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
   lsp_update_trace(ctx, traceVal);
+  return;
+
+Error:
+  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
   if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
   if (string_is_empty(uri)) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("text")));
   if (string_is_empty(text)) {
-    return; // TODO: Report error.
+    goto Error;
   }
 
   lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(uri)));
   // TODO: Process script text.
+  return;
+
+Error:
+  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
   if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
   if (string_is_empty(uri)) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const JsonVal changesVal = json_field(ctx->jsonDoc, notif->params, string_lit("contentChanges"));
   if (sentinel_check(changesVal) || json_type(ctx->jsonDoc, changesVal) != JsonType_Array) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const JsonVal changeVal = json_elem_begin(ctx->jsonDoc, changesVal);
   if (sentinel_check(changeVal) || json_type(ctx->jsonDoc, changeVal) != JsonType_Object) {
-    return; // TODO: Report error.
+    goto Error;
   }
   const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, changeVal, string_lit("text")));
   if (string_is_empty(text)) {
-    return; // TODO: Report error.
+    goto Error;
   }
 
   lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(uri)));
   // TODO: Process script text.
+  return;
+
+Error:
+  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
@@ -348,10 +361,10 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
 
 static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(sentinel_check(req->params))) {
-    goto MalformedRequest;
+    goto Error;
   }
   if (UNLIKELY(json_type(ctx->jsonDoc, req->params) != JsonType_Object)) {
-    goto MalformedRequest;
+    goto Error;
   }
 
   const JsonVal traceVal = json_field(ctx->jsonDoc, req->params, string_lit("trace"));
@@ -382,7 +395,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, result);
   return;
 
-MalformedRequest:
+Error:
   ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
