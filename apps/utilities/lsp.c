@@ -52,7 +52,8 @@ typedef struct {
   usize         readCursor;
   DynString*    writeBuffer;
   ScriptBinder* scriptBinder;
-  JsonDoc*      json; // Cleared between requests.
+  ScriptDoc*    script; // Cleared between messages.
+  JsonDoc*      json;   // Cleared between messages.
   File*         in;
   File*         out;
 } LspContext;
@@ -354,10 +355,8 @@ Error:
 }
 
 static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
-  ScriptDoc* script = script_create(g_alloc_heap); // TODO: Re-use the script-doc allocations.
-
   ScriptReadResult readRes;
-  script_read(script, ctx->scriptBinder, text, &readRes);
+  script_read(ctx->script, ctx->scriptBinder, text, &readRes);
 
   if (readRes.type == ScriptResult_Success) {
     lsp_send_diagnostics(ctx, uri, null, 0); // Clear diagnostics.
@@ -375,8 +374,6 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
     };
     lsp_send_diagnostics(ctx, uri, diagnostics, array_elems(diagnostics));
   }
-
-  script_destroy(script);
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
@@ -558,6 +555,7 @@ static i32 lsp_run_stdio() {
   DynString     readBuffer   = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
   DynString     writeBuffer  = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
   ScriptBinder* scriptBinder = lsp_script_binder_create();
+  ScriptDoc*    script       = script_create(g_alloc_heap);
   JsonDoc*      json         = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
@@ -565,6 +563,7 @@ static i32 lsp_run_stdio() {
       .readBuffer   = &readBuffer,
       .writeBuffer  = &writeBuffer,
       .scriptBinder = scriptBinder,
+      .script       = script,
       .json         = json,
       .in           = g_file_stdin,
       .out          = g_file_stdout,
@@ -584,10 +583,12 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
+    script_clear(script);
     json_clear(json);
   }
 
   script_binder_destroy(scriptBinder);
+  script_destroy(script);
   json_destroy(json);
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
