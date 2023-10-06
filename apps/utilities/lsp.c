@@ -6,6 +6,7 @@
 #include "core_path.h"
 #include "json.h"
 #include "script_binder.h"
+#include "script_read.h"
 
 /**
  * Language Server Protocol implementation for the Volo script language.
@@ -342,9 +343,27 @@ Error:
 }
 
 static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
-  (void)ctx;
-  (void)uri;
-  (void)text;
+  ScriptDoc* script = script_create(g_alloc_heap); // TODO: Re-use the script-doc allocations.
+
+  ScriptReadResult readRes;
+  script_read(script, ctx->scriptBinder, text, &readRes);
+
+  if (readRes.type == ScriptResult_Success) {
+    lsp_send_diagnostics(ctx, uri, null, 0); // Clear diagnostics.
+  } else {
+    const LspDiagnostic diagnostics[] = {
+        {
+            .range.start.line      = readRes.errorStart.line - 1,
+            .range.start.character = readRes.errorStart.column - 1,
+            .range.end.line        = readRes.errorEnd.line - 1,
+            .range.end.character   = readRes.errorEnd.column - 1,
+            .msg                   = script_result_str(readRes.type),
+        },
+    };
+    lsp_send_diagnostics(ctx, uri, diagnostics, array_elems(diagnostics));
+  }
+
+  script_destroy(script);
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
