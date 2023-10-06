@@ -53,6 +53,12 @@ ScriptDoc* script_create(Allocator*);
 void script_destroy(ScriptDoc*);
 
 /**
+ * Clear a Script document.
+ * NOTE: After clearing all previously added expressions are invalided.
+ */
+void script_clear(ScriptDoc*);
+
+/**
  * Add new expressions.
  */
 ScriptExpr script_add_value(ScriptDoc*, ScriptVal val);

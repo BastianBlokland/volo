@@ -99,6 +99,12 @@ JsonDoc* json_create(Allocator*, usize valueCapacity);
 void json_destroy(JsonDoc*);
 
 /**
+ * Clear a Json document.
+ * NOTE: After clearing all previously added json values are invalided.
+ */
+void json_clear(JsonDoc*);
+
+/**
  * Add a new array to the document.
  */
 JsonVal json_add_array(JsonDoc*);

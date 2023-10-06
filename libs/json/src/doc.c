@@ -45,13 +45,19 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
 JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
   JsonDoc* doc = alloc_alloc_t(alloc, JsonDoc);
   *doc         = (JsonDoc){
-      .values = dynarray_create_t(alloc, JsonValData, valueCapacity),
-      .alloc  = alloc,
+              .values = dynarray_create_t(alloc, JsonValData, valueCapacity),
+              .alloc  = alloc,
   };
   return doc;
 }
 
 void json_destroy(JsonDoc* doc) {
+  json_clear(doc);
+  dynarray_destroy(&doc->values);
+  alloc_free_t(doc->alloc, doc);
+}
+
+void json_clear(JsonDoc* doc) {
   dynarray_for_t(&doc->values, JsonValData, data) {
     switch (data->typeAndParent & 0xFFFF) {
     case JsonType_String:
@@ -61,10 +67,7 @@ void json_destroy(JsonDoc* doc) {
       break;
     }
   }
-
-  dynarray_destroy(&doc->values);
-
-  alloc_free_t(doc->alloc, doc);
+  dynarray_clear(&doc->values);
 }
 
 JsonVal json_add_array(JsonDoc* doc) {

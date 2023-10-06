@@ -2,12 +2,10 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_init.h"
-#include "jobs_init.h"
 #include "log_init.h"
 
 int SYS_DECL main(const int argc, const char** argv) {
   core_init();
-  jobs_init();
   log_init();
 
   int exitCode = 0;
@@ -29,7 +27,6 @@ exit:
   cli_app_destroy(app);
 
   log_teardown();
-  jobs_teardown();
   core_teardown();
   return exitCode;
 }

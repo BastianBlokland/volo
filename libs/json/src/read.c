@@ -21,7 +21,7 @@ static const String g_errorStrs[] = {
     string_static("InvalidCharInTrue"),
     string_static("InvalidEscapeSequence"),
     string_static("InvalidFieldName"),
-    string_static("InvalidFieldSeperator"),
+    string_static("InvalidFieldSeparator"),
     string_static("MaximumDepthExceeded"),
     string_static("TooLongString"),
     string_static("Truncated"),
@@ -57,7 +57,7 @@ static String json_read_array(JsonDoc* doc, String input, JsonResult* res) {
     }
     json_add_elem(doc, array, valRes.val);
 
-    // Read seperator (comma).
+    // Read separator (comma).
     input = json_lex(input, &token);
     switch (token.type) {
     case JsonTokenType_BracketClose:
@@ -99,10 +99,10 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
     }
     const JsonVal fieldName = json_add_string(doc, token.val_string);
 
-    // Read seperator (colon).
+    // Read separator (colon).
     input = json_lex(input, &token);
     if (token.type != JsonTokenType_Colon) {
-      *res = json_err(JsonError_InvalidFieldSeperator);
+      *res = json_err(JsonError_InvalidFieldSeparator);
       return input;
     }
 
@@ -117,7 +117,7 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
       return input;
     }
 
-    // Read seperator (comma).
+    // Read separator (comma).
     input = json_lex(input, &token);
     switch (token.type) {
     case JsonTokenType_CurlyClose:

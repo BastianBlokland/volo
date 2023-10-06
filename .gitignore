@@ -12,7 +12,6 @@
 /.vscode/*
 !/.vscode/settings.json
 !/.vscode/extensions.json
-!/.vscode/tasks.json
 
 # Temporary files.
 /.cache/
@@ -22,3 +21,8 @@
 
 # Downloaded files.
 /assets/external/
+
+# Ide plugin build paths.
+/ide/vscode/volo/node_modules/
+/ide/vscode/volo/out/
+/ide/vscode/volo/*.vsix

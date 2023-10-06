@@ -64,6 +64,12 @@ void script_destroy(ScriptDoc* doc) {
   alloc_free_t(doc->alloc, doc);
 }
 
+void script_clear(ScriptDoc* doc) {
+  dynarray_clear(&doc->exprData);
+  dynarray_clear(&doc->exprSets);
+  dynarray_clear(&doc->values);
+}
+
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptVal val) {
   const ScriptValId valId = script_doc_val_add(doc, val);
   return script_doc_expr_add(
