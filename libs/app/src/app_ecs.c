@@ -5,13 +5,18 @@
 #include "core_thread.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
+#include "jobs_init.h"
 #include "log.h"
 
 void app_cli_configure(CliApp* app) { app_ecs_configure(app); }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  jobs_init();
+
+  i32 exitCode = 0;
   if (!app_ecs_validate(app, invoc)) {
-    return 1;
+    exitCode = 1;
+    goto Exit;
   }
 
   log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
@@ -41,5 +46,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   log_i("Application shutdown");
 
-  return 0;
+Exit:
+  jobs_teardown();
+  return exitCode;
 }

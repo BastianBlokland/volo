@@ -11,7 +11,7 @@ message(STATUS "> library: app")
 add_library(lib_app_cli STATIC src/app_cli.c)
 target_include_directories(lib_app_cli PUBLIC include)
 target_link_libraries(lib_app_cli PUBLIC lib_cli lib_core)
-target_link_libraries(lib_app_cli PRIVATE lib_jobs lib_log)
+target_link_libraries(lib_app_cli PRIVATE lib_log)
 
 #
 # Check applications entry point.

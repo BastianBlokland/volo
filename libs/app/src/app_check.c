@@ -4,6 +4,7 @@
 #include "check_runner.h"
 #include "core_alloc.h"
 #include "core_file.h"
+#include "jobs_init.h"
 #include "log.h"
 
 static CliId g_outputPassingTestsFlag, g_helpFlag;
@@ -27,14 +28,15 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  jobs_init();
+
+  i32 exitCode = 0;
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   if (cli_parse_provided(invoc, g_helpFlag)) {
     cli_help_write_file(app, g_file_stdout);
-    return 0;
+    goto Exit;
   }
-
-  i32 exitCode = 0;
 
   CheckDef* check = check_create(g_alloc_heap);
   app_check_configure(check);
@@ -44,5 +46,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   check_destroy(check);
+
+Exit:
+  jobs_teardown();
   return exitCode;
 }
