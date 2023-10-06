@@ -66,6 +66,19 @@ typedef enum {
 } LspMessageType;
 
 typedef struct {
+  u16 line, character;
+} LspPosition;
+
+typedef struct {
+  LspPosition start, end;
+} LspRange;
+
+typedef struct {
+  LspRange range;
+  String   msg;
+} LspDiagnostic;
+
+typedef struct {
   String  method;
   JsonVal params; // Optional, sentinel_u32 if unused.
 } JRpcNotification;
@@ -178,6 +191,20 @@ static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 inde
   return json_elem(ctx->jsonDoc, val, index);
 }
 
+static JsonVal lsp_position_to_json(LspContext* ctx, const LspPosition* pos) {
+  const JsonVal obj = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, obj, "line", json_add_number(ctx->jsonDoc, pos->line));
+  json_add_field_lit(ctx->jsonDoc, obj, "character", json_add_number(ctx->jsonDoc, pos->character));
+  return obj;
+}
+
+static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
+  const JsonVal obj = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
+  json_add_field_lit(ctx->jsonDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
+  return obj;
+}
+
 static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
   diag_assert(json_type(ctx->jsonDoc, obj) == JsonType_Object);
   JsonVal idCopy;
@@ -242,6 +269,27 @@ static void lsp_send_log(LspContext* ctx, const LspMessageType type, const Strin
 
   const JRpcNotification notif = {
       .method = string_lit("window/logMessage"),
+      .params = params,
+  };
+  lsp_send_notification(ctx, &notif);
+}
+
+static void lsp_send_diagnostics(
+    LspContext* ctx, const String docUri, const LspDiagnostic values[], const usize count) {
+  const JsonVal diagArray = json_add_array(ctx->jsonDoc);
+  for (u32 i = 0; i != count; ++i) {
+    const JsonVal diag = json_add_object(ctx->jsonDoc);
+    json_add_field_lit(ctx->jsonDoc, diag, "range", lsp_range_to_json(ctx, &values[i].range));
+    json_add_field_lit(ctx->jsonDoc, diag, "message", json_add_string(ctx->jsonDoc, values[i].msg));
+    json_add_elem(ctx->jsonDoc, diagArray, diag);
+  }
+
+  const JsonVal params = json_add_object(ctx->jsonDoc);
+  json_add_field_lit(ctx->jsonDoc, params, "uri", json_add_string(ctx->jsonDoc, docUri));
+  json_add_field_lit(ctx->jsonDoc, params, "diagnostics", diagArray);
+
+  const JRpcNotification notif = {
+      .method = string_lit("textDocument/publishDiagnostics"),
       .params = params,
   };
   lsp_send_notification(ctx, &notif);
@@ -332,8 +380,8 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
-
-  lsp_send_trace(ctx, fmt_write_scratch("Close: {}", fmt_text(uri)));
+  lsp_send_trace(ctx, fmt_write_scratch("Clearing diagnostics for: {}", fmt_text(uri)));
+  lsp_send_diagnostics(ctx, uri, null, 0);
   return;
 
 Error:
