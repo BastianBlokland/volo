@@ -68,6 +68,13 @@ typedef enum {
   LspMessageType_Log     = 4,
 } LspMessageType;
 
+typedef enum {
+  LspDiagnosticSeverity_Error       = 1,
+  LspDiagnosticSeverity_Warning     = 2,
+  LspDiagnosticSeverity_Information = 3,
+  LspDiagnosticSeverity_Hint        = 4,
+} LspDiagnosticSeverity;
+
 typedef struct {
   u16 line, character;
 } LspPosition;
@@ -77,8 +84,9 @@ typedef struct {
 } LspRange;
 
 typedef struct {
-  LspRange range;
-  String   msg;
+  LspRange              range;
+  LspDiagnosticSeverity severity;
+  String                message;
 } LspDiagnostic;
 
 typedef struct {
@@ -283,7 +291,8 @@ static void lsp_send_diagnostics(
   for (u32 i = 0; i != count; ++i) {
     const JsonVal diag = json_add_object(ctx->json);
     json_add_field_lit(ctx->json, diag, "range", lsp_range_to_json(ctx, &values[i].range));
-    json_add_field_lit(ctx->json, diag, "message", json_add_string(ctx->json, values[i].msg));
+    json_add_field_lit(ctx->json, diag, "severity", json_add_number(ctx->json, values[i].severity));
+    json_add_field_lit(ctx->json, diag, "message", json_add_string(ctx->json, values[i].message));
     json_add_elem(ctx->json, diagArray, diag);
   }
 
@@ -357,7 +366,8 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
             .range.start.character = readRes.errorStart.column - 1,
             .range.end.line        = readRes.errorEnd.line - 1,
             .range.end.character   = readRes.errorEnd.column - 1,
-            .msg                   = script_result_str(readRes.type),
+            .severity              = LspDiagnosticSeverity_Error,
+            .message               = script_result_str(readRes.type),
         },
     };
     lsp_send_diagnostics(ctx, uri, diagnostics, array_elems(diagnostics));
