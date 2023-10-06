@@ -164,6 +164,20 @@ static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
   return json_string(ctx->jsonDoc, val);
 }
 
+static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
+  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_Object) {
+    return sentinel_u32;
+  }
+  return json_field(ctx->jsonDoc, val, fieldName);
+}
+
+static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {
+  if (sentinel_check(val) || json_type(ctx->jsonDoc, val) != JsonType_Array) {
+    return sentinel_u32;
+  }
+  return json_elem(ctx->jsonDoc, val, index);
+}
+
 static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
   diag_assert(json_type(ctx->jsonDoc, obj) == JsonType_Object);
   JsonVal idCopy;
@@ -266,10 +280,10 @@ static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif
 }
 
 static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
-  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+  const JsonVal traceVal = lsp_maybe_field(ctx, notif->params, string_lit("value"));
+  if (UNLIKELY(sentinel_check(traceVal))) {
     goto Error;
   }
-  const JsonVal traceVal = json_field(ctx->jsonDoc, notif->params, string_lit("value"));
   lsp_update_trace(ctx, traceVal);
   return;
 
@@ -278,24 +292,14 @@ Error:
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
-  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
-    goto Error;
-  }
-  const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
-  if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
-    goto Error;
-  }
-  const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
-  if (string_is_empty(uri)) {
-    goto Error;
-  }
-  const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("text")));
-  if (string_is_empty(text)) {
+  const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  const String  text   = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
+  if (UNLIKELY(string_is_empty(uri) || string_is_empty(text))) {
     goto Error;
   }
 
   lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(uri)));
-  // TODO: Process script text.
   return;
 
 Error:
@@ -303,32 +307,19 @@ Error:
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
-  if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+  const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
-  const JsonVal docVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
-  if (sentinel_check(docVal) || json_type(ctx->jsonDoc, docVal) != JsonType_Object) {
-    goto Error;
-  }
-  const String uri = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, docVal, string_lit("uri")));
-  if (string_is_empty(uri)) {
-    goto Error;
-  }
-  const JsonVal changesVal = json_field(ctx->jsonDoc, notif->params, string_lit("contentChanges"));
-  if (sentinel_check(changesVal) || json_type(ctx->jsonDoc, changesVal) != JsonType_Array) {
-    goto Error;
-  }
-  const JsonVal changeVal = json_elem_begin(ctx->jsonDoc, changesVal);
-  if (sentinel_check(changeVal) || json_type(ctx->jsonDoc, changeVal) != JsonType_Object) {
-    goto Error;
-  }
-  const String text = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, changeVal, string_lit("text")));
-  if (string_is_empty(text)) {
+  const JsonVal changesVal    = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
+  const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
+  const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
+  if (UNLIKELY(string_is_empty(text))) {
     goto Error;
   }
 
   lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(uri)));
-  // TODO: Process script text.
   return;
 
 Error:
@@ -360,14 +351,7 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
 }
 
 static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
-  if (UNLIKELY(sentinel_check(req->params))) {
-    goto Error;
-  }
-  if (UNLIKELY(json_type(ctx->jsonDoc, req->params) != JsonType_Object)) {
-    goto Error;
-  }
-
-  const JsonVal traceVal = json_field(ctx->jsonDoc, req->params, string_lit("trace"));
+  const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
     lsp_update_trace(ctx, traceVal);
   }
@@ -394,9 +378,6 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
   lsp_send_response_success(ctx, req, result);
   return;
-
-Error:
-  ctx->status = LspStatus_ErrorMalformedRequest;
 }
 
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
@@ -423,22 +404,18 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
 }
 
 static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
-  if (UNLIKELY(json_type(ctx->jsonDoc, value) != JsonType_Object)) {
-    ctx->status = LspStatus_ErrorInvalidJRpcMessage;
-    return;
-  }
-  const String version = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, value, string_lit("jsonrpc")));
+  const String version = lsp_maybe_str(ctx, lsp_maybe_field(ctx, value, string_lit("jsonrpc")));
   if (UNLIKELY(!string_eq(version, string_lit("2.0")))) {
     ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
     return;
   }
-  const String method = lsp_maybe_str(ctx, json_field(ctx->jsonDoc, value, string_lit("method")));
+  const String method = lsp_maybe_str(ctx, lsp_maybe_field(ctx, value, string_lit("method")));
   if (UNLIKELY(string_is_empty(method))) {
     ctx->status = LspStatus_ErrorInvalidJRpcMessage;
     return;
   }
-  const JsonVal params = json_field(ctx->jsonDoc, value, string_lit("params"));
-  const JsonVal id     = json_field(ctx->jsonDoc, value, string_lit("id"));
+  const JsonVal params = lsp_maybe_field(ctx, value, string_lit("params"));
+  const JsonVal id     = lsp_maybe_field(ctx, value, string_lit("id"));
 
   if (sentinel_check(id)) {
     lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
