@@ -290,16 +290,29 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   if (sentinel_check(textDocVal) || json_type(ctx->jsonDoc, textDocVal) != JsonType_Object) {
     return; // TODO: Report error.
   }
+  const JsonVal uriVal = json_field(ctx->jsonDoc, textDocVal, string_lit("uri"));
+  if (sentinel_check(uriVal) || json_type(ctx->jsonDoc, uriVal) != JsonType_String) {
+    return; // TODO: Report error.
+  }
   const JsonVal textVal = json_field(ctx->jsonDoc, textDocVal, string_lit("text"));
   if (sentinel_check(textVal) || json_type(ctx->jsonDoc, textVal) != JsonType_String) {
     return; // TODO: Report error.
   }
 
+  lsp_send_trace(ctx, fmt_write_scratch("Open: {}", fmt_text(json_string(ctx->jsonDoc, uriVal))));
   // TODO: Process script text.
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
   if (sentinel_check(notif->params) || json_type(ctx->jsonDoc, notif->params) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+  const JsonVal textDocVal = json_field(ctx->jsonDoc, notif->params, string_lit("textDocument"));
+  if (sentinel_check(textDocVal) || json_type(ctx->jsonDoc, textDocVal) != JsonType_Object) {
+    return; // TODO: Report error.
+  }
+  const JsonVal uriVal = json_field(ctx->jsonDoc, textDocVal, string_lit("uri"));
+  if (sentinel_check(uriVal) || json_type(ctx->jsonDoc, uriVal) != JsonType_String) {
     return; // TODO: Report error.
   }
   const JsonVal changesVal = json_field(ctx->jsonDoc, notif->params, string_lit("contentChanges"));
@@ -315,6 +328,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
     return; // TODO: Report error.
   }
 
+  lsp_send_trace(ctx, fmt_write_scratch("Change: {}", fmt_text(json_string(ctx->jsonDoc, uriVal))));
   // TODO: Process script text.
 }
 
