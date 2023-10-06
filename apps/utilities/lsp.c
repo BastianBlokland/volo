@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_file.h"
 #include "core_format.h"
 #include "core_path.h"
@@ -161,6 +162,22 @@ static String lsp_maybe_str(LspContext* ctx, const JsonVal val) {
   return json_string(ctx->jsonDoc, val);
 }
 
+static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
+  diag_assert(json_type(ctx->jsonDoc, obj) == JsonType_Object);
+  JsonVal idCopy;
+  switch (json_type(ctx->jsonDoc, id)) {
+  case JsonType_Number:
+    idCopy = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, id));
+    break;
+  case JsonType_String:
+    idCopy = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, id));
+    break;
+  default:
+    idCopy = json_add_null(ctx->jsonDoc);
+  }
+  json_add_field_lit(ctx->jsonDoc, obj, "id", idCopy);
+}
+
 static void lsp_update_trace(LspContext* ctx, const JsonVal traceValue) {
   if (string_eq(lsp_maybe_str(ctx, traceValue), string_lit("off"))) {
     ctx->flags &= ~LspFlags_Trace;
@@ -219,20 +236,7 @@ static void lsp_send_response_success(LspContext* ctx, const JRpcRequest* req, c
   const JsonVal resp = json_add_object(ctx->jsonDoc);
   json_add_field_lit(ctx->jsonDoc, resp, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
   json_add_field_lit(ctx->jsonDoc, resp, "result", val);
-
-  JsonVal respId;
-  switch (json_type(ctx->jsonDoc, req->id)) {
-  case JsonType_Number:
-    respId = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, req->id));
-    break;
-  case JsonType_String:
-    respId = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, req->id));
-    break;
-  default:
-    respId = json_add_null(ctx->jsonDoc);
-  }
-  json_add_field_lit(ctx->jsonDoc, resp, "id", respId);
-
+  lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
 
@@ -244,20 +248,7 @@ static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, con
   const JsonVal resp = json_add_object(ctx->jsonDoc);
   json_add_field_lit(ctx->jsonDoc, resp, "jsonrpc", json_add_string_lit(ctx->jsonDoc, "2.0"));
   json_add_field_lit(ctx->jsonDoc, resp, "error", errObj);
-
-  JsonVal respId;
-  switch (json_type(ctx->jsonDoc, req->id)) {
-  case JsonType_Number:
-    respId = json_add_number(ctx->jsonDoc, json_number(ctx->jsonDoc, req->id));
-    break;
-  case JsonType_String:
-    respId = json_add_string(ctx->jsonDoc, json_string(ctx->jsonDoc, req->id));
-    break;
-  default:
-    respId = json_add_null(ctx->jsonDoc);
-  }
-  json_add_field_lit(ctx->jsonDoc, resp, "id", respId);
-
+  lsp_copy_id(ctx, resp, req->id);
   lsp_send_json(ctx, resp);
 }
 
