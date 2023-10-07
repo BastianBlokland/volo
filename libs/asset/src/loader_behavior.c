@@ -206,8 +206,9 @@ static AssetAiNodeSequence build_node_sequence(BuildContext* ctx, const AssetAiN
 
 static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
   ScriptBinder*    binder = null;
+  ScriptDiagBag*   diags  = null;
   ScriptReadResult readRes;
-  script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
+  script_read(ctx->scriptDoc, binder, def->data_condition.script, diags, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
@@ -226,8 +227,9 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 
 static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNodeDef* def) {
   ScriptBinder*    binder = null;
+  ScriptDiagBag*   diags  = null;
   ScriptReadResult readRes;
-  script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
+  script_read(ctx->scriptDoc, binder, def->data_condition.script, diags, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};

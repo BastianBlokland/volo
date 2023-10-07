@@ -6,6 +6,9 @@
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
+// Forward declare from 'core_diag.h'.
+typedef struct sScriptDiagBag ScriptDiagBag;
+
 /**
  * Result of parsing a script expression.
  * If 'type == ScriptResult_Success' then 'expr' contains an expression in the provided ScriptDoc.
@@ -24,4 +27,4 @@ typedef struct {
  *
  * Pre-condition: res != null.
  */
-void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptReadResult* res);
+void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptDiagBag*, ScriptReadResult* res);

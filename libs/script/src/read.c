@@ -6,6 +6,7 @@
 #include "core_thread.h"
 #include "core_utf8.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_lex.h"
 #include "script_read.h"
 
@@ -252,6 +253,7 @@ typedef enum {
 typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
+  ScriptDiagBag*      diags;
   String              input, inputTotal;
   ScriptScope*        scopeRoot;
   ScriptReadFlags     flags : 16;
@@ -376,7 +378,10 @@ read_error(ScriptReadContext* ctx, const ScriptResult err, const ScriptPos start
   const ScriptPos      startTrimmed = script_pos_trim(ctx->inputTotal, start);
   const ScriptPos      end          = script_pos_current(ctx);
   const ScriptPosRange posRange     = script_pos_range(startTrimmed, end);
-
+  const ScriptDiag     diag         = {.error = err, .range = posRange};
+  if (ctx->diags) {
+    script_diag_push(ctx->diags, &diag);
+  }
   return (ScriptReadResult){.type = err, .errorRange = posRange};
 }
 
@@ -1100,7 +1105,11 @@ static void script_read_init() {
 }
 
 void script_read(
-    ScriptDoc* doc, const ScriptBinder* binder, const String str, ScriptReadResult* res) {
+    ScriptDoc*          doc,
+    const ScriptBinder* binder,
+    const String        str,
+    ScriptDiagBag*      diags,
+    ScriptReadResult*   res) {
   script_read_init();
 
   if (binder) {
@@ -1111,6 +1120,7 @@ void script_read(
   ScriptReadContext ctx       = {
       .doc        = doc,
       .binder     = binder,
+      .diags      = diags,
       .input      = str,
       .inputTotal = str,
       .scopeRoot  = &scopeRoot,

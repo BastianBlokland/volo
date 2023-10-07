@@ -84,8 +84,9 @@ void asset_load_script(
 
   ScriptDoc* doc = script_create(g_alloc_heap);
 
+  ScriptDiagBag*   diags = null;
   ScriptReadResult readRes;
-  script_read(doc, g_scriptBinder, src->data, &readRes);
+  script_read(doc, g_scriptBinder, src->data, diags, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
     const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};

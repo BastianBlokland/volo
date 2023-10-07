@@ -353,8 +353,9 @@ Error:
 }
 
 static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
+  ScriptDiagBag*   diags = null;
   ScriptReadResult readRes;
-  script_read(ctx->script, ctx->scriptBinder, text, &readRes);
+  script_read(ctx->script, ctx->scriptBinder, text, diags, &readRes);
 
   if (readRes.type == ScriptResult_Success) {
     lsp_send_diagnostics(ctx, uri, null, 0); // Clear diagnostics.

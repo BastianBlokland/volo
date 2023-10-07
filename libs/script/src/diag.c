@@ -3,6 +3,14 @@
 #include "core_format.h"
 #include "script_diag.h"
 
+bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
+  if (UNLIKELY(bag->count == script_diag_max)) {
+    return false;
+  }
+  bag->diagnostics[bag->count++] = *diag;
+  return true;
+}
+
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptResult_Success);
 

@@ -227,10 +227,11 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_tokens(input);
   }
 
-  ScriptDoc* script = script_create(g_alloc_heap);
+  ScriptDoc*     script = script_create(g_alloc_heap);
+  ScriptDiagBag* diags  = null;
 
   ScriptReadResult readRes;
-  script_read(script, repl_bind_init(), input, &readRes);
+  script_read(script, repl_bind_init(), input, diags, &readRes);
 
   if (readRes.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {

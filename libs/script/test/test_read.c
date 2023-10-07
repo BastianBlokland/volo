@@ -848,8 +848,9 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptDiagBag*   diags = null;
       ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, diags, &res);
 
       check_require_msg(
           res.type == ScriptResult_Success, "Read failed [{}]", fmt_text(g_testData[i].input));
@@ -961,8 +962,9 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptDiagBag*   diags = null;
       ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      script_read(doc, binder, g_testData[i].input, diags, &res);
 
       check_msg(
           res.type == g_testData[i].expected,
@@ -974,8 +976,9 @@ spec(read) {
   }
 
   it("can read all input") {
+    ScriptDiagBag*   diags = null;
     ScriptReadResult res;
-    script_read(doc, binder, string_lit("1  "), &res);
+    script_read(doc, binder, string_lit("1  "), diags, &res);
 
     check_require(res.type == ScriptResult_Success);
   }
@@ -984,8 +987,9 @@ spec(read) {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
+    ScriptDiagBag*   diags = null;
     ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), diags, &res);
 
     check_eq_int(res.type, ScriptResult_RecursionLimitExceeded);
 
@@ -998,8 +1002,9 @@ spec(read) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }
 
+    ScriptDiagBag*   diags = null;
     ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), &res);
+    script_read(doc, binder, dynstring_view(&str), diags, &res);
 
     check_eq_int(res.type, ScriptResult_VariableLimitExceeded);
 
@@ -1020,8 +1025,9 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       const String     input = g_testData[i].input;
+      ScriptDiagBag*   diags = null;
       ScriptReadResult res;
-      script_read(doc, binder, input, &res);
+      script_read(doc, binder, input, diags, &res);
 
       check_require(res.type != ScriptResult_Success);
 

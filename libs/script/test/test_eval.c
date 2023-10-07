@@ -261,8 +261,9 @@ spec(eval) {
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
       void*            bindCtx = null;
+      ScriptDiagBag*   diags   = null;
       ScriptReadResult readRes;
-      script_read(doc, binder, testData[i].input, &readRes);
+      script_read(doc, binder, testData[i].input, diags, &readRes);
       check_require_msg(
           readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
 
@@ -279,8 +280,10 @@ spec(eval) {
 
   it("can store memory values") {
     void*            bindCtx = null;
+    ScriptDiagBag*   diags   = null;
     ScriptReadResult readRes;
-    script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), &readRes);
+    script_read(
+        doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diags, &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
@@ -293,11 +296,13 @@ spec(eval) {
   it("can modify the context") {
     ScriptEvalTestCtx ctx = {0};
 
+    ScriptDiagBag*   diags = null;
     ScriptReadResult readRes;
     script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
+        diags,
         &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
@@ -309,11 +314,13 @@ spec(eval) {
   it("stops execution after a runtime-error") {
     ScriptEvalTestCtx ctx = {0};
 
+    ScriptDiagBag*   diags = null;
     ScriptReadResult readRes;
     script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
+        diags,
         &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
@@ -325,8 +332,9 @@ spec(eval) {
 
   it("limits while loop iterations") {
     void*            bindCtx = null;
+    ScriptDiagBag*   diags   = null;
     ScriptReadResult readRes;
-    script_read(doc, binder, string_lit("while(true) {}"), &readRes);
+    script_read(doc, binder, string_lit("while(true) {}"), diags, &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
@@ -336,8 +344,9 @@ spec(eval) {
 
   it("limits for loop iterations") {
     void*            bindCtx = null;
+    ScriptDiagBag*   diags   = null;
     ScriptReadResult readRes;
-    script_read(doc, binder, string_lit("for(;;) {}"), &readRes);
+    script_read(doc, binder, string_lit("for(;;) {}"), diags, &readRes);
     check_require(readRes.type == ScriptResult_Success);
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
