@@ -11,7 +11,7 @@ static const String g_errorStrs[] = {
     string_static("Recursion limit exceeded"),
     string_static("Variable limit exceeded"),
     string_static("Variable identifier missing"),
-    string_static("Variable identifier conflicts"),
+    string_static("Variable identifier '{}' conflicts"),
     string_static("Missing primary expression"),
     string_static("Invalid primary expression"),
     string_static("No variable found for the identifier '{}'"),
