@@ -6,6 +6,7 @@
 #include "core_path.h"
 #include "json.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_read.h"
 
 /**
@@ -46,16 +47,17 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  LspStatus     status;
-  LspFlags      flags;
-  DynString*    readBuffer;
-  usize         readCursor;
-  DynString*    writeBuffer;
-  ScriptBinder* scriptBinder;
-  ScriptDoc*    script; // Cleared between messages.
-  JsonDoc*      json;   // Cleared between messages.
-  File*         in;
-  File*         out;
+  LspStatus      status;
+  LspFlags       flags;
+  DynString*     readBuffer;
+  usize          readCursor;
+  DynString*     writeBuffer;
+  ScriptBinder*  scriptBinder;
+  ScriptDoc*     script;      // Cleared between messages.
+  ScriptDiagBag* scriptDiags; // Cleared between messages.
+  JsonDoc*       json;        // Cleared between messages.
+  File*          in;
+  File*          out;
 } LspContext;
 
 typedef struct {
@@ -353,27 +355,25 @@ Error:
 }
 
 static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
-  ScriptDiagBag*   diags = null;
   ScriptReadResult readRes;
-  script_read(ctx->script, ctx->scriptBinder, text, diags, &readRes);
+  script_read(ctx->script, ctx->scriptBinder, text, ctx->scriptDiags, &readRes);
 
-  if (readRes.type == ScriptResult_Success) {
-    lsp_send_diagnostics(ctx, uri, null, 0); // Clear diagnostics.
-  } else {
-    const ScriptPosLineCol rangeStart    = script_pos_to_line_col(text, readRes.errorRange.start);
-    const ScriptPosLineCol rangeEnd      = script_pos_to_line_col(text, readRes.errorRange.end);
-    const LspDiagnostic    diagnostics[] = {
-        {
-            .range.start.line      = rangeStart.line,
-            .range.start.character = rangeStart.column,
-            .range.end.line        = rangeEnd.line,
-            .range.end.character   = rangeEnd.column,
-            .severity              = LspDiagnosticSeverity_Error,
-            .message               = script_result_str(readRes.type),
-        },
+  LspDiagnostic lspDiags[script_diag_max];
+  for (u32 i = 0; i != ctx->scriptDiags->count; ++i) {
+    const ScriptDiag*      diag       = &ctx->scriptDiags->diagnostics[i];
+    const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
+    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
+
+    lspDiags[i] = (LspDiagnostic){
+        .range.start.line      = rangeStart.line,
+        .range.start.character = rangeStart.column,
+        .range.end.line        = rangeEnd.line,
+        .range.end.character   = rangeEnd.column,
+        .severity              = LspDiagnosticSeverity_Error,
+        .message               = script_result_str(diag->error),
     };
-    lsp_send_diagnostics(ctx, uri, diagnostics, array_elems(diagnostics));
   }
+  lsp_send_diagnostics(ctx, uri, lspDiags, ctx->scriptDiags->count);
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
@@ -556,6 +556,7 @@ static i32 lsp_run_stdio() {
   DynString     writeBuffer  = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
   ScriptBinder* scriptBinder = lsp_script_binder_create();
   ScriptDoc*    script       = script_create(g_alloc_heap);
+  ScriptDiagBag scriptDiags  = {0};
   JsonDoc*      json         = json_create(g_alloc_heap, 1024);
 
   LspContext ctx = {
@@ -564,6 +565,7 @@ static i32 lsp_run_stdio() {
       .writeBuffer  = &writeBuffer,
       .scriptBinder = scriptBinder,
       .script       = script,
+      .scriptDiags  = &scriptDiags,
       .json         = json,
       .in           = g_file_stdin,
       .out          = g_file_stdout,
@@ -583,7 +585,9 @@ static i32 lsp_run_stdio() {
     lsp_handle_jrpc(&ctx, jsonResult.val);
 
     lsp_read_trim(&ctx);
+
     script_clear(script);
+    script_diag_clear(&scriptDiags);
     json_clear(json);
   }
 
