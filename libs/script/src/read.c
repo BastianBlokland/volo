@@ -528,8 +528,8 @@ static bool read_is_args_end(const ScriptTokenType type) {
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
-  i32  count         = 0;
-  bool anyInvalidArg = false;
+  i32  count = 0;
+  bool valid = true;
 
   ScriptPos argsStart = script_pos_current(ctx);
 
@@ -542,7 +542,7 @@ ArgNext:
     return read_diag_emit(ctx, ScriptError_ArgumentCountExceedsMaximum, argsStart), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
-  anyInvalidArg |= sentinel_check(arg);
+  valid &= !sentinel_check(arg);
   out[count++] = arg;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
@@ -554,7 +554,7 @@ ArgEnd:;
   if (UNLIKELY(endToken.type != ScriptTokenType_ParenClose)) {
     return read_diag_emit(ctx, ScriptError_UnterminatedArgumentList, argsStart), -1;
   }
-  return anyInvalidArg ? -1 : count;
+  return valid ? count : -1;
 }
 
 static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
