@@ -247,11 +247,9 @@ typedef struct sScriptScope {
 } ScriptScope;
 
 typedef enum {
-  ScriptReadFlags_ProgramInvalid    = 1 << 0,
-  ScriptReadFlags_InsideLoop        = 1 << 1,
-  ScriptReadFlags_VarDeclareAllowed = 1 << 2,
-
-  ScriptReadFlags_Default = ScriptReadFlags_VarDeclareAllowed
+  ScriptReadFlags_ProgramInvalid     = 1 << 0,
+  ScriptReadFlags_InsideLoop         = 1 << 1,
+  ScriptReadFlags_DisallowVarDeclare = 1 << 2,
 } ScriptReadFlags;
 
 typedef struct {
@@ -593,9 +591,9 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
-    ctx->flags &= ~ScriptReadFlags_VarDeclareAllowed; // Nested variable declarations not allowed.
+    ctx->flags |= ScriptReadFlags_DisallowVarDeclare; // Nested variable declarations not allowed.
     valExpr = read_expr(ctx, OpPrecedence_Assignment);
-    ctx->flags |= ScriptReadFlags_VarDeclareAllowed;
+    ctx->flags &= ~ScriptReadFlags_DisallowVarDeclare;
     if (UNLIKELY(sentinel_check(valExpr))) {
       return read_fail_structural(ctx);
     }
@@ -945,7 +943,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_For:
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
-    if (UNLIKELY(!(ctx->flags & ScriptReadFlags_VarDeclareAllowed))) {
+    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowVarDeclare)) {
       read_diag_emit(ctx, ScriptError_VariableDeclareNotAllowed, start);
       return read_fail_structural(ctx);
     }
@@ -1156,7 +1154,6 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
       .input      = str,
       .inputTotal = str,
       .scopeRoot  = &scopeRoot,
-      .flags      = ScriptReadFlags_Default,
   };
   script_var_free_all(&ctx);
 
