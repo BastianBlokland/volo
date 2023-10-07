@@ -13,6 +13,10 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
 
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
 
+bool script_diag_any_error(const ScriptDiagBag* bag) {
+  return bag->count > 0; // NOTE: All diagnostics are errors at the moment.
+}
+
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptResult_Success);
 
