@@ -211,8 +211,10 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   const ScriptExpr expr = script_read(ctx->scriptDoc, binder, def->data_condition.script, &diags);
 
   for (u32 i = 0; i != diags.count; ++i) {
-    const String err = script_diag_pretty_scratch(def->data_condition.script, &diags.values[i]);
-    log_e("Condition script error", log_param("error", fmt_text(err)));
+    if (diags.values[i].type == ScriptDiagType_Error) {
+      const String err = script_diag_pretty_scratch(def->data_condition.script, &diags.values[i]);
+      log_e("Condition script error", log_param("error", fmt_text(err)));
+    }
   }
 
   if (UNLIKELY(sentinel_check(expr))) {
@@ -233,8 +235,10 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
   const ScriptExpr expr = script_read(ctx->scriptDoc, binder, def->data_condition.script, &diags);
 
   for (u32 i = 0; i != diags.count; ++i) {
-    const String err = script_diag_pretty_scratch(def->data_condition.script, &diags.values[i]);
-    log_e("Execute script error", log_param("error", fmt_text(err)));
+    if (diags.values[i].type == ScriptDiagType_Error) {
+      const String err = script_diag_pretty_scratch(def->data_condition.script, &diags.values[i]);
+      log_e("Execute script error", log_param("error", fmt_text(err)));
+    }
   }
 
   if (UNLIKELY(sentinel_check(expr))) {
