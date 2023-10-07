@@ -375,7 +375,7 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
         .range.end.line        = rangeEnd.line,
         .range.end.character   = rangeEnd.column,
         .severity              = LspDiagnosticSeverity_Error,
-        .message               = script_error_str(diag->error),
+        .message               = script_diag_msg_scratch(text, diag),
     };
   }
   lsp_send_diagnostics(ctx, uri, lspDiags, ctx->scriptDiags->count);

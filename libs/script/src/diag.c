@@ -17,6 +17,16 @@ bool script_diag_any_error(const ScriptDiagBag* bag) {
   return bag->count > 0; // NOTE: All diagnostics are errors at the moment.
 }
 
+String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) {
+  const String rangeText = script_pos_range_text(sourceText, diag->range);
+
+  FormatArg formatArgs[2] = {0};
+  if (rangeText.size < 32) {
+    formatArgs[0] = fmt_text(rangeText, .flags = FormatTextFlags_EscapeNonPrintAscii);
+  }
+  return format_write_formatted_scratch(script_error_str(diag->error), formatArgs);
+}
+
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptError_None);
 
@@ -29,7 +39,7 @@ void script_diag_write(DynString* out, const String sourceText, const ScriptDiag
       fmt_int(rangeStart.column + 1),
       fmt_int(rangeEnd.line + 1),
       fmt_int(rangeEnd.column + 1),
-      fmt_text(script_error_str(diag->error)));
+      fmt_text(script_diag_msg_scratch(sourceText, diag)));
 }
 
 String script_diag_scratch(const String sourceText, const ScriptDiag* diag) {
