@@ -850,12 +850,10 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptDiagBag*   diags = null;
-      ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, diags, &res);
+      const ScriptExpr expr  = script_read(doc, binder, g_testData[i].input, diags);
 
-      check_require_msg(
-          res.type == ScriptResult_Success, "Read failed [{}]", fmt_text(g_testData[i].input));
-      check_expr_str(doc, res.expr, g_testData[i].expect);
+      check_require_msg(!sentinel_check(expr), "Read failed [{}]", fmt_text(g_testData[i].input));
+      check_expr_str(doc, expr, g_testData[i].expect);
     }
   }
 
@@ -963,14 +961,15 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptDiagBag*   diags = null;
-      ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, diags, &res);
+      ScriptDiagBag diags = {0};
+      script_read(doc, binder, g_testData[i].input, &diags);
 
+      check_require(diags.count == 1);
+      const ScriptDiag* diag = &diags.values[0];
       check_msg(
-          res.type == g_testData[i].expected,
+          diag->error == g_testData[i].expected,
           "{} == {} [{}]",
-          script_result_fmt(res.type),
+          script_result_fmt(diag->error),
           script_result_fmt(g_testData[i].expected),
           fmt_text(g_testData[i].input));
     }
@@ -978,21 +977,21 @@ spec(read) {
 
   it("can read all input") {
     ScriptDiagBag*   diags = null;
-    ScriptReadResult res;
-    script_read(doc, binder, string_lit("1  "), diags, &res);
+    const ScriptExpr expr  = script_read(doc, binder, string_lit("1  "), diags);
 
-    check_require(res.type == ScriptResult_Success);
+    check_require(!sentinel_check(expr));
   }
 
   it("fails when recursing too deep") {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
-    ScriptDiagBag*   diags = null;
-    ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), diags, &res);
+    ScriptDiagBag diags = {0};
+    script_read(doc, binder, dynstring_view(&str), &diags);
 
-    check_eq_int(res.type, ScriptResult_RecursionLimitExceeded);
+    check_require(diags.count == 1);
+    const ScriptDiag* diag = &diags.values[0];
+    check_eq_int(diag->error, ScriptResult_RecursionLimitExceeded);
 
     dynstring_destroy(&str);
   }
@@ -1003,11 +1002,12 @@ spec(read) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }
 
-    ScriptDiagBag*   diags = null;
-    ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), diags, &res);
+    ScriptDiagBag diags = {0};
+    script_read(doc, binder, dynstring_view(&str), &diags);
 
-    check_eq_int(res.type, ScriptResult_VariableLimitExceeded);
+    check_require(diags.count == 1);
+    const ScriptDiag* diag = &diags.values[0];
+    check_eq_int(diag->error, ScriptResult_VariableLimitExceeded);
 
     dynstring_destroy(&str);
   }
@@ -1025,12 +1025,10 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      const String     input = g_testData[i].input;
-      ScriptDiagBag    diags = {0};
-      ScriptReadResult res;
-      script_read(doc, binder, input, &diags, &res);
+      const String  input = g_testData[i].input;
+      ScriptDiagBag diags = {0};
+      script_read(doc, binder, input, &diags);
 
-      check_require(res.type != ScriptResult_Success);
       check_require(diags.count == 1);
 
       const ScriptDiag*      diag       = &diags.values[0];

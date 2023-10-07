@@ -85,19 +85,18 @@ void asset_load_script(
   ScriptDoc*    doc   = script_create(g_alloc_heap);
   ScriptDiagBag diags = {0};
 
-  ScriptReadResult readRes;
-  script_read(doc, g_scriptBinder, src->data, &diags, &readRes);
+  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, &diags);
 
   for (u32 i = 0; i != diags.count; ++i) {
     const String errScratch = script_diag_scratch(src->data, &diags.values[i]);
     log_e("Script error", log_param("error", fmt_text(errScratch)));
   }
 
-  if (UNLIKELY(readRes.type != ScriptResult_Success)) {
+  if (UNLIKELY(sentinel_check(expr))) {
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetScriptComp, .doc = doc, .expr = readRes.expr);
+  ecs_world_add_t(world, entity, AssetScriptComp, .doc = doc, .expr = expr);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;

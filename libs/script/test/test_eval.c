@@ -262,12 +262,10 @@ spec(eval) {
     for (u32 i = 0; i != array_elems(testData); ++i) {
       void*            bindCtx = null;
       ScriptDiagBag*   diags   = null;
-      ScriptReadResult readRes;
-      script_read(doc, binder, testData[i].input, diags, &readRes);
-      check_require_msg(
-          readRes.type == ScriptResult_Success, "Read failed ({})", fmt_text(testData[i].input));
+      const ScriptExpr expr    = script_read(doc, binder, testData[i].input, diags);
+      check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+      const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
       check(evalRes.type == ScriptResult_Success);
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
@@ -281,12 +279,11 @@ spec(eval) {
   it("can store memory values") {
     void*            bindCtx = null;
     ScriptDiagBag*   diags   = null;
-    ScriptReadResult readRes;
-    script_read(
-        doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diags, &readRes);
-    check_require(readRes.type == ScriptResult_Success);
+    const ScriptExpr expr =
+        script_read(doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diags);
+    check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
     check(evalRes.type == ScriptResult_Success);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
@@ -297,16 +294,14 @@ spec(eval) {
     ScriptEvalTestCtx ctx = {0};
 
     ScriptDiagBag*   diags = null;
-    ScriptReadResult readRes;
-    script_read(
+    const ScriptExpr expr  = script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
-        diags,
-        &readRes);
-    check_require(readRes.type == ScriptResult_Success);
+        diags);
+    check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
     check(evalRes.type == ScriptResult_Success);
     check_eq_int(ctx.counter, 3);
   }
@@ -315,16 +310,14 @@ spec(eval) {
     ScriptEvalTestCtx ctx = {0};
 
     ScriptDiagBag*   diags = null;
-    ScriptReadResult readRes;
-    script_read(
+    const ScriptExpr expr  = script_read(
         doc,
         binder,
         string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
-        diags,
-        &readRes);
-    check_require(readRes.type == ScriptResult_Success);
+        diags);
+    check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
     check(evalRes.type == ScriptResult_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
@@ -333,11 +326,10 @@ spec(eval) {
   it("limits while loop iterations") {
     void*            bindCtx = null;
     ScriptDiagBag*   diags   = null;
-    ScriptReadResult readRes;
-    script_read(doc, binder, string_lit("while(true) {}"), diags, &readRes);
-    check_require(readRes.type == ScriptResult_Success);
+    const ScriptExpr expr    = script_read(doc, binder, string_lit("while(true) {}"), diags);
+    check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
     check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
@@ -345,11 +337,10 @@ spec(eval) {
   it("limits for loop iterations") {
     void*            bindCtx = null;
     ScriptDiagBag*   diags   = null;
-    ScriptReadResult readRes;
-    script_read(doc, binder, string_lit("for(;;) {}"), diags, &readRes);
-    check_require(readRes.type == ScriptResult_Success);
+    const ScriptExpr expr    = script_read(doc, binder, string_lit("for(;;) {}"), diags);
+    check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, mem, readRes.expr, binder, bindCtx);
+    const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
     check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }

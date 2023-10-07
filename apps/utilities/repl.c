@@ -230,22 +230,20 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   ScriptDoc*    script      = script_create(g_alloc_heap);
   ScriptDiagBag scriptDiags = {0};
 
-  ScriptReadResult readRes;
-  script_read(script, repl_bind_init(), input, &scriptDiags, &readRes);
+  const ScriptExpr expr = script_read(script, repl_bind_init(), input, &scriptDiags);
 
   for (u32 i = 0; i != scriptDiags.count; ++i) {
     repl_output_diag(input, &scriptDiags.values[i], id);
   }
 
-  if (readRes.type == ScriptResult_Success) {
+  if (!sentinel_check(expr)) {
     if (flags & ReplFlags_OutputAst) {
-      repl_output_ast(script, readRes.expr);
+      repl_output_ast(script, expr);
     }
     if (flags & ReplFlags_OutputStats) {
-      repl_output_stats(script, readRes.expr);
+      repl_output_stats(script, expr);
     }
     if (!(flags & ReplFlags_NoEval)) {
-      const ScriptExpr       expr    = readRes.expr;
       const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
       if (evalRes.type == ScriptResult_Success) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));

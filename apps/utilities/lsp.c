@@ -355,8 +355,7 @@ Error:
 }
 
 static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, const String text) {
-  ScriptReadResult readRes;
-  script_read(ctx->script, ctx->scriptBinder, text, ctx->scriptDiags, &readRes);
+  script_read(ctx->script, ctx->scriptBinder, text, ctx->scriptDiags);
 
   LspDiagnostic lspDiags[script_diag_max];
   for (u32 i = 0; i != ctx->scriptDiags->count; ++i) {

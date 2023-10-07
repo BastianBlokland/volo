@@ -1,6 +1,5 @@
 #pragma once
 #include "script_doc.h"
-#include "script_result.h"
 
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
@@ -9,20 +8,9 @@ typedef struct sScriptBinder ScriptBinder;
 typedef struct sScriptDiagBag ScriptDiagBag;
 
 /**
- * Result of parsing a script expression.
- * If 'type == ScriptResult_Success' then 'expr' contains an expression in the provided ScriptDoc.
- * else the error information is populated.
- */
-typedef struct {
-  ScriptResult type;
-  union {
-    ScriptExpr expr;
-  };
-} ScriptReadResult;
-
-/**
  * Read a script expression.
+ * NOTE: If read fails then 'script_expr_sentinel' is returned.
  *
- * Pre-condition: res != null.
+ * To receive diagnostics you can optionally provide a diagnostic-bag.
  */
-void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptDiagBag*, ScriptReadResult* res);
+ScriptExpr script_read(ScriptDoc*, const ScriptBinder*, String sourceText, ScriptDiagBag*);
