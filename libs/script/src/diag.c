@@ -11,6 +11,8 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
   return true;
 }
 
+void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
+
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptResult_Success);
 
