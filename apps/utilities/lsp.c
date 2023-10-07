@@ -363,6 +363,16 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
     const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
     const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
 
+    LspDiagnosticSeverity severity;
+    switch (diag->type) {
+    case ScriptDiagType_Error:
+      severity = LspDiagnosticSeverity_Error;
+      break;
+    case ScriptDiagType_Warning:
+      severity = LspDiagnosticSeverity_Warning;
+      break;
+    }
+
     /**
      * TODO: The columns offsets we compute are in unicode codepoints (utf32). However we report to
      * the LSP client that we are using utf16 offsets. Reason is that some clients (for example
@@ -374,7 +384,7 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
         .range.start.character = rangeStart.column,
         .range.end.line        = rangeEnd.line,
         .range.end.character   = rangeEnd.column,
-        .severity              = LspDiagnosticSeverity_Error,
+        .severity              = severity,
         .message               = script_diag_msg_scratch(text, diag),
     };
   }

@@ -88,8 +88,10 @@ void asset_load_script(
   const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, &diags);
 
   for (u32 i = 0; i != diags.count; ++i) {
-    const String err = script_diag_pretty_scratch(src->data, &diags.values[i]);
-    log_e("Script error", log_param("error", fmt_text(err)));
+    if (diags.values[i].type == ScriptDiagType_Error) {
+      const String msg = script_diag_pretty_scratch(src->data, &diags.values[i]);
+      log_e("Script error", log_param("error", fmt_text(msg)));
+    }
   }
 
   if (UNLIKELY(sentinel_check(expr))) {

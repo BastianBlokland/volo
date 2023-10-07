@@ -47,9 +47,17 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
   DynString buffer    = dynstring_create_over(bufferMem);
 
   const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
+  const TtyStyle styleWarn    = ttystyle(.bgColor = TtyBgColor_Yellow, .flags = TtyStyleFlags_Bold);
   const TtyStyle styleDefault = ttystyle();
 
-  tty_write_style_sequence(&buffer, styleErr);
+  switch (diag->type) {
+  case ScriptDiagType_Error:
+    tty_write_style_sequence(&buffer, styleErr);
+    break;
+  case ScriptDiagType_Warning:
+    tty_write_style_sequence(&buffer, styleWarn);
+    break;
+  }
 
   if (!string_is_empty(id)) {
     dynstring_append(&buffer, id);

@@ -269,6 +269,7 @@ static void script_diag_emit_unused_vars(ScriptReadContext* ctx, const ScriptSco
   for (u32 i = 0; i != script_var_count; ++i) {
     if (ctx->diags && scope->vars[i].id && !scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
+          .type  = ScriptDiagType_Warning,
           .error = ScriptError_VariableUnused,
           .range = scope->vars[i].declRange,
       };
@@ -394,7 +395,11 @@ static void read_diag_emit_with_end(
     ScriptReadContext* ctx, const ScriptError err, const ScriptPos start, const ScriptPos end) {
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
-    const ScriptDiag diag = {.error = err, .range = read_range_trimmed(ctx, start, end)};
+    const ScriptDiag diag = {
+        .type  = ScriptDiagType_Error,
+        .error = err,
+        .range = read_range_trimmed(ctx, start, end),
+    };
     script_diag_push(ctx->diags, &diag);
   }
 }

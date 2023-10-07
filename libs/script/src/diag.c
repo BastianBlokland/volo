@@ -13,10 +13,6 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
 
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
 
-bool script_diag_any_error(const ScriptDiagBag* bag) {
-  return bag->count > 0; // NOTE: All diagnostics are errors at the moment.
-}
-
 String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) {
   const String rangeText = script_pos_range_text(sourceText, diag->range);
 
