@@ -32,6 +32,7 @@ typedef enum eScriptError {
   ScriptError_UnexpectedTokenAfterExpression,
   ScriptError_NotValidOutsideLoopBody,
   ScriptError_VariableDeclareNotAllowed,
+  ScriptError_VariableUnused,
   ScriptError_AssertionFailed,
   ScriptError_LoopInterationLimitExceeded,
 

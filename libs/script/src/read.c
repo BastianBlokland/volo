@@ -237,8 +237,10 @@ static bool token_intr_rhs_scope(const ScriptIntrinsic intr) {
 }
 
 typedef struct {
-  StringHash  id;
-  ScriptVarId varSlot;
+  StringHash     id;
+  ScriptVarId    varSlot;
+  bool           used;
+  ScriptPosRange declRange;
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -262,6 +264,18 @@ typedef struct {
   u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
 } ScriptReadContext;
+
+static void script_diag_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
+  for (u32 i = 0; i != script_var_count; ++i) {
+    if (ctx->diags && scope->vars[i].id && !scope->vars[i].used) {
+      const ScriptDiag unusedDiag = {
+          .error = ScriptError_VariableUnused,
+          .range = scope->vars[i].declRange,
+      };
+      script_diag_push(ctx->diags, &unusedDiag);
+    }
+  }
+}
 
 static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
   const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
@@ -304,6 +318,8 @@ static void script_scope_pop(ScriptReadContext* ctx) {
     ;
   newTail->next = null;
 
+  script_diag_emit_unused_vars(ctx, scope);
+
   // Free all the variables that the scope declared.
   for (u32 i = 0; i != script_var_count; ++i) {
     if (scope->vars[i].id) {
@@ -312,7 +328,8 @@ static void script_scope_pop(ScriptReadContext* ctx) {
   }
 }
 
-static bool script_var_declare(ScriptReadContext* ctx, const StringHash id, ScriptVarId* out) {
+static bool script_var_declare(
+    ScriptReadContext* ctx, const StringHash id, const ScriptPosRange range, ScriptVarId* out) {
   ScriptScope* scope = script_scope_tail(ctx);
   diag_assert(scope);
 
@@ -323,13 +340,13 @@ static bool script_var_declare(ScriptReadContext* ctx, const StringHash id, Scri
     if (!script_var_alloc(ctx, out)) {
       return false;
     }
-    scope->vars[i] = (ScriptVarMeta){.id = id, .varSlot = *out};
+    scope->vars[i] = (ScriptVarMeta){.id = id, .varSlot = *out, .declRange = range};
     return true;
   }
   return false;
 }
 
-static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const StringHash id) {
+static ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const StringHash id) {
   for (ScriptScope* scope = script_scope_head(ctx); scope; scope = scope->next) {
     for (u32 i = 0; i != script_var_count; ++i) {
       if (scope->vars[i].id == id) {
@@ -345,6 +362,10 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
 
 static ScriptPos read_pos_current(ScriptReadContext* ctx) {
   return (ScriptPos)(ctx->inputTotal.size - ctx->input.size);
+}
+
+static ScriptPosRange read_range_trimmed(ScriptReadContext* ctx, ScriptPos start, ScriptPos end) {
+  return script_pos_range(script_pos_trim(ctx->inputTotal, start), end);
 }
 
 static ScriptToken read_peek(ScriptReadContext* ctx) {
@@ -373,9 +394,7 @@ static void read_diag_emit_with_end(
     ScriptReadContext* ctx, const ScriptError err, const ScriptPos start, const ScriptPos end) {
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
-    const ScriptPos      startTrimmed = script_pos_trim(ctx->inputTotal, start);
-    const ScriptPosRange posRange     = script_pos_range(startTrimmed, end);
-    const ScriptDiag     diag         = {.error = err, .range = posRange};
+    const ScriptDiag diag = {.error = err, .range = read_range_trimmed(ctx, start, end)};
     script_diag_push(ctx->diags, &diag);
   }
 }
@@ -589,6 +608,9 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
     read_fail_semantic(ctx);
   }
 
+  const ScriptPos      idEndPos  = read_pos_current(ctx);
+  const ScriptPosRange declRange = read_range_trimmed(ctx, startPos, idEndPos);
+
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
     ctx->flags |= ScriptReadFlags_DisallowVarDeclare; // Nested variable declarations not allowed.
@@ -602,7 +624,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
   }
 
   ScriptVarId varId;
-  if (!script_var_declare(ctx, token.val_identifier, &varId)) {
+  if (!script_var_declare(ctx, token.val_identifier, declRange, &varId)) {
     read_diag_emit(ctx, ScriptError_VariableLimitExceeded, startPos);
     return read_fail_semantic(ctx);
   }
@@ -616,8 +638,9 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier, const 
   if (builtin) {
     return script_add_value(ctx->doc, builtin->val);
   }
-  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (var) {
+    var->used = true;
     return script_add_var_load(ctx->doc, var->varSlot);
   }
   read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
@@ -654,11 +677,13 @@ static ScriptExpr read_expr_var_modify(
     return read_fail_structural(ctx);
   }
 
-  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
     read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
     return read_fail_semantic(ctx);
   }
+
+  var->used = true;
 
   const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
@@ -1148,12 +1173,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
@@ -1161,5 +1186,8 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
   if (!sentinel_check(expr)) {
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
+
+  script_diag_emit_unused_vars(&ctx, &scopeRoot);
+
   return UNLIKELY(ctx.flags & ScriptReadFlags_ProgramInvalid) ? script_expr_sentinel : expr;
 }
