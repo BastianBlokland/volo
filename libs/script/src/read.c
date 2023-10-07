@@ -367,15 +367,20 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
   return false;
 }
 
-static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const ScriptPos start) {
+static void read_diag_emit_with_end(
+    ScriptReadContext* ctx, const ScriptError err, const ScriptPos start, const ScriptPos end) {
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
     const ScriptPos      startTrimmed = script_pos_trim(ctx->inputTotal, start);
-    const ScriptPos      end          = script_pos_current(ctx);
     const ScriptPosRange posRange     = script_pos_range(startTrimmed, end);
     const ScriptDiag     diag         = {.error = err, .range = posRange};
     script_diag_push(ctx->diags, &diag);
   }
+}
+
+static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const ScriptPos start) {
+  const ScriptPos end = script_pos_current(ctx);
+  read_diag_emit_with_end(ctx, err, start, end);
 }
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
@@ -413,6 +418,8 @@ BlockNext:
   }
   const ScriptPos  exprStart = script_pos_current(ctx);
   const ScriptExpr exprNew   = read_expr(ctx, OpPrecedence_None);
+  const ScriptPos  exprEnd   = script_pos_current(ctx);
+
   if (UNLIKELY(sentinel_check(exprNew))) {
     return script_expr_sentinel;
   }
@@ -424,7 +431,8 @@ BlockNext:
   ScriptToken sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
   if (!read_is_block_separator(sepToken.type)) {
-    return read_diag_emit(ctx, ScriptError_MissingSemicolon, exprStart), script_expr_sentinel;
+    read_diag_emit_with_end(ctx, ScriptError_MissingSemicolon, exprStart, exprEnd);
+    return script_expr_sentinel;
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
