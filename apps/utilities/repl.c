@@ -90,9 +90,11 @@ static void repl_output_tokens(String text) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
+  const ScriptLexFlags flags = ScriptLexFlags_IncludeComments | ScriptLexFlags_IncludeNewlines;
+
   for (;;) {
     ScriptToken token;
-    text = script_lex(text, null, &token, ScriptLexFlags_IncludeComments);
+    text = script_lex(text, null, &token, flags);
     if (token.type == ScriptTokenType_End) {
       break;
     }
