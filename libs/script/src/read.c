@@ -367,8 +367,8 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
   return false;
 }
 
-static void read_diag_emit(ScriptReadContext* ctx, const ScriptResult err, const ScriptPos start) {
-  diag_assert(err != ScriptResult_Success);
+static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const ScriptPos start) {
+  diag_assert(err != ScriptError_None);
   if (ctx->diags) {
     const ScriptPos      startTrimmed = script_pos_trim(ctx->inputTotal, start);
     const ScriptPos      end          = script_pos_current(ctx);
@@ -433,7 +433,7 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    read_diag_emit(ctx, ScriptResult_BlockSizeExceedsMaximum, blockStart);
+    read_diag_emit(ctx, ScriptError_BlockSizeExceedsMaximum, blockStart);
     return script_expr_sentinel;
   }
   const ScriptPos  exprStart = script_pos_current(ctx);
@@ -448,7 +448,7 @@ BlockNext:
   }
   if (read_require_separation(ctx, exprNew)) {
     if (!read_consume_if(ctx, ScriptTokenType_SemiColon)) {
-      return read_diag_emit(ctx, ScriptResult_MissingSemicolon, exprStart), script_expr_sentinel;
+      return read_diag_emit(ctx, ScriptError_MissingSemicolon, exprStart), script_expr_sentinel;
     }
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -486,7 +486,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
-    return read_diag_emit(ctx, ScriptResult_UnterminatedBlock, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_UnterminatedBlock, start), script_expr_sentinel;
   }
 
   return expr;
@@ -514,7 +514,7 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
   }
   const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
-    read_diag_emit(ctx, ScriptResult_UnclosedParenthesizedExpression, start);
+    read_diag_emit(ctx, ScriptError_UnclosedParenthesizedExpression, start);
     return script_expr_sentinel;
   }
   return expr;
@@ -538,7 +538,7 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
 
 ArgNext:
   if (UNLIKELY(count == script_args_max)) {
-    return read_diag_emit(ctx, ScriptResult_ArgumentCountExceedsMaximum, argsStart), -1;
+    return read_diag_emit(ctx, ScriptError_ArgumentCountExceedsMaximum, argsStart), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(sentinel_check(arg))) {
@@ -553,7 +553,7 @@ ArgNext:
 ArgEnd:;
   const ScriptToken endToken = read_consume(ctx);
   if (UNLIKELY(endToken.type != ScriptTokenType_ParenClose)) {
-    return read_diag_emit(ctx, ScriptResult_UnterminatedArgumentList, argsStart), -1;
+    return read_diag_emit(ctx, ScriptError_UnterminatedArgumentList, argsStart), -1;
   }
   return count;
 }
@@ -561,15 +561,15 @@ ArgEnd:;
 static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    read_diag_emit(ctx, ScriptResult_VariableIdentifierMissing, start);
+    read_diag_emit(ctx, ScriptError_VariableIdentifierMissing, start);
     return script_expr_sentinel;
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_diag_emit(ctx, ScriptResult_VariableIdentifierConflicts, start);
+    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, start);
     return script_expr_sentinel;
   }
   if (script_var_lookup(ctx, token.val_identifier)) {
-    read_diag_emit(ctx, ScriptResult_VariableIdentifierConflicts, start);
+    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, start);
     return script_expr_sentinel;
   }
 
@@ -586,7 +586,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
 
   ScriptVarId varId;
   if (!script_var_declare(ctx, token.val_identifier, &varId)) {
-    return read_diag_emit(ctx, ScriptResult_VariableLimitExceeded, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_VariableLimitExceeded, start), script_expr_sentinel;
   }
 
   return script_add_var_store(ctx->doc, varId, valExpr);
@@ -602,7 +602,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier, const 
   if (var) {
     return script_add_var_load(ctx->doc, var->varSlot);
   }
-  read_diag_emit(ctx, ScriptResult_NoVariableFoundForIdentifier, start);
+  read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
   return script_expr_sentinel;
 }
 
@@ -610,7 +610,7 @@ static ScriptExpr
 read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier, const ScriptPos start) {
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    read_diag_emit(ctx, ScriptResult_NoVariableFoundForIdentifier, start);
+    read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
     return script_expr_sentinel;
   }
 
@@ -629,7 +629,7 @@ static ScriptExpr read_expr_var_modify(
     const ScriptPos       start) {
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    read_diag_emit(ctx, ScriptResult_NoVariableFoundForIdentifier, start);
+    read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
     return script_expr_sentinel;
   }
 
@@ -686,7 +686,7 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
     return script_add_intrinsic(ctx->doc, builtin->intr, args);
   }
   if (script_builtin_func_exists(identifier)) {
-    read_diag_emit(ctx, ScriptResult_IncorrectArgumentCountForBuiltinFunction, start);
+    read_diag_emit(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, start);
     return script_expr_sentinel;
   }
 
@@ -697,14 +697,14 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
     }
   }
 
-  read_diag_emit(ctx, ScriptResult_NoFunctionFoundForIdentifier, start);
+  read_diag_emit(ctx, ScriptError_NoFunctionFoundForIdentifier, start);
   return script_expr_sentinel;
 }
 
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptResult_InvalidConditionCount, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidConditionCount, start), script_expr_sentinel;
   }
 
   ScriptScope scope = {0};
@@ -717,13 +717,13 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   }
   if (UNLIKELY(conditionCount != 1)) {
     script_scope_pop(ctx);
-    read_diag_emit(ctx, ScriptResult_InvalidConditionCount, start);
+    read_diag_emit(ctx, ScriptError_InvalidConditionCount, start);
     return script_expr_sentinel;
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
-    read_diag_emit(ctx, ScriptResult_BlockExpected, start);
+    read_diag_emit(ctx, ScriptError_BlockExpected, start);
     return script_expr_sentinel;
   }
   const ScriptExpr b1 = read_expr_scope_block(ctx);
@@ -746,7 +746,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
       }
     } else {
       script_scope_pop(ctx);
-      read_diag_emit(ctx, ScriptResult_BlockOrIfExpected, startElse);
+      read_diag_emit(ctx, ScriptError_BlockOrIfExpected, startElse);
       return script_expr_sentinel;
     }
   } else {
@@ -763,7 +763,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptResult_InvalidWhileLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidWhileLoop, start), script_expr_sentinel;
   }
 
   ScriptScope scope = {0};
@@ -776,13 +776,13 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   }
   if (UNLIKELY(conditionCount != 1)) {
     script_scope_pop(ctx);
-    read_diag_emit(ctx, ScriptResult_InvalidWhileLoop, start);
+    read_diag_emit(ctx, ScriptError_InvalidWhileLoop, start);
     return script_expr_sentinel;
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
-    read_diag_emit(ctx, ScriptResult_BlockExpected, start);
+    read_diag_emit(ctx, ScriptError_BlockExpected, start);
     return script_expr_sentinel;
   }
 
@@ -825,7 +825,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
     }
   }
   if (!read_consume_if(ctx, g_endTokens[comp])) {
-    return read_diag_emit(ctx, ScriptResult_InvalidForLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), script_expr_sentinel;
   }
   return res;
 }
@@ -833,7 +833,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
 static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptResult_InvalidForLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), script_expr_sentinel;
   }
 
   ScriptScope scope = {0};
@@ -854,7 +854,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
-    read_diag_emit(ctx, ScriptResult_BlockExpected, start);
+    read_diag_emit(ctx, ScriptError_BlockExpected, start);
     return script_expr_sentinel;
   }
 
@@ -883,7 +883,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
-    read_diag_emit(ctx, ScriptResult_MissingColonInSelectExpression, start);
+    read_diag_emit(ctx, ScriptError_MissingColonInSelectExpression, start);
     return script_expr_sentinel;
   }
 
@@ -926,12 +926,12 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_var_declare(ctx, start);
   case ScriptTokenType_Continue:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_diag_emit(ctx, ScriptResult_NotValidOutsideLoopBody, start), script_expr_sentinel;
+      return read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start), script_expr_sentinel;
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_diag_emit(ctx, ScriptResult_NotValidOutsideLoopBody, start), script_expr_sentinel;
+      return read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start), script_expr_sentinel;
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
   /**
@@ -1005,20 +1005,20 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenType_SemiColon:
-    return read_diag_emit(ctx, ScriptResult_ExtraneousSemicolon, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_ExtraneousSemicolon, start), script_expr_sentinel;
   case ScriptTokenType_Error:
     return read_diag_emit(ctx, token.val_error, start), script_expr_sentinel;
   case ScriptTokenType_End:
-    return read_diag_emit(ctx, ScriptResult_MissingPrimaryExpression, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_MissingPrimaryExpression, start), script_expr_sentinel;
   default:
-    return read_diag_emit(ctx, ScriptResult_InvalidPrimaryExpression, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidPrimaryExpression, start), script_expr_sentinel;
   }
 }
 
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    read_diag_emit(ctx, ScriptResult_RecursionLimitExceeded, script_pos_current(ctx));
+    read_diag_emit(ctx, ScriptError_RecursionLimitExceeded, script_pos_current(ctx));
     return script_expr_sentinel;
   }
 

@@ -18,7 +18,7 @@ bool script_diag_any_error(const ScriptDiagBag* bag) {
 }
 
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
-  diag_assert(diag->error != ScriptResult_Success);
+  diag_assert(diag->error != ScriptError_None);
 
   const ScriptPosLineCol rangeStart = script_pos_to_line_col(sourceText, diag->range.start);
   const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(sourceText, diag->range.end);
@@ -29,11 +29,11 @@ void script_diag_write(DynString* out, const String sourceText, const ScriptDiag
       fmt_int(rangeStart.column + 1),
       fmt_int(rangeEnd.line + 1),
       fmt_int(rangeEnd.column + 1),
-      fmt_text(script_result_str(diag->error)));
+      fmt_text(script_error_str(diag->error)));
 }
 
 String script_diag_scratch(const String sourceText, const ScriptDiag* diag) {
-  diag_assert(diag->error != ScriptResult_Success);
+  diag_assert(diag->error != ScriptError_None);
 
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);

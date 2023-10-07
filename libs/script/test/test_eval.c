@@ -266,7 +266,7 @@ spec(eval) {
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
       const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
-      check(evalRes.type == ScriptResult_Success);
+      check(evalRes.error == ScriptError_None);
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
           "{} == {} ({})",
@@ -284,7 +284,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
-    check(evalRes.type == ScriptResult_Success);
+    check(evalRes.error == ScriptError_None);
     check_eq_val(script_mem_get(mem, string_hash_lit("test1")), script_number(42));
     check_eq_val(script_mem_get(mem, string_hash_lit("test2")), script_number(1337));
     check_eq_val(script_mem_get(mem, string_hash_lit("test3")), script_bool(false));
@@ -302,7 +302,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.type == ScriptResult_Success);
+    check(evalRes.error == ScriptError_None);
     check_eq_int(ctx.counter, 3);
   }
 
@@ -318,7 +318,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, &ctx);
-    check(evalRes.type == ScriptResult_AssertionFailed);
+    check(evalRes.error == ScriptError_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
   }
@@ -330,7 +330,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
-    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 
@@ -341,7 +341,7 @@ spec(eval) {
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, mem, expr, binder, bindCtx);
-    check(evalRes.type == ScriptResult_LoopInterationLimitExceeded);
+    check(evalRes.error == ScriptError_LoopInterationLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }
 

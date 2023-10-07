@@ -10,13 +10,13 @@ add_library(lib_script STATIC
   src/diag.c
   src/doc.c
   src/enum.c
+  src/error.c
   src/eval.c
   src/intrinsic.c
   src/lex.c
   src/mem.c
   src/pos.c
   src/read.c
-  src/result.c
   src/val.c
   )
 target_include_directories(lib_script PUBLIC include)

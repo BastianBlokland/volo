@@ -1,6 +1,6 @@
 #pragma once
 #include "core_stringtable.h"
-#include "script_result.h"
+#include "script_error.h"
 
 typedef enum {
   ScriptTokenType_ParenOpen,    // (
@@ -52,11 +52,11 @@ typedef enum {
 typedef struct {
   ScriptTokenType type;
   union {
-    f64          val_number;
-    StringHash   val_identifier;
-    StringHash   val_key;
-    StringHash   val_string;
-    ScriptResult val_error;
+    f64         val_number;
+    StringHash  val_identifier;
+    StringHash  val_key;
+    StringHash  val_string;
+    ScriptError val_error;
   };
 } ScriptToken;
 

@@ -77,7 +77,7 @@ static void repl_output_runtime_error(const ScriptEvalResult* res, const String 
     dynstring_append(&buffer, id);
     dynstring_append(&buffer, string_lit(": "));
   }
-  dynstring_append(&buffer, script_result_str(res->type));
+  dynstring_append(&buffer, script_error_str(res->error));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -245,7 +245,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     }
     if (!(flags & ReplFlags_NoEval)) {
       const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
-      if (evalRes.type == ScriptResult_Success) {
+      if (evalRes.error == ScriptError_None) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
       } else {
         repl_output_runtime_error(&evalRes, id);

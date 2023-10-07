@@ -1,6 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
-#include "script_result.h"
+#include "script_error.h"
 
 static const String g_errorStrs[] = {
     string_static("Success"),
@@ -36,9 +36,9 @@ static const String g_errorStrs[] = {
     string_static("Loop iteration limit exceeded"),
 };
 
-ASSERT(array_elems(g_errorStrs) == ScriptResult_Count, "Incorrect number of ScriptResult strings");
+ASSERT(array_elems(g_errorStrs) == ScriptError_Count, "Incorrect number of ScriptError strings");
 
-String script_result_str(const ScriptResult error) {
-  diag_assert(error < ScriptResult_Count);
+String script_error_str(const ScriptError error) {
+  diag_assert(error < ScriptError_Count);
   return g_errorStrs[error];
 }
