@@ -549,12 +549,15 @@ ArgNext:
     goto ArgNext;
   }
 
-ArgEnd:;
+ArgEnd:
+  if (!valid) {
+    return -1;
+  }
   const ScriptToken endToken = read_consume(ctx);
   if (UNLIKELY(endToken.type != ScriptTokenType_ParenClose)) {
     return read_diag_emit(ctx, ScriptError_UnterminatedArgumentList, argsStart), -1;
   }
-  return valid ? count : -1;
+  return count;
 }
 
 static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
