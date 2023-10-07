@@ -360,7 +360,7 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
 
   LspDiagnostic lspDiags[script_diag_max];
   for (u32 i = 0; i != ctx->scriptDiags->count; ++i) {
-    const ScriptDiag*      diag       = &ctx->scriptDiags->diagnostics[i];
+    const ScriptDiag*      diag       = &ctx->scriptDiags->values[i];
     const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
     const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
 

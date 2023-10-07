@@ -205,16 +205,18 @@ static AssetAiNodeSequence build_node_sequence(BuildContext* ctx, const AssetAiN
 }
 
 static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetAiNodeDef* def) {
-  ScriptBinder*    binder = null;
-  ScriptDiagBag*   diags  = null;
+  ScriptBinder* binder = null;
+  ScriptDiagBag diags  = {0};
+
   ScriptReadResult readRes;
-  script_read(ctx->scriptDoc, binder, def->data_condition.script, diags, &readRes);
+  script_read(ctx->scriptDoc, binder, def->data_condition.script, &diags, &readRes);
+
+  for (u32 i = 0; i != diags.count; ++i) {
+    const String errScratch = script_diag_scratch(def->data_condition.script, &diags.values[i]);
+    log_e("Condition script error", log_param("error", fmt_text(errScratch)));
+  }
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
-    const String     errScratch = script_diag_scratch(def->data_condition.script, &diag);
-    log_e("Invalid condition script", log_param("error", fmt_text(errScratch)));
-
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeCondition){.scriptExpr = sentinel_u32};
   }
@@ -226,16 +228,18 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
 }
 
 static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNodeDef* def) {
-  ScriptBinder*    binder = null;
-  ScriptDiagBag*   diags  = null;
+  ScriptBinder* binder = null;
+  ScriptDiagBag diags  = {0};
+
   ScriptReadResult readRes;
-  script_read(ctx->scriptDoc, binder, def->data_condition.script, diags, &readRes);
+  script_read(ctx->scriptDoc, binder, def->data_condition.script, &diags, &readRes);
+
+  for (u32 i = 0; i != diags.count; ++i) {
+    const String errScratch = script_diag_scratch(def->data_condition.script, &diags.values[i]);
+    log_e("Execute script error", log_param("error", fmt_text(errScratch)));
+  }
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
-    const String     errScratch = script_diag_scratch(def->data_condition.script, &diag);
-    log_e("Invalid execute script", log_param("error", fmt_text(errScratch)));
-
     ctx->error = BehaviorError_ScriptInvalid;
     return (AssetAiNodeExecute){.scriptExpr = sentinel_u32};
   }

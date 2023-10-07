@@ -82,16 +82,18 @@ void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  ScriptDoc* doc = script_create(g_alloc_heap);
+  ScriptDoc*    doc   = script_create(g_alloc_heap);
+  ScriptDiagBag diags = {0};
 
-  ScriptDiagBag*   diags = null;
   ScriptReadResult readRes;
-  script_read(doc, g_scriptBinder, src->data, diags, &readRes);
+  script_read(doc, g_scriptBinder, src->data, &diags, &readRes);
+
+  for (u32 i = 0; i != diags.count; ++i) {
+    const String errScratch = script_diag_scratch(src->data, &diags.values[i]);
+    log_e("Script error", log_param("error", fmt_text(errScratch)));
+  }
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
-    const String     errScratch = script_diag_scratch(src->data, &diag);
-    log_e("Invalid script", log_param("error", fmt_text(errScratch)));
     goto Error;
   }
 

@@ -7,7 +7,7 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
   if (UNLIKELY(bag->count == script_diag_max)) {
     return false;
   }
-  bag->diagnostics[bag->count++] = *diag;
+  bag->values[bag->count++] = *diag;
   return true;
 }
 

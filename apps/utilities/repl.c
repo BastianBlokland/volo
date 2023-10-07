@@ -234,7 +234,7 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
   script_read(script, repl_bind_init(), input, &scriptDiags, &readRes);
 
   for (u32 i = 0; i != scriptDiags.count; ++i) {
-    repl_output_diag(input, &scriptDiags.diagnostics[i], id);
+    repl_output_diag(input, &scriptDiags.values[i], id);
   }
 
   if (readRes.type == ScriptResult_Success) {

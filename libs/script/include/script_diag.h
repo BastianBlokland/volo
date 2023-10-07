@@ -11,7 +11,7 @@ typedef struct {
 } ScriptDiag;
 
 typedef struct sScriptDiagBag {
-  ScriptDiag diagnostics[script_diag_max];
+  ScriptDiag values[script_diag_max];
   u32        count;
 } ScriptDiagBag;
 
