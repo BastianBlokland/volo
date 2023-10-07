@@ -363,6 +363,12 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
     const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
     const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
 
+    /**
+     * TODO: The columns offsets we compute are in unicode codepoints (utf32). However we report to
+     * the LSP client that we are using utf16 offsets. Reason is that some clients (for example
+     * VCCode) only support utf16 offsets. This means the column offsets are incorrect if the line
+     * contains unicode characters outside of the utf16 range.
+     */
     lspDiags[i] = (LspDiagnostic){
         .range.start.line      = rangeStart.line,
         .range.start.character = rangeStart.column,

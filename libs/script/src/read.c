@@ -528,7 +528,8 @@ static bool read_is_args_end(const ScriptTokenType type) {
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
 static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
-  i32 count = 0;
+  i32  count = 0;
+  bool valid = true;
 
   ScriptPos argsStart = script_pos_current(ctx);
 
@@ -541,16 +542,17 @@ ArgNext:
     return read_diag_emit(ctx, ScriptError_ArgumentCountExceedsMaximum, argsStart), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
-  if (UNLIKELY(sentinel_check(arg))) {
-    return -1;
-  }
+  valid &= !sentinel_check(arg);
   out[count++] = arg;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
     goto ArgNext;
   }
 
-ArgEnd:;
+ArgEnd:
+  if (!valid) {
+    return -1;
+  }
   const ScriptToken endToken = read_consume(ctx);
   if (UNLIKELY(endToken.type != ScriptTokenType_ParenClose)) {
     return read_diag_emit(ctx, ScriptError_UnterminatedArgumentList, argsStart), -1;
@@ -1118,12 +1120,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
