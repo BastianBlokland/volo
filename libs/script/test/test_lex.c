@@ -166,22 +166,45 @@ spec(lex) {
     String      str = string_lit("42 // Hello \n/* World */ 42 /* More */");
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_Number);
+    check_eq_int(token.type, ScriptTokenType_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_Comment);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_Comment);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_Number);
+    check_eq_int(token.type, ScriptTokenType_Number);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_Comment);
+    check_eq_int(token.type, ScriptTokenType_Comment);
 
     str = script_lex(str, null, &token, ScriptLexFlags_IncludeComments);
-    check(token.type == ScriptTokenType_End);
+    check_eq_int(token.type, ScriptTokenType_End);
+  }
+
+  it("can optionally include newline tokens") {
+    ScriptToken token;
+    String      str = string_lit("42 \n/* World */ 1337 \r\n\n");
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_Number);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_Newline);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_Number);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_Newline);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_Newline);
+
+    str = script_lex(str, null, &token, ScriptLexFlags_IncludeNewlines);
+    check_eq_int(token.type, ScriptTokenType_End);
   }
 
   it("can trim until the next token") {
