@@ -965,9 +965,10 @@ spec(read) {
       ScriptDiagBag diags = {0};
       script_read(doc, binder, g_testData[i].input, &diags);
 
-      check_require_msg(diags.count >= 1, "diags.count >= 1 [{}]", fmt_text(g_testData[i].input));
+      const u32 errorCount = script_diag_count_of_type(&diags, ScriptDiagType_Error);
+      check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
 
-      const ScriptDiag* diag = &diags.values[0];
+      const ScriptDiag* diag = script_diag_first_of_type(&diags, ScriptDiagType_Error);
       check_msg(
           diag->error == g_testData[i].expected,
           "{} == {} [{}]",
