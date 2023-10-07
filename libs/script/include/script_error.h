@@ -21,7 +21,7 @@ typedef enum eScriptError {
   ScriptError_UnterminatedArgumentList,
   ScriptError_BlockSizeExceedsMaximum,
   ScriptError_MissingSemicolon,
-  ScriptError_ExtraneousSemicolon,
+  ScriptError_UnexpectedSemicolon,
   ScriptError_ArgumentCountExceedsMaximum,
   ScriptError_InvalidConditionCount,
   ScriptError_InvalidWhileLoop,
@@ -31,6 +31,7 @@ typedef enum eScriptError {
   ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
   ScriptError_NotValidOutsideLoopBody,
+  ScriptError_VariableDeclareNotAllowed,
   ScriptError_AssertionFailed,
   ScriptError_LoopInterationLimitExceeded,
 

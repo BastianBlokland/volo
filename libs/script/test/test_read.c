@@ -182,7 +182,7 @@ spec(read) {
                           "  [var-load: 0]"),
         },
         {
-            string_static("if(var i = 1) {i} if(var i = 2) {i}"),
+            string_static("if(var i = 1) {i}; if(var i = 2) {i}"),
             string_static("[block]\n"
                           "  [intrinsic: if]\n"
                           "    [var-store: 0]\n"
@@ -196,7 +196,7 @@ spec(read) {
                           "    [value: null]"),
         },
         {
-            string_static("if(true) {} var i"),
+            string_static("if(true) {}; var i"),
             string_static("[block]\n"
                           "  [intrinsic: if]\n"
                           "    [value: true]\n"
@@ -876,9 +876,9 @@ spec(read) {
         {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
         {string_static("!"), ScriptError_MissingPrimaryExpression},
-        {string_static(";"), ScriptError_ExtraneousSemicolon},
-        {string_static("1 ; ;"), ScriptError_ExtraneousSemicolon},
-        {string_static("1;;"), ScriptError_ExtraneousSemicolon},
+        {string_static(";"), ScriptError_UnexpectedSemicolon},
+        {string_static("1 ; ;"), ScriptError_UnexpectedSemicolon},
+        {string_static("1;;"), ScriptError_UnexpectedSemicolon},
         {string_static("?"), ScriptError_InvalidPrimaryExpression},
         {string_static("1?"), ScriptError_MissingPrimaryExpression},
         {string_static("1 ?"), ScriptError_MissingPrimaryExpression},
@@ -911,17 +911,17 @@ spec(read) {
         {string_static("if(1)"), ScriptError_BlockExpected},
         {string_static("if(1) 1"), ScriptError_BlockExpected},
         {string_static("if(1) {1} else"), ScriptError_BlockOrIfExpected},
-        {string_static("if(1) {1}; 2 else 3"), ScriptError_ExtraneousSemicolon},
+        {string_static("if(1) {1}; 2 else 3"), ScriptError_MissingSemicolon},
         {string_static("if(1) {var i = 42} else {i}"), ScriptError_NoVariableFoundForIdentifier},
-        {string_static("if(1) {2}; else {2}"), ScriptError_ExtraneousSemicolon},
-        {string_static("if(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(1) {2}; else {2}"), ScriptError_InvalidPrimaryExpression},
+        {string_static("if(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("while"), ScriptError_InvalidWhileLoop},
         {string_static("while("), ScriptError_UnterminatedArgumentList},
         {string_static("while()"), ScriptError_InvalidWhileLoop},
         {string_static("while(1,2)"), ScriptError_InvalidWhileLoop},
         {string_static("while(1)"), ScriptError_BlockExpected},
         {string_static("while(1) 1"), ScriptError_BlockExpected},
-        {string_static("while(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("while(var i = 42) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("for"), ScriptError_InvalidForLoop},
         {string_static("for("), ScriptError_MissingPrimaryExpression},
         {string_static("for()"), ScriptError_InvalidPrimaryExpression},
@@ -929,11 +929,11 @@ spec(read) {
         {string_static("for(1)"), ScriptError_InvalidForLoop},
         {string_static("for(1 1) 1"), ScriptError_InvalidForLoop},
         {string_static("for(1;)"), ScriptError_InvalidPrimaryExpression},
-        {string_static("for(;;;)"), ScriptError_ExtraneousSemicolon},
+        {string_static("for(;;;)"), ScriptError_UnexpectedSemicolon},
         {string_static("for(;;"), ScriptError_MissingPrimaryExpression},
         {string_static("for(;;1"), ScriptError_InvalidForLoop},
         {string_static("for(var i = 0;;) 1"), ScriptError_BlockExpected},
-        {string_static("for(var i = 0;;) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("for(var i = 0;;) {}; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
@@ -947,8 +947,9 @@ spec(read) {
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
+        {string_static("var a = var b = 2"), ScriptError_VariableDeclareNotAllowed},
         {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
-        {string_static("b ="), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("b ="), ScriptError_MissingPrimaryExpression},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
@@ -964,7 +965,8 @@ spec(read) {
       ScriptDiagBag diags = {0};
       script_read(doc, binder, g_testData[i].input, &diags);
 
-      check_require(diags.count >= 1);
+      check_require_msg(diags.count >= 1, "diags.count >= 1 [{}]", fmt_text(g_testData[i].input));
+
       const ScriptDiag* diag = &diags.values[0];
       check_msg(
           diag->error == g_testData[i].expected,

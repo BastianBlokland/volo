@@ -55,7 +55,7 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_diag_write(&buffer, sourceText, diag);
+  script_diag_pretty_write(&buffer, sourceText, diag);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -90,9 +90,11 @@ static void repl_output_tokens(String text) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
+  const ScriptLexFlags flags = ScriptLexFlags_IncludeComments | ScriptLexFlags_IncludeNewlines;
+
   for (;;) {
     ScriptToken token;
-    text = script_lex(text, null, &token, ScriptLexFlags_IncludeComments);
+    text = script_lex(text, null, &token, flags);
     if (token.type == ScriptTokenType_End) {
       break;
     }
@@ -185,6 +187,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_CurlyOpen:
   case ScriptTokenType_CurlyClose:
   case ScriptTokenType_Comma:
+  case ScriptTokenType_Newline:
   case ScriptTokenType_End:
     break;
   }

@@ -1,14 +1,14 @@
-var me = self();
-var now = time();
+var me = self()
+var now = time()
 
-$nextSpawnTime ??= now + 5.0;
+$nextSpawnTime ??= now + 5.0
 if($nextSpawnTime <= now) {
-  $nextSpawnTime = null;
+  $nextSpawnTime = null
 
-  var spawnPos = nav_query(position(me), "UnblockedCell");
-  var spawnRot = rotation(me);
-  var spawnScale = 1.0;
+  var spawnPos = nav_query(position(me), "UnblockedCell")
+  var spawnRot = rotation(me)
+  var spawnScale = 1.0
 
-  destroy($instance);
-  $instance = spawn("ExplosionMedium", spawnPos, spawnRot, spawnScale, faction(me));
+  destroy($instance)
+  $instance = spawn("ExplosionMedium", spawnPos, spawnRot, spawnScale, faction(me))
 }

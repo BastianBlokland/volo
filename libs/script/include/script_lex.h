@@ -44,6 +44,7 @@ typedef enum {
   ScriptTokenType_For,          // for
   ScriptTokenType_Continue,     // continue
   ScriptTokenType_Break,        // break
+  ScriptTokenType_Newline,      // \n
   ScriptTokenType_Comment,      // /* Hello */ or // World
   ScriptTokenType_Error,        //
   ScriptTokenType_End,          // \0
@@ -62,7 +63,8 @@ typedef struct {
 
 typedef enum {
   ScriptLexFlags_None,
-  ScriptLexFlags_IncludeComments = 1 << 0,
+  ScriptLexFlags_IncludeNewlines = 1 << 0,
+  ScriptLexFlags_IncludeComments = 1 << 1,
 } ScriptLexFlags;
 
 /**

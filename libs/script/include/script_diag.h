@@ -19,5 +19,6 @@ bool script_diag_push(ScriptDiagBag*, const ScriptDiag*);
 void script_diag_clear(ScriptDiagBag*);
 bool script_diag_any_error(const ScriptDiagBag*);
 
-void   script_diag_write(DynString*, String sourceText, const ScriptDiag*);
-String script_diag_scratch(String sourceText, const ScriptDiag*);
+String script_diag_msg_scratch(String sourceText, const ScriptDiag*);
+void   script_diag_pretty_write(DynString*, String sourceText, const ScriptDiag*);
+String script_diag_pretty_scratch(String sourceText, const ScriptDiag*);

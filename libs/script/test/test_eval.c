@@ -212,7 +212,7 @@ spec(eval) {
                           "  if((i += 1) == 10) {"
                           "    break"
                           "  }"
-                          "} i"),
+                          "}; i"),
             script_number(10),
         },
         {
@@ -221,9 +221,9 @@ spec(eval) {
                           "while((i += 1) < 10) {"
                           "  if(i % 2 == 0) {"
                           "    continue"
-                          "  }"
+                          "  };"
                           "  j += 1"
-                          "} j"),
+                          "}; j"),
             script_number(5),
         },
         {
@@ -231,7 +231,7 @@ spec(eval) {
             script_null(),
         },
         {
-            string_static("var i = 0; for(; i != 10; i += 1) {} i"),
+            string_static("var i = 0; for(; i != 10; i += 1) {}; i"),
             script_number(10),
         },
         {string_static("for(;false;) {}"), script_null()},
@@ -241,7 +241,7 @@ spec(eval) {
                           "  if(i == 10) {"
                           "    break"
                           "  }"
-                          "} i"),
+                          "}; i"),
             script_number(10),
         },
         {
@@ -249,9 +249,9 @@ spec(eval) {
                           "for(var i = 0; i != 10; i += 1) {"
                           "  if(i % 2 == 0) {"
                           "    continue"
-                          "  }"
+                          "  };"
                           "  j += 1"
-                          "} j"),
+                          "}; j"),
             script_number(5),
         },
 

@@ -247,7 +247,9 @@ typedef struct sScriptScope {
 } ScriptScope;
 
 typedef enum {
-  ScriptReadFlags_InsideLoop = 1 << 0,
+  ScriptReadFlags_ProgramInvalid     = 1 << 0,
+  ScriptReadFlags_InsideLoop         = 1 << 1,
+  ScriptReadFlags_DisallowVarDeclare = 1 << 2,
 } ScriptReadFlags;
 
 typedef struct {
@@ -260,10 +262,6 @@ typedef struct {
   u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
 } ScriptReadContext;
-
-static ScriptPos script_pos_current(ScriptReadContext* ctx) {
-  return (ScriptPos)(ctx->inputTotal.size - ctx->input.size);
-}
 
 static bool script_var_alloc(ScriptReadContext* ctx, ScriptVarId* out) {
   const usize index = bitset_next(mem_var(ctx->varAvailability), 0);
@@ -345,6 +343,10 @@ static const ScriptVarMeta* script_var_lookup(ScriptReadContext* ctx, const Stri
   return null;
 }
 
+static ScriptPos read_pos_current(ScriptReadContext* ctx) {
+  return (ScriptPos)(ctx->inputTotal.size - ctx->input.size);
+}
+
 static ScriptToken read_peek(ScriptReadContext* ctx) {
   ScriptToken token;
   script_lex(ctx->input, null, &token, ScriptLexFlags_None);
@@ -367,44 +369,43 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
   return false;
 }
 
-static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const ScriptPos start) {
+static void read_diag_emit_with_end(
+    ScriptReadContext* ctx, const ScriptError err, const ScriptPos start, const ScriptPos end) {
   diag_assert(err != ScriptError_None);
   if (ctx->diags) {
     const ScriptPos      startTrimmed = script_pos_trim(ctx->inputTotal, start);
-    const ScriptPos      end          = script_pos_current(ctx);
     const ScriptPosRange posRange     = script_pos_range(startTrimmed, end);
     const ScriptDiag     diag         = {.error = err, .range = posRange};
     script_diag_push(ctx->diags, &diag);
   }
 }
 
-static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr expr) {
-  switch (script_expr_type(ctx->doc, expr)) {
-  case ScriptExprType_Value:
-  case ScriptExprType_VarLoad:
-  case ScriptExprType_VarStore:
-  case ScriptExprType_MemLoad:
-  case ScriptExprType_MemStore:
-  case ScriptExprType_Extern:
-    return true;
-  case ScriptExprType_Block:
-    return false;
-  case ScriptExprType_Intrinsic: {
-    const ScriptExprData* data = dynarray_at_t(&ctx->doc->exprData, expr, ScriptExprData);
-    switch (data->data_intrinsic.intrinsic) {
-    case ScriptIntrinsic_If:
-    case ScriptIntrinsic_While:
-    case ScriptIntrinsic_For:
-      return false;
-    default:
-      return true;
-    }
-  }
-  case ScriptExprType_Count:
-    break;
-  }
-  diag_assert_fail("Invalid expr");
-  UNREACHABLE
+static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const ScriptPos start) {
+  const ScriptPos end = read_pos_current(ctx);
+  read_diag_emit_with_end(ctx, err, start, end);
+}
+
+/**
+ * We differentiate between two different kinds of failure while parsing:
+ *
+ * 1) Structural failure (for example a missing expression):
+ *      At this point we do not know how to interpret the following tokens and thus we produce an
+ *      invalid token (and generally stop parsing at that point).
+ *
+ * 2) Semantic failure (for example an unknown variable identifier):
+ *      An dummy token is returned (null) and parsing continues.
+ *
+ * In both cases however we mark that the program is invalid and wont produce a valid output.
+ */
+
+static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
+  ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  return script_expr_sentinel;
+}
+
+static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
+  ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  return script_add_value(ctx->doc, script_null());
 }
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
@@ -421,11 +422,16 @@ static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlock
   return tokenType == ScriptTokenType_End;
 }
 
+static bool read_is_block_separator(const ScriptTokenType tokenType) {
+  return tokenType == ScriptTokenType_Newline || tokenType == ScriptTokenType_SemiColon;
+}
+
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
-  const ScriptPos blockStart = script_pos_current(ctx);
+  const ScriptPos blockStart = read_pos_current(ctx);
 
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
+  bool       valid     = true;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -434,28 +440,35 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
     read_diag_emit(ctx, ScriptError_BlockSizeExceedsMaximum, blockStart);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
-  const ScriptPos  exprStart = script_pos_current(ctx);
+  const ScriptPos  exprStart = read_pos_current(ctx);
   const ScriptExpr exprNew   = read_expr(ctx, OpPrecedence_None);
-  if (UNLIKELY(sentinel_check(exprNew))) {
-    return script_expr_sentinel;
-  }
+  const ScriptPos  exprEnd   = read_pos_current(ctx);
+
+  valid &= LIKELY(!sentinel_check(exprNew));
   exprs[exprCount++] = exprNew;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
   }
-  if (read_require_separation(ctx, exprNew)) {
-    if (!read_consume_if(ctx, ScriptTokenType_SemiColon)) {
-      return read_diag_emit(ctx, ScriptError_MissingSemicolon, exprStart), script_expr_sentinel;
+  ScriptToken sepToken;
+  ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
+  if (!read_is_block_separator(sepToken.type)) {
+    if (LIKELY(valid)) {
+      // NOTE: Skip this diag when the block is already invalid, this avoids some error spam.
+      read_diag_emit_with_end(ctx, ScriptError_MissingSemicolon, exprStart, exprEnd);
     }
+    return read_fail_structural(ctx);
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
   }
 
 BlockEnd:
+  if (UNLIKELY(!valid)) {
+    return read_fail_structural(ctx);
+  }
   switch (exprCount) {
   case 0:
     return script_add_value(ctx->doc, script_null());
@@ -470,7 +483,7 @@ BlockEnd:
  * NOTE: Caller is expected to consume the opening curly-brace.
  */
 static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
-  const ScriptPos start = script_pos_current(ctx);
+  const ScriptPos start = read_pos_current(ctx);
 
   ScriptScope scope = {0};
   script_scope_push(ctx, &scope);
@@ -481,12 +494,12 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   script_scope_pop(ctx);
 
   if (UNLIKELY(sentinel_check(expr))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_CurlyClose)) {
-    return read_diag_emit(ctx, ScriptError_UnterminatedBlock, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_UnterminatedBlock, start), read_fail_structural(ctx);
   }
 
   return expr;
@@ -510,12 +523,12 @@ static ScriptExpr read_expr_scope_single(ScriptReadContext* ctx, const OpPrecede
 static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptExpr expr = read_expr(ctx, OpPrecedence_None);
   if (UNLIKELY(sentinel_check(expr))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
   const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
     read_diag_emit(ctx, ScriptError_UnclosedParenthesizedExpression, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
   return expr;
 }
@@ -531,7 +544,7 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
   i32  count = 0;
   bool valid = true;
 
-  ScriptPos argsStart = script_pos_current(ctx);
+  ScriptPos argsStart = read_pos_current(ctx);
 
   if (read_is_args_end(read_peek(ctx).type)) {
     goto ArgEnd; // Empty argument list.
@@ -560,27 +573,29 @@ ArgEnd:
   return count;
 }
 
-static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos start) {
-  const ScriptToken token = read_consume(ctx);
+static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
+  const ScriptPos   startPos = read_pos_current(ctx);
+  const ScriptToken token    = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    read_diag_emit(ctx, ScriptError_VariableIdentifierMissing, start);
-    return script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_VariableIdentifierMissing, startPos);
+    return read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, start);
-    return script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, startPos);
+    read_fail_semantic(ctx);
   }
   if (script_var_lookup(ctx, token.val_identifier)) {
-    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, start);
-    return script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_VariableIdentifierConflicts, startPos);
+    read_fail_semantic(ctx);
   }
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
+    ctx->flags |= ScriptReadFlags_DisallowVarDeclare; // Nested variable declarations not allowed.
     valExpr = read_expr(ctx, OpPrecedence_Assignment);
+    ctx->flags &= ~ScriptReadFlags_DisallowVarDeclare;
     if (UNLIKELY(sentinel_check(valExpr))) {
-      return script_expr_sentinel;
-      ;
+      return read_fail_structural(ctx);
     }
   } else {
     valExpr = script_add_value(ctx->doc, script_null());
@@ -588,7 +603,8 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
 
   ScriptVarId varId;
   if (!script_var_declare(ctx, token.val_identifier, &varId)) {
-    return read_diag_emit(ctx, ScriptError_VariableLimitExceeded, start), script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_VariableLimitExceeded, startPos);
+    return read_fail_semantic(ctx);
   }
 
   return script_add_var_store(ctx->doc, varId, valExpr);
@@ -605,20 +621,20 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier, const 
     return script_add_var_load(ctx->doc, var->varSlot);
   }
   read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-  return script_expr_sentinel;
+  return read_fail_semantic(ctx);
 }
 
 static ScriptExpr
 read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier, const ScriptPos start) {
+  const ScriptExpr expr = read_expr(ctx, OpPrecedence_Assignment);
+  if (UNLIKELY(sentinel_check(expr))) {
+    return read_fail_structural(ctx);
+  }
+
   const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
     read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-    return script_expr_sentinel;
-  }
-
-  const ScriptExpr expr = read_expr(ctx, OpPrecedence_Assignment);
-  if (UNLIKELY(sentinel_check(expr))) {
-    return expr;
+    return read_fail_semantic(ctx);
   }
 
   return script_add_var_store(ctx->doc, var->varSlot, expr);
@@ -629,18 +645,19 @@ static ScriptExpr read_expr_var_modify(
     const StringHash      identifier,
     const ScriptTokenType type,
     const ScriptPos       start) {
-  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
-  if (UNLIKELY(!var)) {
-    read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-    return script_expr_sentinel;
-  }
 
   const ScriptIntrinsic intr = token_op_binary_modify(type);
   const ScriptExpr      val  = token_intr_rhs_scope(intr)
                                    ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
                                    : read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(sentinel_check(val))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
+  }
+
+  const ScriptVarMeta* var = script_var_lookup(ctx, identifier);
+  if (UNLIKELY(!var)) {
+    read_diag_emit(ctx, ScriptError_NoVariableFoundForIdentifier, start);
+    return read_fail_semantic(ctx);
   }
 
   const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, var->varSlot);
@@ -652,7 +669,7 @@ static ScriptExpr read_expr_var_modify(
 static ScriptExpr read_expr_mem_store(ScriptReadContext* ctx, const StringHash key) {
   const ScriptExpr val = read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(sentinel_check(val))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
   return script_add_mem_store(ctx->doc, key, val);
 }
@@ -664,7 +681,7 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
                                    ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
                                    : read_expr(ctx, OpPrecedence_Assignment);
   if (UNLIKELY(sentinel_check(val))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
   const ScriptExpr loadExpr   = script_add_mem_load(ctx->doc, key);
   const ScriptExpr intrArgs[] = {loadExpr, val};
@@ -680,7 +697,7 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
   ScriptExpr args[script_args_max];
   const i32  argCount = read_args(ctx, args);
   if (UNLIKELY(argCount < 0)) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(identifier, (u32)argCount);
@@ -689,7 +706,7 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
   }
   if (script_builtin_func_exists(identifier)) {
     read_diag_emit(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, start);
-    return script_expr_sentinel;
+    return read_fail_semantic(ctx);
   }
 
   if (ctx->binder) {
@@ -700,13 +717,14 @@ read_expr_function(ScriptReadContext* ctx, const StringHash identifier, const Sc
   }
 
   read_diag_emit(ctx, ScriptError_NoFunctionFoundForIdentifier, start);
-  return script_expr_sentinel;
+  return read_fail_semantic(ctx);
 }
 
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptError_InvalidConditionCount, start), script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_InvalidConditionCount, start);
+    return read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -715,41 +733,41 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptExpr conditions[script_args_max];
   const i32  conditionCount = read_args(ctx, conditions);
   if (UNLIKELY(conditionCount < 0)) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
     script_scope_pop(ctx);
     read_diag_emit(ctx, ScriptError_InvalidConditionCount, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
     read_diag_emit(ctx, ScriptError_BlockExpected, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
   const ScriptExpr b1 = read_expr_scope_block(ctx);
   if (UNLIKELY(sentinel_check(b1))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
 
   ScriptExpr b2;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
-    const ScriptPos startElse = script_pos_current(ctx);
+    const ScriptPos startElse = read_pos_current(ctx);
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(sentinel_check(b2))) {
-        return script_scope_pop(ctx), script_expr_sentinel;
+        return script_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
       b2 = read_expr_if(ctx, startElse);
       if (UNLIKELY(sentinel_check(b2))) {
-        return script_scope_pop(ctx), script_expr_sentinel;
+        return script_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else {
       script_scope_pop(ctx);
       read_diag_emit(ctx, ScriptError_BlockOrIfExpected, startElse);
-      return script_expr_sentinel;
+      return read_fail_structural(ctx);
     }
   } else {
     b2 = script_add_value(ctx->doc, script_null());
@@ -765,7 +783,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptError_InvalidWhileLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidWhileLoop, start), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -774,18 +792,18 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ScriptExpr conditions[script_args_max];
   const i32  conditionCount = read_args(ctx, conditions);
   if (UNLIKELY(conditionCount < 0)) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
     script_scope_pop(ctx);
     read_diag_emit(ctx, ScriptError_InvalidWhileLoop, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
     read_diag_emit(ctx, ScriptError_BlockExpected, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   ctx->flags |= ScriptReadFlags_InsideLoop;
@@ -793,7 +811,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ctx->flags &= ~ScriptReadFlags_InsideLoop;
 
   if (UNLIKELY(sentinel_check(body))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
 
   diag_assert(&scope == script_scope_tail(ctx));
@@ -815,7 +833,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
       [ReadIfComp_Condition] = ScriptTokenType_SemiColon,
       [ReadIfComp_Increment] = ScriptTokenType_ParenClose,
   };
-  const ScriptPos start = script_pos_current(ctx);
+  const ScriptPos start = read_pos_current(ctx);
   ScriptExpr      res;
   if (read_peek(ctx).type == g_endTokens[comp]) {
     const ScriptVal skipVal = comp == ReadIfComp_Condition ? script_bool(true) : script_null();
@@ -823,11 +841,11 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
   } else {
     res = read_expr(ctx, OpPrecedence_None);
     if (UNLIKELY(sentinel_check(res))) {
-      return script_expr_sentinel;
+      return read_fail_structural(ctx);
     }
   }
   if (!read_consume_if(ctx, g_endTokens[comp])) {
-    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), read_fail_structural(ctx);
   }
   return res;
 }
@@ -835,7 +853,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
 static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), script_expr_sentinel;
+    return read_diag_emit(ctx, ScriptError_InvalidForLoop, start), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};
@@ -843,21 +861,21 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 
   const ScriptExpr setupExpr = read_expr_for_comp(ctx, ReadIfComp_Setup);
   if (UNLIKELY(sentinel_check(setupExpr))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
   const ScriptExpr condExpr = read_expr_for_comp(ctx, ReadIfComp_Condition);
   if (UNLIKELY(sentinel_check(condExpr))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
   const ScriptExpr incrExpr = read_expr_for_comp(ctx, ReadIfComp_Increment);
   if (UNLIKELY(sentinel_check(incrExpr))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
 
   if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
     script_scope_pop(ctx);
     read_diag_emit(ctx, ScriptError_BlockExpected, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   ctx->flags |= ScriptReadFlags_InsideLoop;
@@ -865,7 +883,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   ctx->flags &= ~ScriptReadFlags_InsideLoop;
 
   if (UNLIKELY(sentinel_check(body))) {
-    return script_scope_pop(ctx), script_expr_sentinel;
+    return script_scope_pop(ctx), read_fail_structural(ctx);
   }
 
   diag_assert(&scope == script_scope_tail(ctx));
@@ -876,22 +894,22 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
 }
 
 static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
-  const ScriptPos start = script_pos_current(ctx);
+  const ScriptPos start = read_pos_current(ctx);
 
   const ScriptExpr b1 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(sentinel_check(b1))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
     read_diag_emit(ctx, ScriptError_MissingColonInSelectExpression, start);
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   const ScriptExpr b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(sentinel_check(b2))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   const ScriptExpr intrArgs[] = {condition, b1, b2};
@@ -899,7 +917,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
 }
 
 static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
-  const ScriptPos start = script_pos_current(ctx);
+  const ScriptPos start = read_pos_current(ctx);
 
   ScriptToken token;
   ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
@@ -925,15 +943,21 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_For:
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
-    return read_expr_var_declare(ctx, start);
+    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowVarDeclare)) {
+      read_diag_emit(ctx, ScriptError_VariableDeclareNotAllowed, start);
+      return read_fail_structural(ctx);
+    }
+    return read_expr_var_declare(ctx);
   case ScriptTokenType_Continue:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start), script_expr_sentinel;
+      read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start);
+      return read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
     if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
-      return read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start), script_expr_sentinel;
+      read_diag_emit(ctx, ScriptError_NotValidOutsideLoopBody, start);
+      return read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
   /**
@@ -968,7 +992,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_Bang: {
     const ScriptExpr val = read_expr(ctx, OpPrecedence_Unary);
     if (UNLIKELY(sentinel_check(val))) {
-      return script_expr_sentinel;
+      return read_fail_structural(ctx);
     }
     const ScriptIntrinsic intr       = token_op_unary(token.type);
     const ScriptExpr      intrArgs[] = {val};
@@ -1007,26 +1031,30 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenType_SemiColon:
-    return read_diag_emit(ctx, ScriptError_ExtraneousSemicolon, start), script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_UnexpectedSemicolon, start);
+    return read_fail_structural(ctx);
   case ScriptTokenType_Error:
-    return read_diag_emit(ctx, token.val_error, start), script_expr_sentinel;
+    read_diag_emit(ctx, token.val_error, start);
+    return read_fail_structural(ctx);
   case ScriptTokenType_End:
-    return read_diag_emit(ctx, ScriptError_MissingPrimaryExpression, start), script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_MissingPrimaryExpression, start);
+    return read_fail_structural(ctx);
   default:
-    return read_diag_emit(ctx, ScriptError_InvalidPrimaryExpression, start), script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_InvalidPrimaryExpression, start);
+    return read_fail_structural(ctx);
   }
 }
 
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
   ++ctx->recursionDepth;
   if (UNLIKELY(ctx->recursionDepth >= script_depth_max)) {
-    read_diag_emit(ctx, ScriptError_RecursionLimitExceeded, script_pos_current(ctx));
-    return script_expr_sentinel;
+    read_diag_emit(ctx, ScriptError_RecursionLimitExceeded, read_pos_current(ctx));
+    return read_fail_structural(ctx);
   }
 
   ScriptExpr res = read_expr_primary(ctx);
   if (UNLIKELY(sentinel_check(res))) {
-    return script_expr_sentinel;
+    return read_fail_structural(ctx);
   }
 
   /**
@@ -1053,7 +1081,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     case ScriptTokenType_QMark: {
       res = read_expr_select(ctx, res);
       if (UNLIKELY(sentinel_check(res))) {
-        return script_expr_sentinel;
+        return read_fail_structural(ctx);
       }
     } break;
     case ScriptTokenType_EqEq:
@@ -1074,7 +1102,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
       const ScriptExpr rhs = token_intr_rhs_scope(intr) ? read_expr_scope_single(ctx, opPrecedence)
                                                         : read_expr(ctx, opPrecedence);
       if (UNLIKELY(sentinel_check(rhs))) {
-        return script_expr_sentinel;
+        return read_fail_structural(ctx);
       }
       const ScriptExpr intrArgs[] = {res, rhs};
       res                         = script_add_intrinsic(ctx->doc, intr, intrArgs);
@@ -1120,12 +1148,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   script_var_free_all(&ctx);
 
@@ -1133,5 +1161,5 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
   if (!sentinel_check(expr)) {
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
-  return expr;
+  return UNLIKELY(ctx.flags & ScriptReadFlags_ProgramInvalid) ? script_expr_sentinel : expr;
 }

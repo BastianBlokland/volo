@@ -304,8 +304,12 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       return script_lex_key(str, stringtable, out);
     case '"':
       return script_lex_string(str, stringtable, out);
-    case ' ':
     case '\n':
+      if (fl & ScriptLexFlags_IncludeNewlines) {
+        return out->type = ScriptTokenType_Newline, string_consume(str, 1);
+      }
+      // Fallthrough.
+    case ' ':
     case '\r':
     case '\t':
       str = string_consume(str, 1); // Skip whitespace.
@@ -455,6 +459,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("break");
   case ScriptTokenType_Comment:
     return string_lit("comment");
+  case ScriptTokenType_Newline:
+    return string_lit("newline");
   case ScriptTokenType_Error:
     return script_error_str(token->val_error);
   case ScriptTokenType_End:
