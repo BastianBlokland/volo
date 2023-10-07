@@ -9,18 +9,18 @@ ScriptPosRange script_pos_range(const ScriptPos start, const ScriptPos end) {
   return (ScriptPosRange){.start = start, .end = end};
 }
 
-ScriptPos script_pos_trim(const String text, const ScriptPos pos) {
-  const String toEnd        = string_consume(text, pos);
+ScriptPos script_pos_trim(const String sourceText, const ScriptPos pos) {
+  const String toEnd        = string_consume(sourceText, pos);
   const String toEndTrimmed = script_lex_trim(toEnd);
-  return (ScriptPos)(text.size - toEndTrimmed.size);
+  return (ScriptPos)(sourceText.size - toEndTrimmed.size);
 }
 
-ScriptPosHuman script_pos_humanize(const String text, const ScriptPos pos) {
-  diag_assert(pos <= text.size);
+ScriptPosHuman script_pos_humanize(const String sourceText, const ScriptPos pos) {
+  diag_assert(pos <= sourceText.size);
   u32 currentPos = 0;
   u16 line = 0, column = 0;
   while (currentPos < pos) {
-    const u8 ch = *string_at(text, currentPos);
+    const u8 ch = *string_at(sourceText, currentPos);
     switch (ch) {
     case '\n':
       ++currentPos;

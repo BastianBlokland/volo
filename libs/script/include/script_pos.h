@@ -12,5 +12,5 @@ typedef struct {
 } ScriptPosHuman;
 
 ScriptPosRange script_pos_range(ScriptPos start, ScriptPos end);
-ScriptPos      script_pos_trim(String text, ScriptPos);
-ScriptPosHuman script_pos_humanize(String text, ScriptPos);
+ScriptPos      script_pos_trim(String sourceText, ScriptPos);
+ScriptPosHuman script_pos_humanize(String sourceText, ScriptPos);
