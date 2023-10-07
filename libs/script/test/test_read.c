@@ -2,8 +2,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "script_binder.h"
+#include "script_diag.h"
+#include "script_error.h"
 #include "script_read.h"
-#include "script_result.h"
 
 #include "utils_internal.h"
 
@@ -848,146 +849,149 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      ScriptDiagBag*   diags = null;
+      const ScriptExpr expr  = script_read(doc, binder, g_testData[i].input, diags);
 
-      check_require_msg(
-          res.type == ScriptResult_Success, "Read failed [{}]", fmt_text(g_testData[i].input));
-      check_expr_str(doc, res.expr, g_testData[i].expect);
+      check_require_msg(!sentinel_check(expr), "Read failed [{}]", fmt_text(g_testData[i].input));
+      check_expr_str(doc, expr, g_testData[i].expect);
     }
   }
 
   it("fails when parsing invalid expressions") {
     static const struct {
-      String       input;
-      ScriptResult expected;
+      String      input;
+      ScriptError expected;
     } g_testData[] = {
-        {string_static("}"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("1 }"), ScriptResult_MissingSemicolon},
-        {string_static("1 1"), ScriptResult_MissingSemicolon},
-        {string_static("hello"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("<"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("1 &&"), ScriptResult_MissingPrimaryExpression},
-        {string_static("1 ||"), ScriptResult_MissingPrimaryExpression},
-        {string_static("1 <"), ScriptResult_MissingPrimaryExpression},
-        {string_static("1 < hello"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static(")"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("("), ScriptResult_MissingPrimaryExpression},
-        {string_static("(1"), ScriptResult_UnclosedParenthesizedExpression},
-        {string_static("(1 1"), ScriptResult_UnclosedParenthesizedExpression},
-        {string_static("!"), ScriptResult_MissingPrimaryExpression},
-        {string_static(";"), ScriptResult_ExtraneousSemicolon},
-        {string_static("1 ; ;"), ScriptResult_ExtraneousSemicolon},
-        {string_static("1;;"), ScriptResult_ExtraneousSemicolon},
-        {string_static("?"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("1?"), ScriptResult_MissingPrimaryExpression},
-        {string_static("1 ?"), ScriptResult_MissingPrimaryExpression},
-        {string_static("1?1"), ScriptResult_MissingColonInSelectExpression},
-        {string_static("1 ? 1"), ScriptResult_MissingColonInSelectExpression},
-        {string_static("1 ? foo"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("1 ? 1 : foo"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("1 ? 1 : 1 2"), ScriptResult_MissingSemicolon},
-        {string_static("distance"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("distance("), ScriptResult_UnterminatedArgumentList},
-        {string_static("distance(,"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("distance(1 2"), ScriptResult_UnterminatedArgumentList},
-        {string_static("distance(1,"), ScriptResult_MissingPrimaryExpression},
-        {string_static("distance(1,2,3)"), ScriptResult_IncorrectArgumentCountForBuiltinFunction},
-        {string_static("hello()"), ScriptResult_NoFunctionFoundForIdentifier},
-        {string_static("hello(null)"), ScriptResult_NoFunctionFoundForIdentifier},
-        {string_static("hello(1,2,3,4,5)"), ScriptResult_NoFunctionFoundForIdentifier},
-        {string_static("hello(1 + 2 + 4, 5 + 6 + 7)"), ScriptResult_NoFunctionFoundForIdentifier},
-        {string_static("hello(1,2,3,4,5,6,7,8,9,10)"), ScriptResult_NoFunctionFoundForIdentifier},
-        {string_static("hello(1,2,3,4,5,6,7,8,9,10,"), ScriptResult_ArgumentCountExceedsMaximum},
-        {string_static("{"), ScriptResult_UnterminatedBlock},
-        {string_static("{1"), ScriptResult_UnterminatedBlock},
-        {string_static("{1;"), ScriptResult_UnterminatedBlock},
-        {string_static("{1;2"), ScriptResult_UnterminatedBlock},
-        {string_static("{1;2;"), ScriptResult_UnterminatedBlock},
-        {string_static("if"), ScriptResult_InvalidConditionCount},
-        {string_static("if("), ScriptResult_UnterminatedArgumentList},
-        {string_static("if()"), ScriptResult_InvalidConditionCount},
-        {string_static("if(1,2)"), ScriptResult_InvalidConditionCount},
-        {string_static("if(1)"), ScriptResult_BlockExpected},
-        {string_static("if(1) 1"), ScriptResult_BlockExpected},
-        {string_static("if(1) {1} else"), ScriptResult_BlockOrIfExpected},
-        {string_static("if(1) {1}; 2 else 3"), ScriptResult_ExtraneousSemicolon},
-        {string_static("if(1) {var i = 42} else {i}"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("if(1) {2}; else {2}"), ScriptResult_ExtraneousSemicolon},
-        {string_static("if(var i = 42) {} i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("while"), ScriptResult_InvalidWhileLoop},
-        {string_static("while("), ScriptResult_UnterminatedArgumentList},
-        {string_static("while()"), ScriptResult_InvalidWhileLoop},
-        {string_static("while(1,2)"), ScriptResult_InvalidWhileLoop},
-        {string_static("while(1)"), ScriptResult_BlockExpected},
-        {string_static("while(1) 1"), ScriptResult_BlockExpected},
-        {string_static("while(var i = 42) {} i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("for"), ScriptResult_InvalidForLoop},
-        {string_static("for("), ScriptResult_MissingPrimaryExpression},
-        {string_static("for()"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("for(1,2)"), ScriptResult_InvalidForLoop},
-        {string_static("for(1)"), ScriptResult_InvalidForLoop},
-        {string_static("for(1 1) 1"), ScriptResult_InvalidForLoop},
-        {string_static("for(1;)"), ScriptResult_InvalidPrimaryExpression},
-        {string_static("for(;;;)"), ScriptResult_ExtraneousSemicolon},
-        {string_static("for(;;"), ScriptResult_MissingPrimaryExpression},
-        {string_static("for(;;1"), ScriptResult_InvalidForLoop},
-        {string_static("for(var i = 0;;) 1"), ScriptResult_BlockExpected},
-        {string_static("for(var i = 0;;) {} i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("1 ? var i = 42 : i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("false && var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("true || var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("1 ?? var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("$test \?\?= var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("var a; a \?\?= var i = 42; i"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("random"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("bind_test_1"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("var i; { var i = 99 }"), ScriptResult_VariableIdentifierConflicts},
-        {string_static("var"), ScriptResult_VariableIdentifierMissing},
-        {string_static("var pi"), ScriptResult_VariableIdentifierConflicts},
-        {string_static("var a; var a"), ScriptResult_VariableIdentifierConflicts},
-        {string_static("var a ="), ScriptResult_MissingPrimaryExpression},
-        {string_static("var a = a"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("b ="), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("var b; b ="), ScriptResult_MissingPrimaryExpression},
-        {string_static("a"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("{var a}; a"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("a += 1"), ScriptResult_NoVariableFoundForIdentifier},
-        {string_static("var a; a +="), ScriptResult_MissingPrimaryExpression},
-        {string_static("continue"), ScriptResult_NotValidOutsideLoopBody},
-        {string_static("break"), ScriptResult_NotValidOutsideLoopBody},
-        {string_static("while(continue) {}"), ScriptResult_NotValidOutsideLoopBody},
-        {string_static("while(break) {}"), ScriptResult_NotValidOutsideLoopBody},
+        {string_static("}"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 }"), ScriptError_MissingSemicolon},
+        {string_static("1 1"), ScriptError_MissingSemicolon},
+        {string_static("hello"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("<"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1 &&"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ||"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 <"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 < hello"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static(")"), ScriptError_InvalidPrimaryExpression},
+        {string_static("("), ScriptError_MissingPrimaryExpression},
+        {string_static("(1"), ScriptError_UnclosedParenthesizedExpression},
+        {string_static("(1 1"), ScriptError_UnclosedParenthesizedExpression},
+        {string_static("!"), ScriptError_MissingPrimaryExpression},
+        {string_static(";"), ScriptError_ExtraneousSemicolon},
+        {string_static("1 ; ;"), ScriptError_ExtraneousSemicolon},
+        {string_static("1;;"), ScriptError_ExtraneousSemicolon},
+        {string_static("?"), ScriptError_InvalidPrimaryExpression},
+        {string_static("1?"), ScriptError_MissingPrimaryExpression},
+        {string_static("1 ?"), ScriptError_MissingPrimaryExpression},
+        {string_static("1?1"), ScriptError_MissingColonInSelectExpression},
+        {string_static("1 ? 1"), ScriptError_MissingColonInSelectExpression},
+        {string_static("1 ? foo"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ? 1 : foo"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ? 1 : 1 2"), ScriptError_MissingSemicolon},
+        {string_static("distance"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("distance("), ScriptError_UnterminatedArgumentList},
+        {string_static("distance(,"), ScriptError_InvalidPrimaryExpression},
+        {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},
+        {string_static("distance(1,"), ScriptError_MissingPrimaryExpression},
+        {string_static("distance(1,2,3)"), ScriptError_IncorrectArgumentCountForBuiltinFunction},
+        {string_static("hello()"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(null)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1 + 2 + 4, 5 + 6 + 7)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5,6,7,8,9,10)"), ScriptError_NoFunctionFoundForIdentifier},
+        {string_static("hello(1,2,3,4,5,6,7,8,9,10,"), ScriptError_ArgumentCountExceedsMaximum},
+        {string_static("{"), ScriptError_UnterminatedBlock},
+        {string_static("{1"), ScriptError_UnterminatedBlock},
+        {string_static("{1;"), ScriptError_UnterminatedBlock},
+        {string_static("{1;2"), ScriptError_UnterminatedBlock},
+        {string_static("{1;2;"), ScriptError_UnterminatedBlock},
+        {string_static("if"), ScriptError_InvalidConditionCount},
+        {string_static("if("), ScriptError_UnterminatedArgumentList},
+        {string_static("if()"), ScriptError_InvalidConditionCount},
+        {string_static("if(1,2)"), ScriptError_InvalidConditionCount},
+        {string_static("if(1)"), ScriptError_BlockExpected},
+        {string_static("if(1) 1"), ScriptError_BlockExpected},
+        {string_static("if(1) {1} else"), ScriptError_BlockOrIfExpected},
+        {string_static("if(1) {1}; 2 else 3"), ScriptError_ExtraneousSemicolon},
+        {string_static("if(1) {var i = 42} else {i}"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("if(1) {2}; else {2}"), ScriptError_ExtraneousSemicolon},
+        {string_static("if(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("while"), ScriptError_InvalidWhileLoop},
+        {string_static("while("), ScriptError_UnterminatedArgumentList},
+        {string_static("while()"), ScriptError_InvalidWhileLoop},
+        {string_static("while(1,2)"), ScriptError_InvalidWhileLoop},
+        {string_static("while(1)"), ScriptError_BlockExpected},
+        {string_static("while(1) 1"), ScriptError_BlockExpected},
+        {string_static("while(var i = 42) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("for"), ScriptError_InvalidForLoop},
+        {string_static("for("), ScriptError_MissingPrimaryExpression},
+        {string_static("for()"), ScriptError_InvalidPrimaryExpression},
+        {string_static("for(1,2)"), ScriptError_InvalidForLoop},
+        {string_static("for(1)"), ScriptError_InvalidForLoop},
+        {string_static("for(1 1) 1"), ScriptError_InvalidForLoop},
+        {string_static("for(1;)"), ScriptError_InvalidPrimaryExpression},
+        {string_static("for(;;;)"), ScriptError_ExtraneousSemicolon},
+        {string_static("for(;;"), ScriptError_MissingPrimaryExpression},
+        {string_static("for(;;1"), ScriptError_InvalidForLoop},
+        {string_static("for(var i = 0;;) 1"), ScriptError_BlockExpected},
+        {string_static("for(var i = 0;;) {} i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ? var i = 42 : i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("false && var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("true || var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("1 ?? var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("$test \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var a; a \?\?= var i = 42; i"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("random"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("bind_test_1"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var i; { var i = 99 }"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var"), ScriptError_VariableIdentifierMissing},
+        {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
+        {string_static("var a ="), ScriptError_MissingPrimaryExpression},
+        {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("b ="), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
+        {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("a += 1"), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("var a; a +="), ScriptError_MissingPrimaryExpression},
+        {string_static("continue"), ScriptError_NotValidOutsideLoopBody},
+        {string_static("break"), ScriptError_NotValidOutsideLoopBody},
+        {string_static("while(continue) {}"), ScriptError_NotValidOutsideLoopBody},
+        {string_static("while(break) {}"), ScriptError_NotValidOutsideLoopBody},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      ScriptDiagBag diags = {0};
+      script_read(doc, binder, g_testData[i].input, &diags);
 
+      check_require(diags.count == 1);
+      const ScriptDiag* diag = &diags.values[0];
       check_msg(
-          res.type == g_testData[i].expected,
+          diag->error == g_testData[i].expected,
           "{} == {} [{}]",
-          script_result_fmt(res.type),
-          script_result_fmt(g_testData[i].expected),
+          script_error_fmt(diag->error),
+          script_error_fmt(g_testData[i].expected),
           fmt_text(g_testData[i].input));
     }
   }
 
   it("can read all input") {
-    ScriptReadResult res;
-    script_read(doc, binder, string_lit("1  "), &res);
+    ScriptDiagBag*   diags = null;
+    const ScriptExpr expr  = script_read(doc, binder, string_lit("1  "), diags);
 
-    check_require(res.type == ScriptResult_Success);
+    check_require(!sentinel_check(expr));
   }
 
   it("fails when recursing too deep") {
     DynString str = dynstring_create(g_alloc_scratch, 256);
     dynstring_append_chars(&str, '(', 100);
 
-    ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), &res);
+    ScriptDiagBag diags = {0};
+    script_read(doc, binder, dynstring_view(&str), &diags);
 
-    check_eq_int(res.type, ScriptResult_RecursionLimitExceeded);
+    check_require(diags.count == 1);
+    const ScriptDiag* diag = &diags.values[0];
+    check_eq_int(diag->error, ScriptError_RecursionLimitExceeded);
 
     dynstring_destroy(&str);
   }
@@ -998,10 +1002,12 @@ spec(read) {
       dynstring_append(&str, fmt_write_scratch("var v{} = 42;", fmt_int(i)));
     }
 
-    ScriptReadResult res;
-    script_read(doc, binder, dynstring_view(&str), &res);
+    ScriptDiagBag diags = {0};
+    script_read(doc, binder, dynstring_view(&str), &diags);
 
-    check_eq_int(res.type, ScriptResult_VariableLimitExceeded);
+    check_require(diags.count == 1);
+    const ScriptDiag* diag = &diags.values[0];
+    check_eq_int(diag->error, ScriptError_VariableLimitExceeded);
 
     dynstring_destroy(&str);
   }
@@ -1012,21 +1018,26 @@ spec(read) {
       u16    startLine, startCol;
       u32    endLine, endCol;
     } g_testData[] = {
-        {string_static("test"), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
-        {string_static(" \n test "), .startLine = 2, .startCol = 2, .endLine = 2, .endCol = 6},
-        {string_static("// Test\n test"), .startLine = 2, .startCol = 2, .endLine = 2, .endCol = 6},
-        {string_static(" 你好世界 "), .startLine = 1, .startCol = 2, .endLine = 1, .endCol = 6},
+        {string_static("test"), .startLine = 0, .startCol = 0, .endLine = 0, .endCol = 4},
+        {string_static(" \n test "), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
+        {string_static("// Test\n test"), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
+        {string_static(" 你好世界 "), .startLine = 0, .startCol = 1, .endLine = 0, .endCol = 5},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      const String  input = g_testData[i].input;
+      ScriptDiagBag diags = {0};
+      script_read(doc, binder, input, &diags);
 
-      check_require(res.type != ScriptResult_Success);
-      check_eq_int(res.errorStart.line, g_testData[i].startLine);
-      check_eq_int(res.errorStart.column, g_testData[i].startCol);
-      check_eq_int(res.errorEnd.line, g_testData[i].endLine);
-      check_eq_int(res.errorEnd.column, g_testData[i].endCol);
+      check_require(diags.count == 1);
+
+      const ScriptDiag*      diag       = &diags.values[0];
+      const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, diag->range.start);
+      const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(input, diag->range.end);
+      check_eq_int(rangeStart.line, g_testData[i].startLine);
+      check_eq_int(rangeStart.column, g_testData[i].startCol);
+      check_eq_int(rangeEnd.line, g_testData[i].endLine);
+      check_eq_int(rangeEnd.column, g_testData[i].endCol);
     }
   }
 

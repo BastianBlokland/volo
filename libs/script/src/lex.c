@@ -134,13 +134,13 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    *out = script_token_err(ScriptResult_KeyEmpty);
+    *out = script_token_err(ScriptError_KeyEmpty);
     return str;
   }
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    *out = script_token_err(ScriptResult_InvalidUtf8);
+    *out = script_token_err(ScriptError_InvalidUtf8);
     return str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
@@ -156,13 +156,13 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
-    *out = script_token_err(ScriptResult_UnterminatedString);
+    *out = script_token_err(ScriptError_UnterminatedString);
     return str;
   }
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    *out = script_token_err(ScriptResult_InvalidUtf8);
+    *out = script_token_err(ScriptError_InvalidUtf8);
     return str;
   }
   const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
@@ -178,7 +178,7 @@ static String script_lex_identifier(String str, ScriptToken* out) {
 
   const String identifier = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(identifier))) {
-    *out = script_token_err(ScriptResult_InvalidUtf8);
+    *out = script_token_err(ScriptError_InvalidUtf8);
     return str;
   }
 
@@ -274,12 +274,12 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_peek(str, 1) == '&') {
         return out->type = ScriptTokenType_AmpAmp, string_consume(str, 2);
       }
-      return *out = script_token_err(ScriptResult_InvalidChar), string_consume(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '|':
       if (script_peek(str, 1) == '|') {
         return out->type = ScriptTokenType_PipePipe, string_consume(str, 2);
       }
-      return *out = script_token_err(ScriptResult_InvalidChar), string_consume(str, 1);
+      return *out = script_token_err(ScriptError_InvalidChar), string_consume(str, 1);
     case '?':
       if (script_peek(str, 1) == '?') {
         if (script_peek(str, 2) == '=') {
@@ -314,7 +314,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
       if (script_is_word_start(c)) {
         return script_lex_identifier(str, out);
       }
-      return *out = script_token_err(ScriptResult_InvalidChar), script_consume_word_or_char(str);
+      return *out = script_token_err(ScriptError_InvalidChar), script_consume_word_or_char(str);
     }
   }
 
@@ -456,7 +456,7 @@ String script_token_str_scratch(const ScriptToken* token) {
   case ScriptTokenType_Comment:
     return string_lit("comment");
   case ScriptTokenType_Error:
-    return script_result_str(token->val_error);
+    return script_error_str(token->val_error);
   case ScriptTokenType_End:
     return string_lit("\0");
   }

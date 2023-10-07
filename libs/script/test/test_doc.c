@@ -134,11 +134,11 @@ spec(doc) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       ScriptBinder*    binder = null;
-      ScriptReadResult readRes;
-      script_read(doc, binder, g_testData[i].input, &readRes);
-      check_require(readRes.type == ScriptResult_Success);
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
 
-      check(script_expr_readonly(doc, readRes.expr) == g_testData[i].readonly);
+      check(script_expr_readonly(doc, expr) == g_testData[i].readonly);
     }
   }
 

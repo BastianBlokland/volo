@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_read.h"
 
 #include "repo_internal.h"
@@ -81,18 +82,21 @@ void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  ScriptDoc* doc = script_create(g_alloc_heap);
+  ScriptDoc*    doc   = script_create(g_alloc_heap);
+  ScriptDiagBag diags = {0};
 
-  ScriptReadResult readRes;
-  script_read(doc, g_scriptBinder, src->data, &readRes);
+  const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, &diags);
 
-  if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const String errScratch = script_read_result_scratch(doc, &readRes);
-    log_e("Invalid script", log_param("error", fmt_text(errScratch)));
+  for (u32 i = 0; i != diags.count; ++i) {
+    const String errScratch = script_diag_scratch(src->data, &diags.values[i]);
+    log_e("Script error", log_param("error", fmt_text(errScratch)));
+  }
+
+  if (UNLIKELY(sentinel_check(expr))) {
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetScriptComp, .doc = doc, .expr = readRes.expr);
+  ecs_world_add_t(world, entity, AssetScriptComp, .doc = doc, .expr = expr);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;

@@ -529,8 +529,8 @@ static void scene_script_eval(
 
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
 
-  if (UNLIKELY(evalRes.type != ScriptResult_Success)) {
-    const String err = script_result_str(evalRes.type);
+  if (UNLIKELY(evalRes.error != ScriptError_None)) {
+    const String err = script_error_str(evalRes.error);
     log_w(
         "Script execution failed",
         log_param("error", fmt_text(err)),

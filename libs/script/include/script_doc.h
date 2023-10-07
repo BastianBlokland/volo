@@ -11,6 +11,7 @@ typedef struct sAllocator Allocator;
 typedef u32 ScriptBinderSlot;
 
 #define script_var_count 16
+#define script_expr_sentinel sentinel_u32
 
 typedef u8 ScriptVarId;
 

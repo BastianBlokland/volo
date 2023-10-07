@@ -10,6 +10,7 @@
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
@@ -41,8 +42,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void
-repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res, const String id) {
+static void repl_output_diag(const String sourceText, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -55,7 +55,7 @@ repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res, const 
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_read_result_write(&buffer, doc, res);
+  script_diag_write(&buffer, sourceText, diag);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -77,7 +77,7 @@ static void repl_output_runtime_error(const ScriptEvalResult* res, const String 
     dynstring_append(&buffer, id);
     dynstring_append(&buffer, string_lit(": "));
   }
-  dynstring_append(&buffer, script_result_str(res->type));
+  dynstring_append(&buffer, script_error_str(res->error));
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -227,29 +227,30 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_tokens(input);
   }
 
-  ScriptDoc* script = script_create(g_alloc_heap);
+  ScriptDoc*    script      = script_create(g_alloc_heap);
+  ScriptDiagBag scriptDiags = {0};
 
-  ScriptReadResult readRes;
-  script_read(script, repl_bind_init(), input, &readRes);
+  const ScriptExpr expr = script_read(script, repl_bind_init(), input, &scriptDiags);
 
-  if (readRes.type == ScriptResult_Success) {
+  for (u32 i = 0; i != scriptDiags.count; ++i) {
+    repl_output_diag(input, &scriptDiags.values[i], id);
+  }
+
+  if (!sentinel_check(expr)) {
     if (flags & ReplFlags_OutputAst) {
-      repl_output_ast(script, readRes.expr);
+      repl_output_ast(script, expr);
     }
     if (flags & ReplFlags_OutputStats) {
-      repl_output_stats(script, readRes.expr);
+      repl_output_stats(script, expr);
     }
     if (!(flags & ReplFlags_NoEval)) {
-      const ScriptExpr       expr    = readRes.expr;
       const ScriptEvalResult evalRes = script_eval(script, mem, expr, repl_bind_init(), null);
-      if (evalRes.type == ScriptResult_Success) {
+      if (evalRes.error == ScriptError_None) {
         repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
       } else {
         repl_output_runtime_error(&evalRes, id);
       }
     }
-  } else {
-    repl_output_read_error(script, &readRes, id);
   }
 
   script_destroy(script);
