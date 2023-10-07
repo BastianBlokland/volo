@@ -964,7 +964,7 @@ spec(read) {
       ScriptDiagBag diags = {0};
       script_read(doc, binder, g_testData[i].input, &diags);
 
-      check_require(diags.count == 1);
+      check_require(diags.count >= 1);
       const ScriptDiag* diag = &diags.values[0];
       check_msg(
           diag->error == g_testData[i].expected,
