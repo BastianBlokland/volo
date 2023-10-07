@@ -227,11 +227,15 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_tokens(input);
   }
 
-  ScriptDoc*     script = script_create(g_alloc_heap);
-  ScriptDiagBag* diags  = null;
+  ScriptDoc*    script      = script_create(g_alloc_heap);
+  ScriptDiagBag scriptDiags = {0};
 
   ScriptReadResult readRes;
-  script_read(script, repl_bind_init(), input, diags, &readRes);
+  script_read(script, repl_bind_init(), input, &scriptDiags, &readRes);
+
+  for (u32 i = 0; i != scriptDiags.count; ++i) {
+    repl_output_diag(input, &scriptDiags.diagnostics[i], id);
+  }
 
   if (readRes.type == ScriptResult_Success) {
     if (flags & ReplFlags_OutputAst) {
@@ -249,9 +253,6 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
         repl_output_runtime_error(&evalRes, id);
       }
     }
-  } else {
-    const ScriptDiag diag = {.error = readRes.type, .range = readRes.errorRange};
-    repl_output_diag(input, &diag, id);
   }
 
   script_destroy(script);
