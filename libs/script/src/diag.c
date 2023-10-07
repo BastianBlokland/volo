@@ -27,7 +27,7 @@ String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) 
   return format_write_formatted_scratch(script_error_str(diag->error), formatArgs);
 }
 
-void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
+void script_diag_pretty_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptError_None);
 
   const ScriptPosLineCol rangeStart = script_pos_to_line_col(sourceText, diag->range.start);
@@ -42,13 +42,13 @@ void script_diag_write(DynString* out, const String sourceText, const ScriptDiag
       fmt_text(script_diag_msg_scratch(sourceText, diag)));
 }
 
-String script_diag_scratch(const String sourceText, const ScriptDiag* diag) {
+String script_diag_pretty_scratch(const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptError_None);
 
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_diag_write(&buffer, sourceText, diag);
+  script_diag_pretty_write(&buffer, sourceText, diag);
 
   return dynstring_view(&buffer);
 }

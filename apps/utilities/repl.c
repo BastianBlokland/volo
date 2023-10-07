@@ -55,7 +55,7 @@ static void repl_output_diag(const String sourceText, const ScriptDiag* diag, co
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_diag_write(&buffer, sourceText, diag);
+  script_diag_pretty_write(&buffer, sourceText, diag);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
