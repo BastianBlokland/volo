@@ -10,6 +10,7 @@
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
@@ -41,8 +42,7 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 
 static void repl_output(const String text) { file_write_sync(g_file_stdout, text); }
 
-static void
-repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res, const String id) {
+static void repl_output_diag(const String sourceText, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -55,7 +55,7 @@ repl_output_read_error(const ScriptDoc* doc, const ScriptReadResult* res, const 
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_read_result_write(&buffer, doc, res);
+  script_diag_write(&buffer, sourceText, diag);
 
   tty_write_style_sequence(&buffer, styleDefault);
   dynstring_append_char(&buffer, '\n');
@@ -249,7 +249,8 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
       }
     }
   } else {
-    repl_output_read_error(script, &readRes, id);
+    const ScriptDiag diag = {.error = readRes.type, .range = readRes.errorRange};
+    repl_output_diag(input, &diag, id);
   }
 
   script_destroy(script);

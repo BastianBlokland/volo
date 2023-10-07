@@ -11,10 +11,10 @@ void script_diag_write(DynString* out, const String sourceText, const ScriptDiag
   fmt_write(
       out,
       "{}:{}-{}:{}: {}",
-      fmt_int(humanPosStart.line),
-      fmt_int(humanPosStart.column),
-      fmt_int(humanPosEnd.line),
-      fmt_int(humanPosEnd.column),
+      fmt_int(humanPosStart.line + 1),
+      fmt_int(humanPosStart.column + 1),
+      fmt_int(humanPosEnd.line + 1),
+      fmt_int(humanPosEnd.column + 1),
       fmt_text(script_result_str(diag->error)));
 }
 

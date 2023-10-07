@@ -7,6 +7,7 @@
 #include "data_schema.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "script_diag.h"
 #include "script_read.h"
 
 #include "repo_internal.h"
@@ -209,7 +210,8 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const String errScratch = script_read_result_scratch(ctx->scriptDoc, &readRes);
+    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
+    const String     errScratch = script_diag_scratch(def->data_condition.script, &diag);
     log_e("Invalid condition script", log_param("error", fmt_text(errScratch)));
 
     ctx->error = BehaviorError_ScriptInvalid;
@@ -228,7 +230,8 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
   script_read(ctx->scriptDoc, binder, def->data_condition.script, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const String errScratch = script_read_result_scratch(ctx->scriptDoc, &readRes);
+    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
+    const String     errScratch = script_diag_scratch(def->data_condition.script, &diag);
     log_e("Invalid execute script", log_param("error", fmt_text(errScratch)));
 
     ctx->error = BehaviorError_ScriptInvalid;

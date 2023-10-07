@@ -1012,21 +1012,25 @@ spec(read) {
       u16    startLine, startCol;
       u32    endLine, endCol;
     } g_testData[] = {
-        {string_static("test"), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
-        {string_static(" \n test "), .startLine = 2, .startCol = 2, .endLine = 2, .endCol = 6},
-        {string_static("// Test\n test"), .startLine = 2, .startCol = 2, .endLine = 2, .endCol = 6},
-        {string_static(" 你好世界 "), .startLine = 1, .startCol = 2, .endLine = 1, .endCol = 6},
+        {string_static("test"), .startLine = 0, .startCol = 0, .endLine = 0, .endCol = 4},
+        {string_static(" \n test "), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
+        {string_static("// Test\n test"), .startLine = 1, .startCol = 1, .endLine = 1, .endCol = 5},
+        {string_static(" 你好世界 "), .startLine = 0, .startCol = 1, .endLine = 0, .endCol = 5},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      const String     input = g_testData[i].input;
       ScriptReadResult res;
-      script_read(doc, binder, g_testData[i].input, &res);
+      script_read(doc, binder, input, &res);
 
       check_require(res.type != ScriptResult_Success);
-      check_eq_int(res.errorStart.line, g_testData[i].startLine);
-      check_eq_int(res.errorStart.column, g_testData[i].startCol);
-      check_eq_int(res.errorEnd.line, g_testData[i].endLine);
-      check_eq_int(res.errorEnd.column, g_testData[i].endCol);
+
+      const ScriptPosHuman humanPosStart = script_pos_humanize(input, res.errorRange.start);
+      const ScriptPosHuman humanPosEnd   = script_pos_humanize(input, res.errorRange.end);
+      check_eq_int(humanPosStart.line, g_testData[i].startLine);
+      check_eq_int(humanPosStart.column, g_testData[i].startCol);
+      check_eq_int(humanPosEnd.line, g_testData[i].endLine);
+      check_eq_int(humanPosEnd.column, g_testData[i].endCol);
     }
   }
 

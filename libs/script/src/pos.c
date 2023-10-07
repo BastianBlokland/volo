@@ -25,7 +25,7 @@ ScriptPosHuman script_pos_humanize(const String sourceText, const ScriptPos pos)
     case '\n':
       ++currentPos;
       ++line;
-      column = 1;
+      column = 0;
       break;
     case '\r':
       ++currentPos;

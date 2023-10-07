@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_read.h"
 
 #include "repo_internal.h"
@@ -87,7 +88,8 @@ void asset_load_script(
   script_read(doc, g_scriptBinder, src->data, &readRes);
 
   if (UNLIKELY(readRes.type != ScriptResult_Success)) {
-    const String errScratch = script_read_result_scratch(doc, &readRes);
+    const ScriptDiag diag       = {.error = readRes.type, .range = readRes.errorRange};
+    const String     errScratch = script_diag_scratch(src->data, &diag);
     log_e("Invalid script", log_param("error", fmt_text(errScratch)));
     goto Error;
   }

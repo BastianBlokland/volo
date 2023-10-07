@@ -1,13 +1,10 @@
 #pragma once
 #include "script_doc.h"
+#include "script_pos.h"
 #include "script_result.h"
 
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
-
-typedef struct {
-  u16 line, column;
-} ScriptPos;
 
 /**
  * Result of parsing a script expression.
@@ -17,10 +14,8 @@ typedef struct {
 typedef struct {
   ScriptResult type;
   union {
-    ScriptExpr expr;
-    struct {
-      ScriptPos errorStart, errorEnd;
-    };
+    ScriptExpr     expr;
+    ScriptPosRange errorRange;
   };
 } ScriptReadResult;
 
@@ -30,9 +25,3 @@ typedef struct {
  * Pre-condition: res != null.
  */
 void script_read(ScriptDoc*, const ScriptBinder*, String, ScriptReadResult* res);
-
-/**
- * Create a textual representation of the result.
- */
-void   script_read_result_write(DynString*, const ScriptDoc*, const ScriptReadResult*);
-String script_read_result_scratch(const ScriptDoc*, const ScriptReadResult*);
