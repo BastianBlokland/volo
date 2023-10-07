@@ -378,35 +378,6 @@ static void read_diag_emit(ScriptReadContext* ctx, const ScriptError err, const 
   }
 }
 
-static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr expr) {
-  switch (script_expr_type(ctx->doc, expr)) {
-  case ScriptExprType_Value:
-  case ScriptExprType_VarLoad:
-  case ScriptExprType_VarStore:
-  case ScriptExprType_MemLoad:
-  case ScriptExprType_MemStore:
-  case ScriptExprType_Extern:
-    return true;
-  case ScriptExprType_Block:
-    return false;
-  case ScriptExprType_Intrinsic: {
-    const ScriptExprData* data = dynarray_at_t(&ctx->doc->exprData, expr, ScriptExprData);
-    switch (data->data_intrinsic.intrinsic) {
-    case ScriptIntrinsic_If:
-    case ScriptIntrinsic_While:
-    case ScriptIntrinsic_For:
-      return false;
-    default:
-      return true;
-    }
-  }
-  case ScriptExprType_Count:
-    break;
-  }
-  diag_assert_fail("Invalid expr");
-  UNREACHABLE
-}
-
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 typedef enum {
@@ -419,6 +390,10 @@ static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlock
     return true;
   }
   return tokenType == ScriptTokenType_End;
+}
+
+static bool read_is_block_separator(const ScriptTokenType tokenType) {
+  return tokenType == ScriptTokenType_Newline || tokenType == ScriptTokenType_SemiColon;
 }
 
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
@@ -446,10 +421,10 @@ BlockNext:
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
   }
-  if (read_require_separation(ctx, exprNew)) {
-    if (!read_consume_if(ctx, ScriptTokenType_SemiColon)) {
-      return read_diag_emit(ctx, ScriptError_MissingSemicolon, exprStart), script_expr_sentinel;
-    }
+  ScriptToken sepToken;
+  ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
+  if (!read_is_block_separator(sepToken.type)) {
+    return read_diag_emit(ctx, ScriptError_MissingSemicolon, exprStart), script_expr_sentinel;
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
