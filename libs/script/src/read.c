@@ -406,6 +406,7 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
+  bool       valid     = true;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -420,9 +421,7 @@ BlockNext:
   const ScriptExpr exprNew   = read_expr(ctx, OpPrecedence_None);
   const ScriptPos  exprEnd   = script_pos_current(ctx);
 
-  if (UNLIKELY(sentinel_check(exprNew))) {
-    return script_expr_sentinel;
-  }
+  valid &= LIKELY(!sentinel_check(exprNew));
   exprs[exprCount++] = exprNew;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -431,7 +430,10 @@ BlockNext:
   ScriptToken sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
   if (!read_is_block_separator(sepToken.type)) {
-    read_diag_emit_with_end(ctx, ScriptError_MissingSemicolon, exprStart, exprEnd);
+    if (LIKELY(valid)) {
+      // NOTE: Skip this diag when the block is already invalid, this avoids some error spam.
+      read_diag_emit_with_end(ctx, ScriptError_MissingSemicolon, exprStart, exprEnd);
+    }
     return script_expr_sentinel;
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -439,6 +441,9 @@ BlockNext:
   }
 
 BlockEnd:
+  if (UNLIKELY(!valid)) {
+    return script_expr_sentinel;
+  }
   switch (exprCount) {
   case 0:
     return script_add_value(ctx->doc, script_null());
