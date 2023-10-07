@@ -384,10 +384,11 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
   const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
-  const String  text   = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
-  if (UNLIKELY(string_is_empty(uri) || string_is_empty(text))) {
+  if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
+  const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
+
   lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
   lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
@@ -405,9 +406,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   const JsonVal changesVal    = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
-  if (UNLIKELY(string_is_empty(text))) {
-    goto Error;
-  }
+
   lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
   lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
