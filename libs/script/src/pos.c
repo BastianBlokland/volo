@@ -9,6 +9,11 @@ ScriptPosRange script_pos_range(const ScriptPos start, const ScriptPos end) {
   return (ScriptPosRange){.start = start, .end = end};
 }
 
+String script_pos_range_text(const String sourceText, const ScriptPosRange range) {
+  diag_assert(range.end >= range.start);
+  return string_slice(sourceText, range.start, range.end - range.start);
+}
+
 ScriptPos script_pos_trim(const String sourceText, const ScriptPos pos) {
   const String toEnd        = string_consume(sourceText, pos);
   const String toEndTrimmed = script_lex_trim(toEnd);
