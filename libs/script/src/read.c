@@ -1024,7 +1024,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenType_SemiColon:
-    read_diag_emit(ctx, ScriptError_ExtraneousSemicolon, start);
+    read_diag_emit(ctx, ScriptError_UnexpectedSemicolon, start);
     return read_fail_structural(ctx);
   case ScriptTokenType_Error:
     read_diag_emit(ctx, token.val_error, start);
