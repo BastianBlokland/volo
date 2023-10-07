@@ -1,6 +1,5 @@
 #pragma once
 #include "script_doc.h"
-#include "script_pos.h"
 #include "script_result.h"
 
 // Forward declare from 'core_binder.h'.
@@ -17,8 +16,7 @@ typedef struct sScriptDiagBag ScriptDiagBag;
 typedef struct {
   ScriptResult type;
   union {
-    ScriptExpr     expr;
-    ScriptPosRange errorRange;
+    ScriptExpr expr;
   };
 } ScriptReadResult;
 

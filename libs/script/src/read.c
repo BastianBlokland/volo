@@ -382,7 +382,8 @@ read_error(ScriptReadContext* ctx, const ScriptResult err, const ScriptPos start
   if (ctx->diags) {
     script_diag_push(ctx->diags, &diag);
   }
-  return (ScriptReadResult){.type = err, .errorRange = posRange};
+
+  return (ScriptReadResult){.type = err};
 }
 
 static bool read_require_separation(ScriptReadContext* ctx, const ScriptExpr expr) {

@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "script_binder.h"
+#include "script_diag.h"
 #include "script_read.h"
 #include "script_result.h"
 
@@ -1025,14 +1026,16 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       const String     input = g_testData[i].input;
-      ScriptDiagBag*   diags = null;
+      ScriptDiagBag    diags = {0};
       ScriptReadResult res;
-      script_read(doc, binder, input, diags, &res);
+      script_read(doc, binder, input, &diags, &res);
 
       check_require(res.type != ScriptResult_Success);
+      check_require(diags.count == 1);
 
-      const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, res.errorRange.start);
-      const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(input, res.errorRange.end);
+      const ScriptDiag*      diag       = &diags.values[0];
+      const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, diag->range.start);
+      const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(input, diag->range.end);
       check_eq_int(rangeStart.line, g_testData[i].startLine);
       check_eq_int(rangeStart.column, g_testData[i].startCol);
       check_eq_int(rangeEnd.line, g_testData[i].endLine);
