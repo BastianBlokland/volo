@@ -87,7 +87,6 @@ typedef struct {
 typedef struct {
   LspRange              range;
   LspDiagnosticSeverity severity;
-  i32                   code;
   String                message;
 } LspDiagnostic;
 
@@ -294,7 +293,6 @@ static void lsp_send_diagnostics(
     const JsonVal diag = json_add_object(ctx->json);
     json_add_field_lit(ctx->json, diag, "range", lsp_range_to_json(ctx, &values[i].range));
     json_add_field_lit(ctx->json, diag, "severity", json_add_number(ctx->json, values[i].severity));
-    json_add_field_lit(ctx->json, diag, "code", json_add_number(ctx->json, values[i].code));
     json_add_field_lit(ctx->json, diag, "message", json_add_string(ctx->json, values[i].message));
     json_add_elem(ctx->json, diagArray, diag);
   }
@@ -368,7 +366,6 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
             .range.end.line        = readRes.errorEnd.line - 1,
             .range.end.character   = readRes.errorEnd.column - 1,
             .severity              = LspDiagnosticSeverity_Error,
-            .code                  = (i32)readRes.type,
             .message               = script_result_str(readRes.type),
         },
     };
