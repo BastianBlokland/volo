@@ -31,6 +31,7 @@ typedef enum eScriptError {
   ScriptError_MissingColonInSelectExpression,
   ScriptError_UnexpectedTokenAfterExpression,
   ScriptError_NotValidOutsideLoopBody,
+  ScriptError_VariableDeclareNotAllowed,
   ScriptError_AssertionFailed,
   ScriptError_LoopInterationLimitExceeded,
 

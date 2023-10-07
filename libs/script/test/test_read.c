@@ -947,8 +947,9 @@ spec(read) {
         {string_static("var pi"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
+        {string_static("var a = var b = 2"), ScriptError_VariableDeclareNotAllowed},
         {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
-        {string_static("b ="), ScriptError_NoVariableFoundForIdentifier},
+        {string_static("b ="), ScriptError_MissingPrimaryExpression},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
         {string_static("a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("{var a}; a"), ScriptError_NoVariableFoundForIdentifier},
@@ -964,7 +965,8 @@ spec(read) {
       ScriptDiagBag diags = {0};
       script_read(doc, binder, g_testData[i].input, &diags);
 
-      check_require(diags.count >= 1);
+      check_require_msg(diags.count >= 1, "diags.count >= 1 [{}]", fmt_text(g_testData[i].input));
+
       const ScriptDiag* diag = &diags.values[0];
       check_msg(
           diag->error == g_testData[i].expected,
