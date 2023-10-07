@@ -359,14 +359,14 @@ static void lsp_handle_refresh_diagnostics(LspContext* ctx, const String uri, co
   if (readRes.type == ScriptResult_Success) {
     lsp_send_diagnostics(ctx, uri, null, 0); // Clear diagnostics.
   } else {
-    const ScriptPosHuman humanPosStart = script_pos_humanize(text, readRes.errorRange.start);
-    const ScriptPosHuman humanPosEnd   = script_pos_humanize(text, readRes.errorRange.end);
-    const LspDiagnostic  diagnostics[] = {
+    const ScriptPosLineCol rangeStart    = script_pos_to_line_col(text, readRes.errorRange.start);
+    const ScriptPosLineCol rangeEnd      = script_pos_to_line_col(text, readRes.errorRange.end);
+    const LspDiagnostic    diagnostics[] = {
         {
-            .range.start.line      = humanPosStart.line,
-            .range.start.character = humanPosStart.column,
-            .range.end.line        = humanPosEnd.line,
-            .range.end.character   = humanPosEnd.column,
+            .range.start.line      = rangeStart.line,
+            .range.start.character = rangeStart.column,
+            .range.end.line        = rangeEnd.line,
+            .range.end.character   = rangeEnd.column,
             .severity              = LspDiagnosticSeverity_Error,
             .message               = script_result_str(readRes.type),
         },

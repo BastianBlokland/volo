@@ -1025,12 +1025,12 @@ spec(read) {
 
       check_require(res.type != ScriptResult_Success);
 
-      const ScriptPosHuman humanPosStart = script_pos_humanize(input, res.errorRange.start);
-      const ScriptPosHuman humanPosEnd   = script_pos_humanize(input, res.errorRange.end);
-      check_eq_int(humanPosStart.line, g_testData[i].startLine);
-      check_eq_int(humanPosStart.column, g_testData[i].startCol);
-      check_eq_int(humanPosEnd.line, g_testData[i].endLine);
-      check_eq_int(humanPosEnd.column, g_testData[i].endCol);
+      const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, res.errorRange.start);
+      const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(input, res.errorRange.end);
+      check_eq_int(rangeStart.line, g_testData[i].startLine);
+      check_eq_int(rangeStart.column, g_testData[i].startCol);
+      check_eq_int(rangeEnd.line, g_testData[i].endLine);
+      check_eq_int(rangeEnd.column, g_testData[i].endCol);
     }
   }
 

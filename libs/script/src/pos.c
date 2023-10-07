@@ -15,7 +15,7 @@ ScriptPos script_pos_trim(const String sourceText, const ScriptPos pos) {
   return (ScriptPos)(sourceText.size - toEndTrimmed.size);
 }
 
-ScriptPosHuman script_pos_humanize(const String sourceText, const ScriptPos pos) {
+ScriptPosLineCol script_pos_to_line_col(const String sourceText, const ScriptPos pos) {
   diag_assert(pos <= sourceText.size);
   u32 currentPos = 0;
   u16 line = 0, column = 0;
@@ -35,5 +35,5 @@ ScriptPosHuman script_pos_humanize(const String sourceText, const ScriptPos pos)
       ++column;
     }
   }
-  return (ScriptPosHuman){.line = line, .column = column};
+  return (ScriptPosLineCol){.line = line, .column = column};
 }

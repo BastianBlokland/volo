@@ -6,15 +6,15 @@
 void script_diag_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
   diag_assert(diag->error != ScriptResult_Success);
 
-  const ScriptPosHuman humanPosStart = script_pos_humanize(sourceText, diag->range.start);
-  const ScriptPosHuman humanPosEnd   = script_pos_humanize(sourceText, diag->range.end);
+  const ScriptPosLineCol rangeStart = script_pos_to_line_col(sourceText, diag->range.start);
+  const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(sourceText, diag->range.end);
   fmt_write(
       out,
       "{}:{}-{}:{}: {}",
-      fmt_int(humanPosStart.line + 1),
-      fmt_int(humanPosStart.column + 1),
-      fmt_int(humanPosEnd.line + 1),
-      fmt_int(humanPosEnd.column + 1),
+      fmt_int(rangeStart.line + 1),
+      fmt_int(rangeStart.column + 1),
+      fmt_int(rangeEnd.line + 1),
+      fmt_int(rangeEnd.column + 1),
       fmt_text(script_result_str(diag->error)));
 }
 
