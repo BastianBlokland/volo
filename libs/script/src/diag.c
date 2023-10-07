@@ -11,6 +11,16 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
   return true;
 }
 
+u32 script_diag_count_of_type(const ScriptDiagBag* bag, const ScriptDiagType type) {
+  u32 count = 0;
+  for (u32 i = 0; i != bag->count; ++i) {
+    if (bag->values[i].type == type) {
+      ++count;
+    }
+  }
+  return count;
+}
+
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
 
 String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) {

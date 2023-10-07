@@ -22,6 +22,7 @@ typedef struct sScriptDiagBag {
 } ScriptDiagBag;
 
 bool script_diag_push(ScriptDiagBag*, const ScriptDiag*);
+u32  script_diag_count_of_type(const ScriptDiagBag*, ScriptDiagType);
 void script_diag_clear(ScriptDiagBag*);
 
 String script_diag_msg_scratch(String sourceText, const ScriptDiag*);
