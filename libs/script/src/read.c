@@ -512,7 +512,7 @@ static bool read_is_block_end(const ScriptTokenType tokenType, const ScriptBlock
 }
 
 static bool read_is_block_separator(const ScriptTokenType tokenType) {
-  return tokenType == ScriptTokenType_Newline || tokenType == ScriptTokenType_SemiColon;
+  return tokenType == ScriptTokenType_Newline || tokenType == ScriptTokenType_Semicolon;
 }
 
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
@@ -554,7 +554,7 @@ BlockNext:
     read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
     return read_fail_structural(ctx);
   }
-  if (sepToken.type == ScriptTokenType_SemiColon) {
+  if (sepToken.type == ScriptTokenType_Semicolon) {
     read_emit_unnessary_semicolon(ctx, sepRange);
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -930,8 +930,8 @@ typedef enum {
 
 static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp comp) {
   static const ScriptTokenType g_endTokens[] = {
-      [ReadIfComp_Setup]     = ScriptTokenType_SemiColon,
-      [ReadIfComp_Condition] = ScriptTokenType_SemiColon,
+      [ReadIfComp_Setup]     = ScriptTokenType_Semicolon,
+      [ReadIfComp_Condition] = ScriptTokenType_Semicolon,
       [ReadIfComp_Increment] = ScriptTokenType_ParenClose,
   };
   const ScriptPos start = read_pos_current(ctx);
@@ -1137,7 +1137,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   /**
    * Lex errors.
    */
-  case ScriptTokenType_SemiColon:
+  case ScriptTokenType_Semicolon:
     read_emit_err(ctx, ScriptError_UnexpectedSemicolon, start);
     return read_fail_structural(ctx);
   case ScriptTokenType_Error:

@@ -77,7 +77,7 @@ spec(lex) {
         {string_static("?\?="), tok_simple(QMarkQMarkEq)},
 
         {string_static(":"), tok_simple(Colon)},
-        {string_static(";"), tok_simple(SemiColon)},
+        {string_static(";"), tok_simple(Semicolon)},
 
         {string_static("42"), tok_number(42)},
         {string_static("0.0"), tok_number(0.0)},

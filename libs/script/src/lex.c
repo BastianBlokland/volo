@@ -230,7 +230,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     case ':':
       return out->type = ScriptTokenType_Colon, string_consume(str, 1);
     case ';':
-      return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
+      return out->type = ScriptTokenType_Semicolon, string_consume(str, 1);
     case '+':
       if (script_peek(str, 1) == '=') {
         return out->type = ScriptTokenType_PlusEq, string_consume(str, 2);
@@ -423,7 +423,7 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("%=");
   case ScriptTokenType_Colon:
     return string_lit(":");
-  case ScriptTokenType_SemiColon:
+  case ScriptTokenType_Semicolon:
     return string_lit(";");
   case ScriptTokenType_AmpAmp:
     return string_lit("&&");

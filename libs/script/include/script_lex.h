@@ -27,7 +27,7 @@ typedef enum {
   ScriptTokenType_Percent,      // %
   ScriptTokenType_PercentEq,    // %=
   ScriptTokenType_Colon,        // :
-  ScriptTokenType_SemiColon,    // ;
+  ScriptTokenType_Semicolon,    // ;
   ScriptTokenType_AmpAmp,       // &&
   ScriptTokenType_PipePipe,     // ||
   ScriptTokenType_QMark,        // ?

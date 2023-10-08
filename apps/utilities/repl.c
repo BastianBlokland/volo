@@ -173,7 +173,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_Percent:
   case ScriptTokenType_PercentEq:
   case ScriptTokenType_Colon:
-  case ScriptTokenType_SemiColon:
+  case ScriptTokenType_Semicolon:
   case ScriptTokenType_AmpAmp:
   case ScriptTokenType_PipePipe:
   case ScriptTokenType_QMark:
