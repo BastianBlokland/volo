@@ -24,6 +24,7 @@ typedef enum eScriptError {
   ScriptError_UnexpectedSemicolon,
   ScriptError_ArgumentCountExceedsMaximum,
   ScriptError_InvalidConditionCount,
+  ScriptError_InvalidIf,
   ScriptError_InvalidWhileLoop,
   ScriptError_InvalidForLoop,
   ScriptError_BlockExpected,

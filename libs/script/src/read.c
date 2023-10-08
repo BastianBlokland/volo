@@ -791,7 +791,7 @@ static ScriptExpr read_expr_function(
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
-    return read_emit_err(ctx, ScriptError_InvalidConditionCount, start), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptError_InvalidIf, start), read_fail_structural(ctx);
   }
 
   ScriptScope scope = {0};

@@ -904,7 +904,7 @@ spec(read) {
         {string_static("{1;"), ScriptError_UnterminatedBlock},
         {string_static("{1;2"), ScriptError_UnterminatedBlock},
         {string_static("{1;2;"), ScriptError_UnterminatedBlock},
-        {string_static("if"), ScriptError_InvalidConditionCount},
+        {string_static("if"), ScriptError_InvalidIf},
         {string_static("if("), ScriptError_UnterminatedArgumentList},
         {string_static("if()"), ScriptError_InvalidConditionCount},
         {string_static("if(1,2)"), ScriptError_InvalidConditionCount},

@@ -25,6 +25,7 @@ static const String g_errorStrs[] = {
     string_static("Unexpected semicolon"),
     string_static("Argument count exceeds maximum"),
     string_static("Invalid condition count"),
+    string_static("Invalid if"),
     string_static("Invalid while loop"),
     string_static("Invalid for loop"),
     string_static("Block expected"),
