@@ -7,6 +7,7 @@ typedef enum eScriptError {
   ScriptError_InvalidUtf8,
   ScriptError_InvalidCharInNumber,
   ScriptError_NumberEndsWithDecPoint,
+  ScriptError_NumberEndsWithSeparator,
   ScriptError_KeyEmpty,
   ScriptError_UnterminatedString,
   ScriptError_RecursionLimitExceeded,

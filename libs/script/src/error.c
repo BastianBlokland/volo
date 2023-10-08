@@ -8,6 +8,7 @@ static const String g_errorStrs[] = {
     string_static("Invalid Utf8 text"),
     string_static("Invalid character in number"),
     string_static("Number ends with a decimal point"),
+    string_static("Number ends with a separator"),
     string_static("Key cannot be empty"),
     string_static("String is not terminated"),
     string_static("Recursion limit exceeded"),

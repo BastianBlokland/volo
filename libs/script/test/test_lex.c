@@ -93,6 +93,12 @@ spec(lex) {
         {string_static("0a123"), tok_err(InvalidCharInNumber)},
         {string_static("0123a"), tok_err(InvalidCharInNumber)},
         {string_static("01a2a3a"), tok_err(InvalidCharInNumber)},
+        {string_static("_42"), tok_err(InvalidChar)},
+        {string_static("42_"), tok_err(NumberEndsWithSeparator)},
+        {string_static("4_2"), tok_number(42.0)},
+        {string_static("1_3_3_7"), tok_number(1337.0)},
+        {string_static("13_37"), tok_number(1337.0)},
+        {string_static("1_3___3_7"), tok_number(1337.0)},
 
         {string_static("null"), tok_id_lit("null")},
         {string_static("true"), tok_id_lit("true")},

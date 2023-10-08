@@ -149,11 +149,13 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '7':
     case '8':
     case '9':
-      mantissa = mantissa * 10.0 + curChar - '0';
+      mantissa = mantissa * 10.0 + (curChar - '0');
       if (passedDecPoint) {
         divider *= 10.0;
       }
       break;
+    case '_':
+      break; // Ignore underscores as legal digit separators.
     default:
       if (script_is_word_separator(curChar)) {
         goto NumberEnd;
@@ -170,6 +172,9 @@ NumberEnd:
   }
   if (UNLIKELY(curChar == '.')) {
     return *out = script_token_err(ScriptError_NumberEndsWithDecPoint), str;
+  }
+  if (UNLIKELY(curChar == '_')) {
+    return *out = script_token_err(ScriptError_NumberEndsWithSeparator), str;
   }
   out->type       = ScriptTokenType_Number;
   out->val_number = mantissa / divider;
