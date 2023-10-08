@@ -248,13 +248,20 @@ typedef struct sScriptScope {
   struct sScriptScope* next;
 } ScriptScope;
 
+// clang-format off
+
 typedef enum {
   ScriptSection_ProgramInvalid     = 1 << 0,
   ScriptSection_InsideLoop         = 1 << 1,
   ScriptSection_DisallowVarDeclare = 1 << 2,
   ScriptSection_DisallowLoop       = 1 << 3,
-  ScriptSection_DisallowStatement  = ScriptSection_DisallowVarDeclare | ScriptSection_DisallowLoop
+  ScriptSection_DisallowIf         = 1 << 4,
+  ScriptSection_DisallowStatement  = ScriptSection_DisallowVarDeclare |
+                                     ScriptSection_DisallowLoop       |
+                                     ScriptSection_DisallowIf
 } ScriptSection;
+
+// clang-format on
 
 typedef struct {
   ScriptDoc*          doc;
@@ -488,7 +495,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   UNREACHABLE
 }
 
-static void read_emit_unnessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
+static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
   if (!ctx->diags) {
     return;
   }
@@ -582,7 +589,7 @@ BlockNext:
     return read_fail_structural(ctx);
   }
   if (sepToken.type == ScriptTokenType_Semicolon) {
-    read_emit_unnessary_semicolon(ctx, sepRange);
+    read_emit_unnecessary_semicolon(ctx, sepRange);
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
@@ -1064,6 +1071,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Keywords.
    */
   case ScriptTokenType_If:
+    if (UNLIKELY(read_section_active(ctx, ScriptSection_DisallowIf))) {
+      return read_emit_err(ctx, ScriptError_IfNotAllowed, start), read_fail_structural(ctx);
+    }
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
     if (UNLIKELY(read_section_active(ctx, ScriptSection_DisallowLoop))) {
@@ -1275,12 +1285,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

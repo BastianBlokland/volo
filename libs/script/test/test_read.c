@@ -961,6 +961,7 @@ spec(read) {
         {string_static("var a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a = while(1) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a = if(1) {}"), ScriptError_IfNotAllowed},
         {string_static("var a = a"), ScriptError_NoVarFoundForId},
         {string_static("b ="), ScriptError_MissingPrimaryExpr},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpr},
