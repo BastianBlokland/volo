@@ -86,6 +86,8 @@ spec(lex) {
         {string_static(".1"), tok_number(.1)},
         {string_static(".000000000000001337"), tok_number(.000000000000001337)},
         {string_static("0.0"), tok_number(0.0)},
+        {string_static("0."), tok_err(NumberEndsWithDecPoint)},
+        {string_static("0.0."), tok_err(NumberEndsWithDecPoint)},
         {string_static("0.17976931348623157"), tok_number(0.17976931348623157)},
         {string_static("0a"), tok_err(InvalidCharInNumber)},
         {string_static("0a123"), tok_err(InvalidCharInNumber)},

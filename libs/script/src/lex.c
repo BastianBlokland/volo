@@ -128,15 +128,13 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
   f64  divider        = 1.0;
   bool passedDecPoint = false;
   bool invalidChar    = false;
-  bool endsWithDot    = false;
 
+  u8 curChar = '\0';
   while (!string_is_empty(str)) {
-    const u8 ch = *string_begin(str);
-    switch (ch) {
+    switch ((curChar = *string_begin(str))) {
     case '.':
       if (UNLIKELY(passedDecPoint)) {
-        endsWithDot = true;
-        str         = mem_consume(str, 1);
+        str = mem_consume(str, 1);
         goto NumberEnd;
       }
       passedDecPoint = true;
@@ -151,13 +149,13 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '7':
     case '8':
     case '9':
-      mantissa = mantissa * 10.0 + ch - '0';
+      mantissa = mantissa * 10.0 + curChar - '0';
       if (passedDecPoint) {
         divider *= 10.0;
       }
       break;
     default:
-      if (script_is_word_separator(ch)) {
+      if (script_is_word_separator(curChar)) {
         goto NumberEnd;
       }
       invalidChar = true;
@@ -169,6 +167,9 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
 NumberEnd:
   if (UNLIKELY(invalidChar)) {
     return *out = script_token_err(ScriptError_InvalidCharInNumber), str;
+  }
+  if (UNLIKELY(curChar == '.')) {
+    return *out = script_token_err(ScriptError_NumberEndsWithDecPoint), str;
   }
   out->type       = ScriptTokenType_Number;
   out->val_number = mantissa / divider;
