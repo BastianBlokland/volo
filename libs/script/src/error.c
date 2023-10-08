@@ -28,6 +28,7 @@ static const String g_errorStrs[] = {
     string_static("Invalid if"),
     string_static("Invalid while loop"),
     string_static("Invalid for loop"),
+    string_static("Too few for loop components"),
     string_static("Block expected"),
     string_static("Block or if expected"),
     string_static("Missing colon in select expression"),

@@ -27,6 +27,7 @@ typedef enum eScriptError {
   ScriptError_InvalidIf,
   ScriptError_InvalidWhileLoop,
   ScriptError_InvalidForLoop,
+  ScriptError_ForLoopCompMissing,
   ScriptError_BlockExpected,
   ScriptError_BlockOrIfExpected,
   ScriptError_MissingColonInSelectExpression,

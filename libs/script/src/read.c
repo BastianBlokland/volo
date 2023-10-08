@@ -904,13 +904,15 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
   if (read_peek(ctx).type == g_endTokens[comp]) {
     const ScriptVal skipVal = comp == ReadIfComp_Condition ? script_bool(true) : script_null();
     res                     = script_add_value(ctx->doc, skipVal);
+  } else if (read_peek(ctx).type == ScriptTokenType_ParenClose) {
+    return read_emit_err(ctx, ScriptError_ForLoopCompMissing, start), read_fail_structural(ctx);
   } else {
     res = read_expr(ctx, OpPrecedence_None);
     if (UNLIKELY(sentinel_check(res))) {
       return read_fail_structural(ctx);
     }
   }
-  if (!read_consume_if(ctx, g_endTokens[comp])) {
+  if (read_consume(ctx).type != g_endTokens[comp]) {
     return read_emit_err(ctx, ScriptError_InvalidForLoop, start), read_fail_structural(ctx);
   }
   return res;
