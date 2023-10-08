@@ -8,7 +8,7 @@ var unitPrefab    = "InfantryEnemy"
 
 $nextWaveTime ??= time() + random(intervalMin, intervalMax)
 if($nextWaveTime <= time()) {
-  $nextWaveTime = null;
+  $nextWaveTime = null
 
   var center      = position(self())
   var faction     = faction(self()) ?? "FactionB"

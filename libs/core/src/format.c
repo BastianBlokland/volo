@@ -377,7 +377,7 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
   if (val < 0.0) {
     dynstring_append_char(str, '-');
     val = -val;
-  } else if(opts->plusSign) {
+  } else if (opts->plusSign) {
     dynstring_append_char(str, '+');
   }
   if (float_isinf(val)) {
@@ -706,7 +706,7 @@ String format_read_f64(String input, f64* output) {
   bool passedDecPoint = false;
 
   while (!string_is_empty(input)) {
-    const char ch = *string_begin(input);
+    const u8 ch = *string_begin(input);
     if (ch == '.' && !passedDecPoint) {
       passedDecPoint = true;
       format_mem_consume_inplace(&input, 1);

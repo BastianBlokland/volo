@@ -124,8 +124,64 @@ static u8 script_peek(const String str, const u32 ahead) {
 }
 
 static String script_lex_number_positive(String str, ScriptToken* out) {
-  out->type = ScriptTokenType_Number;
-  return format_read_f64(str, &out->val_number);
+  f64  mantissa       = 0.0;
+  f64  divider        = 1.0;
+  bool passedDecPoint = false;
+  bool invalidChar    = false;
+
+  u8 lastChar = '\0';
+  while (!string_is_empty(str)) {
+    const u8 ch = *string_begin(str);
+    switch (ch) {
+    case '.':
+      if (UNLIKELY(passedDecPoint)) {
+        lastChar = ch;
+        str      = mem_consume(str, 1);
+        goto NumberEnd;
+      }
+      passedDecPoint = true;
+      break;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      mantissa = mantissa * 10.0 + (ch - '0');
+      if (passedDecPoint) {
+        divider *= 10.0;
+      }
+      break;
+    case '_':
+      break; // Ignore underscores as legal digit separators.
+    default:
+      if (script_is_word_separator(ch)) {
+        goto NumberEnd;
+      }
+      invalidChar = true;
+      break;
+    }
+    lastChar = ch;
+    str      = mem_consume(str, 1);
+  }
+
+NumberEnd:
+  if (UNLIKELY(invalidChar)) {
+    return *out = script_token_err(ScriptError_InvalidCharInNumber), str;
+  }
+  if (UNLIKELY(lastChar == '.')) {
+    return *out = script_token_err(ScriptError_NumberEndsWithDecPoint), str;
+  }
+  if (UNLIKELY(lastChar == '_')) {
+    return *out = script_token_err(ScriptError_NumberEndsWithSeparator), str;
+  }
+  out->type       = ScriptTokenType_Number;
+  out->val_number = mantissa / divider;
+  return str;
 }
 
 static String script_lex_key(String str, StringTable* stringtable, ScriptToken* out) {
@@ -134,14 +190,12 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    *out = script_token_err(ScriptError_KeyEmpty);
-    return str;
+    return *out = script_token_err(ScriptError_KeyEmpty), str;
   }
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
 
@@ -156,14 +210,12 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
-    *out = script_token_err(ScriptError_UnterminatedString);
-    return str;
+    return *out = script_token_err(ScriptError_UnterminatedString), str;
   }
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
   const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
 
@@ -178,8 +230,7 @@ static String script_lex_identifier(String str, ScriptToken* out) {
 
   const String identifier = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(identifier))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
 
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
@@ -230,7 +281,7 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     case ':':
       return out->type = ScriptTokenType_Colon, string_consume(str, 1);
     case ';':
-      return out->type = ScriptTokenType_SemiColon, string_consume(str, 1);
+      return out->type = ScriptTokenType_Semicolon, string_consume(str, 1);
     case '+':
       if (script_peek(str, 1) == '=') {
         return out->type = ScriptTokenType_PlusEq, string_consume(str, 2);
@@ -423,7 +474,7 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("%=");
   case ScriptTokenType_Colon:
     return string_lit(":");
-  case ScriptTokenType_SemiColon:
+  case ScriptTokenType_Semicolon:
     return string_lit(";");
   case ScriptTokenType_AmpAmp:
     return string_lit("&&");
