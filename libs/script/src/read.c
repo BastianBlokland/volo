@@ -274,13 +274,13 @@ typedef struct {
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
 } ScriptReadContext;
 
-static ScriptSection read_section_start(ScriptReadContext* ctx, const ScriptSection sectionFlags) {
+static ScriptSection read_subsection(ScriptReadContext* ctx, const ScriptSection sectionFlags) {
   const ScriptSection sectionModification = sectionFlags & ~ctx->section;
   ctx->section |= sectionFlags;
   return sectionModification;
 }
 
-static void read_section_end(ScriptReadContext* ctx, const ScriptSection sectionFlags) {
+static void read_subsection_end(ScriptReadContext* ctx, const ScriptSection sectionFlags) {
   ctx->section &= ~sectionFlags;
 }
 
@@ -724,9 +724,9 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
-    const ScriptSection section = read_section_start(ctx, ScriptSection_DisallowStatement);
+    const ScriptSection section = read_subsection(ctx, ScriptSection_DisallowStatement);
     valExpr                     = read_expr(ctx, OpPrecedence_Assignment);
-    read_section_end(ctx, section);
+    read_subsection_end(ctx, section);
     if (UNLIKELY(sentinel_check(valExpr))) {
       return read_fail_structural(ctx);
     }
@@ -935,9 +935,9 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  const ScriptSection section = read_section_start(ctx, ScriptSection_InsideLoop);
+  const ScriptSection section = read_subsection(ctx, ScriptSection_InsideLoop);
   const ScriptExpr    body    = read_expr_scope_block(ctx);
-  read_section_end(ctx, section);
+  read_subsection_end(ctx, section);
 
   if (UNLIKELY(sentinel_check(body))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1012,9 +1012,9 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  const ScriptSection section = read_section_start(ctx, ScriptSection_InsideLoop);
+  const ScriptSection section = read_subsection(ctx, ScriptSection_InsideLoop);
   const ScriptExpr    body    = read_expr_scope_block(ctx);
-  read_section_end(ctx, section);
+  read_subsection_end(ctx, section);
 
   if (UNLIKELY(sentinel_check(body))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
