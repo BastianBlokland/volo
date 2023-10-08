@@ -503,12 +503,29 @@ BlockNext:
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
   }
-  ScriptToken sepToken;
+
+  const ScriptPos sepStart = read_pos_current(ctx);
+  ScriptToken     sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
+  const ScriptPosRange sepRange = read_range_current(ctx, sepStart);
+
   if (!read_is_block_separator(sepToken.type)) {
     read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
     return read_fail_structural(ctx);
   }
+  if (ctx->diags && sepToken.type == ScriptTokenType_SemiColon) {
+    ScriptToken nextToken;
+    script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
+    if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
+      const ScriptDiag unnecessaryDiag = {
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_UnnecessarySemicolon,
+          .range = read_range_trim(ctx, sepRange),
+      };
+      script_diag_push(ctx->diags, &unnecessaryDiag);
+    }
+  }
+
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
   }

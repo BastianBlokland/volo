@@ -23,6 +23,7 @@ static const String g_errorStrs[] = {
     string_static("Block size exceeds maximum"),
     string_static("Missing semicolon"),
     string_static("Unexpected semicolon"),
+    string_static("Unnecessary semicolon"),
     string_static("Argument count exceeds maximum"),
     string_static("Invalid condition count"),
     string_static("Invalid if-expression"),
