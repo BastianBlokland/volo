@@ -469,9 +469,20 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   case ScriptExprType_Value:
   case ScriptExprType_VarLoad:
   case ScriptExprType_MemLoad:
-  case ScriptExprType_Intrinsic:
   case ScriptExprType_Block:
     return;
+  case ScriptExprType_Intrinsic: {
+    const ScriptExprData* data = dynarray_at_t(&doc->exprData, expr, ScriptExprData);
+    switch (data->data_intrinsic.intrinsic) {
+    case ScriptIntrinsic_Continue:
+    case ScriptIntrinsic_Break:
+    case ScriptIntrinsic_Assert:
+      *hasSideEffect = true;
+      // Fallthrough.
+    default:
+      return;
+    }
+  }
   case ScriptExprType_Count:
     break;
   }
