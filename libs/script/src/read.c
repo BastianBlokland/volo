@@ -758,7 +758,9 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier, const 
 
 static ScriptExpr
 read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier, const ScriptPos start) {
-  const ScriptExpr expr = read_expr(ctx, OpPrecedence_Assignment);
+  const ScriptSection subsection = read_subsection(ctx, ScriptSection_DisallowStatement);
+  const ScriptExpr    expr       = read_expr(ctx, OpPrecedence_Assignment);
+  read_subsection_end(ctx, subsection);
   if (UNLIKELY(sentinel_check(expr))) {
     return read_fail_structural(ctx);
   }
