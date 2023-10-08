@@ -34,6 +34,7 @@ static const String g_errorStrs[] = {
     string_static("{} not valid outside a loop body"),
     string_static("Variable declaration is not allowed in this context"),
     string_static("Variable '{}' is not used"),
+    string_static("Expression has no effect"),
     string_static("Assertion failed"),
     string_static("Loop iteration limit exceeded"),
 };
