@@ -811,10 +811,12 @@ static ScriptExpr read_expr_mem_store(ScriptReadContext* ctx, const StringHash k
 
 static ScriptExpr
 read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptTokenType type) {
-  const ScriptIntrinsic intr = token_op_binary_modify(type);
-  const ScriptExpr      val  = token_intr_rhs_scope(intr)
-                                   ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
-                                   : read_expr(ctx, OpPrecedence_Assignment);
+  const ScriptSection   subsection = read_subsection(ctx, ScriptSection_DisallowStatement);
+  const ScriptIntrinsic intr       = token_op_binary_modify(type);
+  const ScriptExpr      val        = token_intr_rhs_scope(intr)
+                                         ? read_expr_scope_single(ctx, OpPrecedence_Assignment)
+                                         : read_expr(ctx, OpPrecedence_Assignment);
+  read_subsection_end(ctx, subsection);
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
