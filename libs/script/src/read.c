@@ -477,6 +477,28 @@ static void read_emit_unnessary_semicolon(ScriptReadContext* ctx, const ScriptPo
   }
 }
 
+static void read_emit_no_effect(
+    ScriptReadContext*   ctx,
+    const ScriptExpr     exprs[],
+    const ScriptPosRange exprRanges[],
+    const u32            exprCount) {
+  if (!ctx->diags) {
+    return;
+  }
+  for (u32 i = 0; i != (exprCount - 1); ++i) {
+    bool hasSideEffect = false;
+    script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
+    if (!hasSideEffect) {
+      const ScriptDiag noEffectDiag = {
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExpressionHasNoEffect,
+          .range = read_range_trim(ctx, exprRanges[i]),
+      };
+      script_diag_push(ctx->diags, &noEffectDiag);
+    }
+  }
+}
+
 typedef enum {
   ScriptBlockType_Implicit,
   ScriptBlockType_Explicit,
@@ -546,20 +568,7 @@ BlockEnd:
   case 1:
     return exprs[0];
   default:
-    if (ctx->diags) {
-      for (u32 i = 0; i != (exprCount - 1); ++i) {
-        bool hasSideEffect = false;
-        script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
-        if (!hasSideEffect) {
-          const ScriptDiag noEffectDiag = {
-              .type  = ScriptDiagType_Warning,
-              .error = ScriptError_ExpressionHasNoEffect,
-              .range = read_range_trim(ctx, exprRanges[i]),
-          };
-          script_diag_push(ctx->diags, &noEffectDiag);
-        }
-      }
-    }
+    read_emit_no_effect(ctx, exprs, exprRanges, exprCount);
     return script_add_block(ctx->doc, exprs, exprCount);
   }
 }
