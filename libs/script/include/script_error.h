@@ -9,7 +9,7 @@ typedef enum eScriptError {
   ScriptError_UnterminatedString,
   ScriptError_RecursionLimitExceeded,
   ScriptError_VariableLimitExceeded,
-  ScriptError_VariableIdentifierMissing,
+  ScriptError_VariableIdentifierInvalid,
   ScriptError_VariableIdentifierConflicts,
   ScriptError_MissingPrimaryExpression,
   ScriptError_InvalidPrimaryExpression,

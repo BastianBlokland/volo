@@ -640,7 +640,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
   const ScriptPos   startPos = read_pos_current(ctx);
   const ScriptToken token    = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    read_emit_err(ctx, ScriptError_VariableIdentifierMissing, startPos);
+    read_emit_err(ctx, ScriptError_VariableIdentifierInvalid, startPos);
     return read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
@@ -1210,12 +1210,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
