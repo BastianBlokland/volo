@@ -458,7 +458,6 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
-  bool       valid     = true;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -469,12 +468,13 @@ BlockNext:
     read_emit_err(ctx, ScriptError_BlockSizeExceedsMaximum, blockStart);
     return read_fail_structural(ctx);
   }
-  const ScriptPos      exprStart = read_pos_current(ctx);
-  const ScriptExpr     exprNew   = read_expr(ctx, OpPrecedence_None);
+  const ScriptPos  exprStart = read_pos_current(ctx);
+  const ScriptExpr exprNew   = read_expr(ctx, OpPrecedence_None);
+  if (UNLIKELY(sentinel_check(exprNew))) {
+    return read_fail_structural(ctx);
+  }
   const ScriptPosRange exprRange = read_range_current(ctx, exprStart);
-
-  valid &= LIKELY(!sentinel_check(exprNew));
-  exprs[exprCount++] = exprNew;
+  exprs[exprCount++]             = exprNew;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
@@ -482,10 +482,7 @@ BlockNext:
   ScriptToken sepToken;
   ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
   if (!read_is_block_separator(sepToken.type)) {
-    if (LIKELY(valid)) {
-      // NOTE: Skip this diag when the block is already invalid, this avoids some error spam.
-      read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
-    }
+    read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
     return read_fail_structural(ctx);
   }
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
@@ -493,9 +490,6 @@ BlockNext:
   }
 
 BlockEnd:
-  if (UNLIKELY(!valid)) {
-    return read_fail_structural(ctx);
-  }
   switch (exprCount) {
   case 0:
     return script_add_value(ctx->doc, script_null());
