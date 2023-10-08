@@ -125,7 +125,52 @@ static u8 script_peek(const String str, const u32 ahead) {
 
 static String script_lex_number_positive(String str, ScriptToken* out) {
   out->type = ScriptTokenType_Number;
-  return format_read_f64(str, &out->val_number);
+
+  f64  mantissa       = 0.0;
+  f64  divider        = 1.0;
+  bool passedDecPoint = false;
+  bool invalidChar    = false;
+  bool endsWithDot    = false;
+
+  while (!string_is_empty(str)) {
+    const u8 ch = *string_begin(str);
+    switch (ch) {
+    case '.':
+      if (UNLIKELY(passedDecPoint)) {
+        endsWithDot = true;
+        str         = mem_consume(str, 1);
+        goto NumberEnd;
+      }
+      passedDecPoint = true;
+      break;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      mantissa = mantissa * 10.0 + ch - '0';
+      if (passedDecPoint) {
+        divider *= 10.0;
+      }
+      break;
+    default:
+      if (script_is_word_separator(ch)) {
+        goto NumberEnd;
+      }
+      invalidChar = true;
+      break;
+    }
+    str = mem_consume(str, 1);
+  }
+
+NumberEnd:
+  out->val_number = mantissa / divider;
+  return str;
 }
 
 static String script_lex_key(String str, StringTable* stringtable, ScriptToken* out) {
