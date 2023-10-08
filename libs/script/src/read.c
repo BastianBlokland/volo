@@ -258,13 +258,16 @@ typedef enum {
 // clang-format off
 
 typedef enum {
-  ScriptSection_InsideLoop         = 1 << 0,
-  ScriptSection_DisallowVarDeclare = 1 << 1,
-  ScriptSection_DisallowLoop       = 1 << 2,
-  ScriptSection_DisallowIf         = 1 << 3,
-  ScriptSection_DisallowStatement  = ScriptSection_DisallowVarDeclare |
-                                     ScriptSection_DisallowLoop       |
-                                     ScriptSection_DisallowIf
+  ScriptSection_InsideLoop           = 1 << 0,
+  ScriptSection_DisallowVarDeclare   = 1 << 1,
+  ScriptSection_DisallowLoop         = 1 << 2,
+  ScriptSection_DisallowIf           = 1 << 3,
+  ScriptSection_DisallowStatement    = 0 | ScriptSection_DisallowVarDeclare
+                                         | ScriptSection_DisallowLoop
+                                         | ScriptSection_DisallowIf
+                                       ,
+  ScriptSection_ResetOnExplicitScope = 0 | ScriptSection_DisallowStatement
+                                       ,
 } ScriptSection;
 
 // clang-format on
@@ -281,9 +284,15 @@ typedef struct {
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
 } ScriptReadContext;
 
-static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection newSection) {
+static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
   const ScriptSection oldSection = ctx->section;
-  ctx->section |= newSection;
+  ctx->section |= flags;
+  return oldSection;
+}
+
+static ScriptSection read_section_reset(ScriptReadContext* ctx, const ScriptSection flags) {
+  const ScriptSection oldSection = ctx->section;
+  ctx->section &= ~flags;
   return oldSection;
 }
 
@@ -614,7 +623,9 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  const ScriptExpr expr = read_expr_block(ctx, ScriptBlockType_Explicit);
+  const ScriptSection prevSection = read_section_reset(ctx, ScriptSection_ResetOnExplicitScope);
+  const ScriptExpr    expr        = read_expr_block(ctx, ScriptBlockType_Explicit);
+  ctx->section                    = prevSection;
 
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);

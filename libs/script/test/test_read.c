@@ -769,6 +769,16 @@ spec(read) {
                           "  [value: 1]\n"
                           "  [value: 2]"),
         },
+        {
+            string_static("var sqrOf42 = { var i = 42; i * i }"),
+            string_static("[var-store: 0]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 42]\n"
+                          "    [intrinsic: mul]\n"
+                          "      [var-load: 0]\n"
+                          "      [var-load: 0]"),
+        },
 
         // Variables.
         {
