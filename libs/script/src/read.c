@@ -520,16 +520,18 @@ BlockEnd:
   case 1:
     return exprs[0];
   default:
-    for (u32 i = 0; i != (exprCount - 1); ++i) {
-      bool hasSideEffect = false;
-      script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
-      if (!hasSideEffect) {
-        const ScriptDiag noEffectDiag = {
-            .type  = ScriptDiagType_Warning,
-            .error = ScriptError_ExpressionHasNoEffect,
-            .range = read_range_trim(ctx, exprRanges[i]),
-        };
-        script_diag_push(ctx->diags, &noEffectDiag);
+    if (ctx->diags) {
+      for (u32 i = 0; i != (exprCount - 1); ++i) {
+        bool hasSideEffect = false;
+        script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
+        if (!hasSideEffect) {
+          const ScriptDiag noEffectDiag = {
+              .type  = ScriptDiagType_Warning,
+              .error = ScriptError_ExpressionHasNoEffect,
+              .range = read_range_trim(ctx, exprRanges[i]),
+          };
+          script_diag_push(ctx->diags, &noEffectDiag);
+        }
       }
     }
     return script_add_block(ctx->doc, exprs, exprCount);
