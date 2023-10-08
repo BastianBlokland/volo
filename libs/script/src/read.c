@@ -318,7 +318,7 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
     if (scope->vars[i].id && !scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .type  = ScriptDiagType_Warning,
-          .error = ScriptError_VariableUnused,
+          .error = ScriptError_VarUnused,
           .range = read_range_trim(ctx, scope->vars[i].declRange),
       };
       script_diag_push(ctx->diags, &unusedDiag);
@@ -518,7 +518,7 @@ static void read_emit_no_effect(
     if (!hasSideEffect) {
       const ScriptDiag noEffectDiag = {
           .type  = ScriptDiagType_Warning,
-          .error = ScriptError_ExpressionHasNoEffect,
+          .error = ScriptError_ExprHasNoEffect,
           .range = read_range_trim(ctx, exprRanges[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
@@ -648,7 +648,7 @@ static ScriptExpr read_expr_paren(ScriptReadContext* ctx, const ScriptPos start)
   }
   const ScriptToken closeToken = read_consume(ctx);
   if (UNLIKELY(closeToken.type != ScriptTokenType_ParenClose)) {
-    read_emit_err(ctx, ScriptError_UnclosedParenthesizedExpression, start);
+    read_emit_err(ctx, ScriptError_UnclosedParenthesizedExpr, start);
     return read_fail_structural(ctx);
   }
   return expr;
@@ -677,7 +677,7 @@ ArgNext:;
     return read_emit_err(ctx, ScriptError_ArgumentCountExceedsMaximum, argsStart), -1;
   }
   if (UNLIKELY(read_consume_if(ctx, ScriptTokenType_ParenClose))) {
-    return read_emit_err(ctx, ScriptError_MissingPrimaryExpression, argStart), -1;
+    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, argStart), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   valid &= !sentinel_check(arg);
@@ -702,15 +702,14 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
   const ScriptPos   startPos = read_pos_current(ctx);
   const ScriptToken token    = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Identifier)) {
-    read_emit_err(ctx, ScriptError_VariableIdentifierInvalid, startPos);
-    return read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptError_VarIdInvalid, startPos), read_fail_structural(ctx);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VariableIdentifierConflicts, startPos);
+    read_emit_err(ctx, ScriptError_VarIdConflicts, startPos);
     read_fail_semantic(ctx);
   }
   if (read_var_lookup(ctx, token.val_identifier)) {
-    read_emit_err(ctx, ScriptError_VariableIdentifierConflicts, startPos);
+    read_emit_err(ctx, ScriptError_VarIdConflicts, startPos);
     read_fail_semantic(ctx);
   }
 
@@ -730,8 +729,7 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptVarId varId;
   if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
-    read_emit_err(ctx, ScriptError_VariableLimitExceeded, startPos);
-    return read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_VarLimitExceeded, startPos), read_fail_semantic(ctx);
   }
 
   return script_add_var_store(ctx->doc, varId, valExpr);
@@ -748,8 +746,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash identifier, const 
     var->used = true;
     return script_add_var_load(ctx->doc, var->varSlot);
   }
-  read_emit_err(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-  return read_fail_semantic(ctx);
+  return read_emit_err(ctx, ScriptError_NoVarFoundForId, start), read_fail_semantic(ctx);
 }
 
 static ScriptExpr
@@ -761,8 +758,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash identifier, const 
 
   const ScriptVarMeta* var = read_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    read_emit_err(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-    return read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_NoVarFoundForId, start), read_fail_semantic(ctx);
   }
 
   return script_add_var_store(ctx->doc, var->varSlot, expr);
@@ -784,8 +780,7 @@ static ScriptExpr read_expr_var_modify(
 
   ScriptVarMeta* var = read_var_lookup(ctx, identifier);
   if (UNLIKELY(!var)) {
-    read_emit_err(ctx, ScriptError_NoVariableFoundForIdentifier, start);
-    return read_fail_semantic(ctx);
+    return read_emit_err(ctx, ScriptError_NoVarFoundForId, start), read_fail_semantic(ctx);
   }
 
   var->used = true;
@@ -835,7 +830,7 @@ static ScriptExpr read_expr_function(
     return script_add_intrinsic(ctx->doc, builtin->intr, args);
   }
   if (script_builtin_func_exists(identifier)) {
-    read_emit_err(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunction, idRange.start);
+    read_emit_err(ctx, ScriptError_IncorrectArgumentCountForBuiltinFunc, idRange.start);
     return read_fail_semantic(ctx);
   }
 
@@ -846,8 +841,7 @@ static ScriptExpr read_expr_function(
     }
   }
 
-  read_emit_err_range(ctx, ScriptError_NoFunctionFoundForIdentifier, idRange);
-  return read_fail_semantic(ctx);
+  return read_emit_err_range(ctx, ScriptError_NoFuncFoundForId, idRange), read_fail_semantic(ctx);
 }
 
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
@@ -1036,7 +1030,7 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
 
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_Colon)) {
-    read_emit_err(ctx, ScriptError_MissingColonInSelectExpression, start);
+    read_emit_err(ctx, ScriptError_MissingColonInSelectExpr, start);
     return read_fail_structural(ctx);
   }
 
@@ -1073,32 +1067,27 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
     if (UNLIKELY(read_section_active(ctx, ScriptSection_DisallowLoop))) {
-      read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
-      read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptError_LoopNotAllowed, start), read_fail_structural(ctx);
     }
     return read_expr_while(ctx, start);
   case ScriptTokenType_For:
     if (UNLIKELY(read_section_active(ctx, ScriptSection_DisallowLoop))) {
-      read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
-      return read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptError_LoopNotAllowed, start), read_fail_structural(ctx);
     }
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
     if (UNLIKELY(read_section_active(ctx, ScriptSection_DisallowVarDeclare))) {
-      read_emit_err(ctx, ScriptError_VariableDeclareNotAllowed, start);
-      return read_fail_structural(ctx);
+      return read_emit_err(ctx, ScriptError_VarDeclareNotAllowed, start), read_fail_structural(ctx);
     }
     return read_expr_var_declare(ctx);
   case ScriptTokenType_Continue:
     if (!read_section_active(ctx, ScriptSection_InsideLoop)) {
-      read_emit_err(ctx, ScriptError_NotValidOutsideLoopBody, start);
-      return read_fail_semantic(ctx);
+      return read_emit_err(ctx, ScriptError_NotValidOutsideLoop, start), read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
     if (!read_section_active(ctx, ScriptSection_InsideLoop)) {
-      read_emit_err(ctx, ScriptError_NotValidOutsideLoopBody, start);
-      return read_fail_semantic(ctx);
+      return read_emit_err(ctx, ScriptError_NotValidOutsideLoop, start), read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
   /**
@@ -1173,17 +1162,13 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenType_Semicolon:
-    read_emit_err(ctx, ScriptError_UnexpectedSemicolon, start);
-    return read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptError_UnexpectedSemicolon, start), read_fail_structural(ctx);
   case ScriptTokenType_Error:
-    read_emit_err(ctx, token.val_error, start);
-    return read_fail_structural(ctx);
+    return read_emit_err(ctx, token.val_error, start), read_fail_structural(ctx);
   case ScriptTokenType_End:
-    read_emit_err(ctx, ScriptError_MissingPrimaryExpression, start);
-    return read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptError_MissingPrimaryExpr, start), read_fail_structural(ctx);
   default:
-    read_emit_err(ctx, ScriptError_InvalidPrimaryExpression, start);
-    return read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptError_InvalidPrimaryExpr, start), read_fail_structural(ctx);
   }
 }
 
