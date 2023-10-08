@@ -1301,5 +1301,13 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   read_emit_unused_vars(&ctx, &scopeRoot);
 
-  return read_section_active(&ctx, ScriptSection_ProgramInvalid) ? script_expr_sentinel : expr;
+  const bool fail = sentinel_check(expr) || read_section_active(&ctx, ScriptSection_ProgramInvalid);
+#ifndef VOLO_FAST
+  if (diags) {
+    const bool hasErrDiag = script_diag_count_of_type(diags, ScriptDiagType_Error);
+    diag_assert_msg(!fail || hasErrDiag, "No error diagnostic was produced for a failed read");
+    diag_assert_msg(fail || !hasErrDiag, "Error diagnostic was produced for a successful read");
+  }
+#endif
+  return fail ? script_expr_sentinel : expr;
 }
