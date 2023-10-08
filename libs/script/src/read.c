@@ -577,9 +577,13 @@ static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
     goto ArgEnd; // Empty argument list.
   }
 
-ArgNext:
+ArgNext:;
+  ScriptPos argStart = read_pos_current(ctx);
   if (UNLIKELY(count == script_args_max)) {
     return read_emit_err(ctx, ScriptError_ArgumentCountExceedsMaximum, argsStart), -1;
+  }
+  if (UNLIKELY(read_consume_if(ctx, ScriptTokenType_ParenClose))) {
+    return read_emit_err(ctx, ScriptError_MissingPrimaryExpression, argStart), -1;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   valid &= !sentinel_check(arg);
