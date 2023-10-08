@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attachment.h"
+#include "scene_attack.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
@@ -32,6 +33,7 @@ typedef enum {
   ScriptActionType_Attach,
   ScriptActionType_Detach,
   ScriptActionType_Damage,
+  ScriptActionType_Attack,
 } ScriptActionType;
 
 typedef struct {
@@ -75,6 +77,11 @@ typedef struct {
 } ScriptActionDamage;
 
 typedef struct {
+  EcsEntityId entity;
+  EcsEntityId target;
+} ScriptActionAttack;
+
+typedef struct {
   ScriptActionType type;
   union {
     ScriptActionSpawn        data_spawn;
@@ -84,6 +91,7 @@ typedef struct {
     ScriptActionAttach       data_attach;
     ScriptActionDetach       data_detach;
     ScriptActionDamage       data_damage;
+    ScriptActionAttack       data_attack;
   };
 } ScriptAction;
 
@@ -134,6 +142,12 @@ static void action_push_damage(SceneScriptBindCtx* ctx, const ScriptActionDamage
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Damage;
   a->data_damage  = *d;
+}
+
+static void action_push_attack(SceneScriptBindCtx* ctx, const ScriptActionAttack* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_Attack;
+  a->data_attack  = *d;
 }
 
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
@@ -384,6 +398,15 @@ static ScriptVal scene_script_damage(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
+static ScriptVal scene_script_attack(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
+  if (entity) {
+    action_push_attack(ctx, &(ScriptActionAttack){.entity = entity, .target = target});
+  }
+  return script_null();
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(SceneScriptBindCtx* ctx, ScriptArgs);
@@ -425,6 +448,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
     scene_script_bind(b, string_hash_lit("damage"),        scene_script_damage);
+    scene_script_bind(b, string_hash_lit("attack"),        scene_script_attack);
     // clang-format on
 
     script_binder_finalize(b);
@@ -573,6 +597,7 @@ ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(DamageWriteView) { ecs_access_write(SceneDamageComp); }
+ecs_view_define(AttackWriteView) { ecs_access_write(SceneAttackComp); }
 
 typedef struct {
   EcsWorld*    world;
@@ -580,6 +605,7 @@ typedef struct {
   EcsIterator* transItr;
   EcsIterator* attachItr;
   EcsIterator* damageItr;
+  EcsIterator* attackItr;
 } ActionContext;
 
 static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
@@ -656,12 +682,23 @@ static void script_action_damage(ActionContext* ctx, const ScriptActionDamage* a
   }
 }
 
+static void script_action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
+  if (ecs_view_maybe_jump(ctx->attackItr, a->entity)) {
+    SceneAttackComp* attackComp = ecs_view_write_t(ctx->attackItr, SceneAttackComp);
+    // TODO: Instead of dropping the request if we are already firing we should queue it up.
+    if (!(attackComp->flags & SceneAttackFlags_Firing)) {
+      attackComp->targetEntity = a->target;
+    }
+  }
+}
+
 ecs_system_define(ScriptActionApplySys) {
   ActionContext ctx = {
       .world     = world,
       .transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView)),
       .attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView)),
       .damageItr = ecs_view_itr(ecs_world_view_t(world, DamageWriteView)),
+      .attackItr = ecs_view_itr(ecs_world_view_t(world, AttackWriteView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -690,6 +727,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Damage:
         script_action_damage(&ctx, &action->data_damage);
+        break;
+      case ScriptActionType_Attack:
+        script_action_attack(&ctx, &action->data_attack);
         break;
       }
     }
@@ -729,7 +769,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ScriptActionApplyView),
       ecs_register_view(TransformWriteView),
       ecs_register_view(AttachmentWriteView),
-      ecs_register_view(DamageWriteView));
+      ecs_register_view(DamageWriteView),
+      ecs_register_view(AttackWriteView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }

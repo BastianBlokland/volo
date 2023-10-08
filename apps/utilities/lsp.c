@@ -560,6 +560,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("attach"), null);
   script_binder_declare(binder, string_hash_lit("detach"), null);
   script_binder_declare(binder, string_hash_lit("damage"), null);
+  script_binder_declare(binder, string_hash_lit("attack"), null);
 
   script_binder_finalize(binder);
   return binder;
