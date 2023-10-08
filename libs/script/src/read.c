@@ -437,6 +437,27 @@ static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
 
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
+static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  bool* hasSideEffect = ctx;
+  switch (script_expr_type(doc, expr)) {
+  case ScriptExprType_MemStore:
+  case ScriptExprType_VarStore:
+  case ScriptExprType_Extern:
+    *hasSideEffect = true;
+    return;
+  case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_MemLoad:
+  case ScriptExprType_Intrinsic:
+  case ScriptExprType_Block:
+    return;
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
 typedef enum {
   ScriptBlockType_Implicit,
   ScriptBlockType_Explicit,
@@ -456,8 +477,9 @@ static bool read_is_block_separator(const ScriptTokenType tokenType) {
 static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
   const ScriptPos blockStart = read_pos_current(ctx);
 
-  ScriptExpr exprs[script_block_size_max];
-  u32        exprCount = 0;
+  ScriptExpr     exprs[script_block_size_max];
+  ScriptPosRange exprRanges[script_block_size_max];
+  u32            exprCount = 0;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd; // Empty block.
@@ -474,7 +496,9 @@ BlockNext:
     return read_fail_structural(ctx);
   }
   const ScriptPosRange exprRange = read_range_current(ctx, exprStart);
-  exprs[exprCount++]             = exprNew;
+  exprs[exprCount]               = exprNew;
+  exprRanges[exprCount]          = exprRange;
+  ++exprCount;
 
   if (read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockEnd;
@@ -496,6 +520,18 @@ BlockEnd:
   case 1:
     return exprs[0];
   default:
+    for (u32 i = 0; i != (exprCount - 1); ++i) {
+      bool hasSideEffect = false;
+      script_expr_visit(ctx->doc, exprs[i], &hasSideEffect, read_visitor_has_side_effect);
+      if (!hasSideEffect) {
+        const ScriptDiag noEffectDiag = {
+            .type  = ScriptDiagType_Warning,
+            .error = ScriptError_ExpressionHasNoEffect,
+            .range = read_range_trim(ctx, exprRanges[i]),
+        };
+        script_diag_push(ctx->diags, &noEffectDiag);
+      }
+    }
     return script_add_block(ctx->doc, exprs, exprCount);
   }
 }
