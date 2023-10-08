@@ -246,6 +246,16 @@ spec(read) {
                           "  [value: true]\n"
                           "  [intrinsic: continue]"),
         },
+        {
+            string_static("while(true) { while(false) {}; break }"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [block]\n"
+                          "    [intrinsic: while]\n"
+                          "      [value: false]\n"
+                          "      [value: null]\n"
+                          "    [intrinsic: break]"),
+        },
 
         // For expressions.
         {
