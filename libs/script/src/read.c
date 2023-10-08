@@ -249,10 +249,12 @@ typedef struct sScriptScope {
 } ScriptScope;
 
 typedef enum {
-  ScriptReadFlags_ProgramInvalid     = 1 << 0,
-  ScriptReadFlags_InsideLoop         = 1 << 1,
-  ScriptReadFlags_DisallowVarDeclare = 1 << 2,
-  ScriptReadFlags_DisallowLoop       = 1 << 3,
+  ScriptRead_ProgramInvalid     = 1 << 0,
+  ScriptRead_InsideLoop         = 1 << 1,
+  ScriptRead_DisallowVarDeclare = 1 << 2,
+  ScriptRead_DisallowLoop       = 1 << 3,
+
+  ScriptRead_Disallow = ScriptRead_DisallowVarDeclare | ScriptRead_DisallowLoop,
 } ScriptReadFlags;
 
 typedef struct {
@@ -394,6 +396,21 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
   return null;
 }
 
+typedef struct {
+  ScriptReadFlags flags;
+} ScriptDisallowed;
+
+static ScriptDisallowed read_disallow(ScriptReadContext* ctx, const ScriptReadFlags flags) {
+  diag_assert((flags & ~ScriptRead_Disallow) == 0);
+  const ScriptReadFlags disallowed = flags & ~ctx->flags;
+  ctx->flags |= flags;
+  return (ScriptDisallowed){.flags = disallowed};
+}
+
+static void read_disallow_restore(ScriptReadContext* ctx, const ScriptDisallowed disallowed) {
+  ctx->flags &= ~disallowed.flags;
+}
+
 static ScriptToken read_peek(ScriptReadContext* ctx) {
   ScriptToken token;
   script_lex(ctx->input, null, &token, ScriptLexFlags_None);
@@ -430,12 +447,12 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
  */
 
 static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
-  ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  ctx->flags |= ScriptRead_ProgramInvalid;
   return script_expr_sentinel;
 }
 
 static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
-  ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  ctx->flags |= ScriptRead_ProgramInvalid;
   return script_add_value(ctx->doc, script_null());
 }
 
@@ -692,9 +709,12 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx) {
 
   ScriptExpr valExpr;
   if (read_consume_if(ctx, ScriptTokenType_Eq)) {
-    ctx->flags |= ScriptReadFlags_DisallowVarDeclare; // Nested variable declarations not allowed.
+    const ScriptReadFlags  toDisallow = ScriptRead_DisallowVarDeclare | ScriptRead_DisallowLoop;
+    const ScriptDisallowed disallowed = read_disallow(ctx, toDisallow);
+
     valExpr = read_expr(ctx, OpPrecedence_Assignment);
-    ctx->flags &= ~ScriptReadFlags_DisallowVarDeclare;
+
+    read_disallow_restore(ctx, disallowed);
     if (UNLIKELY(sentinel_check(valExpr))) {
       return read_fail_structural(ctx);
     }
@@ -908,9 +928,9 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  ctx->flags |= ScriptReadFlags_InsideLoop;
+  ctx->flags |= ScriptRead_InsideLoop;
   const ScriptExpr body = read_expr_scope_block(ctx);
-  ctx->flags &= ~ScriptReadFlags_InsideLoop;
+  ctx->flags &= ~ScriptRead_InsideLoop;
 
   if (UNLIKELY(sentinel_check(body))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -985,9 +1005,9 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  ctx->flags |= ScriptReadFlags_InsideLoop;
+  ctx->flags |= ScriptRead_InsideLoop;
   const ScriptExpr body = read_expr_scope_block(ctx);
-  ctx->flags &= ~ScriptReadFlags_InsideLoop;
+  ctx->flags &= ~ScriptRead_InsideLoop;
 
   if (UNLIKELY(sentinel_check(body))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
@@ -1046,31 +1066,31 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_If:
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
-    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowLoop)) {
+    if (UNLIKELY(ctx->flags & ScriptRead_DisallowLoop)) {
       read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
       read_fail_structural(ctx);
     }
     return read_expr_while(ctx, start);
   case ScriptTokenType_For:
-    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowLoop)) {
+    if (UNLIKELY(ctx->flags & ScriptRead_DisallowLoop)) {
       read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
       return read_fail_structural(ctx);
     }
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
-    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowVarDeclare)) {
+    if (UNLIKELY(ctx->flags & ScriptRead_DisallowVarDeclare)) {
       read_emit_err(ctx, ScriptError_VariableDeclareNotAllowed, start);
       return read_fail_structural(ctx);
     }
     return read_expr_var_declare(ctx);
   case ScriptTokenType_Continue:
-    if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
+    if (!(ctx->flags & ScriptRead_InsideLoop)) {
       read_emit_err(ctx, ScriptError_NotValidOutsideLoopBody, start);
       return read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Continue, null);
   case ScriptTokenType_Break:
-    if (!(ctx->flags & ScriptReadFlags_InsideLoop)) {
+    if (!(ctx->flags & ScriptRead_InsideLoop)) {
       read_emit_err(ctx, ScriptError_NotValidOutsideLoopBody, start);
       return read_fail_semantic(ctx);
     }
@@ -1280,5 +1300,5 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   read_emit_unused_vars(&ctx, &scopeRoot);
 
-  return UNLIKELY(ctx.flags & ScriptReadFlags_ProgramInvalid) ? script_expr_sentinel : expr;
+  return UNLIKELY(ctx.flags & ScriptRead_ProgramInvalid) ? script_expr_sentinel : expr;
 }

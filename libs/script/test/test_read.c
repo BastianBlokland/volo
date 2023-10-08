@@ -949,6 +949,8 @@ spec(read) {
         {string_static("var a; var a"), ScriptError_VariableIdentifierConflicts},
         {string_static("var a ="), ScriptError_MissingPrimaryExpression},
         {string_static("var a = var b = 2"), ScriptError_VariableDeclareNotAllowed},
+        {string_static("var a = while(1) {}"), ScriptError_LoopDeclareNotAllowed},
+        {string_static("var a = for(1) {}"), ScriptError_LoopDeclareNotAllowed},
         {string_static("var a = a"), ScriptError_NoVariableFoundForIdentifier},
         {string_static("b ="), ScriptError_MissingPrimaryExpression},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpression},
