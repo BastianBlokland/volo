@@ -452,12 +452,12 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
  */
 
 static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
-  read_section_start(ctx, ScriptSection_ProgramInvalid); // NOTE: This section does not end.
+  ctx->section |= ScriptSection_ProgramInvalid;
   return script_expr_sentinel;
 }
 
 static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
-  read_section_start(ctx, ScriptSection_ProgramInvalid); // NOTE: This section does not end.
+  ctx->section |= ScriptSection_ProgramInvalid;
   return script_add_value(ctx->doc, script_null());
 }
 
