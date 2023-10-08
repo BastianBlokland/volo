@@ -252,6 +252,7 @@ typedef enum {
   ScriptReadFlags_ProgramInvalid     = 1 << 0,
   ScriptReadFlags_InsideLoop         = 1 << 1,
   ScriptReadFlags_DisallowVarDeclare = 1 << 2,
+  ScriptReadFlags_DisallowLoop       = 1 << 3,
 } ScriptReadFlags;
 
 typedef struct {
@@ -1045,8 +1046,16 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenType_If:
     return read_expr_if(ctx, start);
   case ScriptTokenType_While:
+    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowLoop)) {
+      read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
+      read_fail_structural(ctx);
+    }
     return read_expr_while(ctx, start);
   case ScriptTokenType_For:
+    if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowLoop)) {
+      read_emit_err(ctx, ScriptError_LoopDeclareNotAllowed, start);
+      return read_fail_structural(ctx);
+    }
     return read_expr_for(ctx, start);
   case ScriptTokenType_Var:
     if (UNLIKELY(ctx->flags & ScriptReadFlags_DisallowVarDeclare)) {
