@@ -807,8 +807,10 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
-    read_emit_err(ctx, ScriptError_BlockExpected, start);
+  const ScriptPos blockStart = read_pos_current(ctx);
+
+  if (read_consume(ctx).type != ScriptTokenType_CurlyOpen) {
+    read_emit_err(ctx, ScriptError_BlockExpected, blockStart);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   const ScriptExpr b1 = read_expr_scope_block(ctx);
@@ -863,8 +865,10 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
-    read_emit_err(ctx, ScriptError_BlockExpected, start);
+  const ScriptPos blockStart = read_pos_current(ctx);
+
+  if (read_consume(ctx).type != ScriptTokenType_CurlyOpen) {
+    read_emit_err(ctx, ScriptError_BlockExpected, blockStart);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
@@ -934,8 +938,10 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  if (!read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
-    read_emit_err(ctx, ScriptError_BlockExpected, start);
+  const ScriptPos blockStart = read_pos_current(ctx);
+
+  if (read_consume(ctx).type != ScriptTokenType_CurlyOpen) {
+    read_emit_err(ctx, ScriptError_BlockExpected, blockStart);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
