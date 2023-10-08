@@ -295,8 +295,11 @@ static void read_emit_err(ScriptReadContext* ctx, const ScriptError err, const S
 }
 
 static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
+  if (!ctx->diags) {
+    return;
+  }
   for (u32 i = 0; i != script_var_count; ++i) {
-    if (ctx->diags && scope->vars[i].id && !scope->vars[i].used) {
+    if (scope->vars[i].id && !scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .type  = ScriptDiagType_Warning,
           .error = ScriptError_VariableUnused,
@@ -458,6 +461,22 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
   UNREACHABLE
 }
 
+static void read_emit_unnessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
+  if (!ctx->diags) {
+    return;
+  }
+  ScriptToken nextToken;
+  script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
+  if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
+    const ScriptDiag unnecessaryDiag = {
+        .type  = ScriptDiagType_Warning,
+        .error = ScriptError_UnnecessarySemicolon,
+        .range = read_range_trim(ctx, sepRange),
+    };
+    script_diag_push(ctx->diags, &unnecessaryDiag);
+  }
+}
+
 typedef enum {
   ScriptBlockType_Implicit,
   ScriptBlockType_Explicit,
@@ -513,19 +532,9 @@ BlockNext:
     read_emit_err_range(ctx, ScriptError_MissingSemicolon, exprRange);
     return read_fail_structural(ctx);
   }
-  if (ctx->diags && sepToken.type == ScriptTokenType_SemiColon) {
-    ScriptToken nextToken;
-    script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
-    if (UNLIKELY(nextToken.type == ScriptTokenType_Newline)) {
-      const ScriptDiag unnecessaryDiag = {
-          .type  = ScriptDiagType_Warning,
-          .error = ScriptError_UnnecessarySemicolon,
-          .range = read_range_trim(ctx, sepRange),
-      };
-      script_diag_push(ctx->diags, &unnecessaryDiag);
-    }
+  if (sepToken.type == ScriptTokenType_SemiColon) {
+    read_emit_unnessary_semicolon(ctx, sepRange);
   }
-
   if (!read_is_block_end(read_peek(ctx).type, blockType)) {
     goto BlockNext;
   }
