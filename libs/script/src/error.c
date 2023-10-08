@@ -6,6 +6,7 @@ static const String g_errorStrs[] = {
     string_static("Success"),
     string_static("Invalid character"),
     string_static("Invalid Utf8 text"),
+    string_static("Invalid character in number"),
     string_static("Key cannot be empty"),
     string_static("String is not terminated"),
     string_static("Recursion limit exceeded"),

@@ -124,8 +124,6 @@ static u8 script_peek(const String str, const u32 ahead) {
 }
 
 static String script_lex_number_positive(String str, ScriptToken* out) {
-  out->type = ScriptTokenType_Number;
-
   f64  mantissa       = 0.0;
   f64  divider        = 1.0;
   bool passedDecPoint = false;
@@ -169,6 +167,10 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
   }
 
 NumberEnd:
+  if (UNLIKELY(invalidChar)) {
+    return *out = script_token_err(ScriptError_InvalidCharInNumber), str;
+  }
+  out->type       = ScriptTokenType_Number;
   out->val_number = mantissa / divider;
   return str;
 }
@@ -179,8 +181,7 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const u32 end = script_scan_word_end(str);
   if (UNLIKELY(!end)) {
-    *out = script_token_err(ScriptError_KeyEmpty);
-    return str;
+    return *out = script_token_err(ScriptError_KeyEmpty), str;
   }
 
   const String key = string_slice(str, 0, end);
