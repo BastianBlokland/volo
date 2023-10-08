@@ -913,7 +913,9 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadIfComp co
     }
   }
   if (read_consume(ctx).type != g_endTokens[comp]) {
-    return read_emit_err(ctx, ScriptError_InvalidForLoop, start), read_fail_structural(ctx);
+    const ScriptError err = comp == ReadIfComp_Increment ? ScriptError_InvalidForLoop
+                                                         : ScriptError_ForLoopSeparatorMissing;
+    return read_emit_err(ctx, err, start), read_fail_structural(ctx);
   }
   return res;
 }
