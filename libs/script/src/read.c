@@ -859,7 +859,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
-    read_emit_err(ctx, ScriptError_InvalidWhileLoop, start);
+    read_emit_err(ctx, ScriptError_InvalidConditionCount, start);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
