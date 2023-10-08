@@ -129,12 +129,14 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
   bool passedDecPoint = false;
   bool invalidChar    = false;
 
-  u8 curChar = '\0';
+  u8 lastChar = '\0';
   while (!string_is_empty(str)) {
-    switch ((curChar = *string_begin(str))) {
+    const u8 ch = *string_begin(str);
+    switch (ch) {
     case '.':
       if (UNLIKELY(passedDecPoint)) {
-        str = mem_consume(str, 1);
+        lastChar = ch;
+        str      = mem_consume(str, 1);
         goto NumberEnd;
       }
       passedDecPoint = true;
@@ -149,7 +151,7 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '7':
     case '8':
     case '9':
-      mantissa = mantissa * 10.0 + (curChar - '0');
+      mantissa = mantissa * 10.0 + (ch - '0');
       if (passedDecPoint) {
         divider *= 10.0;
       }
@@ -157,23 +159,24 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '_':
       break; // Ignore underscores as legal digit separators.
     default:
-      if (script_is_word_separator(curChar)) {
+      if (script_is_word_separator(ch)) {
         goto NumberEnd;
       }
       invalidChar = true;
       break;
     }
-    str = mem_consume(str, 1);
+    lastChar = ch;
+    str      = mem_consume(str, 1);
   }
 
 NumberEnd:
   if (UNLIKELY(invalidChar)) {
     return *out = script_token_err(ScriptError_InvalidCharInNumber), str;
   }
-  if (UNLIKELY(curChar == '.')) {
+  if (UNLIKELY(lastChar == '.')) {
     return *out = script_token_err(ScriptError_NumberEndsWithDecPoint), str;
   }
-  if (UNLIKELY(curChar == '_')) {
+  if (UNLIKELY(lastChar == '_')) {
     return *out = script_token_err(ScriptError_NumberEndsWithSeparator), str;
   }
   out->type       = ScriptTokenType_Number;
