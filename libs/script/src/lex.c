@@ -192,8 +192,7 @@ static String script_lex_key(String str, StringTable* stringtable, ScriptToken* 
 
   const String key = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(key))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
   const StringHash keyHash = stringtable ? stringtable_add(stringtable, key) : string_hash(key);
 
@@ -208,14 +207,12 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
 
   const u32 end = script_scan_string_end(str);
   if (UNLIKELY(end == str.size || *string_at(str, end) != '"')) {
-    *out = script_token_err(ScriptError_UnterminatedString);
-    return str;
+    return *out = script_token_err(ScriptError_UnterminatedString), str;
   }
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
   const StringHash valHash = stringtable ? stringtable_add(stringtable, val) : string_hash(val);
 
@@ -230,8 +227,7 @@ static String script_lex_identifier(String str, ScriptToken* out) {
 
   const String identifier = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(identifier))) {
-    *out = script_token_err(ScriptError_InvalidUtf8);
-    return str;
+    return *out = script_token_err(ScriptError_InvalidUtf8), str;
   }
 
   array_for_t(g_lexKeywords, ScriptLexKeyword, keyword) {
