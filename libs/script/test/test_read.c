@@ -902,7 +902,7 @@ spec(read) {
         {string_static("distance(,"), ScriptError_InvalidPrimaryExpr},
         {string_static("distance(1 2"), ScriptError_UnterminatedArgumentList},
         {string_static("distance(1,"), ScriptError_MissingPrimaryExpr},
-        {string_static("distance(1,2,3)"), ScriptError_IncorrectArgumentCountForBuiltinFunc},
+        {string_static("distance(1,2,3)"), ScriptError_IncorrectArgCountForBuiltinFunc},
         {string_static("hello()"), ScriptError_NoFuncFoundForId},
         {string_static("hello(null)"), ScriptError_NoFuncFoundForId},
         {string_static("hello(1,2,3,4,5)"), ScriptError_NoFuncFoundForId},
