@@ -251,14 +251,17 @@ typedef struct sScriptScope {
   struct sScriptScope* next;
 } ScriptScope;
 
+typedef enum {
+  ScriptReadFlags_ProgramInvalid = 1 << 0,
+} ScriptReadFlags;
+
 // clang-format off
 
 typedef enum {
-  ScriptSection_ProgramInvalid     = 1 << 0,
-  ScriptSection_InsideLoop         = 1 << 1,
-  ScriptSection_DisallowVarDeclare = 1 << 2,
-  ScriptSection_DisallowLoop       = 1 << 3,
-  ScriptSection_DisallowIf         = 1 << 4,
+  ScriptSection_InsideLoop         = 1 << 0,
+  ScriptSection_DisallowVarDeclare = 1 << 1,
+  ScriptSection_DisallowLoop       = 1 << 2,
+  ScriptSection_DisallowIf         = 1 << 3,
   ScriptSection_DisallowStatement  = ScriptSection_DisallowVarDeclare |
                                      ScriptSection_DisallowLoop       |
                                      ScriptSection_DisallowIf
@@ -272,7 +275,8 @@ typedef struct {
   ScriptDiagBag*      diags;
   String              input, inputTotal;
   ScriptScope*        scopeRoot;
-  ScriptSection       section : 16;
+  ScriptReadFlags     flags : 8;
+  ScriptSection       section : 8;
   u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
 } ScriptReadContext;
@@ -455,12 +459,12 @@ static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenType type) 
  */
 
 static ScriptExpr read_fail_structural(ScriptReadContext* ctx) {
-  ctx->section |= ScriptSection_ProgramInvalid;
+  ctx->flags |= ScriptReadFlags_ProgramInvalid;
   return script_expr_sentinel;
 }
 
 static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
-  ctx->section |= ScriptSection_ProgramInvalid;
+  ctx->flags |= ScriptReadFlags_ProgramInvalid;
   return script_add_value(ctx->doc, script_null());
 }
 
@@ -1291,12 +1295,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .input      = str,
-      .inputTotal = str,
-      .scopeRoot  = &scopeRoot,
+            .doc        = doc,
+            .binder     = binder,
+            .diags      = diags,
+            .input      = str,
+            .inputTotal = str,
+            .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
@@ -1307,7 +1311,7 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   read_emit_unused_vars(&ctx, &scopeRoot);
 
-  const bool fail = sentinel_check(expr) || read_section_active(&ctx, ScriptSection_ProgramInvalid);
+  const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
 #ifndef VOLO_FAST
   if (diags) {
     const bool hasErrDiag = script_diag_count_of_type(diags, ScriptDiagType_Error);
