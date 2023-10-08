@@ -256,6 +256,13 @@ spec(read) {
                           "      [value: null]\n"
                           "    [intrinsic: break]"),
         },
+        {
+            string_static("while(true) { var stuff = { break }}"),
+            string_static("[intrinsic: while]\n"
+                          "  [value: true]\n"
+                          "  [var-store: 0]\n"
+                          "    [intrinsic: break]"),
+        },
 
         // For expressions.
         {
