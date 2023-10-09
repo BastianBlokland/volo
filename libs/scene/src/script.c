@@ -30,6 +30,7 @@ typedef enum {
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
+  ScriptActionType_NavMove,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
   ScriptActionType_Damage,
@@ -63,6 +64,12 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
+  EcsEntityId targetEntity; // If zero: The targetPosition is used instead.
+  GeoVector   targetPosition;
+} ScriptActionNavMove;
+
+typedef struct {
+  EcsEntityId entity;
   EcsEntityId target;
   StringHash  jointName;
 } ScriptActionAttach;
@@ -88,6 +95,7 @@ typedef struct {
     ScriptActionDestroy      data_destroy;
     ScriptActionDestroyAfter data_destroyAfter;
     ScriptActionTeleport     data_teleport;
+    ScriptActionNavMove      data_navMove;
     ScriptActionAttach       data_attach;
     ScriptActionDetach       data_detach;
     ScriptActionDamage       data_damage;
@@ -124,6 +132,12 @@ static void action_push_teleport(SceneScriptBindCtx* ctx, const ScriptActionTele
   ScriptAction* a  = dynarray_push_t(ctx->actions, ScriptAction);
   a->type          = ScriptActionType_Teleport;
   a->data_teleport = *d;
+}
+
+static void action_push_nav_move(SceneScriptBindCtx* ctx, const ScriptActionNavMove* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_NavMove;
+  a->data_navMove = *d;
 }
 
 static void action_push_attach(SceneScriptBindCtx* ctx, const ScriptActionAttach* d) {
@@ -361,6 +375,20 @@ static ScriptVal scene_script_teleport(SceneScriptBindCtx* ctx, const ScriptArgs
   return script_null();
 }
 
+static ScriptVal scene_script_nav_move(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  if (entity) {
+    action_push_nav_move(
+        ctx,
+        &(ScriptActionNavMove){
+            .entity         = entity,
+            .targetEntity   = script_arg_entity(args, 1, ecs_entity_invalid),
+            .targetPosition = script_arg_vector3(args, 1, geo_vector(0)),
+        });
+  }
+  return script_null();
+}
+
 static ScriptVal scene_script_attach(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
@@ -445,6 +473,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
     scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
+    scene_script_bind(b, string_hash_lit("nav_move"),      scene_script_nav_move);
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
     scene_script_bind(b, string_hash_lit("damage"),        scene_script_damage);
@@ -595,6 +624,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
 
 ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
+ecs_view_define(NavAgentWriteView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
 ecs_view_define(DamageWriteView) { ecs_access_write(SceneDamageComp); }
 ecs_view_define(AttackWriteView) { ecs_access_write(SceneAttackComp); }
@@ -603,6 +633,7 @@ typedef struct {
   EcsWorld*    world;
   EcsEntityId  instigator;
   EcsIterator* transItr;
+  EcsIterator* navAgentItr;
   EcsIterator* attachItr;
   EcsIterator* damageItr;
   EcsIterator* attackItr;
@@ -640,6 +671,17 @@ static void script_action_teleport(ActionContext* ctx, const ScriptActionTelepor
     SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
     trans->position           = a->position;
     trans->rotation           = a->rotation;
+  }
+}
+
+static void script_action_nav_move(ActionContext* ctx, const ScriptActionNavMove* a) {
+  if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
+    SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
+    if (a->targetEntity) {
+      scene_nav_move_to_entity(agent, a->targetEntity);
+    } else {
+      scene_nav_move_to(agent, a->targetPosition);
+    }
   }
 }
 
@@ -694,11 +736,12 @@ static void script_action_attack(ActionContext* ctx, const ScriptActionAttack* a
 
 ecs_system_define(ScriptActionApplySys) {
   ActionContext ctx = {
-      .world     = world,
-      .transItr  = ecs_view_itr(ecs_world_view_t(world, TransformWriteView)),
-      .attachItr = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView)),
-      .damageItr = ecs_view_itr(ecs_world_view_t(world, DamageWriteView)),
-      .attackItr = ecs_view_itr(ecs_world_view_t(world, AttackWriteView)),
+      .world       = world,
+      .transItr    = ecs_view_itr(ecs_world_view_t(world, TransformWriteView)),
+      .navAgentItr = ecs_view_itr(ecs_world_view_t(world, NavAgentWriteView)),
+      .attachItr   = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView)),
+      .damageItr   = ecs_view_itr(ecs_world_view_t(world, DamageWriteView)),
+      .attackItr   = ecs_view_itr(ecs_world_view_t(world, AttackWriteView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -718,6 +761,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_Teleport:
         script_action_teleport(&ctx, &action->data_teleport);
+        break;
+      case ScriptActionType_NavMove:
+        script_action_nav_move(&ctx, &action->data_navMove);
         break;
       case ScriptActionType_Attach:
         script_action_attach(&ctx, &action->data_attach);
@@ -768,6 +814,7 @@ ecs_module_init(scene_script_module) {
       ScriptActionApplySys,
       ecs_register_view(ScriptActionApplyView),
       ecs_register_view(TransformWriteView),
+      ecs_register_view(NavAgentWriteView),
       ecs_register_view(AttachmentWriteView),
       ecs_register_view(DamageWriteView),
       ecs_register_view(AttackWriteView));
