@@ -31,6 +31,7 @@ typedef enum {
   ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
   ScriptActionType_NavMove,
+  ScriptActionType_NavStop,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
   ScriptActionType_Damage,
@@ -70,6 +71,10 @@ typedef struct {
 
 typedef struct {
   EcsEntityId entity;
+} ScriptActionNavStop;
+
+typedef struct {
+  EcsEntityId entity;
   EcsEntityId target;
   StringHash  jointName;
 } ScriptActionAttach;
@@ -96,6 +101,7 @@ typedef struct {
     ScriptActionDestroyAfter data_destroyAfter;
     ScriptActionTeleport     data_teleport;
     ScriptActionNavMove      data_navMove;
+    ScriptActionNavStop      data_navStop;
     ScriptActionAttach       data_attach;
     ScriptActionDetach       data_detach;
     ScriptActionDamage       data_damage;
@@ -138,6 +144,12 @@ static void action_push_nav_move(SceneScriptBindCtx* ctx, const ScriptActionNavM
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_NavMove;
   a->data_navMove = *d;
+}
+
+static void action_push_nav_stop(SceneScriptBindCtx* ctx, const ScriptActionNavStop* d) {
+  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type         = ScriptActionType_NavStop;
+  a->data_navStop = *d;
 }
 
 static void action_push_attach(SceneScriptBindCtx* ctx, const ScriptActionAttach* d) {
@@ -389,6 +401,14 @@ static ScriptVal scene_script_nav_move(SceneScriptBindCtx* ctx, const ScriptArgs
   return script_null();
 }
 
+static ScriptVal scene_script_nav_stop(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  if (entity) {
+    action_push_nav_stop(ctx, &(ScriptActionNavStop){.entity = entity});
+  }
+  return script_null();
+}
+
 static ScriptVal scene_script_attach(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
@@ -474,6 +494,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
     scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
     scene_script_bind(b, string_hash_lit("nav_move"),      scene_script_nav_move);
+    scene_script_bind(b, string_hash_lit("nav_stop"),      scene_script_nav_stop);
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
     scene_script_bind(b, string_hash_lit("damage"),        scene_script_damage);
@@ -685,6 +706,13 @@ static void script_action_nav_move(ActionContext* ctx, const ScriptActionNavMove
   }
 }
 
+static void script_action_nav_stop(ActionContext* ctx, const ScriptActionNavStop* a) {
+  if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
+    SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
+    scene_nav_stop(agent);
+  }
+}
+
 static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
   SceneAttachmentComp* attach;
   if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
@@ -764,6 +792,9 @@ ecs_system_define(ScriptActionApplySys) {
         break;
       case ScriptActionType_NavMove:
         script_action_nav_move(&ctx, &action->data_navMove);
+        break;
+      case ScriptActionType_NavStop:
+        script_action_nav_stop(&ctx, &action->data_navStop);
         break;
       case ScriptActionType_Attach:
         script_action_attach(&ctx, &action->data_attach);
