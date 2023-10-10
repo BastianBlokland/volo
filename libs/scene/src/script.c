@@ -183,7 +183,8 @@ ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
-ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
+ecs_view_define(NavEnvReadView) { ecs_access_read(SceneNavEnvComp); }
+ecs_view_define(NavAgentReadView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(LocoReadView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(AttackReadView) { ecs_access_read(SceneAttackComp); }
 
@@ -226,6 +227,7 @@ static void script_enum_init_capability() {
 
 static void script_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 0);
   script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
 }
@@ -330,7 +332,7 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
 
 static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId  g   = ecs_world_global(ctx->world);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavReadView), g);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavEnvReadView), g);
   if (UNLIKELY(!itr)) {
     return script_null(); // No global navigation environment found.
   }
@@ -383,11 +385,16 @@ static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs a
       return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
     }
     case 1: {
+      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavAgentReadView), e);
+      const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
+      return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
+    }
+    case 2: {
       const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
       const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
       return script_bool(attack && ecs_entity_valid(attack->targetEntity));
     }
-    case 2: {
+    case 3: {
       const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
       const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
       return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
@@ -904,7 +911,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(FactionReadView),
       ecs_register_view(HealthReadView),
       ecs_register_view(TimeReadView),
-      ecs_register_view(NavReadView),
+      ecs_register_view(NavEnvReadView),
+      ecs_register_view(NavAgentReadView),
       ecs_register_view(LocoReadView),
       ecs_register_view(AttackReadView),
       ecs_view_id(ResourceAssetView));
