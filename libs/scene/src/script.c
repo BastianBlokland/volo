@@ -11,6 +11,7 @@
 #include "scene_health.h"
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
+#include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -183,13 +184,15 @@ ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
+ecs_view_define(LocoReadView) { ecs_access_read(SceneLocomotionComp); }
 
 // clang-format off
 
 static ScriptEnum g_scriptEnumFaction,
                   g_scriptEnumClock,
                   g_scriptEnumNavQuery,
-                  g_scriptEnumCapability;
+                  g_scriptEnumCapability,
+                  g_scriptEnumActivity;
 
 // clang-format on
 
@@ -218,6 +221,10 @@ static void script_enum_init_nav_query() {
 static void script_enum_init_capability() {
   script_enum_push(&g_scriptEnumCapability, string_lit("NavMove"), 0);
   script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
+}
+
+static void script_enum_init_activity() {
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -345,16 +352,33 @@ static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArg
 }
 
 static ScriptVal scene_script_capable(SceneScriptBindCtx* ctx, const ScriptArgs args) {
-  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
-  if (entity) {
-    if (!ecs_world_exists(ctx->world, entity)) {
+  const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
+  if (e) {
+    if (!ecs_world_exists(ctx->world, e)) {
       return script_bool(false);
     }
     switch (script_arg_enum(args, 1, &g_scriptEnumCapability, sentinel_i32)) {
     case 0:
-      return script_bool(ecs_world_has_t(ctx->world, entity, SceneNavAgentComp));
+      return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
     case 1:
-      return script_bool(ecs_world_has_t(ctx->world, entity, SceneAttackComp));
+      return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
+    }
+  }
+  return script_null();
+}
+
+static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
+  if (e) {
+    if (!ecs_world_exists(ctx->world, e)) {
+      return script_bool(false);
+    }
+    switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
+    case 0: {
+      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, LocoReadView), e);
+      const SceneLocomotionComp* loco = ecs_view_read_t(itr, SceneLocomotionComp);
+      return script_bool((loco->flags & SceneLocomotion_Moving) != 0);
+    }
     }
   }
   return script_null();
@@ -505,6 +529,7 @@ static void script_binder_init() {
     script_enum_init_clock();
     script_enum_init_nav_query();
     script_enum_init_capability();
+    script_enum_init_activity();
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
@@ -519,6 +544,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
     scene_script_bind(b, string_hash_lit("nav_query"),     scene_script_nav_query);
     scene_script_bind(b, string_hash_lit("capable"),       scene_script_capable);
+    scene_script_bind(b, string_hash_lit("active"),        scene_script_active);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
@@ -866,6 +892,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(HealthReadView),
       ecs_register_view(TimeReadView),
       ecs_register_view(NavReadView),
+      ecs_register_view(LocoReadView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
