@@ -342,56 +342,59 @@ static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArg
 
 static ScriptVal scene_script_capable(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
-  if (e) {
-    if (!ecs_world_exists(ctx->world, e)) {
-      return script_bool(false);
-    }
-    switch (script_arg_enum(args, 1, &g_scriptEnumCapability, sentinel_i32)) {
-    case 0:
-      return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
-    case 1:
-      return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
-    }
+  if (!e || !ecs_world_exists(ctx->world, e)) {
+    return script_bool(false);
+  }
+  switch (script_arg_enum(args, 1, &g_scriptEnumCapability, sentinel_i32)) {
+  case 0:
+    return script_bool(ecs_world_has_t(ctx->world, e, SceneNavAgentComp));
+  case 1:
+    return script_bool(ecs_world_has_t(ctx->world, e, SceneAttackComp));
   }
   return script_null();
 }
 
 static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
-  if (e) {
-    switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
-    case 0: {
-      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, LocoReadView), e);
-      const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
-      return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
-    }
-    case 1: {
-      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavAgentReadView), e);
-      const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
-      return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
-    }
-    case 2: {
-      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
-      const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
-      return script_bool(attack && ecs_entity_valid(attack->targetEntity));
-    }
-    case 3: {
-      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
-      const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
-      return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
-    }
-    }
+  switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
+  case 0: {
+    const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, LocoReadView), e);
+    const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
+    return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
+  }
+  case 1: {
+    const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavAgentReadView), e);
+    const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
+    return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
+  }
+  case 2: {
+    const EcsIterator*     itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
+    const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+    return script_bool(attack && ecs_entity_valid(attack->targetEntity));
+  }
+  case 3: {
+    const EcsIterator*     itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
+    const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+    return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
+  }
   }
   return script_null();
 }
 
 static ScriptVal scene_script_target_primary(SceneScriptBindCtx* ctx, const ScriptArgs args) {
-  const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
-  if (e) {
-    const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
-    if (itr) {
-      return script_entity(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
-    }
+  const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
+  if (itr) {
+    return script_entity(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
+  }
+  return script_null();
+}
+
+static ScriptVal scene_script_target_range_max(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
+  if (itr) {
+    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->distanceMax);
   }
   return script_null();
 }
@@ -562,30 +565,31 @@ static void script_binder_init() {
     script_enum_init_activity();
 
     // clang-format off
-    scene_script_bind(b, string_hash_lit("self"),           scene_script_self);
-    scene_script_bind(b, string_hash_lit("exists"),         scene_script_exists);
-    scene_script_bind(b, string_hash_lit("position"),       scene_script_position);
-    scene_script_bind(b, string_hash_lit("rotation"),       scene_script_rotation);
-    scene_script_bind(b, string_hash_lit("scale"),          scene_script_scale);
-    scene_script_bind(b, string_hash_lit("name"),           scene_script_name);
-    scene_script_bind(b, string_hash_lit("faction"),        scene_script_faction);
-    scene_script_bind(b, string_hash_lit("health"),         scene_script_health);
-    scene_script_bind(b, string_hash_lit("time"),           scene_script_time);
-    scene_script_bind(b, string_hash_lit("nav_query"),      scene_script_nav_query);
-    scene_script_bind(b, string_hash_lit("capable"),        scene_script_capable);
-    scene_script_bind(b, string_hash_lit("active"),         scene_script_active);
-    scene_script_bind(b, string_hash_lit("target_primary"), scene_script_target_primary);
-    scene_script_bind(b, string_hash_lit("spawn"),          scene_script_spawn);
-    scene_script_bind(b, string_hash_lit("destroy"),        scene_script_destroy);
-    scene_script_bind(b, string_hash_lit("destroy_after"),  scene_script_destroy_after);
-    scene_script_bind(b, string_hash_lit("teleport"),       scene_script_teleport);
-    scene_script_bind(b, string_hash_lit("nav_travel"),     scene_script_nav_travel);
-    scene_script_bind(b, string_hash_lit("nav_stop"),       scene_script_nav_stop);
-    scene_script_bind(b, string_hash_lit("attach"),         scene_script_attach);
-    scene_script_bind(b, string_hash_lit("detach"),         scene_script_detach);
-    scene_script_bind(b, string_hash_lit("damage"),         scene_script_damage);
-    scene_script_bind(b, string_hash_lit("attack"),         scene_script_attack);
-    scene_script_bind(b, string_hash_lit("debug_log"),      scene_script_debug_log);
+    scene_script_bind(b, string_hash_lit("self"),             scene_script_self);
+    scene_script_bind(b, string_hash_lit("exists"),           scene_script_exists);
+    scene_script_bind(b, string_hash_lit("position"),         scene_script_position);
+    scene_script_bind(b, string_hash_lit("rotation"),         scene_script_rotation);
+    scene_script_bind(b, string_hash_lit("scale"),            scene_script_scale);
+    scene_script_bind(b, string_hash_lit("name"),             scene_script_name);
+    scene_script_bind(b, string_hash_lit("faction"),          scene_script_faction);
+    scene_script_bind(b, string_hash_lit("health"),           scene_script_health);
+    scene_script_bind(b, string_hash_lit("time"),             scene_script_time);
+    scene_script_bind(b, string_hash_lit("nav_query"),        scene_script_nav_query);
+    scene_script_bind(b, string_hash_lit("capable"),          scene_script_capable);
+    scene_script_bind(b, string_hash_lit("active"),           scene_script_active);
+    scene_script_bind(b, string_hash_lit("target_primary"),   scene_script_target_primary);
+    scene_script_bind(b, string_hash_lit("target_range_max"), scene_script_target_range_max);
+    scene_script_bind(b, string_hash_lit("spawn"),            scene_script_spawn);
+    scene_script_bind(b, string_hash_lit("destroy"),          scene_script_destroy);
+    scene_script_bind(b, string_hash_lit("destroy_after"),    scene_script_destroy_after);
+    scene_script_bind(b, string_hash_lit("teleport"),         scene_script_teleport);
+    scene_script_bind(b, string_hash_lit("nav_travel"),       scene_script_nav_travel);
+    scene_script_bind(b, string_hash_lit("nav_stop"),         scene_script_nav_stop);
+    scene_script_bind(b, string_hash_lit("attach"),           scene_script_attach);
+    scene_script_bind(b, string_hash_lit("detach"),           scene_script_detach);
+    scene_script_bind(b, string_hash_lit("damage"),           scene_script_damage);
+    scene_script_bind(b, string_hash_lit("attack"),           scene_script_attack);
+    scene_script_bind(b, string_hash_lit("debug_log"),        scene_script_debug_log);
     // clang-format on
 
     script_binder_finalize(b);
