@@ -185,6 +185,7 @@ ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 ecs_view_define(LocoReadView) { ecs_access_read(SceneLocomotionComp); }
+ecs_view_define(AttackReadView) { ecs_access_read(SceneAttackComp); }
 
 // clang-format off
 
@@ -225,6 +226,7 @@ static void script_enum_init_capability() {
 
 static void script_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -376,8 +378,13 @@ static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs a
     switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
     case 0: {
       const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, LocoReadView), e);
-      const SceneLocomotionComp* loco = ecs_view_read_t(itr, SceneLocomotionComp);
-      return script_bool((loco->flags & SceneLocomotion_Moving) != 0);
+      const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
+      return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
+    }
+    case 1: {
+      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
+      const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+      return script_bool(attack && ecs_entity_valid(attack->targetEntity));
     }
     }
   }
@@ -893,6 +900,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(TimeReadView),
       ecs_register_view(NavReadView),
       ecs_register_view(LocoReadView),
+      ecs_register_view(AttackReadView),
       ecs_view_id(ResourceAssetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);

@@ -658,6 +658,8 @@ ecs_system_define(SceneAttackSys) {
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     if (hasTarget) {
       attack->lastHasTargetTime = time->time;
+    } else {
+      attack->targetEntity = 0;
     }
     const TimeDuration timeSinceHadTarget = time->time - attack->lastHasTargetTime;
     const bool         isMoving           = loco && (loco->flags & SceneLocomotion_Moving) != 0;
