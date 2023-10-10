@@ -273,8 +273,8 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
       e,
       SceneTargetFinderComp,
       .flags             = flags,
-      .distanceMin       = t->targetDistanceMin,
-      .distanceMax       = t->targetDistanceMax,
+      .rangeMin          = t->targetRangeMin,
+      .rangeMax          = t->targetRangeMax,
       .lineOfSightRadius = t->targetLineOfSightRadius);
   ecs_world_add_t(w, e, SceneDamageStatsComp);
 }

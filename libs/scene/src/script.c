@@ -394,7 +394,7 @@ static ScriptVal scene_script_target_range_min(SceneScriptBindCtx* ctx, const Sc
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
   if (itr) {
-    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->distanceMin);
+    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
   }
   return script_null();
 }
@@ -403,7 +403,7 @@ static ScriptVal scene_script_target_range_max(SceneScriptBindCtx* ctx, const Sc
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
   if (itr) {
-    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->distanceMax);
+    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
   }
   return script_null();
 }

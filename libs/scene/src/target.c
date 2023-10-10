@@ -156,9 +156,9 @@ static TargetLineOfSightInfo target_los_query(
   const SceneLayer targetLayer = ecs_view_read_t(targetItr, SceneCollisionComp)->layer;
   const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
   const SceneQueryFilter           filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
-      .callback  = target_los_filter,
-      .context   = &filterCtx,
+                   .layerMask = SceneLayer_Environment | SceneLayer_Structure | targetLayer,
+                   .callback  = target_los_filter,
+                   .context   = &filterCtx,
   };
   const GeoRay ray = {.point = sourcePos, .dir = geo_vector_div(toTarget, dist)};
 
@@ -225,10 +225,10 @@ static f32 target_score(
   const GeoVector tgtPos   = target_aim_target_pos(finderPosCenter, tgtTrans, tgtScale, tgtLoc);
   const GeoVector toTarget = geo_vector_sub(tgtPos, finderPosCenter);
   const f32       distSqr  = geo_vector_mag_sqr(toTarget);
-  if (distSqr < (finder->distanceMin * finder->distanceMin)) {
+  if (distSqr < (finder->rangeMin * finder->rangeMin)) {
     return 0.0f; // Target too close.
   }
-  if (distSqr > (finder->distanceMax * finder->distanceMax)) {
+  if (distSqr > (finder->rangeMax * finder->rangeMax)) {
     return 0.0f; // Target too far away.
   }
 
@@ -243,9 +243,9 @@ static f32 target_score(
     const GeoRay                     ray       = {.point = finderPosCenter, .dir = dir};
     const TargetLineOfSightFilterCtx filterCtx = {.finderEntity = finderEntity};
     const SceneQueryFilter           filter    = {
-        .layerMask = SceneLayer_Environment | SceneLayer_Structure,
-        .callback  = target_los_filter,
-        .context   = &filterCtx,
+                     .layerMask = SceneLayer_Environment | SceneLayer_Structure,
+                     .callback  = target_los_filter,
+                     .context   = &filterCtx,
     };
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, dist, &filter, &hit) && hit.entity != tgtEntity) {
@@ -260,7 +260,7 @@ static f32 target_score(
   if (ecs_world_has_t(world, tgtEntity, SceneAttackComp)) {
     score += target_score_can_attack;
   }
-  score += (1.0f - dist / finder->distanceMax) * target_score_dist;           // Distance score.
+  score += (1.0f - dist / finder->rangeMax) * target_score_dist;              // Distance score.
   score += math_max(0, geo_vector_dot(finderAimDir, dir)) * target_score_dir; // Direction score.
   score += rng_sample_f32(g_rng) * target_score_random;                       // Random score.
   return score;
