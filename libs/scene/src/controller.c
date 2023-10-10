@@ -39,9 +39,9 @@ ecs_system_define(SceneControllerUpdateSys) {
       const ScriptVal navTarget = scene_knowledge_get(knowledge, g_brainKeyNavTarget);
       if (script_val_has(navTarget)) {
         if (script_type(navTarget) == ScriptType_Entity) {
-          scene_nav_move_to_entity(navAgent, script_get_entity(navTarget, ecs_entity_invalid));
+          scene_nav_travel_to_entity(navAgent, script_get_entity(navTarget, ecs_entity_invalid));
         } else {
-          scene_nav_move_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
+          scene_nav_travel_to(navAgent, script_get_vector3(navTarget, geo_vector(0)));
         }
         scene_knowledge_set_null(knowledge, g_brainKeyNavTarget);
       }

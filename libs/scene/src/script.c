@@ -31,7 +31,7 @@ typedef enum {
   ScriptActionType_Destroy,
   ScriptActionType_DestroyAfter,
   ScriptActionType_Teleport,
-  ScriptActionType_NavMove,
+  ScriptActionType_NavTravel,
   ScriptActionType_NavStop,
   ScriptActionType_Attach,
   ScriptActionType_Detach,
@@ -68,7 +68,7 @@ typedef struct {
   EcsEntityId entity;
   EcsEntityId targetEntity; // If zero: The targetPosition is used instead.
   GeoVector   targetPosition;
-} ScriptActionNavMove;
+} ScriptActionNavTravel;
 
 typedef struct {
   EcsEntityId entity;
@@ -101,7 +101,7 @@ typedef struct {
     ScriptActionDestroy      data_destroy;
     ScriptActionDestroyAfter data_destroyAfter;
     ScriptActionTeleport     data_teleport;
-    ScriptActionNavMove      data_navMove;
+    ScriptActionNavTravel    data_navTravel;
     ScriptActionNavStop      data_navStop;
     ScriptActionAttach       data_attach;
     ScriptActionDetach       data_detach;
@@ -141,10 +141,10 @@ static void action_push_teleport(SceneScriptBindCtx* ctx, const ScriptActionTele
   a->data_teleport = *d;
 }
 
-static void action_push_nav_move(SceneScriptBindCtx* ctx, const ScriptActionNavMove* d) {
-  ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
-  a->type         = ScriptActionType_NavMove;
-  a->data_navMove = *d;
+static void action_push_nav_travel(SceneScriptBindCtx* ctx, const ScriptActionNavTravel* d) {
+  ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
+  a->type           = ScriptActionType_NavTravel;
+  a->data_navTravel = *d;
 }
 
 static void action_push_nav_stop(SceneScriptBindCtx* ctx, const ScriptActionNavStop* d) {
@@ -220,7 +220,7 @@ static void script_enum_init_nav_query() {
 }
 
 static void script_enum_init_capability() {
-  script_enum_push(&g_scriptEnumCapability, string_lit("NavMove"), 0);
+  script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
   script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
 }
 
@@ -452,12 +452,12 @@ static ScriptVal scene_script_teleport(SceneScriptBindCtx* ctx, const ScriptArgs
   return script_null();
 }
 
-static ScriptVal scene_script_nav_move(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_nav_travel(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
-    action_push_nav_move(
+    action_push_nav_travel(
         ctx,
-        &(ScriptActionNavMove){
+        &(ScriptActionNavTravel){
             .entity         = entity,
             .targetEntity   = script_arg_entity(args, 1, ecs_entity_invalid),
             .targetPosition = script_arg_vector3(args, 1, geo_vector(0)),
@@ -562,7 +562,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
     scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
-    scene_script_bind(b, string_hash_lit("nav_move"),      scene_script_nav_move);
+    scene_script_bind(b, string_hash_lit("nav_travel"),      scene_script_nav_travel);
     scene_script_bind(b, string_hash_lit("nav_stop"),      scene_script_nav_stop);
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
@@ -764,13 +764,13 @@ static void script_action_teleport(ActionContext* ctx, const ScriptActionTelepor
   }
 }
 
-static void script_action_nav_move(ActionContext* ctx, const ScriptActionNavMove* a) {
+static void script_action_nav_travel(ActionContext* ctx, const ScriptActionNavTravel* a) {
   if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
     SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
     if (a->targetEntity) {
-      scene_nav_move_to_entity(agent, a->targetEntity);
+      scene_nav_travel_to_entity(agent, a->targetEntity);
     } else {
-      scene_nav_move_to(agent, a->targetPosition);
+      scene_nav_travel_to(agent, a->targetPosition);
     }
   }
 }
@@ -859,8 +859,8 @@ ecs_system_define(ScriptActionApplySys) {
       case ScriptActionType_Teleport:
         script_action_teleport(&ctx, &action->data_teleport);
         break;
-      case ScriptActionType_NavMove:
-        script_action_nav_move(&ctx, &action->data_navMove);
+      case ScriptActionType_NavTravel:
+        script_action_nav_travel(&ctx, &action->data_navTravel);
         break;
       case ScriptActionType_NavStop:
         script_action_nav_stop(&ctx, &action->data_navStop);

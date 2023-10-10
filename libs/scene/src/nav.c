@@ -460,9 +460,9 @@ ecs_system_define(SceneNavApplyRequestsSys) {
     SceneNavAgentComp*         agent   = ecs_view_write_t(itr, SceneNavAgentComp);
     const SceneNavRequestComp* request = ecs_view_read_t(itr, SceneNavRequestComp);
     if (request->targetEntity) {
-      scene_nav_move_to_entity(agent, request->targetEntity);
+      scene_nav_travel_to_entity(agent, request->targetEntity);
     } else {
-      scene_nav_move_to(agent, request->targetPos);
+      scene_nav_travel_to(agent, request->targetPos);
     }
     ecs_world_remove_t(world, ecs_view_entity(itr), SceneNavRequestComp);
   }
@@ -503,13 +503,13 @@ ecs_module_init(scene_nav_module) {
   ecs_order(SceneNavUpdateStatsSys, SceneOrder_NavStatsUpdate);
 }
 
-void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
+void scene_nav_travel_to(SceneNavAgentComp* agent, const GeoVector target) {
   agent->flags |= SceneNavAgent_Traveling;
   agent->targetEntity = 0;
   agent->targetPos    = target;
 }
 
-void scene_nav_move_to_entity(SceneNavAgentComp* agent, const EcsEntityId target) {
+void scene_nav_travel_to_entity(SceneNavAgentComp* agent, const EcsEntityId target) {
   agent->flags |= SceneNavAgent_Traveling;
   agent->targetEntity = target;
 }

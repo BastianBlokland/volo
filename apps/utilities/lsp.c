@@ -559,7 +559,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("destroy"), null);
   script_binder_declare(binder, string_hash_lit("destroy_after"), null);
   script_binder_declare(binder, string_hash_lit("teleport"), null);
-  script_binder_declare(binder, string_hash_lit("nav_move"), null);
+  script_binder_declare(binder, string_hash_lit("nav_travel"), null);
   script_binder_declare(binder, string_hash_lit("nav_stop"), null);
   script_binder_declare(binder, string_hash_lit("attach"), null);
   script_binder_declare(binder, string_hash_lit("detach"), null);

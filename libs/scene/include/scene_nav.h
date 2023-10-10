@@ -54,8 +54,8 @@ ecs_comp_extern_public(SceneNavRequestComp) {
   GeoVector   targetPos;
 };
 
-void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);
-void scene_nav_move_to_entity(SceneNavAgentComp*, EcsEntityId target);
+void scene_nav_travel_to(SceneNavAgentComp*, GeoVector target);
+void scene_nav_travel_to_entity(SceneNavAgentComp*, EcsEntityId target);
 void scene_nav_stop(SceneNavAgentComp*);
 
 /**
