@@ -184,7 +184,14 @@ ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
 ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(NavReadView) { ecs_access_read(SceneNavEnvComp); }
 
-static ScriptEnum g_scriptEnumFaction, g_scriptEnumClock, g_scriptEnumNavQuery;
+// clang-format off
+
+static ScriptEnum g_scriptEnumFaction,
+                  g_scriptEnumClock,
+                  g_scriptEnumNavQuery,
+                  g_scriptEnumCapability;
+
+// clang-format on
 
 static void script_enum_init_faction() {
   script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
@@ -206,6 +213,11 @@ static void script_enum_init_nav_query() {
   script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
   script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
   script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
+}
+
+static void script_enum_init_capability() {
+  script_enum_push(&g_scriptEnumCapability, string_lit("NavMove"), 0);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -328,6 +340,22 @@ static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArg
   case 2:
     scene_nav_closest_free_n(nav, cell, cellContainer);
     return script_vector3(scene_nav_position(nav, cell));
+  }
+  return script_null();
+}
+
+static ScriptVal scene_script_capable(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
+  if (entity) {
+    if (!ecs_world_exists(ctx->world, entity)) {
+      return script_bool(false);
+    }
+    switch (script_arg_enum(args, 1, &g_scriptEnumCapability, sentinel_i32)) {
+    case 0:
+      return script_bool(ecs_world_has_t(ctx->world, entity, SceneNavAgentComp));
+    case 1:
+      return script_bool(ecs_world_has_t(ctx->world, entity, SceneAttackComp));
+    }
   }
   return script_null();
 }
@@ -476,6 +504,7 @@ static void script_binder_init() {
     script_enum_init_faction();
     script_enum_init_clock();
     script_enum_init_nav_query();
+    script_enum_init_capability();
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
@@ -489,6 +518,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("health"),        scene_script_health);
     scene_script_bind(b, string_hash_lit("time"),          scene_script_time);
     scene_script_bind(b, string_hash_lit("nav_query"),     scene_script_nav_query);
+    scene_script_bind(b, string_hash_lit("capable"),       scene_script_capable);
     scene_script_bind(b, string_hash_lit("spawn"),         scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);

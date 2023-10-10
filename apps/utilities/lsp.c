@@ -553,6 +553,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("health"), null);
   script_binder_declare(binder, string_hash_lit("time"), null);
   script_binder_declare(binder, string_hash_lit("nav_query"), null);
+  script_binder_declare(binder, string_hash_lit("capable"), null);
   script_binder_declare(binder, string_hash_lit("spawn"), null);
   script_binder_declare(binder, string_hash_lit("destroy"), null);
   script_binder_declare(binder, string_hash_lit("destroy_after"), null);
