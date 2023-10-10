@@ -227,6 +227,7 @@ static void script_enum_init_capability() {
 static void script_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
   script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
 }
 
 static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
@@ -385,6 +386,11 @@ static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs a
       const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
       const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
       return script_bool(attack && ecs_entity_valid(attack->targetEntity));
+    }
+    case 2: {
+      const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, AttackReadView), e);
+      const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+      return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
     }
     }
   }
