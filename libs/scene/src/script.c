@@ -237,24 +237,6 @@ static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs arg
   return script_entity(ctx->entity);
 }
 
-static ScriptVal scene_script_print(SceneScriptBindCtx* ctx, const ScriptArgs args) {
-  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
-  for (usize i = 0; i != args.count; ++i) {
-    if (i) {
-      dynstring_append_char(&buffer, ' ');
-    }
-    script_val_str_write(args.values[i], &buffer);
-  }
-
-  log_i(
-      "script: {}",
-      log_param("message", fmt_text(dynstring_view(&buffer))),
-      log_param("entity", fmt_int(ctx->entity, .base = 16)),
-      log_param("script", fmt_text(ctx->scriptId)));
-
-  return script_arg_last_or_null(args);
-}
-
 static ScriptVal scene_script_exists(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   return script_bool(e && ecs_world_exists(ctx->world, e));
@@ -527,6 +509,24 @@ static ScriptVal scene_script_attack(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
+static ScriptVal scene_script_debug_log(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  for (usize i = 0; i != args.count; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_str_write(args.values[i], &buffer);
+  }
+
+  log_i(
+      "script: {}",
+      log_param("message", fmt_text(dynstring_view(&buffer))),
+      log_param("entity", fmt_int(ctx->entity, .base = 16)),
+      log_param("script", fmt_text(ctx->scriptId)));
+
+  return script_arg_last_or_null(args);
+}
+
 static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(SceneScriptBindCtx* ctx, ScriptArgs);
@@ -553,7 +553,6 @@ static void script_binder_init() {
 
     // clang-format off
     scene_script_bind(b, string_hash_lit("self"),          scene_script_self);
-    scene_script_bind(b, string_hash_lit("print"),         scene_script_print);
     scene_script_bind(b, string_hash_lit("exists"),        scene_script_exists);
     scene_script_bind(b, string_hash_lit("position"),      scene_script_position);
     scene_script_bind(b, string_hash_lit("rotation"),      scene_script_rotation);
@@ -569,12 +568,13 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("destroy"),       scene_script_destroy);
     scene_script_bind(b, string_hash_lit("destroy_after"), scene_script_destroy_after);
     scene_script_bind(b, string_hash_lit("teleport"),      scene_script_teleport);
-    scene_script_bind(b, string_hash_lit("nav_travel"),      scene_script_nav_travel);
+    scene_script_bind(b, string_hash_lit("nav_travel"),    scene_script_nav_travel);
     scene_script_bind(b, string_hash_lit("nav_stop"),      scene_script_nav_stop);
     scene_script_bind(b, string_hash_lit("attach"),        scene_script_attach);
     scene_script_bind(b, string_hash_lit("detach"),        scene_script_detach);
     scene_script_bind(b, string_hash_lit("damage"),        scene_script_damage);
     scene_script_bind(b, string_hash_lit("attack"),        scene_script_attack);
+    scene_script_bind(b, string_hash_lit("debug_log"),     scene_script_debug_log);
     // clang-format on
 
     script_binder_finalize(b);

@@ -542,7 +542,6 @@ static ScriptBinder* lsp_script_binder_create() {
   ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
   // TODO: Instead of manually listing the supported bindings here we should read them from a file.
-  script_binder_declare(binder, string_hash_lit("print"), null);
   script_binder_declare(binder, string_hash_lit("self"), null);
   script_binder_declare(binder, string_hash_lit("exists"), null);
   script_binder_declare(binder, string_hash_lit("position"), null);
@@ -565,6 +564,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("detach"), null);
   script_binder_declare(binder, string_hash_lit("damage"), null);
   script_binder_declare(binder, string_hash_lit("attack"), null);
+  script_binder_declare(binder, string_hash_lit("debug_log"), null);
 
   script_binder_finalize(binder);
   return binder;
