@@ -390,6 +390,15 @@ static ScriptVal scene_script_target_primary(SceneScriptBindCtx* ctx, const Scri
   return script_null();
 }
 
+static ScriptVal scene_script_target_range_min(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+  const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
+  if (itr) {
+    return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->distanceMin);
+  }
+  return script_null();
+}
+
 static ScriptVal scene_script_target_range_max(SceneScriptBindCtx* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
@@ -578,6 +587,7 @@ static void script_binder_init() {
     scene_script_bind(b, string_hash_lit("capable"),          scene_script_capable);
     scene_script_bind(b, string_hash_lit("active"),           scene_script_active);
     scene_script_bind(b, string_hash_lit("target_primary"),   scene_script_target_primary);
+    scene_script_bind(b, string_hash_lit("target_range_min"), scene_script_target_range_min);
     scene_script_bind(b, string_hash_lit("target_range_max"), scene_script_target_range_max);
     scene_script_bind(b, string_hash_lit("spawn"),            scene_script_spawn);
     scene_script_bind(b, string_hash_lit("destroy"),          scene_script_destroy);
