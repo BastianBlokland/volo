@@ -112,10 +112,11 @@ typedef struct {
 } ScriptAction;
 
 typedef struct {
-  EcsWorld*   world;
-  EcsEntityId entity;
-  String      scriptId;
-  DynArray*   actions; // ScriptAction[].
+  EcsWorld*    world;
+  EcsIterator* globalItr;
+  EcsEntityId  entity;
+  String       scriptId;
+  DynArray*    actions; // ScriptAction[].
 } SceneScriptBindCtx;
 
 static void action_push_spawn(SceneScriptBindCtx* ctx, const ScriptActionSpawn* d) {
@@ -178,13 +179,16 @@ static void action_push_attack(SceneScriptBindCtx* ctx, const ScriptActionAttack
   a->data_attack  = *d;
 }
 
+ecs_view_define(GlobalReadView) {
+  ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneTimeComp);
+}
+
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(ScaleReadView) { ecs_access_read(SceneScaleComp); }
 ecs_view_define(NameReadView) { ecs_access_read(SceneNameComp); }
 ecs_view_define(FactionReadView) { ecs_access_read(SceneFactionComp); }
 ecs_view_define(HealthReadView) { ecs_access_read(SceneHealthComp); }
-ecs_view_define(TimeReadView) { ecs_access_read(SceneTimeComp); }
-ecs_view_define(NavEnvReadView) { ecs_access_read(SceneNavEnvComp); }
 ecs_view_define(NavAgentReadView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(LocoReadView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(AttackReadView) { ecs_access_read(SceneAttackComp); }
@@ -290,12 +294,7 @@ static ScriptVal scene_script_health(SceneScriptBindCtx* ctx, const ScriptArgs a
 }
 
 static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
-  const EcsEntityId  g   = ecs_world_global(ctx->world);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TimeReadView), g);
-  if (UNLIKELY(!itr)) {
-    return script_null(); // No global time comp found.
-  }
-  const SceneTimeComp* time = ecs_view_read_t(itr, SceneTimeComp);
+  const SceneTimeComp* time = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
   if (!args.count) {
     return script_time(time->time);
   }
@@ -315,27 +314,22 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
 }
 
 static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArgs args) {
-  const EcsEntityId  g   = ecs_world_global(ctx->world);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NavEnvReadView), g);
-  if (UNLIKELY(!itr)) {
-    return script_null(); // No global navigation environment found.
-  }
-  const SceneNavEnvComp*    nav           = ecs_view_read_t(itr, SceneNavEnvComp);
+  const SceneNavEnvComp*    navEnv        = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector           pos           = script_arg_vector3(args, 0, geo_vector(0));
-  GeoNavCell                cell          = scene_nav_at_position(nav, pos);
+  GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
   const GeoNavCellContainer cellContainer = {.cells = &cell, .capacity = 1};
   if (args.count == 1) {
-    return script_vector3(scene_nav_position(nav, cell));
+    return script_vector3(scene_nav_position(navEnv, cell));
   }
   switch (script_arg_enum(args, 1, &g_scriptEnumNavQuery, sentinel_i32)) {
   case 0:
-    return script_vector3(scene_nav_position(nav, cell));
+    return script_vector3(scene_nav_position(navEnv, cell));
   case 1:
-    scene_nav_closest_unblocked_n(nav, cell, cellContainer);
-    return script_vector3(scene_nav_position(nav, cell));
+    scene_nav_closest_unblocked_n(navEnv, cell, cellContainer);
+    return script_vector3(scene_nav_position(navEnv, cell));
   case 2:
-    scene_nav_closest_free_n(nav, cell, cellContainer);
-    return script_vector3(scene_nav_position(nav, cell));
+    scene_nav_closest_free_n(navEnv, cell, cellContainer);
+    return script_vector3(scene_nav_position(navEnv, cell));
   }
   return script_null();
 }
@@ -681,6 +675,7 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 
 static void scene_script_eval(
     EcsWorld*              world,
+    EcsIterator*           globalItr,
     const EcsEntityId      entity,
     SceneScriptComp*       scriptInstance,
     SceneKnowledgeComp*    knowledge,
@@ -696,10 +691,11 @@ static void scene_script_eval(
   ScriptMem*       mem  = scene_knowledge_memory_mut(knowledge);
 
   SceneScriptBindCtx ctx = {
-      .world    = world,
-      .entity   = entity,
-      .scriptId = asset_id(scriptAssetComp),
-      .actions  = &scriptInstance->actions,
+      .world     = world,
+      .globalItr = globalItr,
+      .entity    = entity,
+      .scriptId  = asset_id(scriptAssetComp),
+      .actions   = &scriptInstance->actions,
   };
 
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
@@ -715,6 +711,12 @@ static void scene_script_eval(
 }
 
 ecs_system_define(SceneScriptUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalReadView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependency not yet initialized.
+  }
+
   EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
 
@@ -722,22 +724,23 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId   entity         = ecs_view_entity(itr);
-    SceneScriptComp*    scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
-    SceneKnowledgeComp* knowledge      = ecs_view_write_t(itr, SceneKnowledgeComp);
+    const EcsEntityId   entity     = ecs_view_entity(itr);
+    SceneScriptComp*    scriptInst = ecs_view_write_t(itr, SceneScriptComp);
+    SceneKnowledgeComp* knowledge  = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     // Evaluate the script if the asset is loaded.
-    if (ecs_view_maybe_jump(resourceAssetItr, scriptInstance->scriptAsset)) {
+    if (ecs_view_maybe_jump(resourceAssetItr, scriptInst->scriptAsset)) {
       const AssetScriptComp* scriptAsset     = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
       const AssetComp*       scriptAssetComp = ecs_view_read_t(resourceAssetItr, AssetComp);
-      scene_script_eval(world, entity, scriptInstance, knowledge, scriptAsset, scriptAssetComp);
+      scene_script_eval(
+          world, globalItr, entity, scriptInst, knowledge, scriptAsset, scriptAssetComp);
       continue;
     }
 
     // Otherwise start loading the asset.
-    if (!ecs_world_has_t(world, scriptInstance->scriptAsset, SceneScriptResourceComp)) {
+    if (!ecs_world_has_t(world, scriptInst->scriptAsset, SceneScriptResourceComp)) {
       if (++startedAssetLoads < scene_script_max_asset_loads) {
-        ecs_world_add_t(world, scriptInstance->scriptAsset, SceneScriptResourceComp);
+        ecs_world_add_t(world, scriptInst->scriptAsset, SceneScriptResourceComp);
       }
     }
   }
@@ -929,14 +932,13 @@ ecs_module_init(scene_script_module) {
 
   ecs_register_system(
       SceneScriptUpdateSys,
+      ecs_register_view(GlobalReadView),
       ecs_register_view(ScriptUpdateView),
       ecs_register_view(TransformReadView),
       ecs_register_view(ScaleReadView),
       ecs_register_view(NameReadView),
       ecs_register_view(FactionReadView),
       ecs_register_view(HealthReadView),
-      ecs_register_view(TimeReadView),
-      ecs_register_view(NavEnvReadView),
       ecs_register_view(NavAgentReadView),
       ecs_register_view(LocoReadView),
       ecs_register_view(AttackReadView),
