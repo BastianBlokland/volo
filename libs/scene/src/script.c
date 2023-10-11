@@ -27,6 +27,50 @@
 
 #define scene_script_max_asset_loads 8
 
+// clang-format off
+
+static ScriptEnum g_scriptEnumFaction,
+                  g_scriptEnumClock,
+                  g_scriptEnumNavQuery,
+                  g_scriptEnumCapability,
+                  g_scriptEnumActivity;
+
+// clang-format on
+
+static void script_enum_init_faction() {
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionD"), SceneFaction_D);
+  script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
+}
+
+static void script_enum_init_clock() {
+  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
+  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
+  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
+  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
+}
+
+static void script_enum_init_nav_query() {
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
+  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
+}
+
+static void script_enum_init_capability() {
+  script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
+  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
+}
+
+static void script_enum_init_activity() {
+  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 0);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
+  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
+}
+
 typedef enum {
   ScriptActionType_Spawn,
   ScriptActionType_Destroy,
@@ -193,50 +237,6 @@ ecs_view_define(NavAgentReadView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(LocoReadView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(AttackReadView) { ecs_access_read(SceneAttackComp); }
 ecs_view_define(TargetReadView) { ecs_access_read(SceneTargetFinderComp); }
-
-// clang-format off
-
-static ScriptEnum g_scriptEnumFaction,
-                  g_scriptEnumClock,
-                  g_scriptEnumNavQuery,
-                  g_scriptEnumCapability,
-                  g_scriptEnumActivity;
-
-// clang-format on
-
-static void script_enum_init_faction() {
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionA"), SceneFaction_A);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionB"), SceneFaction_B);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionC"), SceneFaction_C);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionD"), SceneFaction_D);
-  script_enum_push(&g_scriptEnumFaction, string_lit("FactionNone"), SceneFaction_None);
-}
-
-static void script_enum_init_clock() {
-  script_enum_push(&g_scriptEnumClock, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealTime"), 1);
-  script_enum_push(&g_scriptEnumClock, string_lit("Delta"), 2);
-  script_enum_push(&g_scriptEnumClock, string_lit("RealDelta"), 3);
-  script_enum_push(&g_scriptEnumClock, string_lit("Ticks"), 4);
-}
-
-static void script_enum_init_nav_query() {
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("ClosestCell"), 0);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("UnblockedCell"), 1);
-  script_enum_push(&g_scriptEnumNavQuery, string_lit("FreeCell"), 2);
-}
-
-static void script_enum_init_capability() {
-  script_enum_push(&g_scriptEnumCapability, string_lit("NavTravel"), 0);
-  script_enum_push(&g_scriptEnumCapability, string_lit("Attack"), 1);
-}
-
-static void script_enum_init_activity() {
-  script_enum_push(&g_scriptEnumActivity, string_lit("Moving"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Traveling"), 0);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Attacking"), 1);
-  script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
-}
 
 static ScriptVal scene_script_self(UpdateContext* ctx, const ScriptArgs args) {
   (void)args;
