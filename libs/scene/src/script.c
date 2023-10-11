@@ -746,13 +746,11 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
-ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
-
-ecs_view_define(TransformWriteView) { ecs_access_write(SceneTransformComp); }
-ecs_view_define(NavAgentWriteView) { ecs_access_write(SceneNavAgentComp); }
-ecs_view_define(AttachmentWriteView) { ecs_access_write(SceneAttachmentComp); }
-ecs_view_define(DamageWriteView) { ecs_access_write(SceneDamageComp); }
-ecs_view_define(AttackWriteView) { ecs_access_write(SceneAttackComp); }
+ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
+ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
+ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
+ecs_view_define(ActionDamageView) { ecs_access_write(SceneDamageComp); }
+ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
 
 typedef struct {
   EcsWorld*    world;
@@ -866,14 +864,16 @@ static void script_action_attack(ActionContext* ctx, const ScriptActionAttack* a
   }
 }
 
+ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
+
 ecs_system_define(ScriptActionApplySys) {
   ActionContext ctx = {
       .world       = world,
-      .transItr    = ecs_view_itr(ecs_world_view_t(world, TransformWriteView)),
-      .navAgentItr = ecs_view_itr(ecs_world_view_t(world, NavAgentWriteView)),
-      .attachItr   = ecs_view_itr(ecs_world_view_t(world, AttachmentWriteView)),
-      .damageItr   = ecs_view_itr(ecs_world_view_t(world, DamageWriteView)),
-      .attackItr   = ecs_view_itr(ecs_world_view_t(world, AttackWriteView)),
+      .transItr    = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
+      .navAgentItr = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
+      .attachItr   = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
+      .damageItr   = ecs_view_itr(ecs_world_view_t(world, ActionDamageView)),
+      .attackItr   = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
   };
 
   EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
@@ -951,11 +951,11 @@ ecs_module_init(scene_script_module) {
   ecs_register_system(
       ScriptActionApplySys,
       ecs_register_view(ScriptActionApplyView),
-      ecs_register_view(TransformWriteView),
-      ecs_register_view(NavAgentWriteView),
-      ecs_register_view(AttachmentWriteView),
-      ecs_register_view(DamageWriteView),
-      ecs_register_view(AttackWriteView));
+      ecs_register_view(ActionTransformView),
+      ecs_register_view(ActionNavAgentView),
+      ecs_register_view(ActionAttachmentView),
+      ecs_register_view(ActionDamageView),
+      ecs_register_view(ActionAttackView));
 
   ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
