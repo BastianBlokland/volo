@@ -117,66 +117,66 @@ typedef struct {
   EcsEntityId  entity;
   String       scriptId;
   DynArray*    actions; // ScriptAction[].
-} SceneScriptBindCtx;
+} UpdateContext;
 
-static void action_push_spawn(SceneScriptBindCtx* ctx, const ScriptActionSpawn* d) {
+static void action_push_spawn(UpdateContext* ctx, const ScriptActionSpawn* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Spawn;
-  a->data_spawn   = *d;
+  a->data_spawn   = *data;
 }
 
-static void action_push_destroy(SceneScriptBindCtx* ctx, const ScriptActionDestroy* d) {
+static void action_push_destroy(UpdateContext* ctx, const ScriptActionDestroy* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Destroy;
-  a->data_destroy = *d;
+  a->data_destroy = *data;
 }
 
-static void action_push_destroy_after(SceneScriptBindCtx* ctx, const ScriptActionDestroyAfter* d) {
+static void action_push_destroy_after(UpdateContext* ctx, const ScriptActionDestroyAfter* data) {
   ScriptAction* a      = dynarray_push_t(ctx->actions, ScriptAction);
   a->type              = ScriptActionType_DestroyAfter;
-  a->data_destroyAfter = *d;
+  a->data_destroyAfter = *data;
 }
 
-static void action_push_teleport(SceneScriptBindCtx* ctx, const ScriptActionTeleport* d) {
+static void action_push_teleport(UpdateContext* ctx, const ScriptActionTeleport* data) {
   ScriptAction* a  = dynarray_push_t(ctx->actions, ScriptAction);
   a->type          = ScriptActionType_Teleport;
-  a->data_teleport = *d;
+  a->data_teleport = *data;
 }
 
-static void action_push_nav_travel(SceneScriptBindCtx* ctx, const ScriptActionNavTravel* d) {
+static void action_push_nav_travel(UpdateContext* ctx, const ScriptActionNavTravel* data) {
   ScriptAction* a   = dynarray_push_t(ctx->actions, ScriptAction);
   a->type           = ScriptActionType_NavTravel;
-  a->data_navTravel = *d;
+  a->data_navTravel = *data;
 }
 
-static void action_push_nav_stop(SceneScriptBindCtx* ctx, const ScriptActionNavStop* d) {
+static void action_push_nav_stop(UpdateContext* ctx, const ScriptActionNavStop* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_NavStop;
-  a->data_navStop = *d;
+  a->data_navStop = *data;
 }
 
-static void action_push_attach(SceneScriptBindCtx* ctx, const ScriptActionAttach* d) {
+static void action_push_attach(UpdateContext* ctx, const ScriptActionAttach* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attach;
-  a->data_attach  = *d;
+  a->data_attach  = *data;
 }
 
-static void action_push_detach(SceneScriptBindCtx* ctx, const ScriptActionDetach* d) {
+static void action_push_detach(UpdateContext* ctx, const ScriptActionDetach* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Detach;
-  a->data_detach  = *d;
+  a->data_detach  = *data;
 }
 
-static void action_push_damage(SceneScriptBindCtx* ctx, const ScriptActionDamage* d) {
+static void action_push_damage(UpdateContext* ctx, const ScriptActionDamage* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Damage;
-  a->data_damage  = *d;
+  a->data_damage  = *data;
 }
 
-static void action_push_attack(SceneScriptBindCtx* ctx, const ScriptActionAttack* d) {
+static void action_push_attack(UpdateContext* ctx, const ScriptActionAttack* data) {
   ScriptAction* a = dynarray_push_t(ctx->actions, ScriptAction);
   a->type         = ScriptActionType_Attack;
-  a->data_attack  = *d;
+  a->data_attack  = *data;
 }
 
 ecs_view_define(GlobalReadView) {
@@ -238,41 +238,41 @@ static void script_enum_init_activity() {
   script_enum_push(&g_scriptEnumActivity, string_lit("Firing"), 2);
 }
 
-static ScriptVal scene_script_self(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_self(UpdateContext* ctx, const ScriptArgs args) {
   (void)args;
   return script_entity(ctx->entity);
 }
 
-static ScriptVal scene_script_exists(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_exists(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   return script_bool(e && ecs_world_exists(ctx->world, e));
 }
 
-static ScriptVal scene_script_position(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_position(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
-static ScriptVal scene_script_rotation(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_rotation(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TransformReadView), e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
-static ScriptVal scene_script_scale(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_scale(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, ScaleReadView), e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
-static ScriptVal scene_script_name(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_name(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, NameReadView), e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
-static ScriptVal scene_script_faction(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_faction(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, FactionReadView), e);
   if (itr) {
@@ -283,7 +283,7 @@ static ScriptVal scene_script_faction(SceneScriptBindCtx* ctx, const ScriptArgs 
   return script_null();
 }
 
-static ScriptVal scene_script_health(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_health(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, HealthReadView), e);
   if (itr) {
@@ -293,7 +293,7 @@ static ScriptVal scene_script_health(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_time(UpdateContext* ctx, const ScriptArgs args) {
   const SceneTimeComp* time = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
   if (!args.count) {
     return script_time(time->time);
@@ -313,7 +313,7 @@ static ScriptVal scene_script_time(SceneScriptBindCtx* ctx, const ScriptArgs arg
   return script_null();
 }
 
-static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_nav_query(UpdateContext* ctx, const ScriptArgs args) {
   const SceneNavEnvComp*    navEnv        = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoVector           pos           = script_arg_vector3(args, 0, geo_vector(0));
   GeoNavCell                cell          = scene_nav_at_position(navEnv, pos);
@@ -334,7 +334,7 @@ static ScriptVal scene_script_nav_query(SceneScriptBindCtx* ctx, const ScriptArg
   return script_null();
 }
 
-static ScriptVal scene_script_capable(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_capable(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   if (!e || !ecs_world_exists(ctx->world, e)) {
     return script_bool(false);
@@ -348,7 +348,7 @@ static ScriptVal scene_script_capable(SceneScriptBindCtx* ctx, const ScriptArgs 
   return script_null();
 }
 
-static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_active(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
   case 0: {
@@ -375,7 +375,7 @@ static ScriptVal scene_script_active(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_target_primary(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_target_primary(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
   if (itr) {
@@ -384,7 +384,7 @@ static ScriptVal scene_script_target_primary(SceneScriptBindCtx* ctx, const Scri
   return script_null();
 }
 
-static ScriptVal scene_script_target_range_min(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_target_range_min(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
   if (itr) {
@@ -393,7 +393,7 @@ static ScriptVal scene_script_target_range_min(SceneScriptBindCtx* ctx, const Sc
   return script_null();
 }
 
-static ScriptVal scene_script_target_range_max(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_target_range_max(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, TargetReadView), e);
   if (itr) {
@@ -402,7 +402,7 @@ static ScriptVal scene_script_target_range_max(SceneScriptBindCtx* ctx, const Sc
   return script_null();
 }
 
-static ScriptVal scene_script_spawn(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_spawn(UpdateContext* ctx, const ScriptArgs args) {
   const StringHash prefabId = script_arg_string(args, 0, string_hash_invalid);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
@@ -421,7 +421,7 @@ static ScriptVal scene_script_spawn(SceneScriptBindCtx* ctx, const ScriptArgs ar
   return script_entity(result);
 }
 
-static ScriptVal scene_script_destroy(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_destroy(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy(ctx, &(ScriptActionDestroy){.entity = entity});
@@ -429,7 +429,7 @@ static ScriptVal scene_script_destroy(SceneScriptBindCtx* ctx, const ScriptArgs 
   return script_null();
 }
 
-static ScriptVal scene_script_destroy_after(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_destroy_after(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_destroy_after(
@@ -443,7 +443,7 @@ static ScriptVal scene_script_destroy_after(SceneScriptBindCtx* ctx, const Scrip
   return script_null();
 }
 
-static ScriptVal scene_script_teleport(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_teleport(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_teleport(
@@ -457,7 +457,7 @@ static ScriptVal scene_script_teleport(SceneScriptBindCtx* ctx, const ScriptArgs
   return script_null();
 }
 
-static ScriptVal scene_script_nav_travel(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_nav_travel(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_nav_travel(
@@ -471,7 +471,7 @@ static ScriptVal scene_script_nav_travel(SceneScriptBindCtx* ctx, const ScriptAr
   return script_null();
 }
 
-static ScriptVal scene_script_nav_stop(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_nav_stop(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_nav_stop(ctx, &(ScriptActionNavStop){.entity = entity});
@@ -479,7 +479,7 @@ static ScriptVal scene_script_nav_stop(SceneScriptBindCtx* ctx, const ScriptArgs
   return script_null();
 }
 
-static ScriptVal scene_script_attach(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_attach(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
   if (entity && target) {
@@ -494,7 +494,7 @@ static ScriptVal scene_script_attach(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_detach(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_detach(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   if (entity) {
     action_push_detach(ctx, &(ScriptActionDetach){.entity = entity});
@@ -502,7 +502,7 @@ static ScriptVal scene_script_detach(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_damage(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_damage(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const f32         amount = (f32)script_arg_number(args, 1, 0.0f);
   if (entity && amount > f32_epsilon) {
@@ -516,7 +516,7 @@ static ScriptVal scene_script_damage(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_attack(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_attack(UpdateContext* ctx, const ScriptArgs args) {
   const EcsEntityId entity = script_arg_entity(args, 0, ecs_entity_invalid);
   const EcsEntityId target = script_arg_entity(args, 1, ecs_entity_invalid);
   if (entity) {
@@ -525,7 +525,7 @@ static ScriptVal scene_script_attack(SceneScriptBindCtx* ctx, const ScriptArgs a
   return script_null();
 }
 
-static ScriptVal scene_script_debug_log(SceneScriptBindCtx* ctx, const ScriptArgs args) {
+static ScriptVal scene_script_debug_log(UpdateContext* ctx, const ScriptArgs args) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
   for (usize i = 0; i != args.count; ++i) {
     if (i) {
@@ -545,7 +545,7 @@ static ScriptVal scene_script_debug_log(SceneScriptBindCtx* ctx, const ScriptArg
 
 static ScriptBinder* g_scriptBinder;
 
-typedef ScriptVal (*SceneScriptBinderFunc)(SceneScriptBindCtx* ctx, ScriptArgs);
+typedef ScriptVal (*SceneScriptBinderFunc)(UpdateContext* ctx, ScriptArgs);
 
 static void scene_script_bind(ScriptBinder* b, const StringHash name, SceneScriptBinderFunc f) {
   // NOTE: Func pointer cast is needed to type-erase the context type.
@@ -690,7 +690,7 @@ static void scene_script_eval(
   const ScriptExpr expr = scriptAsset->expr;
   ScriptMem*       mem  = scene_knowledge_memory_mut(knowledge);
 
-  SceneScriptBindCtx ctx = {
+  UpdateContext ctx = {
       .world     = world,
       .globalItr = globalItr,
       .entity    = entity,
