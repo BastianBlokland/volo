@@ -8,9 +8,11 @@
 #include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
+#include "scene_collision.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
 #include "scene_lifetime.h"
+#include "scene_location.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
@@ -26,6 +28,8 @@
 #include "script_mem.h"
 
 #define scene_script_max_asset_loads 8
+#define scene_script_line_of_sight_min 1.0f
+#define scene_script_line_of_sight_max 50.0f
 
 // clang-format off
 
@@ -158,6 +162,7 @@ typedef struct {
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneCollisionEnvComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -169,6 +174,13 @@ ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
 ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
 ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
 ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
+
+ecs_view_define(EvalLineOfSightView) {
+  ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneLocationComp);
+  ecs_access_maybe_read(SceneCollisionComp);
+}
 
 typedef struct {
   EcsWorld*    world;
@@ -182,6 +194,7 @@ typedef struct {
   EcsIterator* locoItr;
   EcsIterator* attackItr;
   EcsIterator* targetItr;
+  EcsIterator* lineOfSightItr;
 
   EcsEntityId            entity;
   SceneScriptComp*       scriptInstance;
@@ -345,6 +358,102 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args) {
     return script_vector3(scene_nav_position(navEnv, cell));
   }
   return script_null();
+}
+
+static GeoVector eval_aim_center(
+    const SceneTransformComp* trans, const SceneScaleComp* scale, const SceneLocationComp* loc) {
+  if (loc) {
+    const GeoBoxRotated volume = scene_location(loc, trans, scale, SceneLocationType_AimTarget);
+    return geo_box_center(&volume.box);
+  }
+  return trans->position;
+}
+
+static GeoVector eval_aim_closest(
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const SceneLocationComp*  loc,
+    const GeoVector           reference) {
+  if (loc) {
+    const GeoBoxRotated volume = scene_location(loc, trans, scale, SceneLocationType_AimTarget);
+    return geo_box_rotated_closest_point(&volume, reference);
+  }
+  return trans->position;
+}
+
+typedef struct {
+  EcsEntityId srcEntity;
+} EvalLineOfSightFilterCtx;
+
+static bool eval_line_of_sight_filter(const void* context, const EcsEntityId entity) {
+  const EvalLineOfSightFilterCtx* ctx = context;
+  if (entity == ctx->srcEntity) {
+    return false; // Ignore collisions with the source.
+  }
+  return true;
+}
+
+static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
+  const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
+
+  const EcsEntityId srcEntity = script_arg_entity(args, 0, ecs_entity_invalid);
+  EcsIterator*      srcItr    = ecs_view_maybe_jump(ctx->lineOfSightItr, srcEntity);
+  if (!srcItr) {
+    return script_null(); // Source not valid.
+  }
+  const SceneTransformComp* srcTrans = ecs_view_read_t(srcItr, SceneTransformComp);
+  const SceneScaleComp*     srcScale = ecs_view_read_t(srcItr, SceneScaleComp);
+  const SceneLocationComp*  srcLoc   = ecs_view_read_t(srcItr, SceneLocationComp);
+
+  /**
+   * TODO: At the moment we are using the center of the aim-target volume as an estimation of the
+   * line-of-sight source. This is obviously a very crude estimation, in the future we should
+   * consider either sampling a joint or add a specific configurable entity location for this.
+   */
+  const GeoVector srcPos = eval_aim_center(srcTrans, srcScale, srcLoc);
+
+  const EcsEntityId tgtEntity = script_arg_entity(args, 1, ecs_entity_invalid);
+  EcsIterator*      tgtItr    = ecs_view_maybe_jump(ctx->lineOfSightItr, tgtEntity);
+  if (!tgtItr) {
+    return script_null(); // Target not valid.
+  }
+  const SceneTransformComp* tgtTrans = ecs_view_read_t(tgtItr, SceneTransformComp);
+  const SceneScaleComp*     tgtScale = ecs_view_read_t(tgtItr, SceneScaleComp);
+  const SceneLocationComp*  tgtLoc   = ecs_view_read_t(tgtItr, SceneLocationComp);
+  const SceneCollisionComp* tgtCol   = ecs_view_read_t(tgtItr, SceneCollisionComp);
+  const GeoVector           tgtPos   = eval_aim_closest(tgtTrans, tgtScale, tgtLoc, srcPos);
+
+  if (!tgtCol) {
+    return script_null(); // Target does not have collision.
+  }
+
+  const GeoVector toTgt = geo_vector_sub(tgtPos, srcPos);
+  const f32       dist  = geo_vector_mag(toTgt);
+  if (dist < scene_script_line_of_sight_min) {
+    return script_number(dist); // Close enough that we always have line-of-sight.
+  }
+  if (dist > scene_script_line_of_sight_max) {
+    return script_null(); // Far enough that we never have line-of-sight.
+  }
+
+  const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
+  const SceneQueryFilter         filter    = {
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
+  };
+  const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
+  const f32    radius = (f32)script_arg_number(args, 2, 0.0);
+
+  SceneRayHit hit;
+  bool        hasHit;
+  if (radius < f32_epsilon) {
+    hasHit = scene_query_ray(colEnv, &ray, dist, &filter, &hit);
+  } else {
+    hasHit = scene_query_ray_fat(colEnv, &ray, radius, dist, &filter, &hit);
+  }
+  const bool hasLos = hasHit && (hit.layer & tgtCol->layer) != 0;
+  return hasLos ? script_number(hit.time) : script_null();
 }
 
 static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args) {
@@ -591,6 +700,7 @@ static void eval_binder_init() {
     eval_bind(b, string_hash_lit("health"),             eval_health);
     eval_bind(b, string_hash_lit("time"),               eval_time);
     eval_bind(b, string_hash_lit("nav_query"),          eval_nav_query);
+    eval_bind(b, string_hash_lit("line_of_sight"),      eval_line_of_sight);
     eval_bind(b, string_hash_lit("capable"),            eval_capable);
     eval_bind(b, string_hash_lit("active"),             eval_active);
     eval_bind(b, string_hash_lit("target_primary"),     eval_target_primary);
@@ -720,17 +830,18 @@ ecs_system_define(SceneScriptUpdateSys) {
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
   EvalContext ctx = {
-      .world        = world,
-      .globalItr    = globalItr,
-      .transformItr = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
-      .scaleItr     = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
-      .nameItr      = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
-      .factionItr   = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
-      .healthItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
-      .navAgentItr  = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
-      .locoItr      = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
-      .attackItr    = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
-      .targetItr    = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
+      .world          = world,
+      .globalItr      = globalItr,
+      .transformItr   = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .scaleItr       = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
+      .nameItr        = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
+      .factionItr     = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
+      .healthItr      = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .navAgentItr    = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
+      .locoItr        = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
+      .attackItr      = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
+      .targetItr      = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
+      .lineOfSightItr = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
   };
 
   u32 startedAssetLoads = 0;
@@ -956,7 +1067,8 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
-      ecs_register_view(EvalTargetView));
+      ecs_register_view(EvalTargetView),
+      ecs_register_view(EvalLineOfSightView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);

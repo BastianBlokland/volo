@@ -552,6 +552,7 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("health"), null);
   script_binder_declare(binder, string_hash_lit("time"), null);
   script_binder_declare(binder, string_hash_lit("nav_query"), null);
+  script_binder_declare(binder, string_hash_lit("line_of_sight"), null);
   script_binder_declare(binder, string_hash_lit("capable"), null);
   script_binder_declare(binder, string_hash_lit("active"), null);
   script_binder_declare(binder, string_hash_lit("target_primary"), null);
