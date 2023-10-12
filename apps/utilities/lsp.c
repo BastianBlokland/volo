@@ -542,7 +542,6 @@ static ScriptBinder* lsp_script_binder_create() {
   ScriptBinder* binder = script_binder_create(g_alloc_persist);
 
   // TODO: Instead of manually listing the supported bindings here we should read them from a file.
-  script_binder_declare(binder, string_hash_lit("print"), null);
   script_binder_declare(binder, string_hash_lit("self"), null);
   script_binder_declare(binder, string_hash_lit("exists"), null);
   script_binder_declare(binder, string_hash_lit("position"), null);
@@ -553,13 +552,23 @@ static ScriptBinder* lsp_script_binder_create() {
   script_binder_declare(binder, string_hash_lit("health"), null);
   script_binder_declare(binder, string_hash_lit("time"), null);
   script_binder_declare(binder, string_hash_lit("nav_query"), null);
+  script_binder_declare(binder, string_hash_lit("line_of_sight"), null);
+  script_binder_declare(binder, string_hash_lit("capable"), null);
+  script_binder_declare(binder, string_hash_lit("active"), null);
+  script_binder_declare(binder, string_hash_lit("target_primary"), null);
+  script_binder_declare(binder, string_hash_lit("target_range_min"), null);
+  script_binder_declare(binder, string_hash_lit("target_range_max"), null);
   script_binder_declare(binder, string_hash_lit("spawn"), null);
   script_binder_declare(binder, string_hash_lit("destroy"), null);
   script_binder_declare(binder, string_hash_lit("destroy_after"), null);
   script_binder_declare(binder, string_hash_lit("teleport"), null);
+  script_binder_declare(binder, string_hash_lit("nav_travel"), null);
+  script_binder_declare(binder, string_hash_lit("nav_stop"), null);
   script_binder_declare(binder, string_hash_lit("attach"), null);
   script_binder_declare(binder, string_hash_lit("detach"), null);
   script_binder_declare(binder, string_hash_lit("damage"), null);
+  script_binder_declare(binder, string_hash_lit("attack"), null);
+  script_binder_declare(binder, string_hash_lit("debug_log"), null);
 
   script_binder_finalize(binder);
   return binder;

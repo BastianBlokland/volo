@@ -28,7 +28,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Rifle",
-          "targetDistanceMax": 25,
+          "targetRangeMax": 25,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -42,7 +42,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
@@ -80,7 +80,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "RocketLauncher",
-          "targetDistanceMax": 30,
+          "targetRangeMax": 30,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -132,7 +132,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "FlameThrower",
-          "targetDistanceMax": 15,
+          "targetRangeMax": 15,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -183,7 +183,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Melee",
-          "targetDistanceMax": 150,
+          "targetRangeMax": 150,
           "targetLineOfSightRadius": 0.2,
           "targetExcludeUnreachable": true
         },
@@ -264,7 +264,7 @@
           "aimJoint": "turret",
           "aimSpeed": 120,
           "aimSoundId": "external/sound/electric-motor-01.wav",
-          "targetDistanceMax": 35,
+          "targetRangeMax": 35,
           "targetLineOfSightRadius": 0.5,
           "targetExcludeObscured": true
         },
@@ -300,8 +300,8 @@
           "aimJoint": "turret",
           "aimSpeed": 90,
           "aimSoundId": "external/sound/electric-motor-01.wav",
-          "targetDistanceMin": 20,
-          "targetDistanceMax": 60
+          "targetRangeMin": 20,
+          "targetRangeMax": 60
         },
         {
           "$type": "AssetPrefabTrait_Collision",

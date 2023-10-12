@@ -351,11 +351,11 @@
               "type": "string",
               "minLength": 1
             },
-            "targetDistanceMin": {
+            "targetRangeMin": {
               "title": "f32",
               "type": "number"
             },
-            "targetDistanceMax": {
+            "targetRangeMax": {
               "title": "f32",
               "type": "number"
             },
@@ -375,7 +375,7 @@
           "required": [
             "$type",
             "weaponId",
-            "targetDistanceMax"
+            "targetRangeMax"
           ]
         },
         {
@@ -443,52 +443,6 @@
           "required": [
             "$type",
             "behaviorId"
-          ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": {
-              "const": "AssetPrefabTrait_Spawner"
-            },
-            "$name": {
-              "type": "string"
-            },
-            "prefabId": {
-              "title": "String",
-              "type": "string",
-              "minLength": 1
-            },
-            "radius": {
-              "title": "f32",
-              "type": "number"
-            },
-            "count": {
-              "title": "u32",
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 4294967295
-            },
-            "maxInstances": {
-              "title": "u32",
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 4294967295
-            },
-            "intervalMin": {
-              "title": "f32",
-              "type": "number"
-            },
-            "intervalMax": {
-              "title": "f32",
-              "type": "number"
-            }
-          },
-          "required": [
-            "$type",
-            "prefabId",
-            "count"
           ]
         },
         {
@@ -735,7 +689,7 @@
         },
         {
           "label": "New AssetPrefabTrait_Attack",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetDistanceMax\": 1\n}"
+          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Collision",
@@ -748,10 +702,6 @@
         {
           "label": "New AssetPrefabTrait_Brain",
           "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Brain\",\n  \"behaviorId\": \"placeholder\"\n}"
-        },
-        {
-          "label": "New AssetPrefabTrait_Spawner",
-          "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Spawner\",\n  \"prefabId\": \"placeholder\",\n  \"count\": 1\n}"
         },
         {
           "label": "New AssetPrefabTrait_Blink",

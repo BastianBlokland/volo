@@ -98,7 +98,7 @@ ecs_system_define(SceneSensorUpdateSys) {
       const bool los = (targetFinder->flags & SceneTarget_LineOfSight) != 0;
 
       scene_knowledge_set(
-          knowledge, g_brainKeyTargetRangeMax, script_number(targetFinder->distanceMax));
+          knowledge, g_brainKeyTargetRangeMax, script_number(targetFinder->rangeMax));
       scene_knowledge_set(knowledge, g_brainKeyTargetEntity, script_entity(target));
       scene_knowledge_set(
           knowledge, g_brainKeyTargetPos, script_vector3(targetFinder->targetPosition));

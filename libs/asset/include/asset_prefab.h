@@ -115,7 +115,7 @@ typedef struct {
   StringHash  aimJoint;
   f32         aimSpeedRad; // Radians per second.
   EcsEntityId aimSoundAsset;
-  f32         targetDistanceMin, targetDistanceMax;
+  f32         targetRangeMin, targetRangeMax;
   f32         targetLineOfSightRadius;
   bool        targetExcludeUnreachable;
   bool        targetExcludeObscured;

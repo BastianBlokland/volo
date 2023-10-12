@@ -380,8 +380,8 @@ static void hud_info_draw(UiCanvasComp* c, EcsIterator* infoItr, EcsIterator* we
     fmt_write(
         &buffer,
         "\a.bRange\ar:\a>15{} - {}\n",
-        fmt_float(targetFinder->distanceMin, .maxDecDigits = 1),
-        fmt_float(targetFinder->distanceMax, .maxDecDigits = 1));
+        fmt_float(targetFinder->rangeMin, .maxDecDigits = 1),
+        fmt_float(targetFinder->rangeMax, .maxDecDigits = 1));
   }
   if (attackComp && weaponMapItr) {
     const AssetWeaponMapComp* weaponMap = ecs_view_read_t(weaponMapItr, AssetWeaponMapComp);
