@@ -171,8 +171,18 @@ ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
 ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
 
 typedef struct {
-  EcsWorld*              world;
-  EcsIterator*           globalItr;
+  EcsWorld*    world;
+  EcsIterator* globalItr;
+  EcsIterator* transformItr;
+  EcsIterator* scaleItr;
+  EcsIterator* nameItr;
+  EcsIterator* factionItr;
+  EcsIterator* healthItr;
+  EcsIterator* navAgentItr;
+  EcsIterator* locoItr;
+  EcsIterator* attackItr;
+  EcsIterator* targetItr;
+
   EcsEntityId            entity;
   SceneScriptComp*       scriptInstance;
   SceneKnowledgeComp*    scriptKnowledge;
@@ -253,31 +263,31 @@ static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args) {
 
 static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalTransformView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_vector3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
 static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalTransformView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
 static ScriptVal eval_scale(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalScaleView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->scaleItr, e);
   return itr ? script_number(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
 static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalNameView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
   return itr ? script_string(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
 static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalFactionView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->factionItr, e);
   if (itr) {
     const SceneFactionComp* factionComp = ecs_view_read_t(itr, SceneFactionComp);
     const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
@@ -288,7 +298,7 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args) {
 
 static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalHealthView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->healthItr, e);
   if (itr) {
     const SceneHealthComp* healthComp = ecs_view_read_t(itr, SceneHealthComp);
     return script_number(scene_health_points(healthComp));
@@ -355,22 +365,22 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId e = script_arg_entity(args, 0, ecs_entity_invalid);
   switch (script_arg_enum(args, 1, &g_scriptEnumActivity, sentinel_i32)) {
   case 0: {
-    const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalLocoView), e);
+    const EcsIterator*         itr  = ecs_view_maybe_jump(ctx->locoItr, e);
     const SceneLocomotionComp* loco = itr ? ecs_view_read_t(itr, SceneLocomotionComp) : null;
     return script_bool(loco && (loco->flags & SceneLocomotion_Moving) != 0);
   }
   case 1: {
-    const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalNavAgentView), e);
+    const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
     const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
     return script_bool(agent && (agent->flags & SceneNavAgent_Traveling) != 0);
   }
   case 2: {
-    const EcsIterator*     itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalAttackView), e);
+    const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && ecs_entity_valid(attack->targetEntity));
   }
   case 3: {
-    const EcsIterator*     itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalAttackView), e);
+    const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, e);
     const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
     return script_bool(attack && (attack->flags & SceneAttackFlags_Firing) != 0);
   }
@@ -380,7 +390,7 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args) {
 
 static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalTargetView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
     return script_entity(scene_target_primary(ecs_view_read_t(itr, SceneTargetFinderComp)));
   }
@@ -389,7 +399,7 @@ static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args) {
 
 static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalTargetView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
     return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMin);
   }
@@ -398,7 +408,7 @@ static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args) 
 
 static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args) {
   const EcsEntityId  e   = script_arg_entity(args, 0, ecs_entity_invalid);
-  const EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(ctx->world, EvalTargetView), e);
+  const EcsIterator* itr = ecs_view_maybe_jump(ctx->targetItr, e);
   if (itr) {
     return script_number(ecs_view_read_t(itr, SceneTargetFinderComp)->rangeMax);
   }
@@ -710,8 +720,17 @@ ecs_system_define(SceneScriptUpdateSys) {
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
   EvalContext ctx = {
-      .world     = world,
-      .globalItr = globalItr,
+      .world        = world,
+      .globalItr    = globalItr,
+      .transformItr = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .scaleItr     = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
+      .nameItr      = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
+      .factionItr   = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
+      .healthItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .navAgentItr  = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
+      .locoItr      = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
+      .attackItr    = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
+      .targetItr    = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
   };
 
   u32 startedAssetLoads = 0;
