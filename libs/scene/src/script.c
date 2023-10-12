@@ -155,6 +155,21 @@ typedef struct {
   };
 } ScriptAction;
 
+ecs_view_define(EvalGlobalView) {
+  ecs_access_read(SceneNavEnvComp);
+  ecs_access_read(SceneTimeComp);
+}
+
+ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
+ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
+ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
+ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
+ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
+ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
+ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
+ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
+
 typedef struct {
   EcsWorld*    world;
   EcsIterator* globalItr;
@@ -222,21 +237,6 @@ static void action_push_attack(EvalContext* ctx, const ScriptActionAttack* data)
   a->type         = ScriptActionType_Attack;
   a->data_attack  = *data;
 }
-
-ecs_view_define(EvalGlobalView) {
-  ecs_access_read(SceneNavEnvComp);
-  ecs_access_read(SceneTimeComp);
-}
-
-ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
-ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
-ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
-ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
-ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
-ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
-ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
-ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
-ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
 
 static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args) {
   (void)args;
