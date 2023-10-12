@@ -262,9 +262,11 @@ typedef enum {
   ScriptSection_DisallowVarDeclare   = 1 << 1,
   ScriptSection_DisallowLoop         = 1 << 2,
   ScriptSection_DisallowIf           = 1 << 3,
+  ScriptSection_DisallowReturn       = 1 << 4,
   ScriptSection_DisallowStatement    = 0 | ScriptSection_DisallowVarDeclare
                                          | ScriptSection_DisallowLoop
                                          | ScriptSection_DisallowIf
+                                         | ScriptSection_DisallowReturn
                                        ,
   ScriptSection_ResetOnExplicitScope = 0 | ScriptSection_DisallowStatement
                                        ,
@@ -1134,6 +1136,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
   case ScriptTokenType_Return:
+    if (UNLIKELY(ctx->section & ScriptSection_DisallowReturn)) {
+      return read_emit_err(ctx, ScriptError_ReturnNotAllowed, start), read_fail_structural(ctx);
+    }
     return read_expr_return(ctx);
   /**
    * Identifiers.
