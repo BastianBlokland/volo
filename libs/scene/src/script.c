@@ -171,11 +171,14 @@ ecs_view_define(EvalAttackView) { ecs_access_read(SceneAttackComp); }
 ecs_view_define(EvalTargetView) { ecs_access_read(SceneTargetFinderComp); }
 
 typedef struct {
-  EcsWorld*    world;
-  EcsIterator* globalItr;
-  EcsEntityId  entity;
-  String       scriptId;
-  DynArray*    actions; // ScriptAction[].
+  EcsWorld*              world;
+  EcsIterator*           globalItr;
+  EcsEntityId            entity;
+  SceneScriptComp*       scriptInstance;
+  SceneKnowledgeComp*    scriptKnowledge;
+  const AssetScriptComp* scriptAsset;
+  String                 scriptId;
+  DynArray*              actions; // ScriptAction[].
 } EvalContext;
 
 static void action_push_spawn(EvalContext* ctx, const ScriptActionSpawn* data) {
@@ -673,30 +676,14 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
   }
 }
 
-static void scene_script_eval(
-    EcsWorld*              world,
-    EcsIterator*           globalItr,
-    const EcsEntityId      entity,
-    SceneScriptComp*       scriptInstance,
-    SceneKnowledgeComp*    knowledge,
-    const AssetScriptComp* scriptAsset,
-    const AssetComp*       scriptAssetComp) {
-
-  if (UNLIKELY(scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
+static void scene_script_eval(EvalContext* ctx) {
+  if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
     return;
   }
 
-  const ScriptDoc* doc  = scriptAsset->doc;
-  const ScriptExpr expr = scriptAsset->expr;
-  ScriptMem*       mem  = scene_knowledge_memory_mut(knowledge);
-
-  EvalContext ctx = {
-      .world     = world,
-      .globalItr = globalItr,
-      .entity    = entity,
-      .scriptId  = asset_id(scriptAssetComp),
-      .actions   = &scriptInstance->actions,
-  };
+  const ScriptDoc* doc  = ctx->scriptAsset->doc;
+  const ScriptExpr expr = ctx->scriptAsset->expr;
+  ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
   const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
 
@@ -705,8 +692,8 @@ static void scene_script_eval(
     log_w(
         "Script execution failed",
         log_param("error", fmt_text(err)),
-        log_param("entity", fmt_int(entity, .base = 16)),
-        log_param("script", fmt_text(asset_id(scriptAssetComp))));
+        log_param("entity", fmt_int(ctx->entity, .base = 16)),
+        log_param("script", fmt_text(ctx->scriptId)));
   }
 }
 
@@ -722,25 +709,30 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EcsIterator* resourceAssetItr = ecs_view_itr(resourceAssetView);
 
+  EvalContext ctx = {
+      .world     = world,
+      .globalItr = globalItr,
+  };
+
   u32 startedAssetLoads = 0;
   for (EcsIterator* itr = ecs_view_itr_step(scriptView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId   entity     = ecs_view_entity(itr);
-    SceneScriptComp*    scriptInst = ecs_view_write_t(itr, SceneScriptComp);
-    SceneKnowledgeComp* knowledge  = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.entity          = ecs_view_entity(itr);
+    ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
+    ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
 
     // Evaluate the script if the asset is loaded.
-    if (ecs_view_maybe_jump(resourceAssetItr, scriptInst->scriptAsset)) {
-      const AssetScriptComp* scriptAsset     = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
-      const AssetComp*       scriptAssetComp = ecs_view_read_t(resourceAssetItr, AssetComp);
-      scene_script_eval(
-          world, globalItr, entity, scriptInst, knowledge, scriptAsset, scriptAssetComp);
+    if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
+      ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
+      ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+
+      scene_script_eval(&ctx);
       continue;
     }
 
     // Otherwise start loading the asset.
-    if (!ecs_world_has_t(world, scriptInst->scriptAsset, SceneScriptResourceComp)) {
+    if (!ecs_world_has_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp)) {
       if (++startedAssetLoads < scene_script_max_asset_loads) {
-        ecs_world_add_t(world, scriptInst->scriptAsset, SceneScriptResourceComp);
+        ecs_world_add_t(world, ctx.scriptInstance->scriptAsset, SceneScriptResourceComp);
       }
     }
   }
