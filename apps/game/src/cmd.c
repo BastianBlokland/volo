@@ -4,7 +4,6 @@
 #include "core_dynarray.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
-#include "scene_brain.h"
 #include "scene_faction.h"
 #include "scene_knowledge.h"
 #include "scene_product.h"
@@ -15,7 +14,7 @@
 #include "cmd_internal.h"
 
 static const SceneFaction g_playerFaction = SceneFaction_A;
-static StringHash         g_brainKeyMoveTarget, g_brainKeyStop, g_brainKeyAttackTarget;
+static StringHash         g_knowledgeKeyMoveTarget, g_knowledgeKeyStop, g_knowledgeKeyAttackTarget;
 
 typedef enum {
   Cmd_Select,
@@ -92,8 +91,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_write(SceneSelectionComp);
 }
 
-ecs_view_define(BrainView) {
-  ecs_access_with(SceneBrainComp);
+ecs_view_define(UnitView) {
   ecs_access_read(SceneFactionComp);
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneTauntComp);
@@ -163,13 +161,13 @@ static bool cmd_is_player_owned(EcsIterator* itr) {
 
 static void
 cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const CmdMove* cmdMove) {
-  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdMove->object);
-  if (brainItr && cmd_is_player_owned(brainItr)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(brainItr, SceneKnowledgeComp);
-    scene_knowledge_set(knowledge, g_brainKeyMoveTarget, script_vector3(cmdMove->position));
-    scene_knowledge_set_null(knowledge, g_brainKeyAttackTarget);
+  EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdMove->object);
+  if (unitItr && cmd_is_player_owned(unitItr)) {
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
+    scene_knowledge_set(knowledge, g_knowledgeKeyMoveTarget, script_vector3(cmdMove->position));
+    scene_knowledge_set_null(knowledge, g_knowledgeKeyAttackTarget);
 
-    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
+    SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
       scene_taunt_request(taunt, SceneTauntType_Confirm);
     }
@@ -187,24 +185,24 @@ cmd_execute_move(EcsWorld* world, const SceneSelectionComp* selection, const Cmd
 }
 
 static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
-  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdStop->object);
-  if (brainItr && cmd_is_player_owned(brainItr)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(brainItr, SceneKnowledgeComp);
+  EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdStop->object);
+  if (unitItr && cmd_is_player_owned(unitItr)) {
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_brainKeyStop, script_bool(true));
-    scene_knowledge_set_null(knowledge, g_brainKeyMoveTarget);
+    scene_knowledge_set(knowledge, g_knowledgeKeyStop, script_bool(true));
+    scene_knowledge_set_null(knowledge, g_knowledgeKeyMoveTarget);
   }
 }
 
 static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
-  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdAttack->object);
-  if (brainItr && cmd_is_player_owned(brainItr)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(brainItr, SceneKnowledgeComp);
+  EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdAttack->object);
+  if (unitItr && cmd_is_player_owned(unitItr)) {
+    SceneKnowledgeComp* knowledge = ecs_view_write_t(unitItr, SceneKnowledgeComp);
 
-    scene_knowledge_set(knowledge, g_brainKeyAttackTarget, script_entity(cmdAttack->target));
-    scene_knowledge_set_null(knowledge, g_brainKeyMoveTarget);
+    scene_knowledge_set(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
+    scene_knowledge_set_null(knowledge, g_knowledgeKeyMoveTarget);
 
-    SceneTauntComp* taunt = ecs_view_write_t(brainItr, SceneTauntComp);
+    SceneTauntComp* taunt = ecs_view_write_t(unitItr, SceneTauntComp);
     if (taunt) {
       scene_taunt_request(taunt, SceneTauntType_Confirm);
     }
@@ -274,21 +272,21 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(game_cmd_module) {
-  g_brainKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
-  g_brainKeyStop         = stringtable_add(g_stringtable, string_lit("user_stop"));
-  g_brainKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
+  g_knowledgeKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("user_move_target"));
+  g_knowledgeKeyStop         = stringtable_add(g_stringtable, string_lit("user_stop"));
+  g_knowledgeKeyAttackTarget = stringtable_add(g_stringtable, string_lit("user_attack_target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
   ecs_register_view(GlobalUpdateView);
-  ecs_register_view(BrainView);
+  ecs_register_view(UnitView);
   ecs_register_view(ProdView);
   ecs_register_view(TransformView);
 
   ecs_register_system(
       CmdControllerUpdateSys,
       ecs_view_id(GlobalUpdateView),
-      ecs_view_id(BrainView),
+      ecs_view_id(UnitView),
       ecs_view_id(ProdView),
       ecs_view_id(TransformView));
 
