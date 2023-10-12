@@ -762,7 +762,7 @@ typedef struct {
   EcsIterator* attackItr;
 } ActionContext;
 
-static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
+static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
   const ScenePrefabSpec spec = {
       .prefabId = a->prefabId,
       .faction  = a->faction,
@@ -773,13 +773,13 @@ static void script_action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) 
   scene_prefab_spawn_onto(ctx->world, &spec, a->entity);
 }
 
-static void script_action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
+static void action_destroy(ActionContext* ctx, const ScriptActionDestroy* a) {
   if (ecs_world_exists(ctx->world, a->entity)) {
     ecs_world_entity_destroy(ctx->world, a->entity);
   }
 }
 
-static void script_action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* a) {
+static void action_destroy_after(ActionContext* ctx, const ScriptActionDestroyAfter* a) {
   if (ecs_world_exists(ctx->world, a->entity)) {
     if (a->owner) {
       ecs_world_add_t(ctx->world, a->entity, SceneLifetimeOwnerComp, .owners[0] = a->owner);
@@ -789,7 +789,7 @@ static void script_action_destroy_after(ActionContext* ctx, const ScriptActionDe
   }
 }
 
-static void script_action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
+static void action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
   if (ecs_view_maybe_jump(ctx->transItr, a->entity)) {
     SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
     trans->position           = a->position;
@@ -797,7 +797,7 @@ static void script_action_teleport(ActionContext* ctx, const ScriptActionTelepor
   }
 }
 
-static void script_action_nav_travel(ActionContext* ctx, const ScriptActionNavTravel* a) {
+static void action_nav_travel(ActionContext* ctx, const ScriptActionNavTravel* a) {
   if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
     SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
     if (a->targetEntity) {
@@ -808,14 +808,14 @@ static void script_action_nav_travel(ActionContext* ctx, const ScriptActionNavTr
   }
 }
 
-static void script_action_nav_stop(ActionContext* ctx, const ScriptActionNavStop* a) {
+static void action_nav_stop(ActionContext* ctx, const ScriptActionNavStop* a) {
   if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
     SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
     scene_nav_stop(agent);
   }
 }
 
-static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
+static void action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
   SceneAttachmentComp* attach;
   if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
     attach = ecs_view_write_t(ctx->attachItr, SceneAttachmentComp);
@@ -836,13 +836,13 @@ static void script_action_attach(ActionContext* ctx, const ScriptActionAttach* a
   }
 }
 
-static void script_action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
+static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
   if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
     ecs_view_write_t(ctx->attachItr, SceneAttachmentComp)->target = 0;
   }
 }
 
-static void script_action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
+static void action_damage(ActionContext* ctx, const ScriptActionDamage* a) {
   if (ecs_view_maybe_jump(ctx->damageItr, a->entity)) {
     SceneDamageComp* damageComp = ecs_view_write_t(ctx->damageItr, SceneDamageComp);
     scene_health_damage_add(
@@ -854,7 +854,7 @@ static void script_action_damage(ActionContext* ctx, const ScriptActionDamage* a
   }
 }
 
-static void script_action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
+static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
   if (ecs_view_maybe_jump(ctx->attackItr, a->entity)) {
     SceneAttackComp* attackComp = ecs_view_write_t(ctx->attackItr, SceneAttackComp);
     // TODO: Instead of dropping the request if we are already firing we should queue it up.
@@ -883,34 +883,34 @@ ecs_system_define(ScriptActionApplySys) {
     dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
       switch (action->type) {
       case ScriptActionType_Spawn:
-        script_action_spawn(&ctx, &action->data_spawn);
+        action_spawn(&ctx, &action->data_spawn);
         break;
       case ScriptActionType_Destroy:
-        script_action_destroy(&ctx, &action->data_destroy);
+        action_destroy(&ctx, &action->data_destroy);
         break;
       case ScriptActionType_DestroyAfter:
-        script_action_destroy_after(&ctx, &action->data_destroyAfter);
+        action_destroy_after(&ctx, &action->data_destroyAfter);
         break;
       case ScriptActionType_Teleport:
-        script_action_teleport(&ctx, &action->data_teleport);
+        action_teleport(&ctx, &action->data_teleport);
         break;
       case ScriptActionType_NavTravel:
-        script_action_nav_travel(&ctx, &action->data_navTravel);
+        action_nav_travel(&ctx, &action->data_navTravel);
         break;
       case ScriptActionType_NavStop:
-        script_action_nav_stop(&ctx, &action->data_navStop);
+        action_nav_stop(&ctx, &action->data_navStop);
         break;
       case ScriptActionType_Attach:
-        script_action_attach(&ctx, &action->data_attach);
+        action_attach(&ctx, &action->data_attach);
         break;
       case ScriptActionType_Detach:
-        script_action_detach(&ctx, &action->data_detach);
+        action_detach(&ctx, &action->data_detach);
         break;
       case ScriptActionType_Damage:
-        script_action_damage(&ctx, &action->data_damage);
+        action_damage(&ctx, &action->data_damage);
         break;
       case ScriptActionType_Attack:
-        script_action_attack(&ctx, &action->data_attack);
+        action_attack(&ctx, &action->data_attack);
         break;
       }
     }
@@ -926,12 +926,16 @@ ecs_module_init(scene_script_module) {
 
   ecs_register_view(ResourceAssetView);
   ecs_register_view(ResourceLoadView);
+  ecs_register_view(ScriptActionApplyView);
+  ecs_register_view(ScriptUpdateView);
 
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
   ecs_register_system(
       SceneScriptUpdateSys,
+      ecs_view_id(ScriptUpdateView),
+      ecs_view_id(ResourceAssetView),
       ecs_register_view(EvalGlobalView),
       ecs_register_view(EvalTransformView),
       ecs_register_view(EvalScaleView),
@@ -941,16 +945,14 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(EvalNavAgentView),
       ecs_register_view(EvalLocoView),
       ecs_register_view(EvalAttackView),
-      ecs_register_view(EvalTargetView),
-      ecs_register_view(ScriptUpdateView),
-      ecs_view_id(ResourceAssetView));
+      ecs_register_view(EvalTargetView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, 4);
 
   ecs_register_system(
       ScriptActionApplySys,
-      ecs_register_view(ScriptActionApplyView),
+      ecs_view_id(ScriptActionApplyView),
       ecs_register_view(ActionTransformView),
       ecs_register_view(ActionNavAgentView),
       ecs_register_view(ActionAttachmentView),
