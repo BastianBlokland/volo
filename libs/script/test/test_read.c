@@ -111,6 +111,28 @@ spec(read) {
             string_static("[intrinsic: assert]\n"
                           "  [value: 1]"),
         },
+        {
+            string_static("return"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("return 42"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("return null"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("return; 42"),
+            string_static("[block]\n"
+                          "  [intrinsic: return]\n"
+                          "    [value: null]\n"
+                          "  [value: 42]"),
+        },
 
         // External functions.
         {
@@ -975,24 +997,27 @@ spec(read) {
         {string_static("var a ="), ScriptError_MissingPrimaryExpr},
         {string_static("var a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a = if(1) {}"), ScriptError_IfNotAllowed},
         {string_static("var a; a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a; a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a; a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a; a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a; a = if(1) {}"), ScriptError_IfNotAllowed},
         {string_static("var a; a += var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a; a += while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a; a += for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a; a += for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a; a += if(1) {}"), ScriptError_IfNotAllowed},
         {string_static("$a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("$a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("$a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("$a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("$a = if(1) {}"), ScriptError_IfNotAllowed},
         {string_static("$a += var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("$a += while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("$a += for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("$a += for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("$a += if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("return var b"), ScriptError_VarDeclareNotAllowed},
+        {string_static("return while(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("return for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a = a"), ScriptError_NoVarFoundForId},
         {string_static("b ="), ScriptError_MissingPrimaryExpr},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpr},

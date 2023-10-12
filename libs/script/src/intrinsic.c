@@ -10,6 +10,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RandomCircleXZ:
   case ScriptIntrinsic_RandomSphere:
     return 0;
+  case ScriptIntrinsic_Return:
   case ScriptIntrinsic_Assert:
   case ScriptIntrinsic_Invert:
   case ScriptIntrinsic_Magnitude:
@@ -62,6 +63,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
   static const String g_names[] = {
       [ScriptIntrinsic_Continue]          = string_static("continue"),
       [ScriptIntrinsic_Break]             = string_static("break"),
+      [ScriptIntrinsic_Return]            = string_static("return"),
       [ScriptIntrinsic_Type]              = string_static("type"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
       [ScriptIntrinsic_If]                = string_static("if"),

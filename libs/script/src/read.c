@@ -1063,6 +1063,26 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Select, intrArgs);
 }
 
+static ScriptExpr read_expr_return(ScriptReadContext* ctx) {
+  ScriptToken nextToken;
+  script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
+
+  ScriptExpr retExpr;
+  if (read_is_block_separator(nextToken.type) || nextToken.type == ScriptTokenType_End) {
+    retExpr = script_add_value(ctx->doc, script_null());
+  } else {
+    const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
+    retExpr                         = read_expr(ctx, OpPrecedence_Assignment);
+    ctx->section                    = prevSection;
+    if (UNLIKELY(sentinel_check(retExpr))) {
+      return read_fail_structural(ctx);
+    }
+  }
+
+  const ScriptExpr intrArgs[] = {retExpr};
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Return, intrArgs);
+}
+
 static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   const ScriptPos start = read_pos_current(ctx);
 
@@ -1113,6 +1133,8 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
       return read_emit_err(ctx, ScriptError_NotValidOutsideLoop, start), read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
+  case ScriptTokenType_Return:
+    return read_expr_return(ctx);
   /**
    * Identifiers.
    */

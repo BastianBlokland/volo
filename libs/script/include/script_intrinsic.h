@@ -4,6 +4,7 @@
 typedef enum {
   ScriptIntrinsic_Continue,          // Args: none.
   ScriptIntrinsic_Break,             // Args: none.
+  ScriptIntrinsic_Return,            // Args: value.
   ScriptIntrinsic_Type,              // Args: value.
   ScriptIntrinsic_Assert,            // Args: condition.
   ScriptIntrinsic_If,                // Args: condition, if branch, else branch.
