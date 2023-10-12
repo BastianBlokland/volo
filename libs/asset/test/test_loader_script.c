@@ -12,7 +12,7 @@ static const struct {
 } g_testData[] = {
     {
         .id   = string_static("hello-world.script"),
-        .text = string_static("print(\"Hello World\")"),
+        .text = string_static("debug_log(\"Hello World\")"),
     },
 };
 
