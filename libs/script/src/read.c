@@ -507,6 +507,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     switch (data->data_intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
+    case ScriptIntrinsic_Return:
     case ScriptIntrinsic_Assert:
       *hasSideEffect = true;
       // Fallthrough.
