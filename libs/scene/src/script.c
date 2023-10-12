@@ -849,6 +849,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.entity          = ecs_view_entity(itr);
     ctx.scriptInstance  = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.actions         = &ctx.scriptInstance->actions;
 
     // Evaluate the script if the asset is loaded.
     if (ecs_view_maybe_jump(resourceAssetItr, ctx.scriptInstance->scriptAsset)) {
