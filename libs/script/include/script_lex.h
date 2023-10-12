@@ -44,6 +44,7 @@ typedef enum {
   ScriptTokenType_For,          // for
   ScriptTokenType_Continue,     // continue
   ScriptTokenType_Break,        // break
+  ScriptTokenType_Return,       // return
   ScriptTokenType_Newline,      // \n
   ScriptTokenType_Comment,      // /* Hello */ or // World
   ScriptTokenType_Error,        //
