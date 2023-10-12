@@ -805,7 +805,7 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptExpr expr = ctx->scriptAsset->expr;
   ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
-  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, &ctx);
+  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
 
   if (UNLIKELY(evalRes.error != ScriptError_None)) {
     const String err = script_error_str(evalRes.error);
