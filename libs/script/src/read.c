@@ -544,6 +544,30 @@ static void read_emit_no_effect(
   }
 }
 
+static void read_emit_unreachable(
+    ScriptReadContext*   ctx,
+    const ScriptExpr     exprs[],
+    const ScriptPosRange exprRanges[],
+    const u32            exprCount) {
+  if (!ctx->diags) {
+    return;
+  }
+  for (u32 i = 0; i != (exprCount - 1); ++i) {
+    const ScriptDocSignal uncaughtSignal = script_expr_always_uncaught_signal(ctx->doc, exprs[i]);
+    if (uncaughtSignal) {
+      const ScriptPos  unreachableStart = exprRanges[i + 1].start;
+      const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
+      const ScriptDiag noEffectDiag     = {
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+      };
+      script_diag_push(ctx->diags, &noEffectDiag);
+      break;
+    }
+  }
+}
+
 typedef enum {
   ScriptBlockType_Implicit,
   ScriptBlockType_Explicit,
@@ -613,6 +637,7 @@ BlockEnd:
     return exprs[0];
   default:
     read_emit_no_effect(ctx, exprs, exprRanges, exprCount);
+    read_emit_unreachable(ctx, exprs, exprRanges, exprCount);
     return script_add_block(ctx->doc, exprs, exprCount);
   }
 }

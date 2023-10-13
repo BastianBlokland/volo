@@ -44,6 +44,7 @@ typedef enum eScriptError {
   ScriptError_IfNotAllowed,
   ScriptError_ReturnNotAllowed,
   ScriptError_ExprHasNoEffect,
+  ScriptError_ExprUnreachable,
   ScriptError_AssertionFailed,
   ScriptError_LoopInterationLimitExceeded,
 
