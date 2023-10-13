@@ -300,7 +300,7 @@ static ScriptError script_error_type(const ScriptEvalContext* ctx) {
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
     return ScriptError_LoopInterationLimitExceeded;
   }
-  if (ctx->signal & ScriptEvalSignal_Return) {
+  if (ctx->signal == ScriptEvalSignal_Return) {
     return ScriptError_None;
   }
   diag_assert_msg(!ctx->signal, "Unhandled signal");
