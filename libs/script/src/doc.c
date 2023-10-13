@@ -300,6 +300,20 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
       return ScriptDocSignal_Break;
     case ScriptIntrinsic_Return:
       return script_expr_always_uncaught_signal(doc, args[0]) | ScriptDocSignal_Return;
+    case ScriptIntrinsic_Select: {
+      ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[0]);
+      if (sig) {
+        return sig;
+      }
+      if (script_expr_static(doc, args[0])) {
+        const ScriptEvalResult res = script_eval(doc, null, args[0], null, null);
+        if (res.error == ScriptError_None) {
+          const bool condition = script_truthy(res.val);
+          return script_expr_always_uncaught_signal(doc, condition ? args[1] : args[2]);
+        }
+      }
+      return ScriptDocSignal_None;
+    }
     default:
       for (u32 i = 0; i != argCount; ++i) {
         const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[i]);

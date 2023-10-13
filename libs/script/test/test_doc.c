@@ -196,6 +196,7 @@ spec(doc) {
         {string_static("true"), .isTruthy = true},
         {string_static("2 > 1"), .isTruthy = true},
         {string_static("2 > 1 ? (1 < 2) : (2 > 3)"), .isTruthy = true},
+        {string_static("distance(vector(1,2,3), vector(0,0,0)) > 0"), .isTruthy = true},
 
         {string_static("while(true) {}"), .isTruthy = false},
         {string_static("false"), .isTruthy = false},
@@ -214,6 +215,35 @@ spec(doc) {
       check_require(!sentinel_check(expr));
 
       check(script_expr_always_truthy(doc, expr) == g_testData[i].isTruthy);
+    }
+  }
+
+  it("can check for always uncaught signals") {
+    static const struct {
+      String          input;
+      ScriptDocSignal sig;
+    } g_testData[] = {
+        {string_static("1"), .sig = ScriptDocSignal_None},
+        {string_static("return"), .sig = ScriptDocSignal_Return},
+        {string_static("true ? return 0 : 0"), .sig = ScriptDocSignal_Return},
+        {string_static("false ? return 0 : 0"), .sig = ScriptDocSignal_None},
+        {string_static("true ? 0 : return 0"), .sig = ScriptDocSignal_None},
+        {string_static("false ? 0 : return 0"), .sig = ScriptDocSignal_Return},
+        {string_static("$i ? return 0 : return 1"), .sig = ScriptDocSignal_None},
+        {string_static("(while(true) {}) ? return 0 : return 1"), .sig = ScriptDocSignal_None},
+        {string_static("var i = { return }"), .sig = ScriptDocSignal_Return},
+        {string_static("$i = { return }"), .sig = ScriptDocSignal_Return},
+        {string_static("vector(1,2,3)"), .sig = ScriptDocSignal_None},
+        {string_static("vector(1,return 2,3)"), .sig = ScriptDocSignal_Return},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check_eq_int(script_expr_always_uncaught_signal(doc, expr), g_testData[i].sig);
     }
   }
 
