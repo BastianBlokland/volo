@@ -11,8 +11,7 @@ typedef enum {
   ScriptIntrinsic_NullCoalescing,    // Args: lhs, rhs.
   ScriptIntrinsic_LogicAnd,          // Args: lhs, rhs.
   ScriptIntrinsic_LogicOr,           // Args: lhs, rhs.
-  ScriptIntrinsic_For,               // Args: setup, condition, increment, body.
-  ScriptIntrinsic_While,             // Args: condition, body.
+  ScriptIntrinsic_Loop,              // Args: setup, condition, increment, body.
   ScriptIntrinsic_Equal,             // Args: lhs, rhs.
   ScriptIntrinsic_NotEqual,          // Args: lhs, rhs.
   ScriptIntrinsic_Less,              // Args: lhs, rhs.

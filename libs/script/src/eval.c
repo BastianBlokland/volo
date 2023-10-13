@@ -110,7 +110,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
   }
-  case ScriptIntrinsic_For: {
+  case ScriptIntrinsic_Loop: {
     EVAL_ARG_WITH_INTERRUPT(0); // Setup.
     ScriptVal ret  = script_null();
     u32       itrs = 0;
@@ -132,29 +132,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
         break;
       }
       EVAL_ARG_WITH_INTERRUPT(2); // Increment.
-    }
-    return ret;
-  }
-  case ScriptIntrinsic_While: {
-    ScriptVal ret  = script_null();
-    u32       itrs = 0;
-    for (;;) {
-      EVAL_ARG_WITH_INTERRUPT(0); // Condition.
-      if (script_falsy(arg0) || UNLIKELY(ctx->signal)) {
-        break;
-      }
-      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
-        ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
-        break;
-      }
-      ret = eval(ctx, args[1]); // Body.
-      if (ctx->signal & ScriptEvalSignal_Continue) {
-        ctx->signal &= ~ScriptEvalSignal_Continue;
-      }
-      if (ctx->signal) {
-        ctx->signal &= ~ScriptEvalSignal_Break;
-        break;
-      }
     }
     return ret;
   }

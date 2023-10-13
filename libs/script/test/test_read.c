@@ -238,10 +238,12 @@ spec(read) {
             string_static("[block]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
-                          "  [intrinsic: while]\n"
+                          "  [intrinsic: loop]\n"
+                          "    [value: null]\n"
                           "    [intrinsic: less]\n"
                           "      [var-load: 0]\n"
                           "      [value: 10]\n"
+                          "    [value: null]\n"
                           "    [block]\n"
                           "      [extern: 1]\n"
                           "        [var-load: 0]\n"
@@ -252,36 +254,48 @@ spec(read) {
         },
         {
             string_static("while(true) { bind_test_1() }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [extern: 1]"),
         },
         {
             string_static("while(true) { break }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [intrinsic: break]"),
         },
         {
             string_static("while(true) { continue }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [intrinsic: continue]"),
         },
         {
             string_static("while(true) { while(false) {}; break }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [block]\n"
-                          "    [intrinsic: while]\n"
+                          "    [intrinsic: loop]\n"
+                          "      [value: null]\n"
                           "      [value: false]\n"
+                          "      [value: null]\n"
                           "      [value: null]\n"
                           "    [intrinsic: break]"),
         },
         {
             string_static("while(true) { var stuff = { break }}"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [var-store: 0]\n"
                           "    [intrinsic: break]"),
         },
@@ -289,7 +303,7 @@ spec(read) {
         // For expressions.
         {
             string_static("for(;;) {}"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -297,7 +311,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -305,7 +319,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0;;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [value: true]\n"
@@ -314,7 +328,7 @@ spec(read) {
         },
         {
             string_static("for(;42;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: 42]\n"
                           "  [value: null]\n"
@@ -322,7 +336,7 @@ spec(read) {
         },
         {
             string_static("for(;;42) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: 42]\n"
@@ -330,7 +344,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0; i != 10;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [intrinsic: not-equal]\n"
@@ -341,7 +355,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0; i != 10; i += 1) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [intrinsic: not-equal]\n"
@@ -355,7 +369,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { break }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -363,7 +377,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { continue }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"

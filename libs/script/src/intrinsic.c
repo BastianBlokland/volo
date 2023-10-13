@@ -42,13 +42,12 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_QuatFromAngleAxis:
   case ScriptIntrinsic_RandomBetween:
   case ScriptIntrinsic_Sub:
-  case ScriptIntrinsic_While:
     return 2;
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_Vector3Compose:
     return 3;
-  case ScriptIntrinsic_For:
+  case ScriptIntrinsic_Loop:
     return 4;
   case ScriptIntrinsic_Count:
     break;
@@ -69,8 +68,7 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_NullCoalescing]    = string_static("null-coalescing"),
       [ScriptIntrinsic_LogicAnd]          = string_static("logic-and"),
       [ScriptIntrinsic_LogicOr]           = string_static("logic-or"),
-      [ScriptIntrinsic_For]               = string_static("for"),
-      [ScriptIntrinsic_While]             = string_static("while"),
+      [ScriptIntrinsic_Loop]              = string_static("loop"),
       [ScriptIntrinsic_Equal]             = string_static("equal"),
       [ScriptIntrinsic_NotEqual]          = string_static("not-equal"),
       [ScriptIntrinsic_Less]              = string_static("less"),

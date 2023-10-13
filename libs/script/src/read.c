@@ -962,8 +962,11 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
 
-  const ScriptExpr intrArgs[] = {conditions[0], body};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_While, intrArgs);
+  // NOTE: Setup and Increment loop parts are not used in while loops.
+  const ScriptExpr setupExpr  = script_add_value(ctx->doc, script_null());
+  const ScriptExpr incrExpr   = script_add_value(ctx->doc, script_null());
+  const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
 typedef enum {
@@ -1040,7 +1043,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   read_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {setupExpr, condExpr, incrExpr, body};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_For, intrArgs);
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
 static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
