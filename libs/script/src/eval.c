@@ -294,14 +294,14 @@ NO_INLINE_HINT static ScriptVal eval(ScriptEvalContext* ctx, const ScriptExpr ex
 }
 
 static ScriptError script_error_type(const ScriptEvalContext* ctx) {
-  if (ctx->signal & ScriptEvalSignal_Return) {
-    return ScriptError_None;
-  }
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_AssertionFailed)) {
     return ScriptError_AssertionFailed;
   }
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
     return ScriptError_LoopInterationLimitExceeded;
+  }
+  if (ctx->signal & ScriptEvalSignal_Return) {
+    return ScriptError_None;
   }
   diag_assert_msg(!ctx->signal, "Unhandled signal");
   return ScriptError_None;
