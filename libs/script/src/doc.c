@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "script_eval.h"
 
 #include "doc_internal.h"
 
@@ -217,6 +218,14 @@ bool script_expr_static(const ScriptDoc* doc, const ScriptExpr expr) {
   bool isStatic = true;
   script_expr_visit(doc, expr, &isStatic, script_visitor_static);
   return isStatic;
+}
+
+bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
+  if (!script_expr_static(doc, expr)) {
+    return false;
+  }
+  const ScriptEvalResult evalRes = script_eval(doc, null, expr, null, null);
+  return evalRes.error == ScriptError_None && script_truthy(evalRes.val);
 }
 
 void script_expr_visit(

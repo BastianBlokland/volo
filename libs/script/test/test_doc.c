@@ -187,5 +187,35 @@ spec(doc) {
     }
   }
 
+  it("can test if expressions are always truthy") {
+    static const struct {
+      String input;
+      bool   isTruthy;
+    } g_testData[] = {
+        {string_static("1"), .isTruthy = true},
+        {string_static("true"), .isTruthy = true},
+        {string_static("2 > 1"), .isTruthy = true},
+        {string_static("2 > 1 ? (1 < 2) : (2 > 3)"), .isTruthy = true},
+
+        {string_static("while(true) {}"), .isTruthy = false},
+        {string_static("false"), .isTruthy = false},
+        {string_static("null"), .isTruthy = false},
+        {string_static("1 > 2"), .isTruthy = false},
+        {string_static("random()"), .isTruthy = false},
+        {string_static("return"), .isTruthy = false},
+        {string_static("$i = true"), .isTruthy = false},
+        {string_static("var i = true"), .isTruthy = false},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check(script_expr_always_truthy(doc, expr) == g_testData[i].isTruthy);
+    }
+  }
+
   teardown() { script_destroy(doc); }
 }
