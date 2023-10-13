@@ -94,7 +94,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     }
     return script_null();
   }
-  case ScriptIntrinsic_If:
   case ScriptIntrinsic_Select: {
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_truthy(arg0) ? eval(ctx, args[1]) : eval(ctx, args[2]);

@@ -156,48 +156,48 @@ spec(read) {
         // If expressions.
         {
             string_static("if(true) {2}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: null]"),
         },
         {
             string_static("if(true) {2} else {3}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: 3]"),
         },
         {
             string_static("if(true) {} else {}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
                           "  [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: 3]\n"
                           "    [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3} else {4}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: 3]\n"
                           "    [value: 4]"),
         },
         {
             string_static("if(var i = 42) {i} else {i}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
                           "  [var-load: 0]\n"
@@ -206,12 +206,12 @@ spec(read) {
         {
             string_static("if(var i = 1) {i}; if(var i = 2) {i}"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 1]\n"
                           "    [var-load: 0]\n"
                           "    [value: null]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 2]\n"
                           "    [var-load: 0]\n"
@@ -220,7 +220,7 @@ spec(read) {
         {
             string_static("if(true) {}; var i"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: null]\n"
                           "    [value: null]\n"

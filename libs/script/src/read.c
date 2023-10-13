@@ -922,7 +922,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   read_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {conditions[0], b1, b2};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs);
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Select, intrArgs);
 }
 
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
@@ -1326,12 +1326,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

@@ -44,7 +44,6 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_While:
     return 2;
-  case ScriptIntrinsic_If:
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_Vector3Compose:
@@ -66,7 +65,6 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Return]            = string_static("return"),
       [ScriptIntrinsic_Type]              = string_static("type"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
-      [ScriptIntrinsic_If]                = string_static("if"),
       [ScriptIntrinsic_Select]            = string_static("select"),
       [ScriptIntrinsic_NullCoalescing]    = string_static("null-coalescing"),
       [ScriptIntrinsic_LogicAnd]          = string_static("logic-and"),
