@@ -47,10 +47,11 @@ typedef enum {
 } ScriptIntrinsic;
 
 /**
- * Return how many arguments an intrinsic takes.
+ * Intrinsic traits.
  */
-u32 script_intrinsic_arg_count(ScriptIntrinsic);
-u32 script_intrinsic_arg_count_always_reached(ScriptIntrinsic);
+u32  script_intrinsic_arg_count(ScriptIntrinsic);
+u32  script_intrinsic_arg_count_always_reached(ScriptIntrinsic);
+bool script_intrinsic_deterministic(ScriptIntrinsic);
 
 /**
  * Get a textual representation of the given intrinsic.

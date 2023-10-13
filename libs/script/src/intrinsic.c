@@ -74,6 +74,26 @@ u32 script_intrinsic_arg_count_always_reached(const ScriptIntrinsic i) {
   UNREACHABLE
 }
 
+bool script_intrinsic_deterministic(const ScriptIntrinsic i) {
+  switch (i) {
+  case ScriptIntrinsic_Continue:
+  case ScriptIntrinsic_Break:
+  case ScriptIntrinsic_Return:
+  case ScriptIntrinsic_Assert:
+  case ScriptIntrinsic_Random:
+  case ScriptIntrinsic_RandomSphere:
+  case ScriptIntrinsic_RandomCircleXZ:
+  case ScriptIntrinsic_RandomBetween:
+    return false;
+  default:
+    return true;
+  case ScriptIntrinsic_Count:
+    break;
+  }
+  diag_assert_fail("Unknown intrinsic type");
+  UNREACHABLE
+}
+
 String script_intrinsic_str(const ScriptIntrinsic i) {
   diag_assert(i < ScriptIntrinsic_Count);
   static const String g_names[] = {
