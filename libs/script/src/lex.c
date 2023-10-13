@@ -21,6 +21,7 @@ static const ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("continue"), .token = ScriptTokenType_Continue},
     {.id = string_static("break"), .token = ScriptTokenType_Break},
     {.id = string_static("for"), .token = ScriptTokenType_For},
+    {.id = string_static("return"), .token = ScriptTokenType_Return},
 };
 
 static bool script_is_word_start(const u8 c) {
@@ -508,6 +509,8 @@ String script_token_str_scratch(const ScriptToken* token) {
     return string_lit("continue");
   case ScriptTokenType_Break:
     return string_lit("break");
+  case ScriptTokenType_Return:
+    return string_lit("return");
   case ScriptTokenType_Comment:
     return string_lit("comment");
   case ScriptTokenType_Newline:

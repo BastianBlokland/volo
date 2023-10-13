@@ -111,6 +111,38 @@ spec(read) {
             string_static("[intrinsic: assert]\n"
                           "  [value: 1]"),
         },
+        {
+            string_static("return"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("return 42"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("return null"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("return; 42"),
+            string_static("[block]\n"
+                          "  [intrinsic: return]\n"
+                          "    [value: null]\n"
+                          "  [value: 42]"),
+        },
+        {
+            string_static("{ return }"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("{ return 42 }"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: 42]"),
+        },
 
         // External functions.
         {
@@ -134,48 +166,48 @@ spec(read) {
         // If expressions.
         {
             string_static("if(true) {2}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: null]"),
         },
         {
             string_static("if(true) {2} else {3}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: 2]\n"
                           "  [value: 3]"),
         },
         {
             string_static("if(true) {} else {}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
                           "  [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: 3]\n"
                           "    [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3} else {4}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
                           "  [value: 2]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: 3]\n"
                           "    [value: 4]"),
         },
         {
             string_static("if(var i = 42) {i} else {i}"),
-            string_static("[intrinsic: if]\n"
+            string_static("[intrinsic: select]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
                           "  [var-load: 0]\n"
@@ -184,12 +216,12 @@ spec(read) {
         {
             string_static("if(var i = 1) {i}; if(var i = 2) {i}"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 1]\n"
                           "    [var-load: 0]\n"
                           "    [value: null]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 2]\n"
                           "    [var-load: 0]\n"
@@ -198,7 +230,7 @@ spec(read) {
         {
             string_static("if(true) {}; var i"),
             string_static("[block]\n"
-                          "  [intrinsic: if]\n"
+                          "  [intrinsic: select]\n"
                           "    [value: true]\n"
                           "    [value: null]\n"
                           "    [value: null]\n"
@@ -216,10 +248,12 @@ spec(read) {
             string_static("[block]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
-                          "  [intrinsic: while]\n"
+                          "  [intrinsic: loop]\n"
+                          "    [value: null]\n"
                           "    [intrinsic: less]\n"
                           "      [var-load: 0]\n"
                           "      [value: 10]\n"
+                          "    [value: null]\n"
                           "    [block]\n"
                           "      [extern: 1]\n"
                           "        [var-load: 0]\n"
@@ -230,36 +264,48 @@ spec(read) {
         },
         {
             string_static("while(true) { bind_test_1() }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [extern: 1]"),
         },
         {
             string_static("while(true) { break }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [intrinsic: break]"),
         },
         {
             string_static("while(true) { continue }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [intrinsic: continue]"),
         },
         {
             string_static("while(true) { while(false) {}; break }"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [block]\n"
-                          "    [intrinsic: while]\n"
+                          "    [intrinsic: loop]\n"
+                          "      [value: null]\n"
                           "      [value: false]\n"
+                          "      [value: null]\n"
                           "      [value: null]\n"
                           "    [intrinsic: break]"),
         },
         {
             string_static("while(true) { var stuff = { break }}"),
-            string_static("[intrinsic: while]\n"
+            string_static("[intrinsic: loop]\n"
+                          "  [value: null]\n"
                           "  [value: true]\n"
+                          "  [value: null]\n"
                           "  [var-store: 0]\n"
                           "    [intrinsic: break]"),
         },
@@ -267,7 +313,7 @@ spec(read) {
         // For expressions.
         {
             string_static("for(;;) {}"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -275,7 +321,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -283,7 +329,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0;;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [value: true]\n"
@@ -292,7 +338,7 @@ spec(read) {
         },
         {
             string_static("for(;42;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: 42]\n"
                           "  [value: null]\n"
@@ -300,7 +346,7 @@ spec(read) {
         },
         {
             string_static("for(;;42) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: 42]\n"
@@ -308,7 +354,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0; i != 10;) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [intrinsic: not-equal]\n"
@@ -319,7 +365,7 @@ spec(read) {
         },
         {
             string_static("for(var i = 0; i != 10; i += 1) { bind_test_1() }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [var-store: 0]\n"
                           "    [value: 0]\n"
                           "  [intrinsic: not-equal]\n"
@@ -333,7 +379,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { break }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -341,7 +387,7 @@ spec(read) {
         },
         {
             string_static("for(;;) { continue }"),
-            string_static("[intrinsic: for]\n"
+            string_static("[intrinsic: loop]\n"
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
@@ -975,24 +1021,33 @@ spec(read) {
         {string_static("var a ="), ScriptError_MissingPrimaryExpr},
         {string_static("var a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a = if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("var a = return"), ScriptError_ReturnNotAllowed},
         {string_static("var a; a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a; a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a; a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a; a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a; a = if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("var a; a = return"), ScriptError_ReturnNotAllowed},
         {string_static("var a; a += var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("var a; a += while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("var a; a += for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("var a; a += for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("var a; a += if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("var a; a += return"), ScriptError_ReturnNotAllowed},
         {string_static("$a = var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("$a = while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("$a = for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("$a = for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("$a = if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("$a = return"), ScriptError_ReturnNotAllowed},
         {string_static("$a += var b = 2"), ScriptError_VarDeclareNotAllowed},
         {string_static("$a += while(1) {}"), ScriptError_LoopNotAllowed},
-        {string_static("$a += for(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("$a += for(;;) {}"), ScriptError_LoopNotAllowed},
         {string_static("$a += if(1) {}"), ScriptError_IfNotAllowed},
+        {string_static("$a += return"), ScriptError_ReturnNotAllowed},
+        {string_static("return var b"), ScriptError_VarDeclareNotAllowed},
+        {string_static("return while(1) {}"), ScriptError_LoopNotAllowed},
+        {string_static("return for(;;) {}"), ScriptError_LoopNotAllowed},
+        {string_static("return return"), ScriptError_ReturnNotAllowed},
         {string_static("var a = a"), ScriptError_NoVarFoundForId},
         {string_static("b ="), ScriptError_MissingPrimaryExpr},
         {string_static("var b; b ="), ScriptError_MissingPrimaryExpr},

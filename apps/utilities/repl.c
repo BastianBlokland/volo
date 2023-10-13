@@ -187,6 +187,7 @@ static TtyFgColor repl_token_color(const ScriptTokenType tokenType) {
   case ScriptTokenType_For:
   case ScriptTokenType_Continue:
   case ScriptTokenType_Break:
+  case ScriptTokenType_Return:
     return TtyFgColor_Cyan;
   case ScriptTokenType_Comment:
     return TtyFgColor_BrightBlack;

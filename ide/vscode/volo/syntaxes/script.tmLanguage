@@ -153,7 +153,7 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(\b(if|else|for|while|continue|break)\b)|(\?(?!\?))|\:</string>
+					<string>(\b(if|else|for|while|continue|break|return)\b)|(\?(?!\?))|\:</string>
 					<key>name</key>
 					<string>keyword.control.script</string>
 				</dict>

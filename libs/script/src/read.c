@@ -262,9 +262,11 @@ typedef enum {
   ScriptSection_DisallowVarDeclare   = 1 << 1,
   ScriptSection_DisallowLoop         = 1 << 2,
   ScriptSection_DisallowIf           = 1 << 3,
+  ScriptSection_DisallowReturn       = 1 << 4,
   ScriptSection_DisallowStatement    = 0 | ScriptSection_DisallowVarDeclare
                                          | ScriptSection_DisallowLoop
                                          | ScriptSection_DisallowIf
+                                         | ScriptSection_DisallowReturn
                                        ,
   ScriptSection_ResetOnExplicitScope = 0 | ScriptSection_DisallowStatement
                                        ,
@@ -505,6 +507,7 @@ static void read_visitor_has_side_effect(void* ctx, const ScriptDoc* doc, const 
     switch (data->data_intrinsic.intrinsic) {
     case ScriptIntrinsic_Continue:
     case ScriptIntrinsic_Break:
+    case ScriptIntrinsic_Return:
     case ScriptIntrinsic_Assert:
       *hasSideEffect = true;
       // Fallthrough.
@@ -537,6 +540,30 @@ static void read_emit_no_effect(
           .range = read_range_trim(ctx, exprRanges[i]),
       };
       script_diag_push(ctx->diags, &noEffectDiag);
+    }
+  }
+}
+
+static void read_emit_unreachable(
+    ScriptReadContext*   ctx,
+    const ScriptExpr     exprs[],
+    const ScriptPosRange exprRanges[],
+    const u32            exprCount) {
+  if (!ctx->diags) {
+    return;
+  }
+  for (u32 i = 0; i != (exprCount - 1); ++i) {
+    const ScriptDocSignal uncaughtSignal = script_expr_always_uncaught_signal(ctx->doc, exprs[i]);
+    if (uncaughtSignal) {
+      const ScriptPos  unreachableStart = exprRanges[i + 1].start;
+      const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
+      const ScriptDiag unreachableDiag  = {
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+      };
+      script_diag_push(ctx->diags, &unreachableDiag);
+      break;
     }
   }
 }
@@ -610,6 +637,7 @@ BlockEnd:
     return exprs[0];
   default:
     read_emit_no_effect(ctx, exprs, exprRanges, exprCount);
+    read_emit_unreachable(ctx, exprs, exprRanges, exprCount);
     return script_add_block(ctx->doc, exprs, exprCount);
   }
 }
@@ -919,7 +947,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   read_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {conditions[0], b1, b2};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_If, intrArgs);
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Select, intrArgs);
 }
 
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
@@ -959,8 +987,11 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
 
-  const ScriptExpr intrArgs[] = {conditions[0], body};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_While, intrArgs);
+  // NOTE: Setup and Increment loop parts are not used in while loops.
+  const ScriptExpr setupExpr  = script_add_value(ctx->doc, script_null());
+  const ScriptExpr incrExpr   = script_add_value(ctx->doc, script_null());
+  const ScriptExpr intrArgs[] = {setupExpr, conditions[0], incrExpr, body};
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
 typedef enum {
@@ -1037,7 +1068,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   read_scope_pop(ctx);
 
   const ScriptExpr intrArgs[] = {setupExpr, condExpr, incrExpr, body};
-  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_For, intrArgs);
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
 static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr condition) {
@@ -1061,6 +1092,38 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
 
   const ScriptExpr intrArgs[] = {condition, b1, b2};
   return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Select, intrArgs);
+}
+
+static bool read_is_return_separator(const ScriptTokenType tokenType) {
+  switch (tokenType) {
+  case ScriptTokenType_Newline:
+  case ScriptTokenType_Semicolon:
+  case ScriptTokenType_CurlyClose:
+  case ScriptTokenType_End:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static ScriptExpr read_expr_return(ScriptReadContext* ctx) {
+  ScriptToken nextToken;
+  script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
+
+  ScriptExpr retExpr;
+  if (read_is_return_separator(nextToken.type)) {
+    retExpr = script_add_value(ctx->doc, script_null());
+  } else {
+    const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
+    retExpr                         = read_expr(ctx, OpPrecedence_Assignment);
+    ctx->section                    = prevSection;
+    if (UNLIKELY(sentinel_check(retExpr))) {
+      return read_fail_structural(ctx);
+    }
+  }
+
+  const ScriptExpr intrArgs[] = {retExpr};
+  return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Return, intrArgs);
 }
 
 static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
@@ -1113,6 +1176,11 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
       return read_emit_err(ctx, ScriptError_NotValidOutsideLoop, start), read_fail_semantic(ctx);
     }
     return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Break, null);
+  case ScriptTokenType_Return:
+    if (UNLIKELY(ctx->section & ScriptSection_DisallowReturn)) {
+      return read_emit_err(ctx, ScriptError_ReturnNotAllowed, start), read_fail_structural(ctx);
+    }
+    return read_expr_return(ctx);
   /**
    * Identifiers.
    */
@@ -1298,12 +1366,12 @@ script_read(ScriptDoc* doc, const ScriptBinder* binder, const String str, Script
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .input      = str,
-            .inputTotal = str,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .input      = str,
+      .inputTotal = str,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

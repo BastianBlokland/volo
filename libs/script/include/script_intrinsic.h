@@ -4,15 +4,14 @@
 typedef enum {
   ScriptIntrinsic_Continue,          // Args: none.
   ScriptIntrinsic_Break,             // Args: none.
+  ScriptIntrinsic_Return,            // Args: value.
   ScriptIntrinsic_Type,              // Args: value.
   ScriptIntrinsic_Assert,            // Args: condition.
-  ScriptIntrinsic_If,                // Args: condition, if branch, else branch.
   ScriptIntrinsic_Select,            // Args: condition, if branch, else branch.
   ScriptIntrinsic_NullCoalescing,    // Args: lhs, rhs.
   ScriptIntrinsic_LogicAnd,          // Args: lhs, rhs.
   ScriptIntrinsic_LogicOr,           // Args: lhs, rhs.
-  ScriptIntrinsic_For,               // Args: setup, condition, increment, body.
-  ScriptIntrinsic_While,             // Args: condition, body.
+  ScriptIntrinsic_Loop,              // Args: setup, condition, increment, body.
   ScriptIntrinsic_Equal,             // Args: lhs, rhs.
   ScriptIntrinsic_NotEqual,          // Args: lhs, rhs.
   ScriptIntrinsic_Less,              // Args: lhs, rhs.
@@ -48,9 +47,11 @@ typedef enum {
 } ScriptIntrinsic;
 
 /**
- * Return how many arguments an intrinsic takes.
+ * Intrinsic traits.
  */
-u32 script_intrinsic_arg_count(ScriptIntrinsic);
+u32  script_intrinsic_arg_count(ScriptIntrinsic);
+u32  script_intrinsic_arg_count_always_reached(ScriptIntrinsic);
+bool script_intrinsic_deterministic(ScriptIntrinsic);
 
 /**
  * Get a textual representation of the given intrinsic.

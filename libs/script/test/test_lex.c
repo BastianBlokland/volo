@@ -132,6 +132,7 @@ spec(lex) {
         {string_static("for"), tok_simple(For)},
         {string_static("continue"), tok_simple(Continue)},
         {string_static("break"), tok_simple(Break)},
+        {string_static("return"), tok_simple(Return)},
 
         {string_static("&"), tok_err(InvalidChar)},
         {string_static("|"), tok_err(InvalidChar)},

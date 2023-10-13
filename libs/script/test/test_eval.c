@@ -257,6 +257,11 @@ spec(eval) {
 
         // Other.
         {string_static("assert(1)"), script_null()},
+        {string_static("return"), script_null()},
+        {string_static("return 42"), script_number(42)},
+        {string_static("return 42 + 1337"), script_number(42 + 1337)},
+        {string_static("return 42; 1337"), script_number(42)},
+        {string_static("for(var i = 0;; i += 1) { if(i > 10) { return i } }"), script_number(11)},
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {

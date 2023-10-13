@@ -142,5 +142,110 @@ spec(doc) {
     }
   }
 
+  it("can test if expressions are static") {
+    static const struct {
+      String input;
+      bool   isStatic;
+    } g_testData[] = {
+        {string_static("1"), .isStatic = true},
+        {string_static("((1))"), .isStatic = true},
+        {string_static("if(true) {2} else {}"), .isStatic = true},
+        {string_static("1 + 2 + 3"), .isStatic = true},
+        {string_static("true ? 1 + 2 : 3 + 4"), .isStatic = true},
+        {string_static("while(false) {}"), .isStatic = true},
+        {string_static("for(;;) {}"), .isStatic = true},
+        {string_static("vector(1, 2, 3)"), .isStatic = true},
+        {string_static("distance(1 + 2, 3 / 4)"), .isStatic = true},
+
+        {string_static("random()"), .isStatic = false},
+        {string_static("random(1, 2)"), .isStatic = false},
+        {string_static("random_sphere()"), .isStatic = false},
+        {string_static("random_circle_xz()"), .isStatic = false},
+        {string_static("return"), .isStatic = false},
+        {string_static("return 42"), .isStatic = false},
+        {string_static("assert(true)"), .isStatic = false},
+        {string_static("while(true) { continue }"), .isStatic = false},
+        {string_static("while(true) { break }"), .isStatic = false},
+        {string_static("var i"), .isStatic = false},
+        {string_static("var i; i"), .isStatic = false},
+        {string_static("$hello"), .isStatic = false},
+        {string_static("1 + 2 + $hello"), .isStatic = false},
+        {string_static("$hello + $world"), .isStatic = false},
+        {string_static("$hello = 42"), .isStatic = false},
+        {string_static("1 + 2 + ($hello = 42)"), .isStatic = false},
+        {string_static("($hello = 42) + ($world = 1337)"), .isStatic = false},
+        {string_static("$hello + ($world = 42)"), .isStatic = false},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check(script_expr_static(doc, expr) == g_testData[i].isStatic);
+    }
+  }
+
+  it("can test if expressions are always truthy") {
+    static const struct {
+      String input;
+      bool   isTruthy;
+    } g_testData[] = {
+        {string_static("1"), .isTruthy = true},
+        {string_static("true"), .isTruthy = true},
+        {string_static("2 > 1"), .isTruthy = true},
+        {string_static("2 > 1 ? (1 < 2) : (2 > 3)"), .isTruthy = true},
+        {string_static("distance(vector(1,2,3), vector(0,0,0)) > 0"), .isTruthy = true},
+
+        {string_static("while(true) {}"), .isTruthy = false},
+        {string_static("false"), .isTruthy = false},
+        {string_static("null"), .isTruthy = false},
+        {string_static("1 > 2"), .isTruthy = false},
+        {string_static("random()"), .isTruthy = false},
+        {string_static("return"), .isTruthy = false},
+        {string_static("$i = true"), .isTruthy = false},
+        {string_static("var i = true"), .isTruthy = false},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check(script_expr_always_truthy(doc, expr) == g_testData[i].isTruthy);
+    }
+  }
+
+  it("can check for always uncaught signals") {
+    static const struct {
+      String          input;
+      ScriptDocSignal sig;
+    } g_testData[] = {
+        {string_static("1"), .sig = ScriptDocSignal_None},
+        {string_static("return"), .sig = ScriptDocSignal_Return},
+        {string_static("true ? return 0 : 0"), .sig = ScriptDocSignal_Return},
+        {string_static("false ? return 0 : 0"), .sig = ScriptDocSignal_None},
+        {string_static("true ? 0 : return 0"), .sig = ScriptDocSignal_None},
+        {string_static("false ? 0 : return 0"), .sig = ScriptDocSignal_Return},
+        {string_static("$i ? return 0 : return 1"), .sig = ScriptDocSignal_None},
+        {string_static("(while(true) {}) ? return 0 : return 1"), .sig = ScriptDocSignal_None},
+        {string_static("var i = { return }"), .sig = ScriptDocSignal_Return},
+        {string_static("$i = { return }"), .sig = ScriptDocSignal_Return},
+        {string_static("vector(1,2,3)"), .sig = ScriptDocSignal_None},
+        {string_static("vector(1,return 2,3)"), .sig = ScriptDocSignal_Return},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check_eq_int(script_expr_always_uncaught_signal(doc, expr), g_testData[i].sig);
+    }
+  }
+
   teardown() { script_destroy(doc); }
 }

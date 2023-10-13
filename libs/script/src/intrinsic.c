@@ -10,6 +10,7 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_RandomCircleXZ:
   case ScriptIntrinsic_RandomSphere:
     return 0;
+  case ScriptIntrinsic_Return:
   case ScriptIntrinsic_Assert:
   case ScriptIntrinsic_Invert:
   case ScriptIntrinsic_Magnitude:
@@ -41,15 +42,51 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_QuatFromAngleAxis:
   case ScriptIntrinsic_RandomBetween:
   case ScriptIntrinsic_Sub:
-  case ScriptIntrinsic_While:
     return 2;
-  case ScriptIntrinsic_If:
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_Vector3Compose:
     return 3;
-  case ScriptIntrinsic_For:
+  case ScriptIntrinsic_Loop:
     return 4;
+  case ScriptIntrinsic_Count:
+    break;
+  }
+  diag_assert_fail("Unknown intrinsic type");
+  UNREACHABLE
+}
+
+u32 script_intrinsic_arg_count_always_reached(const ScriptIntrinsic i) {
+  switch (i) {
+  case ScriptIntrinsic_Select:         // Always reached args: condition.
+  case ScriptIntrinsic_NullCoalescing: // Always reached args: lhs.
+  case ScriptIntrinsic_LogicAnd:       // Always reached args: lhs.
+  case ScriptIntrinsic_LogicOr:        // Always reached args: lhs.
+    return 1;                          //
+  case ScriptIntrinsic_Loop:           // Always reached args: setup, condition.
+    return 2;                          //
+  default:                             // Always reached args: all.
+    return script_intrinsic_arg_count(i);
+  case ScriptIntrinsic_Count:
+    break;
+  }
+  diag_assert_fail("Unknown intrinsic type");
+  UNREACHABLE
+}
+
+bool script_intrinsic_deterministic(const ScriptIntrinsic i) {
+  switch (i) {
+  case ScriptIntrinsic_Continue:
+  case ScriptIntrinsic_Break:
+  case ScriptIntrinsic_Return:
+  case ScriptIntrinsic_Assert:
+  case ScriptIntrinsic_Random:
+  case ScriptIntrinsic_RandomSphere:
+  case ScriptIntrinsic_RandomCircleXZ:
+  case ScriptIntrinsic_RandomBetween:
+    return false;
+  default:
+    return true;
   case ScriptIntrinsic_Count:
     break;
   }
@@ -62,15 +99,14 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
   static const String g_names[] = {
       [ScriptIntrinsic_Continue]          = string_static("continue"),
       [ScriptIntrinsic_Break]             = string_static("break"),
+      [ScriptIntrinsic_Return]            = string_static("return"),
       [ScriptIntrinsic_Type]              = string_static("type"),
       [ScriptIntrinsic_Assert]            = string_static("assert"),
-      [ScriptIntrinsic_If]                = string_static("if"),
       [ScriptIntrinsic_Select]            = string_static("select"),
       [ScriptIntrinsic_NullCoalescing]    = string_static("null-coalescing"),
       [ScriptIntrinsic_LogicAnd]          = string_static("logic-and"),
       [ScriptIntrinsic_LogicOr]           = string_static("logic-or"),
-      [ScriptIntrinsic_For]               = string_static("for"),
-      [ScriptIntrinsic_While]             = string_static("while"),
+      [ScriptIntrinsic_Loop]              = string_static("loop"),
       [ScriptIntrinsic_Equal]             = string_static("equal"),
       [ScriptIntrinsic_NotEqual]          = string_static("not-equal"),
       [ScriptIntrinsic_Less]              = string_static("less"),

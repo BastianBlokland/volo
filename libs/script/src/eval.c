@@ -13,8 +13,9 @@ typedef enum {
   ScriptEvalSignal_None              = 0,
   ScriptEvalSignal_Continue          = 1 << 0,
   ScriptEvalSignal_Break             = 1 << 1,
-  ScriptEvalSignal_AssertionFailed   = 1 << 2,
-  ScriptEvalSignal_LoopLimitExceeded = 1 << 3,
+  ScriptEvalSignal_Return            = 1 << 2,
+  ScriptEvalSignal_AssertionFailed   = 1 << 3,
+  ScriptEvalSignal_LoopLimitExceeded = 1 << 4,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -80,6 +81,11 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
   case ScriptIntrinsic_Break:
     ctx->signal |= ScriptEvalSignal_Break;
     return script_null();
+  case ScriptIntrinsic_Return: {
+    const ScriptVal ret = eval(ctx, args[0]);
+    ctx->signal |= ScriptEvalSignal_Return;
+    return ret;
+  }
   case ScriptIntrinsic_Type:
     return script_string(script_val_type_hash(script_type(eval(ctx, args[0]))));
   case ScriptIntrinsic_Assert: {
@@ -88,7 +94,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     }
     return script_null();
   }
-  case ScriptIntrinsic_If:
   case ScriptIntrinsic_Select: {
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_truthy(arg0) ? eval(ctx, args[1]) : eval(ctx, args[2]);
@@ -105,7 +110,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_bool(script_truthy(arg0) || script_truthy(eval(ctx, args[1])));
   }
-  case ScriptIntrinsic_For: {
+  case ScriptIntrinsic_Loop: {
     EVAL_ARG_WITH_INTERRUPT(0); // Setup.
     ScriptVal ret  = script_null();
     u32       itrs = 0;
@@ -127,29 +132,6 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExprI
         break;
       }
       EVAL_ARG_WITH_INTERRUPT(2); // Increment.
-    }
-    return ret;
-  }
-  case ScriptIntrinsic_While: {
-    ScriptVal ret  = script_null();
-    u32       itrs = 0;
-    for (;;) {
-      EVAL_ARG_WITH_INTERRUPT(0); // Condition.
-      if (script_falsy(arg0) || UNLIKELY(ctx->signal)) {
-        break;
-      }
-      if (UNLIKELY(itrs++ == script_loop_itr_max)) {
-        ctx->signal |= ScriptEvalSignal_LoopLimitExceeded;
-        break;
-      }
-      ret = eval(ctx, args[1]); // Body.
-      if (ctx->signal & ScriptEvalSignal_Continue) {
-        ctx->signal &= ~ScriptEvalSignal_Continue;
-      }
-      if (ctx->signal) {
-        ctx->signal &= ~ScriptEvalSignal_Break;
-        break;
-      }
     }
     return ret;
   }
@@ -317,6 +299,9 @@ static ScriptError script_error_type(const ScriptEvalContext* ctx) {
   }
   if (UNLIKELY(ctx->signal & ScriptEvalSignal_LoopLimitExceeded)) {
     return ScriptError_LoopInterationLimitExceeded;
+  }
+  if (ctx->signal == ScriptEvalSignal_Return) {
+    return ScriptError_None;
   }
   diag_assert_msg(!ctx->signal, "Unhandled signal");
   return ScriptError_None;

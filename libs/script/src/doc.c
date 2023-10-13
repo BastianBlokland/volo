@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "script_eval.h"
 
 #include "doc_internal.h"
 
@@ -186,6 +187,47 @@ bool script_expr_readonly(const ScriptDoc* doc, const ScriptExpr expr) {
   return isReadonly;
 }
 
+static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  bool*                 isStatic = ctx;
+  const ScriptExprData* data     = script_doc_expr_data(doc, expr);
+  switch (data->type) {
+  case ScriptExprType_MemLoad:
+  case ScriptExprType_MemStore:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_VarStore:
+  case ScriptExprType_Extern:
+    *isStatic = false;
+    return;
+  case ScriptExprType_Intrinsic: {
+    if (!script_intrinsic_deterministic(data->data_intrinsic.intrinsic)) {
+      *isStatic = false;
+    }
+    return;
+  }
+  case ScriptExprType_Value:
+  case ScriptExprType_Block:
+    return;
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
+bool script_expr_static(const ScriptDoc* doc, const ScriptExpr expr) {
+  bool isStatic = true;
+  script_expr_visit(doc, expr, &isStatic, script_visitor_static);
+  return isStatic;
+}
+
+bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
+  if (!script_expr_static(doc, expr)) {
+    return false;
+  }
+  const ScriptEvalResult evalRes = script_eval(doc, null, expr, null, null);
+  return evalRes.error == ScriptError_None && script_truthy(evalRes.val);
+}
+
 void script_expr_visit(
     const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
   /**
@@ -229,6 +271,78 @@ void script_expr_visit(
       script_expr_visit(doc, args[i], ctx, visitor);
     }
     return;
+  }
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
+ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const ScriptExpr expr) {
+  const ScriptExprData* data = script_doc_expr_data(doc, expr);
+  switch (data->type) {
+  case ScriptExprType_Value:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_MemLoad:
+    return ScriptDocSignal_None; // No children.
+  case ScriptExprType_VarStore:
+    return script_expr_always_uncaught_signal(doc, data->data_var_store.val);
+  case ScriptExprType_MemStore:
+    return script_expr_always_uncaught_signal(doc, data->data_mem_store.val);
+  case ScriptExprType_Intrinsic: {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_intrinsic.argSet);
+    const u32 argCount = script_intrinsic_arg_count_always_reached(data->data_intrinsic.intrinsic);
+    switch (data->data_intrinsic.intrinsic) {
+    case ScriptIntrinsic_Continue:
+      return ScriptDocSignal_Continue;
+    case ScriptIntrinsic_Break:
+      return ScriptDocSignal_Break;
+    case ScriptIntrinsic_Return:
+      return script_expr_always_uncaught_signal(doc, args[0]) | ScriptDocSignal_Return;
+    case ScriptIntrinsic_Select: {
+      ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[0]);
+      if (sig) {
+        return sig;
+      }
+      if (script_expr_static(doc, args[0])) {
+        const ScriptEvalResult res = script_eval(doc, null, args[0], null, null);
+        if (res.error == ScriptError_None) {
+          const bool condition = script_truthy(res.val);
+          return script_expr_always_uncaught_signal(doc, condition ? args[1] : args[2]);
+        }
+      }
+      return ScriptDocSignal_None;
+    }
+    default:
+      for (u32 i = 0; i != argCount; ++i) {
+        const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[i]);
+        if (sig) {
+          return sig;
+        }
+      }
+    }
+    return ScriptDocSignal_None;
+  }
+  case ScriptExprType_Block: {
+    const ScriptExpr* exprs = script_doc_expr_set_data(doc, data->data_block.exprSet);
+    for (u32 i = 0; i != data->data_block.exprCount; ++i) {
+      const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, exprs[i]);
+      if (sig) {
+        return sig;
+      }
+    }
+    return ScriptDocSignal_None;
+  }
+  case ScriptExprType_Extern: {
+    const ScriptExpr* args = script_doc_expr_set_data(doc, data->data_extern.argSet);
+    for (u32 i = 0; i != data->data_extern.argCount; ++i) {
+      const ScriptDocSignal sig = script_expr_always_uncaught_signal(doc, args[i]);
+      if (sig) {
+        return sig;
+      }
+    }
+    return ScriptDocSignal_None;
   }
   case ScriptExprType_Count:
     break;

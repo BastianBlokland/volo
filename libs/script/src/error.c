@@ -43,7 +43,9 @@ static const String g_errorStrs[] = {
     string_static("Variable '{}' is not used"),
     string_static("Loops are not allowed in this section"),
     string_static("If-expressions are not allowed in this section"),
+    string_static("Return-expressions are not allowed in this section"),
     string_static("Expression has no effect"),
+    string_static("Unreachable expressions"),
     string_static("Assertion failed"),
     string_static("Loop iteration limit exceeded"),
 };
