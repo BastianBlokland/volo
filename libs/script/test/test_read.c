@@ -133,6 +133,16 @@ spec(read) {
                           "    [value: null]\n"
                           "  [value: 42]"),
         },
+        {
+            string_static("{ return }"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: null]"),
+        },
+        {
+            string_static("{ return 42 }"),
+            string_static("[intrinsic: return]\n"
+                          "  [value: 42]"),
+        },
 
         // External functions.
         {

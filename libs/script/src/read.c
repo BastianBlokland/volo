@@ -1094,12 +1094,24 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Select, intrArgs);
 }
 
+static bool read_is_return_separator(const ScriptTokenType tokenType) {
+  switch (tokenType) {
+  case ScriptTokenType_Newline:
+  case ScriptTokenType_Semicolon:
+  case ScriptTokenType_CurlyClose:
+  case ScriptTokenType_End:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static ScriptExpr read_expr_return(ScriptReadContext* ctx) {
   ScriptToken nextToken;
   script_lex(ctx->input, null, &nextToken, ScriptLexFlags_IncludeNewlines);
 
   ScriptExpr retExpr;
-  if (read_is_block_separator(nextToken.type) || nextToken.type == ScriptTokenType_End) {
+  if (read_is_return_separator(nextToken.type)) {
     retExpr = script_add_value(ctx->doc, script_null());
   } else {
     const ScriptSection prevSection = read_section_add(ctx, ScriptSection_DisallowStatement);
