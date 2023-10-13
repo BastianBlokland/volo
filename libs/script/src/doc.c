@@ -186,6 +186,39 @@ bool script_expr_readonly(const ScriptDoc* doc, const ScriptExpr expr) {
   return isReadonly;
 }
 
+static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  bool*                 isStatic = ctx;
+  const ScriptExprData* data     = script_doc_expr_data(doc, expr);
+  switch (data->type) {
+  case ScriptExprType_MemLoad:
+  case ScriptExprType_MemStore:
+  case ScriptExprType_VarLoad:
+  case ScriptExprType_VarStore:
+  case ScriptExprType_Extern:
+    *isStatic = false;
+    return;
+  case ScriptExprType_Intrinsic: {
+    if (!script_intrinsic_deterministic(data->data_intrinsic.intrinsic)) {
+      *isStatic = false;
+    }
+    return;
+  }
+  case ScriptExprType_Value:
+  case ScriptExprType_Block:
+    return;
+  case ScriptExprType_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression type");
+  UNREACHABLE
+}
+
+bool script_expr_static(const ScriptDoc* doc, const ScriptExpr expr) {
+  bool isStatic = true;
+  script_expr_visit(doc, expr, &isStatic, script_visitor_static);
+  return isStatic;
+}
+
 void script_expr_visit(
     const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
   /**

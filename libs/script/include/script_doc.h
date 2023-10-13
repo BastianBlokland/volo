@@ -76,6 +76,7 @@ ScriptExpr script_add_extern(ScriptDoc*, ScriptBinderSlot, const ScriptExpr args
  */
 ScriptExprType script_expr_type(const ScriptDoc*, ScriptExpr);
 bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
+bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 u32            script_values_total(const ScriptDoc*);
 
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);

@@ -142,5 +142,50 @@ spec(doc) {
     }
   }
 
+  it("can test if expressions are static") {
+    static const struct {
+      String input;
+      bool   isStatic;
+    } g_testData[] = {
+        {string_static("1"), .isStatic = true},
+        {string_static("((1))"), .isStatic = true},
+        {string_static("if(true) {2} else {}"), .isStatic = true},
+        {string_static("1 + 2 + 3"), .isStatic = true},
+        {string_static("true ? 1 + 2 : 3 + 4"), .isStatic = true},
+        {string_static("while(false) {}"), .isStatic = true},
+        {string_static("for(;;) {}"), .isStatic = true},
+        {string_static("vector(1, 2, 3)"), .isStatic = true},
+        {string_static("distance(1 + 2, 3 / 4)"), .isStatic = true},
+
+        {string_static("random()"), .isStatic = false},
+        {string_static("random(1, 2)"), .isStatic = false},
+        {string_static("random_sphere()"), .isStatic = false},
+        {string_static("random_circle_xz()"), .isStatic = false},
+        {string_static("return"), .isStatic = false},
+        {string_static("return 42"), .isStatic = false},
+        {string_static("assert(true)"), .isStatic = false},
+        {string_static("while(true) { continue }"), .isStatic = false},
+        {string_static("while(true) { break }"), .isStatic = false},
+        {string_static("var i"), .isStatic = false},
+        {string_static("var i; i"), .isStatic = false},
+        {string_static("$hello"), .isStatic = false},
+        {string_static("1 + 2 + $hello"), .isStatic = false},
+        {string_static("$hello + $world"), .isStatic = false},
+        {string_static("$hello = 42"), .isStatic = false},
+        {string_static("1 + 2 + ($hello = 42)"), .isStatic = false},
+        {string_static("($hello = 42) + ($world = 1337)"), .isStatic = false},
+        {string_static("$hello + ($world = 42)"), .isStatic = false},
+    };
+
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      ScriptBinder*    binder = null;
+      ScriptDiagBag*   diags  = null;
+      const ScriptExpr expr   = script_read(doc, binder, g_testData[i].input, diags);
+      check_require(!sentinel_check(expr));
+
+      check(script_expr_static(doc, expr) == g_testData[i].isStatic);
+    }
+  }
+
   teardown() { script_destroy(doc); }
 }
