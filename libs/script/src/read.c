@@ -557,12 +557,12 @@ static void read_emit_unreachable(
     if (uncaughtSignal) {
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
-      const ScriptDiag noEffectDiag     = {
+      const ScriptDiag unreachableDiag  = {
           .type  = ScriptDiagType_Warning,
           .error = ScriptError_ExprUnreachable,
           .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
       };
-      script_diag_push(ctx->diags, &noEffectDiag);
+      script_diag_push(ctx->diags, &unreachableDiag);
       break;
     }
   }
