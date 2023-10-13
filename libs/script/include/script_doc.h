@@ -81,6 +81,19 @@ u32            script_values_total(const ScriptDoc*);
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);
 
+typedef enum {
+  ScriptDocSignal_None     = 0,
+  ScriptDocSignal_Continue = 1 << 0,
+  ScriptDocSignal_Break    = 1 << 1,
+  ScriptDocSignal_Return   = 1 << 2,
+} ScriptDocSignal;
+
+/**
+ * Determine if the expression always returns an uncaught signal.
+ * NOTE: Is conservative, code paths that depend on runtime values are not considered.
+ */
+ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc*, ScriptExpr);
+
 /**
  * Create a textual representation of the given expression.
  */
