@@ -56,6 +56,24 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   UNREACHABLE
 }
 
+u32 script_intrinsic_arg_count_always_reached(const ScriptIntrinsic i) {
+  switch (i) {
+  case ScriptIntrinsic_Select:         // Always reached args: condition.
+  case ScriptIntrinsic_NullCoalescing: // Always reached args: lhs.
+  case ScriptIntrinsic_LogicAnd:       // Always reached args: lhs.
+  case ScriptIntrinsic_LogicOr:        // Always reached args: lhs.
+    return 1;                          //
+  case ScriptIntrinsic_Loop:           // Always reached args: setup, condition.
+    return 2;                          //
+  default:                             // Always reached args: all.
+    return script_intrinsic_arg_count(i);
+  case ScriptIntrinsic_Count:
+    break;
+  }
+  diag_assert_fail("Unknown intrinsic type");
+  UNREACHABLE
+}
+
 String script_intrinsic_str(const ScriptIntrinsic i) {
   diag_assert(i < ScriptIntrinsic_Count);
   static const String g_names[] = {

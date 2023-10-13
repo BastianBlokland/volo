@@ -50,6 +50,7 @@ typedef enum {
  * Return how many arguments an intrinsic takes.
  */
 u32 script_intrinsic_arg_count(ScriptIntrinsic);
+u32 script_intrinsic_arg_count_always_reached(ScriptIntrinsic);
 
 /**
  * Get a textual representation of the given intrinsic.
