@@ -2,11 +2,10 @@
 var me = self()
 
 if($user_move_target) {
-  if($travel_target == $user_move_target && !active(me, "Traveling")) {
+  if(nav_target($user_move_target) && !active(me, "Traveling")) {
     $user_move_target = null
   } else {
     nav_travel(me, $user_move_target)
-    $travel_target = $user_move_target
   }
   return
 }
