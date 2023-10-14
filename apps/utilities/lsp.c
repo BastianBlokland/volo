@@ -47,15 +47,20 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
+  String identifier;
+} LspDocument;
+
+typedef struct {
   LspStatus      status;
   LspFlags       flags;
   DynString*     readBuffer;
   usize          readCursor;
   DynString*     writeBuffer;
   ScriptBinder*  scriptBinder;
-  ScriptDoc*     script;      // Cleared between messages.
-  ScriptDiagBag* scriptDiags; // Cleared between messages.
-  JsonDoc*       json;        // Cleared between messages.
+  ScriptDoc*     script;        // Cleared between messages.
+  ScriptDiagBag* scriptDiags;   // Cleared between messages.
+  JsonDoc*       json;          // Cleared between messages.
+  DynArray*      openDocuments; // LspDocument[]*
   File*          in;
   File*          out;
 } LspContext;
@@ -112,6 +117,35 @@ static const JRpcError g_jrpcErrorMethodNotFound = {
     .code = -32601,
     .msg  = string_static("Method not found"),
 };
+
+static void lsp_doc_destroy(LspDocument* doc) { string_free(g_alloc_heap, doc->identifier); }
+
+static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
+  dynarray_for_t(ctx->openDocuments, LspDocument, doc) {
+    if (string_eq(doc->identifier, identifier)) {
+      return doc;
+    }
+  }
+  return null;
+}
+
+static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier) {
+  LspDocument* res = dynarray_push_t(ctx->openDocuments, LspDocument);
+  *res             = (LspDocument){
+                  .identifier = string_dup(g_alloc_heap, identifier),
+  };
+  return res;
+}
+
+static void lsp_doc_close(LspContext* ctx, const String identifier) {
+  LspDocument* doc = lsp_doc_find(ctx, identifier);
+  if (doc) {
+    lsp_doc_destroy(doc);
+
+    const usize index = doc - dynarray_begin_t(ctx->openDocuments, LspDocument);
+    dynarray_remove_unordered(ctx->openDocuments, index, 1);
+  }
+}
 
 static void lsp_read_trim(LspContext* ctx) {
   dynstring_erase_chars(ctx->readBuffer, 0, ctx->readCursor);
@@ -399,7 +433,13 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
-  lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
+  if (lsp_doc_find(ctx, uri)) {
+    goto Error;
+  }
+  LspDocument* doc = lsp_doc_open(ctx, uri);
+  (void)doc;
+
+  lsp_send_trace(ctx, fmt_write_scratch("Opening document: {}", fmt_text(uri)));
   lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
 
@@ -417,6 +457,11 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
 
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (doc) {
+    goto Error;
+  }
+
   lsp_send_trace(ctx, fmt_write_scratch("Refreshing diagnostics for: {}", fmt_text(uri)));
   lsp_handle_refresh_diagnostics(ctx, uri, text);
   return;
@@ -431,7 +476,8 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   if (UNLIKELY(string_is_empty(uri))) {
     goto Error;
   }
-  lsp_send_trace(ctx, fmt_write_scratch("Clearing diagnostics for: {}", fmt_text(uri)));
+  lsp_send_trace(ctx, fmt_write_scratch("Closing document: {}", fmt_text(uri)));
+  lsp_doc_close(ctx, uri);
   lsp_send_diagnostics(ctx, uri, null, 0);
   return;
 
@@ -576,23 +622,25 @@ static ScriptBinder* lsp_script_binder_create() {
 }
 
 static i32 lsp_run_stdio() {
-  DynString     readBuffer   = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
-  DynString     writeBuffer  = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
-  ScriptBinder* scriptBinder = lsp_script_binder_create();
-  ScriptDoc*    script       = script_create(g_alloc_heap);
-  ScriptDiagBag scriptDiags  = {0};
-  JsonDoc*      json         = json_create(g_alloc_heap, 1024);
+  DynString     readBuffer    = dynstring_create(g_alloc_heap, 8 * usize_kibibyte);
+  DynString     writeBuffer   = dynstring_create(g_alloc_heap, 2 * usize_kibibyte);
+  ScriptBinder* scriptBinder  = lsp_script_binder_create();
+  ScriptDoc*    script        = script_create(g_alloc_heap);
+  ScriptDiagBag scriptDiags   = {0};
+  JsonDoc*      json          = json_create(g_alloc_heap, 1024);
+  DynArray      openDocuments = dynarray_create_t(g_alloc_heap, LspDocument, 16);
 
   LspContext ctx = {
-      .status       = LspStatus_Running,
-      .readBuffer   = &readBuffer,
-      .writeBuffer  = &writeBuffer,
-      .scriptBinder = scriptBinder,
-      .script       = script,
-      .scriptDiags  = &scriptDiags,
-      .json         = json,
-      .in           = g_file_stdin,
-      .out          = g_file_stdout,
+      .status        = LspStatus_Running,
+      .readBuffer    = &readBuffer,
+      .writeBuffer   = &writeBuffer,
+      .scriptBinder  = scriptBinder,
+      .script        = script,
+      .scriptDiags   = &scriptDiags,
+      .json          = json,
+      .openDocuments = &openDocuments,
+      .in            = g_file_stdin,
+      .out           = g_file_stdout,
   };
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -620,6 +668,9 @@ static i32 lsp_run_stdio() {
   json_destroy(json);
   dynstring_destroy(&readBuffer);
   dynstring_destroy(&writeBuffer);
+
+  dynarray_for_t(&openDocuments, LspDocument, doc) { lsp_doc_destroy(doc); };
+  dynarray_destroy(&openDocuments);
 
   if (ctx.status != LspStatus_Exit) {
     const String errorMsg = g_lspStatusMessage[ctx.status];
