@@ -463,7 +463,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
   } else {
     hasHit = scene_query_ray_fat(colEnv, &ray, radius, dist, &filter, &hit);
   }
-  const bool hasLos = hasHit && (hit.layer & tgtCol->layer) != 0;
+  const bool hasLos = hasHit && hit.entity == tgtEntity;
   return hasLos ? script_number(hit.time) : script_null();
 }
 
