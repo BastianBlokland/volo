@@ -7,9 +7,8 @@ if(!exists($user_attack_target)) {
 
 var target = $user_attack_target ?? target_primary(me)
 if(health(target) > 0) {
-  var losRadius = 0.5
-  var los = line_of_sight(me, target, losRadius)
-  if(los <= target_range_max(me)) {
+  var dist = distance(position(target), position(me))
+  if(dist >= target_range_min(me) && dist <= target_range_max(me)) {
     attack(me, target)
   }
 }

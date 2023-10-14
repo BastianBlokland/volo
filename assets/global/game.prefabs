@@ -312,7 +312,7 @@
             "radius": 0.95
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/structure-turret.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/structure_turret_missile.script" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "turret", "burnable": true }
       ]
