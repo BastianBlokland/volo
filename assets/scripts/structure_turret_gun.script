@@ -9,7 +9,7 @@ var target = $user_attack_target ?? target_primary(me)
 if(health(target) > 0) {
   var losRadius = 0.5
   var los = line_of_sight(me, target, losRadius)
-  if(los <= target_range_max(me)) {
+  if(los != null && los <= target_range_max(me)) {
     attack(me, target)
   }
 }
