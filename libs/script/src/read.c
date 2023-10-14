@@ -1307,10 +1307,12 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     return read_fail_structural(ctx);
   }
 
-  ScriptExpr res = read_expr_primary(ctx);
+  ScriptPos  resStart = read_pos_current(ctx);
+  ScriptExpr res      = read_expr_primary(ctx);
   if (UNLIKELY(sentinel_check(res))) {
     return read_fail_structural(ctx);
   }
+  ScriptPosRange resRange = read_range_current(ctx, resStart);
 
   /**
    * Test if the next token is an operator with higher precedence.
@@ -1334,10 +1336,14 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
      */
     switch (nextToken.type) {
     case ScriptTokenType_QMark: {
-      res = read_expr_select(ctx, res);
+      read_emit_static_condition(ctx, res, resRange);
+
+      resStart = read_pos_current(ctx);
+      res      = read_expr_select(ctx, res);
       if (UNLIKELY(sentinel_check(res))) {
         return read_fail_structural(ctx);
       }
+      resRange = read_range_current(ctx, resStart);
     } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
@@ -1353,6 +1359,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     case ScriptTokenType_AmpAmp:
     case ScriptTokenType_PipePipe:
     case ScriptTokenType_QMarkQMark: {
+      resStart                   = read_pos_current(ctx);
       const ScriptIntrinsic intr = token_op_binary(nextToken.type);
       const ScriptExpr rhs = token_intr_rhs_scope(intr) ? read_expr_scope_single(ctx, opPrecedence)
                                                         : read_expr(ctx, opPrecedence);
@@ -1361,6 +1368,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
       }
       const ScriptExpr intrArgs[] = {res, rhs};
       res                         = script_add_intrinsic(ctx->doc, intr, intrArgs);
+      resRange                    = read_range_current(ctx, resStart);
     } break;
     default:
       diag_assert_fail("Invalid operator token");
