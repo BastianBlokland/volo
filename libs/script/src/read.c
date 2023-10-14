@@ -898,6 +898,18 @@ read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosR
   return read_emit_err_range(ctx, ScriptError_NoFuncFoundForId, idRange), read_fail_semantic(ctx);
 }
 
+static void read_emit_static_condition(
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+    const ScriptDiag staticConditionDiag = {
+        .type  = ScriptDiagType_Warning,
+        .error = ScriptError_ConditionExprStatic,
+        .range = read_range_trim(ctx, exprRange),
+    };
+    script_diag_push(ctx->diags, &staticConditionDiag);
+  }
+}
+
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
@@ -917,6 +929,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     read_emit_err(ctx, ScriptError_InvalidConditionCount, start);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
+  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
 
   const ScriptPos blockStart = read_pos_current(ctx);
 
@@ -978,6 +991,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     read_emit_err(ctx, ScriptError_InvalidConditionCount, start);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
+  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
 
   const ScriptPos blockStart = read_pos_current(ctx);
 
