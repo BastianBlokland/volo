@@ -33,6 +33,7 @@ static const String g_errorStrs[] = {
     string_static("Invalid while-loop"),
     string_static("Invalid for-loop"),
     string_static("Too few for-loop components"),
+    string_static("For-loop component is static"),
     string_static("Separator missing in for-loop"),
     string_static("Block expected"),
     string_static("Block or if-expression expected"),
@@ -46,6 +47,7 @@ static const String g_errorStrs[] = {
     string_static("Return-expressions are not allowed in this section"),
     string_static("Expression has no effect"),
     string_static("Unreachable expressions"),
+    string_static("Condition expression is static"),
     string_static("Assertion failed"),
     string_static("Loop iteration limit exceeded"),
 };

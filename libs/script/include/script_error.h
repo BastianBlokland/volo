@@ -32,6 +32,7 @@ typedef enum eScriptError {
   ScriptError_InvalidWhileLoop,
   ScriptError_InvalidForLoop,
   ScriptError_ForLoopCompMissing,
+  ScriptError_ForLoopCompStatic,
   ScriptError_ForLoopSeparatorMissing,
   ScriptError_BlockExpected,
   ScriptError_BlockOrIfExpected,
@@ -45,6 +46,7 @@ typedef enum eScriptError {
   ScriptError_ReturnNotAllowed,
   ScriptError_ExprHasNoEffect,
   ScriptError_ExprUnreachable,
+  ScriptError_ConditionExprStatic,
   ScriptError_AssertionFailed,
   ScriptError_LoopInterationLimitExceeded,
 

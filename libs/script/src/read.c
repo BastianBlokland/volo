@@ -704,7 +704,10 @@ static bool read_is_args_end(const ScriptTokenType type) {
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
-static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
+static i32 read_args(
+    ScriptReadContext* ctx,
+    ScriptExpr         outExprs[script_args_max],
+    ScriptPosRange     outRanges[script_args_max]) {
   i32  count = 0;
   bool valid = true;
 
@@ -724,7 +727,9 @@ ArgNext:;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   valid &= !sentinel_check(arg);
-  out[count++] = arg;
+  outExprs[count]  = arg;
+  outRanges[count] = read_range_current(ctx, argStart);
+  ++count;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
     goto ArgNext;
@@ -867,8 +872,9 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
  */
 static ScriptExpr
 read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosRange idRange) {
-  ScriptExpr args[script_args_max];
-  const i32  argCount = read_args(ctx, args);
+  ScriptExpr     args[script_args_max];
+  ScriptPosRange argRanges[script_args_max];
+  const i32      argCount = read_args(ctx, args, argRanges);
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
@@ -892,6 +898,18 @@ read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosR
   return read_emit_err_range(ctx, ScriptError_NoFuncFoundForId, idRange), read_fail_semantic(ctx);
 }
 
+static void read_emit_static_condition(
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+    const ScriptDiag staticConditionDiag = {
+        .type  = ScriptDiagType_Warning,
+        .error = ScriptError_ConditionExprStatic,
+        .range = read_range_trim(ctx, exprRange),
+    };
+    script_diag_push(ctx->diags, &staticConditionDiag);
+  }
+}
+
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.type != ScriptTokenType_ParenOpen)) {
@@ -901,8 +919,9 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
+  ScriptExpr     conditions[script_args_max];
+  ScriptPosRange conditionRanges[script_args_max];
+  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -910,6 +929,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     read_emit_err(ctx, ScriptError_InvalidConditionCount, start);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
+  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
 
   const ScriptPos blockStart = read_pos_current(ctx);
 
@@ -922,21 +942,23 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
+  const ScriptPos elseStart = read_pos_current(ctx);
+
   ScriptExpr b2;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
-    const ScriptPos startElse = read_pos_current(ctx);
+    const ScriptPos elseBlockStart = read_pos_current(ctx);
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
-      b2 = read_expr_if(ctx, startElse);
+      b2 = read_expr_if(ctx, elseBlockStart);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else {
-      read_emit_err(ctx, ScriptError_BlockOrIfExpected, startElse);
+      read_emit_err(ctx, ScriptError_BlockOrIfExpected, elseStart);
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
@@ -959,8 +981,9 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
+  ScriptExpr     conditions[script_args_max];
+  ScriptPosRange conditionRanges[script_args_max];
+  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -968,6 +991,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     read_emit_err(ctx, ScriptError_InvalidConditionCount, start);
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
+  read_emit_static_condition(ctx, conditions[0], conditionRanges[0]);
 
   const ScriptPos blockStart = read_pos_current(ctx);
 
@@ -994,6 +1018,18 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
+static void read_emit_static_for_comp(
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+    const ScriptDiag staticForCompDiag = {
+        .type  = ScriptDiagType_Warning,
+        .error = ScriptError_ForLoopCompStatic,
+        .range = read_range_trim(ctx, exprRange),
+    };
+    script_diag_push(ctx->diags, &staticForCompDiag);
+  }
+}
+
 typedef enum {
   ReadForComp_Setup,
   ReadForComp_Condition,
@@ -1018,6 +1054,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     if (UNLIKELY(sentinel_check(res))) {
       return read_fail_structural(ctx);
     }
+    read_emit_static_for_comp(ctx, res, read_range_current(ctx, start));
   }
   if (UNLIKELY(read_consume(ctx).type != g_endTokens[comp])) {
     const ScriptError err = comp == ReadForComp_Increment ? ScriptError_InvalidForLoop
@@ -1270,10 +1307,12 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     return read_fail_structural(ctx);
   }
 
-  ScriptExpr res = read_expr_primary(ctx);
+  ScriptPos  resStart = read_pos_current(ctx);
+  ScriptExpr res      = read_expr_primary(ctx);
   if (UNLIKELY(sentinel_check(res))) {
     return read_fail_structural(ctx);
   }
+  ScriptPosRange resRange = read_range_current(ctx, resStart);
 
   /**
    * Test if the next token is an operator with higher precedence.
@@ -1297,10 +1336,14 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
      */
     switch (nextToken.type) {
     case ScriptTokenType_QMark: {
-      res = read_expr_select(ctx, res);
+      read_emit_static_condition(ctx, res, resRange);
+
+      resStart = read_pos_current(ctx);
+      res      = read_expr_select(ctx, res);
       if (UNLIKELY(sentinel_check(res))) {
         return read_fail_structural(ctx);
       }
+      resRange = read_range_current(ctx, resStart);
     } break;
     case ScriptTokenType_EqEq:
     case ScriptTokenType_BangEq:
@@ -1316,6 +1359,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
     case ScriptTokenType_AmpAmp:
     case ScriptTokenType_PipePipe:
     case ScriptTokenType_QMarkQMark: {
+      resStart                   = read_pos_current(ctx);
       const ScriptIntrinsic intr = token_op_binary(nextToken.type);
       const ScriptExpr rhs = token_intr_rhs_scope(intr) ? read_expr_scope_single(ctx, opPrecedence)
                                                         : read_expr(ctx, opPrecedence);
@@ -1324,6 +1368,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
       }
       const ScriptExpr intrArgs[] = {res, rhs};
       res                         = script_add_intrinsic(ctx->doc, intr, intrArgs);
+      resRange                    = read_range_current(ctx, resStart);
     } break;
     default:
       diag_assert_fail("Invalid operator token");
