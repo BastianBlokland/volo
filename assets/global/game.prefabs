@@ -94,7 +94,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
@@ -146,7 +146,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-ranged-manual.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_ranged.script" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 2,
           "tauntDeathPrefab": "TauntDeathInfantryRifle",
