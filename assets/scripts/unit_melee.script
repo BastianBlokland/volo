@@ -13,8 +13,8 @@ if($user_move_target) {
   if(nav_target(me) == $user_move_target && !active(me, "Traveling")) {
     $user_move_target = null
   } else {
-    nav_travel(me, $user_move_target)
     attack(me, null)
+    nav_travel(me, $user_move_target)
   }
   return
 }
@@ -25,9 +25,9 @@ if(!exists($user_attack_target)) {
 
 var target = $user_attack_target ?? target_primary(me)
 if(health(target) > 0) {
-  var losRadius = 0.5
+  var losRadius = 0.2
   var los = line_of_sight(me, target, losRadius)
-  if(los != null && los <= target_range_max(me)) {
+  if(los != null && los <= 1.1) {
     nav_stop(me)
     attack(me, target)
   } else {

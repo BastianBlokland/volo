@@ -360,6 +360,17 @@ static ScriptVal eval_nav_query(EvalContext* ctx, const ScriptArgs args) {
   return script_null();
 }
 
+static ScriptVal eval_nav_target(EvalContext* ctx, const ScriptArgs args) {
+  const EcsEntityId        e     = script_arg_entity(args, 0, ecs_entity_invalid);
+  const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
+  const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
+  if (!agent) {
+    return script_null();
+  }
+  return agent->targetEntity ? script_entity(agent->targetEntity)
+                             : script_vector3(agent->targetPos);
+}
+
 static GeoVector eval_aim_center(
     const SceneTransformComp* trans, const SceneScaleComp* scale, const SceneLocationComp* loc) {
   if (loc) {
@@ -452,7 +463,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
   } else {
     hasHit = scene_query_ray_fat(colEnv, &ray, radius, dist, &filter, &hit);
   }
-  const bool hasLos = hasHit && (hit.layer & tgtCol->layer) != 0;
+  const bool hasLos = hasHit && hit.entity == tgtEntity;
   return hasLos ? script_number(hit.time) : script_null();
 }
 
@@ -700,6 +711,7 @@ static void eval_binder_init() {
     eval_bind(b, string_hash_lit("health"),             eval_health);
     eval_bind(b, string_hash_lit("time"),               eval_time);
     eval_bind(b, string_hash_lit("nav_query"),          eval_nav_query);
+    eval_bind(b, string_hash_lit("nav_target"),         eval_nav_target);
     eval_bind(b, string_hash_lit("line_of_sight"),      eval_line_of_sight);
     eval_bind(b, string_hash_lit("capable"),            eval_capable);
     eval_bind(b, string_hash_lit("active"),             eval_active);

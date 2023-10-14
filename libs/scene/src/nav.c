@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
@@ -25,6 +26,7 @@ static const f32 g_sceneNavCellBlockHeight = 3.0f;
 #define path_refresh_time_min time_seconds(3)
 #define path_refresh_time_max time_seconds(5)
 #define path_refresh_max_dist 0.5f
+#define path_arrive_threshold 0.15f
 
 ecs_comp_define(SceneNavEnvComp) {
   GeoNavGrid* navGrid;
@@ -278,18 +280,6 @@ static TimeDuration path_next_refresh_time(const SceneTimeComp* time) {
   return next;
 }
 
-/**
- * Compute a rough estimate on how close to the target we can get based on the occupied cells.
- */
-static f32 scene_nav_arrive_threshold(const SceneNavEnvComp* env, const GeoNavCell toCell) {
-  /**
-   * TODO: This algorithm doesn't make much sense as it doesn't take nav-islands or even the arrival
-   * direction into account.
-   */
-  const GeoNavCell closestFree = geo_nav_closest_free(env->navGrid, toCell);
-  return math_max(geo_nav_distance(env->navGrid, toCell, closestFree), 0.1f);
-}
-
 typedef struct {
   GeoNavCell cell;
   GeoVector  position;
@@ -371,8 +361,7 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
     const GeoVector toTarget        = geo_vector_xz(geo_vector_sub(goal.position, trans->position));
     const f32       distToTargetSqr = geo_vector_mag_sqr(toTarget);
-    const f32       arriveThreshold = loco->radius + scene_nav_arrive_threshold(env, goal.cell);
-    if (distToTargetSqr <= (arriveThreshold * arriveThreshold)) {
+    if (distToTargetSqr <= (path_arrive_threshold * path_arrive_threshold)) {
       goto Stop; // Arrived at destination.
     }
 
@@ -514,7 +503,11 @@ void scene_nav_travel_to_entity(SceneNavAgentComp* agent, const EcsEntityId targ
   agent->targetEntity = target;
 }
 
-void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
+void scene_nav_stop(SceneNavAgentComp* agent) {
+  agent->flags |= SceneNavAgent_Stop;
+  agent->targetEntity = 0;
+  agent->targetPos    = geo_vector(f32_max, f32_max, f32_max);
+}
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(world, entity, SceneNavBlockerComp);

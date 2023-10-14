@@ -475,6 +475,7 @@ static void setup_prefab(
     const ScenePrefabSpec*    spec,
     const AssetPrefabMapComp* map) {
 
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
   ScenePrefabInstanceComp* instanceComp =
       ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
 
@@ -584,11 +585,15 @@ u32 scene_prefab_map_version(const ScenePrefabResourceComp* resource) {
 }
 
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
+
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
   return e;
 }
 
 void scene_prefab_spawn_onto(EcsWorld* world, const ScenePrefabSpec* spec, const EcsEntityId e) {
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
+
   ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
 }

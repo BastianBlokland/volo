@@ -1,0 +1,14 @@
+
+var me = self()
+
+$move_target ??= {
+  var origin = vector(0, 0, 0)
+  var radius = 150
+  origin + random_circle_xz() * radius
+}
+
+if(nav_target(me) == $move_target && !active(me, "Traveling")) {
+  $move_target = null
+} else {
+  nav_travel(me, $move_target)
+}

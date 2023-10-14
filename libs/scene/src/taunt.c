@@ -66,14 +66,15 @@ static void registry_report(
     const SceneTimeComp*    time,
     const GeoVector         pos) {
   diag_assert(g_tauntEventDuration[type]);
-
-  *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
-      .priority        = taunt->priority,
-      .prefab          = taunt->tauntPrefabs[type],
-      .expireTimestamp = time->time + g_tauntEventDuration[type],
-      .instigator      = instigator,
-      .position        = pos,
-  };
+  if (taunt->tauntPrefabs[type]) {
+    *dynarray_push_t(&reg->events, SceneTauntEvent) = (SceneTauntEvent){
+        .priority        = taunt->priority,
+        .prefab          = taunt->tauntPrefabs[type],
+        .expireTimestamp = time->time + g_tauntEventDuration[type],
+        .instigator      = instigator,
+        .position        = pos,
+    };
+  }
 }
 
 static bool registry_pop(SceneTauntRegistryComp* reg, const GeoVector pos, SceneTauntEvent* out) {
