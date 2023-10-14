@@ -704,7 +704,10 @@ static bool read_is_args_end(const ScriptTokenType type) {
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
  */
-static i32 read_args(ScriptReadContext* ctx, ScriptExpr out[script_args_max]) {
+static i32 read_args(
+    ScriptReadContext* ctx,
+    ScriptExpr         outExprs[script_args_max],
+    ScriptPosRange     outRanges[script_args_max]) {
   i32  count = 0;
   bool valid = true;
 
@@ -724,7 +727,9 @@ ArgNext:;
   }
   const ScriptExpr arg = read_expr(ctx, OpPrecedence_None);
   valid &= !sentinel_check(arg);
-  out[count++] = arg;
+  outExprs[count]  = arg;
+  outRanges[count] = read_range_current(ctx, argStart);
+  ++count;
 
   if (read_consume_if(ctx, ScriptTokenType_Comma)) {
     goto ArgNext;
@@ -867,8 +872,9 @@ read_expr_mem_modify(ScriptReadContext* ctx, const StringHash key, const ScriptT
  */
 static ScriptExpr
 read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosRange idRange) {
-  ScriptExpr args[script_args_max];
-  const i32  argCount = read_args(ctx, args);
+  ScriptExpr     args[script_args_max];
+  ScriptPosRange argRanges[script_args_max];
+  const i32      argCount = read_args(ctx, args, argRanges);
   if (UNLIKELY(argCount < 0)) {
     return read_fail_structural(ctx);
   }
@@ -901,8 +907,9 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
+  ScriptExpr     conditions[script_args_max];
+  ScriptPosRange conditionRanges[script_args_max];
+  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -959,8 +966,9 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
-  ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
+  ScriptExpr     conditions[script_args_max];
+  ScriptPosRange conditionRanges[script_args_max];
+  const i32      conditionCount = read_args(ctx, conditions, conditionRanges);
   if (UNLIKELY(conditionCount < 0)) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
