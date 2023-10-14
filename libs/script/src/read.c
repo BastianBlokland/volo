@@ -1018,6 +1018,18 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   return script_add_intrinsic(ctx->doc, ScriptIntrinsic_Loop, intrArgs);
 }
 
+static void read_emit_static_for_comp(
+    ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
+  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+    const ScriptDiag staticForCompDiag = {
+        .type  = ScriptDiagType_Warning,
+        .error = ScriptError_ForLoopCompStatic,
+        .range = read_range_trim(ctx, exprRange),
+    };
+    script_diag_push(ctx->diags, &staticForCompDiag);
+  }
+}
+
 typedef enum {
   ReadForComp_Setup,
   ReadForComp_Condition,
@@ -1042,6 +1054,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     if (UNLIKELY(sentinel_check(res))) {
       return read_fail_structural(ctx);
     }
+    read_emit_static_for_comp(ctx, res, read_range_current(ctx, start));
   }
   if (UNLIKELY(read_consume(ctx).type != g_endTokens[comp])) {
     const ScriptError err = comp == ReadForComp_Increment ? ScriptError_InvalidForLoop
