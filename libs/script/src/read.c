@@ -929,21 +929,23 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
+  const ScriptPos elseStart = read_pos_current(ctx);
+
   ScriptExpr b2;
   if (read_consume_if(ctx, ScriptTokenType_Else)) {
-    const ScriptPos startElse = read_pos_current(ctx);
+    const ScriptPos elseBlockStart = read_pos_current(ctx);
     if (read_consume_if(ctx, ScriptTokenType_CurlyOpen)) {
       b2 = read_expr_scope_block(ctx);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else if (read_consume_if(ctx, ScriptTokenType_If)) {
-      b2 = read_expr_if(ctx, startElse);
+      b2 = read_expr_if(ctx, elseBlockStart);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else {
-      read_emit_err(ctx, ScriptError_BlockOrIfExpected, startElse);
+      read_emit_err(ctx, ScriptError_BlockOrIfExpected, elseStart);
       return read_scope_pop(ctx), read_fail_structural(ctx);
     }
   } else {
