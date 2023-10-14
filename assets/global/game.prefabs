@@ -241,7 +241,7 @@
             "height": 1.2
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-random-move.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_move_random.script" },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1.25 }, "max": { "y": 1.25 } } },
         { "$type": "AssetPrefabTrait_Status", "effectJoint": "Hips", "burnable": true }
       ]
