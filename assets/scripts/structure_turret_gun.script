@@ -11,5 +11,7 @@ if(health(target) > 0) {
   var los = line_of_sight(me, target, losRadius)
   if(los != null && los <= target_range_max(me)) {
     attack(me, target)
+  } else {
+    attack(me, null)
   }
 }

@@ -122,7 +122,7 @@
           "originJoint": "RightHandMiddle1",
           "delay": 0.55,
           "damage": 25,
-          "radius": 1,
+          "radius": 1.25,
           "impactPrefab": "ImpactMelee"
         },
         {

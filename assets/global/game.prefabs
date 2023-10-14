@@ -161,6 +161,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_enemy.graphic" },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4.5,
@@ -197,7 +198,7 @@
             "height": 1.1
           }
         },
-        { "$type": "AssetPrefabTrait_Brain", "behaviorId": "behaviors/infantry-melee-auto.bt" },
+        { "$type": "AssetPrefabTrait_Script", "scriptId": "scripts/unit_melee.script" },
         {
           "$type": "AssetPrefabTrait_Taunt", "priority": 1,
           "tauntDeathPrefab": "TauntDeathInfantryEnemy"
