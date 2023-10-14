@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
@@ -514,7 +515,11 @@ void scene_nav_travel_to_entity(SceneNavAgentComp* agent, const EcsEntityId targ
   agent->targetEntity = target;
 }
 
-void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
+void scene_nav_stop(SceneNavAgentComp* agent) {
+  agent->flags |= SceneNavAgent_Stop;
+  agent->targetEntity = 0;
+  agent->targetPos    = geo_vector(f32_max, f32_max, f32_max);
+}
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(world, entity, SceneNavBlockerComp);
