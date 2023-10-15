@@ -342,7 +342,10 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
     return;
   }
   for (u32 i = 0; i != script_var_count; ++i) {
-    if (scope->vars[i].id && !scope->vars[i].used) {
+    if (!scope->vars[i].id) {
+      break;
+    }
+    if (!scope->vars[i].used) {
       const ScriptDiag unusedDiag = {
           .type  = ScriptDiagType_Warning,
           .error = ScriptError_VarUnused,
