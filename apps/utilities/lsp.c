@@ -97,6 +97,15 @@ typedef struct {
   String          message;
 } LspDiag;
 
+typedef enum {
+  LspCompletionItemKind_Function = 3,
+} LspCompletionItemKind;
+
+typedef struct {
+  String                label;
+  LspCompletionItemKind kind;
+} LspCompletionItem;
+
 typedef struct {
   String  method;
   JsonVal params; // Optional, sentinel_u32 if unused.
@@ -270,6 +279,13 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
   json_add_field_lit(ctx->jDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
+  return obj;
+}
+
+static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, item->label));
+  json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
   return obj;
 }
 
@@ -615,7 +631,16 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
           fmt_int(lspPos.line + 1),
           fmt_int(lspPos.character + 1)));
 
-  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+  const LspCompletionItem items[] = {
+      {.label = string_lit("Hoeba"), .kind = LspCompletionItemKind_Function},
+      {.label = string_lit("Hop"), .kind = LspCompletionItemKind_Function},
+  };
+
+  const JsonVal itemsArr = json_add_array(ctx->jDoc);
+  for (u32 i = 0; i != array_elems(items); ++i) {
+    json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &items[i]));
+  }
+  lsp_send_response_success(ctx, req, itemsArr);
   return;
 
 InvalidParams:
