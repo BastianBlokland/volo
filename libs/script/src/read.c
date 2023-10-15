@@ -50,6 +50,7 @@ typedef struct {
   StringHash      idHash;
   u32             argCount;
   ScriptIntrinsic intr;
+  String          id;
 } ScriptBuiltinFunc;
 
 static ScriptBuiltinFunc g_scriptBuiltinFuncs[script_builtin_funcs_max];
@@ -61,6 +62,7 @@ static void script_builtin_func_add(const String id, const ScriptIntrinsic intr)
       .idHash   = string_hash(id),
       .argCount = script_intrinsic_arg_count(intr),
       .intr     = intr,
+      .id       = id,
   };
 }
 
@@ -1383,7 +1385,7 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   return res;
 }
 
-static void read_sym_push_builtin_consts(ScriptReadContext* ctx) {
+static void read_sym_push_builtin(ScriptReadContext* ctx) {
   if (!ctx->syms) {
     return;
   }
@@ -1391,6 +1393,13 @@ static void read_sym_push_builtin_consts(ScriptReadContext* ctx) {
     const ScriptSym sym = {
         .type  = ScriptSymType_BuiltinConstant,
         .label = g_scriptBuiltinConsts[i].id,
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+  for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
+    const ScriptSym sym = {
+        .type  = ScriptSymType_BuiltinFunction,
+        .label = g_scriptBuiltinFuncs[i].id,
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1442,7 +1451,7 @@ ScriptExpr script_read(
   };
   read_var_free_all(&ctx);
 
-  read_sym_push_builtin_consts(&ctx);
+  read_sym_push_builtin(&ctx);
 
   const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
   if (!sentinel_check(expr)) {
