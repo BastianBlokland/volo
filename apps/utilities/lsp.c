@@ -101,10 +101,11 @@ typedef struct {
 } LspDiag;
 
 typedef enum {
-  LspCompletionItemKind_Function = 3,
-  LspCompletionItemKind_Variable = 6,
-  LspCompletionItemKind_Keyword  = 14,
-  LspCompletionItemKind_Constant = 21,
+  LspCompletionItemKind_Function    = 3,
+  LspCompletionItemKind_Constructor = 4,
+  LspCompletionItemKind_Variable    = 6,
+  LspCompletionItemKind_Keyword     = 14,
+  LspCompletionItemKind_Constant    = 21,
 } LspCompletionItemKind;
 
 typedef struct {
@@ -672,6 +673,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
       completionItem.kind = LspCompletionItemKind_Constant;
       break;
     case ScriptSymType_BuiltinFunction:
+      // NOTE: This is taking some creative liberties with the 'Constructor' meaning.
+      completionItem.kind = LspCompletionItemKind_Constructor;
+      break;
     case ScriptSymType_ExternFunction:
       completionItem.kind = LspCompletionItemKind_Function;
       break;
