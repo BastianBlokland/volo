@@ -51,6 +51,7 @@ void script_sym_clear(ScriptSymBag* bag) {
 
 String script_sym_type_str(const ScriptSymType type) {
   static const String g_names[] = {
+      string_static("Keyword"),
       string_static("BuiltinConstant"),
       string_static("BuiltinFunction"),
       string_static("ExternFunction"),

@@ -11,6 +11,7 @@ typedef struct sAllocator Allocator;
 typedef u16 ScriptSymId;
 
 typedef enum {
+  ScriptSymType_Keyword,
   ScriptSymType_BuiltinConstant,
   ScriptSymType_BuiltinFunction,
   ScriptSymType_ExternFunction,

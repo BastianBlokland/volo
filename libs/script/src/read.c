@@ -1385,6 +1385,19 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
   return res;
 }
 
+static void read_sym_push_keywords(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
+    const ScriptSym sym = {
+        .type  = ScriptSymType_Keyword,
+        .label = script_lex_keyword_data()[i].id,
+    };
+    script_sym_push(ctx->syms, &sym);
+  }
+}
+
 static void read_sym_push_builtin(ScriptReadContext* ctx) {
   if (!ctx->syms) {
     return;
@@ -1465,6 +1478,7 @@ ScriptExpr script_read(
   };
   read_var_free_all(&ctx);
 
+  read_sym_push_keywords(&ctx);
   read_sym_push_builtin(&ctx);
   read_sym_push_extern(&ctx);
 

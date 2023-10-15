@@ -8,11 +8,6 @@
 #define script_token_err(_ERR_)                                                                    \
   (ScriptToken) { .type = ScriptTokenType_Error, .val_error = (_ERR_) }
 
-typedef struct {
-  String          id;
-  ScriptTokenType token;
-} ScriptLexKeyword;
-
 static const ScriptLexKeyword g_lexKeywords[] = {
     {.id = string_static("if"), .token = ScriptTokenType_If},
     {.id = string_static("else"), .token = ScriptTokenType_Else},
@@ -404,6 +399,9 @@ String script_lex_trim(String str) {
   }
   return string_empty;
 }
+
+u32                     script_lex_keyword_count() { return (u32)array_elems(g_lexKeywords); }
+const ScriptLexKeyword* script_lex_keyword_data() { return g_lexKeywords; }
 
 bool script_token_equal(const ScriptToken* a, const ScriptToken* b) {
   if (a->type != b->type) {
