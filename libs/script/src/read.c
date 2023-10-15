@@ -1578,7 +1578,7 @@ ScriptExpr script_read(
   const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
 #ifndef VOLO_FAST
   if (diags) {
-    const bool hasErrDiag = script_diag_count_of_type(diags, ScriptDiagType_Error);
+    const bool hasErrDiag = script_diag_count(diags, ScriptDiagFilter_Error);
     diag_assert_msg(!fail || hasErrDiag, "No error diagnostic was produced for a failed read");
     diag_assert_msg(fail || !hasErrDiag, "Error diagnostic was produced for a successful read");
   }

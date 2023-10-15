@@ -263,7 +263,8 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
 
   const ScriptExpr expr = script_read(script, repl_bind_init(), input, diags, syms);
 
-  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
     repl_output_diag(input, script_diag_data(diags) + i, id);
   }
   if (flags & ReplFlags_OutputSymbols) {

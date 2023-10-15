@@ -1068,10 +1068,10 @@ spec(read) {
       script_diag_clear(diags);
       script_read(doc, binder, g_testData[i].input, diags, symsNull);
 
-      const u32 errorCount = script_diag_count_of_type(diags, ScriptDiagType_Error);
+      const u32 errorCount = script_diag_count(diags, ScriptDiagFilter_Error);
       check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
 
-      const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
+      const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
       check_msg(
           diag->error == g_testData[i].expected,
           "{} == {} [{}]",
@@ -1094,8 +1094,8 @@ spec(read) {
     script_diag_clear(diags);
     script_read(doc, binder, dynstring_view(&str), diags, symsNull);
 
-    check_require(script_diag_count(diags) == 1);
-    const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
+    check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
+    const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
     check_eq_int(diag->error, ScriptError_RecursionLimitExceeded);
 
     dynstring_destroy(&str);
@@ -1110,8 +1110,8 @@ spec(read) {
     script_diag_clear(diags);
     script_read(doc, binder, dynstring_view(&str), diags, symsNull);
 
-    check_require(script_diag_count_of_type(diags, ScriptDiagType_Error) == 1);
-    const ScriptDiag* diag = script_diag_first_of_type(diags, ScriptDiagType_Error);
+    check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
+    const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
     check_eq_int(diag->error, ScriptError_VarLimitExceeded);
 
     dynstring_destroy(&str);
@@ -1134,7 +1134,7 @@ spec(read) {
       script_diag_clear(diags);
       script_read(doc, binder, input, diags, symsNull);
 
-      check_require(script_diag_count(diags) == 1);
+      check_require(script_diag_count(diags, ScriptDiagFilter_All) == 1);
 
       const ScriptDiag*      diag       = script_diag_data(diags);
       const ScriptPosLineCol rangeStart = script_pos_to_line_col(input, diag->range.start);

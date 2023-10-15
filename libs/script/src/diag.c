@@ -27,21 +27,22 @@ bool script_diag_active(const ScriptDiagBag* bag, const ScriptDiagType type) {
 
 const ScriptDiag* script_diag_data(const ScriptDiagBag* bag) { return bag->values; }
 
-u32 script_diag_count(const ScriptDiagBag* bag) { return bag->count; }
-
-u32 script_diag_count_of_type(const ScriptDiagBag* bag, const ScriptDiagType type) {
+u32 script_diag_count(const ScriptDiagBag* bag, const ScriptDiagFilter filter) {
+  if (filter == ScriptDiagFilter_All) {
+    return bag->count;
+  }
   u32 count = 0;
   for (u32 i = 0; i != bag->count; ++i) {
-    if (bag->values[i].type == type) {
+    if (filter & (1 << bag->values[i].type)) {
       ++count;
     }
   }
   return count;
 }
 
-const ScriptDiag* script_diag_first_of_type(const ScriptDiagBag* bag, const ScriptDiagType type) {
+const ScriptDiag* script_diag_first(const ScriptDiagBag* bag, const ScriptDiagFilter filter) {
   for (u32 i = 0; i != bag->count; ++i) {
-    if (bag->values[i].type == type) {
+    if (filter & (1 << bag->values[i].type)) {
       return &bag->values[i];
     }
   }

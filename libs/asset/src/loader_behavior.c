@@ -214,7 +214,8 @@ static AssetAiNodeCondition build_node_condition(BuildContext* ctx, const AssetA
   const String     src  = def->data_condition.script;
   const ScriptExpr expr = script_read(ctx->scriptDoc, binderNull, src, diags, symsNull);
 
-  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      err  = script_diag_pretty_scratch(src, diag);
     log_e("Condition script error", log_param("error", fmt_text(err)));
@@ -243,7 +244,8 @@ static AssetAiNodeExecute build_node_execute(BuildContext* ctx, const AssetAiNod
   const String     src  = def->data_condition.script;
   const ScriptExpr expr = script_read(ctx->scriptDoc, binderNull, src, diags, symsNull);
 
-  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      err  = script_diag_pretty_scratch(def->data_condition.script, diag);
     log_e("Execute script error", log_param("error", fmt_text(err)));

@@ -487,8 +487,9 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
-  LspDiag lspDiags[script_diag_max];
-  for (u32 i = 0; i != script_diag_count(doc->scriptDiags); ++i) {
+  LspDiag   lspDiags[script_diag_max];
+  const u32 lspDiagCount = script_diag_count(doc->scriptDiags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != lspDiagCount; ++i) {
     const ScriptDiag*      diag       = script_diag_data(doc->scriptDiags) + i;
     const ScriptPosLineCol rangeStart = script_pos_to_line_col(doc->text, diag->range.start);
     const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(doc->text, diag->range.end);
@@ -518,7 +519,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
         .message               = script_diag_msg_scratch(doc->text, diag),
     };
   }
-  lsp_send_diagnostics(ctx, doc->identifier, lspDiags, script_diag_count(doc->scriptDiags));
+  lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
 }
 
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {

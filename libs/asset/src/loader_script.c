@@ -100,7 +100,8 @@ void asset_load_script(
 
   const ScriptExpr expr = script_read(doc, g_scriptBinder, src->data, diags, symsNull);
 
-  for (u32 i = 0; i != script_diag_count(diags); ++i) {
+  const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
+  for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      msg  = script_diag_pretty_scratch(src->data, diag);
     log_e("Script error", log_param("error", fmt_text(msg)));
