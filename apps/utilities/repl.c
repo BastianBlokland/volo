@@ -267,8 +267,8 @@ static void repl_exec(ScriptMem* mem, const ReplFlags flags, const String input,
     repl_output_diag(input, script_diag_data(diags) + i, id);
   }
   if (flags & ReplFlags_OutputSymbols) {
-    ScriptSymId itr = script_sym_first(syms);
-    for (; !sentinel_check(itr); itr = script_sym_next(syms, itr)) {
+    ScriptSymId itr = script_sym_first(syms, script_pos_sentinel);
+    for (; !sentinel_check(itr); itr = script_sym_next(syms, script_pos_sentinel, itr)) {
       repl_output_sym(script_sym_data(syms, itr));
     }
   }

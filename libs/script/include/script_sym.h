@@ -36,8 +36,8 @@ void        script_sym_clear(ScriptSymBag*);
 String           script_sym_type_str(ScriptSymType);
 const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
 
-ScriptSymId script_sym_first(const ScriptSymBag*);
-ScriptSymId script_sym_next(const ScriptSymBag*, ScriptSymId);
+ScriptSymId script_sym_first(const ScriptSymBag*, ScriptPos);
+ScriptSymId script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSymId);
 
 void   script_sym_write(DynString*, const ScriptSym*);
 String script_sym_scratch(const ScriptSym*);
