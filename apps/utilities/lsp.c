@@ -644,7 +644,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
 
   ScriptSymId itr = script_sym_first(doc->scriptSyms);
-  for (; sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, itr)) {
+  for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, itr)) {
     const ScriptSym*  sym            = script_sym_data(doc->scriptSyms, itr);
     LspCompletionItem completionItem = {.label = sym->label};
     switch (sym->type) {
@@ -653,6 +653,8 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
       break;
     case ScriptSymType_BuiltinFunction:
       completionItem.kind = LspCompletionItemKind_Function;
+      break;
+    case ScriptSymType_Count:
       break;
     }
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
