@@ -8,6 +8,8 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'script_val.h'.
 typedef union uScriptVal ScriptVal;
 
+#define script_binder_slot_sentinel sentinel_u32
+
 typedef u32 ScriptBinderSlot;
 typedef u64 ScriptBinderSignature;
 
@@ -58,10 +60,17 @@ ScriptBinderSignature script_binder_sig(const ScriptBinder*);
 
 /**
  * Lookup a function by name.
- * NOTE: Returns sentinel_u32 if no function was found with the given name.
+ * NOTE: Returns 'script_binder_slot_sentinel' if no function was found with the given name.
  * Pre-condition: Binder has been finalized.
  */
 ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
+
+/**
+ * Iterate over the bound slots.
+ * Pre-condition: Binder has been finalized.
+ */
+ScriptBinderSlot script_binder_first(const ScriptBinder*);
+ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Execute a bound function.

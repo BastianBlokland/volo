@@ -92,7 +92,20 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   const StringHash* itr = search_binary_t(
       binder->names, binder->names + binder->count, StringHash, compare_stringhash, &name);
 
-  return itr ? (u32)(itr - binder->names) : sentinel_u32;
+  return itr ? (u32)(itr - binder->names) : script_binder_slot_sentinel;
+}
+
+ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  return binder->count ? 0 : script_binder_slot_sentinel;
+}
+
+ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBinderSlot itr) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  if (itr >= (binder->count - 1)) {
+    return script_binder_slot_sentinel;
+  }
+  return itr + 1;
 }
 
 ScriptVal script_binder_exec(
