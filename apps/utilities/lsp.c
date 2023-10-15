@@ -600,8 +600,12 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
   json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
 
+  const JsonVal completionTriggerCharArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, completionTriggerCharArr, json_add_string_lit(ctx->jDoc, "$"));
+
   const JsonVal completionOpts = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, completionOpts, "resolveProvider", json_add_bool(ctx->jDoc, false));
+  json_add_field_lit(ctx->jDoc, completionOpts, "triggerCharacters", completionTriggerCharArr);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
