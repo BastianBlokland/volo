@@ -111,6 +111,7 @@ typedef enum {
 
 typedef struct {
   String                label;
+  String                labelDescription;
   LspCompletionItemKind kind;
 } LspCompletionItem;
 
@@ -304,8 +305,19 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
 }
 
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
+  JsonVal labelDetailsObj = sentinel_u32;
+  if (!string_is_empty(item->labelDescription)) {
+    labelDetailsObj = json_add_object(ctx->jDoc);
+
+    const JsonVal descVal = json_add_string(ctx->jDoc, item->labelDescription);
+    json_add_field_lit(ctx->jDoc, labelDetailsObj, "description", descVal);
+  }
+
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "label", json_add_string(ctx->jDoc, item->label));
+  if (!sentinel_check(labelDetailsObj)) {
+    json_add_field_lit(ctx->jDoc, obj, "labelDetails", labelDetailsObj);
+  }
   json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, item->kind));
   return obj;
 }
@@ -633,6 +645,27 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
+static LspCompletionItemKind lsp_completion_kind_for_sym(const ScriptSym* sym) {
+  switch (sym->type) {
+  case ScriptSymType_Keyword:
+    return LspCompletionItemKind_Keyword;
+  case ScriptSymType_BuiltinConstant:
+    return LspCompletionItemKind_Constant;
+  case ScriptSymType_BuiltinFunction:
+    // NOTE: This is taking some creative liberties with the 'Constructor' meaning.
+    return LspCompletionItemKind_Constructor;
+  case ScriptSymType_ExternFunction:
+    return LspCompletionItemKind_Function;
+  case ScriptSymType_Variable:
+    return LspCompletionItemKind_Variable;
+  case ScriptSymType_MemoryKey:
+    return LspCompletionItemKind_Property;
+  case ScriptSymType_Count:
+    break;
+  }
+  diag_crash();
+}
+
 static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
@@ -669,30 +702,11 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   ScriptSymId itr = script_sym_first(doc->scriptSyms, pos);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, pos, itr)) {
     const ScriptSym*  sym            = script_sym_data(doc->scriptSyms, itr);
-    LspCompletionItem completionItem = {.label = sym->label};
-    switch (sym->type) {
-    case ScriptSymType_Keyword:
-      completionItem.kind = LspCompletionItemKind_Keyword;
-      break;
-    case ScriptSymType_BuiltinConstant:
-      completionItem.kind = LspCompletionItemKind_Constant;
-      break;
-    case ScriptSymType_BuiltinFunction:
-      // NOTE: This is taking some creative liberties with the 'Constructor' meaning.
-      completionItem.kind = LspCompletionItemKind_Constructor;
-      break;
-    case ScriptSymType_ExternFunction:
-      completionItem.kind = LspCompletionItemKind_Function;
-      break;
-    case ScriptSymType_Variable:
-      completionItem.kind = LspCompletionItemKind_Variable;
-      break;
-    case ScriptSymType_MemoryKey:
-      completionItem.kind = LspCompletionItemKind_Property;
-      break;
-    case ScriptSymType_Count:
-      break;
-    }
+    LspCompletionItem completionItem = {
+        .label            = sym->label,
+        .labelDescription = script_sym_type_str(sym->type),
+        .kind             = lsp_completion_kind_for_sym(sym),
+    };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }
   lsp_send_response_success(ctx, req, itemsArr);
