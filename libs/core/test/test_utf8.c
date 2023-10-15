@@ -62,7 +62,7 @@ spec(utf8) {
     dynstring_destroy(&string);
   }
 
-  it("can decode codecpoints from utf8") {
+  it("can decode codepoints from utf8") {
     struct {
       String  utf8;
       Unicode expected;

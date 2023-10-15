@@ -18,15 +18,40 @@ INLINE_HINT static String utf8_consume_bytes(const String str, const usize amoun
 
 INLINE_HINT static bool utf8_cp_valid(const Unicode cp) { return cp <= utf8_cp_max; }
 
-bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
+INLINE_HINT bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
 
-bool utf8_validate(String str) {
-  Unicode cp;
-  while (!string_is_empty(str)) {
-    str = utf8_cp_read(str, &cp);
-    if (!cp) {
-      return false;
+bool utf8_validate(const String str) {
+  const u8* chars    = string_begin(str);
+  const u8* charsEnd = string_end(str);
+  while (chars != charsEnd) {
+    const usize charCount = utf8_cp_bytes_from_first(chars[0]);
+    if (UNLIKELY((usize)(charsEnd - chars) < charCount)) {
+      return false; // Not enough characters left for this code-point.
     }
+    switch (charCount) {
+    case 4:
+      if (UNLIKELY(!utf8_contchar(chars[3]))) {
+        return false; // Invalid continuation character.
+      }
+      // Fallthrough.
+    case 3:
+      if (UNLIKELY(!utf8_contchar(chars[2]))) {
+        return false; // Invalid continuation character.
+      }
+      // Fallthrough.
+    case 2:
+      if (UNLIKELY(!utf8_contchar(chars[1]))) {
+        return false; // Invalid continuation character.
+      }
+      // Fallthrough.
+    case 1:
+      break; // Valid code-point.
+    case 0:
+      return false; // Invalid starting character.
+    default:
+      UNREACHABLE
+    }
+    chars += charCount;
   }
   return true;
 }
@@ -108,7 +133,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
     *out = 0;
     return string_empty;
   }
-  u8* chars = string_begin(utf8);
+  const u8* chars = string_begin(utf8);
 
   // Find out how many utf8 characters this codepoint consists.
   const usize charCount = utf8_cp_bytes_from_first(chars[0]);
