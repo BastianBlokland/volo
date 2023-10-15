@@ -94,15 +94,26 @@ ScriptSymId script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, Script
   return script_sym_sentinel;
 }
 
-void script_sym_write(DynString* out, const ScriptSym* sym) {
-  fmt_write(out, "[{}] {}", fmt_text(script_sym_type_str(sym->type)), fmt_text(sym->label));
+void script_sym_write(DynString* out, const String sourceText, const ScriptSym* sym) {
+  const ScriptPosLineCol validStart = script_pos_to_line_col(sourceText, sym->validRange.start);
+  const ScriptPosLineCol validEnd   = script_pos_to_line_col(sourceText, sym->validRange.end);
+
+  fmt_write(
+      out,
+      "[{}] {} ({}:{}-{}:{})",
+      fmt_text(script_sym_type_str(sym->type)),
+      fmt_text(sym->label),
+      fmt_int(validStart.line + 1),
+      fmt_int(validStart.column + 1),
+      fmt_int(validEnd.line + 1),
+      fmt_int(validEnd.column + 1));
 }
 
-String script_sym_scratch(const ScriptSym* sym) {
+String script_sym_scratch(const String sourceText, const ScriptSym* sym) {
   Mem       bufferMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_sym_write(&buffer, sym);
+  script_sym_write(&buffer, sourceText, sym);
 
   return dynstring_view(&buffer);
 }
