@@ -5,7 +5,7 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-#define script_syms_max 1024
+#define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
 
 typedef u16 ScriptSymId;
