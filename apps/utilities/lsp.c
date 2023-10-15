@@ -252,6 +252,20 @@ static JsonVal lsp_position_to_json(LspContext* ctx, const LspPosition* pos) {
   return obj;
 }
 
+static bool lsp_position_from_json(LspContext* ctx, const JsonVal val, LspPosition* out) {
+  const JsonVal line = lsp_maybe_field(ctx, val, string_lit("line"));
+  if (sentinel_check(line) || json_type(ctx->jDoc, line) != JsonType_Number) {
+    return false;
+  }
+  const JsonVal character = lsp_maybe_field(ctx, val, string_lit("character"));
+  if (sentinel_check(character) || json_type(ctx->jDoc, character) != JsonType_Number) {
+    return false;
+  }
+  out->line      = (u16)json_number(ctx->jDoc, line);
+  out->character = (u16)json_number(ctx->jDoc, character);
+  return true;
+}
+
 static JsonVal lsp_range_to_json(LspContext* ctx, const LspRange* range) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
@@ -452,7 +466,7 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
 
   lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
 
-  if (lsp_doc_find(ctx, uri)) {
+  if (UNLIKELY(lsp_doc_find(ctx, uri))) {
     lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
     return;
   }
@@ -479,7 +493,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(uri)));
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
-  if (doc) {
+  if (LIKELY(doc)) {
     lsp_handle_doc_update(ctx, doc, text);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
@@ -499,7 +513,7 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
   lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
-  if (doc) {
+  if (LIKELY(doc)) {
     lsp_doc_close(ctx, doc);
     lsp_send_diagnostics(ctx, uri, null, 0);
   } else {
@@ -577,6 +591,34 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
 }
 
 static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal lspPosVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  LspPosition   lspPos;
+  if (UNLIKELY(!lsp_position_from_json(ctx, lspPosVal, &lspPos))) {
+    goto InvalidParams;
+  }
+
+  LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  lsp_send_trace(
+      ctx,
+      fmt_write_scratch(
+          "Complete: {} [{}:{}]",
+          fmt_text(uri),
+          fmt_int(lspPos.line + 1),
+          fmt_int(lspPos.character + 1)));
+
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+  return;
+
+InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
