@@ -652,6 +652,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
       completionItem.kind = LspCompletionItemKind_Constant;
       break;
     case ScriptSymType_BuiltinFunction:
+    case ScriptSymType_ExternFunction:
       completionItem.kind = LspCompletionItemKind_Function;
       break;
     case ScriptSymType_Count:
@@ -710,34 +711,34 @@ static ScriptBinder* lsp_script_binder_create() {
   ScriptBinder* binder = script_binder_create(g_alloc_heap);
 
   // TODO: Instead of manually listing the supported bindings here we should read them from a file.
-  script_binder_declare(binder, string_hash_lit("self"), null);
-  script_binder_declare(binder, string_hash_lit("exists"), null);
-  script_binder_declare(binder, string_hash_lit("position"), null);
-  script_binder_declare(binder, string_hash_lit("rotation"), null);
-  script_binder_declare(binder, string_hash_lit("scale"), null);
-  script_binder_declare(binder, string_hash_lit("name"), null);
-  script_binder_declare(binder, string_hash_lit("faction"), null);
-  script_binder_declare(binder, string_hash_lit("health"), null);
-  script_binder_declare(binder, string_hash_lit("time"), null);
-  script_binder_declare(binder, string_hash_lit("nav_query"), null);
-  script_binder_declare(binder, string_hash_lit("nav_target"), null);
-  script_binder_declare(binder, string_hash_lit("line_of_sight"), null);
-  script_binder_declare(binder, string_hash_lit("capable"), null);
-  script_binder_declare(binder, string_hash_lit("active"), null);
-  script_binder_declare(binder, string_hash_lit("target_primary"), null);
-  script_binder_declare(binder, string_hash_lit("target_range_min"), null);
-  script_binder_declare(binder, string_hash_lit("target_range_max"), null);
-  script_binder_declare(binder, string_hash_lit("spawn"), null);
-  script_binder_declare(binder, string_hash_lit("destroy"), null);
-  script_binder_declare(binder, string_hash_lit("destroy_after"), null);
-  script_binder_declare(binder, string_hash_lit("teleport"), null);
-  script_binder_declare(binder, string_hash_lit("nav_travel"), null);
-  script_binder_declare(binder, string_hash_lit("nav_stop"), null);
-  script_binder_declare(binder, string_hash_lit("attach"), null);
-  script_binder_declare(binder, string_hash_lit("detach"), null);
-  script_binder_declare(binder, string_hash_lit("damage"), null);
-  script_binder_declare(binder, string_hash_lit("attack"), null);
-  script_binder_declare(binder, string_hash_lit("debug_log"), null);
+  script_binder_declare(binder, string_lit("self"), null);
+  script_binder_declare(binder, string_lit("exists"), null);
+  script_binder_declare(binder, string_lit("position"), null);
+  script_binder_declare(binder, string_lit("rotation"), null);
+  script_binder_declare(binder, string_lit("scale"), null);
+  script_binder_declare(binder, string_lit("name"), null);
+  script_binder_declare(binder, string_lit("faction"), null);
+  script_binder_declare(binder, string_lit("health"), null);
+  script_binder_declare(binder, string_lit("time"), null);
+  script_binder_declare(binder, string_lit("nav_query"), null);
+  script_binder_declare(binder, string_lit("nav_target"), null);
+  script_binder_declare(binder, string_lit("line_of_sight"), null);
+  script_binder_declare(binder, string_lit("capable"), null);
+  script_binder_declare(binder, string_lit("active"), null);
+  script_binder_declare(binder, string_lit("target_primary"), null);
+  script_binder_declare(binder, string_lit("target_range_min"), null);
+  script_binder_declare(binder, string_lit("target_range_max"), null);
+  script_binder_declare(binder, string_lit("spawn"), null);
+  script_binder_declare(binder, string_lit("destroy"), null);
+  script_binder_declare(binder, string_lit("destroy_after"), null);
+  script_binder_declare(binder, string_lit("teleport"), null);
+  script_binder_declare(binder, string_lit("nav_travel"), null);
+  script_binder_declare(binder, string_lit("nav_stop"), null);
+  script_binder_declare(binder, string_lit("attach"), null);
+  script_binder_declare(binder, string_lit("detach"), null);
+  script_binder_declare(binder, string_lit("damage"), null);
+  script_binder_declare(binder, string_lit("attack"), null);
+  script_binder_declare(binder, string_lit("debug_log"), null);
 
   script_binder_finalize(binder);
   return binder;

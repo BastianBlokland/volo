@@ -449,9 +449,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args) {
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity};
   const SceneQueryFilter         filter    = {
-      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-      .callback  = eval_line_of_sight_filter,
-      .context   = &filterCtx,
+                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+                 .callback  = eval_line_of_sight_filter,
+                 .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_number(args, 2, 0.0);
@@ -680,7 +680,7 @@ static ScriptBinder* g_scriptBinder;
 
 typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs);
 
-static void eval_bind(ScriptBinder* b, const StringHash name, SceneScriptBinderFunc f) {
+static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
   // NOTE: Func pointer cast is needed to type-erase the context type.
   script_binder_declare(b, name, (ScriptBinderFunc)f);
 }
@@ -701,34 +701,34 @@ static void eval_binder_init() {
     eval_enum_init_activity();
 
     // clang-format off
-    eval_bind(b, string_hash_lit("self"),               eval_self);
-    eval_bind(b, string_hash_lit("exists"),             eval_exists);
-    eval_bind(b, string_hash_lit("position"),           eval_position);
-    eval_bind(b, string_hash_lit("rotation"),           eval_rotation);
-    eval_bind(b, string_hash_lit("scale"),              eval_scale);
-    eval_bind(b, string_hash_lit("name"),               eval_name);
-    eval_bind(b, string_hash_lit("faction"),            eval_faction);
-    eval_bind(b, string_hash_lit("health"),             eval_health);
-    eval_bind(b, string_hash_lit("time"),               eval_time);
-    eval_bind(b, string_hash_lit("nav_query"),          eval_nav_query);
-    eval_bind(b, string_hash_lit("nav_target"),         eval_nav_target);
-    eval_bind(b, string_hash_lit("line_of_sight"),      eval_line_of_sight);
-    eval_bind(b, string_hash_lit("capable"),            eval_capable);
-    eval_bind(b, string_hash_lit("active"),             eval_active);
-    eval_bind(b, string_hash_lit("target_primary"),     eval_target_primary);
-    eval_bind(b, string_hash_lit("target_range_min"),   eval_target_range_min);
-    eval_bind(b, string_hash_lit("target_range_max"),   eval_target_range_max);
-    eval_bind(b, string_hash_lit("spawn"),              eval_spawn);
-    eval_bind(b, string_hash_lit("destroy"),            eval_destroy);
-    eval_bind(b, string_hash_lit("destroy_after"),      eval_destroy_after);
-    eval_bind(b, string_hash_lit("teleport"),           eval_teleport);
-    eval_bind(b, string_hash_lit("nav_travel"),         eval_nav_travel);
-    eval_bind(b, string_hash_lit("nav_stop"),           eval_nav_stop);
-    eval_bind(b, string_hash_lit("attach"),             eval_attach);
-    eval_bind(b, string_hash_lit("detach"),             eval_detach);
-    eval_bind(b, string_hash_lit("damage"),             eval_damage);
-    eval_bind(b, string_hash_lit("attack"),             eval_attack);
-    eval_bind(b, string_hash_lit("debug_log"),          eval_debug_log);
+    eval_bind(b, string_lit("self"),               eval_self);
+    eval_bind(b, string_lit("exists"),             eval_exists);
+    eval_bind(b, string_lit("position"),           eval_position);
+    eval_bind(b, string_lit("rotation"),           eval_rotation);
+    eval_bind(b, string_lit("scale"),              eval_scale);
+    eval_bind(b, string_lit("name"),               eval_name);
+    eval_bind(b, string_lit("faction"),            eval_faction);
+    eval_bind(b, string_lit("health"),             eval_health);
+    eval_bind(b, string_lit("time"),               eval_time);
+    eval_bind(b, string_lit("nav_query"),          eval_nav_query);
+    eval_bind(b, string_lit("nav_target"),         eval_nav_target);
+    eval_bind(b, string_lit("line_of_sight"),      eval_line_of_sight);
+    eval_bind(b, string_lit("capable"),            eval_capable);
+    eval_bind(b, string_lit("active"),             eval_active);
+    eval_bind(b, string_lit("target_primary"),     eval_target_primary);
+    eval_bind(b, string_lit("target_range_min"),   eval_target_range_min);
+    eval_bind(b, string_lit("target_range_max"),   eval_target_range_max);
+    eval_bind(b, string_lit("spawn"),              eval_spawn);
+    eval_bind(b, string_lit("destroy"),            eval_destroy);
+    eval_bind(b, string_lit("destroy_after"),      eval_destroy_after);
+    eval_bind(b, string_lit("teleport"),           eval_teleport);
+    eval_bind(b, string_lit("nav_travel"),         eval_nav_travel);
+    eval_bind(b, string_lit("nav_stop"),           eval_nav_stop);
+    eval_bind(b, string_lit("attach"),             eval_attach);
+    eval_bind(b, string_lit("detach"),             eval_detach);
+    eval_bind(b, string_lit("damage"),             eval_damage);
+    eval_bind(b, string_lit("attack"),             eval_attack);
+    eval_bind(b, string_lit("debug_log"),          eval_debug_log);
     // clang-format on
 
     script_binder_finalize(b);

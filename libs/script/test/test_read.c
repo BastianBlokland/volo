@@ -20,8 +20,8 @@ spec(read) {
     diags = script_diag_bag_create(g_alloc_heap);
 
     binder = script_binder_create(g_alloc_heap);
-    script_binder_declare(binder, string_hash_lit("bind_test_1"), null);
-    script_binder_declare(binder, string_hash_lit("bind_test_2"), null);
+    script_binder_declare(binder, string_lit("bind_test_1"), null);
+    script_binder_declare(binder, string_lit("bind_test_2"), null);
     script_binder_finalize(binder);
   }
 

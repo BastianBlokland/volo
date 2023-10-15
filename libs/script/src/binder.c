@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_search.h"
 #include "core_sort.h"
+#include "core_stringtable.h"
 #include "script_binder.h"
 #include "script_val.h"
 
@@ -42,11 +43,11 @@ ScriptBinder* script_binder_create(Allocator* alloc) {
 void script_binder_destroy(ScriptBinder* binder) { alloc_free_t(binder->alloc, binder); }
 
 void script_binder_declare(
-    ScriptBinder* binder, const StringHash name, const ScriptBinderFunc func) {
+    ScriptBinder* binder, const String nameStr, const ScriptBinderFunc func) {
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
-  binder->names[binder->count] = name;
+  binder->names[binder->count] = stringtable_add(g_stringtable, nameStr);
   binder->funcs[binder->count] = func;
   ++binder->count;
 }
@@ -95,10 +96,12 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   return itr ? (u32)(itr - binder->names) : script_binder_slot_sentinel;
 }
 
-StringHash script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_name_str(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
-  return binder->names[slot];
+
+  // TODO: Using the global string-table for this is kinda questionable.
+  return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
 ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {

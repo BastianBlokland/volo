@@ -36,7 +36,7 @@ void script_binder_destroy(ScriptBinder*);
  * NOTE: Passing a null function is supported if the binder is only used for lookups.
  * Pre-condition: Binder has not been finalized.
  */
-void script_binder_declare(ScriptBinder*, StringHash name, ScriptBinderFunc);
+void script_binder_declare(ScriptBinder*, String nameStr, ScriptBinderFunc);
 
 /**
  * Finalize the binder for lookups and execution.
@@ -69,7 +69,7 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
  * Lookup a the  name for a slot.
  * Pre-condition: Binder has been finalized.
  */
-StringHash script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_name_str(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.
