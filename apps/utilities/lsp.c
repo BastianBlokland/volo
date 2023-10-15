@@ -49,6 +49,7 @@ typedef enum {
 
 typedef struct {
   String         identifier;
+  String         text;
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
@@ -138,9 +139,15 @@ static const JRpcError g_jrpcErrorInvalidParams = {
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_alloc_heap, doc->identifier);
+  string_maybe_free(g_alloc_heap, doc->text);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
+}
+
+static void lsp_doc_update_text(LspDocument* doc, const String text) {
+  string_maybe_free(g_alloc_heap, doc->text);
+  doc->text = string_maybe_dup(g_alloc_heap, text);
 }
 
 static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
@@ -152,11 +159,12 @@ static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
   return null;
 }
 
-static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier) {
+static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const String text) {
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
   *res = (LspDocument){
       .identifier  = string_dup(g_alloc_heap, identifier),
+      .text        = string_maybe_dup(g_alloc_heap, text),
       .scriptDoc   = script_create(g_alloc_heap),
       .scriptDiags = script_diag_bag_create(g_alloc_heap),
       .scriptSyms  = script_sym_bag_create(g_alloc_heap),
@@ -442,18 +450,18 @@ Error:
   ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
-static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const String text) {
+static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_clear(doc->scriptDoc);
   script_diag_clear(doc->scriptDiags);
   script_sym_clear(doc->scriptSyms);
 
-  script_read(doc->scriptDoc, ctx->scriptBinder, text, doc->scriptDiags, doc->scriptSyms);
+  script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
 
   LspDiag lspDiags[script_diag_max];
   for (u32 i = 0; i != script_diag_count(doc->scriptDiags); ++i) {
     const ScriptDiag*      diag       = script_diag_data(doc->scriptDiags) + i;
-    const ScriptPosLineCol rangeStart = script_pos_to_line_col(text, diag->range.start);
-    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(text, diag->range.end);
+    const ScriptPosLineCol rangeStart = script_pos_to_line_col(doc->text, diag->range.start);
+    const ScriptPosLineCol rangeEnd   = script_pos_to_line_col(doc->text, diag->range.end);
 
     LspDiagSeverity severity;
     switch (diag->type) {
@@ -477,7 +485,7 @@ static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const Strin
         .range.end.line        = rangeEnd.line,
         .range.end.character   = rangeEnd.column,
         .severity              = severity,
-        .message               = script_diag_msg_scratch(text, diag),
+        .message               = script_diag_msg_scratch(doc->text, diag),
     };
   }
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, script_diag_count(doc->scriptDiags));
@@ -497,8 +505,8 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
     lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
     return;
   }
-  LspDocument* doc = lsp_doc_open(ctx, uri);
-  lsp_handle_doc_update(ctx, doc, text);
+  LspDocument* doc = lsp_doc_open(ctx, uri, text);
+  lsp_analyze_doc(ctx, doc);
 
   lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   return;
@@ -521,7 +529,8 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
 
   LspDocument* doc = lsp_doc_find(ctx, uri);
   if (LIKELY(doc)) {
-    lsp_handle_doc_update(ctx, doc, text);
+    lsp_doc_update_text(doc, text);
+    lsp_analyze_doc(ctx, doc);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
   }
