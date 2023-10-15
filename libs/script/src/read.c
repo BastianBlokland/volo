@@ -341,7 +341,7 @@ static void read_emit_err(ScriptReadContext* ctx, const ScriptError err, const S
 }
 
 static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != script_var_count; ++i) {
@@ -530,7 +530,7 @@ static ScriptExpr read_fail_semantic(ScriptReadContext* ctx) {
 static ScriptExpr read_expr(ScriptReadContext*, OpPrecedence minPrecedence);
 
 static void read_emit_unnecessary_semicolon(ScriptReadContext* ctx, const ScriptPosRange sepRange) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   ScriptToken nextToken;
@@ -583,7 +583,7 @@ static void read_emit_no_effect(
     const ScriptExpr     exprs[],
     const ScriptPosRange exprRanges[],
     const u32            exprCount) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -605,7 +605,7 @@ static void read_emit_unreachable(
     const ScriptExpr     exprs[],
     const ScriptPosRange exprRanges[],
     const u32            exprCount) {
-  if (!ctx->diags) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
     return;
   }
   for (u32 i = 0; i != (exprCount - 1); ++i) {
@@ -956,7 +956,10 @@ read_expr_function(ScriptReadContext* ctx, const StringHash id, const ScriptPosR
 
 static void read_emit_static_condition(
     ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
-  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+    return;
+  }
+  if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticConditionDiag = {
         .type  = ScriptDiagType_Warning,
         .error = ScriptError_ConditionExprStatic,
@@ -1076,7 +1079,10 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
 
 static void read_emit_static_for_comp(
     ScriptReadContext* ctx, const ScriptExpr expr, const ScriptPosRange exprRange) {
-  if (ctx->diags && script_expr_static(ctx->doc, expr)) {
+  if (!ctx->diags || !script_diag_active(ctx->diags, ScriptDiagType_Warning)) {
+    return;
+  }
+  if (script_expr_static(ctx->doc, expr)) {
     const ScriptDiag staticForCompDiag = {
         .type  = ScriptDiagType_Warning,
         .error = ScriptError_ForLoopCompStatic,
