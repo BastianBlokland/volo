@@ -243,7 +243,7 @@ static String script_lex_string(String str, StringTable* stringtable, ScriptToke
   return script_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
 
-static String script_lex_identifier(String str, ScriptToken* out) {
+static String script_lex_identifier(const String str, ScriptToken* out) {
   const u32 end = script_scan_word_end(str);
   diag_assert(end);
 
