@@ -1,0 +1,33 @@
+#pragma once
+#include "core_string.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
+
+#define script_syms_max 1024
+#define script_sym_sentinel sentinel_u16
+
+typedef u16 ScriptSymId;
+
+typedef enum {
+  ScriptSymType_BuiltinConstant,
+  ScriptSymType_BuiltinFunction,
+} ScriptSymType;
+
+typedef struct {
+  ScriptSymType type;
+  String        label;
+} ScriptSym;
+
+typedef struct sScriptSymBag ScriptSymBag;
+
+ScriptSymBag* script_sym_bag_create(Allocator*);
+void          script_sym_bag_destroy(ScriptSymBag*);
+
+ScriptSymId script_sym_push(ScriptSymBag*, const ScriptSym*);
+void        script_sym_clear(ScriptSymBag*);
+
+const ScriptSym* script_sym_data(const ScriptSymBag*, ScriptSymId);
+
+ScriptSymId script_sym_first(const ScriptSymBag*);
+ScriptSymId script_sym_next(const ScriptSymBag*, ScriptSymId);

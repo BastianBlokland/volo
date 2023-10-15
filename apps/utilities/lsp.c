@@ -8,7 +8,7 @@
 #include "script_binder.h"
 #include "script_diag.h"
 #include "script_read.h"
-#include "script_symbol.h"
+#include "script_sym.h"
 
 /**
  * Language Server Protocol implementation for the Volo script language.
@@ -48,10 +48,10 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  String           identifier;
-  ScriptDoc*       scriptDoc;
-  ScriptDiagBag*   scriptDiags;
-  ScriptSymbolBag* scriptSyms;
+  String         identifier;
+  ScriptDoc*     scriptDoc;
+  ScriptDiagBag* scriptDiags;
+  ScriptSymBag*  scriptSyms;
 } LspDocument;
 
 typedef struct {
@@ -139,7 +139,7 @@ static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_alloc_heap, doc->identifier);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
-  script_symbol_bag_destroy(doc->scriptSyms);
+  script_sym_bag_destroy(doc->scriptSyms);
 }
 
 static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
@@ -158,7 +158,7 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier) {
       .identifier  = string_dup(g_alloc_heap, identifier),
       .scriptDoc   = script_create(g_alloc_heap),
       .scriptDiags = script_diag_bag_create(g_alloc_heap),
-      .scriptSyms  = script_symbol_bag_create(g_alloc_heap),
+      .scriptSyms  = script_sym_bag_create(g_alloc_heap),
   };
 
   return res;
@@ -444,7 +444,7 @@ Error:
 static void lsp_handle_doc_update(LspContext* ctx, LspDocument* doc, const String text) {
   script_clear(doc->scriptDoc);
   script_diag_clear(doc->scriptDiags);
-  script_symbol_clear(doc->scriptSyms);
+  script_sym_clear(doc->scriptSyms);
 
   script_read(doc->scriptDoc, ctx->scriptBinder, text, doc->scriptDiags);
 
@@ -643,15 +643,15 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
   const JsonVal itemsArr = json_add_array(ctx->jDoc);
 
-  ScriptSymbolId itr = script_symbol_first(doc->scriptSyms);
-  for (; sentinel_check(itr); itr = script_symbol_next(doc->scriptSyms, itr)) {
-    const ScriptSymbol* sym            = script_symbol_data(doc->scriptSyms, itr);
-    LspCompletionItem   completionItem = {.label = sym->label};
+  ScriptSymId itr = script_sym_first(doc->scriptSyms);
+  for (; sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, itr)) {
+    const ScriptSym*  sym            = script_sym_data(doc->scriptSyms, itr);
+    LspCompletionItem completionItem = {.label = sym->label};
     switch (sym->type) {
-    case ScriptSymbolType_BuiltinConstant:
+    case ScriptSymType_BuiltinConstant:
       completionItem.kind = LspCompletionItemKind_Constant;
       break;
-    case ScriptSymbolType_BuiltinFunction:
+    case ScriptSymType_BuiltinFunction:
       completionItem.kind = LspCompletionItemKind_Function;
       break;
     }
