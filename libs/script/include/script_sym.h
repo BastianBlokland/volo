@@ -16,6 +16,7 @@ typedef enum {
   ScriptSymType_BuiltinFunction,
   ScriptSymType_ExternFunction,
   ScriptSymType_Variable,
+  ScriptSymType_MemoryKey,
 
   ScriptSymType_Count,
 } ScriptSymType;

@@ -18,6 +18,7 @@
 #define script_args_max 10
 #define script_builtin_consts_max 32
 #define script_builtin_funcs_max 32
+#define script_tracked_mem_keys_max 32
 
 typedef struct {
   StringHash idHash;
@@ -291,6 +292,7 @@ typedef struct {
   ScriptSection       section : 8;
   u16                 recursionDepth;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
+  StringHash          trackedMemKeys[script_tracked_mem_keys_max];
 } ScriptReadContext;
 
 static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
@@ -465,6 +467,19 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
     }
   }
   return null;
+}
+
+static bool read_track_mem_key(ScriptReadContext* ctx, const StringHash key) {
+  for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
+    if (ctx->trackedMemKeys[i] == key) {
+      return true;
+    }
+    if (!ctx->trackedMemKeys[i]) {
+      ctx->trackedMemKeys[i] = key;
+      return true;
+    }
+  }
+  return false;
 }
 
 static ScriptToken read_peek(ScriptReadContext* ctx) {
@@ -1309,6 +1324,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Memory access.
    */
   case ScriptTokenType_Key: {
+    // TODO: Should failing to track be an error? Currently these are only used to report symbols.
+    read_track_mem_key(ctx, token.val_key);
+
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.type) {
@@ -1471,6 +1489,27 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
 }
 
+static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
+  if (!ctx->syms) {
+    return;
+  }
+  for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
+    if (!ctx->trackedMemKeys[i]) {
+      break;
+    }
+    // TODO: Using the global string-table for this is kinda questionable.
+    const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
+    if (!string_is_empty(keyStr)) {
+      const ScriptSym sym = {
+          .type       = ScriptSymType_MemoryKey,
+          .label      = fmt_write_scratch("${}", fmt_text(keyStr)),
+          .validRange = read_range_full(ctx),
+      };
+      script_sym_push(ctx->syms, &sym);
+    }
+  }
+}
+
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderSignature signature = script_binder_sig(binder);
   if (doc->binderSignature && doc->binderSignature != signature) {
@@ -1526,6 +1565,7 @@ ScriptExpr script_read(
     diag_assert_msg(read_peek(&ctx).type == ScriptTokenType_End, "Not all input consumed");
   }
 
+  read_sym_push_mem_keys(&ctx);
   read_sym_push_vars(&ctx, &scopeRoot);
   read_emit_unused_vars(&ctx, &scopeRoot);
 

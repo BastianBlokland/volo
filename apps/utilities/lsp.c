@@ -104,6 +104,7 @@ typedef enum {
   LspCompletionItemKind_Function    = 3,
   LspCompletionItemKind_Constructor = 4,
   LspCompletionItemKind_Variable    = 6,
+  LspCompletionItemKind_Property    = 10,
   LspCompletionItemKind_Keyword     = 14,
   LspCompletionItemKind_Constant    = 21,
 } LspCompletionItemKind;
@@ -681,6 +682,9 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
       break;
     case ScriptSymType_Variable:
       completionItem.kind = LspCompletionItemKind_Variable;
+      break;
+    case ScriptSymType_MemoryKey:
+      completionItem.kind = LspCompletionItemKind_Property;
       break;
     case ScriptSymType_Count:
       break;
