@@ -155,7 +155,7 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
     case '.':
       if (UNLIKELY(passedDecPoint)) {
         lastChar = ch;
-        str      = mem_consume(str, 1);
+        str      = script_consume_chars(str, 1);
         goto NumberEnd;
       }
       passedDecPoint = true;
@@ -185,7 +185,7 @@ static String script_lex_number_positive(String str, ScriptToken* out) {
       break;
     }
     lastChar = ch;
-    str      = mem_consume(str, 1);
+    str      = script_consume_chars(str, 1);
   }
 
 NumberEnd:
