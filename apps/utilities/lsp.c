@@ -485,7 +485,16 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_diag_clear(doc->scriptDiags);
   script_sym_clear(doc->scriptSyms);
 
+  const TimeSteady readStartTime = time_steady_clock();
+
   script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
+
+  const TimeDuration readDur = time_steady_duration(readStartTime, time_steady_clock());
+
+  lsp_send_trace(
+      ctx,
+      fmt_write_scratch(
+          "Document parsed: {} ({})", fmt_text(doc->identifier), fmt_duration(readDur)));
 
   LspDiag   lspDiags[script_diag_max];
   const u32 lspDiagCount = script_diag_count(doc->scriptDiags, ScriptDiagFilter_All);
@@ -596,7 +605,7 @@ Error:
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
-    void   (*handler)(LspContext*, const JRpcNotification*);
+    void (*handler)(LspContext*, const JRpcNotification*);
   } g_handlers[] = {
       {string_static("initialized"), lsp_handle_notif_initialized},
       {string_static("exit"), lsp_handle_notif_exit},
@@ -737,7 +746,7 @@ InvalidParams:
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
-    void   (*handler)(LspContext*, const JRpcRequest*);
+    void (*handler)(LspContext*, const JRpcRequest*);
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
