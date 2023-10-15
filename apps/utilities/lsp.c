@@ -407,11 +407,11 @@ static void lsp_send_log(LspContext* ctx, const LspMessageType type, const Strin
 }
 
 static void lsp_send_info(LspContext* ctx, const String message) {
-  return lsp_send_log(ctx, LspMessageType_Info, message);
+  lsp_send_log(ctx, LspMessageType_Info, message);
 }
 
 static void lsp_send_error(LspContext* ctx, const String message) {
-  return lsp_send_log(ctx, LspMessageType_Error, message);
+  lsp_send_log(ctx, LspMessageType_Error, message);
 }
 
 static void lsp_send_diagnostics(
@@ -596,7 +596,7 @@ Error:
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
-    void (*handler)(LspContext*, const JRpcNotification*);
+    void   (*handler)(LspContext*, const JRpcNotification*);
   } g_handlers[] = {
       {string_static("initialized"), lsp_handle_notif_initialized},
       {string_static("exit"), lsp_handle_notif_exit},
@@ -737,7 +737,7 @@ InvalidParams:
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
-    void (*handler)(LspContext*, const JRpcRequest*);
+    void   (*handler)(LspContext*, const JRpcRequest*);
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
