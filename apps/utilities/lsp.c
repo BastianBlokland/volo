@@ -836,6 +836,8 @@ static i32 lsp_run_stdio() {
     JsonResult jsonResult;
     json_read(jDoc, content, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
+      const String jsonErr = json_error_str(jsonResult.error);
+      file_write_sync(g_file_stderr, fmt_write_scratch("lsp: Json-Error: {}\n", fmt_text(jsonErr)));
       ctx.status = LspStatus_ErrorInvalidJson;
       break;
     }
