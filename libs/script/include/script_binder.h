@@ -66,6 +66,12 @@ ScriptBinderSignature script_binder_sig(const ScriptBinder*);
 ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash name);
 
 /**
+ * Lookup a the  name for a slot.
+ * Pre-condition: Binder has been finalized.
+ */
+StringHash script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+
+/**
  * Iterate over the bound slots.
  * Pre-condition: Binder has been finalized.
  */

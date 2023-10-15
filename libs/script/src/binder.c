@@ -95,6 +95,12 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   return itr ? (u32)(itr - binder->names) : script_binder_slot_sentinel;
 }
 
+StringHash script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(slot < binder->count, "Invalid slot");
+  return binder->names[slot];
+}
+
 ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   return binder->count ? 0 : script_binder_slot_sentinel;
