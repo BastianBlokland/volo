@@ -312,6 +312,10 @@ static ScriptPosRange read_range_current(ScriptReadContext* ctx, const ScriptPos
   return script_pos_range(start, read_pos_current(ctx));
 }
 
+static ScriptPosRange read_range_full(ScriptReadContext* ctx) {
+  return script_pos_range_full(ctx->inputTotal);
+}
+
 static ScriptPosRange read_range_trim(ScriptReadContext* ctx, const ScriptPosRange range) {
   return script_pos_range(script_pos_trim(ctx->inputTotal, range.start), range.end);
 }
@@ -564,9 +568,9 @@ static void read_emit_unreachable(
       const ScriptPos  unreachableStart = exprRanges[i + 1].start;
       const ScriptPos  unreachableEnd   = exprRanges[exprCount - 1].end;
       const ScriptDiag unreachableDiag  = {
-           .type  = ScriptDiagType_Warning,
-           .error = ScriptError_ExprUnreachable,
-           .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
+          .type  = ScriptDiagType_Warning,
+          .error = ScriptError_ExprUnreachable,
+          .range = read_range_trim(ctx, script_pos_range(unreachableStart, unreachableEnd)),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1391,8 +1395,9 @@ static void read_sym_push_keywords(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != script_lex_keyword_count(); ++i) {
     const ScriptSym sym = {
-        .type  = ScriptSymType_Keyword,
-        .label = script_lex_keyword_data()[i].id,
+        .type       = ScriptSymType_Keyword,
+        .label      = script_lex_keyword_data()[i].id,
+        .validRange = read_range_full(ctx),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1404,15 +1409,17 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
     const ScriptSym sym = {
-        .type  = ScriptSymType_BuiltinConstant,
-        .label = g_scriptBuiltinConsts[i].id,
+        .type       = ScriptSymType_BuiltinConstant,
+        .label      = g_scriptBuiltinConsts[i].id,
+        .validRange = read_range_full(ctx),
     };
     script_sym_push(ctx->syms, &sym);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     const ScriptSym sym = {
-        .type  = ScriptSymType_BuiltinFunction,
-        .label = g_scriptBuiltinFuncs[i].id,
+        .type       = ScriptSymType_BuiltinFunction,
+        .label      = g_scriptBuiltinFuncs[i].id,
+        .validRange = read_range_full(ctx),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1425,8 +1432,9 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
     const ScriptSym sym = {
-        .type  = ScriptSymType_ExternFunction,
-        .label = script_binder_name_str(ctx->binder, itr),
+        .type       = ScriptSymType_ExternFunction,
+        .label      = script_binder_name_str(ctx->binder, itr),
+        .validRange = read_range_full(ctx),
     };
     script_sym_push(ctx->syms, &sym);
   }
@@ -1468,13 +1476,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

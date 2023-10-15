@@ -1,6 +1,6 @@
 #pragma once
 #include "core_dynstring.h"
-#include "core_string.h"
+#include "script_pos.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -20,8 +20,9 @@ typedef enum {
 } ScriptSymType;
 
 typedef struct {
-  ScriptSymType type;
-  String        label;
+  ScriptSymType  type;
+  String         label;
+  ScriptPosRange validRange;
 } ScriptSym;
 
 typedef struct sScriptSymBag ScriptSymBag;
